@@ -105,9 +105,9 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (K, .kind) ->
   Judgment .prf Γ (∀[A] B, K)
 | arrow :
-  Judgment .prf Γ (A, ★) ->
-  Judgment .prf Γ (B, ★) ->
-  Judgment .prf Γ (A -t> B, ★)
+  Judgment .prf Γ (A, .const K1) ->
+  Judgment .prf Γ (B, .const K2) ->
+  Judgment .prf Γ (A -t> B, .const K2)
 | appk :
   Judgment .prf Γ (f, A -k> B) ->
   Judgment .prf Γ (a, A) ->
