@@ -129,7 +129,54 @@ namespace Term
   | insttype t1 t2 => insttype (smap lf f t1) (smap lf (lf f) t2)
   | inst n t1 t2 => inst n (smap lf f t1) (smap lf (lf f) t2)
 
+  @[simp]
+  def size : Term -> Nat
+  | var _ => 0
+  | nil => 0
+  | cons hd tl => (size hd) + (size tl) + 1
+  | kind => 0
+  | const _ => 0
+  | arrowk t1 t2 => (size t1) + (size t2) + 1
+  | all t1 t2 => (size t1) + (size t2) + 1
+  | arrow t1 t2 => (size t1) + (size t2) + 1
+  | appk t1 t2 => (size t1) + (size t2) + 1
+  | appt t1 t2 => (size t1) + (size t2) + 1
+  | app t1 t2 => (size t1) + (size t2) + 1
+  | lamt t1 t2 => (size t1) + (size t2) + 1
+  | lam t1 t2 => (size t1) + (size t2) + 1
+  | cast t1 t2 => (size t1) + (size t2) + 1
+  | case t1 t2 => (size t1) + (size t2) + 1
+  | branch t1 _ t2 => (size t1) + (size t2) + 1
+  | guard t1 _ t2 t3 => (size t1) + (size t2) + (size t3) + 1
+  | refl t => size t + 1
+  | sym t => size t + 1
+  | seq t1 t2 => (size t1) + (size t2) + 1
+  | appc t1 t2 => (size t1) + (size t2) + 1
+  | fst t => size t + 1
+  | snd t => size t + 1
+  | allc t1 t2 => (size t1) + (size t2) + 1
+  | apptc t1 t2 => (size t1) + (size t2) + 1
+  | eq t1 t2 => (size t1) + (size t2) + 1
+  | letopentype t1 t2 => (size t1) + (size t2) + 1
+  | letopen t1 t2 => (size t1) + (size t2) + 1
+  | letdata t1 _ t2 => (size t1) + (size t2) + 1
+  | letctor t1 t2 => (size t1) + (size t2) + 1
+  | insttype t1 t2 => (size t1) + (size t2) + 1
+  | inst _ t1 t2 => (size t1) + (size t2) + 1
+
+  @[simp]
+  def beq : Term -> Term -> Bool
+  | _, _ => sorry
 end Term
+
+@[simp]
+instance BEq_Term : BEq Term where
+  beq := Term.beq
+
+@[simp]
+instance LawfulBEq_Term : LawfulBEq Term where
+  eq_of_beq := sorry
+  rfl := sorry
 
 @[simp]
 instance substType_Term : SubstitutionType Term where
