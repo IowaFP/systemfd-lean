@@ -30,19 +30,23 @@ inductive Term : Type where
 | snd : Term -> Term
 | allc : Term -> Term -> Term
 | apptc : Term -> Term -> Term
+| arrowc : Term -> Term -> Term
 | eq : Term -> Term -> Term
 | letopentype : Term -> Term -> Term
 | letopen : Term -> Term -> Term
 | letdata : Term -> Nat -> Term -> Term
 | letctor : Term -> Term -> Term
+| letterm : Term -> Term -> Term -> Term
 | insttype : Term -> Term -> Term
 | inst : Nat -> Term -> Term -> Term
+
 deriving Repr
 
 notation "★" => Term.const Const.pointed
 notation "◯" => Term.const Const.unpointed
 infixr:14 " -k> " => Term.arrowk
 infixr:14 " -t> " => Term.arrow
+infixr:14 " -c> " => Term.arrowc
 notation:14 "∀[" A "]" B:14 => Term.all A B
 infixl:15 " `@k " => Term.appk
 infixl:15 " `@t " => Term.appt
@@ -96,6 +100,7 @@ namespace Term
   | kind => kind
   | const k => const k
   | arrowk t1 t2 => arrowk (smap lf f t1) (smap lf f t2)
+  | arrowc t1 t2 => arrowc (smap lf f t1) (smap lf f t2)
   | all t1 t2 => all (smap lf f t1) (smap lf (lf f) t2)
   | arrow t1 t2 => arrow (smap lf f t1) (smap lf f t2)
   | appk t1 t2 => appk (smap lf f t1) (smap lf f t2)
@@ -120,6 +125,7 @@ namespace Term
   | letopen t1 t2 => letopen (smap lf f t1) (smap lf (lf f) t2)
   | letdata t1 n t2 => letdata (smap lf f t1) n (smap lf (lf f) t2)
   | letctor t1 t2 => letctor (smap lf f t1) (smap lf (lf f) t2)
+  | letterm t1 t2 t3 => letterm (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
   | insttype t1 t2 => insttype (smap lf f t1) (smap lf (lf f) t2)
   | inst n t1 t2 => inst n (smap lf f t1) (smap lf (lf f) t2)
 
@@ -165,6 +171,9 @@ namespace Term
 
   @[simp]
   theorem subst_arrow : [σ]arrow t1 t2 = arrow ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
+
+ @[simp]
+  theorem subst_arrowc : [σ]arrowc t1 t2 = arrowc ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_appk : [σ]appk t1 t2 = appk ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
@@ -231,6 +240,9 @@ namespace Term
 
   @[simp]
   theorem subst_letctor: [σ]letctor t1 t2 = letctor ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp
+
+ @[simp]
+  theorem subst_letterm: [σ]letterm t1 t2 t3 = letterm ([σ]t1) ([σ]t2) ([^σ]t3) := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_insttype : [σ]insttype t1 t2 = insttype ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp

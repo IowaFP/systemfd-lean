@@ -14,6 +14,7 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
 | fst : Red Γ ((.fst (.refl (A `@k B))) :: tl) ((.refl A) :: tl)
 | snd : Red Γ ((.snd (.refl (A `@k B))) :: tl) ((.refl B) :: tl)
 | allc : Red Γ ((∀c[A] .refl B) :: tl) ((.refl (∀[A] B)) :: tl)
+| arrowc : Red Γ ((.refl A -c> .refl B) :: tl) ((.refl (A -t> B)) :: tl)
 ----------------------------------------------------------------
 ---- Case matching
 ----------------------------------------------------------------
@@ -62,6 +63,8 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
 | sym_congr : Red Γ (e::tl) (e'::tl) -> Red Γ ((.sym e)::tl) ((.sym e')::tl)
 | seq_congr1 : Red Γ (u::tl) (u'::tl) -> Red Γ ((u `; v)::tl) ((u' `; v)::tl)
 | seq_congr2 : Red Γ (v::tl) (v'::tl) -> Red Γ ((u `; v)::tl) ((u `; v')::tl)
+| arrowc_congr1 : Red Γ (u::tl) (u'::tl) -> Red Γ ((u -c> v)::tl) ((u' -c> v)::tl)
+| arrowc_congr2 : Red Γ (v::tl) (v'::tl) -> Red Γ ((u -c> v)::tl) ((u -c> v')::tl)
 | appc_congr1 : Red Γ (f::tl) (f'::tl) -> Red Γ ((f `@c a)::tl) ((f' `@c a)::tl)
 | appc_congr2 : Red Γ (a::tl) (a'::tl) -> Red Γ ((f `@c a)::tl) ((f `@c a')::tl)
 | fst_congr : Red Γ (u::tl) (u'::tl) -> Red Γ ((.fst u)::tl) ((.fst u')::tl)
