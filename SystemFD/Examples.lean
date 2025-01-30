@@ -2,6 +2,7 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Algorithm
 
 notation t1 ";;" t2 => t1 (t2)
 notation t1 "::" t2 => Term.cons t1 t2
@@ -73,6 +74,18 @@ def booltest : Term :=
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. not b1 `xor` b2 ▹ sym c
 
-  ;; Term.inst 2 (Λ[★] `λ[#0 ~ #12]
-      Term.guard #3 1 #1 (#3 ▹ Term.sym (Term.arrowc #0 #0)))
+   ;; Term.inst 2 (Λ[★] `λ[#0 ~ #12]
+      Term.guard (#3 `@k #1) /- EqBool[t]-/
+                 #2 /-i-/
+                 (`λ[#0 ~ #12] #3 ▹ Term.sym (Term.arrowc #0 #0)))
+
+  ;; (#0 `@t #16) `@ #15 `@ #15
+
+
+
+def unitType : Term :=
+  Term.letdata ★ 1   -- Unit : ★,
+  ;; Term.letctor #0 -- unit : Unit
   ;; #1
+
+-- #eval infer_type .prf ([], unitType)

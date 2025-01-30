@@ -22,8 +22,24 @@ inductive Term : Type where
 | cast : Term -> Term -> Term
 | case : Term -> Term -> Term
 | branch : Term -> Nat -> Term -> Term
-| ite : Term -> Term -> Term -> Term -> Term
-| guard : Term -> Term -> Term -> Term
+
+-- case {Bool} x of
+--    True -> e
+--    False -> q
+
+| ite : Term -- Constructor pattern ;; True
+      -> Term -- Scrutinee ;; x
+      -> Term -- e
+      -> Term -- ite x False q nil
+      -> Term
+
+-- If IfBool[t] tBool ← i
+| guard : Term -- IfBool[t]
+        -> Term -- i
+        -> Term -- (λ tBool. → continuation .. )
+        -> Term
+
+
 | refl : Term -> Term
 | sym : Term -> Term
 | seq : Term -> Term -> Term
@@ -41,7 +57,6 @@ inductive Term : Type where
 | letterm : Term -> Term -> Term -> Term
 | insttype : Term -> Term -> Term
 | inst : Nat -> Term -> Term -> Term
-
 deriving Repr
 
 notation "★" => Term.const Const.pointed

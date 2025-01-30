@@ -1,5 +1,6 @@
 import SystemFD.Term
 import SystemFD.Ctx
+set_option maxHeartbeats 500000
 
 @[simp]
 def wf_kind : Term -> Option Unit
