@@ -139,6 +139,7 @@ namespace Term
   | arrowk t1 t2 => (size t1) + (size t2) + 1
   | all t1 t2 => (size t1) + (size t2) + 1
   | arrow t1 t2 => (size t1) + (size t2) + 1
+  | arrowc t1 t2 => (size t1) + (size t2) + 1
   | appk t1 t2 => (size t1) + (size t2) + 1
   | appt t1 t2 => (size t1) + (size t2) + 1
   | app t1 t2 => (size t1) + (size t2) + 1
@@ -163,6 +164,7 @@ namespace Term
   | letctor t1 t2 => (size t1) + (size t2) + 1
   | insttype t1 t2 => (size t1) + (size t2) + 1
   | inst _ t1 t2 => (size t1) + (size t2) + 1
+  | letterm t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
 
   @[simp]
   def beq : Term -> Term -> Bool
