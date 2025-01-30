@@ -66,6 +66,7 @@ section
 
   def I : Subst T := λ n => .re n
   def S : Subst T := λ n => .re (n + 1)
+  def S' (k : Nat) : Subst T := λ n => .re (n + k)
 
   --omit [SubstitutionType T] in
   @[simp]

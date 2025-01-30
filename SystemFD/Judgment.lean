@@ -3,15 +3,15 @@ import SystemFD.Term
 import SystemFD.Ctx
 
 inductive JudgmentVariant where
-| wf | wfctor | prf | bchl | bch | ctors
+| wf | wfctor | prf | ctors
 
 @[simp]
 abbrev JudgmentArgs : JudgmentVariant -> Type
 | .wf => Unit
 | .wfctor => Nat
 | .prf => Term × Term
-| .bchl => Term × Term × Term
-| .bch => Term × Term × Term
+-- | .bchl => Term × Term × Term
+-- | .bch => Term × Term × Term
 | .ctors => Term × Nat × Term
 
 inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop where
@@ -115,58 +115,66 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 ---- Datatype case expressions
 --------------------------------------------------------------------------------------
-| case :
-  Judgment .prf Γ (m, A) ->
-  Judgment .prf Γ (A, ★) ->
-  Judgment .bchl Γ (br, A, B) ->
-  Judgment .prf Γ (.case m br, B)
-| branchstart :
-  Judgment .bch Γ (t, A, B) ->
-  Judgment .bchl Γ (.cons t .nil, A, B)
-| branchcons :
-  Judgment .bch Γ (hd, A, B) ->
-  Judgment .bchl Γ (tl, A, B) ->
-  Judgment .bchl Γ (.cons hd tl, A, B)
-| branch0 :
-  Judgment .prf Γ (c, A) ->
-  .some ctorid = Term.neutral_head c ->
-  .some dataid = Term.neutral_head A ->
+| ite :
+  Judgment .prf Γ (p, A) ->
+  (τ, R) = Term.to_telescope A ->
+  .some ctorid = Term.neutral_head p ->
+  .some dataid = Term.neutral_head R ->
   is_datatype Γ ctorid dataid ->
-  Judgment .prf Γ (t, B) ->
-  Judgment .bch Γ (.branch c 0 t, A, B)
-| branch_arrow :
-  Judgment .prf Γ (c, C -t> D) ->
-  Judgment .bch (.type C::Γ) (.branch ([S]c `@ #0) n t, A, B) ->
-  Judgment .bch Γ (.branch c (n + 1) t, A, B)
-| branch_all :
-  Judgment .prf Γ (c, ∀[C] D) ->
-  Judgment .bch (.kind C::Γ) (.branch ([S]c `@t #0) n t, A, B) ->
-  Judgment .bch Γ (.branch c (n + 1) t, A, B)
+  Judgment .prf Γ (R, ★) ->
+  Judgment .prf Γ (s, R) ->
+  Judgment .prf Γ (i, B) ->
+  (τ, T) = Term.to_telescope B ->
+  Judgment .prf Γ (T, .const K) ->
+  Judgment .prf Γ (e, T) ->
+  Judgment .prf Γ (.ite p s i e, T)
+-- | case :
+--   Judgment .prf Γ (m, A) ->
+--   Judgment .prf Γ (A, ★) ->
+--   Judgment .bchl Γ (br, A, B) ->
+--   Judgment .prf Γ (.case m br, B)
+-- | branchstart :
+--   Judgment .bch Γ (t, A, B) ->
+--   Judgment .bchl Γ (.cons t .nil, A, B)
+-- | branchcons :
+--   Judgment .bch Γ (hd, A, B) ->
+--   Judgment .bchl Γ (tl, A, B) ->
+--   Judgment .bchl Γ (.cons hd tl, A, B)
+-- | branch0 :
+--   Judgment .prf Γ (c, A) ->
+--   .some ctorid = Term.neutral_head c ->
+--   .some dataid = Term.neutral_head A ->
+--   is_datatype Γ ctorid dataid ->
+--   Judgment .prf Γ (t, B) ->
+--   Judgment .bch Γ (.branch c 0 t, A, B)
+-- | branch_arrow :
+--   Judgment .prf Γ (c, C -t> D) ->
+--   Judgment .bch (.type C::Γ) (.branch ([S]c `@ #0) n t, A, B) ->
+--   Judgment .bch Γ (.branch c (n + 1) t, A, B)
+-- | branch_all :
+--   Judgment .prf Γ (c, ∀[C] D) ->
+--   Judgment .bch (.kind C::Γ) (.branch ([S]c `@t #0) n t, A, B) ->
+--   Judgment .bch Γ (.branch c (n + 1) t, A, B)
 --------------------------------------------------------------------------------------
 ---- Guards
 --------------------------------------------------------------------------------------
-| guard0 :
-  Judgment .prf Γ (s, A) ->
-  .some openmid = Term.neutral_head s ->
-  Judgment .prf Γ (m, A) ->
-  Judgment .prf Γ (A, ◯) ->
+| guard :
+--   .some openmid = Term.neutral_head s -> // Check that it's actually an open method?
+  Judgment .prf Γ (p, A) ->
+  (τ, R) = Term.to_telescope A ->
+  Judgment .prf Γ (R, ◯) ->
+  Judgment .prf Γ (s, R) ->
   Judgment .prf Γ (t, B) ->
-  Judgment .prf Γ (.guard s 0 m t, B)
-| guard_arrow :
-  Judgment .prf Γ (s, C -t> D) ->
-  Judgment .prf (.type C::Γ) (.guard ([S]s `@ #0) n ([S]m) t, B) ->
-  Judgment .prf Γ (.guard s (n + 1) m t, B)
-| guard_all :
-  Judgment .prf Γ (s, ∀[C] D) ->
-  Judgment .prf (.kind C::Γ) (.guard ([S]s `@t #0) n ([S]m) t, B) ->
-  Judgment .prf Γ (.guard s (n + 1) m t, B)
+  (τ, T) = Term.to_telescope B ->
+  Judgment .prf Γ (T, .const K) ->
+  Judgment .prf Γ (.guard p s t, T)
 --------------------------------------------------------------------------------------
 ---- Terms
 --------------------------------------------------------------------------------------
 | lam :
   Judgment .prf Γ (A, .const K) ->
   Judgment .prf (.type A::Γ) (t, B) ->
-  Judgment .prf Γ (`λ[A] t, A -t> b)
+  Judgment .prf Γ (`λ[A] t, A -t> B)
 | app :
   Judgment .prf Γ (f, A -t> B) ->
   Judgment .prf Γ (a, A) ->
@@ -175,7 +183,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (K, .kind) ->
   Judgment .prf (.kind A::Γ) (t, B) ->
-  Judgment .prf Γ (Λ[A] t, B)
+  Judgment .prf Γ (Λ[A] t, ∀[A] B)
 | appt :
   Judgment .prf Γ (f, ∀[A] B) ->
   Judgment .prf Γ (a, A) ->
@@ -219,3 +227,6 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t1, (∀[K] A) ~ (∀[K] B)) ->
   Judgment .prf Γ (t2, C ~ D) ->
   Judgment .prf Γ (t1 `@c[ t2 ], (A β[C]) ~ (B β[D]))
+
+  notation:170 Γ:170 " ⊢ " t:170 " : " A:170 => Judgment JudgmentVariant.prf Γ (t, A)
+  notation:170 "⊢ " Γ:170 => Judgment JudgmentVariant.wf Γ ()

@@ -1,4 +1,5 @@
 import SystemFD.Substitution
+import SystemFD.Ctx
 
 inductive Const : Type where
 | pointed | unpointed
@@ -21,7 +22,8 @@ inductive Term : Type where
 | cast : Term -> Term -> Term
 | case : Term -> Term -> Term
 | branch : Term -> Nat -> Term -> Term
-| guard : Term -> Nat -> Term -> Term -> Term
+| ite : Term -> Term -> Term -> Term -> Term
+| guard : Term -> Term -> Term -> Term
 | refl : Term -> Term
 | sym : Term -> Term
 | seq : Term -> Term -> Term
@@ -67,6 +69,16 @@ def rep : Nat -> (A -> A) -> (A -> A)
 | n + 1, f, a => f (rep n f a)
 
 namespace Term
+
+  def to_telescope : Term -> Ctx Term × Term
+  | A -t> B =>
+    let (Γ, r) := to_telescope B
+    (.type A::Γ, r)
+  | ∀[A] B =>
+    let (Γ, r) := to_telescope B
+    (.kind A::Γ, r)
+  | t => ([], t)
+
   @[simp]
   def neutral_head : Term -> Option Nat
   | .var x => .some x
@@ -111,7 +123,8 @@ namespace Term
   | cast t1 t2 => cast (smap lf f t1) (smap lf f t2)
   | case t1 t2 => case (smap lf f t1) (smap lf f t2)
   | branch t1 n t2 => branch (smap lf f t1) n (smap lf (rep n lf f) t2)
-  | guard t1 n t2 t3 => guard (smap lf f t1) n (smap lf f t2) (smap lf (rep n lf f) t3)
+  | ite t1 t2 t3 t4 => ite (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
+  | guard t1 t2 t3 => guard (smap lf f t1) (smap lf f t2) (smap lf f t3)
   | refl t => refl (smap lf f t)
   | sym t => sym (smap lf f t)
   | seq t1 t2 => seq (smap lf f t1) (smap lf f t2)
@@ -148,7 +161,8 @@ namespace Term
   | cast t1 t2 => (size t1) + (size t2) + 1
   | case t1 t2 => (size t1) + (size t2) + 1
   | branch t1 _ t2 => (size t1) + (size t2) + 1
-  | guard t1 _ t2 t3 => (size t1) + (size t2) + (size t3) + 1
+  | ite t1 t2 t3 t4 => (size t1) + (size t2) + (size t3) + (size t4) + 1
+  | guard t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
   | refl t => size t + 1
   | sym t => size t + 1
   | seq t1 t2 => (size t1) + (size t2) + 1
@@ -161,6 +175,7 @@ namespace Term
   | letopentype t1 t2 => (size t1) + (size t2) + 1
   | letopen t1 t2 => (size t1) + (size t2) + 1
   | letdata t1 _ t2 => (size t1) + (size t2) + 1
+  | letterm t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
   | letctor t1 t2 => (size t1) + (size t2) + 1
   | insttype t1 t2 => (size t1) + (size t2) + 1
   | inst _ t1 t2 => (size t1) + (size t2) + 1
@@ -249,7 +264,10 @@ namespace Term
   theorem subst_branch : [σ]branch t1 n t2 = branch ([σ]t1) n ([rep n Subst.lift σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
-  theorem subst_guard : [σ]guard t1 n t2 t3 = guard ([σ]t1) n ([σ]t2) ([rep n Subst.lift σ]t3) := by unfold Subst.apply; simp
+  theorem subst_ite : [σ]ite t1 t2 t3 t4 = ite ([σ]t1) ([σ]t2) ([σ]t3) ([σ]t4) := by unfold Subst.apply; simp
+
+  @[simp]
+  theorem subst_guard : [σ]guard t1 t2 t3 = guard ([σ]t1) ([σ]t2) ([σ]t3) := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_refl : [σ]refl t = refl ([σ]t) := by unfold Subst.apply; simp

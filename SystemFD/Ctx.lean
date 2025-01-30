@@ -27,7 +27,6 @@ namespace Frame
   | insttype t, σ => insttype ([σ]t)
   | inst n t, σ => inst n ([σ]t)
 
-  @[simp]
   def get_type : Frame T -> Option T
   | empty => .none
   | kind t => .some t
@@ -38,9 +37,25 @@ namespace Frame
   | openm t => .some t
   | insttype t => .some t
   | inst _ _ => .none
+
+  @[simp]
+  def beq [BEq T] : Frame T -> Frame T -> Bool
+  | _, _ => sorry
 end Frame
 
+@[simp]
+instance instBEq_Frame {T : Type} [BEq T] : BEq (Frame T) where
+  beq := Frame.beq
+
 def Ctx (T : Type) := List (Frame T)
+
+@[simp]
+instance instBEq_Ctx {T : Type} [BEq T] : BEq (Ctx T) where
+  beq := List.beq
+
+@[simp]
+instance instAppend_Ctx : {T : Type} -> Append (Ctx T) where
+  append := List.append
 
 @[simp]
 def is_datatype : Ctx T -> Nat -> Nat -> Bool
