@@ -179,7 +179,6 @@ namespace Term
   | letctor t1 t2 => (size t1) + (size t2) + 1
   | insttype t1 t2 => (size t1) + (size t2) + 1
   | inst _ t1 t2 => (size t1) + (size t2) + 1
-  | letterm t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
 
   @[simp]
   def beq : Term -> Term -> Bool
