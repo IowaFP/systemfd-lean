@@ -66,6 +66,7 @@ section
 
   def I : Subst T := λ n => .re n
   def S : Subst T := λ n => .re (n + 1)
+  def P : Subst T := λ n => .re (n - 1)
   def S' (k : Nat) : Subst T := λ n => .re (n + k)
 
   omit [SubstitutionType T] in
@@ -75,6 +76,10 @@ section
   omit [SubstitutionType T] in
   @[simp]
   theorem S_action : @S T n = .re (n + 1) := by unfold S; simp
+
+  omit [SubstitutionType T] in
+  @[simp]
+  theorem P_action : @P T n = .re (n - 1) := by unfold P; simp
 
   prefix:max "^" => Subst.lift
   notation:90 "[" σ "]" t:89 => Subst.apply σ t

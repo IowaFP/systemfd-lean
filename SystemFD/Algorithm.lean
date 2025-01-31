@@ -97,7 +97,7 @@ namespace InferTypeArgs
   @[simp]
   def size1 : (v : InferTypeVariant) -> InferTypeArgs v -> Nat
   | .prf, (_, t) => Term.size t
-  | .ctor, (_, t, n) => Term.size t
+  | .ctor, (_, t, _) => Term.size t
 
   @[simp]
   def size2 : (v : InferTypeVariant) -> InferTypeArgs v -> Nat
@@ -136,6 +136,12 @@ def infer_type : (v : InferTypeVariant) -> InferTypeArgs v -> Option Term
   let T' <- infer_type .prf (Γ, t1)
   let A <- infer_type .prf (.inst x t1::Γ, t2)
   if T == T' then .some A else .none
+| .prf, (Γ, .letterm T b t) => do
+  let Tk <- infer_kind Γ T
+  let _ <- is_const Tk
+  let B <- infer_type .prf (Γ , b)
+  let A <- infer_type .prf (.term T b::Γ, t)
+  if T == B then .some A else .none
 | .prf, (Γ, #x) => do
   let T <- Frame.get_type (Γ d@ x)
   let _ <- infer_kind Γ T
@@ -174,15 +180,15 @@ def infer_type : (v : InferTypeVariant) -> InferTypeArgs v -> Option Term
   let Ak <- infer_kind Γ A
   let _ <- is_const Ak
   let B <- infer_type .prf (.type A::Γ, t)
-  .some (A -t> B)
+  .some (A -t>  ([P] B) )
 | .prf, (Γ, .ctor2 .app f a) => do
   let T <- infer_type .prf (Γ, f)
   let (A, B) <- is_arrow T
   let A' <- infer_type .prf (Γ, a)
   if A == A' then .some B else .none
 | .prf, (Γ, Λ[A] t) => do
-  let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  -- let Ak <- infer_kind Γ A
+  let _ <- wf_kind A
   let B <- infer_type .prf (.kind A::Γ, t)
   .some (∀[A] B)
 | .prf, (Γ, .ctor2 .appt f a) => do
@@ -234,7 +240,7 @@ def infer_type : (v : InferTypeVariant) -> InferTypeArgs v -> Option Term
   let (_, D) <- is_appk V
   .some (C ~ D)
 | .prf, (Γ, ∀c[K] t) => do
-  let T <- infer_type .prf (Γ, t)
+  let T <- infer_type .prf (.kind K :: Γ, t)
   let (A, B) <- is_eq T
   .some ((∀[K] A) ~ (∀[K] B))
 | .prf, (Γ, f `@c[a]) => do

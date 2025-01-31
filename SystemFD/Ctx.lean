@@ -13,6 +13,7 @@ inductive Frame T where
 | openm : T -> Frame T
 | insttype : T -> Frame T
 | inst : Nat -> T -> Frame T
+| term : T -> T -> Frame T
 
 namespace Frame
   @[simp]
@@ -26,6 +27,7 @@ namespace Frame
   | openm t, σ => openm ([σ]t)
   | insttype t, σ => insttype ([σ]t)
   | inst n t, σ => inst n ([σ]t)
+  | term ty t, σ => term ([σ]ty) ([σ]t)
 
   def get_type : Frame T -> Option T
   | empty => .none
@@ -37,6 +39,7 @@ namespace Frame
   | openm t => .some t
   | insttype t => .some t
   | inst _ _ => .none
+  | term ty _ => .some ty -- not really a type...
 
   @[simp]
   def beq [BEq T] : Frame T -> Frame T -> Bool
@@ -49,6 +52,7 @@ namespace Frame
   | openm x, openm y => x == y
   | insttype x, insttype y => x == y
   | inst x1 x2, inst y1 y2 => x1 == y1 && x2 == y2
+  | term x1 x2, term y1 y2 => x1 == y1 && x2 == y2
   | _, _ => false
 end Frame
 

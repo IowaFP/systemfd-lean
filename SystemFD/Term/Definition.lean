@@ -42,7 +42,11 @@ inductive Term : Type where
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
 | bind2 : Bind2Variant -> Term -> Term -> Term
-| ite : Term -> Term -> Term -> Term -> Term
+| ite : Term   -- pattern
+      -> Term  -- scrutinee
+      -> Term  -- branch
+      -> Term  -- continuation
+      -> Term
 | guard : Term -> Term -> Term -> Term
 | letdata : Term -> Nat -> Term -> Term
 | letterm : Term -> Term -> Term -> Term
