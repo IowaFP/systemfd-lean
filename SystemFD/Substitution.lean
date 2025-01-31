@@ -68,11 +68,11 @@ section
   def S : Subst T := λ n => .re (n + 1)
   def S' (k : Nat) : Subst T := λ n => .re (n + k)
 
-  --omit [SubstitutionType T] in
+  omit [SubstitutionType T] in
   @[simp]
   theorem I_action : @I T n = .re n := by unfold I; simp
 
-  -- omit [SubstitutionType T] in
+  omit [SubstitutionType T] in
   @[simp]
   theorem S_action : @S T n = .re (n + 1) := by unfold S; simp
 
@@ -104,6 +104,7 @@ section
   open SubstitutionType
   open SubstitutionTypeLaws
 
+  omit [SubstitutionTypeLaws T] in
   theorem lift_lemma {r : Ren} :  r.lift.to = ^(@Ren.to T r) := by
   funext; case _ x =>
     cases x
@@ -126,6 +127,7 @@ section
   theorem apply_compose_commute {s : T} {σ τ : Subst T} : [τ][σ]s = [τ ⊙ σ]s :=
     SubstitutionTypeLaws.apply_compose
 
+  omit [SubstitutionTypeLaws T] in
   @[simp]
   theorem valid1 {s : T} : s β[t] = [.su t :: I]s := by simp
 
@@ -142,12 +144,13 @@ section
         rw [apply_stable]
         funext; case _ i => unfold Ren.to; simp
 
-  -- omit  [SubstitutionType T] in
+  omit  [SubstitutionType T] in
   @[simp] -- 0.S = I
   theorem valid4 : .re 0 :: S = @I T := by
   funext; case _ x =>
     cases x; all_goals (unfold seq_cons; unfold S; unfold I; simp)
 
+  omit [SubstitutionTypeLaws T] in
   @[simp] -- σ ◦ I = σ
   theorem valid5 {σ : Subst T} : σ ⊙ I = σ := by
   funext; case _ x =>
@@ -170,6 +173,7 @@ section
     cases μ x <;> simp
     . unfold Subst.compose; simp
 
+  omit [SubstitutionTypeLaws T] in
   @[simp] -- (s.σ ) ◦ τ = s[τ].(σ ◦ τ)
   theorem valid8_replace {s : T}
     : τ ⊙ (.su s :: σ) = .su ([τ]s) :: (τ ⊙ σ)
@@ -177,6 +181,7 @@ section
   funext; case _ x =>
     cases x; all_goals (unfold Subst.compose; unfold seq_cons; simp)
 
+  omit [SubstitutionTypeLaws T] in
   @[simp] -- (s.σ ) ◦ τ = s[τ].(σ ◦ τ)
   theorem valid8_rename {σ : Subst T}
     : τ ⊙ (.re s :: σ) = (τ s) :: (τ ⊙ σ)
@@ -184,11 +189,13 @@ section
   funext; case _ x =>
     cases x; all_goals (unfold Subst.compose; unfold seq_cons; simp)
 
+  omit [SubstitutionTypeLaws T] in
   @[simp] -- S ◦ (s.σ ) = σ
   theorem valid9 {σ : Subst T} : (s :: σ) ⊙ S = σ := by
   funext; case _ x =>
     cases x; all_goals (unfold Subst.compose; unfold seq_cons; unfold S; simp)
 
+  omit [SubstitutionTypeLaws T] in
   @[simp] -- 0[σ ].(S ◦ σ ) = σ
   theorem valid10 {σ : Subst T} : σ 0 :: (σ ⊙ S) = σ := by
   funext; case _ x =>
@@ -196,7 +203,7 @@ section
     case _ => simp
     case _ => simp; unfold S; unfold Subst.compose; simp
 
-  -- omit  [SubstitutionType T] in
+  omit  [SubstitutionType T] in
   theorem to_S : Ren.to (λ x => x + 1) = @S T := by
   unfold Ren.to; simp; unfold S; simp
 
