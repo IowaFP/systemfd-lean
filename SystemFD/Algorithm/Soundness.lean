@@ -18,7 +18,6 @@ case _ t h1 h2 =>
   exfalso
   cases t <;> simp at h
   case _ => apply h1 _ rfl
-  case _ => apply h2 _ _ rfl
 
 -- @[simp]
 -- abbrev InferKindSoundType : (v:InferKindVariant) -> InferKindArgs v -> InferKindRet v -> Prop

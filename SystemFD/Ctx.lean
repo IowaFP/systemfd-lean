@@ -40,7 +40,16 @@ namespace Frame
 
   @[simp]
   def beq [BEq T] : Frame T -> Frame T -> Bool
-  | _, _ => sorry
+  | empty, empty => true
+  | kind x, kind y => x == y
+  | type x, type y => x == y
+  | datatype x1 x2, datatype y1 y2 => x1 == y1 && x2 == y2
+  | ctor x, ctor y => x == y
+  | opent x, opent y => x == y
+  | openm x, openm y => x == y
+  | insttype x, insttype y => x == y
+  | inst x1 x2, inst y1 y2 => x1 == y1 && x2 == y2
+  | _, _ => false
 end Frame
 
 @[simp]

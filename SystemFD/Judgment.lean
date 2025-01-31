@@ -67,19 +67,19 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | letctor :
   Judgment .prf Γ (T, ★) ->
   Judgment .ctors (.ctor T::Γ) (t, n, A) ->
-  Judgment .ctors Γ (.letctor T t, n + 1, A)
+  Judgment .ctors Γ (letctor! T t, n + 1, A)
 | letopentype :
   Judgment .prf Γ (T, .kind) ->
   Judgment .prf (.opent T::Γ) (t, A) ->
-  Judgment .prf Γ (.letopentype T t, A)
+  Judgment .prf Γ (letopentype! T t, A)
 | letopen :
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf (.openm T::Γ) (t, A) ->
-  Judgment .prf Γ (.letopen T t, A)
+  Judgment .prf Γ (letopen! T t, A)
 | insttype :
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf (.insttype T::Γ) (t, A) ->
-  Judgment .prf Γ (.insttype T t, A)
+  Judgment .prf Γ (insttype! T t, A)
 | inst :
   .openm T = Γ d@ x ->
   Judgment .prf Γ (t1, T) ->
@@ -198,10 +198,10 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | refl :
   Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (K, .kind) ->
-  Judgment .prf Γ (.refl A, A)
+  Judgment .prf Γ (refl! A, A)
 | sym :
   Judgment .prf Γ (t, A ~ B) ->
-  Judgment .prf Γ (.sym t, B ~ A)
+  Judgment .prf Γ (sym! t, B ~ A)
 | seq :
   Judgment .prf Γ (t1, A ~ B) ->
   Judgment .prf Γ (t2, B ~ C) ->
@@ -216,10 +216,10 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t1 -c> t2, (A -t> C) ~ (B -t> D))
 | fst :
   Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
-  Judgment .prf Γ (.fst t, A ~ B)
+  Judgment .prf Γ (t.!1, A ~ B)
 | snd :
   Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
-  Judgment .prf Γ (.snd t, C ~ D)
+  Judgment .prf Γ (t.!2, C ~ D)
 | allc :
   Judgment .prf Γ (t, A ~ B) ->
   Judgment .prf Γ (∀c[K] t, (∀[K] A) ~ (∀[K] B))

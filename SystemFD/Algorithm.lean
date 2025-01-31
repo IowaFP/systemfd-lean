@@ -5,7 +5,7 @@ set_option maxHeartbeats 500000
 @[simp]
 def wf_kind : Term -> Option Unit
 | .const _ => .some ()
-| .arrowk A B => do
+| .ctor2 .arrowk A B => do
   let _ <- wf_kind A
   let _ <- wf_kind B
   .some ()
@@ -33,28 +33,28 @@ def is_unpointed : Term -> Option Unit
 
 @[simp]
 def is_arrowk : Term -> Option (Term × Term)
-| .arrowk A B => .some (A, B)
+| .ctor2 .arrowk A B => .some (A, B)
 | _ => .none
 
 @[simp]
 def is_arrow : Term -> Option (Term × Term)
-| .arrow A B => .some (A, B)
+| .ctor2 .arrow A B => .some (A, B)
 | _ => .none
 
 @[simp]
 def is_eq : Term -> Option (Term × Term)
-| .eq A B => .some (A, B)
+| .ctor2 .eq A B => .some (A, B)
 | _ => .none
 
 @[simp]
 def is_appk : Term -> Option (Term × Term)
-| .appk A B => .some (A, B)
+| .ctor2 .appk A B => .some (A, B)
 | _ => .none
 
 
 @[simp]
 def is_all : Term -> Option (Term × Term)
-| .all A B => .some (A, B)
+| .bind2 .all A B => .some (A, B)
 | _ => .none
 
 @[simp]
@@ -68,18 +68,18 @@ def infer_kind : Ctx Term -> Term -> Option Term
   let Bk <- infer_kind (.kind A::Γ) B
   let _ <- wf_kind Bk
   .some Bk
-| Γ, A -t> B => do
+| Γ, .ctor2 .arrow A B => do
   let Ak <- infer_kind Γ A
   let _ <- is_const Ak
   let Bk <- infer_kind Γ B
   let K <- is_const Bk
   .some (.const K)
-| Γ, f `@k a => do
+| Γ, .ctor2 .appk f a => do
   let fk <- infer_kind Γ f
   let (A, B) <- is_arrowk fk
   let ak <- infer_kind Γ a
   if A == ak then .some B else .none
-| Γ, A ~ B => do
+| Γ, .ctor2 .eq A B => do
   let Ak <- infer_kind Γ A
   let Bk <- infer_kind Γ B
   if Ak == ★ && Bk == ★ then .some ◯ else .none
@@ -111,22 +111,22 @@ def infer_type : (v : InferTypeVariant) -> InferTypeArgs v -> Option Term
   let _ <- wf_kind T
   let A <- infer_type .ctor (.datatype T n::Γ, t, n)
   .some A
-| .ctor, (Γ, .letctor T t, n + 1) => do
+| .ctor, (Γ, .bind2 .letctor T t, n + 1) => do
   let Tk <- infer_kind Γ T
   let _ <- is_pointed Tk
   let A <- infer_type .ctor (.ctor T::Γ, t, n)
   .some A
 | .ctor, (Γ, t, 0) => infer_type .prf (Γ, t)
-| .prf, (Γ, .letopentype T t) => do
+| .prf, (Γ, .bind2 .letopentype T t) => do
   let _ <- wf_kind T
   let A <- infer_type .prf (.opent T::Γ, t)
   .some A
-| .prf, (Γ, .letopen T t) => do
+| .prf, (Γ, .bind2 .letopen T t) => do
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
   let A <- infer_type .prf (.openm T::Γ, t)
   .some A
-| .prf, (Γ, .insttype T t) => do
+| .prf, (Γ, .bind2 .insttype T t) => do
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
   let A <- infer_type .prf (.insttype T::Γ, t)
@@ -175,7 +175,7 @@ def infer_type : (v : InferTypeVariant) -> InferTypeArgs v -> Option Term
   let _ <- is_const Ak
   let B <- infer_type .prf (.type A::Γ, t)
   .some (A -t> B)
-| .prf, (Γ, f `@ a) => do
+| .prf, (Γ, .ctor2 .app f a) => do
   let T <- infer_type .prf (Γ, f)
   let (A, B) <- is_arrow T
   let A' <- infer_type .prf (Γ, a)
@@ -185,53 +185,53 @@ def infer_type : (v : InferTypeVariant) -> InferTypeArgs v -> Option Term
   let _ <- wf_kind Ak
   let B <- infer_type .prf (.kind A::Γ, t)
   .some (∀[A] B)
-| .prf, (Γ, f `@t a) => do
+| .prf, (Γ, .ctor2 .appt f a) => do
   let T <- infer_type .prf (Γ, f)
   let (A, B) <- is_all T
   let A' <- infer_type .prf (Γ, a)
   if A == A' then .some B else .none
-| .prf, (Γ, t ▹ c) => do
+| .prf, (Γ, .ctor2 .cast t c) => do
   let A <- infer_type .prf (Γ, t)
   let T <- infer_type .prf (Γ, c)
   let (A', B) <- is_eq T
   if A == A' then .some B else .none
-| .prf, (Γ, .refl A) => do
+| .prf, (Γ, .ctor1 .refl A) => do
   let Ak <- infer_kind Γ A
   let _ <- wf_kind Ak
   .some A
-| .prf, (Γ, .sym t) => do
+| .prf, (Γ, .ctor1 .sym t) => do
   let T <- infer_type .prf (Γ, t)
   let (A, B) <- is_eq T
   .some (B ~ A)
-| .prf, (Γ, t1 `; t2) => do
+| .prf, (Γ, .ctor2 .seq t1 t2) => do
   let T1 <- infer_type .prf (Γ, t1)
   let T2 <- infer_type .prf (Γ, t2)
   let (A, B) <- is_eq T1
   let (B', C) <- is_eq T2
   if B == B' then .some (A ~ C) else .none
-| .prf, (Γ, f `@c a) => do
+| .prf, (Γ, .ctor2 .appc f a) => do
   let T1 <- infer_type .prf (Γ, f)
   let T2 <- infer_type .prf (Γ, a)
   let (A, B) <- is_eq T1
   let (C, D) <- is_eq T2
   .some ((A `@k C) ~ (B `@k D))
-| .prf, (Γ, t1 -c> t2) => do
+| .prf, (Γ, .ctor2 .arrowc t1 t2) => do
   let T1 <- infer_type .prf (Γ, t1)
   let T2 <- infer_type .prf (Γ, t2)
   let (A, B) <- is_eq T1
   let (C, D) <- is_eq T2
   .some ((A -t> C) ~ (B -t> D))
-| .prf, (Γ, .fst t) => do
+| .prf, (Γ, .ctor1 .fst t) => do
   let T <- infer_type .prf (Γ, t)
   let (U, V) <- is_eq T
-  let (A, C) <- is_appk U
-  let (B, D) <- is_appk V
+  let (A, _) <- is_appk U
+  let (B, _) <- is_appk V
   .some (A ~ B)
-| .prf, (Γ, .snd t) => do
+| .prf, (Γ, .ctor1 .snd t) => do
   let T <- infer_type .prf (Γ, t)
   let (U, V) <- is_eq T
-  let (A, C) <- is_appk U
-  let (B, D) <- is_appk V
+  let (_, C) <- is_appk U
+  let (_, D) <- is_appk V
   .some (C ~ D)
 | .prf, (Γ, ∀c[K] t) => do
   let T <- infer_type .prf (Γ, t)
