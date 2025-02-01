@@ -6,10 +6,12 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   | (.cons #x tl) => match (dnth ctx x) with
           | .term _ t => .cons t tl
           | _ => #x :: eval_ctx ctx tl
-/-   | .cons ((`λ[ _ ] x) `@ t) tl => x β[ t ] :: tl
-  | f `@ t => eval_ctx ctx f `@ t -- call by name
+  | (.cons (.ctor2 .app (.bind2 .lam _ b) t) tl) => b β[ t ] :: tl
+  -- | (.cons (.ctor2 .app f t) tl) => do tl
+    -- let .cons f' .nil <- eval_ctx ctx [ f ]
+    -- tl-- call by name
 
-  | (Λ[ _ ] x) `@t ty => x β[ ty ]
+/-  | (Λ[ _ ] x) `@t ty => x β[ ty ]
   | f `@t ty => eval_ctx ctx f `@t ty
 
   | t ▹ (.refl _) => t
