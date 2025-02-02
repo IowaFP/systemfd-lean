@@ -90,7 +90,7 @@ def booltest : Term :=
  -/
 /-   ;; #0 `@t #16 `@ #15 `@ #15
  -/
-;; #4
+;; #3 `@ #11
 
 def unitType : Term :=
   Term.letdata ★ 1   -- Unit : ★,

@@ -29,10 +29,10 @@ inductive Bind2Variant : Type where
 | lamt
 | lam
 | allc
-| letopentype
-| letopen
-| letctor
-| insttype
+| letopentype  -- open type
+| letopen      -- open method/superclass functions/fundeps
+| letctor      -- constructor
+| insttype     -- open type instance
 deriving Repr
 
 inductive Term : Type where
@@ -47,7 +47,10 @@ inductive Term : Type where
       -> Term  -- branch
       -> Term  -- continuation
       -> Term
-| guard : Term -> Term -> Term -> Term
+| guard : Term  -- pattern
+        -> Term -- scrutinee
+        -> Term -- continuation
+        -> Term
 | letdata : Term -> Nat -> Term -> Term
 | letterm : Term -> Term -> Term -> Term
 | inst : Nat -> Term -> Term -> Term
