@@ -1,19 +1,21 @@
-import SystemFD.Examples
+import SystemFD.Examples.Apoorv
 
 #eval "Hello world!"
 
 instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad List instance?
   pure a := List.cons a List.nil
-  bind l f :=
-    match l with
-    | List.nil => .nil
-    | List.cons x xs => f x ++ List.flatMap xs f
+  bind l f := List.flatMap l f
+
+
+def optionToList {A : Type} : Option A -> List A
+  | .none => []
+  | .some x => [x]
 
 
 def eval_ctx (ctx : Ctx Term) : List Term -> List Term
-  | .cons #x tl => match (dnth ctx x) with
-          | .term _ t => .cons t tl
-          | _ => #x :: eval_ctx ctx tl
+  | .cons #x tl => (match (dnth ctx x) with
+                   | .term _ t => .cons t tl
+                   | _ => #x :: tl)
 
   | .cons (.ctor2 .app (.bind2 .lam _ b) t) tl => b β[ t ] :: tl
   | .cons (.ctor2 .app f t) tl => do
@@ -25,36 +27,54 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
     let f' <- eval_ctx ctx [ f ]
     (f' `@t t) :: tl -- call by name
 
-  | .cons (.ite (.var x) (.var y) b c) tl =>
+  | .cons (.ite (.var x) (.var y) b c) tl => -- TODO: Get the head and the args to build a substitution
     (if x == y then b else c) :: tl
 
   | .cons (.ite p s b c) tl => do
-  let s' <- eval_ctx ctx [ s ]
-  (.ite p s' b c) :: tl
+  let h <- optionToList (Term.neutral_head p)
+  let s' <- optionToList (Term.neutral_head s)
+  let σ <- optionToList (Term.neutral_subst s)
+  if (h == s')
+  then ([ σ ] b) :: tl
+  else do let s' <- eval_ctx ctx [ s ]
+          .ite p s' b c :: tl
 
+  --------------------------
+  ---- Coercions
+  --------------------------
+  | .cons (.ctor1 .sym (.ctor1 .refl ty)) tl => refl! ty :: tl
+  | .cons (.ctor2 .cast t (.ctor1 .sym (.ctor2 .seq η η'))) tl =>
+    (t ▹ (sym! η' `; sym! η)) :: tl
+  | .cons (.ctor2 .seq (.ctor1 .refl ty') (.ctor1 .refl ty)) tl =>
+    if ty == ty'
+    then refl! ty :: tl
+    else (.ctor2 .seq (.ctor1 .refl ty') (.ctor1 .refl ty)) :: tl -- stuck
+  | .cons (.ctor2 .appc (.ctor1 .refl (.ctor2 .arrow ty ty')) (.ctor1 .refl ty'')) tl =>
+    if ty == ty''
+    then refl! ty' :: tl
+    else (.ctor2 .appc (.ctor1 .refl (.ctor2 .arrow ty ty')) (.ctor1 .refl ty'')) :: tl -- stuck
+  | .cons (.ctor1 .refl (.ctor1 .fst (.ctor1 .refl (.ctor2 .app A B)))) tl =>
+     refl! A :: tl
+  | .cons (.ctor1 .refl (.ctor1 .snd (.ctor1 .refl (.ctor2 .app A B)))) tl =>
+     refl! B :: tl
+  | .cons (.ctor2 .arrowc (.ctor1 .refl ty) (.ctor1 .refl ty')) tl => .ctor1 .refl (ty -t> ty') :: tl
+  | .cons (.bind2 .allc ty (.ctor1 .refl ty')) tl => .ctor1 .refl (∀[ty] ty') :: tl
   | .cons (.ctor2 .cast t (.ctor1 .refl _)) tl => t :: tl
   | .cons (.ctor2 .cast t η) tl => do
     let η' <- eval_ctx ctx [ η ]
     (t ▹ η') :: tl
 
-  /-  | .cons (.ctor2 .cast t (.ctor1 .sym (.ctor2 .seq η η'))) tl =>
-    (t ▹ (eval_ctx ctx (sym η') `; eval_ctx ctx (sym η))) :: tl
-  -/
+  ---------------
+  ----Decls
+  ---------------
   | .cons (.letdata K n t) tl => eval_ctx (.datatype K n :: ctx) (t :: tl)
-
   | .cons (Term.letterm ty t t') tl => eval_ctx (.term ty t :: ctx) (t' :: tl)
-
   | .cons (.bind2 .letctor t t') tl => eval_ctx (.ctor t :: ctx) (t' :: tl)
-
   | .cons (.bind2 .letopentype t t') tl => eval_ctx (.opent t :: ctx) (t' :: tl)
-
   | .cons (.bind2 .letopen t t') tl => eval_ctx (.openm t :: ctx) (t' :: tl)
-
   | .cons (.bind2 .insttype t t') tl => eval_ctx (.insttype t :: ctx) (t' :: tl)
 
   | t => t
-
-def eval (t : Term) : List Term := eval_ctx [] [t]
 
 def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
   | .letdata K n t => mkCtx (.datatype K n :: ctx ) t
@@ -65,6 +85,15 @@ def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
   | .bind2 .insttype t t' => mkCtx (.insttype t :: ctx) t'
   | _ => ctx
 
+unsafe def eval_ctx_loop (ctx : Ctx Term) (t : List Term) : List Term :=
+  if t == eval_ctx ctx t
+  then t
+  else eval_ctx_loop ctx (eval_ctx ctx t)
+
+unsafe def eval (t : Term) : List Term :=
+  let ctx := mkCtx [] t;
+  eval_ctx_loop ctx [t]
+
 #eval! eval unitRefl
 #eval! eval unitType
-#eval! let ctx := mkCtx [] booltest ; eval_ctx ctx (eval_ctx ctx (eval_ctx ctx [booltest]))
+#eval! eval booltest

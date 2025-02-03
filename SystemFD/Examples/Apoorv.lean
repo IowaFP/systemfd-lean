@@ -90,7 +90,7 @@ def booltest : Term :=
  -/
 /-   ;; #0 `@t #16 `@ #15 `@ #15
  -/
-;; #3 `@ #11
+;; #3 `@ #12
 
 def unitType : Term :=
   Term.letdata ★ 1   -- Unit : ★,
@@ -105,12 +105,12 @@ def unit : Term :=
 def unitRefl : Term :=
   Term.letdata ★ 1   -- Unit : ★,
   ;; letctor! #0 -- unit : Unit
-  ;; (#0 ▹ refl! #1) -- () ▹ refl
+  ;; Term.letterm (∀[★] #0 -t> #0) (Λ[★] `λ[#0] #0)
+  ;; (#0 `@t #2 `@ #1 ▹ refl! #2) -- () ▹ refl
 
 def unitletterm : Term :=
   Term.letdata ★ 1   -- Unit : ★,
   ;; letctor! #0 -- unit : Unit
- -- identity function ∀ a. a → a
   ;; Term.letterm #1 #0
   ;; #0
 
