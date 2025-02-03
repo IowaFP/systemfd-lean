@@ -47,7 +47,7 @@ namespace Term
   | bind2 v t1 t2 => bind2 v (smap lf f t1) (smap lf (lf f) t2)
   | ite t1 t2 t3 t4 => ite (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
   | guard t1 t2 t3 => guard (smap lf f t1) (smap lf f t2) (smap lf f t3)
-  | letdata t1 n t2 => letdata (smap lf f t1) n (smap lf (lf f) t2)
+  | letdata t1 t2 => letdata (smap lf f t1) (smap lf (lf f) t2)
   | letterm t1 t2 t3 => letterm (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
   | inst n t1 t2 => inst n (smap lf f t1) (smap lf (lf f) t2)
 end Term
@@ -93,7 +93,7 @@ namespace Term
   theorem subst_bind2 : [σ]bind2 v t1 t2 = bind2 v ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
-  theorem subst_letdata: [σ]letdata t1 n t2 = letdata ([σ]t1) n ([^σ]t2) := by unfold Subst.apply; simp
+  theorem subst_letdata: [σ]letdata t1 t2 = letdata ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_letterm: [σ]letterm t1 t2 t3 = letterm ([σ]t1) ([σ]t2) ([^σ]t3) := by unfold Subst.apply; simp

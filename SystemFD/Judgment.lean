@@ -3,16 +3,12 @@ import SystemFD.Term
 import SystemFD.Ctx
 
 inductive JudgmentVariant where
-| wf | wfctor | prf | ctors
+| wf | prf
 
 @[simp]
 abbrev JudgmentArgs : JudgmentVariant -> Type
 | .wf => Unit
-| .wfctor => Nat
 | .prf => Term × Term
--- | .bchl => Term × Term × Term
--- | .bch => Term × Term × Term
-| .ctors => Term × Nat × Term
 
 inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop where
 --------------------------------------------------------------------------------------
@@ -29,15 +25,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .wf (.kind A::Γ) ()
 | wfdatatype :
   Judgment .prf Γ (A, .kind) ->
-  Judgment .wfctor Γ n ->
-  Judgment .wf (.datatype A n::Γ) ()
-| wfctor0 :
   Judgment .wf Γ () ->
-  Judgment .wfctor Γ 0
+  Judgment .wf (.datatype A::Γ) ()
 | wfctor :
   Judgment .prf Γ (A, ★) ->
-  Judgment .wfctor Γ n ->
-  Judgment .wfctor (.ctor A::Γ) (n + 1)
+  Judgment .wf Γ () ->
+  valid_ctor Γ ->
+  Judgment .wf (.ctor A::Γ) ()
 | wfopent :
   Judgment .prf Γ (A, .const K) ->
   Judgment .wf Γ () ->
@@ -59,15 +53,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 | letdata :
   Judgment .prf Γ (T, .kind) ->
-  Judgment .ctors (.datatype T n::Γ) (t, n, A) ->
-  Judgment .prf Γ (.letdata T n t, A)
-| letctor0 :
-  Judgment .prf Γ (t, A) ->
-  Judgment .ctors Γ (t, 0, A)
+  Judgment .prf (.datatype T::Γ) (t, A) ->
+  Judgment .prf Γ (.letdata T t, A)
 | letctor :
   Judgment .prf Γ (T, ★) ->
-  Judgment .ctors (.ctor T::Γ) (t, n, A) ->
-  Judgment .ctors Γ (letctor! T t, n + 1, A)
+  valid_ctor Γ ->
+  Judgment .prf (.ctor T::Γ) (t, A) ->
+  Judgment .prf Γ (letctor! T t, A)
 | letopentype :
   Judgment .prf Γ (T, .kind) ->
   Judgment .prf (.opent T::Γ) (t, A) ->

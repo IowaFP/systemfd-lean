@@ -7,7 +7,7 @@ inductive Frame T where
 | empty : Frame T
 | kind : T -> Frame T
 | type : T -> Frame T
-| datatype : T -> Nat -> Frame T
+| datatype : T -> Frame T
 | ctor : T -> Frame T
 | opent : T -> Frame T
 | openm : T -> Frame T
@@ -21,7 +21,7 @@ namespace Frame
   | empty, _ => empty
   | kind t, σ => kind ([σ]t)
   | type t, σ => type ([σ]t)
-  | datatype t n, σ => datatype ([σ]t) n
+  | datatype t, σ => datatype ([σ]t)
   | ctor t, σ => ctor ([σ]t)
   | opent t, σ => opent ([σ]t)
   | openm t, σ => openm ([σ]t)
@@ -33,7 +33,7 @@ namespace Frame
   | empty => .none
   | kind t => .some t
   | type t => .some t
-  | datatype t _ => .some t
+  | datatype t => .some t
   | ctor t => .some t
   | opent t => .some t
   | openm t => .some t
@@ -46,7 +46,7 @@ namespace Frame
   | empty, empty => true
   | kind x, kind y => x == y
   | type x, type y => x == y
-  | datatype x1 x2, datatype y1 y2 => x1 == y1 && x2 == y2
+  | datatype x, datatype y => x == y
   | ctor x, ctor y => x == y
   | opent x, opent y => x == y
   | openm x, openm y => x == y
@@ -71,10 +71,16 @@ instance instAppend_Ctx : {T : Type} -> Append (Ctx T) where
   append := List.append
 
 @[simp]
+def valid_ctor : Ctx T -> Bool
+| .cons (.ctor _) Γ => valid_ctor Γ
+| .cons (.datatype _) _ => true
+| _ => false
+
+@[simp]
 def is_datatype : Ctx T -> Nat -> Nat -> Bool
 | .cons _ t, c + 1, d + 1 => is_datatype t c d
 | .cons (.ctor _) t, 0, d + 1 => is_datatype t 0 d
-| .cons (.datatype _ _) _, 0, 0 => true
+| .cons (.datatype _) _, 0, 0 => true
 | _, _, _ => false
 
 @[simp]

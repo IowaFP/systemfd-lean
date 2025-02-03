@@ -107,7 +107,7 @@ namespace Term
     beq x1 y1 && beq x2 y2 && beq x3 y3 && beq x4 y4
   | guard x1 x2 x3, guard y1 y2 y3 =>
     beq x1 y1 && beq x2 y2 && beq x3 y3
-  | letdata x1 n1 x2, letdata y1 n2 y2 => beq x1 y1 && n1 == n2 && beq x2 y2
+  | letdata x1 x2, letdata y1 y2 => beq x1 y1 && beq x2 y2
   | letterm x1 x2 x3, letterm y1 y2 y3 =>
     beq x1 y1 && beq x2 y2 && beq x3 y3
   | inst n1 x1 x2, inst n2 y1 y2 =>
@@ -162,8 +162,8 @@ instance instLawfulBEq_Term : LawfulBEq Term where
     case _ ih1 ih2 ih3 _ _ _ =>
       rw [ih1 h.1.1, ih2 h.1.2]
       rw [ih3 h.2]; simp
-    case _ ih1 ih2 _ _ _ =>
-      rw [ih1 h.1.1, h.1.2, ih2 h.2]; simp
+    case _ ih1 ih2 _ _ =>
+      rw [ih1 h.1, ih2 h.2]; simp
     case _ ih1 ih2 ih3 _ _ _ =>
       rw [ih1 h.1.1, ih2 h.1.2]
       rw [ih3 h.2]; simp

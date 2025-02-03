@@ -51,7 +51,7 @@ inductive Term : Type where
         -> Term -- scrutinee
         -> Term -- continuation
         -> Term
-| letdata : Term -> Nat -> Term -> Term
+| letdata : Term -> Term -> Term
 | letterm : Term -> Term -> Term -> Term
 | inst : Nat -> Term -> Term -> Term
 deriving Repr
@@ -96,7 +96,7 @@ namespace Term
   | bind2 _ t1 t2 => (size t1) + (size t2) + 1
   | ite t1 t2 t3 t4 => (size t1) + (size t2) + (size t3) + (size t4) + 1
   | guard t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
-  | letdata t1 _ t2 => (size t1) + (size t2) + 1
+  | letdata t1 t2 => (size t1) + (size t2) + 1
   | letterm t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
   | inst _ t1 t2 => (size t1) + (size t2) + 1
 end Term
