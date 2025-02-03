@@ -1,6 +1,6 @@
 import SystemFD.Examples.Apoorv
-
-#eval "Hello world!"
+import SystemFD.Examples.Nat
+import SystemFD.Examples.Boolean
 
 instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad List instance?
   pure a := List.cons a List.nil
@@ -13,7 +13,7 @@ def optionToList {A : Type} : Option A -> List A
 
 
 def eval_ctx (ctx : Ctx Term) : List Term -> List Term
-  | .cons #x tl => (match (dnth ctx x) with
+  | .cons #x tl => (match (ctx d@ x) with
                    | .term _ t => .cons t tl
                    | _ => #x :: tl)
 
@@ -64,10 +64,12 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
     let η' <- eval_ctx ctx [ η ]
     (t ▹ η') :: tl
 
+
+  -- | .cons (.inst n t t) tl =>
   ---------------
   ----Decls
   ---------------
-  | .cons (.letdata K n t) tl => eval_ctx (.datatype K n :: ctx) (t :: tl)
+  | .cons (.letdata K t) tl => eval_ctx (.datatype K :: ctx) (t :: tl)
   | .cons (Term.letterm ty t t') tl => eval_ctx (.term ty t :: ctx) (t' :: tl)
   | .cons (.bind2 .letctor t t') tl => eval_ctx (.ctor t :: ctx) (t' :: tl)
   | .cons (.bind2 .letopentype t t') tl => eval_ctx (.opent t :: ctx) (t' :: tl)
@@ -77,23 +79,39 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   | t => t
 
 def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
-  | .letdata K n t => mkCtx (.datatype K n :: ctx ) t
+  | .letdata K t => mkCtx (.datatype K :: ctx ) t
   | .letterm ty t t' => mkCtx (.term ty t ::  ctx) t'
   | .bind2 .letctor t t' => mkCtx (.ctor t :: ctx) t'
   | .bind2 .letopentype t t' => mkCtx (.opent t :: ctx) t'
   | .bind2 .letopen t t' => mkCtx (.openm t :: ctx) t'
   | .bind2 .insttype t t' => mkCtx (.insttype t :: ctx) t'
+  | .inst n t t' => mkCtx (.inst n t :: ctx) t'
   | _ => ctx
 
 unsafe def eval_ctx_loop (ctx : Ctx Term) (t : List Term) : List Term :=
-  if t == eval_ctx ctx t
-  then t
-  else eval_ctx_loop ctx (eval_ctx ctx t)
+  let t' := eval_ctx ctx t
+  if t == t'
+  then t'
+  else eval_ctx_loop ctx t'
 
 unsafe def eval (t : Term) : List Term :=
   let ctx := mkCtx [] t;
   eval_ctx_loop ctx [t]
 
+#eval infer_type (mkCtx [] unit) unit
+#eval! eval unit
+
+#eval infer_type (mkCtx [] unitRefl) unitRefl
 #eval! eval unitRefl
-#eval! eval unitType
-#eval! eval booltest
+
+#eval! infer_type boolCtx notTerm
+#eval! eval_ctx_loop boolCtx [notTerm `@ #1]
+#eval! eval_ctx_loop boolCtx [notTerm `@ #0]
+
+#eval! infer_type boolCtx eqBoolTerm
+#eval! eval_ctx_loop boolCtx [eqBoolTerm `@ #1 `@ #1]
+#eval! eval_ctx_loop boolCtx [eqBoolTerm `@ #0 `@ #1]
+
+
+#eval! eval booltest2
+#eval! eval_ctx_loop NatCtx [ex_pred `@ (#0 `@ #1)]

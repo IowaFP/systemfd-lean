@@ -3,8 +3,8 @@ import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Algorithm
 
-notation t1 ";;" t2 => t1 (t2)
-notation t1 "::" t2 => Term.cons t1 t2
+-- notation t1 ";;" t2 => t1 (t2)
+-- notation t1 "::" t2 => Term.cons t1 t2
 
 def NatCtx : Ctx Term := [
     .ctor (#1 -t> #1),
