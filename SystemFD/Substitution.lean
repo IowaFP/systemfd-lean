@@ -276,7 +276,7 @@ end
         unfold Subst.compose; simp
         unfold Subst.apply; simp; split <;> simp at *
       )
-      any_goals (unfold Ren.to; simp [*])
+      all_goals (unfold Ren.to at *; simp at *; try simp [*])
     have lem4 (σ τ : Subst $Ty) : σ ⊙ τ ⊙ (Ren.to (λ x => x + 1)) = σ ⊙ (τ ⊙ (Ren.to (λ x => x + 1))) := by
       funext; case _ x =>
       cases x; any_goals (unfold Subst.compose; unfold Ren.to; simp)

@@ -254,3 +254,67 @@ def infer_type : (v : InferTypeVariant) -> InferTypeArgs v -> Option Term
 | .prf, _ => .none
 | .ctor, _ => .none
 termination_by v t => (InferTypeArgs.size1 v t, InferTypeArgs.size2 v t)
+
+inductive WfCtxTypeVariant where
+| wf | ctor
+
+@[simp]
+abbrev WfCtxTypeArgs : (v : WfCtxTypeVariant) -> Type
+| .wf => Ctx Term
+| .ctor => Ctx Term × Nat
+
+namespace WfCtxTypeArgs
+  @[simp]
+  def size1 : (v : WfCtxTypeVariant) -> WfCtxTypeArgs v -> Nat
+  | .wf, Γ => Γ.length
+  | .ctor, (Γ, _) => Γ.length
+
+  @[simp]
+  def size2 : (v : WfCtxTypeVariant) -> WfCtxTypeArgs v -> Nat
+  | .wf, Γ => Γ.length
+  | .ctor, (Γ, n) => Γ.length + n + 1
+end WfCtxTypeArgs
+
+@[simp]
+def wf_ctx : (v : WfCtxTypeVariant) -> WfCtxTypeArgs v -> Option Unit
+| .wf, [] => .some .unit
+| .wf, .cons (.type A) Γ => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_const Ak
+  wf_ctx .wf Γ
+| .wf, .cons (.kind A) Γ => do
+  let _ <- wf_kind A
+  wf_ctx .wf Γ
+| .wf, .cons (.datatype A n) Γ => do
+  let _ <- wf_kind A
+  wf_ctx .ctor (Γ, n)
+| .ctor, (.cons (.ctor A) Γ, n + 1) => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_pointed Ak
+  wf_ctx .ctor (Γ, n)
+| .ctor, (Γ, 0) => wf_ctx .wf Γ
+| .wf, .cons (.opent A) Γ => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_const Ak
+  wf_ctx .wf Γ
+| .wf, .cons (.openm A) Γ => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_const Ak
+  wf_ctx .wf Γ
+| .wf, .cons (.insttype A) Γ => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_const Ak
+  wf_ctx .wf Γ
+| .wf, .cons (.term A t) Γ => do
+  let A' <- infer_type .prf (Γ, t)
+  let _ <- wf_ctx .wf Γ
+  if A == A' then .some () else .none
+| .wf, .cons (.inst x t) Γ =>
+  match Γ d@ x with
+  | .openm T => do
+    let T' <- infer_type .prf (Γ, t)
+    if T == T' then .some () else .none
+  | _ => .none
+| .wf, _ => .none
+| .ctor, _ => .none
+termination_by v t => (WfCtxTypeArgs.size1 v t, WfCtxTypeArgs.size2 v t)
