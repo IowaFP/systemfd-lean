@@ -103,6 +103,11 @@ namespace Subst
   @[simp] theorem cons_succ {σ : Subst T} : (s :: σ) (n + 1) = σ n := by
   unfold seq_cons; simp
 
+  @[simp]
+  def from_list : List T -> Subst T
+  | [] => I
+  | .cons h t => (.su h) :: (from_list t)
+
 section
   variable {T : Type} [SubstitutionType T] [SubstitutionTypeLaws T]
 

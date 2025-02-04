@@ -2,6 +2,30 @@ import SystemFD.Substitution
 import SystemFD.Ctx
 import SystemFD.Term.Definition
 
+inductive SpineVariant where
+| term | type | kind
+
+namespace SpineVariant
+  @[simp]
+  def beq : SpineVariant -> SpineVariant -> Bool
+  | term, term => true
+  | type, type => true
+  | kind, kind => true
+  | _, _ => false
+end SpineVariant
+
+@[simp]
+instance instBEq_SpineVariant : BEq SpineVariant where
+  beq := SpineVariant.beq
+
+instance instLawfulBEq_SpineVariant : LawfulBEq SpineVariant where
+  eq_of_beq := by
+    intro a b h; simp at h
+    cases a <;> cases b <;> simp at *
+  rfl := by
+    intro a; simp
+    cases a <;> simp
+
 namespace Term
   def to_telescope : Term -> Ctx Term × Term
   | ctor2 .arrow A B =>
@@ -11,6 +35,27 @@ namespace Term
     let (Γ, r) := to_telescope B
     (.kind A::Γ, r)
   | t => ([], t)
+
+  @[simp]
+  def neutral_form : Term -> Option (Nat × List (SpineVariant × Term))
+  | var x => .some (x, [])
+  | ctor2 .app f a => do
+    let (x, sp) <- neutral_form f
+    .some (x, sp ++ [(.term, a)])
+  | ctor2 .appt f a => do
+    let (x, sp) <- neutral_form f
+    .some (x, sp ++ [(.type, a)])
+  | ctor2 .appk f a => do
+    let (x, sp) <- neutral_form f
+    .some (x, sp ++ [(.kind, a)])
+  | _ => .none
+
+  @[simp]
+  def apply_spine : Term -> List (SpineVariant × Term) -> Term
+  | t, [] => t
+  | t, .cons (.term, h) tl => apply_spine (t `@ h) tl
+  | t, .cons (.type, h) tl => apply_spine (t `@t h) tl
+  | t, .cons (.kind, h) tl => apply_spine (t `@k h) tl
 
   @[simp]
   def neutral_head : Term -> Option Nat

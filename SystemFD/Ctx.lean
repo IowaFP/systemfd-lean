@@ -39,7 +39,7 @@ namespace Frame
   | openm t => .some t
   | insttype t => .some t
   | inst _ _ => .none
-  | term ty _ => .some ty -- not really a type...
+  | term t _ => .some t
 
   @[simp]
   def beq [BEq T] : Frame T -> Frame T -> Bool

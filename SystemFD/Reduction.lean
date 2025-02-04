@@ -1,6 +1,12 @@
 import SystemFD.Term
 import SystemFD.Ctx
 
+@[simp]
+def prefix_equal [BEq T] : List T -> List T -> Option (List T)
+| [], t => .some t
+| .cons _ _, [] => .none
+| .cons x1 t1, .cons x2 t2 => if x1 == x2 then prefix_equal t1 t2 else .none
+
 inductive Red : Ctx Term -> List Term -> List Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
@@ -16,32 +22,31 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
 | allc : Red Γ ((∀c[A] refl! B) :: tl) ((refl! (∀[A] B)) :: tl)
 | arrowc : Red Γ ((refl! A -c> refl! B) :: tl) ((refl! (A -t> B)) :: tl)
 ----------------------------------------------------------------
----- Case matching
+---- Ite matching
 ----------------------------------------------------------------
--- | branch_nil : Red Γ ((.case t .nil) :: tl) tl
--- | branch_cons_matched :
---   .some x = Term.neutral_head t ->
---   .some x = Term.neutral_head c ->
---   .some σ = Term.neutral_subst t ->
---   Red Γ ((.case t (.cons (.branch c n m) br)) :: tl) ([σ]m :: tl)
--- | branch_cons_missed :
---   .some x = Term.neutral_head t ->
---   .some y = Term.neutral_head c ->
---   x ≠ y ->
---   Red Γ ((.case t (.cons (.branch c n m) br)) :: tl) ((.case t br) :: tl)
+| ite_matched :
+  .some (x, sp) = Term.neutral_form p ->
+  .some (x, sp') = Term.neutral_form s ->
+  .some q = prefix_equal sp sp' ->
+  Red Γ (.ite p s b e :: tl) (b.apply_spine q :: tl)
+| ite_missed :
+  .some (x, sp) = Term.neutral_form p ->
+  .some (x', sp') = Term.neutral_form s ->
+  x ≠ x' ∨ prefix_equal sp sp' = .none ->
+  Red Γ (.ite p s b e :: tl) (e :: tl)
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
--- | guard_matched :
---   .some x = Term.neutral_head m ->
---   .some x = Term.neutral_head s ->
---   .some σ = Term.neutral_subst m ->
---   Red Γ ((.guard s n m t) :: tl) ([σ]t :: tl)
--- | guard_missed :
---   .some x = Term.neutral_head m ->
---   .some y = Term.neutral_head s ->
---   x ≠ y ->
---  Red Γ ((.guard s n m t) :: tl) tl
+| guard_matched :
+  .some (x, sp) = Term.neutral_form p ->
+  .some (x, sp') = Term.neutral_form s ->
+  .some q = prefix_equal sp sp' ->
+  Red Γ (.guard p s b :: tl) (b.apply_spine q :: tl)
+| guard_missed :
+  .some (x, sp) = Term.neutral_form p ->
+  .some (x', sp') = Term.neutral_form s ->
+  x ≠ x' ∨ prefix_equal sp sp = .none ->
+  Red Γ (.guard p s b :: tl) tl
 ----------------------------------------------------------------
 ---- Instance Instantiation
 ----------------------------------------------------------------
@@ -59,7 +64,7 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
 | app_congr2 : Red Γ (a::tl) (a'::tl) -> Red Γ ((f `@ a) :: tl) ((f `@ a') :: tl)
 | appt_congr : Red Γ (f::tl) (f'::tl) -> Red Γ ((f `@t a) :: tl) ((f' `@ a) :: tl)
 | cast_congr : Red Γ (e::tl) (e'::tl) -> Red Γ ((t ▹ e)::tl) ((t ▹ e')::tl)
--- | case_congr : Red Γ (s::tl) (s'::tl) -> Red Γ ((.case s br)::tl) ((.case s' br)::tl)
+| ite_congr : Red Γ (s::tl) (s'::tl) -> Red Γ ((.ite p s b e)::tl) ((.ite p s' b e)::tl)
 | sym_congr : Red Γ (e::tl) (e'::tl) -> Red Γ ((sym! e)::tl) ((sym! e')::tl)
 | seq_congr1 : Red Γ (u::tl) (u'::tl) -> Red Γ ((u `; v)::tl) ((u' `; v)::tl)
 | seq_congr2 : Red Γ (v::tl) (v'::tl) -> Red Γ ((u `; v)::tl) ((u `; v')::tl)
@@ -72,10 +77,10 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
 | apptc_congr1 : Red Γ (f::tl) (f'::tl) -> Red Γ ((f `@c[a])::tl) ((f' `@c[a])::tl)
 | apptc_congr2 : Red Γ (a::tl) (a'::tl) -> Red Γ ((f `@c[a])::tl) ((f `@c[a'])::tl)
 | allc_congr : Red Γ (e::tl) (e'::tl) -> Red Γ ((∀c[A] e)::tl) ((∀c[A] e')::tl)
--- | guard_congr : Red Γ (m::tl) (m'::tl) -> Red Γ ((.guard s n m t)::tl) ((.guard s n m' t)::tl)
+| guard_congr : Red Γ (s::tl) (s'::tl) -> Red Γ ((.guard p s b)::tl) ((.guard p s' b)::tl)
 | letopentype_congr : Red (.opent A :: Γ) (b::tl) (b'::tl) -> Red Γ ((letopentype! A b)::tl) ((letopentype! A b')::tl)
 | letopen_congr : Red (.openm A :: Γ) (b::tl) (b'::tl) -> Red Γ ((letopen! A b)::tl) ((letopen! A b')::tl)
-| letdata_congr : Red (.datatype A n :: Γ) (b::tl) (b'::tl) -> Red Γ ((.letdata A n b)::tl) ((.letdata A n b')::tl)
+| letdata_congr : Red (.datatype A :: Γ) (b::tl) (b'::tl) -> Red Γ ((.letdata A b)::tl) ((.letdata A b')::tl)
 | letctor_congr : Red (.ctor A :: Γ) (b::tl) (b'::tl) -> Red Γ ((letctor! A b)::tl) ((letctor! A b')::tl)
 | insttype_congr : Red (.insttype A :: Γ) (b::tl) (b'::tl) -> Red Γ ((insttype! A b)::tl) ((insttype! A b')::tl)
 | inst_congr : Red (.inst x A :: Γ) (b::tl) (b'::tl) -> Red Γ ((.inst x A b)::tl) ((.inst x A b')::tl)
