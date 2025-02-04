@@ -69,21 +69,6 @@ def booltest : Term :=
         (Term.ite #15 #1 (Term.ite #15 #0 #14 #15)
           #15)))
 
-  -- instance Eq Bool where
-  --    b1 == b2 = not (b1 `xor` b2)
-
-  -- instance (==)[t] i
-  --    If EqBool[t] tBool ← i
-  --        let c = refl @ tBool @ (refl @ tBool @ refl) in
-  --        λb1. λb2. not b1 `xor` b2 ▹ sym c
-
- /-   ;; Term.inst 2 (Λ[★] `λ[#0 ~ #12]
-      Term.guard (#3 `@k #1) /- EqBool[t]-/
-                 #2 /-i-/
-                 (`λ[#0 ~ #12] #3 ▹ sym! ( #0 -c> #0)))
- -/
-/-   ;; #0 `@t #16 `@ #15 `@ #15
- -/
 ;; #4 `@ #13
 
 
@@ -158,11 +143,12 @@ def booltest2 : Term :=
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. not b1 `xor` b2 ▹ sym c
 
-   ;; Term.inst 2 (Λ[★] `λ[#0 ~ #12]
+   ;; Term.inst 2 (Λ[★] `λ[#4 `@k #0]
       Term.guard (#3 `@k #1) -- EqBool[t]
-                 #2 -- i
-                 (`λ[#0 ~ #12] #3 ▹ sym! ( #0 -c> #0)))
-   ;; #1 `@ #12 `@ #12
+                 #0 -- i
+                 (`λ[#1 ~ #16] #3 ▹ sym! ( #0 -c> #0)))
+
+   ;; #3 `@t #15 `@ (#3 `@k #15 `@ refl! #15)  `@ #14 `@ #14
 
 
 def unitType : Term :=
@@ -197,3 +183,12 @@ def ident : Term :=
 #eval infer_type [] unitletterm
 #eval infer_type [] (Λ[★] `λ[#0] #0)
 #eval infer_type [] ident
+#eval infer_type [] booltest
+#eval infer_type [] booltest2
+#eval infer_type [] unitRefl
+
+
+#eval Term.inst 2 (Λ[★] `λ[#4 `@k #0]
+      Term.guard (#3 `@k #1) -- EqBool[t]
+                 #0 -- i
+                 (`λ[#1 ~ #16] #3 ▹ sym! ( #0 -c> #0))) ;; #0

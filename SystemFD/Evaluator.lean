@@ -8,15 +8,9 @@ instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad L
   bind l f := List.flatMap l f
 
 
-def optionToListList {A : Type} : Option A -> List (List A)
-  | .none => [[]]
-  | .some x => [[x]]
-
-
 def optionToList {A : Type} : Option A -> List A
   | .none => []
   | .some x => [x]
-
 
 def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   | .cons #x tl => (match (ctx d@ x) with
@@ -33,9 +27,9 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
     let f' <- eval_ctx ctx [ f ]
     (f' `@t t) :: tl -- call by name
 
-  -- | .cons (.ite (.var x) (.var y) b c) tl => -- TODO: Get the head and the args to build a substitution
-  --   (if x == y then b else c) :: tl
-
+  --------------------------
+  ---- Case matching
+  --------------------------
   | .cons (.ite p s b c) tl => do
   let h <- optionToList (Term.neutral_head p)
   (match Term.neutral_form s with
@@ -44,6 +38,9 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   | .some (s' , l) => (if (h == s')
                       then Term.apply_spine b l :: tl
                       else c :: tl))
+  --------------------------
+  ---- Guards over open terms
+  --------------------------
 
   --------------------------
   ---- Coercions

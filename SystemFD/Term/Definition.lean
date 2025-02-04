@@ -1,7 +1,15 @@
-
 inductive Const : Type where
 | pointed | unpointed
-deriving Repr
+
+instance : ToString Const where
+  toString x := match x with
+                | .pointed => "★"
+                | .unpointed => "◯"
+
+instance : Repr Const where
+  reprPrec a _ := match a with
+                  | .pointed => "★"
+                  | .unpointed => "◯"
 
 inductive Ctor1Variant : Type where
 | refl
@@ -53,8 +61,60 @@ inductive Term : Type where
         -> Term
 | letdata : Term -> Term -> Term
 | letterm : Term -> Term -> Term -> Term
-| inst : Nat -> Term -> Term -> Term
-deriving Repr
+| inst : Nat  -- Index of open method
+       -> Term -- open method inst definition
+       -> Term  -- continuation
+       -> Term
+-- deriving Repr
+
+protected def Term.repr (a : Term) (p : Nat): Std.Format :=
+  match a with
+  | .kind => "kind"
+  | .var n => "#" ++ Nat.repr n
+  | .const k => toString k
+
+  | .ctor1 .refl t => "⟨" ++ Term.repr t p ++ "⟩"
+  | .ctor1 .sym t => "sym" ++ "(" ++ Term.repr t p ++ ")"
+  | .ctor1 .fst t => "(" ++ Term.repr t p ++ ")●1"
+  | .ctor1 .snd t => "(" ++ Term.repr t p ++ ")●2"
+
+  | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
+  | .ctor2 .arrow t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
+  | .ctor2 .arrowc t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
+  | .ctor2 .appk t1 t2 => Term.repr t1 p ++ " `@k " ++ Term.repr t2 p
+  | .ctor2 .appc t1 t2 => Term.repr t1 p ++ " `@c " ++ Term.repr t2 p
+  | .ctor2 .appt t1 t2 => Term.repr t1 p ++ " `@t " ++ Term.repr t2 p
+  | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@tc " ++ Term.repr t2 p
+  | .ctor2 .app t1 t2 => Term.repr t1 p ++ " `@ " ++ Term.repr t2 p
+  | .ctor2 .cast t1 t2 => Term.repr t1 p  ++ " ▹ " ++ Term.repr t2 p
+  | .ctor2 .seq t1 t2 => Term.repr t1 p ++ " `; " ++ Term.repr t2 p
+  | .ctor2 .eq t1 t2 => Term.repr t1 p ++ " ∼ " ++ Term.repr t2 p
+
+  | .bind2 .all t1 t2 => "∀[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .allc t1 t2 => "∀c[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .lamt t1 t2 => "Λ[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .lam t1 t2 => "`λ[" ++ Term.repr t1 p ++ "] " ++ Term.repr t2 p
+  | .bind2 .letopentype t1 t2 => "open " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
+  | .bind2 .letopen t1 t2 => "openm " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
+  | .bind2 .letctor t1 t2 => "ctor! " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
+  | .bind2 .insttype t1 t2 => "insttype! " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
+
+  | .ite pat s b c =>
+         " match " ++ Term.repr s p ++ " with " ++
+          Repr.addAppParen (Term.repr pat p) p ++ " => " ++ Term.repr b p ++ " | " ++ Std.Format.line
+          ++ Term.repr c p
+  | .guard pat s c =>
+           Std.Format.line ++ "If " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ", " ++ Std.Format.line
+           ++ Term.repr c p
+
+  | .letdata t1 t2 => "data!" ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++ Term.repr t2 p
+  | .letterm t t1 t2 => "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
+                     ++ Term.repr t2 p
+  | .inst n d c => "instance " ++ Nat.repr n ++ " " ++ Term.repr d p ++ " ;; " ++ Term.repr c p
+
+
+instance : Repr Term where
+  reprPrec a p := Term.repr a p
 
 notation "★" => Term.const Const.pointed
 notation "◯" => Term.const Const.unpointed

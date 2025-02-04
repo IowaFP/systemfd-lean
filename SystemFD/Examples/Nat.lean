@@ -25,6 +25,8 @@ def ex_succ : Term := #0
 #eval! infer_type NatCtx (ex_pred `@ (ex_succ `@ #1))
 
 
+#eval! eval_ctx_loop NatCtx [ex_pred]
 #eval! eval_ctx_loop NatCtx [ex_pred `@ (ex_succ `@ #1)]
+
 
 #eval! eval_ctx_loop NatCtx [ex_pred `@ (ex_succ `@ (ex_succ `@ #1))]

@@ -4,6 +4,7 @@ import SystemFD.Term.Definition
 
 inductive SpineVariant where
 | term | type | kind
+ deriving Repr
 
 namespace SpineVariant
   @[simp]

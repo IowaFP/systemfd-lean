@@ -11,7 +11,13 @@ def boolCtx : Ctx Term := [
   , .datatype  ★   -- Bool : ★
 ]
 
-  -- not : Bool -> Bool
+/-
+not : Bool -> Bool
+not = λ x → case x of
+               False → True
+               True → False
+               _ → False
+-/
 def notTerm : Term :=
        (`λ[ #2 ] Term.ite
                   #2 -- False
@@ -27,12 +33,20 @@ def notTerm : Term :=
        )
 
 
+/-      eqBool = λ x. λ y. case x of
+                            True → case y of
+                                    True → True
+                                    False → False
+                            False → case y of
+                                    True → False
+                                    False → True
+ -/
 def eqBoolTerm : Term :=
      `λ[#2] `λ[#3]
         (Term.ite #2 #1 (Term.ite #2 #0 #2 #3)
         (Term.ite #3 #1 (Term.ite #3 #0 #2 #3)
           #3))
-
+#eval eqBoolTerm
 -- not : Bool => Bool
 #eval! infer_type boolCtx notTerm
 #eval! eval_ctx_loop boolCtx [notTerm `@ #1]
