@@ -2,7 +2,7 @@ import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Algorithm
-import SystemFD.Evaluator
+-- import SystemFD.Evaluator
 
 -- notation t1 ";;" t2 => t1 (t2)
 -- notation t1 "::" t2 => Term.cons t1 t2
@@ -73,13 +73,13 @@ def ex_pred : Term := `λ[Nati]
   (.ite (succi.succ) #0 (`λ[Nati.succ] #0) #0)
 
 #eval wf_ctx NatCtx
-#eval infer_type NatCtx ex_pred
-#eval infer_type NatCtx ex_succ
-#eval! infer_type NatCtx (ex_pred `@ (ex_succ `@ #1))
+#eval ex_pred
+-- #eval infer_type NatCtx ex_succ
+-- #eval! infer_type NatCtx (ex_pred `@ (ex_succ `@ #1))
 
 
-#eval! eval_ctx_loop NatCtx [ex_pred]
-#eval! eval_ctx_loop NatCtx [ex_pred `@ (ex_succ `@ #1)]
+-- #eval! eval_ctx_loop NatCtx [ex_pred]
+-- #eval! eval_ctx_loop NatCtx [ex_pred `@ (ex_succ `@ #1)]
 
 
-#eval! eval_ctx_loop NatCtx [ex_pred `@ (ex_succ `@ (ex_succ `@ #1))]
+-- #eval! eval_ctx_loop NatCtx [ex_pred `@ (ex_succ `@ (ex_succ `@ #1))]

@@ -2,6 +2,7 @@ import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Algorithm
+import SystemFD.Evaluator
 
 notation t1 ";;" t2 => t1 (t2)
 notation t1 "::" t2 => Term.cons t1 t2
@@ -192,3 +193,12 @@ def ident : Term :=
       Term.guard (#3 `@k #1) -- EqBool[t]
                  #0 -- i
                  (`λ[#1 ~ #16] #3 ▹ sym! ( #0 -c> #0))) ;; #0
+
+#eval infer_type (mkCtx [] unit) unit
+#eval! eval unit
+
+#eval infer_type (mkCtx [] unitRefl) unitRefl
+#eval! eval unitRefl
+
+
+#eval! eval booltest2

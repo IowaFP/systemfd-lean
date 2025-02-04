@@ -1,7 +1,8 @@
 
 import SystemFD.Term
+import SystemFD.Algorithm
 
-import SystemFD.Examples.Apoorv
+-- import SystemFD.Examples.Apoorv
 
 instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad List instance?
   pure a := List.cons a List.nil
@@ -31,13 +32,13 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   ---- Case matching
   --------------------------
   | .cons (.ite p s b c) tl => do
-  let h <- optionToList (Term.neutral_head p)
-  (match Term.neutral_form s with
-  | .none => do let s'' <- eval_ctx ctx [ s ]
-                .ite p s'' b c :: tl
-  | .some (s' , l) => (if (h == s')
-                      then Term.apply_spine b l :: tl
-                      else c :: tl))
+    let (h, sp) <- optionToList (Term.neutral_form p)
+    (match Term.neutral_form s with
+    | .none => do let s'' <- eval_ctx ctx [ s ]
+                  .ite p s'' b c :: tl
+    | .some (s' , l) => (if (h == s')
+                        then Term.apply_spine b l :: tl
+                        else c :: tl))
   --------------------------
   ---- Guards over open terms
   --------------------------
@@ -52,10 +53,10 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
     if ty == ty'
     then refl! ty :: tl
     else (.ctor2 .seq (.ctor1 .refl ty') (.ctor1 .refl ty)) :: tl -- stuck
-  | .cons (.ctor2 .appc (.ctor1 .refl (.ctor2 .arrow ty ty')) (.ctor1 .refl ty'')) tl =>
+  | .cons (.ctor2 .appc (.ctor1 .refl (.bind2 .arrow ty ty')) (.ctor1 .refl ty'')) tl =>
     if ty == ty''
     then refl! ty' :: tl
-    else (.ctor2 .appc (.ctor1 .refl (.ctor2 .arrow ty ty')) (.ctor1 .refl ty'')) :: tl -- stuck
+    else (.ctor2 .appc (.ctor1 .refl (.bind2 .arrow ty ty')) (.ctor1 .refl ty'')) :: tl -- stuck
   | .cons (.ctor1 .refl (.ctor1 .fst (.ctor1 .refl (.ctor2 .app A B)))) tl =>
      refl! A :: tl
   | .cons (.ctor1 .refl (.ctor1 .snd (.ctor1 .refl (.ctor2 .app A B)))) tl =>
@@ -102,12 +103,3 @@ unsafe def eval_ctx_loop (ctx : Ctx Term) (t : List Term) : List Term :=
 unsafe def eval (t : Term) : List Term :=
   let ctx := mkCtx [] t;
   eval_ctx_loop ctx [t]
-
-#eval infer_type (mkCtx [] unit) unit
-#eval! eval unit
-
-#eval infer_type (mkCtx [] unitRefl) unitRefl
-#eval! eval unitRefl
-
-
-#eval! eval booltest2

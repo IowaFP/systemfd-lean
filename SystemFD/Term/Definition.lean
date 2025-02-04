@@ -79,7 +79,6 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor1 .snd t => "(" ++ Term.repr t p ++ ")●2"
 
   | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
-  | .ctor2 .arrow t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
   | .ctor2 .arrowc t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
   | .ctor2 .appk t1 t2 => Term.repr t1 p ++ " `@k " ++ Term.repr t2 p
   | .ctor2 .appc t1 t2 => Term.repr t1 p ++ " `@c " ++ Term.repr t2 p
@@ -91,6 +90,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor2 .eq t1 t2 => Term.repr t1 p ++ " ∼ " ++ Term.repr t2 p
 
   | .bind2 .all t1 t2 => "∀[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .arrow t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
   | .bind2 .allc t1 t2 => "∀c[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .lamt t1 t2 => "Λ[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .lam t1 t2 => "`λ[" ++ Term.repr t1 p ++ "] " ++ Term.repr t2 p
