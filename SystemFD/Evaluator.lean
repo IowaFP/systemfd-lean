@@ -1,10 +1,16 @@
+
+import SystemFD.Term
+
 import SystemFD.Examples.Apoorv
-import SystemFD.Examples.Nat
-import SystemFD.Examples.Boolean
 
 instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad List instance?
   pure a := List.cons a List.nil
   bind l f := List.flatMap l f
+
+
+def optionToListList {A : Type} : Option A -> List (List A)
+  | .none => [[]]
+  | .some x => [[x]]
 
 
 def optionToList {A : Type} : Option A -> List A
@@ -27,17 +33,17 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
     let f' <- eval_ctx ctx [ f ]
     (f' `@t t) :: tl -- call by name
 
-  | .cons (.ite (.var x) (.var y) b c) tl => -- TODO: Get the head and the args to build a substitution
-    (if x == y then b else c) :: tl
+  -- | .cons (.ite (.var x) (.var y) b c) tl => -- TODO: Get the head and the args to build a substitution
+  --   (if x == y then b else c) :: tl
 
   | .cons (.ite p s b c) tl => do
   let h <- optionToList (Term.neutral_head p)
-  let s' <- optionToList (Term.neutral_head s)
-  let σ <- optionToList (Term.neutral_subst s)
-  if (h == s')
-  then ([ σ ] b) :: tl
-  else do let s' <- eval_ctx ctx [ s ]
-          .ite p s' b c :: tl
+  (match Term.neutral_form s with
+  | .none => do let s'' <- eval_ctx ctx [ s ]
+                .ite p s'' b c :: tl
+  | .some (s' , l) => (if (h == s')
+                      then Term.apply_spine b l :: tl
+                      else c :: tl))
 
   --------------------------
   ---- Coercions
@@ -77,6 +83,8 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   | .cons (.bind2 .insttype t t') tl => eval_ctx (.insttype t :: ctx) (t' :: tl)
 
   | t => t
+  decreasing_by
+    repeat sorry
 
 def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
   | .letdata K t => mkCtx (.datatype K :: ctx ) t
@@ -104,14 +112,5 @@ unsafe def eval (t : Term) : List Term :=
 #eval infer_type (mkCtx [] unitRefl) unitRefl
 #eval! eval unitRefl
 
-#eval! infer_type boolCtx notTerm
-#eval! eval_ctx_loop boolCtx [notTerm `@ #1]
-#eval! eval_ctx_loop boolCtx [notTerm `@ #0]
-
-#eval! infer_type boolCtx eqBoolTerm
-#eval! eval_ctx_loop boolCtx [eqBoolTerm `@ #1 `@ #1]
-#eval! eval_ctx_loop boolCtx [eqBoolTerm `@ #0 `@ #1]
-
 
 #eval! eval booltest2
-#eval! eval_ctx_loop NatCtx [ex_pred `@ (#0 `@ #1)]

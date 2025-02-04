@@ -3,6 +3,7 @@ import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Algorithm
+import SystemFD.Evaluator
 
 def boolCtx : Ctx Term := [
     .ctor #1 -- True : Bool
@@ -27,7 +28,16 @@ def notTerm : Term :=
 
 
 def eqBoolTerm : Term :=
-     `λ[#2] `λ[#2]
+     `λ[#2] `λ[#3]
         (Term.ite #2 #1 (Term.ite #2 #0 #2 #3)
         (Term.ite #3 #1 (Term.ite #3 #0 #2 #3)
-          #13))
+          #3))
+
+-- not : Bool => Bool
+#eval! infer_type boolCtx notTerm
+#eval! eval_ctx_loop boolCtx [notTerm `@ #1]
+#eval! eval_ctx_loop boolCtx [notTerm `@ #0]
+
+#eval! infer_type boolCtx eqBoolTerm
+#eval! eval_ctx_loop boolCtx [eqBoolTerm `@ #1 `@ #1]
+#eval! eval_ctx_loop boolCtx [eqBoolTerm `@ #0 `@ #1]
