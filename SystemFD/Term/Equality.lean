@@ -46,7 +46,6 @@ namespace Ctor2Variant
   @[simp]
   def beq : Ctor2Variant -> Ctor2Variant -> Bool
   | arrowk, arrowk => true
-  | arrow, arrow => true
   | appk, appk => true
   | appt, appt => true
   | app, app => true
@@ -77,6 +76,7 @@ namespace Bind2Variant
   | all, all => true
   | lamt, lamt => true
   | lam, lam => true
+  | arrow, arrow => true
   | allc, allc => true
   | letopentype, letopentype => true
   | letopen, letopen => true

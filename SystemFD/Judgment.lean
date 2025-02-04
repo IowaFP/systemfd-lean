@@ -83,7 +83,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | ax :
   Judgment .wf Γ () ->
   Judgment .prf Γ (.const K, .kind)
-| var :
+| var_type :
   Judgment .wf Γ () ->
   .some T = Frame.get_type (Γ d@ x) ->
   Judgment .prf Γ (#x, T)
@@ -109,14 +109,16 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 | ite :
   Judgment .prf Γ (p, A) ->
-  (τ, R) = Term.to_telescope A ->
-  .some ctorid = Term.neutral_head p ->
-  .some dataid = Term.neutral_head R ->
+  (τ, sR) = Term.to_telescope A ->
+  [S' τ.length]R = sR ->
+  .some (ctorid, _) = Term.neutral_form p ->
+  .some (dataid, _) = Term.neutral_form R ->
   is_datatype Γ ctorid dataid ->
   Judgment .prf Γ (R, ★) ->
   Judgment .prf Γ (s, R) ->
   Judgment .prf Γ (i, B) ->
-  (τ, T) = Term.to_telescope B ->
+  (τ, sT) = Term.to_telescope B ->
+  [S' τ.length]T = sT ->
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf Γ (e, T) ->
   Judgment .prf Γ (.ite p s i e, T)
@@ -153,11 +155,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | guard :
 --   .some openmid = Term.neutral_head s -> // Check that it's actually an open method?
   Judgment .prf Γ (p, A) ->
-  (τ, R) = Term.to_telescope A ->
+  (τ, sR) = Term.to_telescope A ->
+  [S' τ.length]R = sR ->
   Judgment .prf Γ (R, ◯) ->
   Judgment .prf Γ (s, R) ->
   Judgment .prf Γ (t, B) ->
-  (τ, T) = Term.to_telescope B ->
+  (τ, sT) = Term.to_telescope B ->
+  [S' τ.length]T = sT ->
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf Γ (.guard p s t, T)
 --------------------------------------------------------------------------------------
@@ -170,7 +174,8 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | app :
   Judgment .prf Γ (f, A -t> B) ->
   Judgment .prf Γ (a, A) ->
-  Judgment .prf Γ (f `@ a, B)
+  B' = B β[.kind] ->
+  Judgment .prf Γ (f `@ a, B')
 | lamt :
   Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (K, .kind) ->
@@ -179,7 +184,8 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | appt :
   Judgment .prf Γ (f, ∀[A] B) ->
   Judgment .prf Γ (a, A) ->
-  Judgment .prf Γ (f `@t a, B)
+  B' = B β[a] ->
+  Judgment .prf Γ (f `@t a, B')
 | cast :
   Judgment .prf Γ (t, A) ->
   Judgment .prf Γ (c, A ~ B) ->

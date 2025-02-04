@@ -20,7 +20,6 @@ deriving Repr
 
 inductive Ctor2Variant : Type where
 | arrowk
-| arrow
 | appk
 | appt
 | app
@@ -36,6 +35,7 @@ inductive Bind2Variant : Type where
 | all
 | lamt
 | lam
+| arrow
 | allc
 | letopentype  -- open type
 | letopen      -- open method/superclass functions/fundeps
@@ -119,7 +119,7 @@ instance : Repr Term where
 notation "★" => Term.const Const.pointed
 notation "◯" => Term.const Const.unpointed
 infixr:14 " -k> " => Term.ctor2 Ctor2Variant.arrowk
-infixr:14 " -t> " => Term.ctor2 Ctor2Variant.arrow
+infixr:14 " -t> " => Term.bind2 Bind2Variant.arrow
 infixr:14 " -c> " => Term.ctor2 Ctor2Variant.arrowc
 notation:14 "∀[" A "]" B:14 => Term.bind2 Bind2Variant.all A B
 infixl:15 " `@k " => Term.ctor2 Ctor2Variant.appk
