@@ -89,11 +89,11 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor2 .seq t1 t2 => Term.repr t1 p ++ " `; " ++ Term.repr t2 p
   | .ctor2 .eq t1 t2 => Term.repr t1 p ++ " ∼ " ++ Term.repr t2 p
 
-  | .bind2 .all t1 t2 => "∀[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .all t1 t2 => "∀" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .arrow t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
-  | .bind2 .allc t1 t2 => "∀c[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
-  | .bind2 .lamt t1 t2 => "Λ[" ++ Term.repr t1 p ++ "] " ++ Repr.addAppParen (Term.repr t2 p) p
-  | .bind2 .lam t1 t2 => "`λ[" ++ Term.repr t1 p ++ "] " ++ Term.repr t2 p
+  | .bind2 .allc t1 t2 => "∀c" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .lamt t1 t2 => "Λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .lam t1 t2 => "`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p
   | .bind2 .letopentype t1 t2 => "open " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
   | .bind2 .letopen t1 t2 => "openm " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
   | .bind2 .letctor t1 t2 => "ctor! " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
@@ -101,16 +101,17 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
 
   | .ite pat s b c =>
          " match " ++ Term.repr s p ++ " with " ++
-          Repr.addAppParen (Term.repr pat p) p ++ " => " ++ Term.repr b p ++ " | " ++ Std.Format.line
-          ++ Term.repr c p
+          Repr.addAppParen (Term.repr pat p) p ++ " ⇒ " ++ Term.repr b p ++ " | "
+          ++ Term.repr c p ++ Std.Format.line
   | .guard pat s c =>
-           Std.Format.line ++ "If " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ", " ++ Std.Format.line
+           Std.Format.nest 2 <| "If " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ", " ++ Std.Format.line
            ++ Term.repr c p
 
   | .letdata t1 t2 => "data!" ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++ Term.repr t2 p
   | .letterm t t1 t2 => "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
                      ++ Term.repr t2 p
-  | .inst n d c => "instance " ++ Nat.repr n ++ " " ++ Term.repr d p ++ " ;; " ++ Term.repr c p
+  | .inst n d c => Std.Format.nest 2 <| "instance " ++ Nat.repr n ++ " " ++ Term.repr d p ++ " ;; "  ++ Std.Format.line
+                ++ Term.repr c p
 
 
 instance : Repr Term where

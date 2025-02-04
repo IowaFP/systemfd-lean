@@ -192,7 +192,7 @@ def ident : Term :=
 #eval Term.inst 2 (Λ[★] `λ[#4 `@k #0]
       Term.guard (#3 `@k #1) -- EqBool[t]
                  #0 -- i
-                 (`λ[#1 ~ #16] #3 ▹ sym! ( #0 -c> #0))) ;; #0
+                 (`λ[#1 ~ #16] #3 ▹ sym! (#0 -c> #0))) ;; #0
 
 #eval infer_type (mkCtx [] unit) unit
 #eval! eval unit
@@ -201,4 +201,4 @@ def ident : Term :=
 #eval! eval unitRefl
 
 
-#eval! eval booltest2
+#eval! booltest2
