@@ -83,8 +83,8 @@ def booltest2 : Term :=
   ;; letctor! #1 -- True : Bool
 
   -- Maybe
-  ;; Term.letdata (★ -k> ★)       -- Maybe : ★ → ★
-  ;; letctor! (∀[★] #1 `@k #0)  -- Nothing : ∀ (a : ★). Maybe a
+  ;; Term.letdata (★ -k> ★)             -- Maybe : ★ → ★
+  ;; letctor! (∀[★] #1 `@k #0)          -- Nothing : ∀ (a : ★). Maybe a
   ;; letctor! (∀[★] #0 -t> (#2 `@k #0)) -- Just : ∀ (a : ★). a → Maybe a
 
   -- Either
@@ -130,7 +130,7 @@ def booltest2 : Term :=
                                     True → False
                                     False → True
  -/
-  ;; Term.letterm (#13 -t> #13 -t> #13)
+  ;; Term.letterm (#13 -t> #14 -t> #15)
      (`λ[#13] `λ[#14]
         (Term.ite #14 #1 (Term.ite #14 #0 #14 #15)
         (Term.ite #15 #1 (Term.ite #15 #0 #14 #15)

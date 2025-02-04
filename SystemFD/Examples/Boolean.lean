@@ -29,8 +29,6 @@ def notTerm : Term :=
                     #2
                     #2 -- False catch all
                   ))
-
-
 /-      eqBool = λ x. λ y. case x of
                             True → case y of
                                     True → True
@@ -44,6 +42,7 @@ def eqBoolTerm : Term :=
         (Term.ite #2 #1 (Term.ite #2 #0 #2 #3)
         (Term.ite #3 #1 (Term.ite #3 #0 #2 #3)
           #3))
+
 #eval eqBoolTerm
 #eval notTerm
 -- not : Bool => Bool

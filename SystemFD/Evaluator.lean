@@ -2,20 +2,27 @@
 import SystemFD.Term
 import SystemFD.Algorithm
 
--- import SystemFD.Examples.Apoorv
-
 instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad List instance?
   pure a := List.cons a List.nil
   bind l f := List.flatMap l f
-
 
 def optionToList {A : Type} : Option A -> List A
   | .none => []
   | .some x => [x]
 
+def getInsts (k : Nat) (ctx : Ctx Term) (accum : List Term): List Term :=
+  match ctx with
+  | .nil => accum
+  | .cons (.inst n t) rest => if n == k
+                              then getInsts k rest (t :: accum)
+                              else getInsts k rest accum
+  | .cons _ rest => getInsts k rest accum
+
+
 def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   | .cons #x tl => (match (ctx d@ x) with
                    | .term _ t => .cons t tl
+                   -- | .openm t => getInsts x ctx []
                    | _ => #x :: tl)
 
   | .cons (.ctor2 .app (.bind2 .lam _ b) t) tl => b β[ t ] :: tl
@@ -42,7 +49,14 @@ def eval_ctx (ctx : Ctx Term) : List Term -> List Term
   --------------------------
   ---- Guards over open terms
   --------------------------
-
+  | .cons (.guard p s c) tl => do
+    let (h, sp) <- optionToList (Term.neutral_form p)
+    (match Term.neutral_form s with
+    | .none => do let s'' <- eval_ctx ctx [ s ]
+                  .guard p s'' c :: tl
+    | .some (s' , l) => (if (h == s')
+                        then Term.apply_spine c l :: tl
+                        else tl))
   --------------------------
   ---- Coercions
   --------------------------
