@@ -51,7 +51,7 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
 ---- Instance Instantiation
 ----------------------------------------------------------------
 | inst :
-  .some x = Term.neutral_head h ->
+  .some (x, sp) = Term.neutral_form h ->
   indices = instance_indices Γ 0 x ->
   indices.length > 0 ->
   Δ = tl ++ (instantiate_instances Γ indices x h) ->
