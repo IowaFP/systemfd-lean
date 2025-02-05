@@ -1,3 +1,4 @@
+import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Ctx
 set_option maxHeartbeats 500000
@@ -136,12 +137,13 @@ def infer_type : Ctx Term -> Term -> Option Term
   let R' <- infer_type Γ s
   let B <- infer_type Γ i
   let (τ', sT) := Term.to_telescope B
-  let T := [P' τ.length]sT
+  let ξ <- prefix_equal τ τ'
+  let sT' := Term.from_telescope ξ sT
+  let T := [P' τ.length]sT'
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
   let T' <- infer_type Γ e
   if R == R'
-    && τ == τ'
     && T == T'
     && is_datatype Γ ctorid dataid
   then .some T
@@ -155,10 +157,12 @@ def infer_type : Ctx Term -> Term -> Option Term
   let R' <- infer_type Γ s
   let B <- infer_type Γ t
   let (τ', sT) := Term.to_telescope B
-  let T := [P' τ.length]sT
+  let ξ <- prefix_equal τ τ'
+  let sT' := Term.from_telescope ξ sT
+  let T := [P' τ.length]sT'
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
-  if R == R' && τ == τ' then .some T else .none
+  if R == R' then .some T else .none
 | Γ, `λ[A] t => do
   let Ak <- infer_kind Γ A
   let _ <- is_const Ak

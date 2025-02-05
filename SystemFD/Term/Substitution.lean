@@ -28,6 +28,7 @@ instance instLawfulBEq_SpineVariant : LawfulBEq SpineVariant where
     cases a <;> simp
 
 namespace Term
+  @[simp]
   def to_telescope : Term -> Ctx Term × Term
   | bind2 .arrow A B =>
     let (Γ, r) := to_telescope B
@@ -36,6 +37,13 @@ namespace Term
     let (Γ, r) := to_telescope B
     (.kind A::Γ, r)
   | t => ([], t)
+
+  @[simp]
+  def from_telescope : Ctx Term -> Term -> Term
+  | [], t => t
+  | .cons (.type A) Γ, t => from_telescope Γ (.bind2 .arrow A t)
+  | .cons (.kind A) Γ, t => from_telescope Γ (∀[A] t)
+  | _, t => t
 
   @[simp]
   def neutral_form : Term -> Option (Nat × List (SpineVariant × Term))

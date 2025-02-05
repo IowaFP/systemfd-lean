@@ -1,4 +1,4 @@
-
+import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Ctx
 
@@ -117,38 +117,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (R, ★) ->
   Judgment .prf Γ (s, R) ->
   Judgment .prf Γ (i, B) ->
-  (τ, sT) = Term.to_telescope B ->
-  [S' τ.length]T = sT ->
+  (τ', sT) = Term.to_telescope B ->
+  .some ξ = prefix_equal τ τ' ->
+  sT' = Term.from_telescope ξ sT ->
+  [S' τ.length]T = sT' ->
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf Γ (e, T) ->
   Judgment .prf Γ (.ite p s i e, T)
--- | case :
---   Judgment .prf Γ (m, A) ->
---   Judgment .prf Γ (A, ★) ->
---   Judgment .bchl Γ (br, A, B) ->
---   Judgment .prf Γ (.case m br, B)
--- | branchstart :
---   Judgment .bch Γ (t, A, B) ->
---   Judgment .bchl Γ (.cons t .nil, A, B)
--- | branchcons :
---   Judgment .bch Γ (hd, A, B) ->
---   Judgment .bchl Γ (tl, A, B) ->
---   Judgment .bchl Γ (.cons hd tl, A, B)
--- | branch0 :
---   Judgment .prf Γ (c, A) ->
---   .some ctorid = Term.neutral_head c ->
---   .some dataid = Term.neutral_head A ->
---   is_datatype Γ ctorid dataid ->
---   Judgment .prf Γ (t, B) ->
---   Judgment .bch Γ (.branch c 0 t, A, B)
--- | branch_arrow :
---   Judgment .prf Γ (c, C -t> D) ->
---   Judgment .bch (.type C::Γ) (.branch ([S]c `@ #0) n t, A, B) ->
---   Judgment .bch Γ (.branch c (n + 1) t, A, B)
--- | branch_all :
---   Judgment .prf Γ (c, ∀[C] D) ->
---   Judgment .bch (.kind C::Γ) (.branch ([S]c `@t #0) n t, A, B) ->
---   Judgment .bch Γ (.branch c (n + 1) t, A, B)
 --------------------------------------------------------------------------------------
 ---- Guards
 --------------------------------------------------------------------------------------
@@ -160,8 +135,10 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (R, ◯) ->
   Judgment .prf Γ (s, R) ->
   Judgment .prf Γ (t, B) ->
-  (τ, sT) = Term.to_telescope B ->
-  [S' τ.length]T = sT ->
+  (τ', sT) = Term.to_telescope B ->
+  .some ξ = prefix_equal τ τ' ->
+  sT' = Term.from_telescope ξ sT ->
+  [S' τ.length]T = sT' ->
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf Γ (.guard p s t, T)
 --------------------------------------------------------------------------------------

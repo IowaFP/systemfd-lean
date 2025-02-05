@@ -34,14 +34,14 @@ def NatCtxFix : Ctx Term := [
 def NatCtxDirect : Ctx Term := [
   -- let two : Nat := succ (succ zero)
   .term #4 (#2 `@ (#2 `@ #3)),
-  -- instance add : λ n m.
-  --   ite zero <- n then m
-  --     else ite succ <- n then λ x. succ (add x m)
+  -- instance add : λ n.
+  --   ite zero <- n then λ m. m
+  --     else ite succ <- n then λ x. λ m. succ (add x m)
   --     else m
-  .inst 0 (`λ[#3] `λ[#4]
-    .ite #4 #1 #0 (
-      .ite #3 #1 (`λ[#5] #4 `@ (#3 `@ #0 `@ #1))
-      #0)),
+  .inst 0 (`λ[#3]
+    .ite #3 #0 (`λ[#4] #0) (
+      .ite #2 #0 (`λ[#4] `λ[#5] #4 `@ (#3 `@ #1 `@ #0))
+      (`λ[#4] #0))),
   -- open add : Nat -> Nat -> Nat
   .openm (#2 -t> #3 -t> #4),
   -- Nat.succ
