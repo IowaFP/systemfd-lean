@@ -2,7 +2,7 @@ import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Algorithm
--- import SystemFD.Evaluator
+import SystemFD.Evaluator
 
 def NatCtxFix : Ctx Term := [
   -- let two : Nat := succ (succ zero)
@@ -56,3 +56,13 @@ def NatCtxDirect : Ctx Term := [
 #eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
 #eval wf_ctx NatCtxDirect
 #eval infer_type NatCtxDirect (#2 `@ #0 `@ #0)
+
+
+#eval instance_indices NatCtxDirect 0 2
+#eval instance_indices' NatCtxFix 0 4 []
+
+#eval eval_inst NatCtxFix (#1 `@ #0 `@ #0)
+#eval eval_ctx_loop NatCtxFix (#1 `@ #0 `@ #0)
+
+-- #eval eval_inst NatCtxDirect (#2 `@ #0 `@ #0)
+-- #eval eval_ctx_loop NatCtxDirect (#2 `@ #0 `@ #0)

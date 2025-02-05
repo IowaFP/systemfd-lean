@@ -1,4 +1,5 @@
 
+import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Algorithm
 
@@ -10,26 +11,19 @@ def optionToList {A : Type} : Option A -> List A
   | .none => []
   | .some x => [x]
 
-def getInsts (k : Nat) (ctx : Ctx Term) (accum : List Term): List Term :=
-  match ctx with
-  | .nil => accum
-  | .cons (.inst n t) rest => if n == k
-                              then getInsts k rest (t :: accum)
-                              else getInsts k rest accum
-  | .cons _ rest => getInsts k rest accum
-
-
+-- Evaluation for a term in a context
 def eval_ctx (ctx : Ctx Term) : Term -> List Term
-  | #x => (match (ctx d@ x) with
-                   | .term _ t => [t]
-                   | _ => [#x])
+  -- | #x => match (ctx d@ x) with
+  --                  | .term _ t => [t]
+  --                  | _ => [#x]
 
-  | .ctor2 .app (.bind2 .lam _ b) t => [b β[ t ]]
+  | .ctor2 .app (.bind2 .lam _ b) t
+  | .ctor2 .appt (.bind2 .lamt _ b) t => [b β[ t ]]
+
   | .ctor2 .app f t => do
     let f' <- eval_ctx ctx f
     [f' `@ t] -- call by name
 
-  | .ctor2 .appt (.bind2 .lamt _ b) ty => [b β[ ty ]]
   | .ctor2 .appt f t => do
     let f' <- eval_ctx ctx f
     [f' `@t t] -- call by name
@@ -47,17 +41,21 @@ def eval_ctx (ctx : Ctx Term) : Term -> List Term
                                | .some l => [Term.apply_spine b l]
                                | .none => [c]
                           else [c]))
+
   --------------------------
   ---- Guards over open terms
   --------------------------
   | .guard p s c => do
-    let (h, _) <- optionToList (Term.neutral_form p)
+    let (p', sp) <- optionToList (Term.neutral_form p)
     (match Term.neutral_form s with
     | .none => do let s'' <- eval_ctx ctx s
                   [.guard p s'' c]
-    | .some (s' , l) => (if (h == s')
-                        then [Term.apply_spine c l]
-                        else []))
+    | .some (s' , sp') => (if (p' == s')
+                          then match prefix_equal sp sp' with
+                               | .some l =>  [Term.apply_spine c l]
+                               | .none   => []
+                          else []))
+
   --------------------------
   ---- Coercions
   --------------------------
@@ -83,7 +81,6 @@ def eval_ctx (ctx : Ctx Term) : Term -> List Term
     [t ▹ η']
 
 
-  -- | .cons (.inst n t t) tl =>
   ---------------
   ----Decls
   ---------------
@@ -96,6 +93,30 @@ def eval_ctx (ctx : Ctx Term) : Term -> List Term
 
   | t => [t]
 
+
+-- Instantiates instances or performs a one step evaluation
+def eval_inst (Γ : Ctx Term) (t : Term) : List Term :=
+  match (Term.neutral_form t) with
+  | .none => eval_ctx Γ t
+  | .some (h, sp) =>
+    match (Γ @ h) with
+    | .openm _ => let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
+         let ts := get_instances Γ ιs ; -- select the right instances using the indices
+         List.map (λ x => x.apply_spine sp) ts -- apply the instance terms to the spine
+    | .term _ b => [b.apply_spine sp]
+    | _ => [t]
+
+
+-- Goes over the list of terms and evaluates each of them by one step
+def eval_outer (Γ : Ctx Term) (ts : List Term) : List Term := List.flatMap ts (eval_inst Γ)
+
+-- multistep evaluator
+unsafe def eval_ctx_loop (Γ : Ctx Term) (t : Term) : List Term := do
+  let t' <- eval_outer Γ [t]
+  if t == t'
+  then [t']
+  else eval_ctx_loop Γ t'
+
 def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
   | .letdata K t => mkCtx (.datatype K :: ctx ) t
   | .letterm ty t t' => mkCtx (.term ty t ::  ctx) t'
@@ -105,12 +126,6 @@ def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
   | .bind2 .insttype t t' => mkCtx (.insttype t :: ctx) t'
   | .inst n t t' => mkCtx (.inst n t :: ctx) t'
   | _ => ctx
-
-unsafe def eval_ctx_loop (ctx : Ctx Term) (t : Term) : List Term := do
-  let t' <- eval_ctx ctx t
-  if t == t'
-  then [t']
-  else eval_ctx_loop ctx t'
 
 unsafe def eval (t : Term) : List Term :=
   let ctx := mkCtx [] t;

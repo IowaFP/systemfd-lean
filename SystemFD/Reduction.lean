@@ -16,6 +16,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 | snd : Red Γ (.ctor1 .snd (refl! (A `@k B))) [refl! B]
 | allc : Red Γ (∀c[A] refl! B) [refl! (∀[A] B)]
 | arrowc : Red Γ (refl! A -c> refl! B) [refl! (A -t> B)]
+
 ----------------------------------------------------------------
 ---- Ite matching
 ----------------------------------------------------------------
@@ -29,6 +30,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   .some (x', sp') = Term.neutral_form s ->
   x ≠ x' ∨ prefix_equal sp sp' = .none ->
   Red Γ (.ite p s b e) [e]
+
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -42,16 +44,18 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   .some (x', sp') = Term.neutral_form s ->
   x ≠ x' ∨ prefix_equal sp sp = .none ->
   Red Γ (.guard p s b) []
+
 ----------------------------------------------------------------
 ---- Instance Instantiation
 ----------------------------------------------------------------
 | inst :
   .some (x, sp) = Term.neutral_form h ->
-  indices = instance_indices Γ 0 x ->
+  indices = instance_indices Γ 0 x -> -- searches for the instances of open method x
   indices.length > 0 ->
-  tl = get_instances Γ indices ->
+  tl = get_instances Γ indices -> -- weakens the instances
   tl' = List.map (λ x => x.apply_spine sp) tl ->
   Red Γ h tl'
+
 ----------------------------------------------------------------
 ---- Contextual/Congruence rules
 ----------------------------------------------------------------

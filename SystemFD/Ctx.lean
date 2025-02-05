@@ -101,10 +101,23 @@ infix:1000 "d@" => dnth
 @[simp]
 def instance_indices : Ctx T -> Nat -> Nat -> List Nat
 | .cons (.inst x _) _, n, 0 => if x == 0 then [n] else []
-| .cons (.inst x _) tl, n, y + 1 => if x == y + 1 then n::instance_indices tl (n + 1) y else instance_indices tl (n + 1) y
+| .cons (.inst x _) tl, n, y + 1 =>
+   if x == y + 1
+   then n::instance_indices tl (n + 1) y
+   else instance_indices tl (n + 1) y
 | .cons _ tl, n, y + 1 => instance_indices tl (n + 1) y
 | [], _, _ => []
 | _, _, 0 => []
+
+
+@[simp]
+def instance_indices' : Ctx T -> Nat -> Nat -> List Nat -> List Nat
+| .nil , _,  _ , acc => acc
+| .cons (.inst x _) Γ, n, opm , acc =>
+        (if x == (opm - n - 1)
+        then instance_indices' Γ (n + 1) opm (n::acc)
+        else instance_indices' Γ (n+1) opm acc)
+| .cons _ Γ, n, opm , acc => instance_indices' Γ (n + 1) opm acc
 
 @[simp]
 def get_instances : Ctx T -> List Nat -> List T

@@ -45,8 +45,9 @@ def eqBoolTerm : Term :=
 
 #eval eqBoolTerm
 #eval notTerm
--- not : Bool => Bool
+
 #eval infer_type boolCtx notTerm
+
 #eval eval_ctx_loop boolCtx (notTerm `@ #1)
 #eval eval_ctx_loop boolCtx (notTerm `@ #0)
 

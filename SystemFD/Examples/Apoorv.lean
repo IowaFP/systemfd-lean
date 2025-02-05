@@ -151,7 +151,6 @@ def booltest2 : Term :=
 
    ;; #3 `@t #15 `@ (#3 `@k #15 `@ refl! #15)  `@ #14 `@ #14
 
-
 def unitType : Term :=
   Term.letdata ★   -- Unit : ★,
   ;; letctor! #0 -- unit : Unit
@@ -187,6 +186,11 @@ def ident : Term :=
 #eval infer_type [] booltest
 #eval infer_type [] booltest2
 #eval infer_type [] unitRefl
+
+#eval instance_indices' (mkCtx [] booltest2) 0 3 []
+#eval eval_inst (mkCtx [] booltest2) (#3 `@t #15 `@ (#3 `@k #15 `@ refl! #15)  `@ #14 `@ #14)
+
+#eval! eval_ctx_loop (mkCtx [] booltest2) (#3 `@t #15 `@ (#3 `@k #15 `@ refl! #15)  `@ #14 `@ #14)
 
 
 #eval Term.inst 2 (Λ[★] `λ[#4 `@k #0]
