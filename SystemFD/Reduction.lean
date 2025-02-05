@@ -7,20 +7,20 @@ def prefix_equal [BEq T] : List T -> List T -> Option (List T)
 | .cons _ _, [] => .none
 | .cons x1 t1, .cons x2 t2 => if x1 == x2 then prefix_equal t1 t2 else .none
 
-inductive Red : Ctx Term -> List Term -> List Term -> Prop where
+inductive Red : Ctx Term -> Term -> List Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
 ----------------------------------------------------------------
-| beta : Red Γ (((`λ[A] b) `@ t) :: tl) (b β[t] :: tl)
-| betat : Red Γ (((Λ[A] b) `@t t) :: tl) (b β[t] :: tl)
-| cast : Red Γ ((t ▹ refl! A) :: tl) (t :: tl)
-| sym : Red Γ ((sym! (refl! A)) :: tl) ((refl! A) :: tl)
-| seq : Red Γ (((refl! A) `; (refl! A)) :: tl) ((refl! A) :: tl)
-| appc : Red Γ ((refl! (A -k> B) `@c (refl! A)) :: tl) ((refl! B) :: tl)
-| fst : Red Γ ((.ctor1 .fst (refl! (A `@k B))) :: tl) ((refl! A) :: tl)
-| snd : Red Γ ((.ctor1 .snd (refl! (A `@k B))) :: tl) ((refl! B) :: tl)
-| allc : Red Γ ((∀c[A] refl! B) :: tl) ((refl! (∀[A] B)) :: tl)
-| arrowc : Red Γ ((refl! A -c> refl! B) :: tl) ((refl! (A -t> B)) :: tl)
+| beta : Red Γ ((`λ[A] b) `@ t) [b β[t]]
+| betat : Red Γ ((Λ[A] b) `@t t) [b β[t]]
+| cast : Red Γ (t ▹ refl! A) [t]
+| sym : Red Γ (sym! (refl! A)) [refl! A]
+| seq : Red Γ ((refl! A) `; (refl! A)) [refl! A]
+| appc : Red Γ (refl! (A -k> B) `@c (refl! A)) [refl! B]
+| fst : Red Γ (.ctor1 .fst (refl! (A `@k B))) [refl! A]
+| snd : Red Γ (.ctor1 .snd (refl! (A `@k B))) [refl! B]
+| allc : Red Γ (∀c[A] refl! B) [refl! (∀[A] B)]
+| arrowc : Red Γ (refl! A -c> refl! B) [refl! (A -t> B)]
 ----------------------------------------------------------------
 ---- Ite matching
 ----------------------------------------------------------------
@@ -28,12 +28,12 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
   .some (x, sp) = Term.neutral_form p ->
   .some (x, sp') = Term.neutral_form s ->
   .some q = prefix_equal sp sp' ->
-  Red Γ (.ite p s b e :: tl) (b.apply_spine q :: tl)
+  Red Γ (.ite p s b e) [b.apply_spine q]
 | ite_missed :
   .some (x, sp) = Term.neutral_form p ->
   .some (x', sp') = Term.neutral_form s ->
   x ≠ x' ∨ prefix_equal sp sp' = .none ->
-  Red Γ (.ite p s b e :: tl) (e :: tl)
+  Red Γ (.ite p s b e) [e]
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -41,12 +41,12 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
   .some (x, sp) = Term.neutral_form p ->
   .some (x, sp') = Term.neutral_form s ->
   .some q = prefix_equal sp sp' ->
-  Red Γ (.guard p s b :: tl) (b.apply_spine q :: tl)
+  Red Γ (.guard p s b) [b.apply_spine q]
 | guard_missed :
   .some (x, sp) = Term.neutral_form p ->
   .some (x', sp') = Term.neutral_form s ->
   x ≠ x' ∨ prefix_equal sp sp = .none ->
-  Red Γ (.guard p s b :: tl) tl
+  Red Γ (.guard p s b) []
 ----------------------------------------------------------------
 ---- Instance Instantiation
 ----------------------------------------------------------------
@@ -54,33 +54,109 @@ inductive Red : Ctx Term -> List Term -> List Term -> Prop where
   .some (x, sp) = Term.neutral_form h ->
   indices = instance_indices Γ 0 x ->
   indices.length > 0 ->
-  Δ = tl ++ (instantiate_instances Γ indices x h) ->
-  Red Γ (h::tl) Δ
+  tl = get_instances Γ indices ->
+  tl' = List.map (λ x => x.apply_spine sp) tl ->
+  Red Γ h tl'
 ----------------------------------------------------------------
 ---- Contextual/Congruence rules
 ----------------------------------------------------------------
-| tail : Red Γ tl tl' -> Red Γ (h::tl) (h::tl')
-| app_congr1 : Red Γ (f::tl) (f'::tl) -> Red Γ ((f `@ a) :: tl) ((f' `@ a) :: tl)
-| app_congr2 : Red Γ (a::tl) (a'::tl) -> Red Γ ((f `@ a) :: tl) ((f `@ a') :: tl)
-| appt_congr : Red Γ (f::tl) (f'::tl) -> Red Γ ((f `@t a) :: tl) ((f' `@ a) :: tl)
-| cast_congr : Red Γ (e::tl) (e'::tl) -> Red Γ ((t ▹ e)::tl) ((t ▹ e')::tl)
-| ite_congr : Red Γ (s::tl) (s'::tl) -> Red Γ ((.ite p s b e)::tl) ((.ite p s' b e)::tl)
-| sym_congr : Red Γ (e::tl) (e'::tl) -> Red Γ ((sym! e)::tl) ((sym! e')::tl)
-| seq_congr1 : Red Γ (u::tl) (u'::tl) -> Red Γ ((u `; v)::tl) ((u' `; v)::tl)
-| seq_congr2 : Red Γ (v::tl) (v'::tl) -> Red Γ ((u `; v)::tl) ((u `; v')::tl)
-| arrowc_congr1 : Red Γ (u::tl) (u'::tl) -> Red Γ ((u -c> v)::tl) ((u' -c> v)::tl)
-| arrowc_congr2 : Red Γ (v::tl) (v'::tl) -> Red Γ ((u -c> v)::tl) ((u -c> v')::tl)
-| appc_congr1 : Red Γ (f::tl) (f'::tl) -> Red Γ ((f `@c a)::tl) ((f' `@c a)::tl)
-| appc_congr2 : Red Γ (a::tl) (a'::tl) -> Red Γ ((f `@c a)::tl) ((f `@c a')::tl)
-| fst_congr : Red Γ (u::tl) (u'::tl) -> Red Γ ((.ctor1 .fst u)::tl) ((.ctor1 .fst u')::tl)
-| snd_congr : Red Γ (u::tl) (u'::tl) -> Red Γ ((.ctor1 .snd u)::tl) ((.ctor1 .snd u')::tl)
-| apptc_congr1 : Red Γ (f::tl) (f'::tl) -> Red Γ ((f `@c[a])::tl) ((f' `@c[a])::tl)
-| apptc_congr2 : Red Γ (a::tl) (a'::tl) -> Red Γ ((f `@c[a])::tl) ((f `@c[a'])::tl)
-| allc_congr : Red Γ (e::tl) (e'::tl) -> Red Γ ((∀c[A] e)::tl) ((∀c[A] e')::tl)
-| guard_congr : Red Γ (s::tl) (s'::tl) -> Red Γ ((.guard p s b)::tl) ((.guard p s' b)::tl)
-| letopentype_congr : Red (.opent A :: Γ) (b::tl) (b'::tl) -> Red Γ ((letopentype! A b)::tl) ((letopentype! A b')::tl)
-| letopen_congr : Red (.openm A :: Γ) (b::tl) (b'::tl) -> Red Γ ((letopen! A b)::tl) ((letopen! A b')::tl)
-| letdata_congr : Red (.datatype A :: Γ) (b::tl) (b'::tl) -> Red Γ ((.letdata A b)::tl) ((.letdata A b')::tl)
-| letctor_congr : Red (.ctor A :: Γ) (b::tl) (b'::tl) -> Red Γ ((letctor! A b)::tl) ((letctor! A b')::tl)
-| insttype_congr : Red (.insttype A :: Γ) (b::tl) (b'::tl) -> Red Γ ((insttype! A b)::tl) ((insttype! A b')::tl)
-| inst_congr : Red (.inst x A :: Γ) (b::tl) (b'::tl) -> Red Γ ((.inst x A b)::tl) ((.inst x A b')::tl)
+| app_congr :
+  Red Γ f tl ->
+  tl' = List.map (λ x => x `@ a) tl ->
+  Red Γ (f `@ a) tl'
+| appt_congr :
+  Red Γ f tl ->
+  tl' = List.map (λ x => x `@t a) tl ->
+  Red Γ (f `@t a) tl'
+| cast_congr :
+  Red Γ e tl ->
+  tl' = List.map (λ x => t ▹ x) tl ->
+  Red Γ (t ▹ e) tl'
+| ite_congr :
+  Red Γ s tl ->
+  tl' = List.map (λ x => .ite p x b e) tl ->
+  Red Γ (.ite p s b e) tl'
+| sym_congr :
+  Red Γ e tl ->
+  tl' = List.map (λ x => sym! x) tl ->
+  Red Γ (sym! e) tl'
+| seq_congr1 :
+  Red Γ u tl ->
+  tl' = List.map (λ x => x `; v) tl ->
+  Red Γ (u `; v) tl'
+| seq_congr2 :
+  Red Γ v tl ->
+  tl' = List.map (λ x => u `; x) tl ->
+  Red Γ (u `; v) tl'
+| arrowc_congr1 :
+  Red Γ u tl ->
+  tl' = List.map (λ x => x -c> v) tl ->
+  Red Γ (u -c> v) tl'
+| arrowc_congr2 :
+  Red Γ v tl ->
+  tl' = List.map (λ x => u -c> x) tl ->
+  Red Γ (u -c> v) tl'
+| appc_congr1 :
+  Red Γ f tl ->
+  tl' = List.map (λ x => x `@c a) tl ->
+  Red Γ (f `@c a) tl'
+| appc_congr2 :
+  Red Γ a tl ->
+  tl' = List.map (λ x => f `@c x) tl ->
+  Red Γ (f `@c a) tl'
+| fst_congr :
+  Red Γ u tl ->
+  tl' = List.map (λ x => .ctor1 .fst x) tl ->
+  Red Γ (.ctor1 .fst u) tl'
+| snd_congr :
+  Red Γ u tl ->
+  tl' = List.map (λ x => .ctor1 .snd x) tl ->
+  Red Γ (.ctor1 .snd u) tl'
+| apptc_congr1 :
+  Red Γ f tl ->
+  tl' = List.map (λ x => x `@c[a]) tl ->
+  Red Γ (f `@c[a]) tl'
+| apptc_congr2 :
+  Red Γ a tl ->
+  tl' = List.map (λ x => f `@c[x]) tl ->
+  Red Γ (f `@c[a]) tl'
+| allc_congr :
+  Red Γ e tl ->
+  tl' = List.map (λ x => ∀c[A] x) tl ->
+  Red Γ (∀c[A] e) tl'
+| guard_congr :
+  Red Γ s tl ->
+  tl' = List.map (λ x => .guard p x b) tl ->
+  Red Γ (.guard p s b) tl'
+| letopentype_congr :
+  Red (.opent A :: Γ) b tl' ->
+  tl' = List.map (λ x => letopentype! A x) tl ->
+  Red Γ (letopentype! A b) tl'
+| letopen_congr :
+  Red (.openm A :: Γ) b tl ->
+  tl' = List.map (λ x => letopen! A x) tl ->
+  Red Γ (letopen! A b) tl
+| letdata_congr :
+  Red (.datatype A :: Γ) b tl ->
+  tl' = List.map (λ x => .letdata A x) tl ->
+  Red Γ (.letdata A b) tl'
+| letctor_congr :
+  Red (.ctor A :: Γ) b tl ->
+  tl' = List.map (λ x => letctor! A x) tl ->
+  Red Γ (letctor! A b) tl'
+| insttype_congr :
+  Red (.insttype A :: Γ) b tl ->
+  tl' = List.map (λ x => insttype! A x) tl ->
+  Red Γ (insttype! A b) tl'
+| inst_congr :
+  Red (.inst x A :: Γ) b tl ->
+  tl' = List.map (λ x => .inst i A x) tl ->
+  Red Γ (.inst i A b) tl'
+
+inductive ListRed : Ctx Term -> List Term -> List Term -> Prop where
+| head : Red Γ h htl -> ListRed Γ (h::tl) (htl ++ tl)
+| tail : ListRed Γ tl tl' -> ListRed Γ (h::tl) (h::tl')
+
+inductive ListRedStar : Ctx Term -> List Term -> List Term -> Prop where
+| refl : ListRedStar Γ x x
+| step : ListRedStar Γ x y -> ListRed Γ y z -> ListRedStar Γ x z
