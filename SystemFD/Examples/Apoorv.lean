@@ -85,7 +85,7 @@ def booltest2 : Term :=
   -- Maybe
   ;; Term.letdata (★ -k> ★)             -- Maybe : ★ → ★
   ;; letctor! (∀[★] #1 `@k #0)          -- Nothing : ∀ (a : ★). Maybe a
-  ;; letctor! (∀[★] #0 -t> (#2 `@k #0)) -- Just : ∀ (a : ★). a → Maybe a
+  ;; letctor! (∀[★] #0 -t> (#2 `@k #1)) -- Just : ∀ (a : ★). a → Maybe a
 
   -- Either
   ;; Term.letdata (★ -k> ★ -k> ★) -- Either : ★ → ★ → ★
