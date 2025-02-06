@@ -103,36 +103,9 @@ def EqBoolCtx : Ctx Term := [
 ]
 
 #eval wf_ctx EqBoolCtx
--- #eval infer_type EqBoolCtx #0
--- #eval infer_type EqBoolCtx (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
---                             Term.guard (#3 `@k #1) -- EqBool[t]
---                             #0                     -- i
---                            -- λ (tBool : t ~ Bool).  ==@Bool ▹ sym! (tBool -c> tBool -c> rfl Bool)
---                            (`λ[#1 ~ #8] (#3 ▹ sym! (#0 -c> (#0 -c> refl! #9)))))
-#eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #5 `@ #5)
+#eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #5 `@ #5) -- shouldn't be none
 
-def t1 := eval_inst EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #6 `@ #6)
-#eval t1
-def t2 := eval_inst EqBoolCtx t1[0]
-#eval t2
-def t3 := eval_inst EqBoolCtx t2[0]
-#eval t3
-def t4 := eval_inst EqBoolCtx t3[0]
-#eval t4
-def t5 := eval_inst EqBoolCtx t4[0]
-#eval t5
-def t6 := eval_inst EqBoolCtx t5[0]
-#eval t6
-def t7 := eval_inst EqBoolCtx t6[0]
-#eval t7
-def t8 := eval_inst EqBoolCtx t7[0]
-#eval t8
-def t9 := eval_inst EqBoolCtx t8[0]
-#eval t9
-def t10 := eval_inst EqBoolCtx t9[0]
-#eval t10
-def t11 := eval_inst EqBoolCtx t10[0]
-#eval t11
-def t12 := eval_inst EqBoolCtx t11[0]
-#eval t12
-#eval infer_type EqBoolCtx t9[0]
+-- == [Bool] (EqBool[t] refl) True True ⟶★ True
+#eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #5 `@ #5)
+-- == [Bool] (EqBool[t] refl) True False ⟶★ False
+#eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #5 `@ #6)

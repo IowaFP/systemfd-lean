@@ -111,10 +111,10 @@ def eval_inst (Γ : Ctx Term) (t : Term) : List Term :=
   | .some (h, sp) =>
     match (Γ @ h) with
     | .openm _ => let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
-         let ts := get_instances Γ ιs ; -- select the right instances using the indices
+         let ts := get_instances' Γ ιs ; -- select the right instances using the indices
          List.map (λ x => x.apply_spine sp) ts -- apply the instance terms to the spine
 
-    | .term _ b => [ b.apply_spine sp ]  -- inline a let bound term (after shifting)
+    | .term _ b => [ ([ S' (h+1) ] b).apply_spine sp ]  -- inline a let bound term (after shifting)
     | _ => [t] -- do not evaluate
   | .none => eval_ctx Γ t
 

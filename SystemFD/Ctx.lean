@@ -115,7 +115,7 @@ def instance_indices' : Ctx T -> Nat -> Nat -> List Nat -> List Nat
 | .nil , _,  _ , acc => acc
 | .cons (.inst x _) Γ, n, opm , acc =>
         (if opm == x + n + 1
-        then instance_indices' Γ (n + 1) opm (n::acc)
+        then instance_indices' Γ (n+1) opm (n::acc)
         else instance_indices' Γ (n+1) opm acc)
 | .cons _ Γ, n, opm , acc => instance_indices' Γ (n + 1) opm acc
 
@@ -126,6 +126,15 @@ def get_instances : Ctx T -> List Nat -> List T
   match Γ d@ i with
   | .inst _ b => b :: get_instances Γ t
   | _ => get_instances Γ t
+
+@[simp]
+def get_instances' : Ctx T -> List Nat -> List T
+| _, [] => []
+| Γ, .cons i t =>
+  match Γ d@ i with
+  | .inst _ b => ([S' i] b) :: get_instances Γ t
+  | _ => get_instances Γ t
+
 
 @[simp]
 def instantiate_instances : Ctx T -> List Nat -> Nat -> T -> List T
