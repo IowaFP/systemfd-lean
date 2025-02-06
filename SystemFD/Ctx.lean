@@ -114,7 +114,7 @@ def instance_indices : Ctx T -> Nat -> Nat -> List Nat
 def instance_indices' : Ctx T -> Nat -> Nat -> List Nat -> List Nat
 | .nil , _,  _ , acc => acc
 | .cons (.inst x _) Γ, n, opm , acc =>
-        (if x == (opm - n - 1)
+        (if opm == x + n + 1
         then instance_indices' Γ (n + 1) opm (n::acc)
         else instance_indices' Γ (n+1) opm acc)
 | .cons _ Γ, n, opm , acc => instance_indices' Γ (n + 1) opm acc

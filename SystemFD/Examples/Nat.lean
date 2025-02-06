@@ -56,6 +56,7 @@ def NatCtxDirect : Ctx Term := [
 #eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
 #eval wf_ctx NatCtxDirect
 #eval infer_type NatCtxDirect (#2 `@ #0 `@ #0)
+#eval infer_type NatCtxDirect #2
 
 
 #eval instance_indices NatCtxDirect 0 2

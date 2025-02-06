@@ -17,26 +17,6 @@ def MaybeBoolCtx : Ctx Term := [
 
 #eval wf_ctx MaybeBoolCtx
 
--- def MaybeBoolCtx' : Ctx Term := [
---     .ctor (#4 -t> (#2 `@k #5)) -- Just : Maybe Bool
---   , .ctor (#0 `@k #3) -- Nothing : Maybe Bool
---   , .datatype  (★ -k> ★)   -- Maybe : ★ → ★
-
---   , .ctor #1       -- True : Bool
---   , .ctor #0       -- False : Bool
---   , .datatype  ★   -- Bool : ★
--- ]
-
--- #eval wf_ctx MaybeBoolCtx'
-
-
--- def isNothingBool : Term :=
---   `λ[#2 `@k #5] .ite #2 #0 #4
---                 (.ite #1 #0 (`λ[#6] #6) #4)
-
---        -- (.ite #5 #0 (0] #5) #3)
--- #eval infer_type MaybeBoolCtx' isNothingBool
-
 /-
 isNothing : ∀ a. Maybe a → Bool
 isNothing = Λ a. λ x:Maybe a. case x of

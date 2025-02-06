@@ -60,21 +60,32 @@ def eval_ctx (ctx : Ctx Term) : Term -> List Term
   ---- Coercions
   --------------------------
   | .ctor1 .sym (.ctor1 .refl ty) => [refl! ty]
-  | .ctor2 .cast t (.ctor1 .sym (.ctor2 .seq η η')) => [t ▹ (sym! η' `; sym! η)]
+  | .ctor1 .sym η => do
+    let η' <- eval_ctx ctx η
+    [sym! η']
   | .ctor2 .seq (.ctor1 .refl ty') (.ctor1 .refl ty) =>
     if ty == ty'
     then [refl! ty]
-    else [.ctor2 .seq (.ctor1 .refl ty') (.ctor1 .refl ty)] -- stuck
+    else [.ctor2 .seq (.ctor1 .refl ty') (.ctor1 .refl ty)] -- stuck ill-typed!
+
   | .ctor2 .appc (.ctor1 .refl (.bind2 .arrow ty ty')) (.ctor1 .refl ty'') =>
     if ty == ty''
     then [refl! ty']
-    else [.ctor2 .appc (.ctor1 .refl (.bind2 .arrow ty ty')) (.ctor1 .refl ty'')] -- stuck
+    else [.ctor2 .appc (.ctor1 .refl (.bind2 .arrow ty ty')) (.ctor1 .refl ty'')] -- stuck ill-typed!
   | .ctor1 .refl (.ctor1 .fst (.ctor1 .refl (.ctor2 .app A _))) =>
      [refl! A]
   | .ctor1 .refl (.ctor1 .snd (.ctor1 .refl (.ctor2 .app _ B))) =>
      [refl! B]
+
   | .ctor2 .arrowc (.ctor1 .refl ty) (.ctor1 .refl ty') => [.ctor1 .refl (ty -t> ty')]
+  | .ctor2 .arrowc (.ctor1 .refl ty) η => do
+    let η' <- eval_ctx ctx η
+    [.ctor2 .arrowc (.ctor1 .refl ty) η']
+  | .ctor2 .arrowc η η' => do
+    let η'' <- eval_ctx ctx η
+    [η'' -c> η']
   | .bind2 .allc ty (.ctor1 .refl ty') => [.ctor1 .refl (∀[ty] ty')]
+
   | .ctor2 .cast t (.ctor1 .refl _) => [t]
   | .ctor2 .cast t η => do
     let η' <- eval_ctx ctx η
@@ -96,15 +107,16 @@ def eval_ctx (ctx : Ctx Term) : Term -> List Term
 
 -- Instantiates instances or performs a one step evaluation
 def eval_inst (Γ : Ctx Term) (t : Term) : List Term :=
-  match (Term.neutral_form t) with
-  | .none => eval_ctx Γ t
+  match Term.neutral_form t with
   | .some (h, sp) =>
     match (Γ @ h) with
     | .openm _ => let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
          let ts := get_instances Γ ιs ; -- select the right instances using the indices
          List.map (λ x => x.apply_spine sp) ts -- apply the instance terms to the spine
-    | .term _ b => [b.apply_spine sp]
-    | _ => [t]
+
+    | .term _ b => [ b.apply_spine sp ]  -- inline a let bound term (after shifting)
+    | _ => [t] -- do not evaluate
+  | .none => eval_ctx Γ t
 
 
 -- Goes over the list of terms and evaluates each of them by one step

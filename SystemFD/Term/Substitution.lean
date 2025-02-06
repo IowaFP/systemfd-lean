@@ -66,28 +66,6 @@ namespace Term
   | t, .cons (.type, h) tl => apply_spine (t `@t h) tl
   | t, .cons (.kind, h) tl => apply_spine (t `@k h) tl
 
-  -- @[simp]
-  -- def neutral_head : Term -> Option Nat
-  -- | .var x => .some x
-  -- | ctor2 .app t _ => neutral_head t
-  -- | ctor2 .appt t _ => neutral_head t
-  -- | ctor2 .appk t _ => neutral_head t
-  -- | _ => .none
-
-  -- @[simp]
-  -- def neutral_subst : Term -> Option (Subst Term)
-  -- | .var _ => .some I
-  -- | ctor2 .app f a => do
-  --   let f' <- neutral_subst f
-  --   .some (.su a :: f')
-  -- | ctor2 .appt f a => do
-  --   let f' <- neutral_subst f
-  --   .some (.su a :: f')
-  -- | ctor2 .appk f a => do
-  --   let f' <- neutral_subst f
-  --   .some (.su a :: f')
-  -- | _ => .none
-
   @[simp]
   def smap (lf : Subst.Lift Term) (f : Nat -> Subst.Action Term) : Term -> Term
   | var x =>
