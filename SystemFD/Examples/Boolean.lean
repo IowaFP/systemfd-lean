@@ -65,11 +65,11 @@ def EqBoolCtx : Ctx Term := [
 
       .inst 2
             (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
-               Term.guard (#3 `@k #1) -- EqBool[t]
+               Term.guard (#3 `@t #1) -- EqBool[t]
                #0                     -- i
                 -- λ (tBool : t ~ Bool).  ==@Bool ▹ sym! (tBool -c> tBool -c> rfl Bool)
                (`λ[#1 ~ #8]
-                     (#3 ▹ sym! (#0 -c> (#0 -c> refl! #9)))))
+                     (#3 ▹ sym! (#0 -c> (#1 -c> refl! #11)))))
 
     -- ==@Bool : Bool → Bool → Bool
     /-   eqBool = λ x. λ y. case x of
@@ -104,9 +104,9 @@ def EqBoolCtx : Ctx Term := [
 ]
 
 #eval wf_ctx EqBoolCtx
-#eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #5 `@ #5) -- shouldn't be none
+#eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- shouldn't be none
 
 -- == [Bool] (EqBool[t] refl) True True ⟶★ True
-#eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #5 `@ #5)
+#eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5)
 -- == [Bool] (EqBool[t] refl) True False ⟶★ False
-#eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@k #7 `@ refl! #7) `@ #5 `@ #6)
+#eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #6)
