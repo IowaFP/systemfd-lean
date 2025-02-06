@@ -132,7 +132,7 @@ def get_instances' : Ctx T -> List Nat -> List T
 | _, [] => []
 | Γ, .cons i t =>
   match Γ d@ i with
-  | .inst _ b => ([S' i] b) :: get_instances Γ t
+  | .inst _ b => (b) :: get_instances Γ t
   | _ => get_instances Γ t
 
 

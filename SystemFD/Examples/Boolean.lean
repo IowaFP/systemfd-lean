@@ -68,7 +68,8 @@ def EqBoolCtx : Ctx Term := [
                Term.guard (#3 `@k #1) -- EqBool[t]
                #0                     -- i
                 -- λ (tBool : t ~ Bool).  ==@Bool ▹ sym! (tBool -c> tBool -c> rfl Bool)
-               (`λ[#1 ~ #8] (#3 ▹ sym! (#0 -c> (#0 -c> refl! #9)))))
+               (`λ[#1 ~ #8]
+                     (#3 ▹ sym! (#0 -c> (#0 -c> refl! #9)))))
 
     -- ==@Bool : Bool → Bool → Bool
     /-   eqBool = λ x. λ y. case x of
@@ -79,7 +80,7 @@ def EqBoolCtx : Ctx Term := [
                                     True → False
                                     False → True
     -/
-   , .term (#5 -t> (#6 -t> #7))
+    , .term (#5 -t> (#6 -t> #7))
      (`λ[#5] `λ[#6]
         (Term.ite #5 #1 (Term.ite #5 #0 #5 #6)
         (Term.ite #6 #1 (Term.ite #6 #0 #5 #6)
