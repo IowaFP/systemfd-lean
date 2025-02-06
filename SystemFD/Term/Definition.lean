@@ -27,7 +27,6 @@ inductive Ctor2Variant : Type where
 | seq
 | appc
 | apptc
-| arrowc
 | eq
 deriving Repr
 
@@ -37,6 +36,7 @@ inductive Bind2Variant : Type where
 | lam
 | arrow
 | allc
+| arrowc
 | letopentype  -- open type
 | letopen      -- open method/superclass functions/fundeps
 | letctor      -- constructor
@@ -79,7 +79,6 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor1 .snd t => "(" ++ Term.repr t p ++ ")●2"
 
   | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
-  | .ctor2 .arrowc t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
   | .ctor2 .appk t1 t2 => Term.repr t1 p ++ " @ " ++ Term.repr t2 p
   | .ctor2 .appc t1 t2 => Term.repr t1 p ++ " `@c " ++ Term.repr t2 p
   | .ctor2 .appt t1 t2 => Std.Format.paren (Term.repr t1 p) ++ Std.Format.sbracket (Term.repr t2 p)
@@ -91,6 +90,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
 
   | .bind2 .all t1 t2 => "∀" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .arrow t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
+  | .bind2 .arrowc t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
   | .bind2 .allc t1 t2 => "∀c" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .lamt t1 t2 => "Λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .lam t1 t2 => "`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p
@@ -121,7 +121,7 @@ notation "★" => Term.const Const.pointed
 notation "◯" => Term.const Const.unpointed
 infixr:14 " -k> " => Term.ctor2 Ctor2Variant.arrowk
 infixr:14 " -t> " => Term.bind2 Bind2Variant.arrow
-infixr:14 " -c> " => Term.ctor2 Ctor2Variant.arrowc
+infixr:14 " -c> " => Term.bind2 Bind2Variant.arrowc
 notation "∀[" A "]" B => Term.bind2 Bind2Variant.all A B
 infixl:15 " `@k " => Term.ctor2 Ctor2Variant.appk
 infixl:15 " `@t " => Term.ctor2 Ctor2Variant.appt

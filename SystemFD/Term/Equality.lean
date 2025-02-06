@@ -53,7 +53,6 @@ namespace Ctor2Variant
   | seq, seq => true
   | appc, appc => true
   | apptc, apptc => true
-  | arrowc, arrowc => true
   | eq, eq => true
   | _, _ => false
 end Ctor2Variant
@@ -78,6 +77,7 @@ namespace Bind2Variant
   | lam, lam => true
   | arrow, arrow => true
   | allc, allc => true
+  | arrowc, arrowc => true
   | letopentype, letopentype => true
   | letopen, letopen => true
   | letctor, letctor => true

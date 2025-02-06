@@ -68,11 +68,11 @@ def eval_ctx (ctx : Ctx Term) : Term -> Option (List Term)  -- | #x => match (ct
   | .ctor1 .refl (.ctor1 .snd (.ctor1 .refl (.ctor2 .app _ B))) =>
      .some [refl! B]
 
-  | .ctor2 .arrowc (.ctor1 .refl t) (.ctor1 .refl t') => .some [refl! (t -t> t')]
-  | .ctor2 .arrowc (.ctor1 .refl t) η => do
+  | .bind2 .arrowc (.ctor1 .refl t) (.ctor1 .refl t') => .some [refl! (t -t> t')]
+  | .bind2 .arrowc (.ctor1 .refl t) η => do
     let η' <- eval_ctx (.empty :: ctx) η
     .some (List.map (refl! t -c> ·) η')
-  | .ctor2 .arrowc η η' => do
+  | .bind2 .arrowc η η' => do
     let η'' <- eval_ctx ctx η
     .some (List.map (· -c> η') η'')
   | .bind2 .allc t (.ctor1 .refl t') => .some [refl! (∀[t] t')]

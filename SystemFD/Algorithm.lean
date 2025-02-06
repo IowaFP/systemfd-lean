@@ -207,7 +207,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let (A, B) <- is_eq T1
   let (C, D) <- is_eq T2
   .some ((A `@k C) ~ (B `@k D))
-| Γ, .ctor2 .arrowc t1 t2 => do
+| Γ, .bind2 .arrowc t1 t2 => do
   let T1 <- infer_type Γ t1
   let T2 <- infer_type (.empty :: Γ) t2
   let (A, B) <- is_eq T1

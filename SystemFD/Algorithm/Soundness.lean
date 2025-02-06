@@ -69,7 +69,7 @@ case _ Γ A' B ih1 ih2 =>
   cases u3 <;> simp at h4; case _ u3 =>
     injection h5 with e
     subst e; subst h2; subst h4
-    constructor; apply ih1 h1 wf; apply ih2 h3 wf
+    constructor; apply ih1 h1 wf; sorry
 case _ Γ f a ih1 ih2 =>
   simp at h; rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
