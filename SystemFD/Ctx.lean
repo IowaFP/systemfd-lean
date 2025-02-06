@@ -1,7 +1,7 @@
 
 import SystemFD.Substitution
 
-variable {T : Type} [Inhabited T] [SubstitutionType T] [SubstitutionTypeLaws T]
+variable {T : Type} [Repr T] [Inhabited T] [SubstitutionType T] [SubstitutionTypeLaws T]
 
 inductive Frame T where
 | empty : Frame T
@@ -54,7 +54,23 @@ namespace Frame
   | inst x1 x2, inst y1 y2 => x1 == y1 && x2 == y2
   | term x1 x2, term y1 y2 => x1 == y1 && x2 == y2
   | _, _ => false
+
+  protected def reprPrec [reprT : Repr T] (a : Frame T) (p : Nat) : Std.Format :=
+    match a with
+    | empty => "empty"
+    | kind t => "kind " ++ reprT.reprPrec t p
+    | type t => "type " ++ reprT.reprPrec t p
+    | datatype t => "datatype " ++ reprT.reprPrec t p
+    | ctor t => "ctor " ++ reprT.reprPrec t p
+    | opent t => "opent " ++ reprT.reprPrec t p
+    | openm t => "openm " ++ reprT.reprPrec t p
+    | insttype t => "insttype " ++ reprT.reprPrec t p
+    | inst x t => "inst " ++ x.repr ++ " := " ++ reprT.reprPrec t p
+    | term A t => "term " ++ reprT.reprPrec A p ++ " : " ++ reprT.reprPrec t p
 end Frame
+
+instance instRepr_Ctx [Repr T] : Repr (Frame T) where
+  reprPrec := Frame.reprPrec
 
 @[simp]
 instance instBEq_Frame {T : Type} [BEq T] : BEq (Frame T) where

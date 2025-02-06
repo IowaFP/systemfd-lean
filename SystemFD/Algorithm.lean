@@ -190,7 +190,7 @@ def infer_type : Ctx Term -> Term -> Option Term
 | Γ, .ctor1 .refl A => do
   let Ak <- infer_kind Γ A
   let _ <- wf_kind Ak
-  .some A
+  .some (A ~ A)
 | Γ, .ctor1 .sym t => do
   let T <- infer_type Γ t
   let (A, B) <- is_eq T
@@ -209,7 +209,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   .some ((A `@k C) ~ (B `@k D))
 | Γ, .ctor2 .arrowc t1 t2 => do
   let T1 <- infer_type Γ t1
-  let T2 <- infer_type Γ t2
+  let T2 <- infer_type (.empty :: Γ) t2
   let (A, B) <- is_eq T1
   let (C, D) <- is_eq T2
   .some ((A -t> C) ~ (B -t> D))
@@ -242,6 +242,7 @@ def infer_type : Ctx Term -> Term -> Option Term
 @[simp]
 def wf_ctx : Ctx Term -> Option Unit
 | [] => .some .unit
+| .cons .empty Γ => wf_ctx Γ
 | .cons (.type A) Γ => do
   let Ak <- infer_kind Γ A
   let _ <- is_const Ak
@@ -277,4 +278,3 @@ def wf_ctx : Ctx Term -> Option Unit
     let T' <- infer_type Γ t
     if T == T' then .some () else .none
   | _ => .none
-| _ => .none

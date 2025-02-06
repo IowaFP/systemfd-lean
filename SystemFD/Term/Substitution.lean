@@ -39,11 +39,15 @@ namespace Term
   | t => ([], t)
 
   @[simp]
-  def from_telescope : Ctx Term -> Term -> Term
+  def from_telescope_rev : Ctx Term -> Term -> Term
   | [], t => t
-  | .cons (.type A) Γ, t => from_telescope Γ (.bind2 .arrow A t)
-  | .cons (.kind A) Γ, t => from_telescope Γ (∀[A] t)
+  | .cons (.type A) Γ, t => from_telescope_rev Γ (.bind2 .arrow A t)
+  | .cons (.kind A) Γ, t => from_telescope_rev Γ (∀[A] t)
   | _, t => t
+
+  @[simp]
+  def from_telescope (Γ : Ctx Term) (t : Term) : Term :=
+    from_telescope_rev Γ.reverse t
 
   @[simp]
   def neutral_form : Term -> Option (Nat × List (SpineVariant × Term))

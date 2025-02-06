@@ -14,7 +14,10 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 ---- Well-Formed Contexts
 --------------------------------------------------------------------------------------
-| empty :  Judgment .wf [] ()
+| wfnil :  Judgment .wf [] ()
+| wfempty :
+  Judgment .wf Γ () ->
+  Judgment .wf (.empty::Γ) ()
 | wftype :
   Judgment .prf Γ (A, .const K) ->
   Judgment .wf Γ () ->
@@ -173,7 +176,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | refl :
   Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (K, .kind) ->
-  Judgment .prf Γ (refl! A, A)
+  Judgment .prf Γ (refl! A, A ~ A)
 | sym :
   Judgment .prf Γ (t, A ~ B) ->
   Judgment .prf Γ (sym! t, B ~ A)
@@ -187,7 +190,12 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t1 `@c t2, (A `@k C) ~ (B `@k D))
 | arrowc :
   Judgment .prf Γ (t1, A ~ B) ->
-  Judgment .prf Γ (t2, C ~ D) ->
+  Judgment .prf (.empty::Γ) (t2, C' ~ D') ->
+  -- Could do the below instead of .empty :: Γ
+  -- But like ∀c it makes sense to treat -c> as a binder
+  -- even if its not binding anything
+  -- C = [S]C' ->
+  -- D = [S]D' ->
   Judgment .prf Γ (t1 -c> t2, (A -t> C) ~ (B -t> D))
 | fst :
   Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
@@ -196,7 +204,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
   Judgment .prf Γ (t.!2, C ~ D)
 | allc :
-  Judgment .prf Γ (t, A ~ B) ->
+  Judgment .prf (.kind K :: Γ) (t, A ~ B) ->
   Judgment .prf Γ (∀c[K] t, (∀[K] A) ~ (∀[K] B))
 | apptc :
   Judgment .prf Γ (t1, (∀[K] A) ~ (∀[K] B)) ->
