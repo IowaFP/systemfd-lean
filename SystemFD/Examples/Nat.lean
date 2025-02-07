@@ -54,16 +54,19 @@ def NatCtxDirect : Ctx Term := [
 
 #eval wf_ctx NatCtxFix
 #eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
-#eval wf_ctx NatCtxDirect
+
 #eval infer_type NatCtxDirect (#2 `@ #0 `@ #0)
 #eval infer_type NatCtxDirect #2
 
+-- #eval instance_indices NatCtxDirect 0 2
+-- #eval instance_indices' NatCtxFix 0 4 []
+#eval wf_ctx NatCtxDirect
+unsafe def tfinal : List Term := eval_ctx_loop NatCtxFix (#1 `@ #0 `@ #0)
+#eval tfinal
 
-#eval instance_indices NatCtxDirect 0 2
-#eval instance_indices' NatCtxFix 0 4 []
 
-#eval eval_inst NatCtxFix (#1 `@ #0 `@ #0)
-#eval eval_ctx_loop NatCtxFix (#1 `@ #0 `@ #0)
+#eval infer_type NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
+#eval eval_ctx_loop NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
 
--- #eval eval_inst NatCtxDirect (#2 `@ #0 `@ #0)
--- #eval eval_ctx_loop NatCtxDirect (#2 `@ #0 `@ #0)
+#eval eval_inst NatCtxDirect (#2 `@ #0 `@ #0)
+#eval eval_ctx_loop NatCtxDirect (#2 `@ #0 `@ #0)

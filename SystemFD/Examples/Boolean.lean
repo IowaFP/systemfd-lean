@@ -104,9 +104,9 @@ def EqBoolCtx : Ctx Term := [
 ]
 
 #eval wf_ctx EqBoolCtx
-#eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- shouldn't be none
+#eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- some `7
 
--- == [Bool] (EqBool[t] refl) True True ⟶★ True
+-- == [Bool] (EqBool[Bool] refl) True True ⟶★ True
 #eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5)
--- == [Bool] (EqBool[t] refl) True False ⟶★ False
+-- == [Bool] (EqBool[Bool] refl) True False ⟶★ False
 #eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #6)
