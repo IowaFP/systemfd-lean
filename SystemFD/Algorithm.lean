@@ -12,48 +12,58 @@ def wf_kind : Term -> Option Unit
   .some ()
 | _ => .none
 
-@[simp]
 def is_openm : Frame Term -> Option Term
 | .openm T => .some T
 | _ => .none
 
-@[simp]
 def is_const : Term -> Option Const
 | .const K => .some K
 | _ => .none
 
 @[simp]
+theorem is_const_some : is_const t = .some k -> t = .const k := by
+intro h
+unfold is_const at h; cases t <;> simp at h
+rw [h]
+
 def is_pointed : Term -> Option Unit
 | .const .pointed => .some ()
 | _ => .none
 
 @[simp]
+theorem is_pointed_some : is_pointed t = .some () -> t = ★ := by
+intro h
+unfold is_pointed at h; cases t <;> try simp at h
+case _ k => cases k <;> simp at *
+
 def is_unpointed : Term -> Option Unit
 | .const .unpointed => .some ()
 | _ => .none
 
-@[simp]
 def is_arrowk : Term -> Option (Term × Term)
 | .ctor2 .arrowk A B => .some (A, B)
 | _ => .none
 
 @[simp]
+theorem is_arrowk_some : is_arrowk t = .some (A, B) -> t = (A -k> B) := by
+intro h
+unfold is_arrowk at h; cases t <;> try simp at h
+case _ v A B =>
+  cases v <;> simp at h
+  rw [h.1, h.2]
+
 def is_arrow : Term -> Option (Term × Term)
 | .bind2 .arrow A B => .some (A, B)
 | _ => .none
 
-@[simp]
 def is_eq : Term -> Option (Term × Term)
 | .ctor2 .eq A B => .some (A, B)
 | _ => .none
 
-@[simp]
 def is_appk : Term -> Option (Term × Term)
 | .ctor2 .appk A B => .some (A, B)
 | _ => .none
 
-
-@[simp]
 def is_all : Term -> Option (Term × Term)
 | .bind2 .all A B => .some (A, B)
 | _ => .none
@@ -82,8 +92,10 @@ def infer_kind : Ctx Term -> Term -> Option Term
   if A == ak then .some B else .none
 | Γ, .ctor2 .eq A B => do
   let Ak <- infer_kind Γ A
+  let _ <- is_pointed Ak
   let Bk <- infer_kind Γ B
-  if Ak == ★ && Bk == ★ then .some ◯ else .none
+  let _ <- is_pointed Bk
+  .some ◯
 | _, _ => .none
 
 @[simp]

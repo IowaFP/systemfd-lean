@@ -86,7 +86,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | ax :
   Judgment .wf Γ () ->
   Judgment .prf Γ (.const K, .kind)
-| var_type :
+| var :
   Judgment .wf Γ () ->
   .some T = Frame.get_type (Γ d@ x) ->
   Judgment .prf Γ (#x, T)
@@ -101,12 +101,16 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (∀[A] B, K)
 | arrow :
   Judgment .prf Γ (A, .const K1) ->
-  Judgment .prf Γ (B, .const K2) ->
+  Judgment .prf (.type A::Γ) (B, .const K2) ->
   Judgment .prf Γ (A -t> B, .const K2)
 | appk :
   Judgment .prf Γ (f, A -k> B) ->
   Judgment .prf Γ (a, A) ->
   Judgment .prf Γ (f `@k a, B)
+| eq :
+  Judgment .prf Γ (A, ★) ->
+  Judgment .prf Γ (B, ★) ->
+  Judgment .prf Γ (A ~ B, ◯)
 --------------------------------------------------------------------------------------
 ---- Datatype case expressions
 --------------------------------------------------------------------------------------

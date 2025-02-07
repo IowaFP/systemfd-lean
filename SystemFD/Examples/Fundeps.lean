@@ -5,6 +5,11 @@ import SystemFD.Algorithm
 import SystemFD.Evaluator
 
 def FundepsCtx : Ctx Term := [
+  -- id :: ∀ a b. Equal a b -> a -> b =
+  --     Λ a b. λ i a. a |> fdEqual1 a a b (EqualTT a a (refl a)) i
+  .term (∀[★] ∀[★] (#7 `@k #1 `@k #0) -t> #2 -t> #2)
+    (Λ[★] Λ[★] `λ[#7 `@k #1 `@k #0] `λ[#2]
+      #0 ▹ (#8 `@t #3 `@t #3 `@t #2 `@ (#6 `@t #3 `@t #3 `@ refl! #3) `@ #1)),
   -- instance fdEqual2 = Λ t t' u. λ i1 i2.
   --     guard EqualTT[t, u] <- i1 then λ c1.
   --     guard EqualTT[t', u] <- i2 then λ c2.

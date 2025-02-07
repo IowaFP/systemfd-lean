@@ -19,11 +19,6 @@ case _ t h1 h2 =>
   cases t <;> simp at h
   case _ => apply h1 _ rfl
 
--- @[simp]
--- abbrev InferKindSoundType : (v:InferKindVariant) -> InferKindArgs v -> InferKindRet v -> Prop
--- | .prf, (Γ, t), A =>  Γ ⊢ t : A
--- | .wf, Γ, () => ⊢ Γ
-
 theorem infer_kind_sound : infer_kind Γ t = .some A -> ⊢ Γ -> Γ ⊢ t : A := by
 intro h wf
 induction Γ, t using infer_kind.induct generalizing A
@@ -65,11 +60,14 @@ case _ Γ A' B ih1 ih2 =>
   rw [Option.bind_eq_some] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  cases u1 <;> simp at h2; case _ u1 =>
-  cases u3 <;> simp at h4; case _ u3 =>
-    injection h5 with e
-    subst e; subst h2; subst h4
-    constructor; apply ih1 h1 wf; sorry
+    replace h2 := is_const_some h2; subst h2
+    injection h5 with e; subst e
+    replace h4 := is_const_some h4; subst h4
+    have lem1 := ih1 h1 wf
+    have lem2 : ⊢ (.type A' :: Γ) := by
+      constructor; apply lem1; apply wf
+    constructor; apply ih1 h1 wf
+    apply ih2 h3 lem2
 case _ Γ f a ih1 ih2 =>
   simp at h; rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
@@ -80,8 +78,28 @@ case _ Γ f a ih1 ih2 =>
   rw [Option.bind_eq_some] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-    sorry
-case _ => sorry
+    replace h2 := is_arrowk_some h2
+    simp at h4; have lem1 : u2.fst = u3 := by sorry
+    rw [h2] at h1; rw [<-h4.2]; rw [<-lem1] at h3
+    constructor; apply ih1 h1 wf
+    apply ih2 h3 wf
+case _ ih1 ih2 =>
+  simp at h; rw [Option.bind_eq_some] at h
+  cases h; case _ u1 h =>
+  cases h; case _ h1 h2 =>
+  rw [Option.bind_eq_some] at h2
+  cases h2; case _ u2 h2 =>
+  cases h2; case _ h2 h3 =>
+  rw [Option.bind_eq_some] at h3
+  cases h3; case _ u3 h3 =>
+  cases h3; case _ h3 h4 =>
+  rw [Option.bind_eq_some] at h4
+  cases h4; case _ u4 h4 =>
+  cases h4; case _ h4 h5 =>
+    injection h5 with e; subst e
+    replace h2 := is_pointed_some h2; subst h2
+    replace h4 := is_pointed_some h4; subst h4
+    constructor; apply ih1 h1 wf; apply ih2 h3 wf
 case _ Γ t h1 h2 h3 h4 h5 =>
   exfalso
   cases t <;> simp at *

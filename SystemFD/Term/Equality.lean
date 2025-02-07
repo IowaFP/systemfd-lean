@@ -119,6 +119,7 @@ namespace Term
   | bind2 v1 x1 x2, bind2 v2 y1 y2 =>
     v1 == v2 && beq x1 y1 && beq x2 y2
   | _, _ => false
+
 end Term
 
 @[simp]
