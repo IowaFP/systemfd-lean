@@ -70,7 +70,7 @@ inductive Term : Type where
 protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   match a with
   | .kind => "kind"
-  | .var n => "`" ++ Nat.repr n
+  | .var n => "#" ++ Nat.repr n
   | .const k => toString k
 
   | .ctor1 .refl t => "≮" ++ Term.repr t p ++ "≯"
@@ -83,7 +83,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor2 .appc t1 t2 => Term.repr t1 p ++ " `@c " ++ Term.repr t2 p
   | .ctor2 .appt t1 t2 => Std.Format.paren (Term.repr t1 p) ++ Std.Format.sbracket (Term.repr t2 p)
   | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@tc " ++ Term.repr t2 p
-  | .ctor2 .app t1 t2 => Std.Format.paren (Term.repr t1 p) ++ " ⬝ " ++ Term.repr t2 p
+  | .ctor2 .app t1 t2 => Std.Format.paren (Term.repr t1 p ++ " ⬝ " ++ Term.repr t2 p)
   | .ctor2 .cast t1 t2 => Std.Format.paren (Term.repr t1 p  ++ " ▹ " ++ Term.repr t2 p)
   | .ctor2 .seq t1 t2 => Term.repr t1 p ++ " `; " ++ Term.repr t2 p
   | .ctor2 .eq t1 t2 => Term.repr t1 p ++ " ∼ " ++ Term.repr t2 p
