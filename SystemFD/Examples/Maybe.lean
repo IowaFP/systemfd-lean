@@ -15,7 +15,7 @@ def MaybeBoolCtx : Ctx Term := [
                    .guard (#3 `@t #1) #0    --     EqMaybe[t] ← i
                     (Λ[★] `λ[#2 ~ (#7 `@k #0)] `λ[#13 `@k #1]  -- Λ u. λ (tmu : t ~ Maybe u). λ (eqU : Eq u)
                                                    -- eqMaybeU[u] eqU ▹ (t ~ Maybe u) → (t ~ Maybe u) → <Bool>
-                                              (#5 `@t #2 `@ #0) ▹ sym! (#1 -c> #2  -c> refl! #17))
+                                              (#5 `@t #2 `@ #0) ▹ sym! (#1 -c> #2  -c> refl! #19))
 
 
                    )
@@ -125,8 +125,12 @@ def MaybeBoolCtx : Ctx Term := [
 #eval eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#8 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#4 `@t #13))
 #eval eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#9 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#3 `@t #13 `@ #12))
 
-#eval infer_type MaybeBoolCtx (#9 `@t (#5 `@k #13) `@ (#2 `@t (#5 `@k #13) `@t #13) `@ (refl! #5 `@k #13)
-                                         `@ (#4 `@t #13) `@ (#4 `@t #13 ))
+#eval let bool := #13;
+      let maybe := #5
+      let maybeBool := maybe `@k bool;
+      infer_type MaybeBoolCtx
+      (#9 `@t maybeBool
+          `@ (#2 `@t maybeBool `@t bool `@ (refl! maybeBool) `@ (#8 `@t bool `@ refl! bool)))
 
 
 -- == [Maybe Bool]

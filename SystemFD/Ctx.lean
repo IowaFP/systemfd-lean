@@ -143,14 +143,6 @@ def get_instances : Ctx T -> List Nat -> List T
   | .inst _ b => b :: get_instances Γ t
   | _ => get_instances Γ t
 
-@[simp]
-def get_instances' : Ctx T -> List Nat -> List T
-| _, [] => []
-| Γ, .cons i t =>
-  match Γ d@ i with
-  | .inst _ b => (b) :: get_instances Γ t
-  | _ => get_instances Γ t
-
 
 @[simp]
 def instantiate_instances : Ctx T -> List Nat -> Nat -> T -> List T

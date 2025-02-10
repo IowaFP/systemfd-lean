@@ -31,8 +31,8 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
   | .some (h, sp) =>
     match (Γ d@ h) with
     | .openm _ => let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
-         let ts := get_instances' Γ ιs ; -- select the right instances using the indices
-         List.map (λ x => x.apply_spine sp) ts -- apply the instance terms to the spine
+         let ts := get_instances Γ ιs ; -- select the right instances using the indices
+         List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
 
     | .term _ b => .some [ b.apply_spine sp ]  -- inline a let bound term (after shifting)
     -- | .ctor _ => do -- do not evaluate under constructors for now
@@ -47,7 +47,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
 
     | .ctor2 .app f t => do
       let f' <- eval_inst Γ f
-      .some (List.map (λ x => x `@ t) f') -- call by name
+      .some (List.map (· `@ t) f') -- call by name
 
     | .ctor2 .appt f t => do
       let f' <- eval_inst Γ f
