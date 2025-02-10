@@ -79,7 +79,7 @@ case _ Γ f a ih1 ih2 =>
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
     replace h2 := is_arrowk_some h2
-    simp at h4; have lem1 : u2.fst = u3 := by sorry
+    simp at h4; have lem1 : u2.fst = u3 := Term.eq_of_beq h4.1
     rw [h2] at h1; rw [<-h4.2]; rw [<-lem1] at h3
     constructor; apply ih1 h1 wf
     apply ih2 h3 wf

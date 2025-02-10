@@ -120,6 +120,53 @@ namespace Term
     v1 == v2 && beq x1 y1 && beq x2 y2
   | _, _ => false
 
+  theorem eq_of_beq : Term.beq a b = true -> a = b := by
+  intro h
+  induction a generalizing b
+  case ctor1 v1 x1 ih =>
+    cases b
+    case ctor1 v2 x2 =>
+      have lem := @LawfulBEq.eq_of_beq Ctor1Variant _ _ v1 v2
+      simp at *; replace lem := lem h.1
+      rw [lem, ih h.2]; simp
+    all_goals (simp at *)
+  case ctor2 v1 x1 x2 ih1 ih2 =>
+    cases b
+    case ctor2 v2 y1 y2 =>
+      have lem := @LawfulBEq.eq_of_beq Ctor2Variant _ _ v1 v2
+      simp at *; replace lem := lem h.1.1
+      rw [lem, ih1 h.1.2, ih2 h.2]; simp
+    all_goals (simp at *)
+  case bind2 v1 x1 x2 ih1 ih2 =>
+    cases b
+    case bind2 v2 y1 y2 =>
+      have lem := @LawfulBEq.eq_of_beq Bind2Variant _ _ v1 v2
+      simp at *; replace lem := lem h.1.1
+      rw [lem, ih1 h.1.2, ih2 h.2]; simp
+    all_goals (simp at *)
+  case const =>
+    cases b
+    case const => rw [@LawfulBEq.eq_of_beq Const _ _ _ _ h]
+    all_goals (simp at *)
+  any_goals (cases b <;> simp at *)
+  case _ => simp [*]
+  case _ ih1 ih2 ih3 ih4 _ _ _ _ =>
+    rw [ih1 h.1.1.1, ih2 h.1.1.2]
+    rw [ih3 h.1.2, ih4 h.2]; simp
+  case _ ih1 ih2 ih3 _ _ _ =>
+    rw [ih1 h.1.1, ih2 h.1.2]
+    rw [ih3 h.2]; simp
+  case _ ih1 ih2 _ _ =>
+    rw [ih1 h.1, ih2 h.2]; simp
+  case _ ih1 ih2 ih3 _ _ _ =>
+    rw [ih1 h.1.1, ih2 h.1.2]
+    rw [ih3 h.2]; simp
+  case _ ih1 ih2 _ _ _ =>
+    rw [h.1.1, ih1 h.1.2, ih2 h.2]; simp
+
+  theorem rfl : Term.beq a a = true := by
+  induction a <;> simp at * <;> simp [*]
+
 end Term
 
 @[simp]
@@ -127,49 +174,5 @@ instance instBEq_Term : BEq Term where
   beq := Term.beq
 
 instance instLawfulBEq_Term : LawfulBEq Term where
-  eq_of_beq := by
-    intro a b h
-    induction a generalizing b
-    case ctor1 v1 x1 ih =>
-      cases b
-      case ctor1 v2 x2 =>
-        have lem := @eq_of_beq Ctor1Variant _ _ v1 v2
-        simp at *; replace lem := lem h.1
-        rw [lem, ih h.2]; simp
-      all_goals (simp at *)
-    case ctor2 v1 x1 x2 ih1 ih2 =>
-      cases b
-      case ctor2 v2 y1 y2 =>
-        have lem := @eq_of_beq Ctor2Variant _ _ v1 v2
-        simp at *; replace lem := lem h.1.1
-        rw [lem, ih1 h.1.2, ih2 h.2]; simp
-      all_goals (simp at *)
-    case bind2 v1 x1 x2 ih1 ih2 =>
-      cases b
-      case bind2 v2 y1 y2 =>
-        have lem := @eq_of_beq Bind2Variant _ _ v1 v2
-        simp at *; replace lem := lem h.1.1
-        rw [lem, ih1 h.1.2, ih2 h.2]; simp
-      all_goals (simp at *)
-    case const =>
-      cases b
-      case const => rw [@eq_of_beq Const _ _ _ _ h]
-      all_goals (simp at *)
-    any_goals (cases b <;> simp at *)
-    case _ => simp [*]
-    case _ ih1 ih2 ih3 ih4 _ _ _ _ =>
-      rw [ih1 h.1.1.1, ih2 h.1.1.2]
-      rw [ih3 h.1.2, ih4 h.2]; simp
-    case _ ih1 ih2 ih3 _ _ _ =>
-      rw [ih1 h.1.1, ih2 h.1.2]
-      rw [ih3 h.2]; simp
-    case _ ih1 ih2 _ _ =>
-      rw [ih1 h.1, ih2 h.2]; simp
-    case _ ih1 ih2 ih3 _ _ _ =>
-      rw [ih1 h.1.1, ih2 h.1.2]
-      rw [ih3 h.2]; simp
-    case _ ih1 ih2 _ _ _ =>
-      rw [h.1.1, ih1 h.1.2, ih2 h.2]; simp
-  rfl := by
-    intro a
-    induction a <;> simp at * <;> simp [*]
+  eq_of_beq := Term.eq_of_beq
+  rfl := Term.rfl

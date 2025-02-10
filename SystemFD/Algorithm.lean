@@ -16,11 +16,15 @@ def is_openm : Frame Term -> Option Term
 | .openm T => .some T
 | _ => .none
 
+theorem is_openm_some : is_openm t = .some k -> t = .openm k := by
+intro h
+unfold is_openm at h; cases t <;> simp at h
+rw [h]
+
 def is_const : Term -> Option Const
 | .const K => .some K
 | _ => .none
 
-@[simp]
 theorem is_const_some : is_const t = .some k -> t = .const k := by
 intro h
 unfold is_const at h; cases t <;> simp at h
@@ -30,7 +34,6 @@ def is_pointed : Term -> Option Unit
 | .const .pointed => .some ()
 | _ => .none
 
-@[simp]
 theorem is_pointed_some : is_pointed t = .some () -> t = ★ := by
 intro h
 unfold is_pointed at h; cases t <;> try simp at h
@@ -40,11 +43,15 @@ def is_unpointed : Term -> Option Unit
 | .const .unpointed => .some ()
 | _ => .none
 
+theorem is_unpointed_some : is_unpointed t = .some () -> t = ◯ := by
+intro h
+unfold is_unpointed at h; cases t <;> try simp at h
+case _ k => cases k <;> simp at *
+
 def is_arrowk : Term -> Option (Term × Term)
 | .ctor2 .arrowk A B => .some (A, B)
 | _ => .none
 
-@[simp]
 theorem is_arrowk_some : is_arrowk t = .some (A, B) -> t = (A -k> B) := by
 intro h
 unfold is_arrowk at h; cases t <;> try simp at h
@@ -56,17 +63,45 @@ def is_arrow : Term -> Option (Term × Term)
 | .bind2 .arrow A B => .some (A, B)
 | _ => .none
 
+theorem is_arrow_some : is_arrow t = .some (A, B) -> t = (A -t> B) := by
+intro h
+unfold is_arrow at h; cases t <;> try simp at h
+case _ v A B =>
+  cases v <;> simp at h
+  rw [h.1, h.2]
+
 def is_eq : Term -> Option (Term × Term)
 | .ctor2 .eq A B => .some (A, B)
 | _ => .none
+
+theorem is_eq_some : is_eq t = .some (A, B) -> t = (A ~ B) := by
+intro h
+unfold is_eq at h; cases t <;> try simp at h
+case _ v A B =>
+  cases v <;> simp at h
+  rw [h.1, h.2]
 
 def is_appk : Term -> Option (Term × Term)
 | .ctor2 .appk A B => .some (A, B)
 | _ => .none
 
+theorem is_appk_some : is_appk t = .some (A, B) -> t = (A `@k B) := by
+intro h
+unfold is_appk at h; cases t <;> try simp at h
+case _ v A B =>
+  cases v <;> simp at h
+  rw [h.1, h.2]
+
 def is_all : Term -> Option (Term × Term)
 | .bind2 .all A B => .some (A, B)
 | _ => .none
+
+theorem is_all_some : is_all t = .some (A, B) -> t = (∀[A] B) := by
+intro h
+unfold is_all at h; cases t <;> try simp at h
+case _ v A B =>
+  cases v <;> simp at h
+  rw [h.1, h.2]
 
 @[simp]
 def infer_kind : Ctx Term -> Term -> Option Term
@@ -136,7 +171,6 @@ def infer_type : Ctx Term -> Term -> Option Term
   if T == B then .some A else .none
 | Γ, #x => do
   let T <- Frame.get_type (Γ d@ x)
-  let _ <- infer_kind Γ T
   .some T
 | Γ, .ite p s i e => do
   let A <- infer_type Γ p
@@ -158,6 +192,8 @@ def infer_type : Ctx Term -> Term -> Option Term
   if R == R'
     && T == T'
     && is_datatype Γ ctorid dataid
+    && [S' τ.length]R == sR
+    && [S' τ.length]T == sT'
   then .some T
   else .none
 | Γ, .guard p s t => do
@@ -174,7 +210,11 @@ def infer_type : Ctx Term -> Term -> Option Term
   let T := [P' τ.length]sT'
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
-  if R == R' then .some T else .none
+  if R == R'
+    && [S' τ.length]R == sR
+    && [S' τ.length]T == sT'
+  then .some T
+  else .none
 | Γ, `λ[A] t => do
   let Ak <- infer_kind Γ A
   let _ <- is_const Ak
@@ -201,7 +241,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   if A == A' then .some B else .none
 | Γ, .ctor1 .refl A => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_pointed Ak
   .some (A ~ A)
 | Γ, .ctor1 .sym t => do
   let T <- infer_type Γ t
@@ -238,6 +278,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let (_, D) <- is_appk V
   .some (C ~ D)
 | Γ, ∀c[K] t => do
+  let _ <- wf_kind K
   let T <- infer_type (.kind K :: Γ) t
   let (A, B) <- is_eq T
   .some ((∀[K] A) ~ (∀[K] B))
@@ -281,6 +322,8 @@ def wf_ctx : Ctx Term -> Option Unit
   let _ <- is_const Ak
   wf_ctx Γ
 | .cons (.term A t) Γ => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_const Ak
   let A' <- infer_type Γ t
   let _ <- wf_ctx Γ
   if A == A' then .some () else .none
@@ -288,5 +331,6 @@ def wf_ctx : Ctx Term -> Option Unit
   match Γ d@ x with
   | .openm T => do
     let T' <- infer_type Γ t
+    let _ <- wf_ctx Γ
     if T == T' then .some () else .none
   | _ => .none

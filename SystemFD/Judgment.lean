@@ -36,7 +36,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   valid_ctor Γ ->
   Judgment .wf (.ctor A::Γ) ()
 | wfopent :
-  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (A, .kind) ->
   Judgment .wf Γ () ->
   Judgment .wf (.opent A::Γ) ()
 | wfopenm :
@@ -50,7 +50,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | wfinst :
   .openm T = Γ d@ x ->
   Judgment .prf Γ (t, T) ->
+  Judgment .wf Γ () ->
   Judgment .wf (.inst x t::Γ) ()
+| wfterm :
+  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (t, A) ->
+  Judgment .wf Γ () ->
+  Judgment .wf (.term A t::Γ) ()
 --------------------------------------------------------------------------------------
 ---- Declarations
 --------------------------------------------------------------------------------------
@@ -80,6 +86,11 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t1, T) ->
   Judgment .prf (.inst x t1::Γ) (t2, A) ->
   Judgment .prf Γ (.inst x t1 t2, A)
+| letterm :
+  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (t, A) ->
+  Judgment .prf (.term A t::Γ) (b, T) ->
+  Judgment .prf Γ (.letterm A t b, T)
 --------------------------------------------------------------------------------------
 ---- Kind/Type Constructor Judgments
 --------------------------------------------------------------------------------------
@@ -161,8 +172,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   B' = B β[.kind] ->
   Judgment .prf Γ (f `@ a, B')
 | lamt :
-  Judgment .prf Γ (A, K) ->
-  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (A, .kind) ->
   Judgment .prf (.kind A::Γ) (t, B) ->
   Judgment .prf Γ (Λ[A] t, ∀[A] B)
 | appt :
@@ -178,8 +188,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 ---- Coercions
 --------------------------------------------------------------------------------------
 | refl :
-  Judgment .prf Γ (A, K) ->
-  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (refl! A, A ~ A)
 | sym :
   Judgment .prf Γ (t, A ~ B) ->
@@ -215,5 +224,22 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t2, C ~ D) ->
   Judgment .prf Γ (t1 `@c[ t2 ], (A β[C]) ~ (B β[D]))
 
-  notation:170 Γ:170 " ⊢ " t:170 " : " A:170 => Judgment JudgmentVariant.prf Γ (t, A)
-  notation:170 "⊢ " Γ:170 => Judgment JudgmentVariant.wf Γ ()
+notation:170 Γ:170 " ⊢ " t:170 " : " A:170 => Judgment JudgmentVariant.prf Γ (t, A)
+notation:170 "⊢ " Γ:170 => Judgment JudgmentVariant.wf Γ ()
+
+theorem judgment_ctx_wf : Judgment v Γ idx -> ⊢ Γ := by
+intro j
+induction j
+all_goals try simp [*]
+case _ => constructor
+case _ ih => constructor; apply ih
+case _ j _ _ ih => constructor; apply j; apply ih
+case _ j _ _ ih => constructor; apply j; apply ih
+case _ j _ _ ih => constructor; apply j; apply ih
+case _ j _ h _ ih => constructor; apply j; apply ih; apply h
+case _ j _ _ ih => constructor; apply j; apply ih
+case _ j _ _ ih => constructor; apply j; apply ih
+case _ j _ _ ih => constructor; apply j; apply ih
+case _ => sorry
+case _ => sorry
+case _ => sorry

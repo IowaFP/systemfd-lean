@@ -16,7 +16,6 @@ inductive Frame T where
 | term : T -> T -> Frame T
 
 namespace Frame
-  @[simp]
   def apply : Frame T -> Subst T -> Frame T
   | empty, _ => empty
   | kind t, σ => kind ([σ]t)
