@@ -2,23 +2,25 @@
 import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Algorithm
+set_option maxHeartbeats 500000
 
 instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad List instance?
   pure a := List.cons a List.nil
   bind l f := List.flatMap l f
 
--- Evaluation for a term in a context
--- def eval_ctx (ctx : Ctx Term) : Term -> Option (List Term)
+@[simp]
 def is_ctorid (Γ : Ctx Term) (n : Nat) :=
   match Γ @ n with
   | .ctor _ => true
   | _ => false
 
+@[simp]
 def is_letterm (Γ : Ctx Term) (n : Nat) :=
   match Γ @ n with
   | .term _ _ => true
   | _ => false
 
+@[simp]
 def is_openmethod (Γ : Ctx Term) (n : Nat) :=
   match Γ @ n with
   | .openm _ => true
@@ -26,6 +28,7 @@ def is_openmethod (Γ : Ctx Term) (n : Nat) :=
 
 
 -- Instantiates instances/performs a one step term evaluation
+@[simp]
 def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
   match Term.neutral_form t with
   | .some (h, sp) =>
@@ -107,9 +110,9 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       if t == t''
       then .some [refl! t']
       else .none
-    | .ctor1 .refl (.ctor1 .fst (.ctor1 .refl (.ctor2 .app A _))) =>
+    | .ctor1 .fst (.ctor1 .refl (.ctor2 .appk A _)) =>
       .some [refl! A]
-    | .ctor1 .refl (.ctor1 .snd (.ctor1 .refl (.ctor2 .app _ B))) =>
+    | .ctor1 .snd (.ctor1 .refl (.ctor2 .appk _ B)) =>
       .some [refl! B]
 
     | .bind2 .arrowc (.ctor1 .refl t) (.ctor1 .refl t') => .some [refl! (t -t> t')]
@@ -155,6 +158,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
 
 
 -- Goes over the list of terms and evaluates each of them by one step
+@[simp]
 def eval_outer (Γ : Ctx Term) (ts : List Term) : Option (List Term) :=
   match ts with
   | [] => .some []
@@ -169,7 +173,7 @@ unsafe def eval_ctx_loop (Γ : Ctx Term) (t : Term) : List Term := do
   | .none => [t]
   | .some ts => List.flatMap ts (eval_ctx_loop Γ)
 
-
+@[simp]
 def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
   | .letdata K t => mkCtx (.datatype K :: ctx ) t
   | .letterm ty t t' => mkCtx (.term ty t ::  ctx) t'

@@ -161,6 +161,13 @@ namespace Term
 
   theorem apply_compose {s : Term} {σ τ : Subst Term} : [τ][σ]s = [τ ⊙ σ]s := by
   solve_compose Term, apply_stable, s, σ, τ
+
+
+  theorem spine_lemma : t.neutral_form = .some (h, sp) -> t = (#h).apply_spine sp := -- by
+    -- induction t using neutral_form.induct
+    sorry
+  theorem neutral_form_app : (f `@ t).neutral_form = .none -> f.neutral_form = .none := sorry
+
 end Term
 
 instance substTypeLaws_Term : SubstitutionTypeLaws Term where

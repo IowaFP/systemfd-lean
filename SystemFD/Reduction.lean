@@ -11,7 +11,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 | cast : Red Γ (t ▹ refl! A) [t]
 | sym : Red Γ (sym! (refl! A)) [refl! A]
 | seq : Red Γ ((refl! A) `; (refl! A)) [refl! A]
-| appc : Red Γ (refl! (A -k> B) `@c (refl! A)) [refl! B]
+| appc : Red Γ (refl! (A -t> B) `@c (refl! A)) [refl! B]
 | fst : Red Γ (.ctor1 .fst (refl! (A `@k B))) [refl! A]
 | snd : Red Γ (.ctor1 .snd (refl! (A `@k B))) [refl! B]
 | allc : Red Γ (∀c[A] refl! B) [refl! (∀[A] B)]
@@ -55,6 +55,11 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   tl = get_instances Γ indices -> -- weakens the instances
   tl' = List.map (λ x => x.apply_spine sp) tl ->
   Red Γ h tl'
+| letterm_nil :
+  .some (x, []) = Term.neutral_form h ->
+  .term _ t = Γ d@ x ->
+  tl' = [t] ->
+  Red Γ h tl'
 
 ----------------------------------------------------------------
 ---- Contextual/Congruence rules
@@ -92,7 +97,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   tl' = List.map (λ x => x -c> v) tl ->
   Red Γ (u -c> v) tl'
 | arrowc_congr2 :
-  Red Γ v tl ->
+  Red (.empty :: Γ) v tl ->
   tl' = List.map (λ x => u -c> x) tl ->
   Red Γ (u -c> v) tl'
 | appc_congr1 :
@@ -120,7 +125,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   tl' = List.map (λ x => f `@c[x]) tl ->
   Red Γ (f `@c[a]) tl'
 | allc_congr :
-  Red Γ e tl ->
+  Red (.kind A ::Γ) e tl ->
   tl' = List.map (λ x => ∀c[A] x) tl ->
   Red Γ (∀c[A] e) tl'
 | guard_congr :
@@ -128,9 +133,13 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   tl' = List.map (λ x => .guard p x b) tl ->
   Red Γ (.guard p s b) tl'
 | letopentype_congr :
-  Red (.opent A :: Γ) b tl' ->
+  Red (.opent A :: Γ) b tl ->
   tl' = List.map (λ x => letopentype! A x) tl ->
   Red Γ (letopentype! A b) tl'
+| letterm_congr :
+  Red (.term A t :: Γ) b tl ->
+  tl' = List.map (λ x => .letterm A t x) tl ->
+  Red Γ (.letterm A t b) tl'
 | letopen_congr :
   Red (.openm A :: Γ) b tl ->
   tl' = List.map (λ x => letopen! A x) tl ->
