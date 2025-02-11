@@ -11,6 +11,10 @@ case _ ih =>
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
+  rw [Option.bind_eq_some] at h2
+  cases h2; case _ u2 h2 =>
+  cases h2; case _ h2 h3 =>
+    injection h3 with e; subst e
     replace h1 := wf_kind_sound h1 wf
     constructor; apply h1
     apply ih h2; constructor
@@ -35,6 +39,10 @@ case _ ih =>
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
+  rw [Option.bind_eq_some] at h2
+  cases h2; case _ u2 h2 =>
+  cases h2; case _ h2 h3 =>
+    injection h3 with e; subst e
     have lem := wf_kind_sound h1 wf
     constructor; apply lem
     apply ih h2; constructor
@@ -46,6 +54,10 @@ case _ ih =>
   rw [Option.bind_eq_some] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
+  rw [Option.bind_eq_some] at h3
+  cases h3; case _ u3 h3 =>
+  cases h3; case _ h3 h4 =>
+    injection h4 with e; subst e
     replace h2 := is_const_some h2; subst h2
     replace h1 := infer_kind_sound h1 wf
     constructor; apply h1; apply ih h3
@@ -57,6 +69,10 @@ case _ ih =>
   rw [Option.bind_eq_some] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
+  rw [Option.bind_eq_some] at h3
+  cases h3; case _ u3 h3 =>
+  cases h3; case _ h3 h4 =>
+    injection h4 with e; subst e
     replace h2 := is_const_some h2; subst h2
     replace h1 := infer_kind_sound h1 wf
     constructor; apply h1; apply ih h3

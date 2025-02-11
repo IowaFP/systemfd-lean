@@ -63,34 +63,34 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | letdata :
   Judgment .prf Γ (T, .kind) ->
   Judgment .prf (.datatype T::Γ) (t, A) ->
-  Judgment .prf Γ (.letdata T t, A)
+  Judgment .prf Γ (.letdata T t, .decl A)
 | letctor :
   Judgment .prf Γ (T, ★) ->
   valid_ctor Γ ->
   Judgment .prf (.ctor T::Γ) (t, A) ->
-  Judgment .prf Γ (letctor! T t, A)
+  Judgment .prf Γ (letctor! T t, .decl A)
 | letopentype :
   Judgment .prf Γ (T, .kind) ->
   Judgment .prf (.opent T::Γ) (t, A) ->
-  Judgment .prf Γ (letopentype! T t, A)
+  Judgment .prf Γ (letopentype! T t, .decl A)
 | letopen :
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf (.openm T::Γ) (t, A) ->
-  Judgment .prf Γ (letopen! T t, A)
+  Judgment .prf Γ (letopen! T t, .decl A)
 | insttype :
   Judgment .prf Γ (T, .const K) ->
   Judgment .prf (.insttype T::Γ) (t, A) ->
-  Judgment .prf Γ (insttype! T t, A)
+  Judgment .prf Γ (insttype! T t, .decl A)
 | inst :
   .openm T = Γ d@ x ->
   Judgment .prf Γ (t1, T) ->
   Judgment .prf (.inst x t1::Γ) (t2, A) ->
-  Judgment .prf Γ (.inst x t1 t2, A)
+  Judgment .prf Γ (.inst x t1 t2, .decl A)
 | letterm :
   Judgment .prf Γ (A, .const K) ->
   Judgment .prf Γ (t, A) ->
   Judgment .prf (.term A t::Γ) (b, T) ->
-  Judgment .prf Γ (.letterm A t b, T)
+  Judgment .prf Γ (.letterm A t b, .decl T)
 --------------------------------------------------------------------------------------
 ---- Kind/Type Constructor Judgments
 --------------------------------------------------------------------------------------
@@ -203,7 +203,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t1 `@c t2, (A `@k C) ~ (B `@k D))
 | arrowc :
   Judgment .prf Γ (t1, A ~ B) ->
-  Judgment .prf (.empty::Γ) (t2, C' ~ D') ->
+  Judgment .prf (.empty::Γ) (t2, C ~ D) ->
   -- Could do the below instead of .empty :: Γ
   -- But like ∀c it makes sense to treat -c> as a binder
   -- even if its not binding anything
@@ -241,5 +241,5 @@ case _ j _ _ ih => constructor; apply j; apply ih
 case _ j _ _ ih => constructor; apply j; apply ih
 case _ j _ _ ih => constructor; apply j; apply ih
 case _ j1 j2 _ _ ih => constructor; apply j1; apply j2; apply ih
-case _ tA _ _ wf _ =>  sorry
-case _ => sorry
+case _ j1 j2 _ _ _ ih =>  constructor; apply j1; apply j2; apply ih
+case _ ih => cases ih; case _ ih _ => apply ih

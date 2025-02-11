@@ -61,6 +61,7 @@ inductive Term : Type where
         -> Term
 | letdata : Term -> Term -> Term
 | letterm : Term -> Term -> Term -> Term
+| decl : Term -> Term
 | inst : Nat  -- Index of open method
        -> Term -- open method inst definition
        -> Term  -- continuation
@@ -110,6 +111,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .letdata t1 t2 => "data!" ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++ Term.repr t2 p
   | .letterm t t1 t2 => "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
                      ++ Term.repr t2 p
+  | .decl t => "decl" ++ Term.repr t p
   | .inst n d c => Std.Format.nest 2 <| "instance " ++ Nat.repr n ++ " " ++ Term.repr d p ++ " ;; "  ++ Std.Format.line
                 ++ Term.repr c p
 
@@ -160,4 +162,5 @@ namespace Term
   | letdata t1 t2 => (size t1) + (size t2) + 1
   | letterm t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
   | inst _ t1 t2 => (size t1) + (size t2) + 1
+  | decl t => size t + 1
 end Term

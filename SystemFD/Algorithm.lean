@@ -138,37 +138,37 @@ def infer_type : Ctx Term -> Term -> Option Term
 | Γ, .letdata T t => do
   let _ <- wf_kind T
   let A <- infer_type (.datatype T::Γ) t
-  .some A
+  .some (.decl A)
 | Γ, .bind2 .letctor T t => do
   let Tk <- infer_kind Γ T
   let _ <- is_pointed Tk
   let A <- infer_type (.ctor T::Γ) t
-  if valid_ctor Γ then .some A else .none
+  if valid_ctor Γ then .some (.decl A) else .none
 | Γ, .bind2 .letopentype T t => do
   let _ <- wf_kind T
   let A <- infer_type (.opent T::Γ) t
-  .some A
+  .some (.decl A)
 | Γ, .bind2 .letopen T t => do
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
   let A <- infer_type (.openm T::Γ) t
-  .some A
+  .some (.decl A)
 | Γ, .bind2 .insttype T t => do
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
   let A <- infer_type (.insttype T::Γ) t
-  .some A
+  .some (.decl A)
 | Γ, .inst x t1 t2 => do
   let T <- is_openm (Γ d@ x)
   let T' <- infer_type Γ t1
   let A <- infer_type (.inst x t1::Γ) t2
-  if T == T' then .some A else .none
+  if T == T' then .some (.decl A) else .none
 | Γ, .letterm T b t => do
   let Tk <- infer_kind Γ T
   let _ <- is_const Tk
   let B <- infer_type Γ b
   let A <- infer_type (.term T b::Γ) t
-  if T == B then .some A else .none
+  if T == B then .some (.decl A) else .none
 | Γ, #x => do
   let T <- Frame.get_type (Γ d@ x)
   .some T

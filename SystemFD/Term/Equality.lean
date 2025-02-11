@@ -118,6 +118,7 @@ namespace Term
     v1 == v2 && beq x1 y1 && beq x2 y2
   | bind2 v1 x1 x2, bind2 v2 y1 y2 =>
     v1 == v2 && beq x1 y1 && beq x2 y2
+  | decl x, decl y => beq x y
   | _, _ => false
 
   theorem eq_of_beq : Term.beq a b = true -> a = b := by
@@ -161,6 +162,7 @@ namespace Term
   case _ ih1 ih2 ih3 _ _ _ =>
     rw [ih1 h.1.1, ih2 h.1.2]
     rw [ih3 h.2]; simp
+  case _ ih _ => rw [ih h]
   case _ ih1 ih2 _ _ _ =>
     rw [h.1.1, ih1 h.1.2, ih2 h.2]; simp
 
