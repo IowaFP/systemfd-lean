@@ -167,10 +167,56 @@ namespace Term
   solve_compose Term, apply_stable, s, σ, τ
 
 
-  theorem spine_lemma : t.neutral_form = .some (h, sp) -> t = (#h).apply_spine sp := -- by
-    -- induction t using neutral_form.induct
-    sorry
-  theorem neutral_form_app : (f `@ t).neutral_form = .none -> f.neutral_form = .none := sorry
+  theorem spine_lemma : t.neutral_form = .some (h, sp) -> t = (#h).apply_spine sp := by
+    induction t, sp using apply_spine.induct
+    case _ =>
+      sorry
+    case _ => sorry
+    case _ => sorry
+    case _ => sorry
+
+
+  theorem neutral_form_app : (f `@ t).neutral_form = .none -> f.neutral_form = .none := by
+  induction t using neutral_form.induct
+  case _ x => simp; sorry
+  case _ => simp; sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+
+  theorem neutral_form_appt : (f `@t t).neutral_form = .none -> f.neutral_form = .none := by
+  induction t using neutral_form.induct
+  case _ x => simp; sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+
+
+
+@[simp]
+def is_ctorid (Γ : Ctx Term) (n : Nat) :=
+  match Γ @ n with
+  | .ctor _ => true
+  | _ => false
+
+@[simp]
+def is_letterm (Γ : Ctx Term) (n : Nat) :=
+  match Γ @ n with
+  | .term _ _ => true
+  | _ => false
+
+@[simp]
+def is_openmethod (Γ : Ctx Term) (n : Nat) :=
+  match Γ @ n with
+  | .openm _ => true
+  | _ => false
+
+@[simp]
+def is_insttype (Γ : Ctx Term) (n : Nat) :=
+  match Γ @ n with
+  | .insttype _ => true
+  | _ => false
 
 end Term
 

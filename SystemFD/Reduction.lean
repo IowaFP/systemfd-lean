@@ -24,6 +24,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   .some (x, sp) = Term.neutral_form p ->
   .some (x, sp') = Term.neutral_form s ->
   .some q = prefix_equal sp sp' ->
+  Term.is_ctorid Γ x ->
   Red Γ (.ite p s b e) [b.apply_spine q]
 | ite_missed :
   .some (x, sp) = Term.neutral_form p ->
@@ -50,16 +51,18 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 ----------------------------------------------------------------
 | inst :
   .some (x, sp) = Term.neutral_form h ->
+  Term.is_openmethod Γ x ->
   indices = instance_indices Γ 0 x -> -- searches for the instances of open method x
   indices.length > 0 ->
   tl = get_instances Γ indices -> -- weakens the instances
   tl' = List.map (λ x => x.apply_spine sp) tl ->
   Red Γ h tl'
-| letterm_nil :
-  .some (x, []) = Term.neutral_form h ->
+
+
+| letterm :
+  .some (x, sp) = Term.neutral_form h ->
   .term _ t = Γ d@ x ->
-  tl' = [t] ->
-  Red Γ h tl'
+  Red Γ h [t.apply_spine sp]
 
 ----------------------------------------------------------------
 ---- Contextual/Congruence rules

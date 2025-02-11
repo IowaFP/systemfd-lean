@@ -4,28 +4,6 @@ import SystemFD.Term
 import SystemFD.Algorithm
 set_option maxHeartbeats 500000
 
-instance : Monad List where -- This seems fishy. Why doesn't lean have a Monad List instance?
-  pure a := List.cons a List.nil
-  bind l f := List.flatMap l f
-
-@[simp]
-def is_ctorid (Γ : Ctx Term) (n : Nat) :=
-  match Γ @ n with
-  | .ctor _ => true
-  | _ => false
-
-@[simp]
-def is_letterm (Γ : Ctx Term) (n : Nat) :=
-  match Γ @ n with
-  | .term _ _ => true
-  | _ => false
-
-@[simp]
-def is_openmethod (Γ : Ctx Term) (n : Nat) :=
-  match Γ @ n with
-  | .openm _ => true
-  | _ => false
-
 
 -- Instantiates instances/performs a one step term evaluation
 @[simp]
@@ -37,12 +15,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
          let ts := get_instances Γ ιs ; -- select the right instances using the indices
          List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
 
-    | .term _ b => .some [ b.apply_spine sp ]  -- inline a let bound term (after shifting)
-    -- | .ctor _ => do -- do not evaluate under constructors for now
-    --   let sp' <- List.flatMap sp (λ (v, x) => do match (eval_inst Γ x) with
-    --                                              | .some x' => [(v , x')]
-    --                                              | .none    => [(v, x)])
-    --   .some [(Term.var h).apply_spine sp']
+    | .term _ b => .some [ b.apply_spine sp ]  -- inline a let bound term
     | _ => .none -- do not evaluate
   | .none => match t with -- we need to evaulate a non-variable term
     | .ctor2 .app (.bind2 .lam _ b) t
@@ -54,7 +27,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
 
     | .ctor2 .appt f t => do
       let f' <- eval_inst Γ f
-      .some (List.map (· `@ t) f') -- call by name
+      .some (List.map (· `@t t) f') -- call by name
 
   --------------------------
   ---- Case matching
@@ -67,7 +40,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-              if is_letterm Γ s' || is_openmethod Γ s'
+              if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
               then do let s'' <- eval_inst Γ s
                       .some (List.map (.ite p · b c) s'')
               else ( -- s' cannot be a term or an instance
@@ -87,7 +60,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
        | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-          if is_letterm Γ s' || is_openmethod Γ s'
+          if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
           then do let s'' <- eval_inst Γ s
                   .some (List.map (.guard p · c) s'')
           else match (p' == s', prefix_equal sp sp') with

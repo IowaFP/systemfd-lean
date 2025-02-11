@@ -8,34 +8,61 @@ import SystemFD.Judgment
 theorem eval_inst_soundess : eval_inst Γ t = .some ts -> Red Γ t ts := by
 intros
 induction Γ, t using eval_inst.induct generalizing ts
-case _ Γ =>
-  sorry
-case _ t Γ n sp head A t' f et =>
+case _ t Γ n sp tne a oa et =>
+  have tnf := Term.spine_lemma tne; subst tnf;
   induction sp
-  case _ =>
-    have t' := Term.spine_lemma head; symm at head;
-    simp at t'; subst t'; simp at et; rw [f] at et; simp at et; symm at et; subst et;
-    symm at f; apply Red.letterm_nil head f; rfl
-  case _ =>
-    have t' := Term.spine_lemma head; symm at head; symm at f;
+  case _ => simp_all; sorry
+  case _ => simp_all; sorry
+case _ t Γ n sp head A t' f et =>
+    have t' := Term.spine_lemma head; subst t'
+    symm at f; sorry
+    -- induction sp
+    --   case _ =>
+    --     have t' := Term.spine_lemma head; symm at head;
+    --     simp at t'; subst t'; simp at et; rw [f] at et; simp at et; symm at et; subst et;
+    --     symm at f; apply Red.letterm head f; rfl
+    --   case _ =>
+    --     have t' := Term.spine_lemma head; symm at head;
+    --     subst t'; rw [f] at et; simp at et; symm at et; subst et;
+    --     symm at f; apply Red.letterm head f; rfl
 
-     sorry
 case _ t Γ n sp head no nt et =>
   have t' := Term.spine_lemma head; subst t';
+  simp_all;
   sorry
 case _ Γ a b f _ et => simp at et; subst et; apply Red.beta
-case _ Γ a b et =>
-  simp at et; subst et; apply Red.betat
-case _ Γ f t _ nf ih1 et =>
-  -- have ih := @ih1 (f `@ t) et wf;
-  simp at et; have fnf := Term.neutral_form_app nf;
+case _ Γ a b et => simp at et; subst et; apply Red.betat
+case _ Γ f t _ nf ih et =>
+  simp at et; have fnf := Term.neutral_form_app nf; simp_all;
+  rw[Option.bind_eq_some] at et
+  cases et; case _ w h =>
+    have ih' := @ih w (And.left h)
+    injection (And.right h) with ts; subst ts;
+    apply Red.app_congr ih'; rfl
+case _ nf ih et =>
+  simp at et; have fnf := Term.neutral_form_appt nf; simp_all;
+  rw[Option.bind_eq_some] at et
+  cases et; case _ w h =>
+    have ih' := @ih w (And.left h)
+    injection (And.right h) with ts; subst ts;
+    apply Red.appt_congr ih'; rfl
 
-  sorry
-case _ ih et =>
+case _ Γ p s b c _ ih et =>
   simp at et;
+  rw[Option.bind_eq_some] at et;
+  cases et; case _ w h =>
+  have pne := And.left h;
+  have smatch := And.right h;
+  simp at smatch;
   sorry
-case _ => sorry
-case _ => sorry
+case _ Γ p s c _ ih et =>
+  simp at et;
+  rw[Option.bind_eq_some] at et;
+  cases et; case _ w h =>
+  have pne := And.left h;
+  have smatch := And.right h;
+  simp_all;
+  sorry
 case _ Γ _ _ ih => simp at ih; rw[<-ih]; apply Red.sym
 case _ ih η =>
   simp at η; rw[Option.bind_eq_some] at η
