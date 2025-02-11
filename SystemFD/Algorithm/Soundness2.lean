@@ -121,10 +121,10 @@ case _ Γ p s i e ih1 ih2 ih3 ih4 =>
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
   rw [Option.bind_eq_some] at h8
-  cases h8; case _ u8 h8 =>
+  cases h8; case _ ξ h8 =>
   cases h8; case _ h8 h9 =>
   generalize zdef :
-    infer_kind Γ ([P' (List.length u1.to_telescope.fst)]Term.from_telescope_rev u8.reverse u7.to_telescope.snd) = z
+    infer_kind Γ ([P' (List.length u1.to_telescope.fst)]Term.from_telescope_rev ξ.reverse u7.to_telescope.snd) = z
     at h9
   rw [Option.bind_eq_some] at h9
   cases h9; case _ u9 h9 =>
@@ -138,7 +138,38 @@ case _ Γ p s i e ih1 ih2 ih3 ih4 =>
   simp at h12; cases h12; case _ h12 h13 =>
   cases h12; case _ h12 h14 =>
   cases h12; case _ h12 h15 =>
-    sorry
+  cases h12; case _ h12 h16 =>
+  cases h12; case _ h12 h17 =>
+    replace h1 := ih1 h1 wf
+    replace h5 := is_pointed_some h5; subst h5
+    replace h6 := ih2 h6 wf
+    replace h7 := ih3 h7 wf
+    replace h10 := is_const_some h10; subst h10
+    replace h11 := ih4 h11 wf; subst h13
+    replace h14 := Term.eq_of_beq h14
+    replace h15 := Term.eq_of_beq h15
+    replace h12 := Term.eq_of_beq h12; subst h12
+    replace h17 := Term.eq_of_beq h17; subst h17
+    generalize τdef : u1.to_telescope.fst = τ at *
+    generalize sRdef : u1.to_telescope.snd = sR at *
+    generalize Rdef : [P' (List.length τ)]sR = R at *
+    have lem1 : (τ, sR) = u1.to_telescope := by rw [<-τdef, <-sRdef]
+    generalize τpdef : u7.to_telescope.fst = τ' at *
+    generalize sTdef : u7.to_telescope.snd = sT at *
+    have lem3 : (τ', sT) = u7.to_telescope := by rw [<-τpdef, <-sTdef]
+    generalize ctoriddef : u2.fst = ctorid at *
+    generalize dataiddef : u3.fst = dataid at *
+    have lem4 : some (ctorid, u2.snd) = p.neutral_form := by rw [<-ctoriddef, h2]
+    have lem5 : some (dataid, u3.snd) = R.neutral_form := by rw [<-dataiddef, h3]
+    generalize sTpdef : Term.from_telescope_rev ξ.reverse sT = sT' at *
+    generalize Tdef : [P' (List.length τ)]sT' = T at *
+    subst h9; replace zdef := infer_kind_sound zdef wf
+    replace h4 := infer_kind_sound h4 wf
+    apply @Judgment.ite u2.snd u3.snd Γ p u1 τ sR R ctorid dataid s i u7 τ' sT ξ sT' T u10 e
+    apply h1; apply lem1; rw [<-Rdef]; simp; apply h15
+    apply lem4; apply lem5; apply h16; apply h4; apply h6; apply h7
+    apply lem3; rw [h8]; rw [<-sTpdef]; simp; rw [<-Tdef]; simp; apply h14
+    apply zdef; apply h11
 case _ Γ p s t ih1 ih2 ih3 =>
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
@@ -179,10 +210,10 @@ case _ Γ p s t ih1 ih2 ih3 =>
     replace h12 := Term.eq_of_beq h12
     generalize τdef : u1.to_telescope.fst = τ at *
     generalize sRdef : u1.to_telescope.snd = sR at *
-    have lem1 : (τ, sR) = u1.to_telescope := by sorry
+    have lem1 : (τ, sR) = u1.to_telescope := by rw [<-τdef, <-sRdef]
     generalize τpdef : u5.to_telescope.fst = τ' at *
     generalize sTdef : u5.to_telescope.snd = sT at *
-    have lem3 : (τ', sT) = u5.to_telescope := by sorry
+    have lem3 : (τ', sT) = u5.to_telescope := by rw [<-τpdef, <-sTdef]
     apply @Judgment.guard Γ p u1 τ sR ([P' (List.length τ)]sR) s t u5 τ' sT ξ (Term.from_telescope ξ sT) _ _
     apply h1; apply lem1; simp; apply h12; apply h2; apply h4; apply h5
     apply lem3; rw [h6]; rfl; simp; apply h11; apply h7
