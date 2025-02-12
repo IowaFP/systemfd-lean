@@ -45,9 +45,11 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
                       .some (List.map (.ite p · b c) s'')
               else ( -- s' cannot be a term or an instance
                      -- if it is then evaluate by eval_inst
-                     match (h == s' , prefix_equal sp sp') with
-                         | (.true , .some l) => .some [Term.apply_spine b l]
-                         | _ => .some [c]))
+                     if Term.is_ctorid Γ s' && h == s'
+                     then match (prefix_equal sp sp') with
+                         | .some l => .some [Term.apply_spine b l]
+                         | _ => .some [c]
+                     else .none ))
 
   --------------------------
   ---- Guards over open terms
@@ -63,9 +65,11 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
           if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
           then do let s'' <- eval_inst Γ s
                   .some (List.map (.guard p · c) s'')
-          else match (p' == s', prefix_equal sp sp') with
-                          | (.true , .some l) => .some [c.apply_spine l]
-                          | _                 => .some []) -- guards failing return empty list
+          else (if (p' == s')
+                then (match prefix_equal sp sp' with
+                       | .some l => .some [c.apply_spine l]
+                       | _                 => .some []) -- guards failing return empty list
+                else .some []))
 
   --------------------------
   ---- Coercions

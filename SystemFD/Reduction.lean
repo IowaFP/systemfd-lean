@@ -43,24 +43,24 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 | guard_missed :
   .some (x, sp) = Term.neutral_form p ->
   .some (x', sp') = Term.neutral_form s ->
-  x ≠ x' ∨ prefix_equal sp sp = .none ->
+  x ≠ x' ∨ prefix_equal sp sp' = .none ->
   Red Γ (.guard p s b) []
 
 ----------------------------------------------------------------
 ---- Instance Instantiation
 ----------------------------------------------------------------
 | inst :
-  .some (x, sp) = Term.neutral_form h ->
+  Term.neutral_form h = .some (x, sp) ->
   Term.is_openmethod Γ x ->
-  indices = instance_indices Γ 0 x -> -- searches for the instances of open method x
-  indices.length > 0 ->
+  indices = instance_indices' Γ 0 x [] -> -- searches for the instances of open method x
+  -- indices.length > 0 ->
   tl = get_instances Γ indices -> -- weakens the instances
   tl' = List.map (λ x => x.apply_spine sp) tl ->
   Red Γ h tl'
 
 
 | letterm :
-  .some (x, sp) = Term.neutral_form h ->
+  Term.neutral_form h = .some (x, sp) ->
   .term _ t = Γ d@ x ->
   Red Γ h [t.apply_spine sp]
 

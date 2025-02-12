@@ -1,6 +1,7 @@
 import SystemFD.Substitution
 import SystemFD.Ctx
 import SystemFD.Term.Definition
+import SystemFD.Util
 
 inductive SpineVariant where
 | term | type | kind
@@ -170,51 +171,41 @@ namespace Term
   theorem spine_lemma : t.neutral_form = .some (h, sp) -> t = (#h).apply_spine sp := by
     induction t, sp using apply_spine.induct
     case _ =>
-      sorry
-    case _ => sorry
-    case _ => sorry
+      intros h; unfold neutral_form at h; simp_all; sorry
+    case _ => intros h; sorry
+    case _ => intros h; simp_all; sorry
     case _ => sorry
 
 
   theorem neutral_form_app : (f `@ t).neutral_form = .none -> f.neutral_form = .none := by
-  induction t using neutral_form.induct
-  case _ x => simp; sorry
-  case _ => simp; sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
+  intros h; unfold neutral_form at h; simp_all;
+  sorry
 
   theorem neutral_form_appt : (f `@t t).neutral_form = .none -> f.neutral_form = .none := by
-  induction t using neutral_form.induct
-  case _ x => simp; sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-
-
+  intros h; unfold neutral_form at h; simp_all;
+  sorry
 
 @[simp]
 def is_ctorid (Γ : Ctx Term) (n : Nat) :=
-  match Γ @ n with
+  match Γ d@ n with
   | .ctor _ => true
   | _ => false
 
 @[simp]
 def is_letterm (Γ : Ctx Term) (n : Nat) :=
-  match Γ @ n with
+  match Γ d@ n with
   | .term _ _ => true
   | _ => false
 
 @[simp]
 def is_openmethod (Γ : Ctx Term) (n : Nat) :=
-  match Γ @ n with
+  match Γ d@ n with
   | .openm _ => true
   | _ => false
 
 @[simp]
 def is_insttype (Γ : Ctx Term) (n : Nat) :=
-  match Γ @ n with
+  match Γ d@ n with
   | .insttype _ => true
   | _ => false
 
