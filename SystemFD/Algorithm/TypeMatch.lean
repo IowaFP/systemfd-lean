@@ -2,6 +2,7 @@ import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Algorithm
 
 theorem option_lemma :
   (∀ v, ¬ t = Option.some v) ->
@@ -38,7 +39,7 @@ case _ v t1 t2 ih1 ih2 =>
         replace ih1 := ih1 r h1; simp at ih1
         exists (r a.fst); exists (List.map (fun x => (x.fst, [r.to]x.snd)) a.snd)
 
-theorem stable_type_match_sound :
+theorem stable_type_match_sound_lemma :
   (τ, sR) = Term.to_telescope A ->
   [S' τ.length]R = sR ->
   .some (x, sp) = Term.neutral_form R ->
@@ -106,6 +107,11 @@ case _ v t1 t2 ih1 ih2 =>
       simp at h2; constructor
       apply ih2 lem1 lem2 lem3 lem4
 
+theorem stable_type_match_sound :
+  stable_type_match Γ A R = .some u ->
+  StableTypeMatch Γ A R
+:= by sorry
+
 theorem telescope_empty {B : Term} :
   ([], sB) = B.to_telescope ->
   sB = B
@@ -152,11 +158,20 @@ case _ v t1 t2 ih1 ih2 =>
 
 theorem telescope_rev_append_type :
   Term.from_telescope_rev (Γ ++ [Frame.type A]) t = (A -t> (Term.from_telescope_rev Γ t))
-:= by sorry
+:= by
+induction Γ generalizing A t <;> simp at *
+case _ hd tl ih =>
+  cases hd <;> simp at *
+  any_goals case _ => rw [ih]
+
 
 theorem telescope_rev_append_kind :
   Term.from_telescope_rev (Γ ++ [Frame.kind A]) t = (∀[A] (Term.from_telescope_rev Γ t))
-:= by sorry
+:= by
+induction Γ generalizing A t <;> simp at *
+case _ hd tl ih =>
+  cases hd <;> simp at *
+  any_goals case _ => rw [ih]
 
 theorem to_from_telescope {B : Term} :
   (τ, sB) = B.to_telescope ->
@@ -180,7 +195,7 @@ all_goals (
   cases h; case _ h1 h2 =>
     subst h1; subst h2; simp)
 
-theorem prefix_type_match_sound :
+theorem prefix_type_match_sound_lemma :
   (τ, sR) = Term.to_telescope A ->
   (τ', sT) = Term.to_telescope B ->
   .some ξ = prefix_equal τ τ' ->
@@ -241,3 +256,8 @@ case _ h =>
   cases h3; case _ h3e h3 =>
     replace h3e := Frame.eq_of_beq h3e; subst h3e
     exfalso; apply h rfl
+
+theorem prefix_type_match_sound :
+  prefix_type_match Γ A B = .some T ->
+  PrefixTypeMatch Γ A B T
+:= by sorry

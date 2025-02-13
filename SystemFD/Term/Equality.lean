@@ -1,25 +1,5 @@
 import SystemFD.Term.Definition
 
-namespace Const
-  @[simp]
-  def beq : Const -> Const -> Bool
-  | pointed, pointed => true
-  | unpointed, unpointed => true
-  | _, _ => false
-end Const
-
-@[simp]
-instance instBEq_Const : BEq Const where
-  beq := Const.beq
-
-instance instLawfulBEq_Const : LawfulBEq Const where
-  eq_of_beq := by
-    intro a b h; simp at h
-    cases a <;> cases b <;> simp at *
-  rfl := by
-    intro a; simp
-    cases a <;> simp
-
 namespace Ctor1Variant
   @[simp]
   def beq : Ctor1Variant -> Ctor1Variant -> Bool
@@ -101,8 +81,8 @@ namespace Term
   @[simp]
   def beq : Term -> Term -> Bool
   | kind, kind => true
+  | type, type => true
   | var x, var y => x == y
-  | const x, const y => x == y
   | ite x1 x2 x3 x4, ite y1 y2 y3 y4 =>
     beq x1 y1 && beq x2 y2 && beq x3 y3 && beq x4 y4
   | guard x1 x2 x3, guard y1 y2 y3 =>
@@ -144,10 +124,6 @@ namespace Term
       have lem := @LawfulBEq.eq_of_beq Bind2Variant _ _ v1 v2
       simp at *; replace lem := lem h.1.1
       rw [lem, ih1 h.1.2, ih2 h.2]; simp
-    all_goals (simp at *)
-  case const =>
-    cases b
-    case const => rw [@LawfulBEq.eq_of_beq Const _ _ _ _ h]
     all_goals (simp at *)
   any_goals (cases b <;> simp at *)
   case _ => simp [*]

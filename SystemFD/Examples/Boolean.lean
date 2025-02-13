@@ -93,7 +93,7 @@ def EqBoolCtx : Ctx Term := [
   , .openm (∀[★] (#1 `@k #0) -t> (#1 -t> (#2 -t> #7)))
 
   -- Eq : ★ → ◯
-  , .opent (★ -k> ◯)
+  , .opent (★ -k> ★)
 
   -- True : Bool
   , .ctor #1

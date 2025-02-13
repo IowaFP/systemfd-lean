@@ -95,3 +95,10 @@ case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
+
+
+theorem beta :
+  (.type A::Γ) ⊢ b : B ->
+  Γ ⊢ t : A ->
+  Γ ⊢ (b β[t]) : (B β[t])
+:= by

@@ -12,7 +12,7 @@ namespace Term
   def vars : Term -> List Nat
   | var x => [x]
   | kind => []
-  | const _ => []
+  | type => []
   | ctor1 _ t => vars t
   | ctor2 _ t1 t2 => vars t1 ++ vars t2
   | bind2 _ t1 t2 => vars t1 ++ vars t2

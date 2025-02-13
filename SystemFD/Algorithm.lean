@@ -5,7 +5,7 @@ set_option maxHeartbeats 500000
 
 @[simp]
 def wf_kind : Term -> Option Unit
-| .const _ => .some ()
+| .type => .some ()
 | .ctor2 .arrowk A B => do
   let _ <- wf_kind A
   let _ <- wf_kind B
@@ -21,32 +21,13 @@ intro h
 unfold is_openm at h; cases t <;> simp at h
 rw [h]
 
-def is_const : Term -> Option Const
-| .const K => .some K
+def is_type : Term -> Option Unit
+| .type => .some ()
 | _ => .none
 
-theorem is_const_some : is_const t = .some k -> t = .const k := by
+theorem is_type_some : is_type t = .some () -> t = ★ := by
 intro h
-unfold is_const at h; cases t <;> simp at h
-rw [h]
-
-def is_pointed : Term -> Option Unit
-| .const .pointed => .some ()
-| _ => .none
-
-theorem is_pointed_some : is_pointed t = .some () -> t = ★ := by
-intro h
-unfold is_pointed at h; cases t <;> try simp at h
-case _ k => cases k <;> simp at *
-
-def is_unpointed : Term -> Option Unit
-| .const .unpointed => .some ()
-| _ => .none
-
-theorem is_unpointed_some : is_unpointed t = .some () -> t = ◯ := by
-intro h
-unfold is_unpointed at h; cases t <;> try simp at h
-case _ k => cases k <;> simp at *
+unfold is_type at h; cases t <;> try simp at *
 
 def is_arrowk : Term -> Option (Term × Term)
 | .ctor2 .arrowk A B => .some (A, B)
@@ -116,10 +97,10 @@ def infer_kind : Ctx Term -> Term -> Option Term
   .some Bk
 | Γ, .bind2 .arrow A B => do
   let Ak <- infer_kind Γ A
-  let _ <- is_const Ak
+  let _ <- is_type Ak
   let Bk <- infer_kind (.type A::Γ) B
-  let K <- is_const Bk
-  .some (.const K)
+  let _ <- is_type Bk
+  .some ★
 | Γ, .ctor2 .appk f a => do
   let fk <- infer_kind Γ f
   let (A, B) <- is_arrowk fk
@@ -127,11 +108,32 @@ def infer_kind : Ctx Term -> Term -> Option Term
   if A == ak then .some B else .none
 | Γ, .ctor2 .eq A B => do
   let Ak <- infer_kind Γ A
-  let _ <- is_pointed Ak
+  let _ <- is_type Ak
   let Bk <- infer_kind Γ B
-  let _ <- is_pointed Bk
-  .some ◯
+  let _ <- is_type Bk
+  .some ★
 | _, _ => .none
+
+def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
+  let (τ, sR) := Term.to_telescope A
+  let (x, _) <- Term.neutral_form R
+  if [S' τ.length]R == sR
+    && (Γ d@ x).is_stable
+  then .some ()
+  else .none
+
+def prefix_type_match (Γ : Ctx Term) (A B : Term) : Option Term := do
+  let (τ, sR) := Term.to_telescope A
+  let (τ', sT) := Term.to_telescope B
+  let ξ <- prefix_equal τ τ'
+  let T := [P' τ.length](Term.from_telescope ξ sT)
+  let R := [P' τ.length]sR
+  let (x, _) <- Term.neutral_form R
+  if [S' τ.length]T == Term.from_telescope ξ sT
+    && [S' τ.length]R == sR
+    && (Γ d@ x).is_stable
+  then .some T
+  else .none
 
 @[simp]
 def infer_type : Ctx Term -> Term -> Option Term
@@ -141,7 +143,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   .some (.decl A)
 | Γ, .bind2 .letctor T t => do
   let Tk <- infer_kind Γ T
-  let _ <- is_pointed Tk
+  let _ <- is_type Tk
   let A <- infer_type (.ctor T::Γ) t
   if valid_ctor Γ then .some (.decl A) else .none
 | Γ, .bind2 .letopentype T t => do
@@ -150,12 +152,12 @@ def infer_type : Ctx Term -> Term -> Option Term
   .some (.decl A)
 | Γ, .bind2 .letopen T t => do
   let Tk <- infer_kind Γ T
-  let _ <- is_const Tk
+  let _ <- is_type Tk
   let A <- infer_type (.openm T::Γ) t
   .some (.decl A)
 | Γ, .bind2 .insttype T t => do
   let Tk <- infer_kind Γ T
-  let _ <- is_const Tk
+  let _ <- is_type Tk
   let A <- infer_type (.insttype T::Γ) t
   .some (.decl A)
 | Γ, .inst x t1 t2 => do
@@ -165,7 +167,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   if T == T' then .some (.decl A) else .none
 | Γ, .letterm T b t => do
   let Tk <- infer_kind Γ T
-  let _ <- is_const Tk
+  let _ <- is_type Tk
   let B <- infer_type Γ b
   let A <- infer_type (.term T b::Γ) t
   if T == B then .some (.decl A) else .none
@@ -174,50 +176,34 @@ def infer_type : Ctx Term -> Term -> Option Term
   .some T
 | Γ, .ite p s i e => do
   let A <- infer_type Γ p
-  let (τ, sR) := Term.to_telescope A
-  let R := [P' τ.length]sR
+  let R <- infer_type Γ s
+  let Rk <- infer_kind Γ R
+  let _ <- is_type Rk
+  let B <- infer_type Γ i
+  let _ <- stable_type_match Γ A R
   let (ctorid, _) <- Term.neutral_form p
   let (dataid, _) <- Term.neutral_form R
-  let Rk <- infer_kind Γ R
-  let _ <- is_pointed Rk
-  let R' <- infer_type Γ s
-  let B <- infer_type Γ i
-  let (τ', sT) := Term.to_telescope B
-  let ξ <- prefix_equal τ τ'
-  let sT' := Term.from_telescope ξ sT
-  let T := [P' τ.length]sT'
+  let T <- prefix_type_match Γ A B
   let Tk <- infer_kind Γ T
-  let _ <- is_const Tk
+  let _ <- is_type Tk
   let T' <- infer_type Γ e
-  if R == R'
-    && T == T'
-    && is_datatype Γ ctorid dataid
-    && [S' τ.length]R == sR
-    && [S' τ.length]T == sT'
+  if T == T' && is_datatype Γ ctorid dataid
   then .some T
   else .none
 | Γ, .guard p s t => do
   let A <- infer_type Γ p
-  let (τ, sR) := Term.to_telescope A
-  let R := [P' τ.length]sR
+  let R <- infer_type Γ s
   let Rk <- infer_kind Γ R
-  let _ <- is_unpointed Rk
-  let R' <- infer_type Γ s
+  let _ <- is_type Rk
+  let _ <- stable_type_match Γ A R
   let B <- infer_type Γ t
-  let (τ', sT) := Term.to_telescope B
-  let ξ <- prefix_equal τ τ'
-  let sT' := Term.from_telescope ξ sT
-  let T := [P' τ.length]sT'
+  let T <- prefix_type_match Γ A B
   let Tk <- infer_kind Γ T
-  let _ <- is_const Tk
-  if R == R'
-    && [S' τ.length]R == sR
-    && [S' τ.length]T == sT'
-  then .some T
-  else .none
+  let _ <- is_type Tk
+  .some T
 | Γ, `λ[A] t => do
   let Ak <- infer_kind Γ A
-  let _ <- is_const Ak
+  let _ <- is_type Ak
   let B <- infer_type (.type A::Γ) t
   .some (A -t> B)
 | Γ, .ctor2 .app f a => do
@@ -241,7 +227,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   if A == A' then .some B else .none
 | Γ, .ctor1 .refl A => do
   let Ak <- infer_kind Γ A
-  let _ <- is_pointed Ak
+  let _ <- is_type Ak
   .some (A ~ A)
 | Γ, .ctor1 .sym t => do
   let T <- infer_type Γ t
@@ -298,7 +284,7 @@ def wf_ctx : Ctx Term -> Option Unit
 | .cons .empty Γ => wf_ctx Γ
 | .cons (.type A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- is_const Ak
+  let _ <- is_type Ak
   wf_ctx Γ
 | .cons (.kind A) Γ => do
   let _ <- wf_kind A
@@ -308,22 +294,22 @@ def wf_ctx : Ctx Term -> Option Unit
   wf_ctx Γ
 | .cons (.ctor A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- is_pointed Ak
+  let _ <- is_type Ak
   if valid_ctor Γ then wf_ctx Γ else .none
 | .cons (.opent A) Γ => do
   let _ <- wf_kind A
   wf_ctx Γ
 | .cons (.openm A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- is_const Ak
+  let _ <- is_type Ak
   wf_ctx Γ
 | .cons (.insttype A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- is_const Ak
+  let _ <- is_type Ak
   wf_ctx Γ
 | .cons (.term A t) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- is_const Ak
+  let _ <- is_type Ak
   let A' <- infer_type Γ t
   let _ <- wf_ctx Γ
   if A == A' then .some () else .none

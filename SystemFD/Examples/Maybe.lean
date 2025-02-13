@@ -86,8 +86,8 @@ def MaybeBoolCtx : Ctx Term := [
   -- == : ∀ t. Eq t → t → t → Bool
   , .openm (∀[★] (#1 `@k #0) -t> (#1 -t> (#2 -t> #7)))
 
-  -- Eq : ★ → ◯
-  , .opent (★ -k> ◯)
+  -- Eq : ★ → ★
+  , .opent (★ -k> ★)
 
   -- True : Bool
   , .ctor #1

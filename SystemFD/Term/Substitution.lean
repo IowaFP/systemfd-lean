@@ -44,7 +44,7 @@ namespace Term
   | [], t => t
   | .cons (.type A) Γ, t => from_telescope_rev Γ (.bind2 .arrow A t)
   | .cons (.kind A) Γ, t => from_telescope_rev Γ (∀[A] t)
-  | _, t => t
+  | .cons _ Γ, t => from_telescope_rev Γ t
 
   @[simp]
   def from_telescope (Γ : Ctx Term) (t : Term) : Term :=
@@ -78,7 +78,7 @@ namespace Term
     | .re y => var y
     | .su t => t
   | kind => kind
-  | const k => const k
+  | type => type
   | ctor1 v t => ctor1 v (smap lf f t)
   | ctor2 v t1 t2 => ctor2 v (smap lf f t1) (smap lf f t2)
   | bind2 v t1 t2 => bind2 v (smap lf f t1) (smap lf (lf f) t2)
@@ -113,7 +113,7 @@ namespace Term
   theorem subst_kind : [σ]kind = kind := by unfold Subst.apply; simp
 
   @[simp]
-  theorem subst_const : [σ]const k = const k := by unfold Subst.apply; simp
+  theorem subst_const : [σ]type = type := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_ite : [σ]ite t1 t2 t3 t4 = ite ([σ]t1) ([σ]t2) ([σ]t3) ([σ]t4) := by unfold Subst.apply; simp

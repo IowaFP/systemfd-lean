@@ -6,7 +6,7 @@ import SystemFD.Algorithm
 theorem wf_kind_sound : wf_kind t = .some u -> ⊢ Γ -> Γ ⊢ t : .kind := by
 intro h wf
 induction t using wf_kind.induct
-case _ K => constructor; apply wf
+case _ => constructor; apply wf
 case _ A B ih1 ih2 =>
   simp at h; rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
@@ -17,7 +17,7 @@ case _ A B ih1 ih2 =>
 case _ t h1 h2 =>
   exfalso
   cases t <;> simp at h
-  case _ => apply h1 _ rfl
+  case _ => apply h1 rfl
 
 theorem infer_kind_sound : infer_kind Γ t = .some A -> ⊢ Γ -> Γ ⊢ t : A := by
 intro h wf
@@ -60,9 +60,9 @@ case _ Γ A' B ih1 ih2 =>
   rw [Option.bind_eq_some] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     injection h5 with e; subst e
-    replace h4 := is_const_some h4; subst h4
+    replace h4 := is_type_some h4; subst h4
     have lem1 := ih1 h1 wf
     have lem2 : ⊢ (.type A' :: Γ) := by
       constructor; apply lem1; apply wf
@@ -97,8 +97,8 @@ case _ ih1 ih2 =>
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
     injection h5 with e; subst e
-    replace h2 := is_pointed_some h2; subst h2
-    replace h4 := is_pointed_some h4; subst h4
+    replace h2 := is_type_some h2; subst h2
+    replace h4 := is_type_some h4; subst h4
     constructor; apply ih1 h1 wf; apply ih2 h3 wf
 case _ Γ t h1 h2 h3 h4 h5 =>
   exfalso

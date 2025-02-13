@@ -1,15 +1,3 @@
-inductive Const : Type where
-| pointed | unpointed
-
-instance : ToString Const where
-  toString x := match x with
-                | .pointed => "★"
-                | .unpointed => "◯"
-
-instance : Repr Const where
-  reprPrec a _ := match a with
-                  | .pointed => "★"
-                  | .unpointed => "◯"
 
 inductive Ctor1Variant : Type where
 | refl
@@ -46,7 +34,7 @@ deriving Repr
 inductive Term : Type where
 | kind : Term
 | var : Nat -> Term
-| const : Const -> Term
+| type : Term
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
 | bind2 : Bind2Variant -> Term -> Term -> Term
@@ -72,7 +60,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   match a with
   | .kind => "kind"
   | .var n => "#" ++ Nat.repr n
-  | .const k => toString k
+  | .type => "★"
 
   | .ctor1 .refl t => "≮" ++ Term.repr t p ++ "≯"
   | .ctor1 .sym t => "sym" ++ Std.Format.paren (Term.repr t p)
@@ -119,8 +107,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
 instance : Repr Term where
   reprPrec a p := Term.repr a p
 
-notation "★" => Term.const Const.pointed
-notation "◯" => Term.const Const.unpointed
+notation "★" => Term.type
 infixr:14 " -k> " => Term.ctor2 Ctor2Variant.arrowk
 infixr:14 " -t> " => Term.bind2 Bind2Variant.arrow
 infixr:14 " -c> " => Term.bind2 Bind2Variant.arrowc
@@ -153,7 +140,7 @@ namespace Term
   def size : Term -> Nat
   | var _ => 0
   | kind => 0
-  | const _ => 0
+  | type => 0
   | ctor1 _ t => (size t) + 1
   | ctor2 _ t1 t2 => (size t1) + (size t2) + 1
   | bind2 _ t1 t2 => (size t1) + (size t2) + 1

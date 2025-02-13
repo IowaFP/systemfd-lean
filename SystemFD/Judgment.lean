@@ -2,10 +2,6 @@ import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Ctx
 
-inductive ArrowSafe : Const -> Const -> Prop where
-| pointed : ArrowSafe .pointed .pointed
-| unpointed : ArrowSafe .unpointed K
-
 inductive StableTypeMatch : Ctx Term -> Term -> Term -> Prop where
 | refl :
   .some (x, _) = R.neutral_form ->
@@ -47,7 +43,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .wf Γ () ->
   Judgment .wf (.empty::Γ) ()
 | wftype :
-  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (A, ★) ->
   Judgment .wf Γ () ->
   Judgment .wf (.type A::Γ) ()
 | wfkind :
@@ -68,11 +64,11 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .wf Γ () ->
   Judgment .wf (.opent A::Γ) ()
 | wfopenm :
-  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (A, ★) ->
   Judgment .wf Γ () ->
   Judgment .wf (.openm A::Γ) ()
 | wfinsttype :
-  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (A, ★) ->
   Judgment .wf Γ () ->
   Judgment .wf (.insttype A::Γ) ()
 | wfinst :
@@ -81,7 +77,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .wf Γ () ->
   Judgment .wf (.inst x t::Γ) ()
 | wfterm :
-  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (t, A) ->
   Judgment .wf Γ () ->
   Judgment .wf (.term A t::Γ) ()
@@ -102,11 +98,11 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf (.opent T::Γ) (t, A) ->
   Judgment .prf Γ (letopentype! T t, .decl A)
 | letopen :
-  Judgment .prf Γ (T, .const K) ->
+  Judgment .prf Γ (T, ★) ->
   Judgment .prf (.openm T::Γ) (t, A) ->
   Judgment .prf Γ (letopen! T t, .decl A)
 | insttype :
-  Judgment .prf Γ (T, .const K) ->
+  Judgment .prf Γ (T, ★) ->
   Judgment .prf (.insttype T::Γ) (t, A) ->
   Judgment .prf Γ (insttype! T t, .decl A)
 | inst :
@@ -115,7 +111,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf (.inst x t1::Γ) (t2, A) ->
   Judgment .prf Γ (.inst x t1 t2, .decl A)
 | letterm :
-  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (t, A) ->
   Judgment .prf (.term A t::Γ) (b, T) ->
   Judgment .prf Γ (.letterm A t b, .decl T)
@@ -124,7 +120,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 | ax :
   Judgment .wf Γ () ->
-  Judgment .prf Γ (.const K, .kind)
+  Judgment .prf Γ (★, .kind)
 | var :
   Judgment .wf Γ () ->
   .some T = Frame.get_type (Γ d@ x) ->
@@ -139,10 +135,9 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (K, .kind) ->
   Judgment .prf Γ (∀[A] B, K)
 | arrow :
-  Judgment .prf Γ (A, .const K1) ->
-  Judgment .prf (.type A::Γ) (B, .const K2) ->
-  ArrowSafe K1 K2 ->
-  Judgment .prf Γ (A -t> B, .const K2)
+  Judgment .prf Γ (A, ★) ->
+  Judgment .prf (.type A::Γ) (B, ★) ->
+  Judgment .prf Γ (A -t> B, ★)
 | appk :
   Judgment .prf Γ (f, A -k> B) ->
   Judgment .prf Γ (a, A) ->
@@ -150,7 +145,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | eq :
   Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (B, ★) ->
-  Judgment .prf Γ (A ~ B, ◯)
+  Judgment .prf Γ (A ~ B, ★)
 --------------------------------------------------------------------------------------
 ---- Datatype case expressions
 --------------------------------------------------------------------------------------
@@ -174,7 +169,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --   .some openmid = Term.neutral_head s -> // Check that it's actually an open method?
   Judgment .prf Γ (p, A) ->
   Judgment .prf Γ (s, R) ->
-  Judgment .prf Γ (R, ◯) ->
+  Judgment .prf Γ (R, ★) ->
   StableTypeMatch Γ A R ->
   Judgment .prf Γ (t, B) ->
   PrefixTypeMatch Γ A B T ->
@@ -184,7 +179,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 ---- Terms
 --------------------------------------------------------------------------------------
 | lam :
-  Judgment .prf Γ (A, .const K) ->
+  Judgment .prf Γ (A, ★) ->
   Judgment .prf (.type A::Γ) (t, B) ->
   Judgment .prf Γ (`λ[A] t, A -t> B)
 | app :

@@ -46,7 +46,7 @@ def unitRefl : Term :=
   Term.letdata ★   -- Unit : ★,
   ;; letctor! #0 -- unit : Unit
   ;; Term.letterm (∀[★] #0 -t> #0) (Λ[★] `λ[#0] #0)
-  ;; (#0 `@t #2 `@ #1 ▹ ((∀c[◯]refl! #0) `@c refl! #0)) -- () ▹ refl
+  ;; (#0 `@t #2 `@ #1 ▹ ((∀c[★]refl! #0) `@c refl! #0)) -- () ▹ refl
 
 def unitletterm : Term :=
   Term.letdata ★   -- Unit : ★,

@@ -2,6 +2,7 @@ import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Algorithm
+import SystemFD.Algorithm.TypeMatch
 import SystemFD.Algorithm.Soundness1
 
 theorem infer_type_sound : infer_type Γ t = .some A -> ⊢ Γ -> Γ ⊢ t : A := by
@@ -30,7 +31,7 @@ case _ ih =>
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
   simp at h4; cases h4; case _ h4 h5 =>
-    subst h5; replace h2 := is_pointed_some h2; subst h2
+    subst h5; replace h2 := is_type_some h2; subst h2
     have lem := infer_kind_sound h1 wf
     constructor; apply lem; apply h4
     apply ih h3; constructor; apply lem; apply wf
@@ -58,7 +59,7 @@ case _ ih =>
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
     injection h4 with e; subst e
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     replace h1 := infer_kind_sound h1 wf
     constructor; apply h1; apply ih h3
     constructor; apply h1; apply wf
@@ -73,7 +74,7 @@ case _ ih =>
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
     injection h4 with e; subst e
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     replace h1 := infer_kind_sound h1 wf
     constructor; apply h1; apply ih h3
     constructor; apply h1; apply wf
@@ -108,7 +109,7 @@ case _ ih1 ih2 =>
   cases h4; case _ h4 h5 =>
   simp at h5; cases h5; case _ h5 h6 =>
     replace h5 := Term.eq_of_beq h5; subst h5; subst h6
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     replace h1 := infer_kind_sound h1 wf
     constructor; apply h1; apply ih1 h3 wf
     apply ih2 h4; constructor; apply h1
@@ -137,55 +138,36 @@ case _ Γ p s i e ih1 ih2 ih3 ih4 =>
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
   rw [Option.bind_eq_some] at h8
-  cases h8; case _ ξ h8 =>
+  cases h8; case _ u7' h8 =>
   cases h8; case _ h8 h9 =>
-  generalize zdef :
-    infer_kind Γ ([P' (List.length u1.to_telescope.fst)]Term.from_telescope_rev ξ.reverse u7.to_telescope.snd) = z
-    at h9
   rw [Option.bind_eq_some] at h9
-  cases h9; case _ u9 h9 =>
+  cases h9; case _ u8 h9 =>
   cases h9; case _ h9 h10 =>
   rw [Option.bind_eq_some] at h10
-  cases h10; case _ u10 h10 =>
+  cases h10; case _ u9 h10 =>
   cases h10; case _ h10 h11 =>
   rw [Option.bind_eq_some] at h11
-  cases h11; case _ u11 h11 =>
+  cases h11; case _ u10 h11 =>
   cases h11; case _ h11 h12 =>
-  simp at h12; cases h12; case _ h12 h13 =>
-  cases h12; case _ h12 h14 =>
-  cases h12; case _ h12 h15 =>
-  cases h12; case _ h12 h16 =>
-  cases h12; case _ h12 h17 =>
+  rw [Option.bind_eq_some] at h12
+  cases h12; case _ u11 h12 =>
+  cases h12; case _ h12 h13 =>
+  simp at h13; cases h13; case _ h13 h14 =>
+  cases h13; case _ h13 h15 =>
     replace h1 := ih1 h1 wf
-    replace h5 := is_pointed_some h5; subst h5
-    replace h6 := ih2 h6 wf
-    replace h7 := ih3 h7 wf
-    replace h10 := is_const_some h10; subst h10
-    replace h11 := ih4 h11 wf; subst h13
-    replace h14 := Term.eq_of_beq h14
-    replace h15 := Term.eq_of_beq h15
-    replace h12 := Term.eq_of_beq h12; subst h12
-    replace h17 := Term.eq_of_beq h17; subst h17
-    generalize τdef : u1.to_telescope.fst = τ at *
-    generalize sRdef : u1.to_telescope.snd = sR at *
-    generalize Rdef : [P' (List.length τ)]sR = R at *
-    have lem1 : (τ, sR) = u1.to_telescope := by rw [<-τdef, <-sRdef]
-    generalize τpdef : u7.to_telescope.fst = τ' at *
-    generalize sTdef : u7.to_telescope.snd = sT at *
-    have lem3 : (τ', sT) = u7.to_telescope := by rw [<-τpdef, <-sTdef]
-    generalize ctoriddef : u2.fst = ctorid at *
-    generalize dataiddef : u3.fst = dataid at *
-    have lem4 : some (ctorid, u2.snd) = p.neutral_form := by rw [<-ctoriddef, h2]
-    have lem5 : some (dataid, u3.snd) = R.neutral_form := by rw [<-dataiddef, h3]
-    generalize sTpdef : Term.from_telescope_rev ξ.reverse sT = sT' at *
-    generalize Tdef : [P' (List.length τ)]sT' = T at *
-    subst h9; replace zdef := infer_kind_sound zdef wf
-    replace h4 := infer_kind_sound h4 wf
-    apply @Judgment.ite u2.snd u3.snd Γ p u1 τ sR R ctorid dataid s i u7 τ' sT ξ sT' T u10 e
-    apply h1; apply lem1; rw [<-Rdef]; simp; apply h15
-    apply lem4; apply lem5; apply h16; apply h4; apply h6; apply h7
-    apply lem3; rw [h8]; rw [<-sTpdef]; simp; rw [<-Tdef]; simp; apply h14
-    apply zdef; apply h11
+    replace h2 := ih2 h2 wf
+    replace h3 := infer_kind_sound h3 wf
+    replace h4 := is_type_some h4
+    replace h5 := ih3 h5 wf
+    replace h6 := stable_type_match_sound h6
+    replace h9 := prefix_type_match_sound h9
+    replace h10 := infer_kind_sound h10 wf
+    replace h11 := is_type_some h11
+    replace h12 := ih4 h12 wf
+    replace h13 := Term.eq_of_beq h13
+    subst h14; subst h4; subst h11; subst h13
+    apply Judgment.ite h1 h2 h3 h5 h6 _ _ h15 h9 h10 h12
+    apply u7.snd; apply u7'.snd; rw [h7]; rw [h8]
 case _ Γ p s t ih1 ih2 ih3 =>
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
@@ -203,7 +185,7 @@ case _ Γ p s t ih1 ih2 ih3 =>
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
   rw [Option.bind_eq_some] at h6
-  cases h6; case _ ξ h6 =>
+  cases h6; case _ u5' h6 =>
   cases h6; case _ h6 h7 =>
   rw [Option.bind_eq_some] at h7
   cases h7; case _ u7 h7 =>
@@ -211,28 +193,20 @@ case _ Γ p s t ih1 ih2 ih3 =>
   rw [Option.bind_eq_some] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
-  simp at h9; cases h9; case _ h9 h10 =>
-  cases h9; case _ h9 h11 =>
-  cases h9; case _ h9 h12 =>
-    replace h3 := is_unpointed_some h3; subst h3
-    replace h8 := is_const_some h8; subst h8; subst h10
-    replace h9 := Term.eq_of_beq h9; subst h9
-    replace h2 := infer_kind_sound h2 wf
-    replace h7 := infer_kind_sound h7 wf
+  rw [Option.bind_eq_some] at h9
+  cases h9; case _ u9 h9 =>
+  cases h9; case _ h9 h10 =>
     replace h1 := ih1 h1 wf
-    replace h4 := ih2 h4 wf
-    replace h5 := ih3 h5 wf
-    replace h11 := Term.eq_of_beq h11
-    replace h12 := Term.eq_of_beq h12
-    generalize τdef : u1.to_telescope.fst = τ at *
-    generalize sRdef : u1.to_telescope.snd = sR at *
-    have lem1 : (τ, sR) = u1.to_telescope := by rw [<-τdef, <-sRdef]
-    generalize τpdef : u5.to_telescope.fst = τ' at *
-    generalize sTdef : u5.to_telescope.snd = sT at *
-    have lem3 : (τ', sT) = u5.to_telescope := by rw [<-τpdef, <-sTdef]
-    apply @Judgment.guard Γ p u1 τ sR ([P' (List.length τ)]sR) s t u5 τ' sT ξ (Term.from_telescope ξ sT) _ _
-    apply h1; apply lem1; simp; apply h12; apply h2; apply h4; apply h5
-    apply lem3; rw [h6]; rfl; simp; apply h11; apply h7
+    replace h2 := ih2 h2 wf
+    replace h3 := infer_kind_sound h3 wf
+    replace h4 := is_type_some h4
+    replace h5 := stable_type_match_sound h5
+    replace h6 := ih3 h6 wf
+    replace h7 := prefix_type_match_sound h7
+    replace h8 := infer_kind_sound h8 wf
+    replace h9 := is_type_some h9
+    injection h10 with e; subst e; subst h4; subst h9
+    apply Judgment.guard h1 h2 h3 h5 h6 h7 h8
 case _ ih =>
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
@@ -244,7 +218,7 @@ case _ ih =>
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
     injection h4 with e; subst e
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     replace h1 := infer_kind_sound h1 wf
     constructor; apply h1; apply ih h3
     constructor; apply h1; apply wf
@@ -311,7 +285,7 @@ case _ =>
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     replace h1 := infer_kind_sound h1 wf
-    replace h2 := is_pointed_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     injection h3 with e; subst e
     constructor; apply h1
 case _ ih =>
@@ -473,7 +447,7 @@ case _ ih =>
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     have lem := ih h3
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     constructor; apply infer_kind_sound h1 lem; apply lem
 case _ ih =>
   rw [Option.bind_eq_some] at h
@@ -495,7 +469,7 @@ case _ ih =>
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     simp at h3; have lem := ih h3.2
-    replace h2 := is_pointed_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     constructor; apply infer_kind_sound h1 lem
     apply lem; apply h3.1
 case _ ih =>
@@ -512,7 +486,7 @@ case _ ih =>
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     have lem := ih h3
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     constructor; apply infer_kind_sound h1 lem; apply lem
 case _ ih =>
   rw [Option.bind_eq_some] at h
@@ -522,7 +496,7 @@ case _ ih =>
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     have lem := ih h3
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     constructor; apply infer_kind_sound h1 lem; apply lem
 case _ ih =>
   rw [Option.bind_eq_some] at h
@@ -539,7 +513,7 @@ case _ ih =>
   cases h4; case _ h4 h5 =>
     simp at h5; replace h4 := ih h4
     replace h5 := Term.eq_of_beq h5; subst h5
-    replace h2 := is_const_some h2; subst h2
+    replace h2 := is_type_some h2; subst h2
     constructor; apply infer_kind_sound h1 h4
     apply infer_type_sound h3 h4; apply h4
 case _ hx ih =>

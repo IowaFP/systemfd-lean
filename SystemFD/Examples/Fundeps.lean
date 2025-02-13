@@ -34,8 +34,8 @@ def FundepsCtx : Ctx Term := [
   .openm (∀[★] ∀[★] ∀[★] (#4 `@k #2 `@k #0) -t> (#5 `@k #2 `@k #1) -t> #4 ~ #3),
   -- open fdEqual1 :: ∀ t u u'. Equal t u -> Equal t u' -> u ~ u'
   .openm (∀[★] ∀[★] ∀[★] (#3 `@k #2 `@k #1) -t> (#4 `@k #3 `@k #1) -t> #3 ~ #2),
-  -- open Equal :: ★ -> ★ -> ◯
-  .opent (★ -k> ★ -k> ◯)
+  -- open Equal :: ★ -> ★ -> ★
+  .opent (★ -k> ★ -k> ★)
 ]
 
 #eval wf_ctx FundepsCtx
