@@ -2,6 +2,34 @@ import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Ctx
 
+inductive ArrowSafe : Const -> Const -> Prop where
+| pointed : ArrowSafe .pointed .pointed
+| unpointed : ArrowSafe .unpointed K
+
+inductive StableTypeMatch : Ctx Term -> Term -> Term -> Prop where
+| refl :
+  .some (x, _) = R.neutral_form ->
+  (Γ d@ x).is_stable ->
+  StableTypeMatch Γ R R
+| arrow :
+  StableTypeMatch (.type A::Γ) B ([S]R) ->
+  StableTypeMatch Γ (A -t> B) R
+| all :
+  StableTypeMatch (.kind A::Γ) B ([S]R) ->
+  StableTypeMatch Γ (∀[A] B) R
+
+inductive PrefixTypeMatch : Ctx Term -> Term -> Term -> Term -> Prop where
+| refl :
+  .some (x, _) = B.neutral_form ->
+  (Γ d@ x).is_stable ->
+  PrefixTypeMatch Γ B T T
+| arrow :
+  PrefixTypeMatch (.type A::Γ) B V ([S]T) ->
+  PrefixTypeMatch Γ (A -t> B) (A -t> V) T
+| all :
+  PrefixTypeMatch (.kind A::Γ) B V ([S]T) ->
+  PrefixTypeMatch Γ (∀[A] B) (∀[A] V) T
+
 inductive JudgmentVariant where
 | wf | prf
 
@@ -113,6 +141,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | arrow :
   Judgment .prf Γ (A, .const K1) ->
   Judgment .prf (.type A::Γ) (B, .const K2) ->
+  ArrowSafe K1 K2 ->
   Judgment .prf Γ (A -t> B, .const K2)
 | appk :
   Judgment .prf Γ (f, A -k> B) ->
@@ -127,19 +156,15 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 | ite :
   Judgment .prf Γ (p, A) ->
-  (τ, sR) = Term.to_telescope A ->
-  [S' τ.length]R = sR ->
+  Judgment .prf Γ (s, R) ->
+  Judgment .prf Γ (R, ★) ->
+  Judgment .prf Γ (i, B) ->
+  StableTypeMatch Γ A R ->
   .some (ctorid, _) = Term.neutral_form p ->
   .some (dataid, _) = Term.neutral_form R ->
   is_datatype Γ ctorid dataid ->
-  Judgment .prf Γ (R, ★) ->
-  Judgment .prf Γ (s, R) ->
-  Judgment .prf Γ (i, B) ->
-  (τ', sT) = Term.to_telescope B ->
-  .some ξ = prefix_equal τ τ' ->
-  sT' = Term.from_telescope ξ sT ->
-  [S' τ.length]T = sT' ->
-  Judgment .prf Γ (T, .const K) ->
+  PrefixTypeMatch Γ A B T ->
+  Judgment .prf Γ (T, ★) ->
   Judgment .prf Γ (e, T) ->
   Judgment .prf Γ (.ite p s i e, T)
 --------------------------------------------------------------------------------------
@@ -148,16 +173,12 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | guard :
 --   .some openmid = Term.neutral_head s -> // Check that it's actually an open method?
   Judgment .prf Γ (p, A) ->
-  (τ, sR) = Term.to_telescope A ->
-  [S' τ.length]R = sR ->
-  Judgment .prf Γ (R, ◯) ->
   Judgment .prf Γ (s, R) ->
+  Judgment .prf Γ (R, ◯) ->
+  StableTypeMatch Γ A R ->
   Judgment .prf Γ (t, B) ->
-  (τ', sT) = Term.to_telescope B ->
-  .some ξ = prefix_equal τ τ' ->
-  sT' = Term.from_telescope ξ sT ->
-  [S' τ.length]T = sT' ->
-  Judgment .prf Γ (T, .const K) ->
+  PrefixTypeMatch Γ A B T ->
+  Judgment .prf Γ (T, ★) ->
   Judgment .prf Γ (.guard p s t, T)
 --------------------------------------------------------------------------------------
 ---- Terms

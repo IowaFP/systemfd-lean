@@ -223,8 +223,31 @@ section
     case _ => simp; unfold S; unfold Subst.compose; simp
 
   omit  [SubstitutionType T] in
+  theorem to_I : Ren.to (λ x => x) = @I T := by
+  unfold Ren.to; simp; unfold I; simp
+
+  omit  [SubstitutionType T] in
   theorem to_S : Ren.to (λ x => x + 1) = @S T := by
   unfold Ren.to; simp; unfold S; simp
+
+  omit [SubstitutionType T] in
+  @[simp]
+  theorem S'_0 : @S' T 0 = I := by
+    unfold S'; unfold I; simp
+
+  omit [SubstitutionType T] in
+  @[simp]
+  theorem S'_1 : S' 1 = @S T := by
+    unfold S'; unfold S; simp
+
+  omit [SubstitutionTypeLaws T] in
+  @[simp]
+  theorem S'_n1 : S' (n + 1) = (S' n) ⊙ (@S T) := by
+    unfold S'; unfold S; funext
+    case _ x =>
+    cases x <;> try simp
+    case _ => unfold Subst.compose; simp; omega
+    case _ => unfold Subst.compose; simp; omega
 
   theorem lift_rename {σ τ : Subst T} :
     (∀ n k, σ n = .re k -> τ n = .re k) ->

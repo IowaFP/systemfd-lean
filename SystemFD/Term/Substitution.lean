@@ -166,45 +166,49 @@ namespace Term
   theorem apply_compose {s : Term} {σ τ : Subst Term} : [τ][σ]s = [τ ⊙ σ]s := by
   solve_compose Term, apply_stable, s, σ, τ
 
+  @[simp]
+  def is_ctorid (Γ : Ctx Term) (n : Nat) :=
+    match Γ d@ n with
+    | .ctor _ => true
+    | _ => false
 
-@[simp]
-def is_ctorid (Γ : Ctx Term) (n : Nat) :=
-  match Γ d@ n with
-  | .ctor _ => true
-  | _ => false
-
-theorem id_is_ctor : Γ d@ n = .ctor a -> is_ctorid Γ n = true := by
-intros h; simp_all;
-
-
-@[simp]
-def is_letterm (Γ : Ctx Term) (n : Nat) :=
-  match Γ d@ n with
-  | .term _ _ => true
-  | _ => false
-
-theorem id_is_letterm : Γ d@ n = .term a b -> is_letterm Γ n = true := by
-intros h; simp_all;
+  theorem id_is_ctor : Γ d@ n = .ctor a -> is_ctorid Γ n = true := by
+  intros h; simp_all;
 
 
-@[simp]
-def is_openmethod (Γ : Ctx Term) (n : Nat) :=
-  match Γ d@ n with
-  | .openm _ => true
-  | _ => false
+  @[simp]
+  def is_letterm (Γ : Ctx Term) (n : Nat) :=
+    match Γ d@ n with
+    | .term _ _ => true
+    | _ => false
 
-theorem id_is_openmethod : Γ d@ n = .openm m -> is_openmethod Γ n = true := by
-intros h; simp_all;
+  theorem id_is_letterm : Γ d@ n = .term a b -> is_letterm Γ n = true := by
+  intros h; simp_all;
 
 
-@[simp]
-def is_insttype (Γ : Ctx Term) (n : Nat) :=
-  match Γ d@ n with
-  | .insttype _ => true
-  | _ => false
+  @[simp]
+  def is_openmethod (Γ : Ctx Term) (n : Nat) :=
+    match Γ d@ n with
+    | .openm _ => true
+    | _ => false
 
-theorem id_is_insttype : Γ d@ n = .insttype m -> is_insttype Γ n = true := by
-intros h; simp_all;
+  theorem id_is_openmethod : Γ d@ n = .openm m -> is_openmethod Γ n = true := by
+  intros h; simp_all;
+
+
+  @[simp]
+  def is_insttype (Γ : Ctx Term) (n : Nat) :=
+    match Γ d@ n with
+    | .insttype _ => true
+    | _ => false
+
+  theorem id_is_insttype : Γ d@ n = .insttype m -> is_insttype Γ n = true := by
+  intros h; simp_all;
+
+  theorem spine_lemma : t.neutral_form = .some (h, sp) -> t = (#h).apply_spine sp := -- by
+    -- induction t using neutral_form.induct
+    sorry
+  theorem neutral_form_app : (f `@ t).neutral_form = .none -> f.neutral_form = .none := sorry
 
 end Term
 

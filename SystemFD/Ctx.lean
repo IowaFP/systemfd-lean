@@ -28,6 +28,21 @@ namespace Frame
   | inst n t, σ => inst n ([σ]t)
   | term ty t, σ => term ([σ]ty) ([σ]t)
 
+  omit [Repr T] [Inhabited T] in
+  theorem apply_compose {A : Frame T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by
+  unfold apply; cases A <;> simp
+
+  def is_stable : Frame T -> Bool
+  | .type _ => false
+  | .kind _ => false
+  | .openm _ => false
+  | .term _ _ => false
+  | _ => true
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_stable_stable {f : Frame T} : is_stable (apply f σ) = is_stable f := by
+  cases f <;> unfold is_stable <;> unfold apply <;> simp
+
   def get_type : Frame T -> Option T
   | empty => .none
   | kind t => .some t
@@ -54,6 +69,10 @@ namespace Frame
   | term x1 x2, term y1 y2 => x1 == y1 && x2 == y2
   | _, _ => false
 
+  omit [Repr T] [Inhabited T] [SubstitutionType T] in
+  theorem eq_of_beq [BEq T] [LawfulBEq T] {a b : Frame T} : beq a b = true -> a = b := by
+  intro h; cases a <;> cases b <;> simp at * <;> simp [*]
+
   protected def reprPrec [reprT : Repr T] (a : Frame T) (p : Nat) : Std.Format :=
     match a with
     | empty => "empty"
@@ -75,7 +94,24 @@ instance instRepr_Ctx [Repr T] : Repr (Frame T) where
 instance instBEq_Frame {T : Type} [BEq T] : BEq (Frame T) where
   beq := Frame.beq
 
+instance instLawfulBEq_Frame {T : Type} [BEq T] [LawfulBEq T] : LawfulBEq (Frame T) where
+  eq_of_beq := Frame.eq_of_beq
+  rfl := by intro a; cases a <;> simp
+
 def Ctx (T : Type) := List (Frame T)
+
+namespace Ctx
+  def apply : Ctx T -> Subst T -> Ctx T
+  | [], _ => []
+  | .cons hd tl, σ => .cons (hd.apply σ) (apply tl σ)
+
+  omit [Repr T] [Inhabited T] in
+  theorem apply_compose {A : Ctx T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by
+  induction A generalizing σ τ <;> unfold Ctx.apply <;> unfold Ctx.apply <;> simp
+  case _ hd tl ih =>
+    rw [Frame.apply_compose]
+    unfold Ctx.apply at ih; rw [ih]
+end Ctx
 
 @[simp]
 instance instBEq_Ctx {T : Type} [BEq T] : BEq (Ctx T) where
@@ -84,6 +120,14 @@ instance instBEq_Ctx {T : Type} [BEq T] : BEq (Ctx T) where
 @[simp]
 instance instAppend_Ctx : {T : Type} -> Append (Ctx T) where
   append := List.append
+
+@[simp]
+instance instHAppend_List_Ctx : {T : Type} -> HAppend (List (Frame T)) (Ctx T) (Ctx T) where
+  hAppend := List.append
+
+@[simp]
+instance instHAppend_Ctx_List : {T : Type} -> HAppend (Ctx T) (List (Frame T)) (Ctx T) where
+  hAppend := List.append
 
 @[simp]
 def valid_ctor : Ctx T -> Bool
