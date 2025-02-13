@@ -50,7 +50,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 ---- Instance Instantiation
 ----------------------------------------------------------------
 | inst :
-  Term.neutral_form h = .some (x, sp) ->
+  .some (x, sp) = Term.neutral_form h ->
   Term.is_openmethod Γ x ->
   indices = instance_indices' Γ 0 x [] -> -- searches for the instances of open method x
   -- indices.length > 0 ->
@@ -60,7 +60,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 
 
 | letterm :
-  Term.neutral_form h = .some (x, sp) ->
+  .some (x, sp) = Term.neutral_form h ->
   .term _ t = Γ d@ x ->
   Red Γ h [t.apply_spine sp]
 

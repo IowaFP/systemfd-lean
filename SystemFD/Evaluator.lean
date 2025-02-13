@@ -8,26 +8,47 @@ set_option maxHeartbeats 500000
 -- Instantiates instances/performs a one step term evaluation
 @[simp]
 def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
-  match Term.neutral_form t with
-  | .some (h, sp) =>
-    match (Γ d@ h) with
-    | .openm _ => let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
-         let ts := get_instances Γ ιs ; -- select the right instances using the indices
-         List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
+  match t with -- we need to evaulate a non-variable term
+    | .var h =>
+      match (Γ d@ h) with
+      | .openm _ =>
+            let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
+            get_instances Γ ιs -- select the right instances using the indices
+          | .term _ b => [ b ]  -- inline a let bound term
+          | _ => .none -- do not evaluate
 
-    | .term _ b => .some [ b.apply_spine sp ]  -- inline a let bound term
-    | _ => .none -- do not evaluate
-  | .none => match t with -- we need to evaulate a non-variable term
     | .ctor2 .app (.bind2 .lam _ b) t
     | .ctor2 .appt (.bind2 .lamt _ b) t => .some [b β[ t ]]
 
     | .ctor2 .app f t => do
-      let f' <- eval_inst Γ f
-      .some (List.map (· `@ t) f') -- call by name
+      match f.neutral_form with
+      | .some (h, sp) =>
+        (match (Γ d@ h) with
+          | .openm _ =>
+            let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
+            let ts := get_instances Γ ιs ; -- select the right instances using the indices
+            let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
+            List.map (· `@ t) ts'
+          | .term _ b => [ b.apply_spine sp `@ t]  -- inline a let bound term
+          | _ => .none) -- do not evaluate
+      | .none => do
+          let f' <- eval_inst Γ f
+          .some (List.map (· `@ t) f') -- call by name
 
     | .ctor2 .appt f t => do
-      let f' <- eval_inst Γ f
-      .some (List.map (· `@t t) f') -- call by name
+      match f.neutral_form with
+      | .some (h, sp) =>
+        (match (Γ d@ h) with
+          | .openm _ =>
+            let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
+            let ts := get_instances Γ ιs ; -- select the right instances using the indices
+            let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
+            List.map (· `@t t) ts'
+          | .term _ b => [ b.apply_spine sp `@t t]  -- inline a let bound term
+          | _ => .none) -- do not evaluate
+      | .none => do
+          let f' <- eval_inst Γ f
+          .some (List.map (· `@t t) f') -- call by name
 
   --------------------------
   ---- Case matching
@@ -45,10 +66,12 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
                       .some (List.map (.ite p · b c) s'')
               else ( -- s' cannot be a term or an instance
                      -- if it is then evaluate by eval_inst
-                     if Term.is_ctorid Γ s' && h == s'
-                     then match (prefix_equal sp sp') with
-                         | .some l => .some [Term.apply_spine b l]
-                         | _ => .some [c]
+                     if Term.is_ctorid Γ s'
+                     then if h == s'
+                          then match (prefix_equal sp sp') with
+                               | .some l => .some [Term.apply_spine b l]
+                               | _ => .some [c]
+                          else .some [c]
                      else .none ))
 
   --------------------------
