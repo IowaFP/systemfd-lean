@@ -31,47 +31,29 @@ theorem rename (r : Ren) :
 intro j wf h
 induction j generalizing Δ r <;> simp at *
 any_goals apply wf
-case _ Γ T t A j1 j2 ih1 ih2 =>
-  replace ih2 := ih2 r wf h
-  have lem : ⊢ (Frame.datatype ([r.to]T) :: Δ) := by
-    constructor; apply ih2; apply wf
-  replace ih1 := @ih1 (Frame.datatype ([r.to]T) :: Δ) r.lift lem (rename_lift r (Frame.datatype T) h)
-  rw [Subst.lift_lemma] at ih1; simp at ih1
-  constructor; apply ih2; apply ih1
-case _ Γ T t A j1 j2 j3 ih1 ih2 =>
-  replace ih2 := ih2 r wf h
-  have lem1 : ValidCtor Δ ([r.to]T) := by
-    apply valid_ctor_subst _ _ j2
-    case _ =>
-      intro n y h1; unfold Ren.to at h1; simp at h1; subst h1
-      apply h n
-    case _ => intro n h1; unfold Ren.to; simp
-  have lem2 : ⊢ (Frame.ctor ([r.to]T) :: Δ) := by
-    constructor; apply ih2; apply wf; apply lem1
-  replace ih1 := @ih1 (Frame.ctor ([r.to]T) :: Δ) r.lift lem2 (rename_lift r (Frame.ctor T) h)
-  rw [Subst.lift_lemma] at ih1; simp at ih1
-  constructor; apply ih2; apply lem1; apply ih1
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+case _ Γ T t A j1 j2 ih1 ih2 => sorry
+  -- replace ih2 := ih2 r wf h
+  -- have lem : ⊢ (Frame.datatype ([r.to]T) :: Δ) := by
+  --   constructor; apply ih2; apply wf
+  -- replace ih1 := @ih1 (Frame.datatype ([r.to]T) :: Δ) r.lift lem (rename_lift r (Frame.datatype T) h)
+  -- rw [Subst.lift_lemma] at ih1; simp at ih1
+  -- constructor; apply ih2; apply ih1
 case _ => sorry
 case _ Γ x T j1 j2 ih =>
   unfold Ren.to; simp; constructor; apply wf
   rw [<-h x]; simp; rw [<-j2]; simp; unfold Ren.to; simp
 case _ => constructor <;> simp [*]
-case _ A B K j1 j2 j3 ih1 ih2 ih3 =>
-  replace ih2 := ih2 r wf h
-  replace ih3 := ih3 r wf h
-  have lem : ⊢ (Frame.kind ([r.to]A) :: Δ) := by sorry
-  replace ih1 := @ih1 (Frame.kind ([r.to]A) :: Δ) r.lift lem (rename_lift r (Frame.kind A) h)
-  rw [Subst.lift_lemma] at ih1; simp at ih1
-  constructor; apply ih2; apply ih1
+case _ =>
+  -- replace ih2 := ih2 r wf h
+  -- replace ih3 := ih3 r wf h
+  -- have lem : ⊢ (Frame.kind ([r.to]A) :: Δ) := by sorry
+  -- replace ih1 := @ih1 (Frame.kind ([r.to]A) :: Δ) r.lift lem (rename_lift r (Frame.kind A) h)
+  -- rw [Subst.lift_lemma] at ih1; simp at ih1
+  -- constructor; apply ih2; apply ih1
   sorry
 case _ => sorry
 case _ => sorry
-case _ => constructor <;> simp [*]
+case _ => sorry
 case _ j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
   constructor; apply ih1 r wf h; apply ih2 r wf h
   apply ih5 r wf h; apply ih3 r wf h
@@ -109,10 +91,10 @@ case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
-case _ => constructor <;> simp [*]
-case _ => constructor <;> simp [*]
 case _ => sorry
-case _ => constructor <;> simp [*]
+case _ => sorry
+case _ => sorry
+case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
@@ -184,11 +166,12 @@ case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_insttype :
   Γ ⊢ T : ★ ->
+  ValidInstType Γ T ->
   Γ ⊢ t : A ->
-  (.openm T::Γ) ⊢ ([S]t) : ([S]A)
+  (.insttype T::Γ) ⊢ ([S]t) : ([S]A)
 := by
-intro j1 j2; apply rename _ j2
-case _ => constructor; apply j1; apply judgment_ctx_wf j1
+intro j1 j2 j3; apply rename _ j3
+case _ => constructor; apply j1; apply judgment_ctx_wf j1; apply j2
 case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_inst :

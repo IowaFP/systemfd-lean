@@ -16,6 +16,17 @@ inductive ValidCtor : Ctx Term -> Term -> Prop where
   ValidCtor (.kind A::Γ) B ->
   ValidCtor Γ (∀[A] B)
 
+inductive ValidInstType : Ctx Term -> Term -> Prop where
+| refl :
+  ValidHeadVariable R Γ.is_opent ->
+  ValidInstType Γ R
+| arrow :
+  ValidInstType (.type A::Γ) B ->
+  ValidInstType Γ (A -t> B)
+| all :
+  ValidInstType (.kind A::Γ) B ->
+  ValidInstType Γ (∀[A] B)
+
 inductive StableTypeMatch : Ctx Term -> Term -> Term -> Prop where
 | refl :
   ValidHeadVariable R Γ.is_stable ->
@@ -82,6 +93,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | wfinsttype :
   Judgment .prf Γ (A, ★) ->
   Judgment .wf Γ () ->
+  ValidInstType Γ A ->
   Judgment .wf (.insttype A::Γ) ()
 | wfinst :
   .openm T = Γ d@ x ->
@@ -96,37 +108,12 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 ---- Declarations
 --------------------------------------------------------------------------------------
-| letdata :
-  Judgment .prf Γ (T, .kind) ->
-  Judgment .prf (.datatype T::Γ) (t, A) ->
-  Judgment .prf Γ (.letdata T t, .decl A)
-| letctor :
-  Judgment .prf Γ (T, ★) ->
-  ValidCtor Γ T ->
-  Judgment .prf (.ctor T::Γ) (t, A) ->
-  Judgment .prf Γ (letctor! T t, .decl A)
-| letopentype :
-  Judgment .prf Γ (T, .kind) ->
-  Judgment .prf (.opent T::Γ) (t, A) ->
-  Judgment .prf Γ (letopentype! T t, .decl A)
-| letopen :
-  Judgment .prf Γ (T, ★) ->
-  Judgment .prf (.openm T::Γ) (t, A) ->
-  Judgment .prf Γ (letopen! T t, .decl A)
-| insttype :
-  Judgment .prf Γ (T, ★) ->
-  Judgment .prf (.insttype T::Γ) (t, A) ->
-  Judgment .prf Γ (insttype! T t, .decl A)
-| inst :
-  .openm T = Γ d@ x ->
-  Judgment .prf Γ (t1, T) ->
-  Judgment .prf (.inst x t1::Γ) (t2, A) ->
-  Judgment .prf Γ (.inst x t1 t2, .decl A)
 | letterm :
   Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (t, A) ->
-  Judgment .prf (.term A t::Γ) (b, T) ->
-  Judgment .prf Γ (.letterm A t b, .decl T)
+  Judgment .prf (.term A t::Γ) (b, [S]T) ->
+  Judgment .prf Γ (T, ★) ->
+  Judgment .prf Γ (.letterm A t b, T)
 --------------------------------------------------------------------------------------
 ---- Kind/Type Constructor Judgments
 --------------------------------------------------------------------------------------
@@ -143,20 +130,20 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (A -k> B, .kind)
 | allt :
   Judgment .prf Γ (A, .kind) ->
-  Judgment .prf (.kind A::Γ) (B, K) ->
-  Judgment .prf Γ (K, .kind) ->
-  Judgment .prf Γ (∀[A] B, K)
+  Judgment .prf (.kind A::Γ) (B, ★) ->
+  Judgment .prf Γ (∀[A] B, ★)
 | arrow :
   Judgment .prf Γ (A, ★) ->
-  Judgment .prf (.type A::Γ) (B, ★) ->
+  Judgment .prf (.empty::Γ) (B, ★) ->
   Judgment .prf Γ (A -t> B, ★)
 | appk :
   Judgment .prf Γ (f, A -k> B) ->
   Judgment .prf Γ (a, A) ->
   Judgment .prf Γ (f `@k a, B)
 | eq :
-  Judgment .prf Γ (A, ★) ->
-  Judgment .prf Γ (B, ★) ->
+  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (A, K) ->
+  Judgment .prf Γ (B, K) ->
   Judgment .prf Γ (A ~ B, ★)
 --------------------------------------------------------------------------------------
 ---- Datatype case expressions
@@ -193,6 +180,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | lam :
   Judgment .prf Γ (A, ★) ->
   Judgment .prf (.type A::Γ) (t, B) ->
+  Judgment .prf Γ (A -t> B, ★) ->
   Judgment .prf Γ (`λ[A] t, A -t> B)
 | app :
   Judgment .prf Γ (f, A -t> B) ->
@@ -202,6 +190,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | lamt :
   Judgment .prf Γ (A, .kind) ->
   Judgment .prf (.kind A::Γ) (t, B) ->
+  Judgment .prf Γ (∀[A] B, ★) ->
   Judgment .prf Γ (Λ[A] t, ∀[A] B)
 | appt :
   Judgment .prf Γ (f, ∀[A] B) ->
@@ -216,39 +205,56 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 ---- Coercions
 --------------------------------------------------------------------------------------
 | refl :
-  Judgment .prf Γ (A, ★) ->
+  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (refl! A, A ~ A)
 | sym :
   Judgment .prf Γ (t, A ~ B) ->
   Judgment .prf Γ (sym! t, B ~ A)
 | seq :
+  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (A, K) ->
+  Judgment .prf Γ (B, K) ->
+  Judgment .prf Γ (C, K) ->
   Judgment .prf Γ (t1, A ~ B) ->
   Judgment .prf Γ (t2, B ~ C) ->
   Judgment .prf Γ (t1 `; t2, A ~ C)
 | appc :
+  Judgment .prf Γ (A, K1 -k> K2) ->
+  Judgment .prf Γ (B, K1 -k> K2) ->
   Judgment .prf Γ (t1, A ~ B) ->
+  Judgment .prf Γ (C, K1) ->
+  Judgment .prf Γ (D, K1) ->
   Judgment .prf Γ (t2, C ~ D) ->
   Judgment .prf Γ (t1 `@c t2, (A `@k C) ~ (B `@k D))
 | arrowc :
+  Judgment .prf Γ (A, ★) ->
+  Judgment .prf Γ (B, ★) ->
   Judgment .prf Γ (t1, A ~ B) ->
+  Judgment .prf (.empty::Γ) (C, ★) ->
+  Judgment .prf (.empty::Γ) (D, ★) ->
   Judgment .prf (.empty::Γ) (t2, C ~ D) ->
-  -- Could do the below instead of .empty :: Γ
-  -- But like ∀c it makes sense to treat -c> as a binder
-  -- even if its not binding anything
-  -- C = [S]C' ->
-  -- D = [S]D' ->
   Judgment .prf Γ (t1 -c> t2, (A -t> C) ~ (B -t> D))
 | fst :
+  Judgment .prf Γ (A, K1 -k> K2) ->
+  Judgment .prf Γ (B, K1 -k> K2) ->
   Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
   Judgment .prf Γ (t.!1, A ~ B)
 | snd :
+  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (C, K) ->
+  Judgment .prf Γ (D, K) ->
   Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
   Judgment .prf Γ (t.!2, C ~ D)
 | allc :
+  Judgment .prf Γ (∀[K] A, ★) ->
+  Judgment .prf Γ (∀[K] B, ★) ->
   Judgment .prf (.kind K :: Γ) (t, A ~ B) ->
   Judgment .prf Γ (∀c[K] t, (∀[K] A) ~ (∀[K] B))
 | apptc :
   Judgment .prf Γ (t1, (∀[K] A) ~ (∀[K] B)) ->
+  Judgment .prf Γ (C, K) ->
+  Judgment .prf Γ (D, K) ->
   Judgment .prf Γ (t2, C ~ D) ->
   Judgment .prf Γ (t1 `@c[ t2 ], (A β[C]) ~ (B β[D]))
 
@@ -267,7 +273,6 @@ case _ j _ _ ih => constructor; apply j; apply ih
 case _ j _ h _ ih => constructor; apply j; apply ih; apply h
 case _ j _ _ ih => constructor; apply j; apply ih
 case _ j _ _ ih => constructor; apply j; apply ih
-case _ j _ _ ih => constructor; apply j; apply ih
+case _ j1 _ j2 _ ih => constructor; apply j1; apply ih; apply j2
 case _ j1 j2 _ _ ih => constructor; apply j1; apply j2; apply ih
 case _ j1 j2 _ _ _ ih =>  constructor; apply j1; apply j2; apply ih
-case _ ih => cases ih; case _ ih _ => apply ih

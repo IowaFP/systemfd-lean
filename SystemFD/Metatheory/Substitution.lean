@@ -43,13 +43,14 @@ abbrev idx_subst (σ : Subst Term) : JudgmentArgs v -> JudgmentArgs v :=
 
 theorem subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
-  (∀ n t, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢ t : ([σ]T)) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢ t : ([σ]T)) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
   Judgment v Γ idx ->
   ⊢ Δ ->
   Judgment v Δ (idx_subst σ idx)
 := by
-intro h1 h2 j wf
-induction j generalizing Δ σ <;> simp at *
+intro h1 h2 h3 j wf
+induction j generalizing Δ σ
 case _ => sorry
 case _ => sorry
 case _ => sorry
@@ -71,16 +72,6 @@ case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ Γ p A τ sR R s t B τ' sT ξ sT' T K j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 j11 ih1 ih2 ih3 ih4 ih5 =>
-  apply @Judgment.guard Δ ([σ]p) ([σ]A) (τ.apply σ) ([σ]sR) ([σ]R) ([σ]s) ([σ]t) ([σ]B)
-    (τ'.apply σ) ([σ]sT) ξ ([σ]sT') ([σ]T) K
-  apply ih1 h1 h2 wf
-  sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
@@ -96,9 +87,128 @@ case _ => sorry
 case _ => sorry
 case _ => sorry
 
+theorem beta_empty t :
+  (.empty::Γ) ⊢ b : B ->
+  Γ ⊢ (b β[t]) : (B β[t])
+:= by
+intro j
+have lem : ⊢ Γ := by
+  have lem := judgment_ctx_wf j
+  cases lem; simp [*]
+apply @subst (.su t :: I) (.empty::Γ) Γ _ _ _ _ _ j
+apply lem
+case _ =>
+  intro n y h1
+  cases n <;> simp at *; subst h1
+  case _ n =>
+    rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1
 
-theorem beta :
+theorem beta_type :
   (.type A::Γ) ⊢ b : B ->
   Γ ⊢ t : A ->
   Γ ⊢ (b β[t]) : (B β[t])
 := by
+intro j1 j2
+apply @subst (.su t :: I) (.type A::Γ) Γ _ _ _ _ _ j1
+apply judgment_ctx_wf j2
+case _ =>
+  intro n y h1
+  cases n <;> simp at *; subst h1
+  case _ n =>
+    rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2 with e; subst e; simp
+  apply j2
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1
+
+theorem beta_kind :
+  (.kind A::Γ) ⊢ b : B ->
+  Γ ⊢ t : A ->
+  Γ ⊢ (b β[t]) : (B β[t])
+:= by
+intro j1 j2
+apply @subst (.su t :: I) (.kind A::Γ) Γ _ _ _ _ _ j1
+apply judgment_ctx_wf j2
+case _ =>
+  intro n y h1
+  cases n <;> simp at *; subst h1
+  case _ n =>
+    rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2 with e; subst e; simp
+  apply j2
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1
+
+theorem beta_term :
+  (.term A t::Γ) ⊢ b : B ->
+  Γ ⊢ t : A ->
+  Γ ⊢ (b β[t]) : (B β[t])
+:= by
+intro j1 j2
+apply @subst (.su t :: I) (.term A t::Γ) Γ _ _ _ _ _ j1
+apply judgment_ctx_wf j2
+case _ =>
+  intro n y h1
+  cases n <;> simp at *; subst h1
+  case _ n =>
+    rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2 with e; subst e; simp
+  apply j2
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1
+
+theorem beta_openm :
+  (.openm A::Γ) ⊢ b : B ->
+  Γ ⊢ t : A ->
+  Γ ⊢ (b β[t]) : (B β[t])
+:= by
+intro j1 j2
+apply @subst (.su t :: I) (.openm A::Γ) Γ _ _ _ _ _ j1
+apply judgment_ctx_wf j2
+case _ =>
+  intro n y h1
+  cases n <;> simp at *; subst h1
+  case _ n =>
+    rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2 with e; subst e; simp
+  apply j2
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1

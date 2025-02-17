@@ -25,10 +25,6 @@ inductive Bind2Variant : Type where
 | arrow
 | allc
 | arrowc
-| letopentype  -- open type
-| letopen      -- open method/superclass functions/fundeps
-| letctor      -- constructor
-| insttype     -- open type instance
 deriving Repr
 
 inductive Term : Type where
@@ -47,14 +43,7 @@ inductive Term : Type where
         -> Term -- scrutinee
         -> Term -- continuation
         -> Term
-| letdata : Term -> Term -> Term
 | letterm : Term -> Term -> Term -> Term
-| decl : Term -> Term
-| inst : Nat  -- Index of open method
-       -> Term -- open method inst definition
-       -> Term  -- continuation
-       -> Term
--- deriving Repr
 
 protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   match a with
@@ -83,10 +72,6 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .bind2 .allc t1 t2 => "∀c" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .lamt t1 t2 => "Λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .lam t1 t2 => "`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p
-  | .bind2 .letopentype t1 t2 => "open " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
-  | .bind2 .letopen t1 t2 => "openm! " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
-  | .bind2 .letctor t1 t2 => "ctor! " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
-  | .bind2 .insttype t1 t2 => "insttype! " ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++  Term.repr t2 p
 
   | .ite pat s b c =>
          " match " ++ Term.repr s p ++ " with " ++
@@ -95,13 +80,8 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .guard pat s c =>
            Std.Format.nest 2 <| "If " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ", " ++ Std.Format.line
            ++ Term.repr c p
-
-  | .letdata t1 t2 => "data!" ++ Term.repr t1 p ++ " ;; " ++ Std.Format.line ++ Term.repr t2 p
   | .letterm t t1 t2 => "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
                      ++ Term.repr t2 p
-  | .decl t => "decl" ++ Term.repr t p
-  | .inst n d c => Std.Format.nest 2 <| "instance " ++ Nat.repr n ++ " " ++ Term.repr d p ++ " ;; "  ++ Std.Format.line
-                ++ Term.repr c p
 
 
 instance : Repr Term where
@@ -130,11 +110,6 @@ prefix:max "sym! " => Term.ctor1 Ctor1Variant.sym
 postfix:max ".!1" => Term.ctor1 Ctor1Variant.fst
 postfix:max ".!2" => Term.ctor1 Ctor1Variant.snd
 
-prefix:max "letopentype!" => Term.bind2 Bind2Variant.letopentype
-prefix:max "letopen!" => Term.bind2 Bind2Variant.letopen
-prefix:max "letctor!" => Term.bind2 Bind2Variant.letctor
-prefix:max "insttype!" => Term.bind2 Bind2Variant.insttype
-
 namespace Term
   @[simp]
   def size : Term -> Nat
@@ -146,8 +121,5 @@ namespace Term
   | bind2 _ t1 t2 => (size t1) + (size t2) + 1
   | ite t1 t2 t3 t4 => (size t1) + (size t2) + (size t3) + (size t4) + 1
   | guard t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
-  | letdata t1 t2 => (size t1) + (size t2) + 1
   | letterm t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
-  | inst _ t1 t2 => (size t1) + (size t2) + 1
-  | decl t => size t + 1
 end Term

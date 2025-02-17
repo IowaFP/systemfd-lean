@@ -18,8 +18,5 @@ namespace Term
   | bind2 _ t1 t2 => vars t1 ++ vars t2
   | ite t1 t2 t3 t4 => vars t1 ++ vars t2 ++ vars t3 ++ vars t4
   | guard t1 t2 t3 => vars t1 ++ vars t2 ++ vars t3
-  | letdata t1 t2 => vars t1 ++ vars t2
   | letterm t1 t2 t3 => vars t1 ++ vars t2 ++ vars t3
-  | inst _ t1 t2 => vars t1 ++ vars t2
-  | decl t => vars t
 end Term

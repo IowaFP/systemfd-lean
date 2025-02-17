@@ -29,6 +29,11 @@ namespace Frame
   | term ty t, σ => term ([σ]ty) ([σ]t)
 
   omit [Repr T] [Inhabited T] in
+  @[simp]
+  theorem apply_I {A : Frame T} : A.apply I = A := by
+  unfold Frame.apply; cases A <;> simp
+
+  omit [Repr T] [Inhabited T] in
   theorem apply_compose {A : Frame T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by
   unfold apply; cases A <;> simp
 
@@ -57,6 +62,7 @@ namespace Frame
   | .kind _ => false
   | .openm _ => false
   | .term _ _ => false
+  | .empty => false
   | _ => true
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
@@ -168,6 +174,12 @@ namespace Ctx
   def apply : Ctx T -> Subst T -> Ctx T
   | [], _ => []
   | .cons hd tl, σ => .cons (hd.apply σ) (apply tl σ)
+
+  omit [Repr T] [Inhabited T] in
+  @[simp]
+  theorem apply_I {A : Ctx T} : A.apply I = A := by
+  unfold Ctx.apply; induction A <;> simp
+  case _ ih => unfold Ctx.apply; rw [ih]
 
   omit [Repr T] [Inhabited T] in
   theorem apply_compose {A : Ctx T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by

@@ -135,34 +135,6 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   Red Γ s tl ->
   tl' = List.map (λ x => .guard p x b) tl ->
   Red Γ (.guard p s b) tl'
-| letopentype_congr :
-  Red (.opent A :: Γ) b tl ->
-  tl' = List.map (λ x => letopentype! A x) tl ->
-  Red Γ (letopentype! A b) tl'
-| letterm_congr :
-  Red (.term A t :: Γ) b tl ->
-  tl' = List.map (λ x => .letterm A t x) tl ->
-  Red Γ (.letterm A t b) tl'
-| letopen_congr :
-  Red (.openm A :: Γ) b tl ->
-  tl' = List.map (λ x => letopen! A x) tl ->
-  Red Γ (letopen! A b) tl'
-| letdata_congr :
-  Red (.datatype A :: Γ) b tl ->
-  tl' = List.map (λ x => .letdata A x) tl ->
-  Red Γ (.letdata A b) tl'
-| letctor_congr :
-  Red (.ctor A :: Γ) b tl ->
-  tl' = List.map (λ x => letctor! A x) tl ->
-  Red Γ (letctor! A b) tl'
-| insttype_congr :
-  Red (.insttype A :: Γ) b tl ->
-  tl' = List.map (λ x => insttype! A x) tl ->
-  Red Γ (insttype! A b) tl'
-| inst_congr :
-  Red (.inst x A :: Γ) b tl ->
-  tl' = List.map (λ x => .inst i A x) tl ->
-  Red Γ (.inst i A b) tl'
 
 inductive ListRed : Ctx Term -> List Term -> List Term -> Prop where
 | head : Red Γ h htl -> ListRed Γ (h::tl) (htl ++ tl)

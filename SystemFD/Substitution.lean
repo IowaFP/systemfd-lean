@@ -283,6 +283,12 @@ section
       cases v <;> simp at *
       case _ w => rw [<-h2]; apply Rs S h1
 
+  @[simp]
+  theorem P_after_S {t : T} : [P ⊙ S]t = t := by
+  unfold P; unfold S; unfold Subst.compose; simp
+  have lem : @I T = fun x => .re x := by unfold I; simp
+  rw [<-lem]; simp
+
 end
 
   macro "solve_compose" Ty:term "," apply_stable:term "," s:term "," σ:term "," τ:term : tactic => `(tactic| {
