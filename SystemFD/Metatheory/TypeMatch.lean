@@ -61,20 +61,69 @@ case _ z =>
     subst e1; subst e2; simp
     rw [h1]; simp
 
+theorem valid_head_variable_subst test σtest :
+  (∀ n, test n -> ∃ y, σ n = .re y ∧ σtest y) ->
+  ValidHeadVariable A test ->
+  ValidHeadVariable ([σ]A) σtest
+:= by
+intro q h; unfold ValidHeadVariable at *; simp at *
+cases h; case _ x h =>
+cases h; case _ h1 h2 =>
+cases h1; case _ sp h1 =>
+  have lem1 := q x h2
+  cases lem1; case _ y lem1 =>
+  cases lem1; case _ lem1 lem2 =>
+    replace h1 := neutral_form_subst σ lem1 (Eq.symm h1); simp at h1
+    exists y; rw [lem2]; simp
+    rw [h1]; simp
+
+theorem valid_ctor_subst :
+  (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
+  ValidCtor Γ A ->
+  ValidCtor Δ ([σ]A)
+:= by
+intro h1 h2 j
+induction j generalizing Δ σ
+case _ R Γ j =>
+  constructor; apply valid_head_variable_subst Γ.is_datatype Δ.is_datatype _ j
+  intro n h3
+  have lem1 := Frame.is_datatype_implies_is_stable h3
+  replace h2 := h2 n lem1
+  cases h2; case _ w h2 =>
+    exists w; rw [h2]; simp
+    rw [<-h1 n w h2, Frame.is_datatype_stable]
+    simp at h3; apply h3
+case _ Γ A B j ih =>
+  simp; apply ValidCtor.arrow
+  replace ih := @ih (^σ)
+    (((Frame.type A).apply σ) :: Δ)
+    (lift_subst_rename (Frame.type A) h1)
+    (lift_subst_stable (Frame.type A) h2)
+  simp at ih; apply ih
+case _ Γ A B j ih =>
+  simp; apply ValidCtor.all
+  replace ih := @ih (^σ)
+    (((Frame.kind A).apply σ) :: Δ)
+    (lift_subst_rename (Frame.kind A) h1)
+    (lift_subst_stable (Frame.kind A) h2)
+  simp at ih; apply ih
+
 theorem stable_type_match_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
-  (∀ n, (Γ d@ n).is_stable -> ∃ y, σ n = .re y) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
   StableTypeMatch Γ A B ->
   StableTypeMatch Δ ([σ]A) ([σ]B)
 := by
 intro h1 h2 j
 induction j generalizing Δ σ
-case _ sp Γ x R j1 j2 =>
-  replace h2 := h2 x j2
-  cases h2; case _ y h2 =>
-    replace j1 := neutral_form_subst σ h2 (Eq.symm j1); simp at j1
-    constructor; rw [j1]; rw [<-h1 x y h2, Frame.is_stable_stable]
-    apply j2
+case _ R Γ j =>
+  constructor; apply valid_head_variable_subst Γ.is_stable Δ.is_stable _ j
+  intro n h3; replace h2 := h2 n h3
+  cases h2; case _ w h2 =>
+    exists w; rw [h2]; simp
+    rw [<-h1 n w h2, Frame.is_stable_stable]
+    simp at h3; apply h3
 case _ Γ A B R j ih =>
   simp; constructor; simp
   replace ih := @ih (^σ)
@@ -92,18 +141,19 @@ case _ Γ A B R j ih =>
 
 theorem prefix_type_match_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
-  (∀ n, (Γ d@ n).is_stable -> ∃ y, σ n = .re y) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
   PrefixTypeMatch Γ A B T ->
   PrefixTypeMatch Δ ([σ]A) ([σ]B) ([σ]T)
 := by
 intro h1 h2 j
 induction j generalizing Δ σ
-case _ sp Γ x B T j1 j2 =>
-  replace h2 := h2 x j2
-  cases h2; case _ y h2 =>
-    replace j1 := neutral_form_subst σ h2 (Eq.symm j1); simp at j1
-    constructor; rw [j1]; rw [<-h1 x y h2, Frame.is_stable_stable]
-    apply j2
+case _ Γ B j =>
+  constructor; apply valid_head_variable_subst Γ.is_stable Δ.is_stable _ j
+  intro n h3; replace h2 := h2 n h3
+  cases h2; case _ w h2 =>
+    exists w; rw [h2]; simp
+    rw [<-h1 n w h2, Frame.is_stable_stable]
+    simp at h3; apply h3
 case _ Γ A B V T j ih =>
   simp; constructor; simp
   replace ih := @ih (^σ)

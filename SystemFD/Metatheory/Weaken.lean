@@ -1,6 +1,7 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Metatheory.TypeMatch
 
 theorem rename_lift r (A : Frame Term) :
   (∀ x, (Γ d@ x).apply r.to = Δ d@ (r x)) ->
@@ -14,7 +15,6 @@ case _ =>
 case _ x =>
   rw [Subst.lift_lemma, <-h x]; simp
   rw [Frame.apply_compose, Frame.apply_compose]; simp
-
 
 @[simp]
 abbrev idx_ren (r : Ren) : JudgmentArgs v -> JudgmentArgs v :=
@@ -38,35 +38,81 @@ case _ Γ T t A j1 j2 ih1 ih2 =>
   replace ih1 := @ih1 (Frame.datatype ([r.to]T) :: Δ) r.lift lem (rename_lift r (Frame.datatype T) h)
   rw [Subst.lift_lemma] at ih1; simp at ih1
   constructor; apply ih2; apply ih1
+case _ Γ T t A j1 j2 j3 ih1 ih2 =>
+  replace ih2 := ih2 r wf h
+  have lem1 : ValidCtor Δ ([r.to]T) := by
+    apply valid_ctor_subst _ _ j2
+    case _ =>
+      intro n y h1; unfold Ren.to at h1; simp at h1; subst h1
+      apply h n
+    case _ => intro n h1; unfold Ren.to; simp
+  have lem2 : ⊢ (Frame.ctor ([r.to]T) :: Δ) := by
+    constructor; apply ih2; apply wf; apply lem1
+  replace ih1 := @ih1 (Frame.ctor ([r.to]T) :: Δ) r.lift lem2 (rename_lift r (Frame.ctor T) h)
+  rw [Subst.lift_lemma] at ih1; simp at ih1
+  constructor; apply ih2; apply lem1; apply ih1
 case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ Γ p A τ sR R s t B τ' sT ξ sT' T K j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 j11 ih1 ih2 ih3 ih4 ih5 =>
+case _ Γ x T j1 j2 ih =>
+  unfold Ren.to; simp; constructor; apply wf
+  rw [<-h x]; simp; rw [<-j2]; simp; unfold Ren.to; simp
+case _ => constructor <;> simp [*]
+case _ A B K j1 j2 j3 ih1 ih2 ih3 =>
+  replace ih2 := ih2 r wf h
+  replace ih3 := ih3 r wf h
+  have lem : ⊢ (Frame.kind ([r.to]A) :: Δ) := by sorry
+  replace ih1 := @ih1 (Frame.kind ([r.to]A) :: Δ) r.lift lem (rename_lift r (Frame.kind A) h)
+  rw [Subst.lift_lemma] at ih1; simp at ih1
+  constructor; apply ih2; apply ih1
   sorry
-  -- apply @Judgment.guard Δ ([r.to]p) ([r.to]A) τ ([r.to]sR) ([r.to]R) ([r.to]s) ([r.to]t)
-  --   ([r.to]B) τ' ([r.to]sT) ξ ([r.to]sT') ([r.to]T) K
-  -- apply ih1 r wf h
-  -- sorry
+case _ => sorry
+case _ => sorry
+case _ => constructor <;> simp [*]
+case _ j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
+  constructor; apply ih1 r wf h; apply ih2 r wf h
+  apply ih5 r wf h; apply ih3 r wf h
+  apply valid_head_variable_subst _ _ _ j5
+  intro n h1; unfold Ren.to; simp at h1; simp; rw [<-h n]
+  rw [Frame.is_ctor_stable]; apply h1
+  apply valid_head_variable_subst _ _ _ j6
+  intro n h1; unfold Ren.to; simp at h1; simp; rw [<-h n]
+  rw [Frame.is_datatype_stable]; apply h1
+  apply stable_type_match_subst _ _ j7
+  intro n y h1; unfold Ren.to at h1; simp at h1; rw [<-h1]; apply h n
+  intro n h1; unfold Ren.to; simp
+  apply prefix_type_match_subst _ _ j8
+  intro n y h1; unfold Ren.to at h1; simp at h1; rw [<-h1]; apply h n
+  intro n h1; unfold Ren.to; simp
+  apply ih6 r wf h; apply ih4 r wf h
+case _ j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
+  constructor; apply ih1 r wf h; apply ih2 r wf h
+  apply ih4 r wf h; apply ih3 r wf h
+  apply valid_head_variable_subst _ _ _ j5
+  intro n h1; unfold Ren.to; simp at h1; simp; rw [<-h n]
+  rw [Frame.is_insttype_stable]; apply h1
+  apply valid_head_variable_subst _ _ _ j6
+  intro n h1; unfold Ren.to; simp at h1; simp; rw [<-h n]
+  rw [Frame.is_opent_stable]; apply h1
+  apply stable_type_match_subst _ _ j7
+  intro n y h1; unfold Ren.to at h1; simp at h1; rw [<-h1]; apply h n
+  intro n h1; unfold Ren.to; simp
+  apply prefix_type_match_subst _ _ j8
+  intro n y h1; unfold Ren.to at h1; simp at h1; rw [<-h1]; apply h n
+  intro n h1; unfold Ren.to; simp
+  apply ih5 r wf h
 case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
+case _ => constructor <;> simp [*]
+case _ => constructor <;> simp [*]
 case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+case _ => constructor <;> simp [*]
 case _ => sorry
 case _ => sorry
 case _ => sorry
@@ -82,7 +128,7 @@ case _ => constructor; apply judgment_ctx_wf j
 case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_type :
-  Γ ⊢ T : .const K ->
+  Γ ⊢ T : ★ ->
   Γ ⊢ t : A ->
   (.type T::Γ) ⊢ ([S]t) : ([S]A)
 := by
@@ -110,7 +156,7 @@ case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_ctor :
   Γ ⊢ T : ★ ->
-  valid_ctor Γ ->
+  ValidCtor Γ T ->
   Γ ⊢ t : A ->
   (.ctor T::Γ) ⊢ ([S]t) : ([S]A)
 := by
@@ -128,7 +174,7 @@ case _ => constructor; apply j1; apply judgment_ctx_wf j1
 case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_openm :
-  Γ ⊢ T : .const K ->
+  Γ ⊢ T : ★ ->
   Γ ⊢ t : A ->
   (.openm T::Γ) ⊢ ([S]t) : ([S]A)
 := by
@@ -137,7 +183,7 @@ case _ => constructor; apply j1; apply judgment_ctx_wf j1
 case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_insttype :
-  Γ ⊢ T : .const K ->
+  Γ ⊢ T : ★ ->
   Γ ⊢ t : A ->
   (.openm T::Γ) ⊢ ([S]t) : ([S]A)
 := by
@@ -156,7 +202,7 @@ case _ => constructor; apply j1; apply j2; apply judgment_ctx_wf j2
 case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_term :
-  Γ ⊢ T : .const K ->
+  Γ ⊢ T : ★ ->
   Γ ⊢ b : T ->
   Γ ⊢ t : A ->
   (.term T b::Γ) ⊢ ([S]t) : ([S]A)

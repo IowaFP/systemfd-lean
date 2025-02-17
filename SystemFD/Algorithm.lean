@@ -114,6 +114,15 @@ def infer_kind : Ctx Term -> Term -> Option Term
   .some ★
 | _, _ => .none
 
+def valid_ctor (Γ : Ctx Term) (A : Term) : Option Unit := do
+  let (τ, sA) := Term.to_telescope A
+  let B := [P' τ.length]sA
+  let (x, _) <- B.neutral_form
+  if [S' τ.length]B == sA
+    && Γ.is_datatype x
+  then .some ()
+  else .none
+
 def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
   let (τ, sR) := Term.to_telescope A
   let (x, _) <- Term.neutral_form R
@@ -145,7 +154,8 @@ def infer_type : Ctx Term -> Term -> Option Term
   let Tk <- infer_kind Γ T
   let _ <- is_type Tk
   let A <- infer_type (.ctor T::Γ) t
-  if valid_ctor Γ then .some (.decl A) else .none
+  let _ <- valid_ctor Γ T
+  .some (.decl A)
 | Γ, .bind2 .letopentype T t => do
   let _ <- wf_kind T
   let A <- infer_type (.opent T::Γ) t
@@ -187,7 +197,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let Tk <- infer_kind Γ T
   let _ <- is_type Tk
   let T' <- infer_type Γ e
-  if T == T' && is_datatype Γ ctorid dataid
+  if T == T'
   then .some T
   else .none
 | Γ, .guard p s t => do
@@ -295,7 +305,8 @@ def wf_ctx : Ctx Term -> Option Unit
 | .cons (.ctor A) Γ => do
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
-  if valid_ctor Γ then wf_ctx Γ else .none
+  let _ <- valid_ctor Γ A
+  wf_ctx Γ
 | .cons (.opent A) Γ => do
   let _ <- wf_kind A
   wf_ctx Γ

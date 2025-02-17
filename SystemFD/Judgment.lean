@@ -2,10 +2,23 @@ import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Ctx
 
+def ValidHeadVariable (t : Term) (test : Nat -> Bool) : Prop :=
+  ∃ x, .some x = Term.neutral_form t ∧ test x.fst
+
+inductive ValidCtor : Ctx Term -> Term -> Prop where
+| refl :
+  ValidHeadVariable R Γ.is_datatype ->
+  ValidCtor Γ R
+| arrow :
+  ValidCtor (.type A::Γ) B ->
+  ValidCtor Γ (A -t> B)
+| all :
+  ValidCtor (.kind A::Γ) B ->
+  ValidCtor Γ (∀[A] B)
+
 inductive StableTypeMatch : Ctx Term -> Term -> Term -> Prop where
 | refl :
-  .some (x, _) = R.neutral_form ->
-  (Γ d@ x).is_stable ->
+  ValidHeadVariable R Γ.is_stable ->
   StableTypeMatch Γ R R
 | arrow :
   StableTypeMatch (.type A::Γ) B ([S]R) ->
@@ -16,8 +29,7 @@ inductive StableTypeMatch : Ctx Term -> Term -> Term -> Prop where
 
 inductive PrefixTypeMatch : Ctx Term -> Term -> Term -> Term -> Prop where
 | refl :
-  .some (x, _) = B.neutral_form ->
-  (Γ d@ x).is_stable ->
+  ValidHeadVariable T Γ.is_stable ->
   PrefixTypeMatch Γ B T T
 | arrow :
   PrefixTypeMatch (.type A::Γ) B V ([S]T) ->
@@ -57,7 +69,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | wfctor :
   Judgment .prf Γ (A, ★) ->
   Judgment .wf Γ () ->
-  valid_ctor Γ ->
+  ValidCtor Γ A ->
   Judgment .wf (.ctor A::Γ) ()
 | wfopent :
   Judgment .prf Γ (A, .kind) ->
@@ -90,7 +102,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (.letdata T t, .decl A)
 | letctor :
   Judgment .prf Γ (T, ★) ->
-  valid_ctor Γ ->
+  ValidCtor Γ T ->
   Judgment .prf (.ctor T::Γ) (t, A) ->
   Judgment .prf Γ (letctor! T t, .decl A)
 | letopentype :
@@ -154,10 +166,9 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (s, R) ->
   Judgment .prf Γ (R, ★) ->
   Judgment .prf Γ (i, B) ->
+  ValidHeadVariable p Γ.is_ctor ->
+  ValidHeadVariable R Γ.is_datatype ->
   StableTypeMatch Γ A R ->
-  .some (ctorid, _) = Term.neutral_form p ->
-  .some (dataid, _) = Term.neutral_form R ->
-  is_datatype Γ ctorid dataid ->
   PrefixTypeMatch Γ A B T ->
   Judgment .prf Γ (T, ★) ->
   Judgment .prf Γ (e, T) ->
@@ -166,12 +177,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 ---- Guards
 --------------------------------------------------------------------------------------
 | guard :
---   .some openmid = Term.neutral_head s -> // Check that it's actually an open method?
   Judgment .prf Γ (p, A) ->
   Judgment .prf Γ (s, R) ->
   Judgment .prf Γ (R, ★) ->
-  StableTypeMatch Γ A R ->
   Judgment .prf Γ (t, B) ->
+  ValidHeadVariable p Γ.is_insttype ->
+  ValidHeadVariable R Γ.is_opent ->
+  StableTypeMatch Γ A R ->
   PrefixTypeMatch Γ A B T ->
   Judgment .prf Γ (T, ★) ->
   Judgment .prf Γ (.guard p s t, T)

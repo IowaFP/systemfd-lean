@@ -32,6 +32,26 @@ namespace Frame
   theorem apply_compose {A : Frame T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by
   unfold apply; cases A <;> simp
 
+  def is_ctor (f : Frame T) : Bool :=
+    match f with
+    | .ctor _ => true
+    | _ => false
+
+  def is_datatype (f : Frame T) : Bool :=
+    match f with
+    | .datatype _ => true
+    | _ => false
+
+  def is_insttype (f : Frame T) : Bool :=
+    match f with
+    | .insttype _ => true
+    | _ => false
+
+  def is_opent (f : Frame T) : Bool :=
+    match f with
+    | .opent _ => true
+    | _ => false
+
   def is_stable : Frame T -> Bool
   | .type _ => false
   | .kind _ => false
@@ -40,8 +60,44 @@ namespace Frame
   | _ => true
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_ctor_implies_is_stable : is_ctor f -> is_stable f := by
+  intro h; unfold is_ctor at h
+  split at h <;> simp at *; unfold is_stable; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_datatype_implies_is_stable : is_datatype f -> is_stable f := by
+  intro h; unfold is_datatype at h
+  split at h <;> simp at *; unfold is_stable; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_insttype_implies_is_stable : is_insttype f -> is_stable f := by
+  intro h; unfold is_insttype at h
+  split at h <;> simp at *; unfold is_stable; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_opent_implies_is_stable : is_opent f -> is_stable f := by
+  intro h; unfold is_opent at h
+  split at h <;> simp at *; unfold is_stable; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_stable_stable {f : Frame T} : is_stable (apply f σ) = is_stable f := by
   cases f <;> unfold is_stable <;> unfold apply <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_ctor_stable {f : Frame T} : is_ctor (apply f σ) = is_ctor f := by
+  cases f <;> unfold is_ctor <;> unfold apply <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_datatype_stable {f : Frame T} : is_datatype (apply f σ) = is_datatype f := by
+  cases f <;> unfold is_datatype <;> unfold apply <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_insttype_stable {f : Frame T} : is_insttype (apply f σ) = is_insttype f := by
+  cases f <;> unfold is_insttype <;> unfold apply <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_opent_stable {f : Frame T} : is_opent (apply f σ) = is_opent f := by
+  cases f <;> unfold is_opent <;> unfold apply <;> simp
 
   def get_type : Frame T -> Option T
   | empty => .none
@@ -54,6 +110,14 @@ namespace Frame
   | insttype t => .some t
   | inst _ _ => .none
   | term t _ => .some t
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  @[simp]
+  theorem get_type_apply_commute {f : Frame T}
+    : (apply f σ).get_type = Option.map ([σ]·) f.get_type
+  := by
+  unfold Frame.apply; unfold Frame.get_type
+  cases f <;> simp
 
   @[simp]
   def beq [BEq T] : Frame T -> Frame T -> Bool
@@ -129,18 +193,6 @@ instance instHAppend_List_Ctx : {T : Type} -> HAppend (List (Frame T)) (Ctx T) (
 instance instHAppend_Ctx_List : {T : Type} -> HAppend (Ctx T) (List (Frame T)) (Ctx T) where
   hAppend := List.append
 
-@[simp]
-def valid_ctor : Ctx T -> Bool
-| .cons (.ctor _) Γ => valid_ctor Γ
-| .cons (.datatype _) _ => true
-| _ => false
-
-@[simp]
-def is_datatype : Ctx T -> Nat -> Nat -> Bool
-| .cons _ t, c + 1, d + 1 => is_datatype t c d
-| .cons (.ctor _) t, 0, d + 1 => is_datatype t 0 d
-| .cons (.datatype _) _, 0, 0 => true
-| _, _, _ => false
 
 @[simp]
 def nth : Ctx T -> Nat -> Frame T
@@ -156,6 +208,19 @@ def dnth : Ctx T -> Nat -> Frame T
 
 infix:1000 "@" => nth
 infix:1000 "d@" => dnth
+
+namespace Ctx
+  @[simp]
+  def is_ctor (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_ctor
+  @[simp]
+  def is_datatype (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_datatype
+  @[simp]
+  def is_insttype (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_insttype
+  @[simp]
+  def is_opent (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_opent
+  @[simp]
+  def is_stable (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_stable
+end Ctx
 
 @[simp]
 def instance_indices : Ctx T -> Nat -> Nat -> List Nat
