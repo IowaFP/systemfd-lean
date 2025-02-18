@@ -194,11 +194,6 @@ namespace Term
   theorem id_is_insttype : Γ d@ n = .insttype m -> is_insttype Γ n = true := by
   intros h; simp_all;
 
-  theorem spine_lemma : t.neutral_form = .some (h, sp) -> t = (#h).apply_spine sp := -- by
-    -- induction t using neutral_form.induct
-    sorry
-  theorem neutral_form_app : (f `@ t).neutral_form = .none -> f.neutral_form = .none := sorry
-
 end Term
 
 instance substTypeLaws_Term : SubstitutionTypeLaws Term where
