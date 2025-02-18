@@ -244,7 +244,7 @@ case _ j ih1 ih2 _ =>
   apply And.intro; constructor
   apply judgment_ctx_wf j
   apply j
-case _ ih1 ih2 =>
+case _ a _ _ _ _ ih1 ih2 =>
   cases ih2
   case _ ih2 => cases ih2
   case _ ih2 =>
@@ -253,7 +253,7 @@ case _ ih1 ih2 =>
   cases ih3; case _ q1 q2 =>
     apply Or.inr; apply Or.inr; apply Exists.intro ★
     apply And.intro; apply ih2
-    apply beta_empty Term.kind q2
+    apply beta_empty a q2
 case _ j _ _ _ =>
   apply Or.inr; apply Exists.intro ★
   apply And.intro; constructor

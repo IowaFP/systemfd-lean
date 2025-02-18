@@ -185,7 +185,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | app :
   Judgment .prf Γ (f, A -t> B) ->
   Judgment .prf Γ (a, A) ->
-  B' = B β[.kind] ->
+  B' = B β[a] ->
   Judgment .prf Γ (f `@ a, B')
 | lamt :
   Judgment .prf Γ (A, .kind) ->

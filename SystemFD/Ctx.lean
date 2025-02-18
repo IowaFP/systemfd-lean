@@ -37,6 +37,11 @@ namespace Frame
   theorem apply_compose {A : Frame T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by
   unfold apply; cases A <;> simp
 
+  def is_openm (f : Frame T) : Bool :=
+    match f with
+    | .openm _ => true
+    | _ => false
+
   def is_ctor (f : Frame T) : Bool :=
     match f with
     | .ctor _ => true
@@ -222,6 +227,8 @@ infix:1000 "@" => nth
 infix:1000 "d@" => dnth
 
 namespace Ctx
+  @[simp]
+  def is_openm (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_openm
   @[simp]
   def is_ctor (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_ctor
   @[simp]

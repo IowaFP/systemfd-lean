@@ -71,6 +71,24 @@ namespace Term
   | t, .cons (.type, h) tl => apply_spine (t `@t h) tl
   | t, .cons (.kind, h) tl => apply_spine (t `@k h) tl
 
+  theorem apply_spine_peel_term :
+    apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `@ a)
+  := by
+  induction f, sp using apply_spine.induct <;> simp
+  all_goals (case _ ih => rw [ih])
+
+  theorem apply_spine_peel_type :
+    apply_spine f (sp ++ [(.type, a)]) = (apply_spine f sp `@t a)
+  := by
+  induction f, sp using apply_spine.induct <;> simp
+  all_goals (case _ ih => rw [ih])
+
+  theorem apply_spine_peel_kind :
+    apply_spine f (sp ++ [(.kind, a)]) = (apply_spine f sp `@k a)
+  := by
+  induction f, sp using apply_spine.induct <;> simp
+  all_goals (case _ ih => rw [ih])
+
   @[simp]
   def smap (lf : Subst.Lift Term) (f : Nat -> Subst.Action Term) : Term -> Term
   | var x =>
