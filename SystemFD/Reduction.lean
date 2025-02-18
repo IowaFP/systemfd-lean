@@ -8,6 +8,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 ----------------------------------------------------------------
 | beta : Red Γ ((`λ[A] b) `@ t) [b β[t]]
 | betat : Red Γ ((Λ[A] b) `@t t) [b β[t]]
+| letterm : Red Γ (.letterm A t t') [t' β[t]]
 | cast : Red Γ (t ▹ refl! A) [t]
 | sym : Red Γ (sym! (refl! A)) [refl! A]
 | seq : Red Γ ((refl! A) `; (refl! A)) [refl! A]
@@ -57,12 +58,6 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   tl = get_instances Γ indices -> -- weakens the instances
   tl' = List.map (λ x => x.apply_spine sp) tl ->
   Red Γ h tl'
-
-
-| letterm :
-  .some (x, sp) = Term.neutral_form h ->
-  .term _ t = Γ d@ x ->
-  Red Γ h [t.apply_spine sp]
 
 ----------------------------------------------------------------
 ---- Contextual/Congruence rules

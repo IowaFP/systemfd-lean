@@ -13,7 +13,6 @@ inductive Frame T where
 | openm : T -> Frame T
 | insttype : T -> Frame T
 | inst : Nat -> T -> Frame T
-| term : T -> T -> Frame T
 
 namespace Frame
   def apply : Frame T -> Subst T -> Frame T
@@ -26,7 +25,6 @@ namespace Frame
   | openm t, σ => openm ([σ]t)
   | insttype t, σ => insttype ([σ]t)
   | inst n t, σ => inst n ([σ]t)
-  | term ty t, σ => term ([σ]ty) ([σ]t)
 
   omit [Repr T] [Inhabited T] in
   @[simp]
@@ -61,7 +59,6 @@ namespace Frame
   | .type _ => false
   | .kind _ => false
   | .openm _ => false
-  | .term _ _ => false
   | .empty => false
   | _ => true
 
@@ -115,7 +112,6 @@ namespace Frame
   | openm t => .some t
   | insttype t => .some t
   | inst _ _ => .none
-  | term t _ => .some t
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   @[simp]
@@ -136,7 +132,6 @@ namespace Frame
   | openm x, openm y => x == y
   | insttype x, insttype y => x == y
   | inst x1 x2, inst y1 y2 => x1 == y1 && x2 == y2
-  | term x1 x2, term y1 y2 => x1 == y1 && x2 == y2
   | _, _ => false
 
   omit [Repr T] [Inhabited T] [SubstitutionType T] in
@@ -154,7 +149,6 @@ namespace Frame
     | openm t => "openm " ++ reprT.reprPrec t p
     | insttype t => "insttype " ++ reprT.reprPrec t p
     | inst x t => "inst " ++ x.repr ++ " := " ++ reprT.reprPrec t p
-    | term A t => "term " ++ reprT.reprPrec A p ++ " : " ++ reprT.reprPrec t p
 end Frame
 
 instance instRepr_Ctx [Repr T] : Repr (Frame T) where

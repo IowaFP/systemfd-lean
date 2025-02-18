@@ -2,8 +2,8 @@
 import SystemFD.Term
 import SystemFD.Ctx
 import SystemFD.Judgment
+import SystemFD.Metatheory.Classification
 import SystemFD.Reduction
-
 
 
 inductive Neutral : Ctx Term -> Term -> Prop where
@@ -28,16 +28,6 @@ inductive Neutral : Ctx Term -> Term -> Prop where
   | seq2 : Neutral  Γ η'
          -> Neutral  Γ (η `; η')
 
-  | letdata : Neutral (.datatype t' :: Γ) t -> Neutral Γ (.letdata t' t)
-  | letterm : Neutral (.term A t' :: Γ) t -> Neutral Γ (.letterm A t' t)
-  | insttype : Neutral (.inst A t' :: Γ) t -> Neutral Γ (.inst A t' t)
-  | letctor : Neutral (.ctor t' :: Γ) t -> Neutral Γ (letctor! t' t)
-  | letopen : Neutral (.openm t' :: Γ) t -> Neutral Γ (letopen! t' t)
-  | letopentype : Neutral (.opent t' :: Γ) t -> Neutral Γ (letopentype! t' t)
-  | letinsttype : Neutral (.insttype t' :: Γ) t -> Neutral Γ (insttype! t' t)
-  | letinst : Neutral (.inst n t' :: Γ) t -> Neutral Γ (.inst n t' t)
-
-
 inductive Val : Ctx Term -> Term -> Prop where
   | app : t.neutral_form = .some (n, ts)
         -> Γ.is_stable n
@@ -45,40 +35,28 @@ inductive Val : Ctx Term -> Term -> Prop where
   | lam :  Val Γ (`λ[a] b)
   | lamt : Val Γ (Λ[A] b)
   | refl : Val Γ (refl! _)
-  | letdata : Val (.datatype t' :: Γ) t -> Val Γ (.letdata t' t)
-  | letterm : Val (.term A t' :: Γ) t -> Val Γ (.letterm A t' t)
-  | insttype : Val (.inst A t' :: Γ) t -> Val Γ (.inst A t' t)
-  | letctor : Val (.ctor t' :: Γ) t -> Val Γ (letctor! t' t)
-  | letopen : Val (.openm t' :: Γ) t -> Val Γ (letopen! t' t)
-  | letopentype : Val (.opent t' :: Γ) t -> Val Γ (letopentype! t' t)
-  | letinsttype : Val (.insttype t' :: Γ) t -> Val Γ (insttype! t' t)
-  | letinst : Val (.inst n t' :: Γ) t -> Val Γ (.inst n t' t)
 
 theorem flip_eq : Γ ⊢ (A ~ B) : ★ -> Γ ⊢ (B ~ A) : ★ := by
-intros h; cases h; case _ AJ BJ => apply Judgment.eq BJ AJ
+intros h; cases h; case _ k AJ BJ => apply Judgment.eq k BJ AJ
 
 theorem var_neutral_form : (#n).neutral_form = .some (n, []) := by simp_all
 
 theorem lift_stable {Γ : Ctx Term} {n : Nat} : (Ctx.is_stable Γ n) -> ((Ctx.is_stable Γ n) = true) := by simp_all;
 
 theorem refl_is_val : Γ ⊢ η : (A ~ B) -> Val Γ η -> η = refl! A ∧ A = B := by
-intros ηJ vη;
- sorry
+intros ηJ vη; induction vη;
+case _ => simp_all; sorry
+case _ => cases ηJ
+case _ => cases ηJ
+case _ => cases ηJ; simp_all
+
 
 theorem invert_appk_val : Γ ⊢ t : (A -k> B) -> Val Γ t -> ∃ t', (.kind A :: Γ) ⊢ t' : B ∧ t = Λ[A] t' := by
 intros tJ vt; induction vt;
-case _ => sorry
-case _ => simp_all; contradiction;
-case _ => simp_all; cases tJ;
-case _ => simp_all; contradiction;
-case _ ih =>  sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+case _ => simp_all;  sorry
+case _ => cases tJ
+case _ => cases tJ
+case _ => cases tJ
 
 
 theorem unique_neutral_form : (Term.neutral_form t = .some (n, sp)) -> (Term.neutral_form t = .some (n', sp')) -> (n = n') := by
@@ -92,11 +70,6 @@ case _ => simp_all
 
 theorem openm_no_stable : Term.is_openmethod Γ n = true -> ¬ Ctx.is_stable Γ n := by
 intros om; simp_all; split at om;
-case _ => unfold Frame.is_stable; simp_all
-case _ => simp_all
-
-theorem letterm_no_stable : Term.is_letterm Γ n = true -> ¬ Ctx.is_stable Γ n := by
-intros lt; simp_all; split at lt;
 case _ => unfold Frame.is_stable; simp_all
 case _ => simp_all
 
@@ -118,28 +91,15 @@ intros tnf nstable x; cases x;
   case _ => simp_all
   case _ => simp_all
   case _ => simp_all
-  case _ om _ _ _ =>
-    have no_stable := openm_no_stable om; simp at no_stable; simp_all;
-  case _ idx =>
-    symm at idx; have lt := Term.id_is_letterm idx;
-    have no_stable := letterm_no_stable lt; simp at no_stable; simp_all;
+  case _ => simp_all
+  case _ om _ _ _ => sorry
+  case _ idx => sorry
   case _ f _ _ _ _ _ nosome =>
     simp_all; rw[Option.bind_eq_some] at tnf;
     cases tnf; case _ h =>
       simp_all; have wfst := And.left (And.right h);
       have wsnd := And.right (And.right h);
       sorry
-  case _ =>
-    simp_all; rw[Option.bind_eq_some] at tnf;
-    cases tnf; case _ h =>
-    simp_all; sorry
-  case _ => simp_all
-  case _ => simp_all
-  case _ => simp_all
-  case _ => simp_all
-  case _ => simp_all
-  case _ => simp_all
-  case _ => simp_all
   case _ => simp_all
   case _ => simp_all
   case _ => simp_all
@@ -156,6 +116,21 @@ intros tnf nstable x; cases x;
   case _ => simp_all
   case _ => simp_all
 
+theorem val_no_red : Val Γ t -> ¬ ∃ t', Red Γ t t' := by
+intros vt tred; induction vt;
+case _ =>
+  cases tred; case _ nf st w h =>
+    have no_red := stable_no_reduce nf st;
+    have reds := Exists.intro w h; simp_all;
+case _ => cases tred; case _ h =>
+  cases h;
+  case _ => simp_all
+case _ => cases tred; case _ h =>
+  cases h;
+  case _ => simp_all
+case _ => cases tred; case _ h =>
+  cases h;
+  case _ => simp_all
 
 @[simp]
 abbrev MaybeStep : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
@@ -174,96 +149,13 @@ case _ => simp_all
 case _ => simp_all
 case _ => simp_all
 case _ => simp_all
-case _ => simp_all
-case _ ih =>
-  simp_all; cases ih;
-  case _ h => apply Or.inl (Neutral.letdata h)
-  case _ T _ _ _ _ _ h =>
-    cases h;
-    case _ h => apply Or.inr (Or.inl (Val.letdata h))
-    case _ h =>
-      cases h; case _ w h =>
-      generalize tlp' : List.map (T.letdata ·) w = tl' at *; symm at tlp';
-      have t' := (Red.letdata_congr h tlp');
-      apply Or.inr (Or.inr (Exists.intro tl' t'));
-case _ ih =>
-  simp_all; cases ih;
-  case _ h => apply Or.inl (Neutral.letctor h)
-  case _ T _ _ _ _ _ _ h =>
-    cases h;
-    case _ h => apply Or.inr (Or.inl (Val.letctor h))
-    case _ h =>
-      cases h; case _ w h =>
-      generalize tlp' : List.map (letctor! T ·) w = tl' at *; symm at tlp';
-      have t' := Red.letctor_congr h tlp';
-      apply Or.inr (Or.inr (Exists.intro tl' t'));
-case _ ih =>
-  simp_all; cases ih;
-  case _ h => apply Or.inl (Neutral.letopentype h)
-  case _ T _ _ _ _ _ h =>
-    cases h;
-    case _ h => apply Or.inr (Or.inl (Val.letopentype h))
-    case _ h =>
-      cases h; case _ w h =>
-      generalize tlp' : List.map (letopentype! T ·) w = tl' at *; symm at tlp';
-      have t' := Red.letopentype_congr h tlp';
-      apply Or.inr (Or.inr (Exists.intro tl' t'));
-case _ ih =>
-  simp_all; cases ih;
-  case _ h => apply Or.inl (Neutral.letopen h)
-  case _ T _ _ _ _ _ h =>
-    cases h;
-    case _ h => apply Or.inr (Or.inl (Val.letopen h))
-    case _ h =>
-      cases h; case _ w h =>
-      generalize tlp' : List.map (letopen! T ·) w = tl' at *; symm at tlp';
-      have t' := Red.letopen_congr h tlp';
-      apply Or.inr (Or.inr (Exists.intro tl' t'));
-case _ ih =>
-  simp_all; cases ih;
-  case _ h => apply Or.inl (Neutral.letinsttype h)
-  case _ T _ _ _ _ _ h =>
-    cases h;
-    case _ h => apply Or.inr (Or.inl (Val.letinsttype h))
-    case _ h =>
-      cases h; case _ w h =>
-      generalize tlp' : List.map (insttype! T ·) w = tl' at *; symm at tlp';
-      have t' := Red.insttype_congr h tlp';
-      apply Or.inr (Or.inr (Exists.intro tl' t'));
-case _ ih =>
-  simp_all; cases ih;
-  case _ h => apply Or.inl (Neutral.letinst h)
-  case _ n _ t _ _ _ _ _ _ h =>
-    cases h;
-    case _ h => apply Or.inr (Or.inl (Val.letinst h))
-    case _ h =>
-      cases h; case _ w h =>
-      generalize tlp' : List.map (λ x => Term.inst n t x) w = tl' at *; symm at tlp';
-      have t' := Red.inst_congr h tlp';
-      apply Or.inr (Or.inr (Exists.intro tl' t'));
-case _ ih =>
-  simp_all; cases ih;
-  case _ h => apply Or.inl (Neutral.letterm h)
-  case _ A t _ _ _ _ _ _ _ h =>
-    cases h;
-    case _ h => apply Or.inr (Or.inl (Val.letterm h))
-    case _ h =>
-      cases h; case _ w h =>
-      generalize tlp' : List.map (Term.letterm A t ·) w = tl' at *; symm at tlp';
-      have t' := Red.letterm_congr h tlp';
-      apply Or.inr (Or.inr (Exists.intro tl' t'))
 
 case _ ih =>
-  simp_all; sorry -- classification lemma
-case _ n _ _ _ _ =>
-  -- simp_all; match Γ.is_stable n with
-  -- | true =>
-  --   have hh : Γ.is_stable n = true := by simp_all;
-  --   have appp := Val.app var_neutral_form hh;
-  --   constructor;  sorry
-  -- | false =>
-  sorry
-case _ => simp_all; sorry -- uses classification lemma?
+  simp_all; cases ih;
+  case _ h => sorry -- apply Or.inr (Or.inr Red.letterm);
+  case _ => sorry -- apply Or.inr (Or.inr Red.letterm);
+case _ =>
+  simp; sorry -- uses classification lemma?
 case _ => simp_all; sorry -- uses classification lemma?
 case _ => simp_all; sorry -- uses classification lemma?
 case _ ih _ =>
@@ -273,6 +165,8 @@ case _ ih _ =>
   cases h;
   case _ => sorry
   case _ => sorry
+case _ => simp_all; sorry -- uses classification lemma
+case _ => simp_all; sorry -- uses classification lemma
 case _ => simp_all; sorry -- uses classification lemma
 case _ p _ s _ b _ _ c _ _ _ _ phead _ hmatch prefixmatch _ _ pih sih _ _ _ _ =>
   simp_all; cases pih;
@@ -310,21 +204,17 @@ case _ => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
-case _ ih =>
-  simp_all;
-  cases ih;
-  case _ => sorry
-  case _ => sorry
+case _ ih =>  simp_all; sorry
 
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
 
 -- theorem progress_νT :
 --     (Γ ⊢ A : ★) -> (Γ ⊢ t : A)

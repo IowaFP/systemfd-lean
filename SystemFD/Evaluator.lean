@@ -1,7 +1,7 @@
 
 import SystemFD.Util
 import SystemFD.Term
-import SystemFD.Algorithm
+
 set_option maxHeartbeats 500000
 
 
@@ -14,11 +14,11 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .openm _ =>
             let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
             get_instances Γ ιs -- select the right instances using the indices
-          | .term _ b => [ b ]  -- inline a let bound term
           | _ => .none -- do not evaluate
 
     | .ctor2 .app (.bind2 .lam _ b) t
     | .ctor2 .appt (.bind2 .lamt _ b) t => .some [b β[ t ]]
+    | Term.letterm _ t t' => .some [t' β[ t ]]
 
     | .ctor2 .app f t => do
       match f.neutral_form with
@@ -29,7 +29,6 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
             let ts := get_instances Γ ιs ; -- select the right instances using the indices
             let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
             List.map (· `@ t) ts'
-          | .term _ b => [ b.apply_spine sp `@ t]  -- inline a let bound term
           | _ => .none) -- do not evaluate
       | .none => do
           let f' <- eval_inst Γ f
@@ -44,7 +43,6 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
             let ts := get_instances Γ ιs ; -- select the right instances using the indices
             let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
             List.map (· `@t t) ts'
-          | .term _ b => [ b.apply_spine sp `@t t]  -- inline a let bound term
           | _ => .none) -- do not evaluate
       | .none => do
           let f' <- eval_inst Γ f
@@ -61,7 +59,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-              if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
+              if Term.is_openmethod Γ s'
               then do let s'' <- eval_inst Γ s
                       .some (List.map (.ite p · b c) s'')
               else ( -- s' cannot be a term or an instance
@@ -85,7 +83,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
        | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-          if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
+          if Term.is_openmethod Γ s'
           then do let s'' <- eval_inst Γ s
                   .some (List.map (.guard p · c) s'')
           else (if (p' == s')
@@ -131,29 +129,6 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       let η' <- eval_inst Γ η
       .some (List.map (t ▹ ·) η')
 
-
-  ---------------
-  ----Decls
-  ---------------
-    | .letdata K t => do
-      let t' <- eval_inst (.datatype K :: Γ) t
-      .some (List.map (.letdata K ·) t')
-    | Term.letterm ty t t' => do
-      let t'' <- eval_inst (.term ty t :: Γ) t'
-      .some (List.map (.letterm ty t ·) t'')
-    | .bind2 .letctor t t' => do
-      let t'' <- eval_inst (.ctor t :: Γ) t'
-      .some (List.map (letctor! t ·) t'')
-    | .bind2 .letopentype t t' => do
-      let t'' <- eval_inst (.opent t :: Γ) t'
-      .some (List.map (letopentype! t ·) t'')
-    | .bind2 .letopen t t' => do
-      let t'' <- eval_inst (.openm t :: Γ) t'
-      .some (List.map (letopen! t ·) t'')
-    | .bind2 .insttype t t' => do
-      let t'' <- eval_inst (.insttype t :: Γ) t'
-      .some (List.map (insttype! t ·) t'')
-
     | _ => .none
 
 
@@ -173,17 +148,5 @@ unsafe def eval_ctx_loop (Γ : Ctx Term) (t : Term) : List Term := do
   | .none => [t]
   | .some ts => List.flatMap ts (eval_ctx_loop Γ)
 
-@[simp]
-def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
-  | .letdata K t => mkCtx (.datatype K :: ctx ) t
-  | .letterm ty t t' => mkCtx (.term ty t ::  ctx) t'
-  | .bind2 .letctor t t' => mkCtx (.ctor t :: ctx) t'
-  | .bind2 .letopentype t t' => mkCtx (.opent t :: ctx) t'
-  | .bind2 .letopen t t' => mkCtx (.openm t :: ctx) t'
-  | .bind2 .insttype t t' => mkCtx (.insttype t :: ctx) t'
-  | .inst n t t' => mkCtx (.inst n t :: ctx) t'
-  | _ => ctx
-
 unsafe def eval (t : Term) : List Term :=
-  let ctx := mkCtx [] t;
-  eval_ctx_loop ctx t
+  eval_ctx_loop [] t

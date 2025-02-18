@@ -146,41 +146,6 @@ def prefix_type_match (Γ : Ctx Term) (A B : Term) : Option Term := do
 
 @[simp]
 def infer_type : Ctx Term -> Term -> Option Term
-| Γ, .letdata T t => do
-  let _ <- wf_kind T
-  let A <- infer_type (.datatype T::Γ) t
-  .some (.decl A)
-| Γ, .bind2 .letctor T t => do
-  let Tk <- infer_kind Γ T
-  let _ <- is_type Tk
-  let A <- infer_type (.ctor T::Γ) t
-  let _ <- valid_ctor Γ T
-  .some (.decl A)
-| Γ, .bind2 .letopentype T t => do
-  let _ <- wf_kind T
-  let A <- infer_type (.opent T::Γ) t
-  .some (.decl A)
-| Γ, .bind2 .letopen T t => do
-  let Tk <- infer_kind Γ T
-  let _ <- is_type Tk
-  let A <- infer_type (.openm T::Γ) t
-  .some (.decl A)
-| Γ, .bind2 .insttype T t => do
-  let Tk <- infer_kind Γ T
-  let _ <- is_type Tk
-  let A <- infer_type (.insttype T::Γ) t
-  .some (.decl A)
-| Γ, .inst x t1 t2 => do
-  let T <- is_openm (Γ d@ x)
-  let T' <- infer_type Γ t1
-  let A <- infer_type (.inst x t1::Γ) t2
-  if T == T' then .some (.decl A) else .none
-| Γ, .letterm T b t => do
-  let Tk <- infer_kind Γ T
-  let _ <- is_type Tk
-  let B <- infer_type Γ b
-  let A <- infer_type (.term T b::Γ) t
-  if T == B then .some (.decl A) else .none
 | Γ, #x => do
   let T <- Frame.get_type (Γ d@ x)
   .some T
@@ -318,12 +283,6 @@ def wf_ctx : Ctx Term -> Option Unit
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
   wf_ctx Γ
-| .cons (.term A t) Γ => do
-  let Ak <- infer_kind Γ A
-  let _ <- is_type Ak
-  let A' <- infer_type Γ t
-  let _ <- wf_ctx Γ
-  if A == A' then .some () else .none
 | .cons (.inst x t) Γ =>
   match Γ d@ x with
   | .openm T => do

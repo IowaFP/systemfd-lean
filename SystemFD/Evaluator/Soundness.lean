@@ -2,7 +2,6 @@ import SystemFD.Term
 import SystemFD.Reduction
 import SystemFD.Ctx
 import SystemFD.Evaluator
-import SystemFD.Algorithm
 import SystemFD.Judgment
 set_option maxHeartbeats 500000
 
@@ -30,13 +29,11 @@ case _ Γ n _ om et =>
   symm at instsp; symm at ip;
   apply Red.inst nfh _ ip instsp; unfold Term.apply_spine; simp_all;
   unfold Term.is_openmethod; rw[om]
-case _ Γ n _ _ lt et =>
- simp_all; subst et;
- have nfh := @var_neutral_form n; symm at lt; symm at nfh;
- apply Red.letterm nfh lt
-case _ et => simp at et
+case _ Γ n lt et => simp_all
 case _ et => simp at et; subst et; apply Red.beta
 case _ et => simp at et; subst et; apply Red.betat
+case _ et => simp at et; subst et; apply Red.lettermt;
+
 case _ Γ f t _ n sp _ t' om et =>
   simp at et; split at et;
   case _ fnf =>
@@ -55,7 +52,7 @@ case _ Γ f t _ n sp _ t' om et =>
     have hl := And.left h
     injection (And.right h) with ts; subst ts;
     apply @Red.app_congr Γ f w; simp_all; rfl
-case _ Γ f t _ n sp fnf A t' lt et =>
+case _ Γ t n sp fnf A t' lt et =>
   simp at et; split at et;
   case _ fnf =>
      simp_all;
@@ -242,7 +239,7 @@ case _ Γ t η _ ih1 et=>
     injection (And.right h) with w;
     subst w; apply Red.allc_congr ih; rfl
 
-case _ Γ t a ih=>
+case _ Γ t a ih =>
   simp at ih; rw[<-ih]; exact Red.cast
 case _ Γ t η x ih1 ih=>
   simp at ih; rw[Option.bind_eq_some] at ih;
@@ -250,40 +247,4 @@ case _ Γ t η x ih1 ih=>
     have h' := And.right w; injection h' with w';
     have qq := @ih1 h (And.left w)
     rw [<-w']; apply Red.cast_congr qq; rfl
-case _ Γ t K ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ w h =>
-  have ih' := @ih w (And.left h);
-  injection (And.right h) with w; subst w
-  apply Red.letdata_congr ih'; rfl
-case _ Γ A t t' ih et  =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ w h =>
-  have ih' := @ih w (And.left h);
-  injection (And.right h) with w; subst w
-  apply Red.letterm_congr ih'; rfl
-case _ Γ t t' ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ w h =>
-  have ih' := @ih w (And.left h);
-  injection (And.right h) with w; subst w;
-  apply Red.letctor_congr ih'; rfl
-case _ ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ w h =>
-  have ih' := @ih w (And.left h);
-  injection (And.right h) with w; subst w;
-  apply Red.letopentype_congr ih'; rfl
-case _ ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ w h =>
-  have ih' := @ih w (And.left h);
-  injection (And.right h) with w; subst w;
-  apply Red.letopen_congr ih'; rfl
-case _ ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ w h =>
-  have ih' := @ih w (And.left h);
-  injection (And.right h) with w; subst w;
-  apply Red.insttype_congr ih'; rfl
 case _ _ et =>  simp at et

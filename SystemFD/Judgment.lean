@@ -100,18 +100,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t, T) ->
   Judgment .wf Γ () ->
   Judgment .wf (.inst x t::Γ) ()
-| wfterm :
-  Judgment .prf Γ (A, ★) ->
-  Judgment .prf Γ (t, A) ->
-  Judgment .wf Γ () ->
-  Judgment .wf (.term A t::Γ) ()
 --------------------------------------------------------------------------------------
 ---- Declarations
 --------------------------------------------------------------------------------------
 | letterm :
   Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (t, A) ->
-  Judgment .prf (.term A t::Γ) (b, [S]T) ->
+  Judgment .prf (.type A::Γ) (b, [S]T) ->
   Judgment .prf Γ (T, ★) ->
   Judgment .prf Γ (.letterm A t b, T)
 --------------------------------------------------------------------------------------
@@ -275,4 +270,3 @@ case _ j _ _ ih => constructor; apply j; apply ih
 case _ j _ _ ih => constructor; apply j; apply ih
 case _ j1 _ j2 _ ih => constructor; apply j1; apply ih; apply j2
 case _ j1 j2 _ _ ih => constructor; apply j1; apply j2; apply ih
-case _ j1 j2 _ _ _ ih =>  constructor; apply j1; apply j2; apply ih
