@@ -59,7 +59,7 @@ abbrev JudgmentArgs : JudgmentVariant -> Type
 
 inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop where
 --------------------------------------------------------------------------------------
----- Well-Formed Contexts
+---- Well-Formed Contexts and Declarations
 --------------------------------------------------------------------------------------
 | wfnil :  Judgment .wf [] ()
 | wfempty :
@@ -106,7 +106,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .wf Γ () ->
   Judgment .wf (.term A t::Γ) ()
 --------------------------------------------------------------------------------------
----- Declarations
+---- Local Let Binding
 --------------------------------------------------------------------------------------
 | letterm :
   Judgment .prf Γ (A, ★) ->
