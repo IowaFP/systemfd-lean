@@ -31,29 +31,40 @@ theorem rename (r : Ren) :
 intro j wf h
 induction j generalizing Δ r <;> simp at *
 any_goals apply wf
-case _ Γ T t A j1 j2 ih1 ih2 => sorry
-  -- replace ih2 := ih2 r wf h
-  -- have lem : ⊢ (Frame.datatype ([r.to]T) :: Δ) := by
-  --   constructor; apply ih2; apply wf
-  -- replace ih1 := @ih1 (Frame.datatype ([r.to]T) :: Δ) r.lift lem (rename_lift r (Frame.datatype T) h)
-  -- rw [Subst.lift_lemma] at ih1; simp at ih1
-  -- constructor; apply ih2; apply ih1
+case _ A t b T j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
+  replace ih1 := ih1 r wf h
+  replace ih2 := ih2 r wf h
+  have lem : ⊢ (Frame.term ([r.to]A) ([r.to]t) :: Δ) := by
+    constructor; apply ih2; apply ih1; apply wf
+  replace ih3 := @ih3 (Frame.term ([r.to]A) ([r.to]t) :: Δ) r.lift lem (rename_lift r (Frame.term A t) h)
+  rw [Subst.lift_lemma] at ih3; simp at ih3
+  constructor; apply ih2; apply ih1; simp; apply ih3
+  apply ih4 r wf h
 case _ => constructor; apply wf
 case _ Γ x T j1 j2 ih =>
   unfold Ren.to; simp; constructor; apply wf
   rw [<-h x]; simp; rw [<-j2]; simp; unfold Ren.to; simp
 case _ => constructor <;> simp [*]
-case _ =>
-  -- replace ih2 := ih2 r wf h
-  -- replace ih3 := ih3 r wf h
-  -- have lem : ⊢ (Frame.kind ([r.to]A) :: Δ) := by sorry
-  -- replace ih1 := @ih1 (Frame.kind ([r.to]A) :: Δ) r.lift lem (rename_lift r (Frame.kind A) h)
-  -- rw [Subst.lift_lemma] at ih1; simp at ih1
-  -- constructor; apply ih2; apply ih1
-  sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+case _ A B j1 j2 ih1 ih2 =>
+  replace ih1 := ih1 r wf h
+  have lem : ⊢ (Frame.kind ([r.to]A) :: Δ) := by
+    constructor; apply ih1; apply wf
+  replace ih2 := @ih2 (Frame.kind ([r.to]A) :: Δ) r.lift lem (rename_lift r (Frame.kind A) h)
+  rw [Subst.lift_lemma] at ih2; simp at ih2
+  constructor; apply ih1; apply ih2
+case _ A B j1 j2 ih1 ih2 =>
+  replace ih1 := ih1 r wf h
+  have lem : ⊢ (Frame.empty :: Δ) := by
+    constructor; apply wf
+  replace ih2 := @ih2 (Frame.empty :: Δ) r.lift lem (rename_lift r .empty h)
+  rw [Subst.lift_lemma] at ih2; simp at ih2
+  constructor; apply ih1; apply ih2
+case _ ih1 ih2 =>
+  constructor; apply ih2 r wf h
+  apply ih1 r wf h
+case _ ih1 ih2 ih3 =>
+  constructor; apply ih3 r wf h
+  apply ih1 r wf h; apply ih2 r wf h
 case _ j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
   constructor; apply ih1 r wf h; apply ih2 r wf h
   apply ih5 r wf h; apply ih3 r wf h
@@ -86,20 +97,68 @@ case _ j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
   intro n y h1; unfold Ren.to at h1; simp at h1; rw [<-h1]; apply h n
   intro n h1; unfold Ren.to; simp
   apply ih5 r wf h
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+case _ A t B j1 j2 j3 ih1 ih2 ih3 =>
+  have lem1 := ih2 r wf h
+  have lem2 : ⊢ (.type ([r.to]A) :: Δ) := by
+    constructor; apply lem1; apply wf
+  replace ih1 := @ih1 (.type ([r.to]A) :: Δ) (Ren.lift r) lem2 (rename_lift r (.type A) h)
+  rw [Subst.lift_lemma] at ih1; simp at ih1
+  constructor; apply lem1; apply ih1; apply ih3 r wf h
+case _ ih1 ih2 =>
+  constructor; apply ih2 r wf h
+  apply ih1 r wf h; simp [*]
+case _ A t B j1 j2 j3 ih1 ih2 ih3 =>
+  have lem1 := ih2 r wf h
+  have lem2 : ⊢ (.kind ([r.to]A) :: Δ) := by
+    constructor; apply lem1; apply wf
+  replace ih1 := @ih1 (.kind ([r.to]A) :: Δ) (Ren.lift r) lem2 (rename_lift r (.kind A) h)
+  rw [Subst.lift_lemma] at ih1; simp at ih1
+  constructor; apply lem1; apply ih1; apply ih3 r wf h
+case _ ih1 ih2 =>
+  constructor; apply ih2 r wf h
+  apply ih1 r wf h; simp [*]
+case _ ih1 ih2 =>
+  constructor; apply ih1 r wf h; apply ih2 r wf h
+case _ ih1 ih2 =>
+  constructor; apply ih2 r wf h; apply ih1 r wf h
+case _ ih =>
+  constructor; apply ih r wf h
+case _ ih1 ih2 =>
+  constructor; apply ih1 r wf h; apply ih2 r wf h
+case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
+  constructor; apply ih3 r wf h; apply ih4 r wf h
+  apply ih5 r wf h; apply ih1 r wf h
+  apply ih2 r wf h; apply ih6 r wf h
+case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
+  have lem1 : ⊢ (Frame.empty :: Δ) := by constructor; apply wf
+  replace ih4 := @ih4 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r .empty h)
+  rw [Subst.lift_lemma] at ih4; simp at ih4
+  replace ih5 := @ih5 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r .empty h)
+  rw [Subst.lift_lemma] at ih5; simp at ih5
+  replace ih6 := @ih6 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r .empty h)
+  rw [Subst.lift_lemma] at ih6; simp at ih6
+  constructor; apply ih1 r wf h; apply ih2 r wf h
+  apply ih3 r wf h; apply ih4; apply ih5; apply ih6
+case _ ih1 ih2 ih3 =>
+  constructor; apply ih1 r wf h
+  apply ih2 r wf h; apply ih3 r wf h
+case _ ih1 ih2 ih3 ih4 =>
+  constructor; apply ih3 r wf h
+  apply ih1 r wf h; apply ih2 r wf h
+  apply ih4 r wf h
+case _ A B t j1 j2 j3 j4 ih1 ih2 ih3 =>
+  replace ih1 := ih1 r wf h
+  have lem1 : ⊢ (.kind ([r.to]A) :: Δ) := by
+    cases ih1; case _ ih1 _ =>
+      constructor; apply ih1; apply wf
+  replace ih3 := @ih3 (.kind ([r.to]A) :: Δ) (Ren.lift r) lem1 (rename_lift r (.kind A) h)
+  rw [Subst.lift_lemma] at ih3; simp at ih3
+  constructor; apply ih1
+  apply ih2 r wf h; apply ih3
+case _ ih1 ih2 ih3 ih4 =>
+  constructor; apply ih3 r wf h
+  apply ih1 r wf h; apply ih2 r wf h
+  apply ih4 r wf h; simp [*]; simp [*]
 
 theorem weaken_empty :
   Γ ⊢ t : A ->

@@ -364,7 +364,7 @@ case _ j1 j2 _ _ _ _ =>
   apply judgment_ctx_wf j1
   apply Judgment.eq _; apply j1; apply j2
   constructor; apply judgment_ctx_wf j1
-case _ j1 j2 _ _ _ ih1 ih2 =>
+case _ j1 j2 _ _ _ _ _ ih1 ih2 =>
   cases ih1
   case _ ih1 => cases ih1
   case _ ih1 =>

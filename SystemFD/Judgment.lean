@@ -252,7 +252,9 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (C, K) ->
   Judgment .prf Γ (D, K) ->
   Judgment .prf Γ (t2, C ~ D) ->
-  Judgment .prf Γ (t1 `@c[ t2 ], (A β[C]) ~ (B β[D]))
+  A' = A β[C] ->
+  B' = B β[D] ->
+  Judgment .prf Γ (t1 `@c[ t2 ], A' ~ B')
 
 notation:170 Γ:170 " ⊢ " t:170 " : " A:170 => Judgment JudgmentVariant.prf Γ (t, A)
 notation:170 "⊢ " Γ:170 => Judgment JudgmentVariant.wf Γ ()

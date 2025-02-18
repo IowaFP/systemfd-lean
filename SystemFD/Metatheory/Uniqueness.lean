@@ -167,7 +167,7 @@ case _ v t1 t2 ih1 ih2 =>
       injection e1 with _ w1 w2; subst w1; subst w2
       injection e2 with _ _ w1; subst w1
       injection ih2 with _ e1 e2; subst e1; subst e2
-      rfl
+      simp [*]
   case _ =>
     cases j1; case _ q =>
     cases j2; case _ r =>
