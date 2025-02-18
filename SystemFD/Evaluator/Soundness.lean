@@ -32,7 +32,7 @@ case _ Γ n _ om et =>
 case _ Γ n lt et => simp_all
 case _ et => simp at et; subst et; apply Red.beta
 case _ et => simp at et; subst et; apply Red.betat
-case _ et => simp at et; subst et; apply Red.lettermt;
+case _ et => simp at et; subst et; apply Red.letterm;
 
 case _ Γ f t _ n sp _ t' om et =>
   simp at et; split at et;

@@ -106,7 +106,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | letterm :
   Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (t, A) ->
-  Judgment .prf (.type A::Γ) (b, [S]T) ->
+  Judgment .prf Γ (b β[ t ] , T) ->
   Judgment .prf Γ (T, ★) ->
   Judgment .prf Γ (.letterm A t b, T)
 --------------------------------------------------------------------------------------
