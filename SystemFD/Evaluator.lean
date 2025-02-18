@@ -14,6 +14,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .openm _ =>
             let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
             get_instances Γ ιs -- select the right instances using the indices
+          | .term _ b => [ b ]  -- inline a let bound term
           | _ => .none -- do not evaluate
 
     | .ctor2 .app (.bind2 .lam _ b) t
@@ -29,6 +30,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
             let ts := get_instances Γ ιs ; -- select the right instances using the indices
             let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
             List.map (· `@ t) ts'
+          | .term _ b => [ b.apply_spine sp `@ t]  -- inline a let bound term
           | _ => .none) -- do not evaluate
       | .none => do
           let f' <- eval_inst Γ f
@@ -43,6 +45,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
             let ts := get_instances Γ ιs ; -- select the right instances using the indices
             let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
             List.map (· `@t t) ts'
+          | .term _ b => [ b.apply_spine sp `@t t]  -- inline a let bound term
           | _ => .none) -- do not evaluate
       | .none => do
           let f' <- eval_inst Γ f
@@ -59,7 +62,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-              if Term.is_openmethod Γ s'
+              if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
               then do let s'' <- eval_inst Γ s
                       .some (List.map (.ite p · b c) s'')
               else ( -- s' cannot be a term or an instance
@@ -83,7 +86,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
        | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-          if Term.is_openmethod Γ s'
+          if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
           then do let s'' <- eval_inst Γ s
                   .some (List.map (.guard p · c) s'')
           else (if (p' == s')
@@ -148,5 +151,11 @@ unsafe def eval_ctx_loop (Γ : Ctx Term) (t : Term) : List Term := do
   | .none => [t]
   | .some ts => List.flatMap ts (eval_ctx_loop Γ)
 
+@[simp]
+def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
+  | .letterm ty t t' => mkCtx (.term ty t ::  ctx) t'
+  | _ => ctx
+
 unsafe def eval (t : Term) : List Term :=
-  eval_ctx_loop [] t
+  let ctx := mkCtx [] t;
+  eval_ctx_loop ctx t

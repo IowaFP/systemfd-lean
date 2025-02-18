@@ -166,6 +166,16 @@ namespace Term
 
 
   @[simp]
+  def is_letterm (Γ : Ctx Term) (n : Nat) :=
+    match Γ d@ n with
+    | .term _ _ => true
+    | _ => false
+
+  theorem id_is_letterm : Γ d@ n = .term a b -> is_letterm Γ n = true := by
+  intros h; simp_all;
+
+
+  @[simp]
   def is_openmethod (Γ : Ctx Term) (n : Nat) :=
     match Γ d@ n with
     | .openm _ => true

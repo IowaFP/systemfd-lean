@@ -184,12 +184,12 @@ intro j1 j2 j3; apply rename _ j3
 case _ => constructor; apply j1; apply j2; apply judgment_ctx_wf j2
 case _ => intro x; simp; rw [Subst.to_S]
 
--- theorem weaken_term :
---   Γ ⊢ T : ★ ->
---   Γ ⊢ b : T ->
---   Γ ⊢ t : A ->
---   (.term T b::Γ) ⊢ ([S]t) : ([S]A)
--- := by
--- intro j1 j2 j3; apply rename _ j3
--- case _ => constructor; apply j1; apply j2; apply judgment_ctx_wf j2
--- case _ => intro x; simp; rw [Subst.to_S]
+theorem weaken_term :
+  Γ ⊢ T : ★ ->
+  Γ ⊢ b : T ->
+  Γ ⊢ t : A ->
+  (.term T b::Γ) ⊢ ([S]t) : ([S]A)
+:= by
+intro j1 j2 j3; apply rename _ j3
+case _ => constructor; apply j1; apply j2; apply judgment_ctx_wf j2
+case _ => intro x; simp; rw [Subst.to_S]

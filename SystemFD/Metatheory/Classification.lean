@@ -181,6 +181,24 @@ case _ j1 j2 j3 ih1 ih2 =>
         apply Or.inl; apply weaken_inst j1 j2 ih1
       case _ ih1 =>
         apply Or.inr; apply weaken_inst j1 j2 ih1
+case _ j1 j2 j3 ih1 ih2 ih3 =>
+  intro x T h1
+  cases x <;> simp at *
+  case _ =>
+    cases h1; case _ a h1 =>
+    cases h1; case _ h1 h2 =>
+      subst h2; unfold Frame.get_type at h1; simp at h1
+      subst h1; apply Or.inr
+      apply weaken_term j1 j2 j1
+  case _ x =>
+    cases h1; case _ a h1 =>
+    cases h1; case _ h1 h2 =>
+      subst h2; replace ih1 := ih2 x a h1
+      cases ih1
+      case _ ih1 =>
+        apply Or.inl; apply weaken_term j1 j2 ih1
+      case _ ih1 =>
+        apply Or.inr; apply weaken_term j1 j2 ih1
 case _ j _ _ _ _ =>
   apply Or.inr; apply Or.inr; apply Exists.intro ★
   apply And.intro _; apply j
