@@ -109,6 +109,38 @@ case _ Γ A B j ih =>
     (lift_subst_stable (Frame.kind A) h2)
   simp at ih; apply ih
 
+theorem valid_insttype_subst :
+  (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
+  ValidInstType Γ A ->
+  ValidInstType Δ ([σ]A)
+:= by
+intro h1 h2 j
+induction j generalizing Δ σ
+case _ R Γ j =>
+  constructor; apply valid_head_variable_subst Γ.is_opent Δ.is_opent _ j
+  intro n h3
+  have lem1 := Frame.is_opent_implies_is_stable h3
+  replace h2 := h2 n lem1
+  cases h2; case _ w h2 =>
+    exists w; rw [h2]; simp
+    rw [<-h1 n w h2, Frame.is_opent_stable]
+    simp at h3; apply h3
+case _ Γ A B j ih =>
+  simp; apply ValidInstType.arrow
+  replace ih := @ih (^σ)
+    (((Frame.type A).apply σ) :: Δ)
+    (lift_subst_rename (Frame.type A) h1)
+    (lift_subst_stable (Frame.type A) h2)
+  simp at ih; apply ih
+case _ Γ A B j ih =>
+  simp; apply ValidInstType.all
+  replace ih := @ih (^σ)
+    (((Frame.kind A).apply σ) :: Δ)
+    (lift_subst_rename (Frame.kind A) h1)
+    (lift_subst_stable (Frame.kind A) h2)
+  simp at ih; apply ih
+
 theorem stable_type_match_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->

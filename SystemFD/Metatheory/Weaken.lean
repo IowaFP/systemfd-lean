@@ -38,7 +38,7 @@ case _ Γ T t A j1 j2 ih1 ih2 => sorry
   -- replace ih1 := @ih1 (Frame.datatype ([r.to]T) :: Δ) r.lift lem (rename_lift r (Frame.datatype T) h)
   -- rw [Subst.lift_lemma] at ih1; simp at ih1
   -- constructor; apply ih2; apply ih1
-case _ => sorry
+case _ => constructor; apply wf
 case _ Γ x T j1 j2 ih =>
   unfold Ren.to; simp; constructor; apply wf
   rw [<-h x]; simp; rw [<-j2]; simp; unfold Ren.to; simp

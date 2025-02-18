@@ -212,10 +212,6 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (t, A ~ B) ->
   Judgment .prf Γ (sym! t, B ~ A)
 | seq :
-  Judgment .prf Γ (K, .kind) ->
-  Judgment .prf Γ (A, K) ->
-  Judgment .prf Γ (B, K) ->
-  Judgment .prf Γ (C, K) ->
   Judgment .prf Γ (t1, A ~ B) ->
   Judgment .prf Γ (t2, B ~ C) ->
   Judgment .prf Γ (t1 `; t2, A ~ C)

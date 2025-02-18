@@ -20,10 +20,10 @@ abbrev ClassType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Pr
 theorem classification_lemma : Judgment v Γ ix -> ClassType Γ v ix := by
 intro j; induction j <;> simp at *
 all_goals (try simp [*])
-case _ =>
+case wfnil =>
   intro T h; unfold Frame.get_type at h
   simp at h
-case _ j1 ih1 =>
+case wfempty j1 ih1 =>
   intro x T h1
   cases x <;> simp at *
   case _ =>
@@ -297,12 +297,25 @@ case _ ih =>
     apply judgment_ctx_wf ih1
     constructor; apply ih2
     apply ih4; apply ih3
-case _ j1 j2 j3 j4 _ _ _ _ _ _ _ _ =>
-  apply Or.inr; apply Exists.intro ★
-  apply And.intro; constructor
-  apply judgment_ctx_wf j1
-  constructor; apply j1
-  apply j2; apply j4
+case _ j1 _ ih1 ih2 =>
+  cases ih1
+  case _ ih1 => cases ih1
+  case _ ih1 =>
+  cases ih1; case _ K ih1 =>
+  cases ih1; case _ ih1 ih1' =>
+  cases ih1'; case _ K1 q1 q2 q3 =>
+    cases ih2
+    case _ ih2 => cases ih2
+    case _ ih2 =>
+    cases ih2; case _ K ih2 =>
+    cases ih2; case _ ih2 ih2' =>
+    cases ih2'; case _ K2 w1 w2 w3 =>
+      have lem := uniqueness_of_types q3 w2; subst lem
+      apply Or.inr; apply Exists.intro ★
+      apply And.intro; constructor
+      apply judgment_ctx_wf j1
+      constructor; apply q1
+      apply q2; apply w3
 case _ j1 j2 j3 j4 j5 j6 _ _ ih _ _ _ =>
   cases ih
   case _ ih =>
@@ -339,7 +352,7 @@ case _ j1 j2 _ ih _ _ =>
   cases ih; case _ K ih =>
   cases ih; case _ ih1 ih2 =>
     cases ih2; cases ih1
-case _ j1 j2 j3 j4 _ _ _ _ =>
+case _ j1 j2 j3 j4 _ _ _ ih =>
   apply Or.inr; apply Exists.intro ★
   apply And.intro; constructor
   apply judgment_ctx_wf j1
