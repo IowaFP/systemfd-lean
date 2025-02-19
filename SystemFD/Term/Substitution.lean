@@ -89,6 +89,32 @@ namespace Term
   induction f, sp using apply_spine.induct <;> simp
   all_goals (case _ ih => rw [ih])
 
+
+  theorem var_neutral_form : (#n).neutral_form = .some (n, []) := by
+  unfold Term.neutral_form; rfl
+
+  theorem neutral_form_app:
+  f.neutral_form = .some (h, sp) ->
+  (f `@ t).neutral_form = .some (h, sp ++ [(.term, t)]) := by
+  intros h; simp_all
+
+  theorem neutral_form_appt:
+  f.neutral_form = .some (h, sp) ->
+  (f `@t t).neutral_form = .some (h, sp ++ [(.type, t)]) := by
+  intros h; simp_all
+
+  theorem neutral_form_appk:
+  f.neutral_form = .some (h, sp) ->
+  (f `@k t).neutral_form = .some (h, sp ++ [(.kind, t)]) := by
+  intros h; simp_all
+
+  theorem unique_neutral_form : (Term.neutral_form t = .some (n, sp))
+                            -> (Term.neutral_form t = .some (n', sp')) -> (n = n' ∧ sp = sp') := by
+  intros tnf tnf';
+  induction t using Term.neutral_form.induct;
+  any_goals (solve | simp_all)
+
+
   @[simp]
   def smap (lf : Subst.Lift Term) (f : Nat -> Subst.Action Term) : Term -> Term
   | var x =>

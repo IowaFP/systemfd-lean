@@ -38,8 +38,6 @@ inductive Val : Ctx Term -> Term -> Prop where
 theorem flip_eq : Γ ⊢ (A ~ B) : ★ -> Γ ⊢ (B ~ A) : ★ := by
 intros h; cases h; case _ k AJ BJ => apply Judgment.eq k BJ AJ
 
-theorem var_neutral_form : (#n).neutral_form = .some (n, []) := by simp_all
-
 theorem lift_stable {Γ : Ctx Term} {n : Nat} : (Ctx.is_stable Γ n) -> ((Ctx.is_stable Γ n) = true) := by simp_all;
 
 def DeclCtx (Γ : Ctx Term) : Prop := ∀ n, ¬ Γ.is_lam_bound n
@@ -76,11 +74,6 @@ case _ => cases tJ
 case _ => cases tJ
 
 
-theorem unique_neutral_form : (Term.neutral_form t = .some (n, sp)) -> (Term.neutral_form t = .some (n', sp')) -> (n = n') := by
-intros tnf tnf';
-induction t using Term.neutral_form.induct;
-any_goals (solve | simp_all)
-
 theorem openm_no_stable {Γ : Ctx Term}{n : Nat} :
   Frame.is_openm (Γ d@ n) = true -> ¬ (Frame.is_stable (Γ d@ n)) := by
 intros om; simp_all; unfold Frame.is_openm at om; split at om;
@@ -96,7 +89,8 @@ intros tnf nstable x; cases x;
     simp_all; sorry
   case _ hnf idx =>
     unfold Frame.is_stable at nstable; symm at hnf;
-    have uniq := unique_neutral_form hnf tnf; subst uniq; rw [<-idx] at nstable; simp_all
+    have uniq' := Term.unique_neutral_form hnf tnf; have uniq := uniq'.1;
+    subst uniq; rw [<-idx] at nstable; simp_all
   case _ f _ _ _ _ _ nosome =>
     simp_all; rw[Option.bind_eq_some] at tnf;
     cases tnf; case _ w h =>
@@ -241,13 +235,13 @@ case var Γ x _ _ xTy ih =>
     sorry
   case _ f t x_is_ctor =>
     have xx : Frame.is_stable (Γ d@ x) := by unfold Frame.is_stable; rw[x_is_ctor];
-    have hh : (#x).neutral_form = .some (x, []) := var_neutral_form;
+    have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
     apply Or.inl (Val.app hh xx)
   case _ =>    -- classification lemma
     injection xTy with teqT; symm at teqT; subst teqT; cases h; case _ h =>
     sorry
   case _ x_is_openm =>  -- steps inst
-    have nf  := @var_neutral_form x; symm at nf;
+    have nf  := @Term.var_neutral_form x; symm at nf;
     have om : (Γ d@ x).is_openm := by unfold Frame.is_openm; rw [x_is_openm];
     generalize isp : instance_indices' Γ 0 x [] = ιs at *; symm at isp;
     generalize instsp : get_instances Γ ιs = insts at *; symm at instsp;
@@ -255,10 +249,10 @@ case var Γ x _ _ xTy ih =>
     apply Or.inr (Exists.intro insts' (Red.inst nf om isp instsp instsp'))
   case _ x_is_insttype =>  -- value
     have xx : Frame.is_stable (Γ d@ x) := by unfold Frame.is_stable; rw[x_is_insttype];
-    have hh : (#x).neutral_form = .some (x, []) := var_neutral_form;
+    have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
     apply Or.inl (Val.app hh xx)
   case _ A t x_frame =>  -- steps letterm
-    have nf : .some (x, []) = (#x).neutral_form := var_neutral_form;
+    have nf : .some (x, []) = (#x).neutral_form := Term.var_neutral_form;
     have x_is_term : .term A t = Γ d@ x := by symm at x_frame; apply x_frame
     generalize tlp : [t.apply_spine []] = t' at *; symm at tlp;
     have etl' : ∃ t', Red Γ (#x) t' := Exists.intro ([t.apply_spine []]) (Red.letterm nf x_is_term);
@@ -268,12 +262,32 @@ case _ => cases h; case _ h => cases h.2
 case _ => cases h; case _ h => cases h.2; cases h.1;
 
 case _ => cases h; case _ h => cases h.2; cases h.1
-case _ =>  cases h; case _ h => sorry
+case appk Γ f A B a _ _  fs as =>
+  simp_all; cases h; case _ w h =>
+  have fs' := fs w (h.1) sorry; cases fs';
+  case _ h =>
+    cases h;
+    case _ n ts n_stable fnf =>
+      have fanf := @Term.neutral_form_appk f a n ts fnf;
+      apply Or.inl (Val.app fanf n_stable);
+    case _  => cases h; sorry
+    case _  => sorry
+    case _  => sorry
+  case _ h => cases h; case _ w h => sorry
+
 case _ => cases h; case _ h => cases h.2; cases h.1
-case ite => sorry
+
+case ite Γ p A s _ i _ _ e _ _ _  _ _ _ _ _ _ pJ sJ _ _ iJ _ eJ =>
+  simp_all;
+  have pJ' := pJ
+  sorry
+
 case guard => sorry
+
 case _ _ A t _ _ _ _ _ _ _ => apply Or.inl Val.lam
-case _ => sorry
+case app Γ f A B a _ fJ aJ _ fs _ =>
+  simp at fs; have fs' := fs dctx ★;
+  sorry
 case _ _ A t _ _ _ _ _ _ _ => apply Or.inl Val.lamt
 case _ => sorry
 case _ => sorry
@@ -285,4 +299,4 @@ case _ => cases h; case _ h => cases h.2; cases h.1; sorry
 case _ => sorry
 case _ => sorry
 case _ => cases h; case _ h => cases h.2; cases h.1; sorry
-case _ => sorry
+case _ => simp_all; cases h; case _ h => sorry

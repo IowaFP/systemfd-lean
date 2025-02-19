@@ -5,19 +5,6 @@ import SystemFD.Evaluator
 import SystemFD.Judgment
 set_option maxHeartbeats 500000
 
-theorem var_neutral_form : (#n).neutral_form = .some (n, []) := by
-unfold Term.neutral_form; rfl
-
-theorem neutral_form_app:
-  f.neutral_form = .some (h, sp) ->
-  (f `@ t).neutral_form = .some (h, sp ++ [(.term, t)]) := by
-intros h; simp_all
-
-theorem neutral_form_appt:
-  f.neutral_form = .some (h, sp) ->
-  (f `@t t).neutral_form = .some (h, sp ++ [(.type, t)]) := by
-intros h; simp_all
-
 theorem eval_inst_soundess : eval_inst Γ t = .some ts -> Red Γ t ts := by
 intros
 induction Γ, t using eval_inst.induct generalizing ts
