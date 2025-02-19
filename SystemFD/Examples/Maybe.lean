@@ -45,7 +45,7 @@ def MaybeBoolCtx : Ctx Term := [
   , .datatype  (★ -k> ★)
 
 
-  , .inst 2 ((Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
+  , .inst 2 (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
                Term.guard (#3 `@t #1) -- EqBool[t]
                #0                     -- i
                 -- λ (tBool : t ~ Bool).  ==@Bool ▹ sym! (tBool -c> tBool -c> rfl Bool)

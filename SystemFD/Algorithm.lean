@@ -283,6 +283,12 @@ def wf_ctx : Ctx Term -> Option Unit
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
   wf_ctx Γ
+| .cons (.term A t) Γ => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_type Ak
+  let A' <- infer_type Γ t
+  let _ <- wf_ctx Γ
+  if A == A' then .some () else .none
 | .cons (.inst x t) Γ =>
   match Γ d@ x with
   | .openm T => do

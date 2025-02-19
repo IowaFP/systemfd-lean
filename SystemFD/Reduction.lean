@@ -8,7 +8,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 ----------------------------------------------------------------
 | beta : Red Γ ((`λ[A] b) `@ t) [b β[t]]
 | betat : Red Γ ((Λ[A] b) `@t t) [b β[t]]
-| letbeta : Red Γ (.letterm A t t') [t' β[t]]
+| letbeta : Red Γ (.letterm A t b) [b β[t]]
 | cast : Red Γ (t ▹ refl! A) [t]
 | sym : Red Γ (sym! (refl! A)) [refl! A]
 | seq : Red Γ ((refl! A) `; (refl! A)) [refl! A]

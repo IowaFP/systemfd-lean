@@ -151,11 +151,5 @@ unsafe def eval_ctx_loop (Γ : Ctx Term) (t : Term) : List Term := do
   | .none => [t]
   | .some ts => List.flatMap ts (eval_ctx_loop Γ)
 
-@[simp]
-def mkCtx (ctx : Ctx Term) : Term -> Ctx Term
-  | .letterm ty t t' => mkCtx (.term ty t ::  ctx) t'
-  | _ => ctx
-
 unsafe def eval (t : Term) : List Term :=
-  let ctx := mkCtx [] t;
-  eval_ctx_loop ctx t
+  eval_ctx_loop [] t
