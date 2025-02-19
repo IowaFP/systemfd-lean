@@ -100,19 +100,40 @@ namespace Term
 
   theorem neutral_form_appt:
   f.neutral_form = .some (h, sp) ->
-  (f `@t t).neutral_form = .some (h, sp ++ [(.type, t)]) := by
-  intros h; simp_all
+  (f `@t t).neutral_form = .some (h, sp ++ [(.type, t)])
+  := by intros h; simp_all
 
   theorem neutral_form_appk:
   f.neutral_form = .some (h, sp) ->
-  (f `@k t).neutral_form = .some (h, sp ++ [(.kind, t)]) := by
-  intros h; simp_all
+  (f `@k t).neutral_form = .some (h, sp ++ [(.kind, t)])
+  := by intros h; simp_all
 
   theorem unique_neutral_form : (Term.neutral_form t = .some (n, sp))
                             -> (Term.neutral_form t = .some (n', sp')) -> (n = n' ∧ sp = sp') := by
   intros tnf tnf';
   induction t using Term.neutral_form.induct;
   any_goals (solve | simp_all)
+
+
+  theorem neutral_form_app_rev:
+  (f `@ t).neutral_form = .some (h, sp ++ [(.term, t)] ) ->
+  f.neutral_form = .some (h, sp) := by
+  intros h; simp_all;
+  case _ n =>
+  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  simp at h; have h2 := h.2.1; have h3 := h.2.2;
+  subst h2; subst h3; simp_all;
+
+  theorem neutral_form_appt_rev:
+  (f `@t t).neutral_form = .some (h, sp ++ [(.type, t)] ) ->
+  f.neutral_form = .some (h, sp) := by
+  intros h; simp_all;
+  case _ n =>
+  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  simp at h; have h2 := h.2.1; have h3 := h.2.2;
+  subst h2; subst h3; simp_all;
+
+
 
 
   @[simp]

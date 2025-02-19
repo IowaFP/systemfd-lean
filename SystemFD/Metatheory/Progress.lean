@@ -38,7 +38,39 @@ inductive Val : Ctx Term -> Term -> Prop where
 theorem flip_eq : Γ ⊢ (A ~ B) : ★ -> Γ ⊢ (B ~ A) : ★ := by
 intros h; cases h; case _ k AJ BJ => apply Judgment.eq k BJ AJ
 
+
+theorem invert_lamt_ty : Γ ⊢ Λ[A] b : Ty -> (.kind A :: Γ) ⊢ b : BTy -> Ty = ∀[ A ] BTy := by
+intros ltyJ btyJ;
+have lamtJ := Judgment.lamt sorry btyJ sorry;
+apply uniqueness_of_types ltyJ lamtJ;
+
+theorem opent_kind : ⊢ Γ -> Γ d@ x = .opent t -> Γ ⊢ t : .kind := by
+intros wΓ h;
+sorry
+
 theorem lift_stable {Γ : Ctx Term} {n : Nat} : (Ctx.is_stable Γ n) -> ((Ctx.is_stable Γ n) = true) := by simp_all;
+
+theorem neutral_form_shape : Val Γ t ->
+        t.neutral_form = .some (n, ts)
+        -> ¬ ((t = `λ[A] b)
+            ∨ (t = Λ[A] b)
+            ∨ (t = .letterm A t' b)
+            ∨ t = .guard p s b
+            ∨ t = .ite p s b c
+            ∨ t = .kind
+            ∨ t = .type
+            ) := by
+intros tnf; induction t;
+any_goals (solve | simp_all)
+
+theorem invert_eq_kind : Γ ⊢ (A ~ B) : w -> w = ★ := by
+intros eqJ; cases eqJ; simp_all;
+
+theorem invert_arr_kind : Γ ⊢ (A -t> B) : w -> w = ★ := by
+intros eqJ; cases eqJ; simp_all;
+
+theorem invert_all_kind : (Γ ⊢ ∀[ A ] B : w) -> w = ★ := by
+intros eqJ; cases eqJ; simp_all;
 
 def DeclCtx (Γ : Ctx Term) : Prop := ∀ n, ¬ Γ.is_lam_bound n
 
@@ -52,12 +84,17 @@ case _ Γ t n _ _ n_stable =>
   unfold Ctx.is_stable at n_stable;
   unfold Frame.is_stable at n_stable;
   split at n_stable;
-  any_goals (solve | simp_all)
+  any_goals (solve | simp_all);
   case _ =>
     unfold Ctx.is_lam_bound at x_no_lam; unfold Frame.is_lam_bound at x_no_lam;
-    split at x_no_lam;
+    -- split at x_no_lam;
+    cases t;
     any_goals (solve | simp_all)
-    case _ => simp_all; sorry
+    case _ a anf =>
+      have anf' : ((#a).neutral_form = .some (a, [])) := @Term.var_neutral_form a;
+      rw [anf'] at anf; injection anf with aeqs; simp_all;
+      sorry;
+    case _  =>  sorry
 
 case _ => cases ηJ
 case _ => cases ηJ
@@ -73,7 +110,6 @@ case _ => cases tJ
 case _ => cases tJ
 case _ => cases tJ
 
-
 theorem openm_no_stable {Γ : Ctx Term}{n : Nat} :
   Frame.is_openm (Γ d@ n) = true -> ¬ (Frame.is_stable (Γ d@ n)) := by
 intros om; simp_all; unfold Frame.is_openm at om; split at om;
@@ -86,22 +122,28 @@ intros tnf nstable x; cases x;
   simp_all; induction h generalizing n sp;
   any_goals (solve | simp_all)
   case _ Γ _ _ _ _ om _ _ nstable =>
-    simp_all; sorry
+    have n_not_stable := openm_no_stable om;
+    simp_all;
   case _ hnf idx =>
     unfold Frame.is_stable at nstable; symm at hnf;
     have uniq' := Term.unique_neutral_form hnf tnf; have uniq := uniq'.1;
     subst uniq; rw [<-idx] at nstable; simp_all
-  case _ f _ _ _ _ _ nosome =>
+  case _ f _ _ a _ _ ih =>
     simp_all; rw[Option.bind_eq_some] at tnf;
     cases tnf; case _ w h =>
-      simp_all; have wfst := And.left (And.right h);
-      have wsnd := And.right (And.right h);
-      have cc := @nosome n sp;
-      sorry
+      have fa_spine := @Term.neutral_form_app f a w.fst w.snd h.1;
+      have f_spine := Term.neutral_form_app_rev fa_spine;
+      have xx := @ih w.1 w.2 f_spine; simp at h;
+      have wfst := And.left (And.right h); symm at wfst;
+      subst wfst; simp_all;
   case _ ih =>
     simp_all; rw [Option.bind_eq_some] at tnf;
-    cases tnf; case _ w h =>
-    have nih := And.left h; sorry
+    cases tnf; case _ f _ _ a _ _ w h =>
+      have fa_spine := @Term.neutral_form_appt f a w.fst w.snd h.1;
+      have f_spine := Term.neutral_form_appt_rev fa_spine;
+      have xx := @ih w.1 w.2 f_spine; simp at h;
+      have wfst := And.left (And.right h); symm at wfst;
+      subst wfst; simp_all;
 
 theorem val_no_red : Val Γ t -> ¬ ∃ t', Red Γ t t' := by
 intros vt tred; induction vt;
@@ -122,85 +164,6 @@ case _ => cases tred; case _ h =>
   case _ => simp_all
   case _ => simp_all
 
-@[simp]
-abbrev MaybeStep : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
-| .prf => λ Γ => λ(t , A) => (∃ K, Γ ⊢ K : .kind ∧ Γ ⊢ A : K) ->  Neutral Γ t ∨ Val Γ t ∨ ∃ t', Red Γ t t'
-| .wf  => λ _ => λ () => true
-
-theorem progress_lemma : Judgment v Γ ix -> MaybeStep v Γ ix := by
-intros j; induction j;
-any_goals (solve | simp_all)
-all_goals (intro h)
-case _ Γ A t b _ _ _ _ _ _ _ ih _ =>
-  simp_all;
-  generalize tl' : [b β[ t ]] = t' at *; symm at tl';
-  have reds := @Red.letbeta Γ A t b; rw [<-tl']  at reds;
-  have ereds : ∃ t', Red Γ (.letterm A t b) t' := Exists.intro t' reds;
-  apply Or.inr (Or.inr ereds);
-case _ => cases h; case _ w h => cases h.2;
- -- VAR
-case _ => sorry
-case _ => cases h; case _ h => cases h.2
-case _ => cases h; case _ h => cases h.2; sorry
-case _ => cases h; case _ h => cases h.2; sorry -- uses classification lemma
-case _ => simp_all; sorry -- uses classification lemma
-case _ => simp_all; sorry -- uses classification lemma
-
--- ITE
-case _ Γ p _ s _ b _ _ c _ _ _ _ phead _ hmatch prefixmatch _ _ pih sih _ _ _ _ =>
-  simp at pih;
-  sorry
-  -- simp_all; cases pih;
-  -- case _ ph =>
-  --   cases phead; sorry
-  -- case _ ph =>
-  --   cases ph;
-  --   case _ ph =>
-  --     cases sih;
-  --     case _ h => apply Or.inl (Neutral.iteNe h)
-  --     case _ h =>
-  --     cases h;
-  --     case _ h =>
-  --       cases hmatch;
-  --       case refl x _ =>
-  --         cases x;
-  --         case _ =>
-  --         cases phead;
-  --         case _ pnf pJ => sorry
-  --       case _ x => sorry
-  --       case _ x => sorry
-  --     case _ h =>
-  --     cases h; case _ w h =>
-  --     generalize tlp' : List.map (Term.ite p · b c) w = tl' at *; symm at tlp';
-  --     have t' := Red.ite_congr h tlp';
-  --     apply Or.inr (Or.inr (Exists.intro tl' t'))
-  --   case _ ph =>
-  --   cases ph; case _ ts preds =>
-  --   cases phead; case _ w pctor =>
-  --     simp_all; have pctorstable := Frame.is_ctor_implies_is_stable (And.right pctor);
-  --     have pnf := And.left pctor; symm at pnf;
-  --     have pnoreds := stable_no_reduce pnf pctorstable;
-  --     have preds := Exists.intro ts preds; simp_all;
--- GUARD
-case _ => sorry
-
-case _ Γ A t _ _ _ _ _ _ _  =>
-  simp_all; have vlam : Val Γ (`λ[A] t) :=  (@Val.lam Γ A t); apply Or.inr (Or.inl vlam);
-case _ => sorry
-case _ Γ A t _ _ _ _ _ _ _ =>
-    simp_all; have vlam : Val Γ (Λ[A] t) :=  (@Val.lamt Γ A t); apply Or.inr (Or.inl vlam);
-case _ => sorry
-case _ ih => sorry
-
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
 
 
 @[simp]
@@ -210,11 +173,12 @@ abbrev StepOrVal : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) 
 
 
 theorem progress :
-    Judgment v Γ ix
+   ⊢ Γ
+  -> Judgment v Γ ix
 --------------------------------------
   -> StepOrVal v Γ ix := by
-intros j; induction j;
-any_goals (solve | simp_all)
+intros wΓ j; induction j;
+any_goals (solve | simp at *)
 all_goals (intro dctx h)
 case _ Γ A t b _ _ _ _ _ _ _ ih _ =>
   simp_all;
@@ -262,41 +226,181 @@ case _ => cases h; case _ h => cases h.2
 case _ => cases h; case _ h => cases h.2; cases h.1;
 
 case _ => cases h; case _ h => cases h.2; cases h.1
-case appk Γ f A B a _ _  fs as =>
-  simp_all; cases h; case _ w h =>
-  have fs' := fs w (h.1) sorry; cases fs';
-  case _ h =>
-    cases h;
-    case _ n ts n_stable fnf =>
-      have fanf := @Term.neutral_form_appk f a n ts fnf;
-      apply Or.inl (Val.app fanf n_stable);
-    case _  => cases h; sorry
-    case _  => sorry
-    case _  => sorry
-  case _ h => cases h; case _ w h => sorry
+case appk Γ f A B a fJ aJ  fs as =>  -- bogus case
+  cases h; case _ w h =>
+  simp at fs;
+  have arrK : (Γ ⊢ (A -k> B) : .kind) := sorry;
+  have fs' := @fs wΓ dctx w h.1 sorry;
+  sorry
 
 case _ => cases h; case _ h => cases h.2; cases h.1
 
-case ite Γ p A s _ i _ _ e _ _ _  _ _ _ _ _ _ pJ sJ _ _ iJ _ eJ =>
+case ite Γ p A s _ i _ _ e _ _ _ _ _ _ _ _ _ _ pJ sJ _ iJ _ eJ =>
   simp_all;
-  have pJ' := pJ
+  have pJ' := pJ;
   sorry
 
 case guard => sorry
 
 case _ _ A t _ _ _ _ _ _ _ => apply Or.inl Val.lam
-case app Γ f A B a _ fJ aJ _ fs _ =>
-  simp at fs; have fs' := fs dctx ★;
-  sorry
+case app Γ f A B a B' fJ aJ _ fs as =>
+  simp_all; cases h; case _ w h =>
+  have fs' := @fs w (h.1) sorry; have as' := @as w h.1 sorry;
+  cases fs';
+  case inl h => -- f is value
+    cases h;
+    case app n ts n_stable fnf =>
+      have fanf := @Term.neutral_form_app f a n ts fnf;
+      apply Or.inl (Val.app fanf n_stable);
+    case lam  => cases h; case _ a' b l r =>
+      apply Or.inr;
+      have reds : ∃ t', Red Γ ((`λ[a']b) `@ a) t' := Exists.intro [b β[ a ]] (@Red.beta Γ a' b a);
+      apply reds
+    case lamt =>
+      cases h; case _ A b l r =>
+        sorry -- bogus case
+    case refl => cases h; case _ xT wT h =>
+      have reflT := Judgment.refl wT h;
+      sorry -- bogus case
+  case inr h => cases h; case _ w h => -- f steps
+    generalize tlp : List.map (· `@ a) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (f `@ a) t' := Exists.intro tl' (Red.app_congr h tlp);
+    apply Or.inr reds
+
 case _ _ A t _ _ _ _ _ _ _ => apply Or.inl Val.lamt
-case _ => sorry
+case _ fJ aJ fs as =>
+  simp_all; cases h; case _ w h =>
+  sorry
 case _ => sorry
 case _ => apply Or.inl Val.refl
-case _ Γ η _ _ _ _ => sorry
-case _ => sorry
+case sym Γ η A B ηJ ηs =>
+  cases h; case _ w h =>
+  have h2 := invert_eq_kind h.2; subst h2;
+  have h2 := flip_eq h.2;
+  simp at ηs; have ηs' := @ηs wΓ dctx ★ h.1 h2;
+  cases ηs';
+  case _ h =>
+    have x := refl_is_val dctx ηJ h;
+    have xeqrefl := x.left;
+    have aeqB := x.right;
+    subst xeqrefl;
+    apply Or.inr
+    have reds : ∃ t', Red Γ (sym! refl! A) t' := Exists.intro [refl! A] (@Red.sym Γ A);
+    apply reds;
+  case _ ηreds => cases ηreds; case _ w h =>
+    apply Or.inr;
+    generalize tlp : List.map (sym! ·) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (sym! η) t' := Exists.intro tl' (Red.sym_congr h tlp);
+    apply reds;
+case _ η1J η2J η1s η2s =>
+  simp_all; cases h; case _ w h =>
+    have weqstr := invert_eq_kind h.2; subst weqstr;
+    have η1s' := η1s ★ h.1 sorry;
+    sorry
 case _ => sorry -- cases h; case _ h => cases h.2; cases h.1
-case _ => cases h; case _ h => cases h.2; cases h.1; sorry
-case _ => sorry
-case _ => sorry
-case _ => cases h; case _ h => cases h.2; cases h.1; sorry
-case _ => simp_all; cases h; case _ h => sorry
+case _ => -- bogus case
+  cases h; case _ w h =>
+  cases h; case _ w h =>
+    have keqstr := invert_eq_kind h; subst keqstr;
+    sorry
+case _ =>
+  sorry
+case _ =>
+  sorry
+case _ => -- bogus case
+  cases h; case _ h =>
+  cases h.2; cases h.1;
+  sorry
+case _ η _ _ _ _ _ η' _ _ ηJ _ _ _ _ _ ηs _ _ _ =>
+  simp_all; cases h; case _ h =>
+  have eqKind := invert_eq_kind h.2;
+  subst eqKind;
+  have ηs' := @ηs ★ h.1 ;
+  sorry
+
+
+
+
+
+
+
+
+-- @[simp]
+-- abbrev MaybeStep : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
+-- | .prf => λ Γ => λ(t , A) => (∃ K, Γ ⊢ K : .kind ∧ Γ ⊢ A : K) ->  Neutral Γ t ∨ Val Γ t ∨ ∃ t', Red Γ t t'
+-- | .wf  => λ _ => λ () => true
+
+-- theorem progress_lemma : Judgment v Γ ix -> MaybeStep v Γ ix := by
+-- intros j; induction j;
+-- any_goals (solve | simp_all)
+-- all_goals (intro h)
+-- case _ Γ A t b _ _ _ _ _ _ _ ih _ =>
+--   simp_all;
+--   generalize tl' : [b β[ t ]] = t' at *; symm at tl';
+--   have reds := @Red.letbeta Γ A t b; rw [<-tl']  at reds;
+--   have ereds : ∃ t', Red Γ (.letterm A t b) t' := Exists.intro t' reds;
+--   apply Or.inr (Or.inr ereds);
+-- case _ => cases h; case _ w h => cases h.2;
+--  -- VAR
+-- case _ => sorry
+-- case _ => cases h; case _ h => cases h.2
+-- case _ => cases h; case _ h => cases h.2; sorry
+-- case _ => cases h; case _ h => cases h.2; cases h.1
+-- case _ => simp_all; sorry -- uses classification lemma
+-- case _ => simp_all; sorry -- uses classification lemma
+
+-- -- ITE
+-- case _ Γ p _ s _ b _ _ c _ _ _ _ phead _ hmatch prefixmatch _ _ pih sih _ _ _ _ =>
+--   simp at pih;
+--   sorry
+--   -- simp_all; cases pih;
+--   -- case _ ph =>
+--   --   cases phead; sorry
+--   -- case _ ph =>
+--   --   cases ph;
+--   --   case _ ph =>
+--   --     cases sih;
+--   --     case _ h => apply Or.inl (Neutral.iteNe h)
+--   --     case _ h =>
+--   --     cases h;
+--   --     case _ h =>
+--   --       cases hmatch;
+--   --       case refl x _ =>
+--   --         cases x;
+--   --         case _ =>
+--   --         cases phead;
+--   --         case _ pnf pJ => sorry
+--   --       case _ x => sorry
+--   --       case _ x => sorry
+--   --     case _ h =>
+--   --     cases h; case _ w h =>
+--   --     generalize tlp' : List.map (Term.ite p · b c) w = tl' at *; symm at tlp';
+--   --     have t' := Red.ite_congr h tlp';
+--   --     apply Or.inr (Or.inr (Exists.intro tl' t'))
+--   --   case _ ph =>
+--   --   cases ph; case _ ts preds =>
+--   --   cases phead; case _ w pctor =>
+--   --     simp_all; have pctorstable := Frame.is_ctor_implies_is_stable (And.right pctor);
+--   --     have pnf := And.left pctor; symm at pnf;
+--   --     have pnoreds := stable_no_reduce pnf pctorstable;
+--   --     have preds := Exists.intro ts preds; simp_all;
+-- -- GUARD
+-- case _ => sorry
+
+-- case _ Γ A t _ _ _ _ _ _ _  =>
+--   simp_all; have vlam : Val Γ (`λ[A] t) :=  (@Val.lam Γ A t); apply Or.inr (Or.inl vlam);
+-- case _ => sorry
+-- case _ Γ A t _ _ _ _ _ _ _ =>
+--     simp_all; have vlam : Val Γ (Λ[A] t) :=  (@Val.lamt Γ A t); apply Or.inr (Or.inl vlam);
+-- case _ => sorry
+-- case _ ih => sorry
+
+-- case _ => sorry
+-- case _ => sorry
+-- case _ => sorry
+-- case _ => sorry
+-- case _ => sorry
+-- case _ => sorry
+-- case _ => sorry
+-- case _ => sorry
+-- case _ => sorry
