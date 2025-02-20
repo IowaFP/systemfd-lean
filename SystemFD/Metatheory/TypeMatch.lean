@@ -1,6 +1,7 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Metatheory.Uniqueness
 
 theorem lift_subst_rename {Γ : Ctx Term} (A : Frame Term) :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
@@ -156,20 +157,53 @@ case _ R Γ j =>
     exists w; rw [h2]; simp
     rw [<-h1 n w h2, Frame.is_stable_stable]
     simp at h3; apply h3
-case _ Γ A B R j ih =>
-  simp; constructor; simp
+case _ R Γ A B j1 j2 ih =>
   replace ih := @ih (^σ)
     (((Frame.type A).apply σ) :: Δ)
     (lift_subst_rename (Frame.type A) h1)
     (lift_subst_stable (Frame.type A) h2)
-  simp at ih; apply ih
-case _ Γ A B R j ih =>
+  simp at ih;
   simp; constructor; simp
+  case _ =>
+    apply valid_head_variable_subst Γ.is_stable Δ.is_stable _ j1
+    intro n h3; replace h2 := h2 n h3
+    cases h2; case _ w h2 =>
+      exists w; rw [h2]; simp
+      rw [<-h1 n w h2, Frame.is_stable_stable]
+      simp at h3; apply h3
+  case _ => simp; apply ih
+case _ R Γ A B j1 j2 ih =>
   replace ih := @ih (^σ)
     (((Frame.kind A).apply σ) :: Δ)
     (lift_subst_rename (Frame.kind A) h1)
     (lift_subst_stable (Frame.kind A) h2)
-  simp at ih; apply ih
+  simp at ih;
+  simp; constructor; simp
+  case _ =>
+    apply valid_head_variable_subst Γ.is_stable Δ.is_stable _ j1
+    intro n h3; replace h2 := h2 n h3
+    cases h2; case _ w h2 =>
+      exists w; rw [h2]; simp
+      rw [<-h1 n w h2, Frame.is_stable_stable]
+      simp at h3; apply h3
+  case _ => simp; apply ih
+
+theorem stable_type_match_beta t :
+  ¬ f.is_stable ->
+  StableTypeMatch (f :: Γ) A B ->
+  StableTypeMatch Γ (A β[t]) (B β[t])
+:= by
+intro j1 j2
+apply stable_type_match_subst _ _ j2
+case _ =>
+  intro n y h
+  cases n <;> simp at *
+  case _ x =>
+    subst h; rw [Frame.apply_compose]; simp
+case _ =>
+  intro n h1; cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  rw [h1] at j1; injection j1
 
 theorem prefix_type_match_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
@@ -200,3 +234,52 @@ case _ Γ A B V T j ih =>
     (lift_subst_rename (Frame.kind A) h1)
     (lift_subst_stable (Frame.kind A) h2)
   simp at ih; apply ih
+
+theorem prefix_type_match_beta t :
+  ¬ f.is_stable ->
+  PrefixTypeMatch (f :: Γ) A B T ->
+  PrefixTypeMatch Γ (A β[t]) (B β[t]) (T β[t])
+:= by
+intro j1 j2
+apply prefix_type_match_subst _ _ j2
+case _ =>
+  intro n y h
+  cases n <;> simp at *
+  case _ x =>
+    subst h; rw [Frame.apply_compose]; simp
+case _ =>
+  intro n h1; cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  rw [h1] at j1; injection j1
+
+theorem no_infinite_terms_arrow σ :
+  ¬ ([σ](A -t> B) = B)
+:= by
+intro h
+induction B generalizing σ A <;> simp at *
+case _ v t1 t2 ih1 ih2 =>
+  cases v <;> simp at *
+  cases h; case _ h1 h2 =>
+    subst h1; replace ih2 := @ih2 ([σ]A) (^σ)
+    simp at ih2; apply ih2; simp at h2; rw [h2]
+
+theorem stable_type_match_refl_inversion :
+  StableTypeMatch Γ A A ->
+  ValidHeadVariable A Γ.is_stable
+:= by
+intro j; cases j <;> simp [*]
+
+theorem prefix_type_match_forced_refl :
+  ValidHeadVariable A Γ.is_stable ->
+  PrefixTypeMatch Γ A B T ->
+  B = T
+:= by
+intro j1 j2
+cases j2
+case _ => rfl
+case _ =>
+  exfalso
+  apply no_valid_head_variable_with_arrow j1
+case _ =>
+  exfalso
+  apply no_valid_head_variable_with_all j1

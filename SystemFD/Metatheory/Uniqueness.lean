@@ -44,8 +44,10 @@ case _ v t1 t2 ih1 ih2 =>
   case _ =>
     cases j1
     case _ j1 =>
-      exfalso
-      apply no_valid_head_variable_with_all j1
+      cases j2
+      case _ => rfl
+      case _ B' j2 =>
+        exfalso; apply no_valid_head_variable_with_all j1
     case _ j1 =>
     cases j2
     case _ j2 =>
@@ -58,8 +60,10 @@ case _ v t1 t2 ih1 ih2 =>
   case _ =>
     cases j1
     case _ j1 =>
-      exfalso
-      apply no_valid_head_variable_with_arrow j1
+      cases j2
+      case _ => rfl
+      case _ B' j2 =>
+        exfalso; apply no_valid_head_variable_with_arrow j1
     case _ j1 =>
     cases j2
     case _ j2 =>

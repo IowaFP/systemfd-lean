@@ -3,8 +3,10 @@ import SystemFD.Term.Definition
 import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Reduction
+import SystemFD.Metatheory.Inversion
 import SystemFD.Metatheory.Weaken
 import SystemFD.Metatheory.Substitution
+import SystemFD.Metatheory.Uniqueness
 
 theorem preservation_inst_lemma :
   Γ ⊢ t : A ->
@@ -22,23 +24,131 @@ theorem preservation_letterm_lemma :
   Γ ⊢ t.apply_spine sp : A
 := by sorry
 
-theorem preservation_prefix_match_lemma {p s t : Term} :
+theorem preservation_prefix_match_lemma :
+  Γ ⊢ a : A ->
+  Γ ⊢ a.apply_spine ξ : R ->
+  Γ ⊢ t : B ->
+  StableTypeMatch Γ A R ->
+  PrefixTypeMatch Γ A B T ->
+  Γ ⊢ t.apply_spine ξ : T
+:= by
+intro j1 j2 j3 j4 j5
+induction ξ generalizing Γ A R B T a t <;> simp at *
+case _ =>
+  have lem := uniqueness_of_types j1 j2; subst lem
+  replace j4 := stable_type_match_refl_inversion j4
+  have lem := prefix_type_match_forced_refl j4 j5; subst lem
+  apply j3
+case _ hd tl ih =>
+  cases j4
+  case _ h =>
+    cases hd; case _ v hd =>
+    cases v <;> simp at *
+    case _ =>
+      replace j2 := inversion_apply_spine j2
+      cases j2; case _ W j2 =>
+      cases j2; case _ C D q1 q2 q3 =>
+        have lem := uniqueness_of_types j1 q1
+        subst lem; unfold ValidHeadVariable at h
+        simp at h
+    case _ =>
+      replace j2 := inversion_apply_spine j2
+      cases j2; case _ W j2 =>
+      cases j2; case _ C D q1 q2 q3 =>
+        have lem := uniqueness_of_types j1 q1
+        subst lem; unfold ValidHeadVariable at h
+        simp at h
+    case _ =>
+      replace j2 := inversion_apply_spine j2
+      cases j2; case _ W j2 =>
+      cases j2; case _ A q1 q2 =>
+        have lem := uniqueness_of_types j1 q2
+        subst lem; unfold ValidHeadVariable at h
+        simp at h
+  case _ U V _ h1 =>
+    cases j5
+    case _ h2 =>
+      exfalso; apply no_valid_head_variable_with_arrow h2
+    case _ V' h2 =>
+      cases hd; case _ v q =>
+      cases v <;> simp at *
+      case _ =>
+        have lem0 := inversion_apply_spine j2
+        cases lem0; case _ W lem0 =>
+        cases lem0; case _ q1 q2 q3 =>
+          have lem0 := uniqueness_of_types j1 q1
+          injection lem0 with _ e1 e2; subst e1; subst e2
+          have lem1 : Γ ⊢ q : U := q2
+          have lem2 := Judgment.app j3 lem1 rfl
+          have lem3 := Judgment.app j1 lem1 rfl
+          replace h1 := stable_type_match_beta q (by unfold Frame.is_stable; simp) h1
+          replace h2 := prefix_type_match_beta q (by unfold Frame.is_stable; simp) h2
+          simp at h1; simp at h2
+          replace ih := ih lem3 j2 lem2 h1 h2
+          apply ih
+      case _ =>
+        replace j2 := inversion_apply_spine j2
+        cases j2; case _ W j2 =>
+        cases j2; case _ C D q1 q2 q3 =>
+          have lem := uniqueness_of_types j1 q1
+          injection lem with e; injection e
+      case _ =>
+        replace j2 := inversion_apply_spine j2
+        cases j2; case _ W j2 =>
+        cases j2; case _ C q1 q2 =>
+          have lem := uniqueness_of_types j1 q2
+          injection lem
+  case _ U V _ h1 =>
+    cases j5
+    case _ h2 =>
+      exfalso; apply no_valid_head_variable_with_all h2
+    case _ V' h2 =>
+      cases hd; case _ v q =>
+      cases v <;> simp at *
+      case _ =>
+        replace j2 := inversion_apply_spine j2
+        cases j2; case _ W j2 =>
+        cases j2; case _ C D q1 q2 q3 =>
+          have lem := uniqueness_of_types j1 q1
+          injection lem with e; injection e
+      case _ =>
+        have lem0 := inversion_apply_spine j2
+        cases lem0; case _ W lem0 =>
+        cases lem0; case _ q1 q2 q3 =>
+          have lem0 := uniqueness_of_types j1 q1
+          injection lem0 with _ e1 e2; subst e1; subst e2
+          have lem1 : Γ ⊢ q : U := q2
+          have lem2 := Judgment.appt j3 lem1 rfl
+          have lem3 := Judgment.appt j1 lem1 rfl
+          replace h1 := stable_type_match_beta q (by unfold Frame.is_stable; simp) h1
+          replace h2 := prefix_type_match_beta q (by unfold Frame.is_stable; simp) h2
+          simp at h1; simp at h2
+          replace ih := ih lem3 j2 lem2 h1 h2
+          apply ih
+      case _ =>
+        replace j2 := inversion_apply_spine j2
+        cases j2; case _ W j2 =>
+        cases j2; case _ C q1 q2 =>
+          have lem := uniqueness_of_types j1 q2
+          injection lem
+
+theorem preservation_prefix_match {p s t : Term} :
   Γ ⊢ p : A ->
   Γ ⊢ s : R ->
   Γ ⊢ t : B ->
+  StableTypeMatch Γ A R ->
   PrefixTypeMatch Γ A B T ->
   some ξ = prefix_equal sp sp' ->
   some (x, sp) = p.neutral_form ->
   some (x, sp') = s.neutral_form ->
   Γ ⊢ t.apply_spine ξ : T
 := by
-intro j1 j2 j3 j4 j5 j6 j7
-induction j4 generalizing x sp sp' p s ξ t
-case _ => sorry
-case _ Γ A B V T h ih =>
-
-  sorry
-case _ => sorry
+intro j1 j2 j3 j4 j5 j6 j7 j8
+replace j6 := prefix_equal_law j6; subst j6
+replace j7 := Term.neutral_form_law j7; subst j7
+replace j8 := Term.neutral_form_law j8; subst j8
+rw [Term.apply_spine_compose] at j2
+apply preservation_prefix_match_lemma j1 j2 j3 j4 j5
 
 @[simp]
 abbrev PreservationStepType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
@@ -63,13 +173,13 @@ case _ wf j _ =>
       case _ f T h =>
         rw [h] at j; unfold Frame.get_type at j; simp at j
         subst i4; subst j; subst i3
-        sorry
+        apply ctx_get_instance_well_typed wf h i2 rin
   case _ A x sp t h1 h2 =>
     cases h2; case _ h2 h3 =>
       subst h2; subst h3; unfold Term.apply_spine at rin
       subst rin; rw [<-h1] at j; unfold Frame.get_type at j; simp at j
       subst j
-      sorry
+      apply ctx_get_term_well_typed wf (Eq.symm h1)
 case appk =>
   cases r
   case _ =>
@@ -80,7 +190,7 @@ case ite j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
   cases r <;> try simp at *
   case _ x sp sp' ξ h1 h2 h3 h4 =>
     subst rin
-    apply preservation_prefix_match_lemma j1 j2 j4 j8 h1 h3 h4
+    apply preservation_prefix_match j1 j2 j4 j7 j8 h1 h3 h4
   case _ => subst rin; apply j10
   case _ ℓ' r h =>
     subst h; simp at rin
@@ -92,7 +202,7 @@ case guard j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
   cases r <;> try simp at *
   case _ x sp sp' ξ h1 h2 h3 =>
     subst rin
-    apply preservation_prefix_match_lemma j1 j2 j4 j8 h1 h2 h3
+    apply preservation_prefix_match j1 j2 j4 j7 j8 h1 h2 h3
   case _ ℓ' r h =>
     subst h; simp at rin
     cases rin; case _ w h =>

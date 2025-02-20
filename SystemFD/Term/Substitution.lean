@@ -89,7 +89,6 @@ namespace Term
   induction f, sp using apply_spine.induct <;> simp
   all_goals (case _ ih => rw [ih])
 
-
   theorem var_neutral_form : (#n).neutral_form = .some (n, []) := by
   unfold Term.neutral_form; rfl
 
@@ -114,7 +113,6 @@ namespace Term
   induction t using Term.neutral_form.induct;
   any_goals (solve | simp_all)
 
-
   theorem neutral_form_app_rev:
   (f `@ t).neutral_form = .some (h, sp ++ [(.term, t)] ) ->
   f.neutral_form = .some (h, sp) := by
@@ -133,8 +131,52 @@ namespace Term
   simp at h; have h2 := h.2.1; have h3 := h.2.2;
   subst h2; subst h3; simp_all;
 
+  theorem apply_spine_compose :
+    Term.apply_spine t (t1 ++ t2) = Term.apply_spine (Term.apply_spine t t1) t2
+  := by
+  induction t, t1 using Term.apply_spine.induct generalizing t2
+  case _ => simp
+  all_goals (case _ ih => simp; rw [ih])
 
-
+  theorem neutral_form_law :
+    .some (x, sp) = Term.neutral_form t ->
+    Term.apply_spine #x sp = t
+  := by
+  intro h; induction t using neutral_form.induct generalizing x sp
+  case _ =>
+    simp at h; cases h; case _ h1 h2 =>
+      subst h1; subst h2; simp
+  case _ ih =>
+    simp at h; replace h := Eq.symm h
+    rw [Option.bind_eq_some] at h; simp at h
+    cases h; case _ a h =>
+    cases h; case _ b h =>
+    cases h; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3
+      replace ih := ih (Eq.symm h1)
+      rw [apply_spine_peel_term, ih]
+  case _ ih =>
+    simp at h; replace h := Eq.symm h
+    rw [Option.bind_eq_some] at h; simp at h
+    cases h; case _ a h =>
+    cases h; case _ b h =>
+    cases h; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3
+      replace ih := ih (Eq.symm h1)
+      rw [apply_spine_peel_type, ih]
+  case _ ih =>
+    simp at h; replace h := Eq.symm h
+    rw [Option.bind_eq_some] at h; simp at h
+    cases h; case _ a h =>
+    cases h; case _ b h =>
+    cases h; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3
+      replace ih := ih (Eq.symm h1)
+      rw [apply_spine_peel_kind, ih]
+  case _ h1 h2 h3 h4 => simp at h
 
   @[simp]
   def smap (lf : Subst.Lift Term) (f : Nat -> Subst.Action Term) : Term -> Term

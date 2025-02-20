@@ -32,15 +32,17 @@ inductive StableTypeMatch : Ctx Term -> Term -> Term -> Prop where
   ValidHeadVariable R Γ.is_stable ->
   StableTypeMatch Γ R R
 | arrow :
+  ValidHeadVariable R (Ctx.is_stable Γ) ->
   StableTypeMatch (.type A::Γ) B ([S]R) ->
   StableTypeMatch Γ (A -t> B) R
 | all :
+  ValidHeadVariable R (Ctx.is_stable Γ) ->
   StableTypeMatch (.kind A::Γ) B ([S]R) ->
   StableTypeMatch Γ (∀[A] B) R
 
 inductive PrefixTypeMatch : Ctx Term -> Term -> Term -> Term -> Prop where
 | refl :
-  ValidHeadVariable T Γ.is_stable ->
+  ValidHeadVariable B Γ.is_stable ->
   PrefixTypeMatch Γ B T T
 | arrow :
   PrefixTypeMatch (.type A::Γ) B V ([S]T) ->
