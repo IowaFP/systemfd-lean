@@ -12,14 +12,15 @@ case _ Γ n _ om et =>
   simp_all; subst et;
   generalize ip : instance_indices' Γ 0 n [] = i at *;
   generalize instsp : get_instances Γ i = insts at *;
-  have nfh := @var_neutral_form n; symm at nfh;
+  have nfh := @Term.var_neutral_form n; symm at nfh;
   symm at instsp; symm at ip;
   apply Red.inst nfh _ ip instsp; unfold Term.apply_spine; simp_all;
-  unfold Term.is_openmethod; rw[om]
-case _ Γ n lt et => simp_all
+  unfold Ctx.is_openm; rw[om]; unfold Frame.is_openm; simp_all;
+case _ Γ n lt et => simp at et; rw [lt] at et; simp at et; sorry -- apply Red.letterm;
+case _ et => simp at et
 case _ et => simp at et; subst et; apply Red.beta
 case _ et => simp at et; subst et; apply Red.betat
-case _ et => simp at et; subst et; apply Red.letterm;
+case _ et => simp at et; subst et; sorry -- apply Red.letterm;
 
 case _ Γ f t _ n sp _ t' om et =>
   simp at et; split at et;
@@ -27,11 +28,11 @@ case _ Γ f t _ n sp _ t' om et =>
     simp_all;
     generalize ip : instance_indices' Γ 0 n [] = ιs at *;
     generalize instsp : get_instances Γ ιs = insts at *;
-    have ftnf := @neutral_form_app f t n sp fnf; symm at ftnf;
-    have omp := Term.id_is_openmethod om; symm at ip; symm at instsp
+    have ftnf := @Term.neutral_form_app f t n sp fnf; symm at ftnf;
+    symm at ip; symm at instsp
     symm at et; symm at fnf;
     generalize tlp' : List.map (·.apply_spine sp) insts = tl' at *; symm at tlp'
-    have fred := Red.inst fnf omp ip instsp tlp';
+    have fred := Red.inst fnf sorry ip instsp tlp';
     apply Red.app_congr fred; simp_all
   case _ =>
     rw[Option.bind_eq_some] at et;
@@ -39,11 +40,11 @@ case _ Γ f t _ n sp _ t' om et =>
     have hl := And.left h
     injection (And.right h) with ts; subst ts;
     apply @Red.app_congr Γ f w; simp_all; rfl
-case _ Γ t n sp fnf A t' lt et =>
+case _ Γ f t _ n sp fnf A t' lt et =>
   simp at et; split at et;
   case _ fnf =>
      simp_all;
-     have ftnf := @neutral_form_appt f t n sp fnf;
+     have ftnf := @Term.neutral_form_appt f t n sp fnf;
      have omp := Term.id_is_letterm lt; symm at et; symm at lt; symm at fnf;
      have fred := @Red.letterm A f n sp Γ t' fnf lt;
      rw[et]; apply Red.app_congr fred; simp_all
@@ -64,17 +65,18 @@ case _ Γ f t _ n sp fnf _ om et =>
   generalize ip : instance_indices' Γ 0 n [] = ιs at *;
   generalize instsp : get_instances Γ ιs = insts at *;
   simp_all;
-  have ftnf := @neutral_form_app f t n sp fnf;
-  have omp := Term.id_is_openmethod om; symm at ip; symm at instsp;
+  have ftnf := @Term.neutral_form_app f t n sp fnf;
+  -- have omp := Term.id_is_openmethod om;
+  symm at ip; symm at instsp;
   symm at et; symm at fnf;
   generalize tlp' : List.map (·.apply_spine sp) insts = tl' at *; symm at tlp'
-  have fred := Red.inst fnf omp ip instsp tlp';
+  have fred := Red.inst fnf sorry ip instsp tlp';
   apply Red.appt_congr fred; simp_all
 
 case _ Γ f t _ n sp fnf A t' lt et =>
   simp at et;
   simp_all;
-  have ftnf := @neutral_form_appt f t n sp fnf;
+  have ftnf := @Term.neutral_form_appt f t n sp fnf;
   have omp := Term.id_is_letterm lt; symm at et; symm at lt; symm at fnf;
   have fred := @Red.letterm A f n sp Γ t' fnf lt;
   rw[et]; apply Red.appt_congr fred; simp_all
