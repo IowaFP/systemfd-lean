@@ -76,6 +76,11 @@ namespace Frame
   | _ => false
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_openm_destruct : is_openm f -> ∃ T, f = .openm T := by
+  intro h; unfold is_openm at h
+  split at h <;> simp at *
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_ctor_implies_is_stable : is_ctor f -> is_stable f := by
   intro h; unfold is_ctor at h
   split at h <;> simp at *; unfold is_stable; simp

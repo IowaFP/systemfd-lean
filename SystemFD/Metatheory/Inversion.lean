@@ -27,10 +27,17 @@ case _ hd tl ih =>
     cases ih; case _ j =>
     apply Exists.intro _; apply j
 
+theorem apply_spine_uniform :
+  Γ ⊢ a : A ->
+  Γ ⊢ b : A ->
+  Γ ⊢ a.apply_spine sp : B ->
+  Γ ⊢ b.apply_spine sp : B
+:= by sorry
+
 theorem ctx_get_term_well_typed :
   ⊢ Γ ->
   Γ d@ x = .term T t ->
-  Γ ⊢ t : T
+  Γ ⊢ #x : T ∧ Γ ⊢ t : T
 := by sorry
 
 theorem ctx_get_instance_well_typed :
@@ -38,5 +45,5 @@ theorem ctx_get_instance_well_typed :
   Γ d@ x = .openm T ->
   ixs = instance_indices' Γ 0 x [] ->
   t ∈ get_instances Γ ixs ->
-  Γ ⊢ t : T
+  Γ ⊢ #x : T ∧ Γ ⊢ t : T
 := by sorry

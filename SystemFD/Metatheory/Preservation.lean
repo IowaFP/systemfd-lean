@@ -12,18 +12,28 @@ import SystemFD.Metatheory.Classification
 theorem preservation_inst_lemma :
   Γ ⊢ t : A ->
   t.neutral_form = .some (x, sp) ->
-  Γ.is_openm x' ->
-  ixs = instance_indices' Γ 0 x' [] ->
+  Γ.is_openm x ->
+  ixs = instance_indices' Γ 0 x [] ->
   w ∈ get_instances Γ ixs ->
   Γ ⊢ w.apply_spine sp : A
-:= by sorry
+:= by
+intro j1 j2 j3 j4 j5
+replace j2 := Term.neutral_form_law (Eq.symm j2); subst j2
+simp at j3; replace j3 := Frame.is_openm_destruct j3
+cases j3; case _ T j3 =>
+  have lem := ctx_get_instance_well_typed (judgment_ctx_wf j1) j3 j4 j5
+  apply apply_spine_uniform lem.1 lem.2 j1
 
 theorem preservation_letterm_lemma :
   Γ ⊢ a : A ->
   a.neutral_form = some (x, sp) ->
   Frame.term T t = Γ d@ x ->
   Γ ⊢ t.apply_spine sp : A
-:= by sorry
+:= by
+intro j1 j2 j3
+replace j2 := Term.neutral_form_law (Eq.symm j2); subst j2
+replace j3 := ctx_get_term_well_typed (judgment_ctx_wf j1) (Eq.symm j3)
+apply apply_spine_uniform j3.1 j3.2 j1
 
 theorem preservation_prefix_match_lemma :
   Γ ⊢ a : A ->
@@ -174,13 +184,13 @@ case _ wf j _ =>
       case _ f T h =>
         rw [h] at j; unfold Frame.get_type at j; simp at j
         subst i4; subst j; subst i3
-        apply ctx_get_instance_well_typed wf h i2 rin
+        apply (ctx_get_instance_well_typed wf h i2 rin).2
   case _ A x sp t h1 h2 =>
     cases h2; case _ h2 h3 =>
       subst h2; subst h3; unfold Term.apply_spine at rin
       subst rin; rw [<-h1] at j; unfold Frame.get_type at j; simp at j
       subst j
-      apply ctx_get_term_well_typed wf (Eq.symm h1)
+      apply (ctx_get_term_well_typed wf (Eq.symm h1)).2
 case appk j1 j2 ih1 ih2 =>
   cases r
   case _ x sp ixs ℓ' i1 i2 i3 i4 i5 =>
