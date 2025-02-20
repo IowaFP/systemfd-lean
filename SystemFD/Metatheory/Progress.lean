@@ -202,7 +202,6 @@ case _ Γ t n _ _ n_stable =>
       have lem := classification_lemma aj; simp at lem; cases lem;
       case _ h => cases h
       case _ h =>
-        have rflnfp : Term.neutral_form (refl! A) = .none := by simp_all;
         cases h; case _ h => cases h.2; case _ h => simp_all; cases h.2; case _ h =>
         simp_all; rw[Option.bind_eq_some] at tnf; simp at tnf; cases tnf; case _ w h =>
         cases h; case _ w ts' h =>
@@ -431,7 +430,7 @@ case seq η1J η2J η1s η2s =>
     have weqstr := invert_eq_kind h.2; subst weqstr;
     have η1s' := η1s ★ h.1;
     sorry
-case _ Γ A K1 K2 B η1 C D η2 aK bK η1J cJ dJ η2J _ _ η1s _ _ η2s  =>
+case appc Γ A K1 K2 B η1 C D η2 aK bK η1J cJ dJ η2J _ _ η1s _ _ η2s  =>
   -- check if η1 reduces or η2 reduces if both are values then reduce to refl
   simp_all; cases h; case _ w h =>
   have weqstr := invert_eq_kind h.2; subst weqstr;
@@ -466,7 +465,7 @@ case _ Γ A K1 K2 B η1 C D η2 aK bK η1J cJ dJ η2J _ _ η1s _ _ η2s  =>
 
   case _ wB hB => cases hB; case _ w h => cases h.2; case _ h => cases h.1
 
-case _ => -- check if η1 reduces or η2 reduces if both are values then reduce to refl
+case arrowc => -- check if η1 reduces or η2 reduces if both are values then reduce to refl
   cases h; case _ w h =>
   cases h; case _ w h =>
     have keqstr := invert_eq_kind h; subst keqstr;
@@ -474,9 +473,9 @@ case _ => -- check if η1 reduces or η2 reduces if both are values then reduce 
     case _ h => sorry
     case _ h => sorry
 
-case _ =>
+case fst =>
   sorry
-case _ η _ _ _ _ _ _ _ _ _ ηs =>
+case snd η _ _ _ _ _ _ _ _ _ ηs =>
   simp_all; cases h; case _ w h =>
   have weqstr := invert_eq_kind h.2; subst weqstr;
   have ηs' := ηs ★ h.1;
@@ -497,9 +496,38 @@ case _ K A B t allAJ allBJ _ _ _ ts =>
    cases h.2; cases h.1; have keq := uniqueness_of_types allAJ' allAJ; subst keq;
    sorry
 
-case _ η _ _ _ _ _ η' _ _ ηJ _ _ _ _ _ ηs _ _ _ =>
-  simp_all; cases h; case _ h =>
-  have eqKind := invert_eq_kind h.2;
-  subst eqKind;
-  have ηs' := @ηs ★ h.1;
-  sorry
+case _ Γ η1 K A B C D η2 _ _ η1J CKJ _ η2J _ _ η1s _ _ η2s =>
+  simp_all; cases h; case _ w h =>
+  have lem := classification_lemma η2J; simp at lem; cases lem;
+  case _ h => cases h;
+  case _ h => cases h; case _ w' h' =>
+  have weqstar := invert_eq_kind h'.2; subst weqstar;
+  cases h'.2; cases h'.1; have η2s' := @η2s ★ h'.1 h'.2;
+  cases η2s';
+  case _ h =>
+    have η2refp := refl_is_val dctx η2J h;
+    have η2refl := η2refp.1; -- subst ηrefl;
+    have lem := classification_lemma η1J; simp at lem; cases lem;
+    case _ h => cases h;
+    case _ h => cases h; case _ K' _ CKJ' _ _ w' h' =>
+    have kk' := uniqueness_of_types CKJ CKJ'; subst kk';
+    have weqstar := invert_eq_kind h'.2; subst weqstar;
+    cases h'.2; cases h'.1; have η1s' := @η1s ★ h'.1 h'.2;
+    cases η1s';
+    case _ h =>
+      have η1refp := refl_is_val dctx η1J h;
+      have η1refl := η1refp.1; -- subst ηrefl;
+      subst η1refl; subst η2refl;
+      apply Or.inr;
+      have reds : ∃ t', Red Γ (refl!(∀[K] A) `@c[refl! C]) t' := Exists.intro [refl! (A β[ C ])] Red.apptc;
+      apply reds
+    case _ h => cases h; case _ w h =>
+      apply Or.inr;
+      generalize tlp : List.map (· `@c[η2]) w = tl' at *; symm at tlp;
+      have reds : ∃ t', Red Γ (η1 `@c[η2]) t' := Exists.intro tl' (Red.apptc_congr1 h tlp);
+      apply reds
+  case _ h => cases h; case _ w h =>
+    apply Or.inr;
+    generalize tlp : List.map (η1 `@c[·]) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (η1 `@c[η2]) t' := Exists.intro tl' (Red.apptc_congr2 h tlp);
+    apply reds
