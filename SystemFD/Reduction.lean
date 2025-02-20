@@ -12,14 +12,14 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 | cast : Red Γ (t ▹ refl! A) [t]
 | sym : Red Γ (sym! (refl! A)) [refl! A]
 | seq : Red Γ ((refl! A) `; (refl! A)) [refl! A]
-| appc : Red Γ (refl! (A -t> B) `@c (refl! A)) [refl! B]
+| appc : Red Γ (refl! A `@c (refl! B)) [refl! (A `@k B)]
+| apptc : Red Γ (refl! (∀[K] A) `@c[refl! B]) [refl! (A β[B])]
 | fst : Red Γ (.ctor1 .fst (refl! (A `@k B))) [refl! A]
 | snd : Red Γ (.ctor1 .snd (refl! (A `@k B))) [refl! B]
 | allc : Red Γ (∀c[A] refl! B) [refl! (∀[A] B)]
 | arrowc : Red Γ (refl! A -c> refl! B) [refl! (A -t> B)]
-
 ----------------------------------------------------------------
----- Ite matching
+---- Ite Matching
 ----------------------------------------------------------------
 | ite_matched :
   .some (x, sp) = Term.neutral_form p ->
@@ -32,7 +32,6 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   .some (x', sp') = Term.neutral_form s ->
   x ≠ x' ∨ prefix_equal sp sp' = .none ->
   Red Γ (.ite p s b e) [e]
-
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -46,7 +45,6 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   .some (x', sp') = Term.neutral_form s ->
   x ≠ x' ∨ prefix_equal sp sp' = .none ->
   Red Γ (.guard p s b) []
-
 ----------------------------------------------------------------
 ---- Instance Instantiation
 ----------------------------------------------------------------
@@ -58,15 +56,15 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   tl = get_instances Γ indices -> -- weakens the instances
   tl' = List.map (λ x => x.apply_spine sp) tl ->
   Red Γ h tl'
-
-
+----------------------------------------------------------------
+---- Local Let Substitution
+----------------------------------------------------------------
 | letterm :
   .some (x, sp) = Term.neutral_form h ->
   .term _ t = Γ d@ x ->
   Red Γ h [t.apply_spine sp]
-
 ----------------------------------------------------------------
----- Contextual/Congruence rules
+---- Contextual/Congruence Rules
 ----------------------------------------------------------------
 | app_congr :
   Red Γ f tl ->

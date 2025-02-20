@@ -7,6 +7,7 @@ import SystemFD.Metatheory.Inversion
 import SystemFD.Metatheory.Weaken
 import SystemFD.Metatheory.Substitution
 import SystemFD.Metatheory.Uniqueness
+import SystemFD.Metatheory.Classification
 
 theorem preservation_inst_lemma :
   Γ ⊢ t : A ->
@@ -180,12 +181,33 @@ case _ wf j _ =>
       subst rin; rw [<-h1] at j; unfold Frame.get_type at j; simp at j
       subst j
       apply ctx_get_term_well_typed wf (Eq.symm h1)
-case appk =>
+case appk j1 j2 ih1 ih2 =>
   cases r
-  case _ =>
-    sorry
-  case _ =>
-    sorry
+  case _ x sp ixs ℓ' i1 i2 i3 i4 i5 =>
+    simp at i4; replace i4 := Eq.symm i4
+    rw [Option.bind_eq_some] at i4; simp at i4
+    cases i4; case _ x' i4 =>
+    cases i4; case _ sp' i4 =>
+    cases i4; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3; subst i5
+      simp at rin; cases rin; case _ w rin =>
+      cases rin; case _ q1 q2 =>
+        subst q2; subst i3
+        have lem := preservation_inst_lemma j1 h1 i1 i2 q1
+        rw [Term.apply_spine_peel_kind]; constructor
+        apply lem; apply j2
+  case _ T x sp t i1 i2 =>
+    simp at i2; replace i2 := Eq.symm i2
+    rw [Option.bind_eq_some] at i2; simp at i2
+    cases i2; case _ x' i2 =>
+    cases i2; case _ sp' i2 =>
+    cases i2; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3; simp at rin; subst rin
+      have lem := preservation_letterm_lemma j1 h1 i1
+      rw [Term.apply_spine_peel_kind]; constructor
+      apply lem; apply j2
 case ite j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
   cases r <;> try simp at *
   case _ x sp sp' ξ h1 h2 h3 h4 =>
@@ -209,7 +231,7 @@ case guard j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
     cases h; case _ h1 h2 =>
       subst h2; replace ih2 := ih2 r h1
       apply Judgment.guard j1 ih2 j3 j4 j5 j6 j7 j8 j9
-case _ j1 j2 j3 ih1 ih2 =>
+case app j1 j2 j3 ih1 ih2 =>
   cases r
   case _ =>
     simp at rin; subst rin
@@ -247,7 +269,44 @@ case _ j1 j2 j3 ih1 ih2 =>
     cases h; case _ h1 h2 =>
       subst h2; constructor
       apply ih1 r h1; apply j2; apply j3
-case appt => sorry
+case appt j1 j2 j3 ih1 ih2 =>
+  cases r
+  case _ =>
+    simp at rin; subst rin
+    cases j1; case _ j4 j5 j6 =>
+      have lem := beta_kind j6 j2
+      subst j3; apply lem
+  case _ x sp ixs ℓ' i1 i2 i3 i4 i5 =>
+    simp at i4; replace i4 := Eq.symm i4
+    rw [Option.bind_eq_some] at i4; simp at i4
+    cases i4; case _ x' i4 =>
+    cases i4; case _ sp' i4 =>
+    cases i4; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3; subst i5
+      simp at rin; cases rin; case _ w rin =>
+      cases rin; case _ q1 q2 =>
+        subst q2; subst i3
+        have lem := preservation_inst_lemma j1 h1 i1 i2 q1
+        rw [Term.apply_spine_peel_type]; constructor
+        apply lem; apply j2; apply j3
+  case _ T x sp t i1 i2 =>
+    simp at i2; replace i2 := Eq.symm i2
+    rw [Option.bind_eq_some] at i2; simp at i2
+    cases i2; case _ x' i2 =>
+    cases i2; case _ sp' i2 =>
+    cases i2; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3; simp at rin; subst rin
+      have lem := preservation_letterm_lemma j1 h1 i1
+      rw [Term.apply_spine_peel_type]; constructor
+      apply lem; apply j2; apply j3
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ f' h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply ih1 r h1; apply j2; apply j3
 case _ j1 j2 ih1 ih2 =>
   cases r <;> try simp at *
   case _ =>
@@ -270,10 +329,145 @@ case _ j ih =>
     cases h; case _ h1 h2 =>
       subst h2; constructor
       apply ih r' h1
-case seq => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+case seq j1 j2 ih1 ih2 =>
+  cases r <;> try simp at *
+  case _ =>
+    have lem := uniqueness_of_types j1 j2
+    injection lem with _ e1 e2; subst e1; subst e2
+    cases j1; case _ j1 j3 =>
+    subst rin; apply Judgment.refl j1 j3
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply ih1 r h1; apply j2
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply ih2 r h1
+case _ Γ A K1 K2 B t1 C D t2 j1 j2 j3 j4 j5 j6 ih1 ih2 ih3 ih4 ih5 ih6 =>
+  cases r <;> try simp at *
+  case _ =>
+    subst rin
+    cases j3; case _ K1' q1 q2 =>
+    cases j6; case _ K2' w1 w2 =>
+      have lem0 := classification_lemma j2; simp at lem0
+      have lem : Γ ⊢ (A `@k C) : K2 := by
+        constructor; apply j2; apply j5
+      apply Judgment.refl _ lem
+      cases lem0
+      case _ lem0 =>
+        cases lem0; case _ w1 w2 => apply w2
+      case _ lem0 =>
+        cases lem0; case _ K3 w1 w2 =>
+        cases w2.2; cases w2.1
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply ih3 r h1
+      apply j4; apply j5; apply j6
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply j3
+      apply j4; apply j5; apply ih6 r h1
+case _ Γ A B t1 C D t2 j1 j2 j3 j4 j5 j6 ih1 ih2 ih3 ih4 ih5 ih6 =>
+  cases r <;> try simp at *
+  case _ =>
+    subst rin
+    cases j3; case _ K1 q1 q2 =>
+    cases j6; case _ K2 w1 w2 =>
+      have lem : Γ ⊢ (A -t> C) : ★ := by
+        constructor; apply j2; apply j5
+      apply Judgment.refl _ lem; constructor
+      apply judgment_ctx_wf j1
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply ih3 r h1
+      apply j4; apply j5; apply j6
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply j3
+      apply j4; apply j5; apply ih6 r h1
+case _ j1 j2 j3 ih1 ih2 ih3 =>
+  cases r <;> try simp at *
+  case _ =>
+    subst rin
+    cases j3; case _ K1 q1 q2 =>
+    apply Judgment.refl _ j1
+    have lem := classification_lemma j1; simp at lem
+    cases lem
+    case _ lem => apply lem
+    case _ lem =>
+      cases lem; case _ K3 lem =>
+        cases lem.2; cases lem.1
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply ih3 r h1
+case _ j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
+  cases r <;> try simp at *
+  case _ =>
+    subst rin
+    cases j4; case _ K1 q1 q2 =>
+      apply Judgment.refl j1 j2
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply j3
+      apply ih4 r h1
+case _ j1 j2 j3 ih1 ih2 ih3 =>
+  cases r <;> try simp at *
+  case _ =>
+    subst rin
+    cases j3; case _ K1 q1 q2 =>
+      apply Judgment.refl _ j2; constructor
+      apply judgment_ctx_wf j1
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply ih3 r h1
+case _ j1 j2 j3 j4 j5 j6 ih1 ih2 ih3 ih4 =>
+  cases r <;> try simp at *
+  case _ =>
+    subst rin
+    cases j1; case _ K1 q1 q2 =>
+    cases j4; case _ K2 w1 w2 =>
+    cases q2; case _ i1 i2 =>
+      replace i2 := beta_kind i2 j3; simp at i2
+      subst j5; subst j6
+      apply Judgment.refl _ i2; constructor
+      apply judgment_ctx_wf j2
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply ih1 r h1; apply j2; apply j3
+      apply j4; apply j5; apply j6
+  case _ ℓ' r h =>
+    subst h; simp at rin
+    cases rin; case _ z h =>
+    cases h; case _ h1 h2 =>
+      subst h2; constructor
+      apply j1; apply j2; apply j3
+      apply ih4 r h1; apply j5; apply j6
