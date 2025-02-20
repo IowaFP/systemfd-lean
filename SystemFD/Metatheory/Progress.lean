@@ -387,14 +387,24 @@ case appt Γ f _ _ a _ fJ aJ _ fs as =>
     case refl =>
         have xx := refl_typing_unique fJ; cases xx
 
-case _ tJ ηJ ts cs =>
-
+case _ Γ t A η B tJ ηJ ts cs =>
   simp_all; cases h; case _ w h =>
   have lem := classification_lemma ηJ; simp at lem; cases lem; cases h;
-  case _ h => sorry
-  case _ h => cases h;  sorry
-
-  -- simp at cs; have cs' := cs wΓ dctx ★ (Judgment.ax wΓ) sorry; sorry
+  case _ eqJ _ h => cases eqJ
+  case _ h => cases h; case _ w h =>
+    have weqstar := invert_eq_kind h.2; subst weqstar;
+    have cs' := @cs ★ h.1 h.2; cases cs';
+    case _ h =>
+      have ηreflp := @refl_is_val Γ η A B dctx ηJ h;
+      have ηrefl := ηreflp.1;
+      subst ηrefl; apply Or.inr;
+      have reds : ∃ t', Red Γ (t ▹ refl! A) t' := Exists.intro [t] Red.cast;
+      apply reds;
+    case _ h => cases h; case _ w h =>
+      apply Or.inr
+      generalize tlp : List.map (t ▹ ·) w = tl' at *; symm at tlp;
+      have reds : ∃ t', Red Γ (t ▹ η) t' := Exists.intro tl' (Red.cast_congr h tlp);
+      apply reds;
 
 case _ => apply Or.inl Val.refl
 case sym Γ η A B ηJ ηs =>
