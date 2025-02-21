@@ -3,6 +3,7 @@ import SystemFD.Term
 import SystemFD.Ctx
 import SystemFD.Judgment
 import SystemFD.Metatheory.Classification
+import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
 
 inductive Neutral : Ctx Term -> Term -> Prop where
@@ -58,12 +59,6 @@ theorem kind_kind : ⊢ Γ -> Γ d@ x = .kind t -> Γ ⊢ t : .kind := by
 intros wΓ h;
 sorry
 
-
-theorem openm_type : ⊢ Γ -> Γ d@ x = .openm t -> Γ ⊢ t : .type := by
-intros wΓ h;
-sorry
-
-
 theorem not_neutral_form_shape : Val Γ t ->
         t.neutral_form = .some (n, ts)
         -> ¬ ((t = `λ[A] b)
@@ -78,41 +73,6 @@ theorem not_neutral_form_shape : Val Γ t ->
             ) := by
 intros tnf; induction t;
 any_goals (solve | simp_all)
-
--- theorem neutral_form_shape : Val Γ t ->
---         t.neutral_form = .some (n, ts)
---         -> ¬ ((t = (f `@ a))
---             ∨ (t = (f `@t a))
---             ∨ (t = (f `@k a))
---             ) := by
--- intros tnf; induction t;
--- any_goals (solve | simp_all)
-
-
-theorem invert_eq_kind : Γ ⊢ (A ~ B) : w -> w = ★ := by
-intros eqJ; cases eqJ; simp_all;
-
-theorem invert_arr_kind : Γ ⊢ (A -t> B) : w -> w = ★ := by
-intros eqJ; cases eqJ; simp_all;
-
-theorem invert_all_kind : (Γ ⊢ ∀[ A ] B : w) -> w = ★ := by
-intros eqJ; cases eqJ; simp_all;
-
-
-theorem lamt_typing_unique : Γ ⊢ Λ[A]b : t -> ∃ B', t = ∀[A] B' := by
-intros tJ; cases tJ;
-case _ => simp_all;
-
-theorem lam_typing_unique : Γ ⊢ `λ[a]b : t -> ∃ A' B', (t = (A' -t> B')) := by
-intros tJ; cases tJ;
-case _ => simp_all;
-
-theorem refl_typing_unique : Γ ⊢ refl! A : t -> (t = (A ~ A)) := by
-intros tJ; cases tJ;
-case _ => simp_all;
-
-
-theorem test : ⊢ Γ -> ¬ Γ.is_stable x -> ¬ (Γ d@ x).get_type = .some (A ~ B) := by sorry
 
 inductive DeclCtx  : (Γ : Ctx Term) -> Prop where
 |  nil : DeclCtx []
@@ -180,16 +140,26 @@ intros tnf nstable x; cases x;
       have wfst := And.left (And.right h); symm at wfst;
       subst wfst; simp_all;
 
-theorem val_no_red : Val Γ t -> ¬ ∃ t', Red Γ t t' := by
-intros vt tred; induction vt;
+theorem val_no_red : ⊢ Γ -> Val Γ t -> ¬ ∃ t', Red Γ t t' := by
+intros wΓ vt tred; induction vt;
 case _ =>
   cases tred; case _ nf st w h =>
     have no_red := stable_no_reduce nf st;
     have reds := Exists.intro w h; simp_all;
 case _ => cases tred; case _ h =>
   cases h;
-  case _ => sorry; -- bogus case
-  case _ => sorry; -- bogus case
+  case _ =>  -- bogus case
+    -- have tty := ctx_get_instance_well_typed wΓ;
+     sorry;
+  case _ Γ _ _  ty n sp t fterm nf =>  -- bogus case
+    symm at fterm; have tty := ctx_get_term_well_typed wΓ fterm;
+    have h1 := tty.1; have h2 := tty.2;
+    have lem := classification_lemma h2; simp at lem; cases lem;
+    case _ h => subst h; sorry
+    case _ h =>
+      cases h;
+      case _ h => simp_all; sorry
+      case _ h => have xx := term_disjoint h1 h; simp_all; sorry;
 
 case _ => cases tred; case _ h =>
   cases h;
@@ -246,7 +216,7 @@ case _ Γ t n _ _ n_stable =>
       have anf' : ((#a).neutral_form = .some (a, [])) := @Term.var_neutral_form a;
       rw [anf'] at tnf; injection tnf with aeqs; simp_all; cases ηJ;
       case _ wΓ _  =>
-        have xx := @test Γ n A B wΓ sorry; simp_all;
+        have xx := @ctx_no_eq_type Γ n A B wΓ sorry; simp_all;
     case _ ctor2v _ _  =>
     cases ctor2v;
     any_goals (solve | cases ηJ)
@@ -284,7 +254,10 @@ case _ Γ t n _ _ n_stable =>
       have lem := classification_lemma aj; simp at lem; cases lem;
       case _ h => cases h
       case _ h => cases h; case _ h => cases h.2; simp_all;
-case _ => cases ηJ; simp_all; sorry
+case _ => cases ηJ; case _ fJ =>
+  have lem := classification_lemma fJ; simp at lem; cases lem;
+  case _ h => cases h; case _ h => have h := invert_eq_kind h; cases h;
+  case _ h => cases h; case _ h => simp_all; sorry
 case _ => cases ηJ
 case _ => cases ηJ
 case _ => cases ηJ; simp_all
@@ -320,7 +293,7 @@ case var Γ x _ _ xTy ih =>
   unfold Frame.get_type at xTy; simp at xTy;
   split at xTy;
   any_goals (solve | simp_all)
-  case _ f _ x_is_kind =>
+  case _ f _ x_is_kind => -- bogus case
     simp_all; have xK := kind_kind wΓ x_is_kind;
     subst xTy;
     sorry
@@ -375,8 +348,8 @@ case ite Γ p A s _ i _ _ e _ _ RJ _ vhvp vhvr _ _ tstar _ ps ss _ is _ es =>
     have pnp := h.1; symm at pnp;
     have head_stable := Frame.is_ctor_implies_is_stable pctor;
     have pnf_val := Val.app pnp head_stable;
-    have pnr := val_no_red pnf_val; simp_all;
-
+    -- have pnr := val_no_red; simp_all;
+    sorry
   case inl h =>
     cases h;
     case _ => cases vhvp; case _ n sp _ _ _  h =>

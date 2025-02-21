@@ -47,3 +47,43 @@ theorem ctx_get_instance_well_typed :
   t ∈ get_instances Γ ixs ->
   Γ ⊢ #x : T ∧ Γ ⊢ t : T
 := by sorry
+
+
+theorem ctx_no_eq_type :
+  ⊢ Γ ->
+  ¬ Γ.is_stable x ->
+  ¬ (Γ d@ x).get_type = .some (A ~ B)
+:= by
+intros wΓ nsx;
+simp_all;
+unfold Frame.is_stable at nsx;
+split at nsx;
+any_goals(solve | unfold Frame.get_type; simp_all)
+case _ => simp_all; unfold Frame.get_type; simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+case _ => simp_all; sorry
+
+
+
+
+theorem invert_eq_kind : Γ ⊢ (A ~ B) : w -> w = ★ := by
+intros eqJ; cases eqJ; simp_all;
+
+theorem invert_arr_kind : Γ ⊢ (A -t> B) : w -> w = ★ := by
+intros eqJ; cases eqJ; simp_all;
+
+theorem invert_all_kind : (Γ ⊢ ∀[ A ] B : w) -> w = ★ := by
+intros eqJ; cases eqJ; simp_all;
+
+theorem lamt_typing_unique : Γ ⊢ Λ[A]b : t -> ∃ B', t = ∀[A] B' := by
+intros tJ; cases tJ;
+case _ => simp_all;
+
+theorem lam_typing_unique : Γ ⊢ `λ[a]b : t -> ∃ A' B', (t = (A' -t> B')) := by
+intros tJ; cases tJ;
+case _ => simp_all;
+
+theorem refl_typing_unique : Γ ⊢ refl! A : t -> (t = (A ~ A)) := by
+intros tJ; cases tJ;
+case _ => simp_all;
