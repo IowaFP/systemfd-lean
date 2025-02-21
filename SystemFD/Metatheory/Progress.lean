@@ -64,8 +64,36 @@ any_goals (solve | simp_all)
 
 def DeclCtx (Γ : Ctx Term) : Prop := ∀ n, Γ.is_stable_red n
 namespace DeclCtx
-theorem consempty : DeclCtx Γ -> DeclCtx (.empty :: Γ) := by sorry
+theorem consempty : DeclCtx Γ -> DeclCtx (.empty :: Γ) := by
+  intros dctx; induction Γ
+  case _ =>
+    unfold DeclCtx; unfold Ctx.is_stable_red; unfold Frame.is_stable_red; simp_all; intro n;
+    split;
+    any_goals (solve | simp_all)
+    case _ h =>
+      unfold dnth at h; simp_all; split at h;
+      any_goals (solve | simp_all)
+      case _ h' => cases h'; cases h
+      case _ h' => cases h'; cases h;
+    case _ h =>
+      unfold dnth at h; simp_all; split at h;
+      any_goals (solve | simp_all)
+      case _ h' => cases h'; cases h
+      case _ h' => cases h'; cases h;
+    case _ h =>
+      unfold dnth at h; simp_all; split at h;
+      any_goals (solve | simp_all)
+      case _ h' => cases h'; cases h
+      case _ h' => cases h'; cases h;
+    case _ h =>
+      unfold dnth at h; simp_all; split at h;
+      any_goals (solve | simp_all)
+      case _ h' => cases h'; cases h; sorry
+      case _ h' => sorry
+  case _ =>
+  sorry
 theorem conskind : DeclCtx Γ -> DeclCtx (.kind t :: Γ) := by sorry
+
 end DeclCtx
 
 theorem no_lam_bindings : (DeclCtx Γ) -> ∀ x, ¬  (Γ d@ x = .type T) := by
@@ -317,7 +345,8 @@ case ite Γ p A s _ i _ _ e _ sJ RJ _ vhvp vhvr stm _ tstar _ ps ss _ is _ es =>
           apply Or.inr reds
     case _ sf =>
        simp;
-       have s_n := sf.1; have s_sp := sf.2;
+       have s_sp := sf.2;
+       generalize sp : sf.1 = s_n at *; symm at sp;
        generalize snctor : Γ.is_ctor s_n = p at *;
        cases p;
        case _ =>  -- scrutinee is a not a ctor headed but has a normal form
@@ -326,14 +355,14 @@ case ite Γ p A s _ i _ _ e _ sJ RJ _ vhvp vhvr stm _ tstar _ ps ss _ is _ es =>
           have check := Nat.decEq pf.fst sf.fst;
           cases check;
           case _ h =>
-            have s_is_stable : Γ.is_stable_red sf.fst := by  sorry;
+            have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_ctor_implies_is_stable_red snctor;
             have reds : ∃ t', Red Γ (.ite p s i e) t' := Exists.intro [e] (Red.ite_missed pnf snf s_is_stable (Or.inl h));
             apply Or.inr; apply reds;
           case _ h =>
             generalize comp_prefix : prefix_equal pf.snd sf.snd = h at *;
             cases h
             case _ h =>
-              have s_is_stable : Γ.is_stable_red sf.fst := sorry;
+              have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_ctor_implies_is_stable_red snctor;
               have reds : ∃ t', Red Γ (.ite p s i e) t' :=
                    Exists.intro [e] (Red.ite_missed pnf snf s_is_stable (Or.inr comp_prefix));
               apply Or.inr; apply reds;
@@ -359,8 +388,9 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
           have reds : ∃ t', Red Γ (.guard p s t) t' := Exists.intro tl' (Red.guard_congr h tlp);
           apply Or.inr reds
     case _ sf =>
-       simp; have s_n := sf.1; have s_sp := sf.2;
+       simp; have s_sp := sf.2;
        generalize snctor : Γ.is_ctor sf.fst = p at *;
+       generalize sp : sf.1 = s_n at *; symm at sp;
        cases p;
        case _ =>   -- scrutinee is a not a opentype headed but has a normal form
             sorry
@@ -368,15 +398,14 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
           have check := Nat.decEq pf.fst sf.fst;
           cases check;
           case _ h =>
-            have s_is_stable : Γ.is_stable_red sf.fst := sorry;
+            have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_ctor_implies_is_stable_red snctor;
             have reds : ∃ t', Red Γ (.guard p s t) t' := Exists.intro [] (Red.guard_missed pnf snf s_is_stable (Or.inl h));
             apply Or.inr; apply reds; -- sorry
           case _ h =>
             generalize comp_prefix : prefix_equal pf.snd sf.snd = h at *;
             cases h
             case _ h =>
-              simp at snctor;
-              have s_is_stable : Γ.is_stable_red sf.fst := Frame.is_ctor_implies_is_stable_red snctor;
+              have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_ctor_implies_is_stable_red snctor;
               have reds : ∃ t', Red Γ (.guard p s t) t' :=
                    Exists.intro [] (Red.guard_missed pnf snf s_is_stable (Or.inr comp_prefix));
               apply Or.inr; apply reds;
