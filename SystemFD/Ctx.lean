@@ -72,7 +72,6 @@ namespace Frame
 
   def is_lam_bound : Frame T -> Bool
   | .type _ => true
-  | .kind _ => true
   | _ => false
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
