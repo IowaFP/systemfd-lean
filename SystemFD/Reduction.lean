@@ -25,11 +25,12 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
   .some (x, sp) = Term.neutral_form p ->
   .some (x, sp') = Term.neutral_form s ->
   .some q = prefix_equal sp sp' ->
-  Term.is_ctorid Γ x ->
+  Γ.is_ctor x ->
   Red Γ (.ite p s b e) [b.apply_spine q]
 | ite_missed :
   .some (x, sp) = Term.neutral_form p ->
   .some (x', sp') = Term.neutral_form s ->
+  Γ.is_stable_red x' ->
   x ≠ x' ∨ prefix_equal sp sp' = .none ->
   Red Γ (.ite p s b e) [e]
 ----------------------------------------------------------------
@@ -43,6 +44,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 | guard_missed :
   .some (x, sp) = Term.neutral_form p ->
   .some (x', sp') = Term.neutral_form s ->
+  Γ.is_stable_red x' ->
   x ≠ x' ∨ prefix_equal sp sp' = .none ->
   Red Γ (.guard p s b) []
 ----------------------------------------------------------------

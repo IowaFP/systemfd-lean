@@ -48,21 +48,41 @@ theorem ctx_get_instance_well_typed :
   Γ ⊢ #x : T ∧ Γ ⊢ t : T
 := by sorry
 
+theorem ctx_get_opent_kind : ⊢ Γ -> Γ d@ x = .opent t -> Γ ⊢ t : .kind := by
+intros wΓ h;
+sorry
 
-theorem ctx_no_eq_type :
+theorem ctx_get_datatype_kind : ⊢ Γ -> Γ d@ x = .datatype t -> Γ ⊢ t : .kind := by
+intros wΓ h;
+sorry
+
+theorem ctx_get_var_type : ⊢ Γ -> Γ d@ x = .kind t -> Γ ⊢ t : .kind := by
+intros wΓ h;
+sorry
+
+
+theorem ctx_get_var_no_eq_type :
   ⊢ Γ ->
-  ¬ Γ.is_stable x ->
+  Γ.is_stable_red x ->
   ¬ (Γ d@ x).get_type = .some (A ~ B)
 := by
 intros wΓ nsx;
 simp_all;
-unfold Frame.is_stable at nsx;
+unfold Frame.is_stable_red at nsx;
 split at nsx;
 any_goals(solve | unfold Frame.get_type; simp_all)
-case _ => simp_all; unfold Frame.get_type; simp_all; sorry
-case _ => simp_all; sorry
-case _ => simp_all; sorry
-case _ => simp_all; sorry
+case _ =>
+  simp_all; unfold Frame.get_type; intro h; split at h;
+  any_goals (cases h)
+  case _ h => sorry
+  case _ h => sorry
+  case _ h => sorry
+  case _ h => sorry
+  case _ h => sorry
+  case _ h => sorry
+  case _ h => sorry
+  case _ h => sorry
+
 
 
 
@@ -80,7 +100,7 @@ theorem lamt_typing_unique : Γ ⊢ Λ[A]b : t -> ∃ B', t = ∀[A] B' := by
 intros tJ; cases tJ;
 case _ => simp_all;
 
-theorem lam_typing_unique : Γ ⊢ `λ[a]b : t -> ∃ A' B', (t = (A' -t> B')) := by
+theorem lam_typing_unique : Γ ⊢ `λ[A]b : t -> ∃ B', (t = (A -t> B')) := by
 intros tJ; cases tJ;
 case _ => simp_all;
 

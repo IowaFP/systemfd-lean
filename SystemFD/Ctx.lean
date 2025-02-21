@@ -70,6 +70,14 @@ namespace Frame
   | .empty => false
   | _ => true
 
+  def is_stable_red : Frame T -> Bool
+  | .type _ => false
+  | .openm _ => false
+  | .term _ _ => false
+  | .empty => false
+  | _ => true
+
+
   def is_lam_bound : Frame T -> Bool
   | .type _ => true
   | _ => false
@@ -83,6 +91,11 @@ namespace Frame
   theorem is_ctor_implies_is_stable : is_ctor f -> is_stable f := by
   intro h; unfold is_ctor at h
   split at h <;> simp at *; unfold is_stable; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_ctor_implies_is_stable_red : is_ctor f -> is_stable_red f := by
+  intro h; unfold is_ctor at h
+  split at h <;> simp at *; unfold is_stable_red; simp
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_datatype_implies_is_stable : is_datatype f -> is_stable f := by
@@ -248,6 +261,8 @@ namespace Ctx
   def is_opent (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_opent
   @[simp]
   def is_stable (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_stable
+  @[simp]
+  def is_stable_red (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_stable_red
   @[simp]
   def is_lam_bound (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_lam_bound
 end Ctx
