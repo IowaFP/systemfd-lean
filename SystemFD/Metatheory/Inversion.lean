@@ -1,6 +1,8 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Metatheory.Weaken
+import SystemFD.Metatheory.Uniqueness
 
 theorem inversion_apply_spine :
   Γ ⊢ t.apply_spine sp : A ->
@@ -32,13 +34,93 @@ theorem apply_spine_uniform :
   Γ ⊢ b : A ->
   Γ ⊢ a.apply_spine sp : B ->
   Γ ⊢ b.apply_spine sp : B
-:= by sorry
+:= by
+intro j1 j2 j3
+induction sp generalizing Γ a b A B <;> simp at *
+case _ =>
+  have lem := uniqueness_of_types j1 j3; subst lem
+  apply j2
+case _ hd tl ih =>
+  cases hd; case _ v t =>
+  cases v <;> simp at *
+  case _ =>
+    have lem := inversion_apply_spine j3
+    cases lem; case _ D lem =>
+    cases lem; case _ U V q1 q2 q3 =>
+      have lem1 := uniqueness_of_types j1 q1; subst lem1
+      have lem2 : Γ ⊢ (a `@ t) : (V β[t]) := by
+        constructor; apply q1; apply q2; simp
+      have lem3 : Γ ⊢ (b `@ t) : (V β[t]) := by
+        constructor; apply j2; apply q2; simp
+      apply ih lem2 lem3 j3
+  case _ =>
+    have lem := inversion_apply_spine j3
+    cases lem; case _ D lem =>
+    cases lem; case _ U V q1 q2 q3 =>
+      have lem1 := uniqueness_of_types j1 q1; subst lem1
+      have lem2 : Γ ⊢ (a `@t t) : (V β[t]) := by
+        constructor; apply q1; apply q2; simp
+      have lem3 : Γ ⊢ (b `@t t) : (V β[t]) := by
+        constructor; apply j2; apply q2; simp
+      apply ih lem2 lem3 j3
+  case _ =>
+    have lem := inversion_apply_spine j3
+    cases lem; case _ D lem =>
+    cases lem; case _ U q1 q2 =>
+      have lem1 := uniqueness_of_types j1 q2; subst lem1
+      have lem2 : Γ ⊢ (a `@k t) : D := by
+        constructor; apply q2; apply q1
+      have lem3 : Γ ⊢ (b `@k t) : D := by
+        constructor; apply j2; apply q1
+      apply ih lem2 lem3 j3
+
+@[simp]
+abbrev GetCtxLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
+| .prf => λ _ => True
+| .wf => λ () => ∀ x,
+  (∀ {T t}, Γ d@ x = .term T t -> Γ ⊢ #x : T ∧ Γ ⊢ t : T)
+
+theorem ctx_get_lemma : Judgment v Γ ix -> GetCtxLemmaType Γ v ix := by
+have lem1 : ∀ {Γ x T t}, (Γ d@ x).apply S = Frame.term T t ->
+  ∃ (T' t' : Term), (Γ d@ x) = Frame.term T' t'
+:= by
+  sorry
+intro j; induction j <;> simp at *
+case _ Γ h ih =>
+  intro x; cases x <;> simp at *
+  case _ =>
+    intro T t h1
+    unfold Frame.apply at h1; simp at h1
+  case _ x =>
+    intro T t h1
+    have h2 := lem1 h1
+    cases h2; case _ T' h2 =>
+    cases h2; case _ t' h2 =>
+      rw [h2] at h1; unfold Frame.apply at h1; simp at h1
+      cases h1; case _ h1 h2 =>
+        subst h1; subst h2
+        replace ih := ih x h2
+        apply And.intro
+        apply weaken_empty ih.1
+        apply weaken_empty ih.2
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
 
 theorem ctx_get_term_well_typed :
   ⊢ Γ ->
   Γ d@ x = .term T t ->
   Γ ⊢ #x : T ∧ Γ ⊢ t : T
-:= by sorry
+:= by
+intro h1 h2
+have lem := ctx_get_lemma h1; simp at lem
+apply (lem x) h2
 
 theorem ctx_get_instance_well_typed :
   ⊢ Γ ->
