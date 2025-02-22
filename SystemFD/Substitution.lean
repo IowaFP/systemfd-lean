@@ -148,10 +148,10 @@ section
 
   omit [SubstitutionTypeLaws T] in
   @[simp]
-  theorem valid1 {s : T} : s β[t] = [.su t :: I]s := by simp
+  theorem beta_unfold {s : T} : s β[t] = [.su t :: I]s := by simp
 
   @[simp] -- ⇑σ = 0.(σ ◦ S)
-  theorem valid3 {σ : Subst T} : ^σ = .re 0 :: (S ⊙ σ) := by
+  theorem lift_unfold {σ : Subst T} : ^σ = .re 0 :: (S ⊙ σ) := by
   funext; case _ x =>
     cases x
     case _ => unfold Subst.lift; simp
@@ -171,12 +171,12 @@ section
 
   omit [SubstitutionTypeLaws T] in
   @[simp] -- σ ◦ I = σ
-  theorem valid5 {σ : Subst T} : σ ⊙ I = σ := by
+  theorem cancel_I_right {σ : Subst T} : σ ⊙ I = σ := by
   funext; case _ x =>
     unfold Subst.compose; unfold I; simp
 
   @[simp] -- I ◦ σ = σ
-  theorem valid6 {σ : Subst T} : I ⊙ σ = σ := by
+  theorem cancel_I_left {σ : Subst T} : I ⊙ σ = σ := by
   funext; case _ x =>
     unfold Subst.compose; unfold I; unfold Subst.apply; simp
     generalize zdef : σ x = z
@@ -186,7 +186,7 @@ section
     rw [lem, apply_id]
 
   @[simp] -- (σ ◦ τ) ◦ μ = σ ◦ (τ ◦ μ)
-  theorem valid7 {σ : Subst T} : σ ⊙ (τ ⊙ μ) = σ ⊙ τ ⊙ μ := by
+  theorem assoc {σ : Subst T} : σ ⊙ (τ ⊙ μ) = σ ⊙ τ ⊙ μ := by
   funext; case _ x =>
     unfold Subst.compose; simp
     cases μ x <;> simp
@@ -283,11 +283,12 @@ section
       cases v <;> simp at *
       case _ w => rw [<-h2]; apply Rs S h1
 
+  omit [SubstitutionTypeLaws T] in
   @[simp]
-  theorem P_after_S {t : T} : [P ⊙ S]t = t := by
+  theorem P_after_S : (P ⊙ S) = @I T := by
   unfold P; unfold S; unfold Subst.compose; simp
   have lem : @I T = fun x => .re x := by unfold I; simp
-  rw [<-lem]; simp
+  rw [<-lem]
 
 end
 

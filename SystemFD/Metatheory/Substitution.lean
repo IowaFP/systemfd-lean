@@ -1,39 +1,40 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Metatheory.TypeMatch
+import SystemFD.Metatheory.Weaken
 
--- theorem lift_subst_rename (A : Term) :
---   (∀ n y, σ n = .re y -> [σ](Γ d@ n) = Δ d@ y) ->
---   (∀ n y, ^σ n = .re y -> [^σ]((A :: Γ) d@ n) = ([σ]A :: Δ) d@ y)
--- := by
--- intro h1 n y h2
--- cases n
--- case _ => simp at *; subst h2; simp
--- case _ n =>
---   simp at *; unfold Subst.compose at h2; simp at h2
---   generalize ydef : σ n = y at *
---   cases y <;> simp at h2
---   case _ z =>
---     subst h2; simp
---     replace h1 := h1 n z ydef
---     rw [<-Term.apply_compose, h1]
+set_option maxHeartbeats 500000
 
--- theorem lift_subst_replace :
---   Δ ⊢ ([σ]A) : .const K ->
---   (∀ n t, σ n = .su t -> Δ ⊢ t : ([σ]Γ d@ n)) ->
---   (∀ n t, ^σ n = .su t -> ([σ]A :: Δ) ⊢ t : ([^σ](A :: Γ) d@ n))
--- := by
--- intro j h1 n t h2
--- cases n <;> simp at *
--- case _ n =>
---   unfold Subst.compose at h2; simp at h2
---   generalize ydef : σ n = y at *
---   cases y <;> simp at h2
---   case _ t' =>
---     replace h1 := h1 n t' ydef
---     subst h2
---     rw [<-Term.apply_compose]
---     apply weaken; apply j; apply h1
+theorem lift_subst_replace (A : Frame Term) :
+  ⊢ (A.apply σ :: Δ) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢ t : ([σ]T)) ->
+  (∀ n t T, ^σ n = .su t -> .some T = ((A::Γ) d@ n).get_type -> (A.apply σ :: Δ) ⊢ t : ([^σ]T))
+:= by
+intro j h1 n t T h2 h3
+cases n <;> simp at *
+case _ n =>
+  unfold Subst.compose at h2; simp at h2
+  generalize ydef : σ n = y at *
+  cases y <;> simp at h2
+  case _ t' =>
+    subst h2
+    have lem : Option.map ([P]·) (some T) = (Γ d@ n).get_type := by
+      rw [h3]; simp; unfold Function.comp; simp
+    simp at lem
+    replace h1 := h1 n t' ([P]T) ydef lem
+    have lem2 : ∃ T', T = [S]T' := by
+      generalize wdef : (Γ d@ n).get_type = w at *
+      cases w
+      case _ => cases lem
+      case _ T' => simp at h3; exists T'
+    have lem3 : [S ⊙ σ ⊙ P]T = [^σ]T := by
+      cases lem2; case _ T' lem2 =>
+      subst lem2; simp; rw [<-Subst.assoc]
+      rw [Subst.P_after_S]; simp
+    have lem4 := weaken j h1; simp at lem4
+    rw [lem3] at lem4; simp at lem4
+    apply lem4
 
 @[simp]
 abbrev idx_subst (σ : Subst Term) : JudgmentArgs v -> JudgmentArgs v :=
@@ -51,41 +52,269 @@ theorem subst :
 := by
 intro h1 h2 h3 j wf
 induction j generalizing Δ σ
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+any_goals (solve | apply wf)
+case letterm A t b T j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
+  simp at *
+  have lem1 := ih1 h1 h2 h3 wf
+  have lem2 := ih2 h1 h2 h3 wf
+  have lem3 : ⊢ ((Frame.term A t).apply σ :: Δ) := by
+    apply Judgment.wfterm lem1 lem2 wf
+  replace ih3 := @ih3 (^σ) ((Frame.term A t).apply σ :: Δ)
+    (lift_subst_rename (Frame.term A t) h1)
+    (lift_subst_replace (Frame.term A t) lem3 h2)
+    (lift_subst_stable (Frame.term A t) h3)
+    lem3
+  simp at ih3
+  apply Judgment.letterm lem1 lem2
+  simp; apply ih3; apply ih4 h1 h2 h3 wf
+case ax ih =>
+  simp at *
+  apply Judgment.ax wf
+case var Γ x T j1 j2 ih =>
+  simp at *
+  generalize zdef : σ x = z at *
+  cases z <;> simp
+  case _ y =>
+    constructor; apply wf; rw [<-h1 _ _ zdef]
+    have lem : ∀ {f : Frame Term} {σ : Subst Term},
+      (f.apply σ).get_type = Option.map ([σ]·) f.get_type
+    := by
+      intro f σ
+      cases f
+      all_goals (
+        unfold Frame.apply; simp
+        unfold Frame.get_type; simp
+      )
+    rw [lem, <-j2]; simp
+  case _ t => apply h2 x _ _ zdef j2
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.allk ih1 ih2
+case _ Γ A B j1 j2 ih1 ih2 =>
+  simp at *
+  have lem := ih1 h1 h2 h3 wf
+  have lem2 : ⊢ ((Frame.kind A).apply σ :: Δ) := by
+    apply Judgment.wfkind lem wf
+  replace ih2 := @ih2 (^σ) ((Frame.kind A).apply σ :: Δ)
+    (lift_subst_rename (Frame.kind A) h1)
+    (lift_subst_replace (Frame.kind A) lem2 h2)
+    (lift_subst_stable (Frame.kind A) h3)
+    lem2
+  simp at ih2
+  constructor; apply lem; apply ih2
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  have lem2 : ⊢ ((Frame.empty).apply σ :: Δ) := by
+    apply Judgment.wfempty wf
+  replace ih2 := @ih2 (^σ) ((Frame.empty).apply σ :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_replace (Frame.empty) lem2 h2)
+    (lift_subst_stable (Frame.empty) h3)
+    lem2
+  simp at ih2
+  apply Judgment.arrow ih1 ih2
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.appk ih1 ih2
+case _ ih1 ih2 ih3 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  apply Judgment.eq ih1 ih2 ih3
+case ite Γ p A s R i B T e j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  replace ih4 := ih4 h1 h2 h3 wf
+  replace ih5 := ih5 h1 h2 h3 wf
+  replace ih6 := ih6 h1 h2 h3 wf
+  replace j7 := stable_type_match_subst h1 h3 j7
+  replace j8 := prefix_type_match_subst h1 h3 j8
+  apply Judgment.ite ih1 ih2 ih3 ih4 _ _ j7 j8 ih5 ih6
+  case _ =>
+    apply valid_head_variable_subst Γ.is_ctor Δ.is_ctor _ j5
+    intro n h
+    have lem : Γ.is_stable n := by
+      apply Frame.is_ctor_implies_is_stable h
+    replace h3 := h3 n lem
+    cases h3; case _ y h3 =>
+    apply Exists.intro y; apply And.intro h3
+    replace h1 := h1 _ _ h3
+    simp at h; simp; rw [<-@Frame.is_ctor_stable _ _ σ _] at h
+    rw [h1] at h; apply h
+  case _ =>
+    apply valid_head_variable_subst Γ.is_datatype Δ.is_datatype _ j6
+    intro n h
+    have lem : Γ.is_stable n := by
+      apply Frame.is_datatype_implies_is_stable h
+    replace h3 := h3 n lem
+    cases h3; case _ y h3 =>
+    apply Exists.intro y; apply And.intro h3
+    replace h1 := h1 _ _ h3
+    simp at h; simp; rw [<-@Frame.is_datatype_stable _ _ σ _] at h
+    rw [h1] at h; apply h
+case guard Γ p A s R t B T j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  replace ih4 := ih4 h1 h2 h3 wf
+  replace ih5 := ih5 h1 h2 h3 wf
+  replace j7 := stable_type_match_subst h1 h3 j7
+  replace j8 := prefix_type_match_subst h1 h3 j8
+  apply Judgment.guard ih1 ih2 ih3 ih4 _ _ j7 j8 ih5
+  case _ =>
+    apply valid_head_variable_subst Γ.is_insttype Δ.is_insttype _ j5
+    intro n h
+    have lem : Γ.is_stable n := by
+      apply Frame.is_insttype_implies_is_stable h
+    replace h3 := h3 n lem
+    cases h3; case _ y h3 =>
+    apply Exists.intro y; apply And.intro h3
+    replace h1 := h1 _ _ h3
+    simp at h; simp; rw [<-@Frame.is_insttype_stable _ _ σ _] at h
+    rw [h1] at h; apply h
+  case _ =>
+    apply valid_head_variable_subst Γ.is_opent Δ.is_opent _ j6
+    intro n h
+    have lem : Γ.is_stable n := by
+      apply Frame.is_opent_implies_is_stable h
+    replace h3 := h3 n lem
+    cases h3; case _ y h3 =>
+    apply Exists.intro y; apply And.intro h3
+    replace h1 := h1 _ _ h3
+    simp at h; simp; rw [<-@Frame.is_opent_stable _ _ σ _] at h
+    rw [h1] at h; apply h
+case _ Γ A t B j1 j2 j3 ih1 ih2 ih3 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  have lem2 : ⊢ ((Frame.type A).apply σ :: Δ) := by
+    apply Judgment.wftype ih1 wf
+  replace ih2 := @ih2 (^σ) ((Frame.type A).apply σ :: Δ)
+    (lift_subst_rename (Frame.type A) h1)
+    (lift_subst_replace (Frame.type A) lem2 h2)
+    (lift_subst_stable (Frame.type A) h3)
+    lem2
+  simp at ih2
+  apply Judgment.lam ih1 ih2 ih3
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.app ih1 ih2; simp [*]
+case _ Γ A t B j1 j2 j3 ih1 ih2 ih3 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  have lem2 : ⊢ ((Frame.kind A).apply σ :: Δ) := by
+    apply Judgment.wfkind ih1 wf
+  replace ih2 := @ih2 (^σ) ((Frame.kind A).apply σ :: Δ)
+    (lift_subst_rename (Frame.kind A) h1)
+    (lift_subst_replace (Frame.kind A) lem2 h2)
+    (lift_subst_stable (Frame.kind A) h3)
+    lem2
+  simp at ih2
+  apply Judgment.lamt ih1 ih2 ih3
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.appt ih1 ih2; simp [*]
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.cast ih1 ih2
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.refl ih1 ih2
+case _ ih =>
+  simp at *
+  replace ih := ih h1 h2 h3 wf
+  apply Judgment.sym ih
+case _ ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.seq ih1 ih2
+case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  replace ih4 := ih4 h1 h2 h3 wf
+  replace ih5 := ih5 h1 h2 h3 wf
+  replace ih6 := ih6 h1 h2 h3 wf
+  apply Judgment.appc ih1 ih2 ih3 ih4 ih5 ih6
+case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  have lem2 : ⊢ ((Frame.empty).apply σ :: Δ) := by
+    apply Judgment.wfempty wf
+  replace ih4 := @ih4 (^σ) ((Frame.empty).apply σ :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_replace (Frame.empty) lem2 h2)
+    (lift_subst_stable (Frame.empty) h3)
+    lem2
+  simp at ih4
+  replace ih5 := @ih5 (^σ) ((Frame.empty).apply σ :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_replace (Frame.empty) lem2 h2)
+    (lift_subst_stable (Frame.empty) h3)
+    lem2
+  simp at ih5
+  replace ih6 := @ih6 (^σ) ((Frame.empty).apply σ :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_replace (Frame.empty) lem2 h2)
+    (lift_subst_stable (Frame.empty) h3)
+    lem2
+  simp at ih6
+  apply Judgment.arrowc ih1 ih2 ih3 ih4 ih5 ih6
+case _ ih1 ih2 ih3 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  apply Judgment.fst ih1 ih2 ih3
+case _ ih1 ih2 ih3 ih4 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  replace ih4 := ih4 h1 h2 h3 wf
+  apply Judgment.snd ih1 ih2 ih3 ih4
+case _ Γ K A B t j1 j2 j3 ih1 ih2 ih3 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  have lem2 : ⊢ ((Frame.kind K).apply σ :: Δ) := by
+    cases ih1; case _ ih1 _ =>
+      apply Judgment.wfkind ih1 wf
+  replace ih3 := @ih3 (^σ) ((Frame.kind K).apply σ :: Δ)
+    (lift_subst_rename (Frame.kind K) h1)
+    (lift_subst_replace (Frame.kind K) lem2 h2)
+    (lift_subst_stable (Frame.kind K) h3)
+    lem2
+  simp at ih3
+  apply Judgment.allc ih1 ih2 ih3
+case _ ih1 ih2 ih3 ih4 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  replace ih3 := ih3 h1 h2 h3 wf
+  replace ih4 := ih4 h1 h2 h3 wf
+  apply Judgment.apptc ih1 ih2 ih3 ih4
+  simp [*]; simp [*]
 
 theorem beta_empty t :
   (.empty::Γ) ⊢ b : B ->

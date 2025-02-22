@@ -12,4 +12,6 @@ import SystemFD.Metatheory.TypeMatch
 import SystemFD.Metatheory.Weaken
 import SystemFD.Metatheory.Substitution
 import SystemFD.Metatheory.Uniqueness
+import SystemFD.Metatheory.Inversion
 import SystemFD.Metatheory.Classification
+import SystemFD.Metatheory.Preservation

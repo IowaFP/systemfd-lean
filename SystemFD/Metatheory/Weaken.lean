@@ -160,6 +160,15 @@ case _ ih1 ih2 ih3 ih4 =>
   apply ih1 r wf h; apply ih2 r wf h
   apply ih4 r wf h; simp [*]; simp [*]
 
+theorem weaken :
+  ⊢ (f :: Γ) ->
+  Γ ⊢ t : A ->
+  (f::Γ) ⊢ ([S]t) : ([S]A)
+:= by
+intro j1 j2; apply rename _ j2
+case _ => apply j1
+case _ => intro x; simp; rw [Subst.to_S]
+
 theorem weaken_empty :
   Γ ⊢ t : A ->
   (.empty::Γ) ⊢ ([S]t) : ([S]A)
