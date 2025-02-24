@@ -77,6 +77,11 @@ namespace Frame
     | .opent _ => true
     | _ => false
 
+  def is_type (f : Frame T) : Bool :=
+    match f with
+    | .type _ => true
+    | _ => false
+
   def is_stable : Frame T -> Bool
   | .type _ => false
   | .kind _ => false
@@ -301,6 +306,8 @@ namespace Ctx
   def is_insttype (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_insttype
   @[simp]
   def is_opent (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_opent
+  @[simp]
+  def is_type (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_type
   @[simp]
   def is_stable (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_stable
   @[simp]

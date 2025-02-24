@@ -213,8 +213,25 @@ intro j;
 have lem := frame_wf_by_index_lemma j; simp at lem
 apply lem x
 
+theorem frame_wf_implies_wf : Γ ⊢ f -> ⊢ Γ := by
+intro j; cases j
+case _ j => apply j
+case _ j => apply judgment_ctx_wf j
+case _ j => apply judgment_ctx_wf j
+case _ j => apply judgment_ctx_wf j
+case _ j _ => apply judgment_ctx_wf j
+case _ j => apply judgment_ctx_wf j
+case _ j => apply judgment_ctx_wf j
+case _ j _ => apply judgment_ctx_wf j
+case _ j => apply judgment_ctx_wf j
+case _ j => apply judgment_ctx_wf j
+
 theorem frame_wf_implies_typed_var T :
   Γ ⊢ Γ d@ x ->
   .some T = (Γ d@ x).get_type ->
   Γ ⊢ #x : T
-:= by sorry
+:= by
+intro j1 j2
+constructor
+apply frame_wf_implies_wf j1
+apply j2
