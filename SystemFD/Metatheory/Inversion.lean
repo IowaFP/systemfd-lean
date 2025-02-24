@@ -119,17 +119,17 @@ cases lem3; case _ i lem3 =>
     apply And.intro lem2 q2
 
 
-theorem ctx_get_openm_well_typed :
-  ⊢ Γ ->
-  Γ d@ x = .openm T ->
-  Γ ⊢ #x : T ∧ Γ ⊢ T : .kind
-:= by sorry
+-- theorem ctx_get_openm_well_typed :
+--   ⊢ Γ ->
+--   Γ d@ x = .openm T ->
+--   Γ ⊢ #x : T ∧ Γ ⊢ T : .kind
+-- := by sorry
 
-theorem ctx_get_openm :
-  ⊢ Γ ->
-  Γ.is_openm x = true ->
-  ∃ T, Γ ⊢ #x : T ∧ Γ ⊢ T : .kind
-:= by sorry
+-- theorem ctx_get_openm :
+--   ⊢ Γ ->
+--   Γ.is_openm x = true ->
+--   ∃ T, Γ ⊢ #x : T ∧ Γ ⊢ T : .kind
+-- := by sorry
 
 theorem ctx_get_opent_kind : ⊢ Γ -> Γ d@ x = .opent t -> Γ ⊢ t : .kind := by
 intro h1 h2
@@ -137,12 +137,12 @@ have lem1 := frame_wf_by_index x h1
 rw [h2] at lem1; cases lem1
 case _ j => apply j
 
-theorem ctx_get_term_type_kind :
-  ⊢ Γ ->
-  Γ d@ x = .term T t ->
-  Γ ⊢ t : T ∧ Γ ⊢ T : ★ := by
-intros wΓ h;
-sorry
+-- theorem ctx_get_term_type_kind :
+--   ⊢ Γ ->
+--   Γ d@ x = .term T t ->
+--   Γ ⊢ t : T ∧ Γ ⊢ T : ★ := by
+-- intros wΓ h;
+-- sorry
 
 
 theorem ctx_get_datatype_kind : ⊢ Γ -> Γ d@ x = .datatype t -> Γ ⊢ t : .kind := by

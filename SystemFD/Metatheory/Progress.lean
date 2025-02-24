@@ -6,28 +6,6 @@ import SystemFD.Metatheory.Classification
 import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
 
--- inductive Neutral : Ctx Term -> Term -> Prop where
---   | varNe : ¬ Γ.is_stable n
---           -> Neutral Γ (#n)
---   | iteNe : Neutral Γ s -> Neutral Γ (.ite p s b c)
---   | guardNe : Neutral Γ s -> Neutral Γ (.guard p s c)
---   | appNe : Neutral Γ t
---           -> Neutral  Γ  (t `@ t')
---   | apptNe : Neutral Γ t
---            -> Neutral Γ (t `@t t')
---   | castNe : Neutral  Γ η
---            -> Neutral Γ (t ▹ η)
---   | fstNe : Neutral Γ η
---           -> Neutral  Γ (η .!1)
---   | sndNe : Neutral  Γ η
---           -> Neutral Γ (η .!2)
---   | symNe : Neutral  Γ η
---          -> Neutral  Γ (sym! η)
---   | seq1 : Neutral  Γ η
---          -> Neutral  Γ (η `; η')
---   | seq2 : Neutral  Γ η'
---          -> Neutral  Γ (η `; η')
-
 inductive Val : Ctx Term -> Term -> Prop where
   | app : t.neutral_form = .some (n, ts)
         -> (Γ.is_stable_red n)
@@ -46,7 +24,6 @@ inductive Val : Ctx Term -> Term -> Prop where
 theorem flip_eq : Γ ⊢ (A ~ B) : ★ -> Γ ⊢ (B ~ A) : ★ := by
 intros h; cases h; case _ k AJ BJ => apply Judgment.eq k BJ AJ
 
-
 theorem not_neutral_form_shape : Val Γ t ->
         t.neutral_form = .some (n, ts)
         -> ¬ ((t = `λ[A] b)
@@ -62,43 +39,27 @@ theorem not_neutral_form_shape : Val Γ t ->
 intros tnf; induction t;
 any_goals (solve | simp_all)
 
-def DeclCtx (Γ : Ctx Term) : Prop := ∀ n, Γ.is_stable_red n
+def DeclCtx (Γ : Ctx Term) : Prop := (∀ n,  ¬ Γ.is_type n)
 namespace DeclCtx
 theorem consempty : DeclCtx Γ -> DeclCtx (.empty :: Γ) := by
-  intros dctx; induction Γ
+  intros dctx; induction Γ;
   case _ =>
-    unfold DeclCtx; unfold Ctx.is_stable_red; unfold Frame.is_stable_red; simp_all; intro n;
-    split;
-    any_goals (solve | simp_all)
-    case _ h =>
-      unfold dnth at h; simp_all; split at h;
-      any_goals (solve | simp_all)
-      case _ h' => cases h'; cases h
-      case _ h' => cases h'; cases h;
-    case _ h =>
-      unfold dnth at h; simp_all; split at h;
-      any_goals (solve | simp_all)
-      case _ h' => cases h'; cases h
-      case _ h' => cases h'; cases h;
-    case _ h =>
-      unfold dnth at h; simp_all; split at h;
-      any_goals (solve | simp_all)
-      case _ h' => cases h'; cases h
-      case _ h' => cases h'; cases h;
-    case _ h =>
-      unfold dnth at h; simp_all; split at h;
-      any_goals (solve | simp_all)
-      case _ h' => cases h'; cases h; sorry
-      case _ h' => sorry
-  case _ =>
-  sorry
+    unfold DeclCtx; intro n xx; unfold Ctx.is_type at xx; unfold Frame.is_type at xx;
+    cases n;
+    case _ =>
+      simp_all; unfold Frame.apply at xx; simp at xx;
+    case _ => simp at xx; unfold Frame.apply at xx; simp at xx
+  case _ hf tl ih =>
+    unfold DeclCtx; unfold DeclCtx at dctx;
+    unfold Ctx.is_type;
+    sorry
 theorem conskind : DeclCtx Γ -> DeclCtx (.kind t :: Γ) := by sorry
 
 end DeclCtx
 
-theorem no_lam_bindings : (DeclCtx Γ) -> ∀ x, ¬  (Γ d@ x = .type T) := by
+theorem no_lam_bindings : (DeclCtx Γ) -> (∀ x, ¬ (Γ d@ x = .type T)) := by
 intro dctx x h;
-have xx := dctx x; simp at xx; rw[h] at xx; unfold Frame.is_stable_red at xx; simp_all;
+have xx := @dctx x; simp at xx; rw[h] at xx; unfold Frame.is_type at xx; simp_all;
 
 theorem dt_is_dt {Γ : Ctx Term}: Γ d@x = Frame.datatype t -> (Γ d@ x).is_datatype := by
 intros dt; simp_all; unfold Frame.is_datatype; simp;
@@ -154,11 +115,12 @@ abbrev ValueNoSteps : (v : JudgmentVariant) -> (Γ : Ctx Term)  -> (JudgmentArgs
 
 
 theorem val_no_red :
-  ⊢ Γ -> DeclCtx Γ ->
+  DeclCtx Γ ->
   Judgment v Γ ix ->
   ValueNoSteps v Γ ix
   := by
-intros wΓ dctx tJ; induction tJ;
+intros dctx tJ; have wΓ := judgment_ctx_wf tJ;
+induction tJ;
 any_goals(solve | simp_all)
 all_goals(intro vt treds; cases treds; cases vt; simp_all)
 case _ h =>
@@ -214,20 +176,21 @@ case _ Γ f _ _ a fj _ _ _ _ h =>
     have lem := classification_lemma fj; simp at lem;
     cases lem;
     case _ => simp_all; sorry
-    case _ =>  sorry
+    case _ h => cases h; case _ w h => sorry
 
   case _ T x sp t x_term fanf =>
     symm at fanf; have fanf := Term.neutral_form_appk_rev_exists fanf;
     cases fanf; case _ fsp fanf =>
     symm at x_term; symm at fanf;
     have xx := ctx_get_term_well_typed wΓ x_term;
-    have xx' := ctx_get_term_type_kind wΓ x_term;
-    have lem := classification_lemma xx.1; simp at lem; cases lem;
-    case _ h => subst h; cases xx'.2;
-    case _ h =>
-      cases h;
-      case _ h => have uniq := uniqueness_of_types xx'.2 h; simp_all;
-      case _ h => sorry
+    sorry
+    -- have xx' := ctx_get_term_type_kind wΓ x_term;
+    -- have lem := classification_lemma xx.1; simp at lem; cases lem;
+    -- case _ h => subst h; cases xx'.2;
+    -- case _ h =>
+    --   cases h;
+    --   case _ h => have uniq := uniqueness_of_types xx'.2 h; simp_all;
+    --   case _ h => sorry
           -- cases h; case _ h =>
           --   have uniq := uniqueness_of_types xx' h.2; subst uniq;
           --   have f_form := Term.neutral_form_law fp; subst f_form; simp_all;
@@ -264,24 +227,6 @@ case _ h =>
   case _ => simp_all
   case _ => simp_all
 
-
-theorem term_neutral_form_peel :
-   (f `@ t).neutral_form = .none ->
-   f.neutral_form = .none := by
-intros ft;
-induction f generalizing t
-any_goals (solve | simp_all)
-case _ => sorry
-
-theorem term_neutral_form_peel_appk :
-   (f `@k t).neutral_form = .none ->
-   f.neutral_form = .none := by
-intros ft;
-induction f generalizing t
-any_goals (solve | simp_all)
-case _ => sorry
-
-
 -- s is a value, cannot have a neutral form; datatype type, is impossible
 theorem term_neutral_form_datatype :
   Val Γ t ->
@@ -294,21 +239,9 @@ induction tv;
 any_goals (solve | simp_all)
 any_goals (solve | cases tJ; cases vhv; simp_all)
 case _ Γ f h =>
-  cases tJ; case _ A argJ fJ =>
-  have xx := term_neutral_form_peel_appk nf;
+  have lem := type_disjoint tJ; simp at lem;
+  unfold ValidHeadVariable at vhv;
   sorry
-
- -- cases vhv; case _ w h =>
- --  have lem := classification_lemma tJ; simp at lem;
- --  cases lem;
- --  case _ => simp_all
- --  case _ h' =>
- --    have xx := term_neutral_form_peel_appk nf;
-
- --    cases h';
- --    case _ h =>  sorry
- --    case _ h => simp_all; cases h; case _ w h => sorry
-
 
 theorem term_neutral_form_opent :
   Val Γ t ->
@@ -317,15 +250,41 @@ theorem term_neutral_form_opent :
   Γ ⊢ t : T ->
   False := by
 intros tv nf vhv tJ;
-
 sorry
 
 
-theorem var_type_lemma : Γ.is_stable_red n -> Γ ⊢ (#n).apply_spine ts : (A ~ B) -> False := by
+theorem var_type_lemma :
+  Γ.is_stable_red n ->
+  Γ ⊢ (#n).apply_spine ts : (A ~ B)
+  -> False := by
 intros n_stable h; induction ts;
 case _ => simp_all; cases h; case _ wΓ ty => symm at ty;  apply (ctx_get_var_no_eq_type wΓ n_stable ty);
 case _ hd tl ih =>
    sorry
+
+
+theorem var_well_typed :
+  Γ.is_stable_red n ->
+  Γ ⊢ #n : (A ~ B)
+  -> False := by
+intros n_stable tJ; cases tJ;
+case _ wΓ ty =>
+  symm at ty; apply (ctx_get_var_no_eq_type wΓ n_stable ty);
+
+theorem var_app_well_typed :
+  Γ.is_stable_red n ->
+  Γ ⊢ (#n `@ t) : (A ~ B)
+  -> False := by
+intros n_stable tJ;
+cases tJ;
+case _ nJ tJ eq =>
+  cases nJ;
+  case _ wΓ nty =>
+    symm at nty; induction Γ;
+    case _ => unfold Frame.get_type at nty; simp at nty
+    case _ hf tlf ih =>
+         unfold Ctx.is_stable_red at n_stable; unfold Frame.is_stable_red at n_stable; simp at n_stable;
+         sorry
 
 theorem refl_is_val : DeclCtx Γ -> Γ ⊢ η : (A ~ B)
                     -> Val Γ η
@@ -334,9 +293,7 @@ intros dctx ηJ vη; induction vη;
 any_goals(solve | cases ηJ)
 case _ Γ t n ts tnf n_stable =>
      symm at tnf; replace tnf := Term.neutral_form_law tnf;
-     subst tnf;
-     exfalso;
-     apply (var_type_lemma n_stable ηJ);
+     subst tnf; exfalso; apply (var_type_lemma n_stable ηJ);
 case _ => cases ηJ; case _ fJ =>
   have lem := classification_lemma fJ; simp at lem; cases lem;
   case _ h => cases h; case _ h => have h := invert_eq_kind h; cases h;
@@ -394,13 +351,12 @@ case _ =>
   cases tJ; case _ h => rw [x_empty] at h; unfold Frame.get_type at h; simp at h
 case _ ht tl ih =>
   have xx := Term.neutral_form_law tnf;
-  induction t;
-  any_goals(solve | simp_all)
-  case _ => sorry
+
+  sorry
 
 
 theorem unstable_var_steps :
-   DeclCtx Γ ->
+   (∀ n,  ¬ Γ.is_type n) ->
    Γ ⊢ t : T ->
    .some (x, sp) = Term.neutral_form t ->
    (Γ.is_stable_red x = false) ->
@@ -418,7 +374,7 @@ any_goals (solve | unfold Ctx.is_stable_red at x_not_stable
 case empty =>
   have no_empty := (head_cannot_be_empty dctx tJ tnf);
   exfalso; apply (no_empty xx)
-case type => unfold DeclCtx at dctx; have xx := @dctx x; simp_all;
+case type => have xx' := @dctx x; unfold Ctx.is_type at xx'; rw [xx] at xx'; unfold Frame.is_type at xx'; simp_all;
 case term lt =>
   symm at xx; have reds := Red.letterm tnf xx;
   apply Exists.intro [lt.apply_spine sp] reds;
@@ -429,18 +385,17 @@ case openm =>
    generalize instsp' : List.map (·.apply_spine sp) insts = insts' at *; symm at instsp';
    apply (Exists.intro insts' (Red.inst tnf om isp instsp instsp'))
 
-
 @[simp]
 abbrev StepOrVal : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
 | .prf => λ Γ => λ(t , _) => Val Γ t ∨ ∃ t', Red Γ t t'
 | .wf  => λ _ => λ () => true
 
 theorem progress :
-   ⊢ Γ -> DeclCtx Γ
+   ⊢ Γ -> (∀ n,  ¬ Γ.is_type n)
   -> Judgment v Γ ix
 --------------------------------------
   -> StepOrVal v Γ ix := by
-intros wΓ dctx j; induction j;
+intros wΓ ntype j; induction j;
 any_goals (solve | simp_all)
 case _ Γ A t b _ _ _ _ _ _ _ ih _ =>
   simp_all;
@@ -460,7 +415,9 @@ case var Γ x _ _ xTy ih =>
     have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
     have k_st_red : Γ.is_stable_red x := by simp; unfold Frame.is_stable_red; rw [x_is_kind]
     apply Or.inl (Val.app hh k_st_red);
-  case _ f _ x_is_type => exfalso; apply no_lam_bindings dctx x x_is_type;
+  case _ f _ x_is_type =>
+    exfalso; have ntype' := ntype x; simp at ntype'; rw[x_is_type] at ntype';
+    unfold Frame.is_type at ntype'; simp at ntype';
   case _ f _ x_is_datatype =>
       simp_all; have x_is_stable := dt_is_stable x_is_datatype;
       have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
@@ -508,7 +465,7 @@ case ite Γ p A s _ i _ _ e _ sJ RJ _ vhvp vhvr stm _ tstar _ ps ss _ is _ es =>
     generalize snf : s.neutral_form = xx at *; symm at snf;
     cases xx;
     case _ =>
-       cases (ss wΓ dctx)
+       cases (ss wΓ ntype)
        case _ h => exfalso; symm at snf; apply (term_neutral_form_datatype h snf vhvr sJ)
        case _ h => cases h; case _ w h =>
           generalize tlp : List.map (Term.ite p · i e) w = tl' at *; symm at tlp;
@@ -527,7 +484,7 @@ case ite Γ p A s _ i _ _ e _ sJ RJ _ vhvp vhvr stm _ tstar _ ps ss _ is _ es =>
          cases x_is_stable;
          case false =>
            apply Or.inr; simp at xx; rw[sp] at xx;
-           have reds' := unstable_var_steps dctx sJ snf xx;
+           have reds' := unstable_var_steps ntype sJ snf xx;
            cases reds'; case _ w sreds =>
            generalize tlp : List.map (Term.ite p · i e) w = tl at *; symm at tlp;
            have reds : ∃ t', Red Γ (.ite p s i e) t' := Exists.intro tl (Red.ite_congr sreds tlp)
@@ -571,7 +528,7 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
     generalize snf : s.neutral_form = xx at *; symm at snf;
     cases xx;
     case _ =>
-       cases (ss wΓ dctx)
+       cases (ss wΓ ntype)
        case _ h => exfalso; symm at snf; apply (term_neutral_form_opent h snf vhvr sJ)
        case _ h => cases h; case _ w h =>
           generalize tlp : List.map (Term.guard p · t) w = tl' at *; symm at tlp;
@@ -589,7 +546,7 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
          cases x_is_stable;
          case false =>
            apply Or.inr; simp at xx; rw[sp] at xx;
-           have reds' := unstable_var_steps dctx sJ snf xx;
+           have reds' := unstable_var_steps ntype sJ snf xx;
            cases reds'; case _ w sreds =>
            generalize tlp : List.map (Term.guard p · t) w = tl at *; symm at tlp;
            have reds : ∃ t', Red Γ (Term.guard p s t) t' := Exists.intro tl (Red.guard_congr sreds tlp)
@@ -628,7 +585,8 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
 case _ _ A t _ _ _ _ _ _ _ => apply Or.inl Val.lam
 
 case app Γ f A B a B' fJ aJ _ fs as =>
-  simp_all; cases fs;
+  have fs' := fs wΓ ntype;
+  cases fs'
   case inl h => -- f is value
     cases h;
     case app n ts n_stable fnf =>
@@ -658,7 +616,7 @@ case app Γ f A B a B' fJ aJ _ fs as =>
 case _ _ A t _ _ _ _ _ _ _ => apply Or.inl Val.lamt
 
 case appt Γ f _ _ a _ fJ aJ _ fs as =>
-  simp_all; cases fs;
+  cases fs wΓ ntype;
   case inr h => cases h; case _ w h =>
       apply Or.inr;
       generalize tlp : List.map (· `@t a) w = tl' at *; symm at tlp;
@@ -687,9 +645,9 @@ case appt Γ f _ _ a _ fJ aJ _ fs as =>
     case _ => cases fJ
 
 case _ Γ t A η B tJ ηJ ts cs =>
-  simp_all; cases cs;
+  cases (cs wΓ ntype);
   case _ h =>
-      have ηreflp := @refl_is_val Γ η A B dctx ηJ h;
+      have ηreflp := @refl_is_val Γ η A B ntype ηJ h;
       have ηrefl := ηreflp.1;
       subst ηrefl; apply Or.inr;
       have reds : ∃ t', Red Γ (t ▹ refl! A) t' := Exists.intro [t] Red.cast;
@@ -702,9 +660,9 @@ case _ Γ t A η B tJ ηJ ts cs =>
 
 case _ => apply Or.inl Val.refl
 case sym Γ η A B ηJ ηs =>
-  cases ηs wΓ dctx;
+  cases ηs wΓ ntype;
   case _ h =>
-    have x := refl_is_val dctx ηJ h;
+    have x := refl_is_val ntype ηJ h;
     have xeqrefl := x.left;
     have aeqB := x.right;
     subst xeqrefl;
@@ -718,12 +676,12 @@ case sym Γ η A B ηJ ηs =>
     apply reds;
 
 case seq Γ η1 A B η2 C η1J η2J η1s η2s =>
-  simp_all; cases η2s;
+  cases (η2s wΓ ntype);
   case _ h =>
-    have η2refp := refl_is_val dctx η2J h;
-    have η2refl := η2refp.1; cases η1s;
+    have η2refp := refl_is_val ntype η2J h;
+    have η2refl := η2refp.1; cases (η1s wΓ ntype);
     case _ h =>
-      have η1refp := refl_is_val dctx η1J h;
+      have η1refp := refl_is_val ntype η1J h;
       have η1refl := η1refp.1; have aeqB := η1refp.2; have BeqC := η2refp.2
       subst η1refl; subst η2refl;
       apply Or.inr; subst aeqB;
@@ -742,12 +700,12 @@ case seq Γ η1 A B η2 C η1J η2J η1s η2s =>
 
 case appc Γ A K1 K2 B η1 C D η2 aK bK η1J cJ dJ η2J _ _ η1s _ _ η2s  =>
   -- check if η1 reduces or η2 reduces if both are values then reduce to refl
-  simp_all; cases η2s;
+  cases (η2s wΓ ntype);
   case _ h =>
-    have η2refp := refl_is_val dctx η2J h;
-    have η2refl := η2refp.1; cases η1s;
+    have η2refp := refl_is_val ntype η2J h;
+    have η2refl := η2refp.1; cases (η1s wΓ ntype);
     case _ h =>
-      have η1refp := refl_is_val dctx η1J h;
+      have η1refp := refl_is_val ntype η1J h;
       have η1refl := η1refp.1; -- have aeqB := η1refp.2; have BeqC := η2refp.2
       subst η1refl; subst η2refl;
       apply Or.inr;
@@ -765,13 +723,13 @@ case appc Γ A K1 K2 B η1 C D η2 aK bK η1J cJ dJ η2J _ _ η1s _ _ η2s  =>
     apply reds
 
 case arrowc Γ A B η1 C D η2 _ _ η1J _ _ η2J _ _ η1s _ _ η2s =>
-  simp_all; cases η2s (Judgment.wfempty wΓ) (DeclCtx.consempty dctx);
+  cases η2s (Judgment.wfempty wΓ) (DeclCtx.consempty ntype);
   case _ h =>
-    have dctx' : DeclCtx (Frame.empty :: Γ) := DeclCtx.consempty dctx;
-    have η2refp := refl_is_val dctx' η2J h;
-    have η2refl := η2refp.1; cases η1s;
+    have ntype' : DeclCtx (Frame.empty :: Γ) := DeclCtx.consempty ntype;
+    have η2refp := refl_is_val ntype' η2J h;
+    have η2refl := η2refp.1; cases (η1s wΓ ntype);
     case _ h =>
-      have η1refp := refl_is_val dctx η1J h;
+      have η1refp := refl_is_val ntype η1J h;
       have η1refl := η1refp.1;
       subst η1refl; subst η2refl;
       apply Or.inr;
@@ -789,9 +747,9 @@ case arrowc Γ A B η1 C D η2 _ _ η1J _ _ η2J _ _ η1s _ _ η2s =>
     apply reds
 
 case fst Γ A _ _ _ η C _ _ _ ηJ _ _ ηs =>
-  simp_all; cases ηs;
+  cases (ηs wΓ ntype);
   case inl h =>
-    have ηrp := refl_is_val dctx ηJ h; have ηrfl := ηrp.1; subst ηrfl;
+    have ηrp := refl_is_val ntype ηJ h; have ηrfl := ηrp.1; subst ηrfl;
     apply Or.inr;
     have reds : ∃ t', Red Γ ((refl! (A `@k C)).!1) t' := Exists.intro [refl! A] Red.fst;
     apply reds;
@@ -802,9 +760,9 @@ case fst Γ A _ _ _ η C _ _ _ ηJ _ _ ηs =>
     apply reds
 
 case snd Γ _ C _ η A _ _ _ _ ηJ _ _ _ ηs =>
-  simp_all; cases ηs;
+  cases (ηs wΓ ntype);
   case inl h =>
-    have ηrp := refl_is_val dctx ηJ h; have ηrfl := ηrp.1; subst ηrfl;
+    have ηrp := refl_is_val ntype ηJ h; have ηrfl := ηrp.1; subst ηrfl;
     apply Or.inr;
     have reds : ∃ t', Red Γ ((refl! (A `@k C)).!2) t' := Exists.intro [refl! C] Red.snd;
     apply reds;
@@ -816,7 +774,7 @@ case snd Γ _ C _ η A _ _ _ _ ηJ _ _ _ ηs =>
 
 case _ Γ K A B η allAJ allBJ ηJ _ _ ts =>
   cases allAJ; case _ kkind _ =>
-  have ts := ts (Judgment.wfkind kkind wΓ) (DeclCtx.conskind dctx);
+  have ts := ts (Judgment.wfkind kkind wΓ) (DeclCtx.conskind ntype);
   cases ts;
   case inr h => cases h; case _ w h =>
     simp_all;
@@ -825,18 +783,18 @@ case _ Γ K A B η allAJ allBJ ηJ _ _ ts =>
     have reds : ∃ t', Red Γ (∀c[K] η) t' := Exists.intro tl' (Red.allc_congr h tlp);
     apply reds
   case inl h =>
-    have ηrp := refl_is_val (DeclCtx.conskind dctx) ηJ h; have ηrfl := ηrp.1; subst ηrfl;
+    have ηrp := refl_is_val (DeclCtx.conskind ntype) ηJ h; have ηrfl := ηrp.1; subst ηrfl;
     apply Or.inr;
     have reds : ∃ t', Red Γ ((∀c[K] refl! A)) t' := Exists.intro [refl! (∀[K]A)] Red.allc;
     apply reds;
 
 case _ Γ η1 K A B C D η2 _ _ η1J CKJ _ η2J _ _ η1s _ _ η2s =>
-  simp_all; cases η2s;
+  cases (η2s wΓ ntype);
   case _ h =>
-    have η2refp := refl_is_val dctx η2J h;
-    have η2refl := η2refp.1; cases η1s;
+    have η2refp := refl_is_val ntype η2J h;
+    have η2refl := η2refp.1; cases (η1s wΓ ntype);
     case _ h =>
-      have η1refp := refl_is_val dctx η1J h;
+      have η1refp := refl_is_val ntype η1J h;
       have η1refl := η1refp.1;
       subst η1refl; subst η2refl;
       apply Or.inr;
