@@ -147,10 +147,6 @@ intros tnf nstable x; cases x;
       have wfst := And.left (And.right h); symm at wfst;
       subst wfst; simp_all;
 
-theorem types_no_red : ⊢ Γ -> DeclCtx Γ -> Γ ⊢ t : .kind -> ¬ ∃ t', Red Γ t t' := by
-intros wΓ dctx tyJ
-sorry
-
 @[simp]
 abbrev ValueNoSteps : (v : JudgmentVariant) -> (Γ : Ctx Term)  -> (JudgmentArgs v) -> Prop
 | .prf => λ Γ => λ(t , _) => Val Γ t -> ¬ ∃ t', Red Γ t t'
@@ -158,11 +154,11 @@ abbrev ValueNoSteps : (v : JudgmentVariant) -> (Γ : Ctx Term)  -> (JudgmentArgs
 
 
 theorem val_no_red :
-  ⊢ Γ ->
+  ⊢ Γ -> DeclCtx Γ ->
   Judgment v Γ ix ->
   ValueNoSteps v Γ ix
   := by
-intros wΓ tJ; induction tJ;
+intros wΓ dctx tJ; induction tJ;
 any_goals(solve | simp_all)
 all_goals(intro vt treds; cases treds; cases vt; simp_all)
 case _ h =>
@@ -214,7 +210,12 @@ case _ h =>
         have x_not_stable := Frame.is_term_implies_not_is_stable_red xterm; apply (x_not_stable x_stable);
 case _ Γ f _ _ a fj _ _ _ _ h =>
   cases h;
-  case _ => sorry
+  case _ =>
+    have lem := classification_lemma fj; simp at lem;
+    cases lem;
+    case _ => simp_all; sorry
+    case _ =>  sorry
+
   case _ T x sp t x_term fanf =>
     symm at fanf; have fanf := Term.neutral_form_appk_rev_exists fanf;
     cases fanf; case _ fsp fanf =>
@@ -264,26 +265,49 @@ case _ h =>
   case _ => simp_all
 
 
+theorem term_neutral_form_peel :
+   (f `@ t).neutral_form = .none ->
+   f.neutral_form = .none := by
+intros ft;
+induction f generalizing t
+any_goals (solve | simp_all)
+case _ => sorry
+
+theorem term_neutral_form_peel_appk :
+   (f `@k t).neutral_form = .none ->
+   f.neutral_form = .none := by
+intros ft;
+induction f generalizing t
+any_goals (solve | simp_all)
+case _ => sorry
+
+
 -- s is a value, cannot have a neutral form; datatype type, is impossible
 theorem term_neutral_form_datatype :
   Val Γ t ->
   t.neutral_form = .none ->
   ValidHeadVariable T Γ.is_datatype ->
-  Γ ⊢ T : ★ ->
   Γ ⊢ t : T ->
   False := by
-intros tv nf vhv TJ tJ;
+intros tv nf vhv tJ;
 induction tv;
 any_goals (solve | simp_all)
 any_goals (solve | cases tJ; cases vhv; simp_all)
-case _ Γ f h => cases vhv; case _ w h =>
-  have lem := classification_lemma tJ; simp at lem;
-  cases lem;
-  case _ => simp_all
-  case _ h' =>
-    cases h';
-    case _ h =>   sorry
-    case _ h => simp_all; cases h; case _ w h => sorry
+case _ Γ f h =>
+  cases tJ; case _ A argJ fJ =>
+  have xx := term_neutral_form_peel_appk nf;
+  sorry
+
+ -- cases vhv; case _ w h =>
+ --  have lem := classification_lemma tJ; simp at lem;
+ --  cases lem;
+ --  case _ => simp_all
+ --  case _ h' =>
+ --    have xx := term_neutral_form_peel_appk nf;
+
+ --    cases h';
+ --    case _ h =>  sorry
+ --    case _ h => simp_all; cases h; case _ w h => sorry
 
 
 theorem term_neutral_form_opent :
@@ -321,27 +345,68 @@ case _ => cases ηJ; simp_all
 
 theorem ctor_uniqueness {Γ : Ctx Term}: (Γ.is_ctor x = true) -> (Γ.is_ctor y = false) -> x ≠ y := by
 intros xctor yctor xeqy ;
-induction Γ generalizing x y;
+induction Γ;
 case _ => simp_all
-case _ => sorry
+case _ here there ih =>
+  unfold Ctx.is_ctor at xctor; unfold dnth at xctor;
+  split at xctor;
+  case _ => simp_all;
+  case _ =>
+    simp_all; subst xeqy;
+    unfold dnth at yctor; simp_all;
+  case _ =>
+    simp_all; subst xeqy;
+    unfold dnth at yctor; simp_all;
 
 theorem insttype_uniqueness {Γ : Ctx Term}: (Γ.is_insttype x = true) -> (Γ.is_insttype y = false) -> x ≠ y := by
-intros xctor yctor xeqy ;
-induction Γ generalizing x y;
+intros xinst yinst xeqy ;
+induction Γ;
 case _ => simp_all
-case _ => sorry
+case _ here there ih =>
+  unfold Ctx.is_insttype at xinst; unfold dnth at xinst;
+  split at xinst;
+  case _ => simp_all;
+  case _ =>
+    simp_all; subst xeqy;
+    unfold dnth at yinst; simp_all;
+  case _ =>
+    simp_all; subst xeqy;
+    unfold dnth at yinst; simp_all;
 
 
 -- this is stupid
 theorem bool_implication (x : Bool) : x = false -> ¬ x = true :=
 by intro h; rw [h]; simp
 
+
+theorem head_cannot_be_empty :
+   DeclCtx Γ ->
+   Γ ⊢ t : T ->
+   .some (x, sp) = Term.neutral_form t ->
+   ¬ Γ d@ x  = .empty
+:= by
+intros dctx tJ tnf x_empty;
+induction sp
+case _ =>
+  simp_all;
+  have xx' := Term.neutral_form_law tnf; unfold Term.apply_spine at xx';
+  rw [<-xx'] at tJ;
+  cases tJ; case _ h => rw [x_empty] at h; unfold Frame.get_type at h; simp at h
+case _ ht tl ih =>
+  have xx := Term.neutral_form_law tnf;
+  induction t;
+  any_goals(solve | simp_all)
+  case _ => sorry
+
+
 theorem unstable_var_steps :
+   DeclCtx Γ ->
+   Γ ⊢ t : T ->
    .some (x, sp) = Term.neutral_form t ->
    (Γ.is_stable_red x = false) ->
    ∃ t', Red Γ t t'
 := by
-intros tnf x_not_stable;
+intros dctx tJ tnf x_not_stable;
 have x_not_stable := @bool_implication (Γ.is_stable_red x) x_not_stable;
 generalize xx : Γ d@ x = f;
 cases f;
@@ -350,37 +415,10 @@ any_goals (solve | unfold Ctx.is_stable_red at x_not_stable
                    simp at x_not_stable
                    unfold Frame.is_stable_red at x_not_stable
                    simp at x_not_stable)
-case empty => sorry
-case type =>  sorry
-case term lt =>
-  symm at xx; have reds := Red.letterm tnf xx;
-  apply Exists.intro [lt.apply_spine sp] reds;
-case openm =>
-   have om : (Γ d@ x).is_openm := by unfold Frame.is_openm; rw [xx];
-   generalize isp : instance_indices Γ 0 x [] = ιs at *; symm at isp;
-   generalize instsp : get_instances Γ ιs = insts at *; symm at instsp;
-   generalize instsp' : List.map (·.apply_spine sp) insts = insts' at *; symm at instsp';
-   apply (Exists.intro insts' (Red.inst tnf om isp instsp instsp'))
-
-
-
-theorem unstable_var_steps' :
-   Γ ⊢ #x : T ->
-   .some (x, sp) = Term.neutral_form t ->
-   (Γ.is_stable_red x = false) ->
-   ∃ t', Red Γ t t'
-:= by
-intros tj tnf x_not_stable;
-have x_not_stable := @bool_implication (Γ.is_stable_red x) x_not_stable;
-generalize xx : Γ d@ x = f;
-cases f;
-any_goals (solve | unfold Ctx.is_stable_red at x_not_stable
-                   rw [xx] at x_not_stable
-                   simp at x_not_stable
-                   unfold Frame.is_stable_red at x_not_stable
-                   simp at x_not_stable)
-case empty => cases tj; case _ gt => rw [xx] at gt; unfold Frame.get_type at gt; simp at gt
-case type => cases tj; case _ gt =>  sorry
+case empty =>
+  have no_empty := (head_cannot_be_empty dctx tJ tnf);
+  exfalso; apply (no_empty xx)
+case type => unfold DeclCtx at dctx; have xx := @dctx x; simp_all;
 case term lt =>
   symm at xx; have reds := Red.letterm tnf xx;
   apply Exists.intro [lt.apply_spine sp] reds;
@@ -471,7 +509,7 @@ case ite Γ p A s _ i _ _ e _ sJ RJ _ vhvp vhvr stm _ tstar _ ps ss _ is _ es =>
     cases xx;
     case _ =>
        cases (ss wΓ dctx)
-       case _ h => exfalso; symm at snf; apply (term_neutral_form_datatype h snf vhvr RJ sJ)
+       case _ h => exfalso; symm at snf; apply (term_neutral_form_datatype h snf vhvr sJ)
        case _ h => cases h; case _ w h =>
           generalize tlp : List.map (Term.ite p · i e) w = tl' at *; symm at tlp;
           have reds : ∃ t', Red Γ (.ite p s i e) t' := Exists.intro tl' (Red.ite_congr h tlp);
@@ -485,12 +523,11 @@ case ite Γ p A s _ i _ _ e _ sJ RJ _ vhvp vhvr stm _ tstar _ ps ss _ is _ es =>
        have s_form := Term.neutral_form_law snf; rw[<-s_spp] at s_form; rw[<-sp] at s_form;
        cases p;
        case _ => -- scrutinee is a not ctor headed but has a neutral form
-
          generalize xx : Γ.is_stable_red s_n = x_is_stable;
          cases x_is_stable;
          case false =>
            apply Or.inr; simp at xx; rw[sp] at xx;
-           have reds' := @unstable_var_steps s sf.1 sf.2 Γ snf xx;
+           have reds' := unstable_var_steps dctx sJ snf xx;
            cases reds'; case _ w sreds =>
            generalize tlp : List.map (Term.ite p · i e) w = tl at *; symm at tlp;
            have reds : ∃ t', Red Γ (.ite p s i e) t' := Exists.intro tl (Red.ite_congr sreds tlp)
@@ -552,7 +589,7 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
          cases x_is_stable;
          case false =>
            apply Or.inr; simp at xx; rw[sp] at xx;
-           have reds' := @unstable_var_steps s sf.1 sf.2 Γ snf xx;
+           have reds' := unstable_var_steps dctx sJ snf xx;
            cases reds'; case _ w sreds =>
            generalize tlp : List.map (Term.guard p · t) w = tl at *; symm at tlp;
            have reds : ∃ t', Red Γ (Term.guard p s t) t' := Exists.intro tl (Red.guard_congr sreds tlp)
