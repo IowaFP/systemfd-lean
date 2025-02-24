@@ -42,6 +42,11 @@ namespace Frame
     | .openm _ => true
     | _ => false
 
+ def is_term (f : Frame T) : Bool :=
+    match f with
+    | .term _ _ => true
+    | _ => false
+
   def is_ctor (f : Frame T) : Bool :=
     match f with
     | .ctor _ => true
@@ -90,6 +95,21 @@ namespace Frame
   theorem is_openm_destruct : is_openm f -> ∃ T, f = .openm T := by
   intro h; unfold is_openm at h
   split at h <;> simp at *
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_stable_implies_is_stable_red : is_stable f -> is_stable_red f := by
+  intro h; unfold is_stable at h
+  split at h <;> simp at *; unfold is_stable_red; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_openm_implies_not_is_stable_red : is_openm f -> ¬ is_stable_red f := by
+  intro h; unfold is_openm at h
+  split at h <;> simp at *; unfold is_stable_red; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_term_implies_not_is_stable_red : is_term f -> ¬ is_stable_red f := by
+  intro h; unfold is_term at h
+  split at h <;> simp at *; unfold is_stable_red; simp
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_ctor_implies_is_stable : is_ctor f -> is_stable f := by
@@ -255,6 +275,8 @@ infix:1000 "d@" => dnth
 namespace Ctx
   @[simp]
   def is_openm (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_openm
+  @[simp]
+  def is_term (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_term
   @[simp]
   def is_ctor (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_ctor
   @[simp]

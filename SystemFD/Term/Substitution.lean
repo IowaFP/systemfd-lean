@@ -122,6 +122,17 @@ namespace Term
   simp at h; have h2 := h.2.1; have h3 := h.2.2;
   subst h2; subst h3; simp_all;
 
+  theorem neutral_form_appk_rev_exists:
+  (f `@k t).neutral_form = .some (h, sp) ->
+  ∃ sp', f.neutral_form = .some (h, sp') ∧ sp = sp' ++ [(.kind , t)] := by
+  intros h; simp_all;
+  case _ n =>
+  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  simp at h; have h2 := h.2.1; have h3 := h.2.2;
+  subst h2; subst h3; simp_all;
+
+
+
   theorem neutral_form_appt_rev:
   (f `@t t).neutral_form = .some (h, sp ++ [(.type, t)] ) ->
   f.neutral_form = .some (h, sp) := by
@@ -262,44 +273,44 @@ namespace Term
   theorem apply_compose {s : Term} {σ τ : Subst Term} : [τ][σ]s = [τ ⊙ σ]s := by
   solve_compose Term, apply_stable, s, σ, τ
 
-  @[simp]
-  def is_ctorid (Γ : Ctx Term) (n : Nat) :=
-    match Γ d@ n with
-    | .ctor _ => true
-    | _ => false
+  -- @[simp]
+  -- def is_ctorid (Γ : Ctx Term) (n : Nat) :=
+  --   match Γ d@ n with
+  --   | .ctor _ => true
+  --   | _ => false
 
-  theorem id_is_ctor : Γ d@ n = .ctor a -> is_ctorid Γ n = true := by
-  intros h; simp_all;
-
-
-  @[simp]
-  def is_letterm (Γ : Ctx Term) (n : Nat) :=
-    match Γ d@ n with
-    | .term _ _ => true
-    | _ => false
-
-  theorem id_is_letterm : Γ d@ n = .term a b -> is_letterm Γ n = true := by
-  intros h; simp_all;
+  -- theorem id_is_ctor : Γ d@ n = .ctor a -> is_ctorid Γ n = true := by
+  -- intros h; simp_all;
 
 
-  @[simp]
-  def is_openmethod (Γ : Ctx Term) (n : Nat) :=
-    match Γ d@ n with
-    | .openm _ => true
-    | _ => false
+  -- @[simp]
+  -- def is_term (Γ : Ctx Term) (n : Nat) :=
+  --   match Γ d@ n with
+  --   | .term _ _ => true
+  --   | _ => false
 
-  theorem id_is_openmethod : Γ d@ n = .openm m -> is_openmethod Γ n = true := by
-  intros h; simp_all;
+  -- theorem id_is_letterm : Γ d@ n = .term a b -> is_term Γ n = true := by
+  -- intros h; simp_all;
 
 
-  @[simp]
-  def is_insttype (Γ : Ctx Term) (n : Nat) :=
-    match Γ d@ n with
-    | .insttype _ => true
-    | _ => false
+  -- @[simp]
+  -- def is_openmethod (Γ : Ctx Term) (n : Nat) :=
+  --   match Γ d@ n with
+  --   | .openm _ => true
+  --   | _ => false
 
-  theorem id_is_insttype : Γ d@ n = .insttype m -> is_insttype Γ n = true := by
-  intros h; simp_all;
+  -- theorem id_is_openmethod : Γ d@ n = .openm m -> is_openmethod Γ n = true := by
+  -- intros h; simp_all;
+
+
+  -- @[simp]
+  -- def is_insttype (Γ : Ctx Term) (n : Nat) :=
+  --   match Γ d@ n with
+  --   | .insttype _ => true
+  --   | _ => false
+
+  -- theorem id_is_insttype : Γ d@ n = .insttype m -> is_insttype Γ n = true := by
+  -- intros h; simp_all;
 
 end Term
 

@@ -147,59 +147,160 @@ intros tnf nstable x; cases x;
       have wfst := And.left (And.right h); symm at wfst;
       subst wfst; simp_all;
 
-theorem val_no_red : ⊢ Γ -> Val Γ t -> ¬ ∃ t', Red Γ t t' := by
-intros wΓ vt tred; induction vt;
-case _ =>
-  cases tred; case _ nf st w h =>
-    have no_red := stable_no_reduce nf st;
-    have reds := Exists.intro w h; simp_all;
-case _ => cases tred; case _ h =>
-  cases h;
-  case _ =>  -- bogus case
-    -- have tty := ctx_get_instance_well_typed wΓ;
-     sorry;
-  case _ Γ _ _  ty n sp t fterm nf =>  -- bogus case
-    symm at fterm; have tty := ctx_get_term_well_typed wΓ fterm;
-    have h1 := tty.1; have h2 := tty.2;
-    have lem := classification_lemma h2; simp at lem; cases lem;
-    case _ h => subst h; sorry
-    case _ h =>
-      cases h;
-      case _ h => simp_all; sorry
-      case _ h => have xx := term_disjoint h1 h; simp_all; sorry;
+theorem types_no_red : ⊢ Γ -> DeclCtx Γ -> Γ ⊢ t : .kind -> ¬ ∃ t', Red Γ t t' := by
+intros wΓ dctx tyJ
+sorry
 
-case _ => cases tred; case _ h =>
+@[simp]
+abbrev ValueNoSteps : (v : JudgmentVariant) -> (Γ : Ctx Term)  -> (JudgmentArgs v) -> Prop
+| .prf => λ Γ => λ(t , _) => Val Γ t -> ¬ ∃ t', Red Γ t t'
+| .wf  => λ _ => λ () => true
+
+
+theorem val_no_red :
+  ⊢ Γ ->
+  Judgment v Γ ix ->
+  ValueNoSteps v Γ ix
+  := by
+intros wΓ tJ; induction tJ;
+any_goals(solve | simp_all)
+all_goals(intro vt treds; cases treds; cases vt; simp_all)
+case _ h =>
   cases h;
   case _ => simp_all
   case _ => simp_all
-case _ => cases tred; case _ h =>
+case _ h _ _ =>
+  cases h;
+  case _  n _ x_stable _ _ _ _ _ x_openm _ _ nnf _ =>
+    symm at nnf; have nnf' := @Term.var_neutral_form n; rw[nnf'] at nnf; injection nnf with nnf; simp at nnf;
+    have x_n := nnf.1; rw[<-x_n] at x_openm;
+    have x_not_stable := Frame.is_openm_implies_not_is_stable_red x_openm; contradiction;
+  case _ n' _ x_stable _ _ n _ _ x_term nnf =>
+    symm at nnf; have nnf' := @Term.var_neutral_form n'; rw[nnf'] at nnf; simp at nnf;
+    have n_n := nnf.1; rw[n_n] at x_stable; rw[<-x_term] at x_stable;
+    unfold Frame.is_stable_red at x_stable; simp at x_stable;
+case _ h =>
+  cases h;
+  case _ h _ => cases h
+  case _ h => cases h
+case _ h =>
+  cases h;
+  case _ h _ => cases h
+  case _ h => cases h
+case _ h =>
+  cases h
+  case _ h _ => cases h
+  case _ h => cases h
+case _ h =>
+  rw [Option.bind_eq_some] at h; cases h
+  case _ h _ _ _ =>
+    cases h;
+    case _ _ x_stable _ _ _ _ _ _ x_openm _ _ hh _ =>
+      simp_all; have hh := hh.1; subst hh; simp_all;
+      have x_not_stable := Frame.is_openm_implies_not_is_stable_red x_openm; contradiction;
+    case _ Γ f _ _ arg _ _ n ts _ _ x_stable w fnfp _ x sp _ x_term hh =>
+      have fnf := fnfp.2;
+      injection fnf with fnf;
+      have weqx : w.fst = n := by simp_all;
+      have tseqw :  w.snd ++ [(.kind, arg)]= ts := by simp_all;
+      symm at tseqw;
+      symm at hh;
+      subst weqx; subst tseqw;
+      have xx := Term.neutral_form_appk_rev_exists hh; cases xx;
+      case _ fnfp =>
+        have hh := fnfp.2; subst hh; simp_all;
+        have hh1 := hh.1; have hh2 := hh.2;
+        have xterm : Γ.is_term x = true := by simp; unfold Frame.is_term; rw[<-x_term];
+        have x_not_stable := Frame.is_term_implies_not_is_stable_red xterm; apply (x_not_stable x_stable);
+case _ Γ f _ _ a fj _ _ _ _ h =>
+  cases h;
+  case _ => sorry
+  case _ T x sp t x_term fanf =>
+    symm at x_term;
+    have xx := ctx_get_term_well_typed wΓ x_term;
+
+    sorry
+    -- have xx' := ctx_get_term_well_typed wΓ x_term;
+    -- have lem := classification_lemma xx'.1; simp at lem; cases lem;
+    -- case _ h => subst h; cases xx;
+    -- case _ h =>
+    --   cases h;
+    --   case _ h => have uniq := uniqueness_of_types xx h; simp_all;
+    --   case _ h => cases h; case _ h => have uniq := uniqueness_of_types xx h.2; subst uniq; simp_all; sorry
+
+case _ h =>
   cases h;
   case _ => simp_all
   case _ => simp_all
-case _ => cases tred; case _ h =>
+case _ h =>
   cases h;
   case _ => simp_all
   case _ => simp_all
-case _ => cases tred; case _ h =>
-  cases h;
-  case _ => simp_all
-  case _ => simp_all
-case _ => cases tred; case _ h =>
-  cases h;
-  case _ => simp_all
-  case _ => simp_all
-case _ => cases tred; case _ h =>
-  cases h;
-  case _ => simp_all
-  case _ => simp_all
-case _ => cases tred; case _ h =>
-  cases h;
+case _ h' _ h =>
+  rw[Option.bind_eq_some] at h;
+  cases h'
   case _ => simp_all;
-  case _ => simp_all
-case _ => cases tred; case _ h =>
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+case _ h =>
   cases h;
   case _ => simp_all
   case _ => simp_all
+case _ h' _ h =>
+  rw[Option.bind_eq_some] at h;
+  cases h; case _ fnf =>
+    cases h';
+    case _ => simp_all
+    case _ => simp_all; sorry
+    case _ => sorry
+    case _ => sorry
+case _ h =>
+  cases h;
+  case _ => simp_all
+  case _ => simp_all
+
+
+-- case _ =>
+--   simp_all;
+--   cases tred; case _ nf st w h =>
+--     have no_red := stable_no_reduce nf st;
+--     have reds := Exists.intro w h; simp_all;
+
+-- case appk => cases tred; case _ w h => -- t is of the form f `@k arg, f has a neutral form, and the head is an open method
+--   sorry
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all
+--   case _ => simp_all
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all
+--   case _ => simp_all
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all
+--   case _ => simp_all
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all
+--   case _ => simp_all
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all
+--   case _ => simp_all
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all
+--   case _ => simp_all
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all;
+--   case _ => simp_all
+-- case _ => cases tred; case _ h =>
+--   cases h;
+--   case _ => simp_all
+--   case _ => simp_all
 
 
 -- s is a value, cannot have a neutral form; datatype type, is impossible
@@ -286,19 +387,16 @@ case var Γ x _ _ xTy ih =>
     have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
     have k_st_red : Γ.is_stable_red x := by simp; unfold Frame.is_stable_red; rw [x_is_kind]
     apply Or.inl (Val.app hh k_st_red);
-
   case _ f _ x_is_type => exfalso; apply no_lam_bindings dctx x x_is_type;
   case _ f _ x_is_datatype =>
       simp_all; have x_is_stable := dt_is_stable x_is_datatype;
       have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
       apply Or.inl;
       apply Val.app hh x_is_stable;
-
   case _ f t x_is_ctor =>
     have xx : Frame.is_stable_red (Γ d@ x) := by unfold Frame.is_stable_red; rw[x_is_ctor];
     have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
     apply Or.inl (Val.app hh xx)
-
   case _ x_is_opent =>
       have x_is_stable := opent_is_stable x_is_opent;
       have hh : (#x).neutral_form = .some (x, []) := Term.var_neutral_form;
@@ -392,7 +490,8 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
        generalize snctor : Γ.is_ctor sf.fst = p at *;
        generalize sp : sf.1 = s_n at *; symm at sp;
        cases p;
-       case _ =>   -- scrutinee is a not a opentype headed but has a normal form
+       case _ =>   -- scrutinee is a not a opentype headed but has a neutral form
+
             sorry
        case _ =>
           have check := Nat.decEq pf.fst sf.fst;
