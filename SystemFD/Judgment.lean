@@ -314,3 +314,18 @@ inductive FrameWf : Ctx Term -> Frame Term -> Prop
   FrameWf Γ (.term A t)
 
 notation:170 Γ:170 " ⊢ " f:170 => FrameWf Γ f
+
+inductive SpineType : Term -> Term -> Prop where
+| refl :
+  SpineType T T
+| arrow :
+  Γ ⊢ a : A ->
+  SpineType (B β[a]) T ->
+  SpineType (A -t> B) T
+| all :
+  Γ ⊢ a : A ->
+  SpineType (B β[a]) T ->
+  SpineType (∀[A] B) T
+| arrowk :
+  SpineType B T ->
+  SpineType (A -k> B) T

@@ -58,6 +58,7 @@ case _ hd tl ih =>
     case _ =>
       replace j2 := inversion_apply_spine j2
       cases j2; case _ W j2 =>
+      cases j2; case _ j2 =>
       cases j2; case _ C D q1 q2 q3 =>
         have lem := uniqueness_of_types j1 q1
         subst lem; unfold ValidHeadVariable at h
@@ -65,6 +66,7 @@ case _ hd tl ih =>
     case _ =>
       replace j2 := inversion_apply_spine j2
       cases j2; case _ W j2 =>
+      cases j2; case _ j2 =>
       cases j2; case _ C D q1 q2 q3 =>
         have lem := uniqueness_of_types j1 q1
         subst lem; unfold ValidHeadVariable at h
@@ -72,6 +74,7 @@ case _ hd tl ih =>
     case _ =>
       replace j2 := inversion_apply_spine j2
       cases j2; case _ W j2 =>
+      cases j2; case _ j2 =>
       cases j2; case _ A q1 q2 =>
         have lem := uniqueness_of_types j1 q2
         subst lem; unfold ValidHeadVariable at h
@@ -86,6 +89,7 @@ case _ hd tl ih =>
       case _ =>
         have lem0 := inversion_apply_spine j2
         cases lem0; case _ W lem0 =>
+        cases lem0; case _ lem0 =>
         cases lem0; case _ q1 q2 q3 =>
           have lem0 := uniqueness_of_types j1 q1
           injection lem0 with _ e1 e2; subst e1; subst e2
@@ -100,12 +104,14 @@ case _ hd tl ih =>
       case _ =>
         replace j2 := inversion_apply_spine j2
         cases j2; case _ W j2 =>
+        cases j2; case _ j2 =>
         cases j2; case _ C D q1 q2 q3 =>
           have lem := uniqueness_of_types j1 q1
           injection lem with e; injection e
       case _ =>
         replace j2 := inversion_apply_spine j2
         cases j2; case _ W j2 =>
+        cases j2; case _ j2 =>
         cases j2; case _ C q1 q2 =>
           have lem := uniqueness_of_types j1 q2
           injection lem
@@ -119,12 +125,14 @@ case _ hd tl ih =>
       case _ =>
         replace j2 := inversion_apply_spine j2
         cases j2; case _ W j2 =>
+        cases j2; case _ j2 =>
         cases j2; case _ C D q1 q2 q3 =>
           have lem := uniqueness_of_types j1 q1
           injection lem with e; injection e
       case _ =>
         have lem0 := inversion_apply_spine j2
         cases lem0; case _ W lem0 =>
+        cases lem0; case _ lem0 =>
         cases lem0; case _ q1 q2 q3 =>
           have lem0 := uniqueness_of_types j1 q1
           injection lem0 with _ e1 e2; subst e1; subst e2
@@ -139,6 +147,7 @@ case _ hd tl ih =>
       case _ =>
         replace j2 := inversion_apply_spine j2
         cases j2; case _ W j2 =>
+        cases j2; case _ j2 =>
         cases j2; case _ C q1 q2 =>
           have lem := uniqueness_of_types j1 q2
           injection lem

@@ -4,6 +4,7 @@ import SystemFD.Ctx
 import SystemFD.Judgment
 import SystemFD.Metatheory.Classification
 import SystemFD.Metatheory.FrameWf
+import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
 
 inductive Val : Ctx Term -> Term -> Prop where
@@ -278,6 +279,42 @@ theorem types_are_values :
 intro j1 j2
 apply types_are_values_lemma j1 j2
 
+theorem refl_var_spine_lemma :
+  Γ.is_stable_red n ->
+  Γ ⊢ (#n).apply_spine sp : (A ~ B) ->
+  False
+:= by
+intro j1 j2
+have lem := inversion_apply_spine j2
+cases lem; case _ C lem =>
+cases lem; case _ h1 h2 =>
+cases h2; case _ j3 j4 =>
+  have lem := classification_lemma j2 <;> simp at lem
+  cases lem
+  case _ lem => cases lem
+  case _ lem =>
+    cases lem; case _ K lem =>
+    cases lem.2; case _ q1 q2 q3 =>
+      apply ctx_get_var_no_spine_eq_type j3 j1
+      rw [j4]; apply lem.2; apply h1
+
+theorem refl_is_val :
+  Γ ⊢ η : (A ~ B) ->
+  Val Γ η ->
+  η = refl! A ∧ A = B
+:= by
+intros ηJ vη; induction vη;
+any_goals(solve | cases ηJ)
+case _ Γ t n ts tnf n_stable =>
+     symm at tnf; replace tnf := Term.neutral_form_law tnf;
+     subst tnf;
+     exfalso;
+     apply (refl_var_spine_lemma n_stable ηJ);
+case _ => cases ηJ; case _ fJ =>
+  have lem := classification_lemma fJ; simp at lem; cases lem;
+  case _ h => cases h; case _ h => cases h
+  case _ h => apply And.intro rfl rfl
+
 @[simp]
 abbrev ProgressLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
 | .prf => λ Γ => λ(t , _) => Val Γ t ∨ ∃ t', Red Γ t t'
@@ -441,9 +478,27 @@ case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
     cases h2; case _ f' h2 =>
       apply Or.inr; apply Exists.intro (List.map (· `@t a) f')
       apply Red.appt_congr h2 rfl
-case _ => sorry
+case _ Γ t A c B j1 j2 ih1 ih2 =>
+  apply Or.inr
+  replace ih2 := ih2 h1
+  cases ih2
+  case _ h2 =>
+    have lem := refl_is_val j2 h2
+    cases lem; case _ e1 e2 =>
+      subst e1; subst e2
+      apply Exists.intro _
+      apply Red.cast
+  case _ h2 =>
+    cases h2; case _ c' h2 =>
+      apply Exists.intro (List.map (t ▹ ·) c')
+      apply Red.cast_congr h2 rfl
 case _ => apply Or.inl; apply Val.refl
-case _ => sorry
+case _ Γ t A B j ih =>
+  apply Or.inr
+  replace ih := ih h1
+  cases ih
+  case _ h2 => sorry
+  case _ h2 => sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry
