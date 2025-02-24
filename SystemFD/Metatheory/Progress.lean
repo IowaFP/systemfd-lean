@@ -216,18 +216,21 @@ case _ Γ f _ _ a fj _ _ _ _ h =>
   cases h;
   case _ => sorry
   case _ T x sp t x_term fanf =>
-    symm at x_term;
+    symm at fanf; have fanf := Term.neutral_form_appk_rev_exists fanf;
+    cases fanf; case _ fsp fanf =>
+    symm at x_term; symm at fanf;
     have xx := ctx_get_term_well_typed wΓ x_term;
-
-    sorry
-    -- have xx' := ctx_get_term_well_typed wΓ x_term;
-    -- have lem := classification_lemma xx'.1; simp at lem; cases lem;
-    -- case _ h => subst h; cases xx;
-    -- case _ h =>
-    --   cases h;
-    --   case _ h => have uniq := uniqueness_of_types xx h; simp_all;
-    --   case _ h => cases h; case _ h => have uniq := uniqueness_of_types xx h.2; subst uniq; simp_all; sorry
-
+    have xx' := ctx_get_term_type_kind wΓ x_term;
+    have lem := classification_lemma xx.1; simp at lem; cases lem;
+    case _ h => subst h; cases xx';
+    case _ h =>
+      cases h;
+      case _ h => have uniq := uniqueness_of_types xx' h; simp_all;
+      case _ h => sorry
+          -- cases h; case _ h =>
+          --   have uniq := uniqueness_of_types xx' h.2; subst uniq;
+          --   have f_form := Term.neutral_form_law fp; subst f_form; simp_all;
+          --   case _ fj => sorry
 case _ h =>
   cases h;
   case _ => simp_all
@@ -261,48 +264,6 @@ case _ h =>
   case _ => simp_all
 
 
--- case _ =>
---   simp_all;
---   cases tred; case _ nf st w h =>
---     have no_red := stable_no_reduce nf st;
---     have reds := Exists.intro w h; simp_all;
-
--- case appk => cases tred; case _ w h => -- t is of the form f `@k arg, f has a neutral form, and the head is an open method
---   sorry
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all
---   case _ => simp_all
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all
---   case _ => simp_all
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all
---   case _ => simp_all
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all
---   case _ => simp_all
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all
---   case _ => simp_all
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all
---   case _ => simp_all
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all;
---   case _ => simp_all
--- case _ => cases tred; case _ h =>
---   cases h;
---   case _ => simp_all
---   case _ => simp_all
-
-
 -- s is a value, cannot have a neutral form; datatype type, is impossible
 theorem term_neutral_form_datatype :
   Val Γ t ->
@@ -313,15 +274,15 @@ theorem term_neutral_form_datatype :
 intros tv nf vhv tJ;
 induction tv;
 any_goals (solve | simp_all)
-case _ => cases tJ; cases vhv; simp_all;  sorry
-case _ => cases tJ; cases vhv; simp_all
-case _ => cases tJ; cases vhv; simp_all
-case _ => cases tJ; cases vhv; simp_all
-case _ => cases tJ; cases vhv; simp_all
-case _ => cases tJ; cases vhv; simp_all
-case _ => cases tJ; cases vhv; simp_all
-case _ => cases tJ; cases vhv; simp_all
-case _ => cases tJ; cases vhv; simp_all
+any_goals (solve | cases tJ; cases vhv; simp_all)
+case _ Γ f h => cases vhv; case _ w h =>
+  have lem := classification_lemma tJ; simp at lem;
+  cases lem;
+  case _ => simp_all
+  case _ h' =>
+    cases h';
+    case _ => simp_all; sorry
+    case _ => simp_all; sorry
 
 
 theorem term_neutral_form_opent :
@@ -355,6 +316,44 @@ case _ => cases ηJ; case _ fJ =>
   case _ h => cases h; case _ h => have h := invert_eq_kind h; cases h;
   case _ h => cases h; case _ h => simp_all; cases h.2; cases h.1
 case _ => cases ηJ; simp_all
+
+theorem ctor_uniqueness {Γ : Ctx Term}: (Γ.is_ctor x = true) -> (Γ.is_ctor y = false) -> x ≠ y := by
+intros xctor yctor xeqy ;
+induction Γ generalizing x y;
+case _ => simp_all
+case _ => sorry
+
+theorem insttype_uniqueness {Γ : Ctx Term}: (Γ.is_insttype x = true) -> (Γ.is_insttype y = false) -> x ≠ y := by
+intros xctor yctor xeqy ;
+induction Γ generalizing x y;
+case _ => simp_all
+case _ => sorry
+
+
+-- this is stupid
+theorem bool_implication (x : Bool) : x = false -> ¬ x = true :=
+by intro h; rw [h]; simp
+
+theorem unstable_var_steps :
+   .some (x, sp) = Term.neutral_form t ->
+   (Γ.is_stable_red x = false) ->
+   ∃ t', Red Γ t t'
+:= by
+intros tnf x_not_stable;
+have x_not_stable := @bool_implication (Γ.is_stable_red x) x_not_stable;
+generalize xx : Γ d@ x = f;
+cases f;
+any_goals (solve | unfold Ctx.is_stable_red at x_not_stable
+                   rw [xx] at x_not_stable
+                   simp at x_not_stable
+                   unfold Frame.is_stable_red at x_not_stable
+                   simp at x_not_stable)
+case empty => sorry
+case type =>  sorry
+case term =>
+  sorry
+case openm => sorry
+
 
 
 @[simp]
@@ -445,10 +444,30 @@ case ite Γ p A s _ i _ _ e _ sJ RJ _ vhvp vhvr stm _ tstar _ ps ss _ is _ es =>
        simp;
        have s_sp := sf.2;
        generalize sp : sf.1 = s_n at *; symm at sp;
+       generalize s_spp : sf.2 = s_sp at *; symm at s_spp;
        generalize snctor : Γ.is_ctor s_n = p at *;
+       have s_form := Term.neutral_form_law snf; rw[<-s_spp] at s_form; rw[<-sp] at s_form;
        cases p;
-       case _ =>  -- scrutinee is a not a ctor headed but has a normal form
-         sorry
+       case _ => -- scrutinee is a not ctor headed but has a neutral form
+
+         generalize xx : Γ.is_stable_red s_n = x_is_stable;
+         cases x_is_stable;
+         case false =>
+           apply Or.inr; simp at xx; rw[sp] at xx;
+           have reds' := @unstable_var_steps s sf.1 sf.2 Γ snf xx;
+           cases reds'; case _ w sreds =>
+           generalize tlp : List.map (Term.ite p · i e) w = tl at *; symm at tlp;
+           have reds : ∃ t', Red Γ (.ite p s i e) t' := Exists.intro tl (Red.ite_congr sreds tlp)
+           apply reds
+         case true =>
+           generalize xx' : Γ d@ s_n = f;
+           cases f;
+           any_goals (solve | unfold Ctx.is_stable_red at xx; rw [xx'] at xx; unfold Frame.is_stable_red at xx; simp at xx)
+           any_goals (solve | subst sp;
+                              have reds : ∃ t', Red Γ (.ite p s i e) t' :=
+                                Exists.intro [e] (Red.ite_missed pnf snf xx (Or.inl (ctor_uniqueness hpctor snctor)));
+                              apply Or.inr; apply reds)
+
        case _ =>
           have check := Nat.decEq pf.fst sf.fst;
           cases check;
@@ -486,25 +505,42 @@ case guard Γ p A s R t _ _ pJ sJ _ _ vhvp vhvr _ _ _  ps ss _ _ _  =>
           have reds : ∃ t', Red Γ (.guard p s t) t' := Exists.intro tl' (Red.guard_congr h tlp);
           apply Or.inr reds
     case _ sf =>
-       simp; have s_sp := sf.2;
-       generalize snctor : Γ.is_ctor sf.fst = p at *;
+       simp
+       generalize snctor : Γ.is_insttype sf.fst = p at *;
        generalize sp : sf.1 = s_n at *; symm at sp;
+       generalize s_spp : sf.2 = s_sp at *; symm at s_spp;
+       have s_form := Term.neutral_form_law snf; rw[<-s_spp] at s_form; rw[<-sp] at s_form;
        cases p;
        case _ =>   -- scrutinee is a not a opentype headed but has a neutral form
-
-            sorry
+         generalize xx : Γ.is_stable_red s_n = x_is_stable;
+         cases x_is_stable;
+         case false =>
+           apply Or.inr; simp at xx; rw[sp] at xx;
+           have reds' := @unstable_var_steps s sf.1 sf.2 Γ snf xx;
+           cases reds'; case _ w sreds =>
+           generalize tlp : List.map (Term.guard p · t) w = tl at *; symm at tlp;
+           have reds : ∃ t', Red Γ (Term.guard p s t) t' := Exists.intro tl (Red.guard_congr sreds tlp)
+           apply reds
+         case true =>
+           generalize xx' : Γ d@ s_n = f;
+           cases f;
+           any_goals (solve | unfold Ctx.is_stable_red at xx; rw [xx'] at xx; unfold Frame.is_stable_red at xx; simp at xx)
+           any_goals (solve | subst sp;
+                              have reds : ∃ t', Red Γ (.guard p s t) t' :=
+                                Exists.intro [] (Red.guard_missed pnf snf xx (Or.inl (insttype_uniqueness hpctor snctor)));
+                              apply Or.inr; apply reds)
        case _ =>
           have check := Nat.decEq pf.fst sf.fst;
           cases check;
           case _ h =>
-            have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_ctor_implies_is_stable_red snctor;
+            have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_insttype_implies_is_stable_red snctor;
             have reds : ∃ t', Red Γ (.guard p s t) t' := Exists.intro [] (Red.guard_missed pnf snf s_is_stable (Or.inl h));
             apply Or.inr; apply reds; -- sorry
           case _ h =>
             generalize comp_prefix : prefix_equal pf.snd sf.snd = h at *;
             cases h
             case _ h =>
-              have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_ctor_implies_is_stable_red snctor;
+              have s_is_stable : Γ.is_stable_red sf.fst := by rw[sp] at snctor; apply Frame.is_insttype_implies_is_stable_red snctor;
               have reds : ∃ t', Red Γ (.guard p s t) t' :=
                    Exists.intro [] (Red.guard_missed pnf snf s_is_stable (Or.inr comp_prefix));
               apply Or.inr; apply reds;

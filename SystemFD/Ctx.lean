@@ -37,6 +37,11 @@ namespace Frame
   theorem apply_compose {A : Frame T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by
   unfold apply <;> cases A <;> simp
 
+  def is_empty (f : Frame T) : Bool :=
+    match f with
+    | .empty => true
+    | _ => false
+
   def is_openm (f : Frame T) : Bool :=
     match f with
     | .openm _ => true
@@ -127,9 +132,20 @@ namespace Frame
   split at h <;> simp at *; unfold is_stable; simp
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_datatype_implies_is_stable_red : is_datatype f -> is_stable_red f := by
+  intro h; unfold is_datatype at h
+  split at h <;> simp at *; unfold is_stable_red; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_insttype_implies_is_stable : is_insttype f -> is_stable f := by
   intro h; unfold is_insttype at h
   split at h <;> simp at *; unfold is_stable; simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_insttype_implies_is_stable_red : is_insttype f -> is_stable_red f := by
+  intro h; unfold is_insttype at h
+  split at h <;> simp at *; unfold is_stable_red; simp
+
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_opent_implies_is_stable : is_opent f -> is_stable f := by

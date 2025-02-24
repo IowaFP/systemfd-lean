@@ -68,6 +68,11 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 ----------------------------------------------------------------
 ---- Contextual/Congruence Rules
 ----------------------------------------------------------------
+-- | apphead_congr :
+--   .some (x, sp) = Term.neutral_form t ->
+--   Red Γ (#x) t' ->
+--   tl' = List.map (λ x => x.apply_spine sp) t' ->
+--   Red Γ t tl'
 | app_congr :
   Red Γ f tl ->
   tl' = List.map (λ x => x `@ a) tl ->
