@@ -12,7 +12,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
     | .var h =>
       match (Γ d@ h) with
       | .openm _ =>
-            let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
+            let ιs := instance_indices Γ 0 h [] ; -- get all the indices of instances
             get_instances Γ ιs -- select the right instances using the indices
           | .term _ b => [ b ]  -- inline a let bound term
           | _ => .none -- do not evaluate
@@ -26,7 +26,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .some (h, sp) =>
         (match (Γ d@ h) with
           | .openm _ =>
-            let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
+            let ιs := instance_indices Γ 0 h [] ; -- get all the indices of instances
             let ts := get_instances Γ ιs ; -- select the right instances using the indices
             let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
             List.map (· `@ t) ts'
@@ -41,7 +41,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .some (h, sp) =>
         (match (Γ d@ h) with
           | .openm _ =>
-            let ιs := instance_indices' Γ 0 h [] ; -- get all the indices of instances
+            let ιs := instance_indices Γ 0 h [] ; -- get all the indices of instances
             let ts := get_instances Γ ιs ; -- select the right instances using the indices
             let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
             List.map (· `@t t) ts'
@@ -56,44 +56,47 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
   --------------------------
     | .ite p s b c => do
       let (h, sp) <- Term.neutral_form p
-      (match Term.neutral_form s with
-      | .none => do let s'' <- eval_inst Γ s
-                    .some (List.map (.ite p · b c) s'')
-      | .some (s' , sp') =>
+      if Γ.is_ctor h
+      then (match Term.neutral_form s with
+            | .none => do let s'' <- eval_inst Γ s
+                          .some (List.map (.ite p · b c) s'')
+            | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-              if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
+              if ¬ (Γ.is_stable_red s')
               then do let s'' <- eval_inst Γ s
                       .some (List.map (.ite p · b c) s'')
               else ( -- s' cannot be a term or an instance
                      -- if it is then evaluate by eval_inst
-                     if Term.is_ctorid Γ s'
-                     then if h == s'
+                     if h == s'
                           then match (prefix_equal sp sp') with
                                | .some l => .some [Term.apply_spine b l]
                                | _ => .some [c]
                           else .some [c]
-                     else .none ))
+                     ))
+      else .none
 
   --------------------------
   ---- Guards over open terms
   --------------------------
     | .guard p s c => do
       let (p', sp) <- Term.neutral_form p
-      (match Term.neutral_form s with
-       | .none => do let s'' <- eval_inst Γ s
-                     .some (List.map (.guard p · c) s'')
-       | .some (s' , sp') =>
+      if Γ.is_insttype p'
+      then (match Term.neutral_form s with
+           | .none => do let s'' <- eval_inst Γ s
+                         .some (List.map (.guard p · c) s'')
+           | .some (s' , sp') =>
               -- s can be neutral, but the head is a let term or an open method
               -- so instantiate it
-          if Term.is_letterm Γ s' || Term.is_openmethod Γ s'
-          then do let s'' <- eval_inst Γ s
-                  .some (List.map (.guard p · c) s'')
-          else (if (p' == s')
-                then (match prefix_equal sp sp' with
+             if ¬ (Γ.is_stable_red s')
+             then do let s'' <- eval_inst Γ s
+                     .some (List.map (.guard p · c) s'')
+             else (if (p' == s')
+                  then (match prefix_equal sp sp' with
                        | .some l => .some [c.apply_spine l]
                        | _                 => .some []) -- guards failing return empty list
-                else .some []))
+                  else .some []))
+      else .none
 
   --------------------------
   ---- Coercions
@@ -107,10 +110,8 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       then .some [refl! t]
       else .none
 
-    | .ctor2 .appc (.ctor1 .refl (.bind2 .arrow t t')) (.ctor1 .refl t'') =>
-      if t == t''
-      then .some [refl! t']
-      else .none
+    | .ctor2 .appc (.ctor1 .refl t) (.ctor1 .refl t') =>
+      .some [refl! (t `@k t')]
     | .ctor1 .fst (.ctor1 .refl (.ctor2 .appk A _)) =>
       .some [refl! A]
     | .ctor1 .snd (.ctor1 .refl (.ctor2 .appk _ B)) =>

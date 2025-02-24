@@ -126,8 +126,8 @@ case _ j => apply j
 
 theorem ctx_get_term_type_kind :
   ⊢ Γ ->
-  Γ d@ x = .term T t
-  -> Γ ⊢ T : ★ := by
+  Γ d@ x = .term T t ->
+  Γ ⊢ t : T ∧ Γ ⊢ T : ★ := by
 intros wΓ h;
 sorry
 

@@ -1,7 +1,7 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
-import SystemFD.Algorithm
+-- import SystemFD.Algorithm
 import SystemFD.Evaluator
 
 def NatCtxFix : Ctx Term := [
@@ -20,7 +20,7 @@ def NatCtxFix : Ctx Term := [
         .ite #5 #1 (`λ[#7] #6 `@ (#3 `@ #0 `@ #1))
         #0)),
   -- instance fix = Λ a. λ f. f (fix i f)
-  .inst 0 (Λ[★] `λ[#0 -t> #1] (#0 `@ (#2 `@t #1 `@ #0))),
+  .inst #0 (Λ[★] `λ[#0 -t> #1] (#0 `@ (#2 `@t #1 `@ #0))),
   -- open fix : ∀ a, (a -> a) -> a
   .openm (∀[★] (#0 -t> #1) -t> #1),
   -- Nat.succ
@@ -32,10 +32,10 @@ def NatCtxFix : Ctx Term := [
 ]
 
 
-#eval wf_ctx NatCtxFix
-#eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
+-- #eval wf_ctx NatCtxFix
+-- #eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
 
-#eval infer_type NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
+-- #eval infer_type NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
 #eval eval_ctx_loop NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
 
 def NatCtxDirect : Ctx Term := [
@@ -49,7 +49,7 @@ def NatCtxDirect : Ctx Term := [
                             Zero → False
                             Succ →  λ y'. ==@Nat x' y'
    -/
-   .inst 0 ( `λ[#9] `λ[#10]
+   .inst #0 ( `λ[#9] `λ[#10]
       .ite #10 #1 (.ite #10 #0 #3 -- x = 0; y = 0
                                #4 -- x = 0; y ≠ 0
                                 )
@@ -72,7 +72,7 @@ def NatCtxDirect : Ctx Term := [
   --   ite zero <- n then λ m. m
   --     else ite succ <- n then λ x. λ m. succ (add x m)
   --     else m
-  , .inst 0 (`λ[#3]
+  , .inst #0 (`λ[#3]
     .ite #3 #0 (`λ[#4] #0) (
       .ite #2 #0 (`λ[#4] `λ[#5] #4 `@ (#3 `@ #1 `@ #0))
       (`λ[#4] #0)))
@@ -92,10 +92,10 @@ def NatCtxDirect : Ctx Term := [
 #eval eval_ctx_loop NatCtxDirect (#1 `@ #5 `@ (#8 `@ #9))
 
 
-#eval wf_ctx NatCtxDirect
-#eval infer_type NatCtxDirect (#7 `@ #5 `@ #5)
+-- #eval wf_ctx NatCtxDirect
+-- #eval infer_type NatCtxDirect (#7 `@ #5 `@ #5)
 
 #eval eval_ctx_loop NatCtxDirect (#7 `@ #5 `@ #5)
 
-#eval infer_type NatCtxDirect (#1 `@ #5 `@ #5)
-#eval infer_type NatCtxDirect (#1 `@ #5 `@ (#8 `@ #9))
+-- #eval infer_type NatCtxDirect (#1 `@ #5 `@ #5)
+-- #eval infer_type NatCtxDirect (#1 `@ #5 `@ (#8 `@ #9))

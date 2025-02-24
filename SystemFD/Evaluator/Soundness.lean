@@ -10,7 +10,7 @@ intros
 induction Γ, t using eval_inst.induct generalizing ts
 case _ Γ n _ om et =>
   simp_all; subst et;
-  generalize ip : instance_indices' Γ 0 n [] = i at *;
+  generalize ip : instance_indices Γ 0 n [] = i at *;
   generalize instsp : get_instances Γ i = insts at *;
   have nfh := @Term.var_neutral_form n; symm at nfh;
   symm at instsp; symm at ip;
@@ -26,7 +26,7 @@ case _ Γ f t _ n sp _ t' om et =>
   simp at et; split at et;
   case _ fnf =>
     simp_all;
-    generalize ip : instance_indices' Γ 0 n [] = ιs at *;
+    generalize ip : instance_indices Γ 0 n [] = ιs at *;
     generalize instsp : get_instances Γ ιs = insts at *;
     have ftnf := @Term.neutral_form_app f t n sp fnf; symm at ftnf;
     symm at ip; symm at instsp
@@ -45,7 +45,7 @@ case _ Γ f t _ n sp fnf A t' lt et =>
   case _ fnf =>
      simp_all;
      have ftnf := @Term.neutral_form_appt f t n sp fnf;
-     have omp := Term.id_is_letterm lt; symm at et; symm at lt; symm at fnf;
+     symm at et; symm at lt; symm at fnf;
      have fred := @Red.letterm A f n sp Γ t' fnf lt;
      rw[et]; apply Red.app_congr fred; simp_all
   case _ => simp_all
@@ -62,22 +62,22 @@ case _ Γ f t _ nf ih et =>
     apply Red.app_congr ih'; rfl
 case _ Γ f t _ n sp fnf _ om et =>
   simp at et;
-  generalize ip : instance_indices' Γ 0 n [] = ιs at *;
+  generalize ip : instance_indices Γ 0 n [] = ιs at *;
   generalize instsp : get_instances Γ ιs = insts at *;
   simp_all;
   have ftnf := @Term.neutral_form_app f t n sp fnf;
-  -- have omp := Term.id_is_openmethod om;
+  have omp : Γ.is_openm n := by simp; rw[om]; unfold Frame.is_openm; simp;
   symm at ip; symm at instsp;
   symm at et; symm at fnf;
   generalize tlp' : List.map (·.apply_spine sp) insts = tl' at *; symm at tlp'
-  have fred := Red.inst fnf sorry ip instsp tlp';
+  have fred := Red.inst fnf omp ip instsp tlp';
   apply Red.appt_congr fred; simp_all
 
 case _ Γ f t _ n sp fnf A t' lt et =>
   simp at et;
   simp_all;
   have ftnf := @Term.neutral_form_appt f t n sp fnf;
-  have omp := Term.id_is_letterm lt; symm at et; symm at lt; symm at fnf;
+  symm at et; symm at lt; symm at fnf;
   have fred := @Red.letterm A f n sp Γ t' fnf lt;
   rw[et]; apply Red.appt_congr fred; simp_all
 
@@ -104,40 +104,46 @@ case _ Γ p s b c ih et =>
     case _ =>
       rw[Option.bind_eq_some] at site;
       cases site; case _ w h =>
+      cases h; case _ h =>
       injection (And.right h) with ts; subst ts;
-      apply Red.ite_congr (@ih w (And.left h)); trivial
-    case _ =>
-    simp_all; split at site;
-    case _ =>
-      simp_all; rw[Option.bind_eq_some] at site;
-      cases site; case _ w h =>
-        injection (And.right h) with ts; subst ts;
-        apply Red.ite_congr (@ih w (And.left h)); trivial
-    case _ sp' sne _ _ =>
-     simp at site; split at site;
-     case _ =>
-       simp_all; rw[Option.bind_eq_some] at site;
-       cases site; case _ w h =>
-       injection (And.right h) with ts; subst ts;
-       apply Red.ite_congr (@ih w (And.left h)); trivial
-     case _ =>
-       simp at site; split at site;
-       case _ ctor =>
-         simp at site; split at site;
-         case _  _ _ _ _ _ weqs =>
-           subst weqs; simp_all; split at site;
-           case _ px =>
-             injection site with br; rw[<-br]; symm at pne; symm at sne; symm at px;
-             apply Red.ite_matched pne sne px; apply Term.id_is_ctor ctor
-           case _ npx =>
-             injection site with site; subst site; symm at sne; symm at pne;
-             have _ :=  option_neg npx;
-             apply Red.ite_missed pne sne; simp_all
-         case _ cond =>
-           symm at pne; symm at sne;
-           injection site with ss ; subst ss;
-           simp_all; apply Red.ite_missed pne sne; simp_all;
-       case _ => simp at site
+      -- apply Red.ite_congr (@ih w (And.left h)); trivial
+      sorry
+    -- case _ =>
+    -- simp_all; split at site;
+    case _ => simp_all; sorry
+      -- rw[Option.bind_eq_some] at site;
+      -- cases site; case _ w h =>
+      --   injection (And.right h) with ts; subst ts;
+      --   apply Red.ite_congr (@ih w (And.left h)); trivial
+  --case _ sp' sne snf x_stable => sorry
+     -- split at site;
+     -- case _ heq =>
+     --   -- rw[Option.bind_eq_some] at site;
+     --   split at site;
+     --   case _ w h =>
+     --     injection site with site; subst ts; symm at snf; symm at pne; rw[<-heq] at snf; symm at h;
+     --     apply Red.ite_matched pne snf h;
+     --     sorry
+     --   case _ => sorry
+    -- case _ neq => sorry
+       -- injection site with site; rw [<-site]; --  split at site;
+       -- simp at x_stable; symm at snf; symm at pne;
+       -- apply Red.ite_missed pne snf x_stable (Or.inl neq);
+         -- split at site;
+         -- case _  _ _ _ _ _ weqs =>
+         --   subst weqs; simp_all; split at site;
+         --   case _ px =>
+         --     injection site with br; rw[<-br]; symm at pne; symm at sne; symm at px;
+         --     apply Red.ite_matched pne sne px; apply Term.id_is_ctor ctor
+         --   case _ npx =>
+         --     injection site with site; subst site; symm at sne; symm at pne;
+         --     have _ :=  option_neg npx;
+         --     apply Red.ite_missed pne sne; simp_all
+         -- case _ cond =>
+         --   symm at pne; symm at sne;
+         --   injection site with ss ; subst ss;
+         --   simp_all; apply Red.ite_missed pne sne; simp_all;
+         -- case _ => simp at site
 
 -- GUARD
 case _ Γ p s c ih et =>
@@ -152,40 +158,26 @@ case _ Γ p s c ih et =>
     cases smatch; case _ s' smatch' =>
     have ih' := @ih s' (And.left smatch'); simp_all
     have h' := And.right smatch'; subst h'; apply Red.guard_congr ih'; rfl
-  case _ s' sp' heq =>
+  case _ s' sp' snf =>
     split at smatch;
     case _ frame_term =>
-      simp_all; rw[Option.bind_eq_some] at smatch;
-      symm at heq; symm at frame_term; simp_all
+      rw[Option.bind_eq_some] at smatch;
+      symm at snf; symm at frame_term; simp_all
       cases smatch;
       case _ w ts' =>
         have ih' := @ih w (And.left ts'); simp_all
         have h' := And.right ts'; subst h'; apply Red.guard_congr ih'; rfl
     case _ =>
       simp_all; split at smatch;
-      case _ =>
-        simp_all; rw[Option.bind_eq_some] at smatch; cases smatch;
-        case _ w ts' =>
-        have ih' := @ih w (And.left ts'); simp_all
-        have h' := And.right ts'; subst h'; apply Red.guard_congr ih'; rfl
-      case _ =>
-        simp_all; split at smatch;
-        case _ heq' => -- guard_matched
-             split at smatch;
-             case _ _ _ sl =>
-               injection smatch with smatch'; rw[<-smatch'];
-               symm at pne; symm at heq; symm at sl; rw [<-heq'] at heq;
-               apply Red.guard_matched pne heq sl
-             case _ x =>
-               symm at pne; symm at heq;
-               injection smatch with empt; subst empt
-               have temp := option_neg x;
-               simp_all; apply Red.guard_missed pne heq;
-               simp_all;
-        case _ c => -- guard_missed
-          simp_all; subst smatch; symm at pne; symm at heq;
-          apply Red.guard_missed pne heq;
-          simp_all;
+      case _ =>  sorry
+        -- cases smatch;
+        -- case _ w ts' =>
+        -- have ih' := @ih w (And.left ts'); simp_all
+        -- have h' := And.right ts'; subst h'; apply Red.guard_congr ih'; rfl
+      case _ xx heq =>
+        injection smatch with smatch; rw[<-smatch]; symm at pne; symm at snf;
+        have reds : Red Γ (.guard p s c) [] := (Red.guard_missed pne snf xx (Or.inl heq));
+        apply reds
 
 case _ Γ _ et => simp at et; rw[<-et]; apply Red.sym
 case _ ih et =>
@@ -199,11 +191,7 @@ case _ Γ t t' teq et =>
 case _ Γ t' t h et =>
   simp at et; have nh := And.left et; exfalso;
   contradiction
-case _ Γ t t' t'' teq et =>
-  have eq := eq_of_beq teq; subst eq;
-  simp at et; rw[<-et]; exact Red.appc
-case _ Γ t t' t'' teq et =>
-  simp at et; have nh := And.left et; contradiction
+case _ Γ t t' et => simp at et; rw [<-et]; apply Red.appc
 
 case _ et => simp at et; subst et; apply Red.fst
 case _ et => simp at et; subst et; apply Red.snd

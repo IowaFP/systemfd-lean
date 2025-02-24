@@ -2,7 +2,7 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
-import SystemFD.Algorithm
+-- import SystemFD.Algorithm
 import SystemFD.Evaluator
 
 def boolCtx : Ctx Term := [
@@ -63,7 +63,7 @@ def EqBoolCtx : Ctx Term := [
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. ==@Bool ▹ sym c
 
-      .inst 2
+      .inst #2
             (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
                Term.guard (#3 `@t #1) -- EqBool[t]
                #0                     -- i
@@ -103,8 +103,8 @@ def EqBoolCtx : Ctx Term := [
   , .datatype ★
 ]
 
-#eval wf_ctx EqBoolCtx
-#eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- some 7
+-- #eval wf_ctx EqBoolCtx
+-- #eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- some 7
 
 -- == [Bool] (EqBool[Bool] refl) True True ⟶★ True
 #eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- some 5
