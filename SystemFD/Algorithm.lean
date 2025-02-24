@@ -156,8 +156,8 @@ def infer_type : Ctx Term -> Term -> Option Term
   let _ <- is_type Rk
   let B <- infer_type Γ i
   let _ <- stable_type_match Γ A R
-  let (ctorid, _) <- Term.neutral_form p
-  let (dataid, _) <- Term.neutral_form R
+  let (_, _) <- Term.neutral_form p
+  let (_, _) <- Term.neutral_form R
   let T <- prefix_type_match Γ A B
   let Tk <- infer_kind Γ T
   let _ <- is_type Tk
@@ -289,10 +289,11 @@ def wf_ctx : Ctx Term -> Option Unit
   let A' <- infer_type Γ t
   let _ <- wf_ctx Γ
   if A == A' then .some () else .none
-| .cons (.inst x t) Γ =>
+| .cons (.inst #x t) Γ =>
   match Γ d@ x with
   | .openm T => do
     let T' <- infer_type Γ t
     let _ <- wf_ctx Γ
     if T == T' then .some () else .none
   | _ => .none
+| .cons (.inst _ _) _ => .none

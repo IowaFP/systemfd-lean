@@ -11,7 +11,7 @@ def MaybeBoolCtx : Ctx Term := [
          Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
            eqMaybe ▹ sym (<t ~ Bool> → <t ~ Bool> → <Bool>)
     -/
-    .inst 7 (Λ[★] `λ[#10 `@k #0] -- Λt. λ(i : Eq t)
+    .inst #7 (Λ[★] `λ[#10 `@k #0] -- Λt. λ(i : Eq t)
                    .guard (#3 `@t #1) #0    --     EqMaybe[t] ← i
                     (Λ[★] `λ[#2 ~ (#7 `@k #0)] `λ[#13 `@k #1]  -- Λ u. λ (tmu : t ~ Maybe u). λ (eqU : Eq u)
                                                    -- eqMaybeU[u] eqU ▹ (t ~ Maybe u) → (t ~ Maybe u) → <Bool>
@@ -20,7 +20,7 @@ def MaybeBoolCtx : Ctx Term := [
 
                    )
 
-  , .term ((∀[★] (#9 `@k #0) -t> (#5 `@k #1) -t> (#6 `@k #2) -t> #15))
+    , .term ((∀[★] (#9 `@k #0) -t> (#5 `@k #1) -t> (#6 `@k #2) -t> #15))
          ((Λ[★] `λ[#9 `@k #0] `λ[#5 `@k #1] `λ[#6 `@k #2]
                 .ite (#6 `@t #3) #1
                      (.ite (#6 `@t #3) #0
@@ -38,14 +38,14 @@ def MaybeBoolCtx : Ctx Term := [
    , .insttype (∀[★]∀[★] (#1 ~ (#4 `@k #0)) -t> (#10 `@k #1) -t> (#11 `@k #3))
 
   -- Just : ∀ a. a → Maybe a
-  , .ctor (∀[★] #0 -t> (#3 `@k #1))
+  ,  .ctor (∀[★] #0 -t> (#3 `@k #1))
   -- Nothing : ∀ a. Maybe a
   , .ctor (∀[★] #1 `@k #0)
   -- Maybe : ★ → ★
   , .datatype  (★ -k> ★)
 
 
-  , .inst 2 (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
+  , .inst #2 (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
                Term.guard (#3 `@t #1) -- EqBool[t]
                #0                     -- i
                 -- λ (tBool : t ~ Bool).  ==@Bool ▹ sym! (tBool -c> tBool -c> rfl Bool)
@@ -84,7 +84,7 @@ def MaybeBoolCtx : Ctx Term := [
   , .datatype  ★
 ]
 
-#eval! wf_ctx MaybeBoolCtx
+#eval wf_ctx MaybeBoolCtx
 
 
 -- /-
