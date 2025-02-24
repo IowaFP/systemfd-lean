@@ -290,6 +290,11 @@ section
   have lem : @I T = fun x => .re x := by unfold I; simp
   rw [<-lem]
 
+  omit [SubstitutionTypeLaws T] in
+  @[simp]
+  theorem to_compose_commute {σ τ : Ren} : Ren.to (σ ∘ τ) = (@Ren.to T σ) ⊙ (τ.to) := by
+  unfold Ren.to; unfold Subst.compose; simp
+
 end
 
   macro "solve_compose" Ty:term "," apply_stable:term "," s:term "," σ:term "," τ:term : tactic => `(tactic| {

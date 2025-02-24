@@ -12,7 +12,7 @@ inductive Frame T where
 | opent : T -> Frame T
 | openm : T -> Frame T
 | insttype : T -> Frame T
-| inst : Nat -> T -> Frame T
+| inst : T -> T -> Frame T
 | term : T -> T -> Frame T
 
 namespace Frame
@@ -25,7 +25,7 @@ namespace Frame
   | opent t, σ => opent ([σ]t)
   | openm t, σ => openm ([σ]t)
   | insttype t, σ => insttype ([σ]t)
-  | inst n t, σ => inst n ([σ]t)
+  | inst v t, σ => inst ([σ]v) ([σ]t)
   | term ty t, σ => term ([σ]ty) ([σ]t)
 
   omit [Repr T] [Inhabited T] in
@@ -35,7 +35,7 @@ namespace Frame
 
   omit [Repr T] [Inhabited T] in
   theorem apply_compose {A : Frame T} : (A.apply σ).apply τ = A.apply (τ ⊙ σ) := by
-  unfold apply; cases A <;> simp
+  unfold apply <;> cases A <;> simp
 
   def is_openm (f : Frame T) : Bool :=
     match f with
@@ -57,6 +57,11 @@ namespace Frame
     | .insttype _ => true
     | _ => false
 
+  def is_inst (f : Frame T) : Bool :=
+    match f with
+    | .inst _ _ => true
+    | _ => false
+
   def is_opent (f : Frame T) : Bool :=
     match f with
     | .opent _ => true
@@ -76,7 +81,6 @@ namespace Frame
   | .term _ _ => false
   | .empty => false
   | _ => true
-
 
   def is_lam_bound : Frame T -> Bool
   | .type _ => true
@@ -180,7 +184,7 @@ namespace Frame
     | opent t => "opent " ++ reprT.reprPrec t p
     | openm t => "openm " ++ reprT.reprPrec t p
     | insttype t => "insttype " ++ reprT.reprPrec t p
-    | inst x t => "inst " ++ x.repr ++ " := " ++ reprT.reprPrec t p
+    | inst x t => "inst " ++ reprT.reprPrec x p ++ " := " ++ reprT.reprPrec t p
     | term A t => "term " ++ reprT.reprPrec A p ++ " : " ++ reprT.reprPrec t p
 end Frame
 
@@ -266,41 +270,3 @@ namespace Ctx
   @[simp]
   def is_lam_bound (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_lam_bound
 end Ctx
-
-@[simp]
-def instance_indices : Ctx T -> Nat -> Nat -> List Nat
-| .cons (.inst x _) _, n, 0 => if x == 0 then [n] else []
-| .cons (.inst x _) tl, n, y + 1 =>
-   if x == y + 1
-   then n::instance_indices tl (n + 1) y
-   else instance_indices tl (n + 1) y
-| .cons _ tl, n, y + 1 => instance_indices tl (n + 1) y
-| [], _, _ => []
-| _, _, 0 => []
-
-
-@[simp]
-def instance_indices' : Ctx T -> Nat -> Nat -> List Nat -> List Nat
-| .nil , _,  _ , acc => acc
-| .cons (.inst x _) Γ, n, opm , acc =>
-        (if opm == x + n + 1
-        then instance_indices' Γ (n+1) opm (n::acc)
-        else instance_indices' Γ (n+1) opm acc)
-| .cons _ Γ, n, opm , acc => instance_indices' Γ (n + 1) opm acc
-
-@[simp]
-def get_instances : Ctx T -> List Nat -> List T
-| _, [] => []
-| Γ, .cons i t =>
-  match Γ d@ i with
-  | .inst _ b => b :: get_instances Γ t
-  | _ => get_instances Γ t
-
-
-@[simp]
-def instantiate_instances : Ctx T -> List Nat -> Nat -> T -> List T
-| _, [], _, _ => []
-| Γ, .cons n tl, x, s =>
-  match Γ d@ n with
-  | .inst _ t => s β[x; t]::instantiate_instances Γ tl x s
-  | _ => instantiate_instances Γ tl x s

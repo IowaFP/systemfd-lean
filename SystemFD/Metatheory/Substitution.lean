@@ -76,16 +76,7 @@ case var Γ x T j1 j2 ih =>
   cases z <;> simp
   case _ y =>
     constructor; apply wf; rw [<-h1 _ _ zdef]
-    have lem : ∀ {f : Frame Term} {σ : Subst Term},
-      (f.apply σ).get_type = Option.map ([σ]·) f.get_type
-    := by
-      intro f σ
-      cases f
-      all_goals (
-        unfold Frame.apply; simp
-        unfold Frame.get_type; simp
-      )
-    rw [lem, <-j2]; simp
+    rw [Frame.get_type_apply_commute, <-j2]; simp
   case _ t => apply h2 x _ _ zdef j2
 case _ ih1 ih2 =>
   simp at *

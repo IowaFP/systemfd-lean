@@ -307,7 +307,7 @@ case var Γ x _ _ xTy ih =>
   case _ x_is_openm =>  -- steps inst
     have nf  := @Term.var_neutral_form x; symm at nf;
     have om : (Γ d@ x).is_openm := by unfold Frame.is_openm; rw [x_is_openm];
-    generalize isp : instance_indices' Γ 0 x [] = ιs at *; symm at isp;
+    generalize isp : instance_indices Γ 0 x [] = ιs at *; symm at isp;
     generalize instsp : get_instances Γ ιs = insts at *; symm at instsp;
     generalize instsp' : List.map (·.apply_spine []) insts = insts' at *; symm at instsp';
     apply Or.inr (Exists.intro insts' (Red.inst nf om isp instsp instsp'))

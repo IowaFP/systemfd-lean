@@ -246,7 +246,7 @@ theorem weaken_inst :
   .openm T = Γ d@ x ->
   Γ ⊢ b : T ->
   Γ ⊢ t : A ->
-  (.inst x b::Γ) ⊢ ([S]t) : ([S]A)
+  (.inst #x b::Γ) ⊢ ([S]t) : ([S]A)
 := by
 intro j1 j2 j3; apply rename _ j3
 case _ => constructor; apply j1; apply j2; apply judgment_ctx_wf j2

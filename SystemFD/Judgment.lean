@@ -101,7 +101,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   .openm T = Γ d@ x ->
   Judgment .prf Γ (t, T) ->
   Judgment .wf Γ () ->
-  Judgment .wf (.inst x t::Γ) ()
+  Judgment .wf (.inst #x t::Γ) ()
 | wfterm :
   Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (t, A) ->
@@ -276,3 +276,41 @@ case _ j _ _ ih => constructor; apply j; apply ih
 case _ j1 _ j2 _ ih => constructor; apply j1; apply ih; apply j2
 case _ j1 j2 _ _ ih => constructor; apply j1; apply j2; apply ih
 case _ j1 j2 _ _ _ ih =>  constructor; apply j1; apply j2; apply ih
+
+inductive FrameWf : Ctx Term -> Frame Term -> Prop
+| empty :
+  ⊢ Γ ->
+  FrameWf Γ .empty
+| type :
+  Γ ⊢ A : ★ ->
+  FrameWf Γ (.type A)
+| kind :
+  Γ ⊢ A : .kind ->
+  FrameWf Γ (.kind A)
+| datatype :
+  Γ ⊢ A : .kind ->
+  FrameWf Γ (.datatype A)
+| ctor :
+  Γ ⊢ A : ★ ->
+  ValidCtor Γ A ->
+  FrameWf Γ (.ctor A)
+| opent :
+  Γ ⊢ A : .kind ->
+  FrameWf Γ (.opent A)
+| openm :
+  Γ ⊢ A : ★ ->
+  FrameWf Γ (.openm A)
+| insttype :
+  Γ ⊢ A : ★ ->
+  ValidInstType Γ A ->
+  FrameWf Γ (.insttype A)
+| inst :
+  .openm T = Γ d@ x ->
+  Γ ⊢ t : T ->
+  FrameWf Γ (.inst #x t)
+| term :
+  Γ ⊢ A : ★ ->
+  Γ ⊢ t : A ->
+  FrameWf Γ (.term A t)
+
+notation:170 Γ:170 " ⊢ " f:170 => FrameWf Γ f

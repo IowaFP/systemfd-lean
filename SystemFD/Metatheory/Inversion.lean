@@ -3,6 +3,7 @@ import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Metatheory.Weaken
 import SystemFD.Metatheory.Uniqueness
+import SystemFD.Metatheory.FrameWf
 
 theorem inversion_apply_spine :
   Γ ⊢ t.apply_spine sp : A ->
@@ -74,100 +75,77 @@ case _ hd tl ih =>
         constructor; apply j2; apply q1
       apply ih lem2 lem3 j3
 
-@[simp]
-abbrev GetCtxLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
-| .prf => λ _ => True
-| .wf => λ () => ∀ x,
-  (∀ {T t}, Γ d@ x = .term T t -> Γ ⊢ #x : T ∧ Γ ⊢ t : T)
-
-theorem ctx_get_lemma : Judgment v Γ ix -> GetCtxLemmaType Γ v ix := by
-have lem1 : ∀ {Γ x T t}, (Γ d@ x).apply S = Frame.term T t ->
-  ∃ (T' t' : Term), (Γ d@ x) = Frame.term T' t'
-:= by
-  sorry
-intro j; induction j <;> simp at *
-case _ Γ h ih =>
-  intro x; cases x <;> simp at *
-  case _ =>
-    intro T t h1
-    unfold Frame.apply at h1; simp at h1
-  case _ x =>
-    intro T t h1
-    have h2 := lem1 h1
-    cases h2; case _ T' h2 =>
-    cases h2; case _ t' h2 =>
-      rw [h2] at h1; unfold Frame.apply at h1; simp at h1
-      cases h1; case _ h1 h2 =>
-        subst h1; subst h2
-        replace ih := ih x h2
-        apply And.intro
-        apply weaken_empty ih.1
-        apply weaken_empty ih.2
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-
 theorem ctx_get_term_well_typed :
   ⊢ Γ ->
   Γ d@ x = .term T t ->
   Γ ⊢ #x : T ∧ Γ ⊢ t : T
 := by
 intro h1 h2
-have lem := ctx_get_lemma h1; simp at lem
-apply (lem x) h2
+have lem1 := frame_wf_by_index x h1
+have lem2 := frame_wf_implies_typed_var T lem1 (by rw [h2]; unfold Frame.get_type; simp)
+rw [h2] at lem1; cases lem1
+case _ j1 j2 => apply And.intro lem2 j2
 
 theorem ctx_get_instance_well_typed :
   ⊢ Γ ->
   Γ d@ x = .openm T ->
-  ixs = instance_indices' Γ 0 x [] ->
+  ixs = instance_indices Γ 0 x [] ->
   t ∈ get_instances Γ ixs ->
   Γ ⊢ #x : T ∧ Γ ⊢ t : T
-:= by sorry
+:= by
+intro h1 h2 h3 h4
+have lem1 := frame_wf_by_index x h1
+have lem2 := frame_wf_implies_typed_var T lem1 (by rw [h2]; unfold Frame.get_type; simp)
+have lem3 := get_instances_sound h3 h4
+cases lem3; case _ i lem3 =>
+  have lem4 := frame_wf_by_index i h1
+  rw [lem3] at lem4; cases lem4
+  case _ A q1 q2 =>
+    rw [<-q1] at h2; injection h2 with e
+    subst e
+    apply And.intro lem2 q2
 
 theorem ctx_get_opent_kind : ⊢ Γ -> Γ d@ x = .opent t -> Γ ⊢ t : .kind := by
-intros wΓ h;
-sorry
+intro h1 h2
+have lem1 := frame_wf_by_index x h1
+rw [h2] at lem1; cases lem1
+case _ j => apply j
 
 theorem ctx_get_datatype_kind : ⊢ Γ -> Γ d@ x = .datatype t -> Γ ⊢ t : .kind := by
-intros wΓ h;
-sorry
+intro h1 h2
+have lem1 := frame_wf_by_index x h1
+rw [h2] at lem1; cases lem1
+case _ j => apply j
 
 theorem ctx_get_var_type : ⊢ Γ -> Γ d@ x = .kind t -> Γ ⊢ t : .kind := by
-intros wΓ h;
-sorry
-
+intro h1 h2
+have lem1 := frame_wf_by_index x h1
+rw [h2] at lem1; cases lem1
+case _ j => apply j
 
 theorem ctx_get_var_no_eq_type :
   ⊢ Γ ->
   Γ.is_stable_red x ->
   ¬ (Γ d@ x).get_type = .some (A ~ B)
 := by
-intros wΓ nsx;
-simp_all;
-unfold Frame.is_stable_red at nsx;
-split at nsx;
-any_goals(solve | unfold Frame.get_type; simp_all)
-case _ =>
-  simp_all; unfold Frame.get_type; intro h; split at h;
-  any_goals (cases h)
-  case _ h => sorry
-  case _ h => sorry
-  case _ h => sorry
-  case _ h => sorry
-  case _ h => sorry
-  case _ h => sorry
-  case _ h => sorry
-  case _ h => sorry
-
-
-
-
+intro h1 h2 h3
+have lem1 := frame_wf_by_index x h1
+simp at *; generalize fdef : Γ d@ x = f at *
+cases lem1
+all_goals (
+  unfold Frame.get_type at h3
+  unfold Frame.is_stable_red at h2; simp at *)
+case _ j => subst h3; cases j
+case _ j => subst h3; cases j
+case _ j1 j2 =>
+  subst h3; cases j2
+  case _ j2 =>
+    unfold ValidHeadVariable at j2; simp at j2
+case _ j => subst h3; cases j
+case _ j1 j2 =>
+  subst h3; cases j2
+  case _ j2 =>
+    unfold ValidHeadVariable at j2; simp at j2
 
 theorem invert_eq_kind : Γ ⊢ (A ~ B) : w -> w = ★ := by
 intros eqJ; cases eqJ; simp_all;

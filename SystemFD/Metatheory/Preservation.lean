@@ -13,7 +13,7 @@ theorem preservation_inst_lemma :
   Γ ⊢ t : A ->
   t.neutral_form = .some (x, sp) ->
   Γ.is_openm x ->
-  ixs = instance_indices' Γ 0 x [] ->
+  ixs = instance_indices Γ 0 x [] ->
   w ∈ get_instances Γ ixs ->
   Γ ⊢ w.apply_spine sp : A
 := by

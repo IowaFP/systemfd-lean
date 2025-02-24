@@ -53,7 +53,7 @@ inductive Red : Ctx Term -> Term -> List Term -> Prop where
 | inst :
   .some (x, sp) = Term.neutral_form h ->
   Γ.is_openm x ->
-  indices = instance_indices' Γ 0 x [] -> -- searches for the instances of open method x
+  indices = instance_indices Γ 0 x [] -> -- searches for the instances of open method x
   -- indices.length > 0 ->
   tl = get_instances Γ indices -> -- weakens the instances
   tl' = List.map (λ x => x.apply_spine sp) tl ->
