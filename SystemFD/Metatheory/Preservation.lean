@@ -13,15 +13,14 @@ theorem preservation_inst_lemma :
   Γ ⊢ t : A ->
   t.neutral_form = .some (x, sp) ->
   Γ.is_openm x ->
-  ixs = instance_indices Γ 0 x [] ->
-  w ∈ get_instances Γ ixs ->
+  w ∈ get_instances Γ x ->
   Γ ⊢ w.apply_spine sp : A
 := by
-intro j1 j2 j3 j4 j5
+intro j1 j2 j3 j4
 replace j2 := Term.neutral_form_law (Eq.symm j2); subst j2
 simp at j3; replace j3 := Frame.is_openm_destruct j3
 cases j3; case _ T j3 =>
-  have lem := ctx_get_instance_well_typed (judgment_ctx_wf j1) j3 j4 j5
+  have lem := ctx_get_instance_well_typed (judgment_ctx_wf j1) j3 j4
   apply apply_spine_uniform lem.1 lem.2 j1
 
 theorem preservation_letterm_lemma :
@@ -186,14 +185,14 @@ case _ j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
   apply lem
 case _ wf j _ =>
   cases r <;> try simp at *
-  case _ x sp ixs ℓ i1 i2 i3 i4 i5 =>
-    cases i5; case _ e1 e2 =>
+  case _ x sp ℓ i1 i2 i3 i4 =>
+    cases i4; case _ e1 e2 =>
       subst e1; subst e2
       unfold Frame.is_openm at i1; split at i1 <;> simp at *
       case _ f T h =>
         rw [h] at j; unfold Frame.get_type at j; simp at j
-        subst i4; subst j; subst i3
-        apply (ctx_get_instance_well_typed wf h i2 rin).2
+        subst i3; subst j; subst i2
+        apply (ctx_get_instance_well_typed wf h rin).2
   case _ A x sp t h1 h2 =>
     cases h2; case _ h2 h3 =>
       subst h2; subst h3; unfold Term.apply_spine at rin
@@ -202,18 +201,18 @@ case _ wf j _ =>
       apply (ctx_get_term_well_typed wf (Eq.symm h1)).2
 case appk j1 j2 ih1 ih2 =>
   cases r
-  case _ x sp ixs ℓ' i1 i2 i3 i4 i5 =>
-    simp at i4; replace i4 := Eq.symm i4
-    rw [Option.bind_eq_some] at i4; simp at i4
-    cases i4; case _ x' i4 =>
-    cases i4; case _ sp' i4 =>
-    cases i4; case _ h1 h2 =>
+  case _ x sp ℓ' i1 i2 i3 i4 =>
+    simp at i3; replace i3 := Eq.symm i3
+    rw [Option.bind_eq_some] at i3; simp at i3
+    cases i3; case _ x' i3 =>
+    cases i3; case _ sp' i3 =>
+    cases i3; case _ h1 h2 =>
     cases h2; case _ h2 h3 =>
-      subst h2; subst h3; subst i5
+      subst h2; subst h3; subst i4
       simp at rin; cases rin; case _ w rin =>
       cases rin; case _ q1 q2 =>
-        subst q2; subst i3
-        have lem := preservation_inst_lemma j1 h1 i1 i2 q1
+        subst q2; subst i2
+        have lem := preservation_inst_lemma j1 h1 i1 q1
         rw [Term.apply_spine_peel_kind]; constructor
         apply lem; apply j2
   case _ T x sp t i1 i2 =>
@@ -257,18 +256,18 @@ case app j1 j2 j3 ih1 ih2 =>
     cases j1; case _ j4 j5 j6 =>
       have lem := beta_type j6 j2
       subst j3; apply lem
-  case _ x sp ixs ℓ' i1 i2 i3 i4 i5 =>
-    simp at i4; replace i4 := Eq.symm i4
-    rw [Option.bind_eq_some] at i4; simp at i4
-    cases i4; case _ x' i4 =>
-    cases i4; case _ sp' i4 =>
-    cases i4; case _ h1 h2 =>
+  case _ x sp ℓ' i1 i2 i3 i4 =>
+    simp at i3; replace i3 := Eq.symm i3
+    rw [Option.bind_eq_some] at i3; simp at i3
+    cases i3; case _ x' i3 =>
+    cases i3; case _ sp' i3 =>
+    cases i3; case _ h1 h2 =>
     cases h2; case _ h2 h3 =>
-      subst h2; subst h3; subst i5
+      subst h2; subst h3; subst i4
       simp at rin; cases rin; case _ w rin =>
       cases rin; case _ q1 q2 =>
-        subst q2; subst i3
-        have lem := preservation_inst_lemma j1 h1 i1 i2 q1
+        subst q2; subst i2
+        have lem := preservation_inst_lemma j1 h1 i1 q1
         rw [Term.apply_spine_peel_term]; constructor
         apply lem; apply j2; apply j3
   case _ T x sp t i1 i2 =>
@@ -295,18 +294,18 @@ case appt j1 j2 j3 ih1 ih2 =>
     cases j1; case _ j4 j5 j6 =>
       have lem := beta_kind j6 j2
       subst j3; apply lem
-  case _ x sp ixs ℓ' i1 i2 i3 i4 i5 =>
-    simp at i4; replace i4 := Eq.symm i4
-    rw [Option.bind_eq_some] at i4; simp at i4
-    cases i4; case _ x' i4 =>
-    cases i4; case _ sp' i4 =>
-    cases i4; case _ h1 h2 =>
+  case _ x sp ℓ' i1 i2 i3 i4 =>
+    simp at i3; replace i3 := Eq.symm i3
+    rw [Option.bind_eq_some] at i3; simp at i3
+    cases i3; case _ x' i3 =>
+    cases i3; case _ sp' i3 =>
+    cases i3; case _ h1 h2 =>
     cases h2; case _ h2 h3 =>
-      subst h2; subst h3; subst i5
+      subst h2; subst h3; subst i4
       simp at rin; cases rin; case _ w rin =>
       cases rin; case _ q1 q2 =>
-        subst q2; subst i3
-        have lem := preservation_inst_lemma j1 h1 i1 i2 q1
+        subst q2; subst i2
+        have lem := preservation_inst_lemma j1 h1 i1 q1
         rw [Term.apply_spine_peel_type]; constructor
         apply lem; apply j2; apply j3
   case _ T x sp t i1 i2 =>

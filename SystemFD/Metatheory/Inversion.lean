@@ -102,14 +102,13 @@ case _ j1 j2 => apply And.intro lem2 j2
 theorem ctx_get_instance_well_typed :
   ⊢ Γ ->
   Γ d@ x = .openm T ->
-  ixs = instance_indices Γ 0 x [] ->
-  t ∈ get_instances Γ ixs ->
+  t ∈ get_instances Γ x ->
   Γ ⊢ #x : T ∧ Γ ⊢ t : T
 := by
-intro h1 h2 h3 h4
+intro h1 h2 h3
 have lem1 := frame_wf_by_index x h1
 have lem2 := frame_wf_implies_typed_var T lem1 (by rw [h2]; unfold Frame.get_type; simp)
-have lem3 := get_instances_sound h3 h4
+have lem3 := get_instances_sound h3
 cases lem3; case _ i lem3 =>
   have lem4 := frame_wf_by_index i h1
   rw [lem3] at lem4; cases lem4

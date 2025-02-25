@@ -32,10 +32,10 @@ case _ x =>
   cases j1; case _ e1 e2 =>
     subst e1; subst e2
     cases r
-    case _ x' sp' ix tl q1 q2 q3 q4 q5 =>
+    case _ x' sp' tl q1 q2 q3 q4 =>
       replace q1 := Frame.is_openm_destruct q1
       cases q1; case _ q1 =>
-        simp at *; cases q4; case _ e1 e2 =>
+        simp at *; cases q3; case _ e1 e2 =>
           subst e1; subst e2
           unfold Frame.is_stable_red at j2
           simp at j2; rw [q1] at j2; simp at j2
@@ -53,12 +53,12 @@ case _ v t1 t2 ih1 ih2 =>
     cases j1; case _ h1 h2 =>
     cases h2; case _ h2 h3 =>
       subst h2; cases r <;> simp at *
-      case _ x sp' ix tl q1 q2 q3 q4 q5 =>
-        replace q4 := Eq.symm q4
-        rw [Option.bind_eq_some] at q4; simp at q4
-        cases q4; case _ u q4 =>
-        cases q4; case _ v q4 =>
-        cases q4; case _ w1 w2 =>
+      case _ x' sp' tl q1 q2 q3 q4 =>
+        replace q3 := Eq.symm q3
+        rw [Option.bind_eq_some] at q3; simp at q3
+        cases q3; case _ u q3 =>
+        cases q3; case _ v q3 =>
+        cases q3; case _ w1 w2 =>
         cases w2; case _ w2 w3 =>
           subst w2; rw [w1] at h1
           injection h1 with e
@@ -88,12 +88,12 @@ case _ v t1 t2 ih1 ih2 =>
     cases j1; case _ h1 h2 =>
     cases h2; case _ h2 h3 =>
       subst h2; cases r <;> simp at *
-      case _ x sp' ix tl q1 q2 q3 q4 q5 =>
-        replace q4 := Eq.symm q4
-        rw [Option.bind_eq_some] at q4; simp at q4
-        cases q4; case _ u q4 =>
-        cases q4; case _ v q4 =>
-        cases q4; case _ w1 w2 =>
+      case _ xx' sp' tl q1 q2 q3 q4 =>
+        replace q3 := Eq.symm q3
+        rw [Option.bind_eq_some] at q3; simp at q3
+        cases q3; case _ u q3 =>
+        cases q3; case _ v q3 =>
+        cases q3; case _ w1 w2 =>
         cases w2; case _ w2 w3 =>
           subst w2; rw [w1] at h1
           injection h1 with e
@@ -124,12 +124,12 @@ case _ v t1 t2 ih1 ih2 =>
     cases j1; case _ h1 h2 =>
     cases h2; case _ h2 h3 =>
       subst h2; cases r <;> simp at *
-      case _ x sp' ix tl q1 q2 q3 q4 q5 =>
-        replace q4 := Eq.symm q4
-        rw [Option.bind_eq_some] at q4; simp at q4
-        cases q4; case _ u q4 =>
-        cases q4; case _ v q4 =>
-        cases q4; case _ w1 w2 =>
+      case _ x' sp' tl q1 q2 q3 q4 =>
+        replace q3 := Eq.symm q3
+        rw [Option.bind_eq_some] at q3; simp at q3
+        cases q3; case _ u q3 =>
+        cases q3; case _ v q3 =>
+        cases q3; case _ w1 w2 =>
         cases w2; case _ w2 w3 =>
           subst w2; rw [w1] at h1
           injection h1 with e
@@ -361,12 +361,11 @@ case _ Γ x T j1 j2 _ =>
     apply @Red.letterm A #x x [] Γ t
     simp; rw [fdef]
   case openm A =>
-    let indices := instance_indices Γ 0 x []
-    let insts := get_instances Γ indices
+    let insts := get_instances Γ x
     apply Or.inr; apply Exists.intro insts
-    apply @Red.inst #x x [] indices Γ insts
+    apply @Red.inst #x x [] insts Γ insts
     simp; simp; rw [fdef]; unfold Frame.is_openm; simp
-    simp; simp; simp
+    simp; simp
   case type =>
     replace h1 := h1 x
     rw [fdef] at h1; unfold Frame.is_type at h1
