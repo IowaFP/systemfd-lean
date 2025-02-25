@@ -283,21 +283,3 @@ case _ =>
 case _ =>
   exfalso
   apply no_valid_head_variable_with_all j1
-
-theorem spine_type_subst :
-  SpineType A B ->
-  SpineType ([σ]A) ([σ]B)
-:= by
-intro j; sorry
--- induction j generalizing σ
--- case _ => simp; constructor
--- case _ j1 j2 ih =>
---   replace ih := @ih (^σ)
---   simp at ih;
---   simp; constructor
---   case _ => simp; apply ih
--- case _ j ih =>
---   replace ih := @ih (^σ)
---   simp at ih;
---   simp; constructor
---   case _ => simp; apply ih

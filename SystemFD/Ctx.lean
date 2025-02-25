@@ -102,6 +102,10 @@ namespace Frame
   | _ => false
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_type_apply {σ : Subst T} : is_type f = is_type (apply f σ) := by
+  unfold apply; unfold is_type; cases f <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_openm_destruct : is_openm f -> ∃ T, f = .openm T := by
   intro h; unfold is_openm at h
   split at h <;> simp at *

@@ -171,11 +171,11 @@ rw [Term.apply_spine_compose] at j2
 apply preservation_prefix_match_lemma j1 j2 j3 j4 j5
 
 @[simp]
-abbrev PreservationStepType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
+abbrev PreservationLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
 | .prf => λ (t, A) => ∀ {ℓ t'}, Red Γ t ℓ -> t' ∈ ℓ -> Γ ⊢ t' : A
 | .wf => λ () => True
 
-theorem preservation_step : Judgment v Γ ix -> PreservationStepType Γ v ix := by
+theorem preservation_lemma : Judgment v Γ ix -> PreservationLemmaType Γ v ix := by
 intro j
 induction j <;> simp at *
 all_goals (intro ℓ t' r rin)
@@ -490,3 +490,12 @@ case _ j1 j2 j3 j4 j5 j6 ih1 ih2 ih3 ih4 =>
       subst h2; constructor
       apply j1; apply j2; apply j3
       apply ih4 r h1; apply j5; apply j6
+
+theorem preservation :
+  Γ ⊢ t : A ->
+  Red Γ t ℓ ->
+  ∀ t', t' ∈ ℓ ->
+  Γ ⊢ t' : A
+:= by
+intro j1 j2 t' j3
+apply preservation_lemma j1 j2 j3

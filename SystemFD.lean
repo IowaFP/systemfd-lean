@@ -14,4 +14,6 @@ import SystemFD.Metatheory.Substitution
 import SystemFD.Metatheory.Uniqueness
 import SystemFD.Metatheory.Inversion
 import SystemFD.Metatheory.Classification
+import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Preservation
+import SystemFD.Metatheory.Progress
