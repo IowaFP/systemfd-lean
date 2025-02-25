@@ -165,6 +165,34 @@ all_goals (
     cases r <;> simp at *
 )
 
+
+theorem weaken_ctx_kind {Γ : Ctx Term}:
+  (∀ x, Ctx.is_type Γ x = false) ->
+  (∀ n, Ctx.is_type (.kind K :: Γ) n = false) := by
+intro h1 n;
+unfold Ctx.is_type; unfold Frame.is_type;
+cases n;
+case _ => simp; unfold Frame.apply; simp
+case _ n =>
+  have h' := h1 n;
+  split;
+  case _ heq => simp at heq; unfold Ctx.is_type at h'; sorry
+  case _ h => simp at h; unfold Ctx.is_type at h1; simp at h1; sorry
+
+
+theorem weaken_ctx_empty {Γ : Ctx Term}:
+  (∀ x, Ctx.is_type Γ x = false) ->
+  (∀ n, Ctx.is_type (.empty :: Γ) n = false) := by
+intro h1 n;
+unfold Ctx.is_type; unfold Frame.is_type;
+cases n;
+case _ => simp; unfold Frame.apply; simp
+case _ n =>
+  have h' := h1 n;
+  split;
+  case _ heq => simp at heq; unfold Ctx.is_type at h'; sorry
+  case _ h => simp at h; unfold Ctx.is_type at h1; simp at h1; sorry
+
 @[simp]
 abbrev TypesAreValuesLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
 | .prf => λ Γ => λ(t , K) => Γ ⊢ K : .kind -> Val Γ t
@@ -493,16 +521,136 @@ case _ Γ t A c B j1 j2 ih1 ih2 =>
       apply Exists.intro (List.map (t ▹ ·) c')
       apply Red.cast_congr h2 rfl
 case _ => apply Or.inl; apply Val.refl
-case _ Γ t A B j ih =>
+case sym Γ η A B ηJ ηs =>
   apply Or.inr
-  replace ih := ih h1
-  cases ih
-  case _ h2 => sorry
-  case _ h2 => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+  cases ηs h1;
+  case _ h =>
+    have x := refl_is_val ηJ h;
+    have xeqrefl := x.left;
+    have aeqB := x.right; subst xeqrefl;
+    have reds : ∃ t', Red Γ (sym! refl! A) t' := Exists.intro [refl! A] (@Red.sym Γ A);
+    apply reds;
+  case _ ηreds => cases ηreds; case _ w h =>
+    generalize tlp : List.map (sym! ·) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (sym! η) t' := Exists.intro tl' (Red.sym_congr h tlp);
+    apply reds;
+
+case seq Γ η1 A B η2 C η1J η2J η1s η2s =>
+  apply Or.inr; cases (η2s h1);
+  case _ h =>
+    have η2refp := refl_is_val η2J h;
+    have η2refl := η2refp.1; cases (η1s h1);
+    case _ h =>
+      have η1refp := refl_is_val η1J h;
+      have η1refl := η1refp.1; have aeqB := η1refp.2; have BeqC := η2refp.2
+      subst η1refl; subst η2refl; subst aeqB;
+      have reds : ∃ t', Red Γ ((refl! A) `; (refl! A)) t' := Exists.intro [refl! A] Red.seq;
+      apply reds;
+    case _ h => cases h; case _ w h =>
+      generalize tlp : List.map (· `; η2) w = tl' at *; symm at tlp;
+      have reds : ∃ t', Red Γ (η1 `; η2) t' := Exists.intro tl' (Red.seq_congr1 h tlp);
+      apply reds
+  case _ h => cases h; case _ w h =>
+    generalize tlp : List.map (η1 `; ·) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (η1 `; η2) t' := Exists.intro tl' (Red.seq_congr2 h tlp);
+    apply reds
+
+case appc Γ A K1 K2 B η1 C D η2 aK bK η1J cJ dJ η2J _ _ η1s _ _ η2s  =>
+  apply Or.inr;
+  cases (η2s h1);
+  case _ h =>
+    have η2refp := refl_is_val η2J h;
+    have η2refl := η2refp.1; cases (η1s h1);
+    case _ h =>
+      have η1refp := refl_is_val η1J h;
+      have η1refl := η1refp.1;
+      subst η1refl; subst η2refl;
+      have reds : ∃ t', Red Γ ((refl! A) `@c (refl! C)) t' := Exists.intro [refl! (A `@k C)] Red.appc;
+      apply reds
+    case _ h => cases h; case _ w h =>
+      generalize tlp : List.map (· `@c η2) w = tl' at *; symm at tlp;
+      have reds : ∃ t', Red Γ (η1 `@c η2) t' := Exists.intro tl' (Red.appc_congr1 h tlp);
+      apply reds
+  case _ h => cases h; case _ w h =>
+    generalize tlp : List.map (η1 `@c ·) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (η1 `@c η2) t' := Exists.intro tl' (Red.appc_congr2 h tlp);
+    apply reds
+
+
+case arrowc Γ A B η1 C D η2 _ _ η1J _ _ η2J _ _ η1s _ _ η2s =>
+  apply Or.inr; cases η2s (weaken_ctx_empty h1)
+  case _ h =>
+    have η2refp := refl_is_val η2J h;
+    have η2refl := η2refp.1; cases (η1s h1);
+    case _ h =>
+      have η1refp := refl_is_val η1J h;
+      have η1refl := η1refp.1;
+      subst η1refl; subst η2refl;
+      have reds : ∃ t', Red Γ (refl!(A) -c> refl! C) t' := Exists.intro [(refl! (A -t> C))] Red.arrowc;
+      apply reds
+    case _ h => cases h; case _ w h =>
+      generalize tlp : List.map (· -c> η2) w = tl' at *; symm at tlp;
+      have reds : ∃ t', Red Γ (η1 -c> η2) t' := Exists.intro tl' (Red.arrowc_congr1 h tlp);
+      apply reds
+  case _ h => cases h; case _ w h =>
+    generalize tlp : List.map (η1 -c> ·) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (η1 -c> η2) t' := Exists.intro tl' (Red.arrowc_congr2 h tlp);
+    apply reds
+
+case fst Γ A _ _ _ η C _ _ _ ηJ _ _ ηs =>
+  apply Or.inr; cases (ηs h1);
+  case inl h =>
+    have ηrp := refl_is_val ηJ h; have ηrfl := ηrp.1; subst ηrfl;
+    have reds : ∃ t', Red Γ ((refl! (A `@k C)).!1) t' := Exists.intro [refl! A] Red.fst;
+    apply reds;
+  case inr h => cases h; case _ w h =>
+    generalize tlp : List.map (·.!1) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (η.!1) t' := Exists.intro tl' (Red.fst_congr h tlp);
+    apply reds
+
+case snd Γ _ C _ η A _ _ _ _ ηJ _ _ _ ηs =>
+  apply Or.inr;
+  cases (ηs h1);
+  case inl h =>
+    have ηrp := refl_is_val ηJ h; have ηrfl := ηrp.1; subst ηrfl;
+    have reds : ∃ t', Red Γ ((refl! (A `@k C)).!2) t' := Exists.intro [refl! C] Red.snd;
+    apply reds;
+  case inr h => cases h; case _ w h =>
+    generalize tlp : List.map (·.!2) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (η.!2) t' := Exists.intro tl' (Red.snd_congr h tlp);
+    apply reds
+
+case _ Γ K A B η allAJ allBJ ηJ _ _ ts =>
+  cases allAJ; case _ kkind _ =>
+  have ts' : Val (Frame.kind K :: Γ) η ∨ ∃ t', Red (Frame.kind K :: Γ) η t' := ts (weaken_ctx_kind h1)
+  apply Or.inr;
+  cases ts';
+  case inr h => cases h; case _ w h =>
+    generalize tlp : List.map (∀c[K]·) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (∀c[K] η) t' := Exists.intro tl' (Red.allc_congr h tlp);
+    apply reds
+  case inl h =>
+    have ηrp := refl_is_val ηJ h; have ηrfl := ηrp.1; subst ηrfl;
+    have reds : ∃ t', Red Γ ((∀c[K] refl! A)) t' := Exists.intro [refl! (∀[K]A)] Red.allc;
+    apply reds;
+
+case _ Γ η1 K A B C D η2 _ _ η1J CKJ _ η2J _ _ η1s _ _ η2s =>
+  apply Or.inr;
+  cases (η2s h1);
+  case _ h =>
+    have η2refp := refl_is_val η2J h;
+    have η2refl := η2refp.1; cases (η1s h1);
+    case _ h =>
+      have η1refp := refl_is_val η1J h;
+      have η1refl := η1refp.1;
+      subst η1refl; subst η2refl;
+      have reds : ∃ t', Red Γ (refl!(∀[K] A) `@c[refl! C]) t' := Exists.intro [refl! (A β[ C ])] Red.apptc;
+      apply reds
+    case _ h => cases h; case _ w h =>
+      generalize tlp : List.map (· `@c[η2]) w = tl' at *; symm at tlp;
+      have reds : ∃ t', Red Γ (η1 `@c[η2]) t' := Exists.intro tl' (Red.apptc_congr1 h tlp);
+      apply reds
+  case _ h => cases h; case _ w h =>
+    generalize tlp : List.map (η1 `@c[·]) w = tl' at *; symm at tlp;
+    have reds : ∃ t', Red Γ (η1 `@c[η2]) t' := Exists.intro tl' (Red.apptc_congr2 h tlp);
+    apply reds
