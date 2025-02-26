@@ -192,6 +192,23 @@ case _ Γ t t' teq et =>
 case _ Γ t' t h et =>
   simp at et; have nh := And.left et; exfalso;
   contradiction
+
+case _ Γ _ ih1 ih2 et =>
+  simp at et;
+  rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih2 et1;
+  apply Red.seq_congr2 lem1; simp
+case _ Γ _ _  ih et =>
+  simp at et; rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih et1;
+  apply Red.seq_congr1 lem1; simp
+
 case _ Γ t t' et => simp at et; rw [<-et]; apply Red.appc
 
 case _ et => simp at et; subst et; apply Red.fst

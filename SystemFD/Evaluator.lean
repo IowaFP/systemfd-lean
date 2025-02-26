@@ -101,10 +101,19 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
     | .ctor1 .sym η => do
       let η' <- eval_inst Γ η
       .some (List.map (sym! ·) η')
+
     | .ctor2 .seq (.ctor1 .refl t') (.ctor1 .refl t) =>
       if t == t'
       then .some [refl! t]
       else .none
+
+    | .ctor2 .seq (.ctor1 .refl t) η2 => do
+      let η2' <- eval_inst Γ η2
+      .some (List.map (.ctor1 .refl t `; ·) η2')
+
+    | .ctor2 .seq η1 η2 => do
+      let η1' <- eval_inst Γ η1
+      .some (List.map (· `; η2) η1')
 
     | .ctor2 .appc (.ctor1 .refl t) (.ctor1 .refl t') =>
       .some [refl! (t `@k t')]
