@@ -241,10 +241,11 @@ case _ h => -- refl
   cases h2; case _ u1 h2 =>
   cases h2; case _ h2 h3 =>
   injection h3 with h3; subst h3;
-  replace h2 := is_type_some h2;
-  subst h2;
-  apply Judgment.refl _ h1;
-  apply Judgment.ax wf;
+  sorry
+  -- replace h2 := is_type_some h2;
+  -- subst h2;
+  -- apply Judgment.refl _ h1;
+  -- apply Judgment.ax wf;
 
 case _ ih1 => -- sym
   rw [Option.bind_eq_some] at h
