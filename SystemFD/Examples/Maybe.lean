@@ -11,7 +11,7 @@ def MaybeBoolCtx : Ctx Term := [
          Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
            eqMaybe ▹ sym (<t ~ Bool> → <t ~ Bool> → <Bool>)
     -/
-    .inst #7 (Λ[★] `λ[#10 `@k #0] -- Λt. λ(i : Eq t)
+    .inst #8 (Λ[★] `λ[#10 `@k #0] -- Λt. λ(i : Eq t)
                    .guard (#3 `@t #1) #0    --     EqMaybe[t] ← i
                     (Λ[★] `λ[#2 ~ (#7 `@k #0)] `λ[#13 `@k #1]  -- Λ u. λ (tmu : t ~ Maybe u). λ (eqU : Eq u)
                                                    -- eqMaybeU[u] eqU ▹ (t ~ Maybe u) → (t ~ Maybe u) → <Bool>
@@ -105,6 +105,8 @@ def MaybeBoolCtx : Ctx Term := [
 
 -- #eval eval_ctx_loop MaybeBoolCtx ((isNothing `@t #5) `@ (#1 `@t #5))
 -- #eval eval_ctx_loop MaybeBoolCtx ((isNothing `@t #5) `@ (#0 `@t #5 `@ #4))
+
+#eval get_instances MaybeBoolCtx 9
 
 #eval infer_type MaybeBoolCtx (#4 `@t #13) -- Nothing : Maybe Bool
 #eval infer_type MaybeBoolCtx (#3 `@t #13 `@ #12) -- Just True : Maybe Bool
