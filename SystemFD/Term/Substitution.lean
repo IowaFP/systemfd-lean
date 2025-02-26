@@ -30,27 +30,6 @@ instance instLawfulBEq_SpineVariant : LawfulBEq SpineVariant where
 
 namespace Term
   @[simp]
-  def to_telescope : Term -> Ctx Term × Term
-  | bind2 .arrow A B =>
-    let (Γ, r) := to_telescope B
-    (.type A::Γ, r)
-  | ∀[A] B =>
-    let (Γ, r) := to_telescope B
-    (.kind A::Γ, r)
-  | t => ([], t)
-
-  @[simp]
-  def from_telescope_rev : Ctx Term -> Term -> Term
-  | [], t => t
-  | .cons (.type A) Γ, t => from_telescope_rev Γ (.bind2 .arrow A t)
-  | .cons (.kind A) Γ, t => from_telescope_rev Γ (∀[A] t)
-  | .cons _ Γ, t => from_telescope_rev Γ t
-
-  @[simp]
-  def from_telescope (Γ : Ctx Term) (t : Term) : Term :=
-    from_telescope_rev Γ.reverse t
-
-  @[simp]
   def neutral_form : Term -> Option (Nat × List (SpineVariant × Term))
   | var x => .some (x, [])
   | ctor2 .app f a => do
@@ -273,44 +252,26 @@ namespace Term
   theorem apply_compose {s : Term} {σ τ : Subst Term} : [τ][σ]s = [τ ⊙ σ]s := by
   solve_compose Term, apply_stable, s, σ, τ
 
-  -- @[simp]
-  -- def is_ctorid (Γ : Ctx Term) (n : Nat) :=
-  --   match Γ d@ n with
-  --   | .ctor _ => true
-  --   | _ => false
+  @[simp]
+  def to_telescope : Term -> Ctx Term × Term
+  | bind2 .arrow A B =>
+    let (Γ, r) := to_telescope (B)
+    (.type A::Γ, r)
+  | ∀[A] B =>
+    let (Γ, r) := to_telescope (B)
+    (.kind A::Γ, r)
+  | t => ([], t)
 
-  -- theorem id_is_ctor : Γ d@ n = .ctor a -> is_ctorid Γ n = true := by
-  -- intros h; simp_all;
+  @[simp]
+  def from_telescope_rev : Ctx Term -> Term -> Term
+  | [], t => t
+  | .cons (.type A) Γ, t => from_telescope_rev Γ (.bind2 .arrow A t)
+  | .cons (.kind A) Γ, t => from_telescope_rev Γ (∀[A] t)
+  | .cons _ Γ, t => from_telescope_rev Γ t
 
-
-  -- @[simp]
-  -- def is_term (Γ : Ctx Term) (n : Nat) :=
-  --   match Γ d@ n with
-  --   | .term _ _ => true
-  --   | _ => false
-
-  -- theorem id_is_letterm : Γ d@ n = .term a b -> is_term Γ n = true := by
-  -- intros h; simp_all;
-
-
-  -- @[simp]
-  -- def is_openmethod (Γ : Ctx Term) (n : Nat) :=
-  --   match Γ d@ n with
-  --   | .openm _ => true
-  --   | _ => false
-
-  -- theorem id_is_openmethod : Γ d@ n = .openm m -> is_openmethod Γ n = true := by
-  -- intros h; simp_all;
-
-
-  -- @[simp]
-  -- def is_insttype (Γ : Ctx Term) (n : Nat) :=
-  --   match Γ d@ n with
-  --   | .insttype _ => true
-  --   | _ => false
-
-  -- theorem id_is_insttype : Γ d@ n = .insttype m -> is_insttype Γ n = true := by
-  -- intros h; simp_all;
+  @[simp]
+  def from_telescope (Γ : Ctx Term) (t : Term) : Term :=
+    from_telescope_rev Γ.reverse t
 
 end Term
 

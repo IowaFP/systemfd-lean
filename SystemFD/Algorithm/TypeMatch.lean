@@ -4,14 +4,6 @@ import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Algorithm
 
-theorem option_lemma :
-  (∀ v, ¬ t = Option.some v) ->
-  t = .none
-:= by
-intro h
-cases t; simp
-case _ v => exfalso; apply h v rfl
-
 theorem neutral_form_rename {t : Term} (r : Ren) :
   t.neutral_form = q ->
   ([r.to]t).neutral_form = Option.map (λ (x, l) => (r x, List.map (λ (v, t) => (v, [r.to]t)) l)) q
@@ -45,67 +37,69 @@ theorem stable_type_match_sound_lemma :
   .some (x, sp) = Term.neutral_form R ->
   (Γ d@ x).is_stable ->
   StableTypeMatch Γ A R
-:= by
-intro h1 h2 h3 h4
-induction A generalizing τ sR R x sp Γ <;> try simp at h1
-any_goals try (
-  case _ =>
-    cases h1; case _ e1 e2 =>
-      subst e1; subst e2
-      simp at h2; subst h2; constructor
-      apply h3; apply h4
-)
-case _ v t1 t2 ih1 ih2 =>
-  cases v <;> try simp at h1
-  any_goals try (
-    case _ =>
-      cases h1; case _ e1 e2 =>
-        subst e1; subst e2
-        simp at h2; subst h2; constructor
-        apply h3; apply h4
-  )
-  case all =>
-    cases τ
-    case _ => simp at h1
-    case _ hd τ =>
-      have lem1 : (τ, sR) = t2.to_telescope := by
-        cases h1; case _ u1 u2 =>
-          subst u2; injection u1 with _ e; subst e
-          generalize zdef : t2.to_telescope = z
-          apply Prod.eta
-      have lem2 : [S' τ.length][S]R = sR := by simp at h2; simp [*]
-      have lem3 :
-        .some (x + 1, List.map (λ (v, t) => (v, [S]t)) sp)
-        = ([S]R).neutral_form
-      := by
-        replace h3 := Eq.symm h3
-        have lem := neutral_form_rename (fun x => x + 1) h3
-        rw [Subst.to_S] at lem; rw [lem]; simp
-      have lem4 : ((Frame.kind t1 :: Γ)d@(x + 1)).is_stable := by
-        simp; rw [Frame.is_stable_stable]; apply h4
-      simp at h2; constructor
-      apply ih2 lem1 lem2 lem3 lem4
-  case arrow =>
-    cases τ
-    case _ => simp at h1
-    case _ hd τ =>
-      have lem1 : (τ, sR) = t2.to_telescope := by
-        cases h1; case _ u1 u2 =>
-          subst u2; injection u1 with _ e; subst e
-          generalize zdef : t2.to_telescope = z
-          apply Prod.eta
-      have lem2 : [S' τ.length][S]R = sR := by simp at h2; simp [*]
-      have lem3 :
-        .some (x + 1, List.map (λ (v, t) => (v, [S]t)) sp)
-        = ([S]R).neutral_form
-      := by
-        replace h3 := Eq.symm h3
-        have lem := neutral_form_rename (fun x => x + 1) h3
-        rw [Subst.to_S] at lem; rw [lem]; simp
-      have lem4 : ((Frame.type t1 :: Γ)d@(x + 1)).is_stable := by
-        simp; rw [Frame.is_stable_stable]; apply h4
-      simp at h2; constructor
-      apply ih2 lem1 lem2 lem3 lem4
+:= by sorry
+-- intro h1 h2 h3 h4
+-- induction A generalizing τ sR R x sp Γ <;> try simp at h1
+-- any_goals try (
+--   case _ =>
+--     cases h1; case _ e1 e2 =>
+--       subst e1; subst e2
+--       simp at h2; subst h2; constructor
+--       apply h3; apply h4
+-- )
+-- case _ => sorry
+-- case _ v t1 t2 ih1 ih2 =>
+--   sorry
+--   -- cases v <;> try simp at h1
+--   -- any_goals try (
+--   --   case _ =>
+--   --     cases h1; case _ e1 e2 =>
+--   --       subst e1; subst e2
+--   --       simp at h2; subst h2; constructor
+--   --       apply h3; apply h4
+--   -- )
+--   case all =>
+--     cases τ
+--     case _ => simp at h1
+--     case _ hd τ =>
+--       have lem1 : (τ, sR) = t2.to_telescope := by
+--         cases h1; case _ u1 u2 =>
+--           subst u2; injection u1 with _ e; subst e
+--           generalize zdef : t2.to_telescope = z
+--           apply Prod.eta
+--       have lem2 : [S' τ.length][S]R = sR := by simp at h2; simp [*]
+--       have lem3 :
+--         .some (x + 1, List.map (λ (v, t) => (v, [S]t)) sp)
+--         = ([S]R).neutral_form
+--       := by
+--         replace h3 := Eq.symm h3
+--         have lem := neutral_form_rename (fun x => x + 1) h3
+--         rw [Subst.to_S] at lem; rw [lem]; simp
+--       have lem4 : ((Frame.kind t1 :: Γ)d@(x + 1)).is_stable := by
+--         simp; rw [Frame.is_stable_stable]; apply h4
+--       simp at h2; constructor
+--       apply ih2 lem1 lem2 lem3 lem4
+--   case arrow =>
+--     cases τ
+--     case _ => simp at h1
+--     case _ hd τ =>
+--       have lem1 : (τ, sR) = t2.to_telescope := by
+--         cases h1; case _ u1 u2 =>
+--           subst u2; injection u1 with _ e; subst e
+--           generalize zdef : t2.to_telescope = z
+--           apply Prod.eta
+--       have lem2 : [S' τ.length][S]R = sR := by simp at h2; simp [*]
+--       have lem3 :
+--         .some (x + 1, List.map (λ (v, t) => (v, [S]t)) sp)
+--         = ([S]R).neutral_form
+--       := by
+--         replace h3 := Eq.symm h3
+--         have lem := neutral_form_rename (fun x => x + 1) h3
+--         rw [Subst.to_S] at lem; rw [lem]; simp
+--       have lem4 : ((Frame.type t1 :: Γ)d@(x + 1)).is_stable := by
+--         simp; rw [Frame.is_stable_stable]; apply h4
+--       simp at h2; constructor
+--       apply ih2 lem1 lem2 lem3 lem4
 
 theorem stable_type_match_sound :
   stable_type_match Γ A R = .some u ->
@@ -212,7 +206,9 @@ case _ t =>
   replace h1 := telescope_empty h1; subst h1; subst h5
   have lem : sT.from_telescope ξ = B := by apply to_from_telescope h2
   simp at lem; rw [lem]
-  apply PrefixTypeMatch.refl h6 h7
+  have vhv : ValidHeadVariable R Γ.is_stable := by
+       unfold ValidHeadVariable; apply Exists.intro (x, sp) (And.intro h6 h7);
+  apply PrefixTypeMatch.refl vhv
 case _ => simp at *
 case _ x1 t1 x2 t2 _ ih1 =>
   simp at h3; cases h3; case _ h3e h3 =>
@@ -261,3 +257,7 @@ theorem prefix_type_match_sound :
   prefix_type_match Γ A B = .some T ->
   PrefixTypeMatch Γ A B T
 := by sorry
+
+
+theorem valid_ctor_sound : valid_ctor Γ A = .some () -> ValidCtor Γ A := by sorry
+theorem valid_insttype_sound : valid_insttype Γ A = .some () -> ValidInstType Γ A := by sorry

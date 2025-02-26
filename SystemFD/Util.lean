@@ -23,11 +23,14 @@ instance : Monad List where
   pure a := List.cons a List.nil
   bind l f := List.flatMap l f
 
-theorem option_neg : (∀ l, ¬ (p = some l)) -> p = none := by
-  intros np;
-  cases p;
-  case _ => simp
-  case _ v => simp; exfalso; apply np v; rfl
+theorem option_lemma :
+  (∀ v, ¬ t = Option.some v) ->
+  t = .none
+:= by
+intro h
+cases t; simp
+case _ v => exfalso; apply h v rfl
+
 
 theorem not_eq_of_beq [BEq T] [LawfulBEq T] {x y : T} : ¬ ((x == y) = true) -> x ≠ y := by
 intro h1 h2; subst h2; apply h1; apply LawfulBEq.rfl

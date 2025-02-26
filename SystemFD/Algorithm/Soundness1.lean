@@ -22,7 +22,7 @@ case _ t h1 h2 =>
 theorem infer_kind_sound : infer_kind Γ t = .some A -> ⊢ Γ -> Γ ⊢ t : A := by
 intro h wf
 induction Γ, t using infer_kind.induct generalizing A
-case _ Γ x =>
+case _ Γ x => -- Var
   simp at h; rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
@@ -30,7 +30,7 @@ case _ Γ x =>
   cases h2; case _ u2 h2 =>
     constructor; apply wf
     rw [h2.2] at h1; rw [h1]
-case _ Γ A' B ih =>
+case _ Γ A' B ih => -- ∀[A] B
   simp at h; rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
@@ -43,11 +43,12 @@ case _ Γ A' B ih =>
     injection h4 with e; subst e
     have lem1 := wf_kind_sound h1 wf
     have lem2 : ⊢ (.kind A' :: Γ) := by
-      constructor; apply lem1; apply wf
-    constructor; apply lem1
-    apply ih h2; apply lem2
-    apply wf_kind_sound h3 wf
-case _ Γ A' B ih1 ih2 =>
+      constructor; apply lem1; apply wf;
+    replace h3 := is_type_some h3; subst h3;
+    have lem3 := ih h2 lem2;
+    apply Judgment.allt lem1 lem3;
+
+case _ Γ A' B ih1 ih2 => -- A -t> B
   simp at h; rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
@@ -64,10 +65,10 @@ case _ Γ A' B ih1 ih2 =>
     injection h5 with e; subst e
     replace h4 := is_type_some h4; subst h4
     have lem1 := ih1 h1 wf
-    have lem2 : ⊢ (.type A' :: Γ) := by
-      constructor; apply lem1; apply wf
-    constructor; apply ih1 h1 wf
-    apply ih2 h3 lem2
+    have lem2 : ⊢ (.type A' :: Γ) := by apply Judgment.wftype lem1 wf
+    have lem3 := @ih2 ★ h3 lem2
+    apply Judgment.arrow lem1 lem3;
+
 case _ Γ f a ih1 ih2 =>
   simp at h; rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
@@ -99,7 +100,8 @@ case _ ih1 ih2 =>
     injection h5 with e; subst e
     replace h2 := is_type_some h2; subst h2
     replace h4 := is_type_some h4; subst h4
-    constructor; apply ih1 h1 wf; apply ih2 h3 wf
+    have ih1' := ih1 h1 wf; have ih2' := ih2 h3 wf;
+    apply Judgment.eq (Judgment.ax wf) ih1' ih2';
 case _ Γ t h1 h2 h3 h4 h5 =>
   exfalso
   cases t <;> simp at *

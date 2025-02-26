@@ -128,7 +128,7 @@ case _ Γ p s b c ih et =>
             apply Red.ite_matched pne snf pfix wisctor;
           case _ pfix =>
              injection site with site; subst site; symm at snf; symm at pne;
-             have x :=  option_neg pfix;
+             have x :=  option_lemma pfix;
              apply Red.ite_missed pne snf s'_stable (Or.inr x)
         case _ h =>
           injection site with site; subst site;
@@ -171,7 +171,7 @@ case _ Γ p s c ih et =>
              apply Red.guard_matched pne snf pfix;
         case _ pfix =>
              injection smatch with smatch; subst smatch; symm at snf; symm at pne;
-             have x :=  option_neg pfix;
+             have x :=  option_lemma pfix;
              apply Red.guard_missed pne snf s'_stable (Or.inr x)
       case _ xx heq =>
            have tl' := smatch.2; injection tl' with tl'; subst tl';

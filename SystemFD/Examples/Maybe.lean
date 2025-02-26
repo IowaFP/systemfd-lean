@@ -38,11 +38,11 @@ def MaybeBoolCtx : Ctx Term := [
    , .insttype (∀[★]∀[★] (#1 ~ (#4 `@k #0)) -t> (#10 `@k #1) -t> (#11 `@k #3))
 
   -- Just : ∀ a. a → Maybe a
-  ,  .ctor (∀[★] #0 -t> (#3 `@k #1))
+  , .ctor (∀[★] #0 -t> (#3 `@k #1))
   -- Nothing : ∀ a. Maybe a
   , .ctor (∀[★] #1 `@k #0)
   -- Maybe : ★ → ★
-  , .datatype  (★ -k> ★)
+  , .datatype (★ -k> ★)
 
 
   , .inst #2 (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
@@ -109,8 +109,8 @@ def MaybeBoolCtx : Ctx Term := [
 #eval infer_type MaybeBoolCtx (#4 `@t #13) -- Nothing : Maybe Bool
 #eval infer_type MaybeBoolCtx (#3 `@t #13 `@ #12) -- Just True : Maybe Bool
 
-#eval eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#8 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#4 `@t #13))
-#eval eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#9 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#3 `@t #13 `@ #12))
+#eval! eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#8 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#4 `@t #13))
+#eval! eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#9 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#3 `@t #13 `@ #12))
 
 #eval let bool := #13;
       let maybe := #5
@@ -118,7 +118,6 @@ def MaybeBoolCtx : Ctx Term := [
       infer_type MaybeBoolCtx
       (#9 `@t maybeBool
           `@ (#2 `@t maybeBool `@t bool `@ (refl! maybeBool) `@ (#8 `@t bool `@ refl! bool)))
-
 
 -- == [Maybe Bool]
 --           (EqMaybeU[Maybe Bool, Bool] <Maybe Bool> (EqBool[Bool] <Bool>)
@@ -141,3 +140,32 @@ def MaybeBoolCtx : Ctx Term := [
       (#9 `@t maybeBool
           `@ (#2 `@t maybeBool `@t bool `@ (refl! maybeBool) `@ (#8 `@t bool `@ refl! bool))
           `@ (#4 `@t bool) `@ (#3 `@t bool `@ #12))
+
+def test : Ctx Term := [
+  -- Just : ∀ a. a → Maybe a
+    .ctor (∀[★] #0 -t> (#3 `@k #1))
+  -- -- Nothing : ∀ a. Maybe a
+  ,  .ctor (∀[★] #1 `@k #0)
+  -- Maybe : ★ → ★
+  , .datatype  (★ -k> ★)
+]
+
+-- #eval is_all (∀[★] #1 `@k #0)
+-- #eval infer_kind [.ctor (∀[★] #1 `@k #0), .datatype (★ -k> ★)] (∀[★] #0 -t> (#3 `@k #1))
+-- #eval valid_ctor [.ctor (∀[★] #1 `@k #0), .datatype (★ -k> ★)] (∀[★] #0 -t> (#3 `@k #1))
+
+-- #eval Term.to_telescope (∀[★] #1 `@k #0) -- ([kind ★], (#2 @ #1))
+-- #eval Term.from_telescope [.kind ★] (#2 `@k #1)
+-- #eval [P' 1] (#2 `@k #1) -- (#1 @ #0)
+-- #eval (#1 `@k #0).neutral_form -- some (1, [(SpineVariant.kind, #0)])
+-- #eval ([S' 1](#1 `@k #0)) -- (#1 @ #0)
+-- #eval valid_ctor [.datatype (★ -k> ★)] (∀[★] #1 `@k #0)
+
+-- #eval Term.to_telescope (∀[★] #0 -t> (#3 `@k #1)) -- ([kind ★, type #1], (#5 @ #3))
+-- #eval [P' 2] (#5 `@k #3)
+-- #eval (#3 `@k #1).neutral_form -- some (5, [(SpineVariant.kind, #3)])
+-- #eval ([S' 2](#3 `@k #1))
+-- #eval valid_ctor [.ctor (∀[★] #1 `@k #0), .datatype (★ -k> ★)] (∀[★] #0 -t> (#3 `@k #1))
+
+
+#eval wf_ctx test
