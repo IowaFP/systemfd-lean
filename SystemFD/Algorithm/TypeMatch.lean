@@ -256,8 +256,31 @@ case _ h =>
 theorem prefix_type_match_sound :
   prefix_type_match Γ A B = .some T ->
   PrefixTypeMatch Γ A B T
-:= by sorry
+:= by
+intros h;
+unfold prefix_type_match at h; simp at h;
+rw[Option.bind_eq_some] at h;
+cases h; case _ u1 h1 =>
+cases h1; case _ u2 h1 =>
+rw[Option.bind_eq_some] at h1;
+cases h1; case _ u1 h1 =>
+cases h1; case _ u1 h1 =>
+simp at h1;
+have h2 := h1.1.1.1;
+have h3 := h1.1.1.2;
+have h4 := h1.1.2;
+have h5 := h1.2;
+ sorry
 
 
-theorem valid_ctor_sound : valid_ctor Γ A = .some () -> ValidCtor Γ A := by sorry
+theorem valid_ctor_sound : valid_ctor Γ A = .some () -> ValidCtor Γ A := by
+intros h;
+unfold valid_ctor at h; split at h;
+case _ τ sA tele =>
+simp at h;
+rw[Option.bind_eq_some] at h;
+cases h; case _ w h =>
+simp at h;
+
+ sorry
 theorem valid_insttype_sound : valid_insttype Γ A = .some () -> ValidInstType Γ A := by sorry
