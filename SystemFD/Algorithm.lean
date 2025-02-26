@@ -270,7 +270,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let (B, _) <- is_appk V
   let Bk <- infer_kind Γ B
   let (K3, K4) <- is_arrowk Bk
-  if K1 == K2 && K3 == K4
+  if K1 == K3 && K2 == K4
   then .some (A ~ B)
   else .none
 | Γ, .ctor1 .snd t => do

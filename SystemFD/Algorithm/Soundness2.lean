@@ -241,11 +241,8 @@ case _ h => -- refl
   cases h2; case _ u1 h2 =>
   cases h2; case _ h2 h3 =>
   injection h3 with h3; subst h3;
-  sorry
-  -- replace h2 := is_type_some h2;
-  -- subst h2;
-  -- apply Judgment.refl _ h1;
-  -- apply Judgment.ax wf;
+  replace h2 := wf_kind_sound h2 wf
+  apply Judgment.refl h2 h1
 
 case _ ih1 => -- sym
   rw [Option.bind_eq_some] at h
@@ -337,24 +334,62 @@ case _ ih1 ih2 => -- appc
   -- replace h4 := is_eq_some h4; subst h4; subst h6
   -- replace h3 := is_eq_some h3; subst h3;
   -- apply Judgment.appc lem1 lem2;
-  -- sorry
 
-case _ ih => -- arrowc
+
+case _ ih1 ih2 => -- arrowc
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
   rw [Option.bind_eq_some] at h2
   cases h2; case _ u2 h2 =>
-  cases h2; case _ h2 h3 => sorry
-  --   replace h2 := is_arrow_some h2; subst h2
-  --   replace h4 := Term.eq_of_beq h4; subst h4; subst h5
-  --   constructor; apply ih1 h1 wf
-  --   apply ih2 h3 wf; rfl
+  cases h2; case _ h2 h3 =>
+  rw [Option.bind_eq_some] at h3
+  cases h3; case _ u3 h3 =>
+  cases h3; case _ h3 h4 =>
+  rw [Option.bind_eq_some] at h4
+  cases h4; case _ u4 h4 =>
+  cases h4; case _ h4 h5 =>
+  rw [Option.bind_eq_some] at h5
+  cases h5; case _ u5 h5 =>
+  cases h5; case _ h5 h6 =>
+  rw [Option.bind_eq_some] at h6
+  cases h6; case _ u6 h6 =>
+  cases h6; case _ h6 h7 =>
+  rw [Option.bind_eq_some] at h7
+  cases h7; case _ u7 h7 =>
+  cases h7; case _ h7 h8 =>
+  rw [Option.bind_eq_some] at h8
+  cases h8; case _ u8 h8 =>
+  cases h8; case _ h8 h9 =>
+  rw [Option.bind_eq_some] at h9
+  cases h9; case _ u9 h9 =>
+  cases h9; case _ h9 h10 =>
+  rw [Option.bind_eq_some] at h10
+  cases h10; case _ u10 h10 =>
+  cases h10; case _ h10 h11 =>
+  rw [Option.bind_eq_some] at h11
+  cases h11; case _ u11 h11 =>
+  cases h11; case _ h11 h12 =>
+  rw [Option.bind_eq_some] at h12
+  cases h12; case _ u12 h12 =>
+  cases h12; case _ h12 h13 =>
+  injection h13 with h13
+  replace h1 := ih1 h1 wf
+  replace h2 := ih2 h2 (Judgment.wfempty wf)
+  replace h3 := is_eq_some h3
+  replace h4 := infer_kind_sound h4 wf
+  replace h5 := is_type_some h5
+  replace h6 := infer_kind_sound h6 wf
+  replace h7 := is_type_some h7
+  replace h8 := is_eq_some h8
+  replace h9 := infer_kind_sound h9 (Judgment.wfempty wf)
+  replace h10 := is_type_some h10
+  replace h11 := infer_kind_sound h11 (Judgment.wfempty wf)
+  replace h12 := is_type_some h12
+  subst h13; subst h5; subst h7; subst h10
+  subst h3; subst h8; subst h12
+  apply Judgment.arrowc h4 h6 h1 h9 h11 h2;
 
-    -- replace h1 := wf_kind_sound h1 wf
-    -- injection h3 with e; subst e
-    -- constructor; apply h1; apply ih h2
-    -- constructor; apply h1; apply wf
 case _ ih => -- fst
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
@@ -364,13 +399,41 @@ case _ ih => -- fst
   cases h2; case _ h2 h3 =>
   rw [Option.bind_eq_some] at h3
   cases h3; case _ u3 h3 =>
-  cases h3; case _ h3 h4 => sorry
-  -- simp at h4; cases h4; case _ h4 h5 =>
-  --   replace h4 := Term.eq_of_beq h4; subst h4; subst h5
-  --   replace h2 := is_all_some h2; subst h2
-  --   replace h3 := infer_kind_sound h3 wf
-  --   constructor; apply ih h1 wf; apply h3; rfl
-case _ ih1 ih2 => -- snd
+  cases h3; case _ h3 h4 =>
+  rw [Option.bind_eq_some] at h4
+  cases h4; case _ u4 h4 =>
+  cases h4; case _ h4 h5 =>
+  rw [Option.bind_eq_some] at h5
+  cases h5; case _ u5 h5 =>
+  cases h5; case _ h5 h6 =>
+  rw [Option.bind_eq_some] at h6
+  cases h6; case _ u6 h6 =>
+  cases h6; case _ h6 h7 =>
+  rw [Option.bind_eq_some] at h7
+  cases h7; case _ u7 h7 =>
+  cases h7; case _ h7 h8 =>
+  rw [Option.bind_eq_some] at h8
+  cases h8; case _ u8 h8 =>
+  cases h8; case _ h8 h9 =>
+  simp at h9;
+  have e1 := h9.2
+  have e2 := Term.eq_of_beq h9.1.2
+  have e3 := Term.eq_of_beq h9.1.1
+  replace h1 := ih h1 wf
+  replace h2 := is_eq_some h2
+  replace h3 := is_appk_some h3
+  replace h4 := infer_kind_sound h4 wf
+  replace h5 := is_arrowk_some h5
+  replace h6 := is_appk_some h6
+  replace h7 := infer_kind_sound h7 wf
+  replace h8 := is_arrowk_some h8
+  subst h2; subst h8; subst h5;
+  subst e1; simp at h9;
+  rw [<-e2] at h7; rw [<-e3] at h7;
+  rw [h3] at h1; rw [h6] at h1;
+  apply Judgment.fst h4 h7 h1;
+
+case _ ih1 => -- snd
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
@@ -379,13 +442,34 @@ case _ ih1 ih2 => -- snd
   cases h2; case _ h2 h3 =>
   rw [Option.bind_eq_some] at h3
   cases h3; case _ u3 h3 =>
-  simp at h3; cases h3; case _ h3 h4 => sorry
-    -- replace h1 := infer_kind_sound h1 wf
-    -- replace h2 := is_type_some h2; subst h2
-    -- injection h3 with e; subst e
-    -- constructor; apply h1
+  cases h3; case _ h3 h4 =>
+  rw [Option.bind_eq_some] at h4
+  cases h4; case _ u4 h4 =>
+  cases h4; case _ h4 h5 =>
+  rw [Option.bind_eq_some] at h5
+  cases h5; case _ u5 h5 =>
+  cases h5; case _ h5 h6 =>
+  rw [Option.bind_eq_some] at h6
+  cases h6; case _ u6 h6 =>
+  cases h6; case _ h6 h7 =>
+  rw [Option.bind_eq_some] at h7
+  cases h7; case _ u7 h7 =>
+  cases h7; case _ h7 h8 =>
+  simp at h8;
+  have e1 := h8.2
+  have e2 := Term.eq_of_beq h8.1
+  replace h1 := ih1 h1 wf
+  replace h2 := is_eq_some h2
+  replace h3 := is_appk_some h3
+  replace h4 := infer_kind_sound h4 wf
+  replace h5 := wf_kind_sound h5 wf
+  replace h6 := is_appk_some h6
+  replace h7 := infer_kind_sound h7 wf
+  subst h2; subst e1; subst e2;
+  rw [h3] at h1; rw [h6] at h1;
+  apply Judgment.snd h5 h4 h7 h1;
 
-case _ => -- ∀c[K]t
+case _ ih => -- ∀c[K]t
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
@@ -393,15 +477,39 @@ case _ => -- ∀c[K]t
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
   rw [Option.bind_eq_some] at h3
-  cases h3; case _ u3 h4 => sorry
-  -- simp at h4;
+  cases h3; case _ u3 h4 =>
+  simp at h4; cases h4; case _ h4 h5 =>
+  rw [Option.bind_eq_some] at h4;
+  cases h4; case _ u4 h4 =>
+  have h6 := h4.1;
+  replace h4 := h4.2;
+  rw [Option.bind_eq_some] at h4;
+  cases h4; case _ u5 h4 =>
+  have h7 := h4.1;
+  replace h4 := h4.2;
+  rw [Option.bind_eq_some] at h4;
+  cases h4; case _ u6 h4 =>
+  have e := h4.2;
+  replace h4 := h4.1;
+  rw [Option.bind_eq_some] at h5;
+  cases h5; case _ u8 h8 =>
+  have h9 := h8.2;  replace h8 := h8.1;
+  rw [Option.bind_eq_some] at h9;
+  cases h9; case _ u9 h9 =>
+  rw [Option.bind_eq_some] at h9;
+  have h10 := h9.1;
+  replace h9 := h9.2;
+
   -- have h5 := h4.1; replace h4 := h4.2;
   -- subst h4;
-  -- apply Judgment.allc
-  --   replace h3 := is_eq_some h3; subst h3
-  --   constructor; apply ih1 h1 wf; apply ih2 h2 wf
+  -- have h6 := @wf_kind_sound h1;
+  -- -- apply ih1 h2 wf; apply ih2 h2 wf
+  -- have lem1 := ih h2;
+  -- replace h5 := is_eq_some h5; subst h5;
+  -- -- constructor; apply Judgment.allc
+  sorry
 
-case _ ih1 ih2 => -- snd
+case _ ih1 ih2 => -- appc
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   rw [Option.bind_eq_some] at h
@@ -413,7 +521,37 @@ case _ ih1 ih2 => -- snd
   cases h3; case _ h3 h4 =>
   rw [Option.bind_eq_some] at h4
   cases h4; case _ u4 h4 =>
-  cases h4; case _ h4 h5 => sorry
+  cases h4; case _ h4 h5 =>
+  rw [Option.bind_eq_some] at h5
+  cases h5; case _ u5 h5 =>
+  cases h5; case _ h5 h6 =>
+  rw [Option.bind_eq_some] at h6
+  cases h6; case _ u6 h6 =>
+  cases h6; case _ h6 h7 =>
+  rw [Option.bind_eq_some] at h7
+  cases h7; case _ u7 h7 =>
+  cases h7; case _ h7 h8 =>
+  rw [Option.bind_eq_some] at h8
+  cases h8; case _ u8 h8 =>
+  cases h8; case _ h8 h9 =>
+  simp at h9;
+  have e1 := h9.2
+  have e2 := Term.eq_of_beq h9.1.2
+  have e3 := Term.eq_of_beq h9.1.1.2
+  have e4 := Term.eq_of_beq h9.1.1.1
+  replace h3 := is_eq_some h3
+  replace h6 := is_eq_some h6
+  replace h4 := is_all_some h4
+  replace h5 := is_all_some h5
+  have lem1 := ih1 h1 wf;
+  have lem2 := ih2 h2 wf;
+  replace h7 := infer_kind_sound h7 wf
+  replace h8 := infer_kind_sound h8 wf
+  rw[e4] at h4;
+  subst h3; subst h6;
+  subst e1; subst e2; subst e3; simp at h9
+
+  sorry
 
 theorem wf_ctx_sound : wf_ctx Γ = .some u -> ⊢ Γ := by
 intro h

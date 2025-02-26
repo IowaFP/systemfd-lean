@@ -1,7 +1,7 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
--- import SystemFD.Algorithm
+import SystemFD.Algorithm
 import SystemFD.Evaluator
 
 def NatCtxFix : Ctx Term := [
@@ -32,10 +32,10 @@ def NatCtxFix : Ctx Term := [
 ]
 
 
--- #eval wf_ctx NatCtxFix
--- #eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
+#eval wf_ctx NatCtxFix
+#eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
 
--- #eval infer_type NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
+#eval infer_type NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
 #eval eval_ctx_loop NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
 
 def NatCtxDirect : Ctx Term := [
@@ -92,8 +92,8 @@ def NatCtxDirect : Ctx Term := [
 #eval eval_ctx_loop NatCtxDirect (#1 `@ #5 `@ (#8 `@ #9))
 
 
--- #eval wf_ctx NatCtxDirect
--- #eval infer_type NatCtxDirect (#7 `@ #5 `@ #5)
+#eval wf_ctx NatCtxDirect
+#eval infer_type NatCtxDirect (#7 `@ #5 `@ #5)
 
 #eval eval_ctx_loop NatCtxDirect (#7 `@ #5 `@ #5)
 
