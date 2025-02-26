@@ -17,3 +17,7 @@ import SystemFD.Metatheory.Classification
 import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Preservation
 import SystemFD.Metatheory.Progress
+
+import SystemFD.Evaluator.Soundness
+import SystemFD.Evaluator
+import SystemFD.Algorithm.Soundness1

@@ -138,9 +138,11 @@ case _ ih => -- arrow
   replace h1 := infer_kind_sound h1 wf;
   replace h2 := is_type_some h2; subst h2;
   replace h3 := ih h3 (Judgment.wftype h1 wf);
+  replace h4 := is_type_some h4;
+  subst h4;
   -- have h5 := @ih ★ h4 (Judgment.wftype h1 wf);
-  apply Judgment.lam h1 h3;
-  apply Judgment.arrow h1;
+  -- apply Judgment.lam h1 h3;
+  -- apply Judgment.arrow h1;
   sorry
   -- replace h2 := is_arrow_some h2; subst h2
   -- replace h4 := Term.eq_of_beq h4; subst h4; subst h5
@@ -170,7 +172,8 @@ case _ ih1 ih2 => -- app
   replace h4 := Term.eq_of_beq h4; subst h4;
   replace h1 := ih1 h1 wf;
   replace h4 := ih2 h3 wf;
-  apply Judgment.app h1 h4; rfl;
+  apply Judgment.app h1 h4;
+  sorry
 
 case _ ih => -- Λ[A]b
   rw [Option.bind_eq_some] at h
@@ -278,16 +281,6 @@ case _ ih1 ih2 => -- seq
     subst h6; rw[<-h5] at h4;
     subst h3; subst h4;
     apply Judgment.seq lem1 lem2
-    -- replace h2 := is_type_some h2; subst h2
-    -- replace h1 := infer_kind_sound h1 wf
-  --   constructor; apply h1; apply ih1 h3 wf
-  --   apply ih2 h4; constructor; apply h1
-  --   apply ih1 h3 wf; apply wf
-    -- injection h4 with e; subst e
-    -- replace h2 := is_type_some h2; subst h2
-    -- replace h1 := infer_kind_sound h1 wf
-    -- constructor; apply h1; apply ih h3
-    -- constructor; apply h1; apply wf
 
 case _ ih1 ih2 => -- appc
   rw [Option.bind_eq_some] at h
@@ -326,7 +319,7 @@ case _ ih1 ih2 => -- appc
   have e3 := h13.1.1.1.2; replace e3 := Term.eq_of_beq e3;
   have e2 := h13.1.1.2; replace e2 := Term.eq_of_beq e2;
   have e4 := h13.1.2; replace e4 := Term.eq_of_beq e4;
-  have h13 := h13.2;
+  replace h13 := h13.2;
   replace h3 := is_eq_some h3;
   replace h4 := is_eq_some h4;
   replace h11 := is_arrowk_some h11;
@@ -336,7 +329,6 @@ case _ ih1 ih2 => -- appc
   have lem3 := infer_kind_sound h9 wf;
   have lem4 := infer_kind_sound h10 wf;
   subst h3; subst h4; subst h13; subst e2; subst e4;
-
   -- apply Judgment.appc lem1 lem2;
   sorry
   -- have lem1 := ih1 h1 wf
@@ -408,7 +400,7 @@ case _ => -- ∀c[K]t
   --   replace h3 := is_eq_some h3; subst h3
   --   constructor; apply ih1 h1 wf; apply ih2 h2 wf
 
-case _ ih1 ih2 => -- appc
+case _ ih1 ih2 => -- snd
   rw [Option.bind_eq_some] at h
   cases h; case _ u1 h =>
   rw [Option.bind_eq_some] at h
@@ -421,134 +413,6 @@ case _ ih1 ih2 => -- appc
   rw [Option.bind_eq_some] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 => sorry
-  -- simp at h5; cases h5; case _ h5 h6 =>
-  --   replace h3 := is_eq_some h3; subst h3; subst h6
-  --   replace h4 := is_eq_some h4; subst h4
-  --   replace h5 := Term.eq_of_beq h5
-  --   constructor; apply ih1 h1 wf; rw [h5]
-  --   apply ih2 h2 wf
-
--- case _ ih1 ih2 =>
---   rw [Option.bind_eq_some] at h
---   cases h; case _ u1 h =>
---   cases h; case _ h1 h2 =>
---   rw [Option.bind_eq_some] at h2
---   cases h2; case _ u2 h2 =>
---   cases h2; case _ h2 h3 =>
---   rw [Option.bind_eq_some] at h3
---   cases h3; case _ u3 h3 =>
---   cases h3; case _ h3 h4 =>
---   rw [Option.bind_eq_some] at h4
---   cases h4; case _ u4 h4 =>
---   cases h4; case _ h4 h5 =>
---     injection h5 with e; subst e
---     replace h3 := is_eq_some h3; subst h3
---     replace h4 := is_eq_some h4; subst h4
---     constructor; apply ih1 h1 wf; apply ih2 h2 wf
-
--- case _ ih1 ih2 =>
---   rw [Option.bind_eq_some] at h
---   cases h; case _ u1 h =>
---   cases h; case _ h1 h2 =>
---   rw [Option.bind_eq_some] at h2
---   cases h2; case _ u2 h2 =>
---   cases h2; case _ h2 h3 =>
---   rw [Option.bind_eq_some] at h3
---   cases h3; case _ u3 h3 =>
---   cases h3; case _ h3 h4 =>
---   rw [Option.bind_eq_some] at h4
---   cases h4; case _ u4 h4 =>
---   cases h4; case _ h4 h5 =>
---     injection h5 with e; subst e
---     replace h3 := is_eq_some h3; subst h3
---     replace h4 := is_eq_some h4; subst h4
---     replace h1 := ih1 h1 wf
---     constructor; apply h1; apply ih2 h2
---     constructor; apply wf
-
--- case _ ih =>
---   rw [Option.bind_eq_some] at h
---   cases h; case _ u1 h =>
---   cases h; case _ h1 h2 =>
---   rw [Option.bind_eq_some] at h2
---   cases h2; case _ u2 h2 =>
---   cases h2; case _ h2 h3 =>
---   rw [Option.bind_eq_some] at h3
---   cases h3; case _ u3 h3 =>
---   cases h3; case _ h3 h4 =>
---   rw [Option.bind_eq_some] at h4
---   cases h4; case _ u4 h4 =>
---   cases h4; case _ h4 h5 =>
---     injection h5 with e; subst e
---     replace h2 := is_eq_some h2; subst h2
---     replace h3 := is_appk_some h3
---     replace h4 := is_appk_some h4
---     rw [h3, h4] at h1
---     constructor; apply ih h1 wf
-
--- case _ ih =>
---   rw [Option.bind_eq_some] at h
---   cases h; case _ u1 h =>
---   cases h; case _ h1 h2 =>
---   rw [Option.bind_eq_some] at h2
---   cases h2; case _ u2 h2 =>
---   cases h2; case _ h2 h3 =>
---   rw [Option.bind_eq_some] at h3
---   cases h3; case _ u3 h3 =>
---   cases h3; case _ h3 h4 =>
---   rw [Option.bind_eq_some] at h4
---   cases h4; case _ u4 h4 =>
---   cases h4; case _ h4 h5 =>
---     injection h5 with e; subst e
---     replace h2 := is_eq_some h2; subst h2
---     replace h3 := is_appk_some h3
---     replace h4 := is_appk_some h4
---     rw [h3, h4] at h1
---     constructor; apply ih h1 wf
-
--- case _ ih =>
---   rw [Option.bind_eq_some] at h
---   cases h; case _ u1 h =>
---   cases h; case _ h1 h2 =>
---   rw [Option.bind_eq_some] at h2
---   cases h2; case _ u2 h2 =>
---   cases h2; case _ h2 h3 =>
---   rw [Option.bind_eq_some] at h3
---   cases h3; case _ u3 h3 =>
---   cases h3; case _ h3 h4 =>
---     injection h4 with e; subst e
---     replace h3 := is_eq_some h3; subst h3
---     replace h1 := wf_kind_sound h1 wf
---     constructor; apply ih h2; constructor
---     apply h1; apply wf
-
--- case _ ih1 ih2 =>
---   rw [Option.bind_eq_some] at h
---   cases h; case _ u1 h =>
---   cases h; case _ h1 h2 =>
---   rw [Option.bind_eq_some] at h2
---   cases h2; case _ u2 h2 =>
---   cases h2; case _ h2 h3 =>
---   rw [Option.bind_eq_some] at h3
---   cases h3; case _ u3 h3 =>
---   cases h3; case _ h3 h4 =>
---   rw [Option.bind_eq_some] at h4
---   cases h4; case _ u4 h4 =>
---   cases h4; case _ h4 h5 =>
---   rw [Option.bind_eq_some] at h5
---   cases h5; case _ u5 h5 =>
---   cases h5; case _ h5 h6 =>
---   rw [Option.bind_eq_some] at h6
---   cases h6; case _ u6 h6 =>
---   cases h6; case _ h6 h7 =>
---   simp at h7; cases h7; case _ h7 h8 =>
---     replace h7 := Term.eq_of_beq h7
---     replace h6 := is_eq_some h6; subst h6; subst h8
---     replace h3 := is_eq_some h3; subst h3
---     replace h4 := is_all_some h4
---     replace h5 := is_all_some h5
---     rw [h4] at h1; rw [h5] at h1; rw [h7] at h1
---     constructor; apply ih1 h1 wf; apply ih2 h2 wf
 
 theorem wf_ctx_sound : wf_ctx Γ = .some u -> ⊢ Γ := by
 intro h
