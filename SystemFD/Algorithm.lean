@@ -115,20 +115,18 @@ def infer_kind : Ctx Term -> Term -> Option Term
 | _, _ => .none
 
 def valid_ctor (Γ : Ctx Term) (A : Term) : Option Unit := do
-  let (τ, sR) := Term.to_telescope A
-  let R := [P' τ.length]sR
+  let (τ, R) := Term.to_telescope A
   let (x, _) <- R.neutral_form
-  if [S' τ.length]R == sR
-    && Γ.is_datatype x
+  let x' := x - τ.length
+  if x = x' + τ.length && Γ.is_datatype x'
   then .some ()
   else .none
 
 def valid_insttype (Γ : Ctx Term) (A : Term) : Option Unit := do
-  let (τ, sR) := Term.to_telescope A
-  let R := [P' τ.length]sR
+  let (τ, R) := Term.to_telescope A
   let (x, _) <- R.neutral_form
-  if [S' τ.length]R == sR
-    && Γ.is_opent x
+  let x' := x - τ.length
+  if x = x' + τ.length && Γ.is_opent x'
   then .some ()
   else .none
 
