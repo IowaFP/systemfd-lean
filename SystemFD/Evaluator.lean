@@ -11,9 +11,7 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
   match t with -- we need to evaulate a non-variable term
     | .var h =>
       match (Γ d@ h) with
-      | .openm _ =>
-            let ιs := instance_indices Γ 0 h [] ; -- get all the indices of instances
-            get_instances Γ ιs -- select the right instances using the indices
+      | .openm _ => get_instances Γ h -- select the right instances using the indices
           | .term _ b => [ b ]  -- inline a let bound term
           | _ => .none -- do not evaluate
 
@@ -26,9 +24,8 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .some (h, sp) =>
         (match (Γ d@ h) with
           | .openm _ =>
-            let ιs := instance_indices Γ 0 h [] ; -- get all the indices of instances
-            let ts := get_instances Γ ιs ; -- select the right instances using the indices
-            let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
+            let ιs := get_instances Γ h ; -- get all instances
+            let ts' := List.map (·.apply_spine sp) ιs -- apply the instance terms to the spine
             List.map (· `@ t) ts'
           | .term _ b => [ b.apply_spine sp `@ t]  -- inline a let bound term
           | _ => .none) -- do not evaluate
@@ -41,9 +38,8 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       | .some (h, sp) =>
         (match (Γ d@ h) with
           | .openm _ =>
-            let ιs := instance_indices Γ 0 h [] ; -- get all the indices of instances
-            let ts := get_instances Γ ιs ; -- select the right instances using the indices
-            let ts' := List.map (·.apply_spine sp) ts -- apply the instance terms to the spine
+            let ιs := get_instances Γ h ; -- get all instances
+            let ts' := List.map (·.apply_spine sp) ιs -- apply the instance terms to the spine
             List.map (· `@t t) ts'
           | .term _ b => [ b.apply_spine sp `@t t]  -- inline a let bound term
           | _ => .none) -- do not evaluate

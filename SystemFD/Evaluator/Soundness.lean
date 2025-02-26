@@ -10,11 +10,10 @@ intros
 induction Γ, t using eval_inst.induct generalizing ts
 case _ Γ n _ om et =>
   simp_all; subst et;
-  generalize ip : instance_indices Γ 0 n [] = i at *;
-  generalize instsp : get_instances Γ i = insts at *;
+  generalize instsp : get_instances Γ n = insts at *;
   have nfh := @Term.var_neutral_form n; symm at nfh;
-  symm at instsp; symm at ip;
-  apply Red.inst nfh _ ip instsp; unfold Term.apply_spine; simp_all;
+  symm at instsp;
+  apply Red.inst nfh _ instsp; unfold Term.apply_spine; simp_all;
   unfold Ctx.is_openm; rw[om]; unfold Frame.is_openm; simp_all;
 case _ Γ n _ _ lt et =>
     simp at et; rw [lt] at et; simp at et; subst et;
@@ -29,14 +28,13 @@ case _ Γ f t _ n sp _ t' om et =>
   simp at et; split at et;
   case _ fnf =>
     simp_all;
-    generalize ip : instance_indices Γ 0 n [] = ιs at *;
-    generalize instsp : get_instances Γ ιs = insts at *;
+    generalize instsp : get_instances Γ n = insts at *;
     have ftnf := @Term.neutral_form_app f t n sp fnf; symm at ftnf;
-    symm at ip; symm at instsp
+    symm at instsp
     symm at et; symm at fnf;
     generalize tlp' : List.map (·.apply_spine sp) insts = tl' at *; symm at tlp'
     have omp : Γ.is_openm n := by unfold Ctx.is_openm; rw[om]; unfold Frame.is_openm; simp
-    have fred := Red.inst fnf omp ip instsp tlp';
+    have fred := Red.inst fnf omp instsp tlp';
     apply Red.app_congr fred; simp_all
   case _ =>
     rw[Option.bind_eq_some] at et;
@@ -66,15 +64,14 @@ case _ Γ f t _ nf ih et =>
     apply Red.app_congr ih'; rfl
 case _ Γ f t _ n sp fnf _ om et =>
   simp at et;
-  generalize ip : instance_indices Γ 0 n [] = ιs at *;
-  generalize instsp : get_instances Γ ιs = insts at *;
+  generalize instsp : get_instances Γ n = insts at *;
   simp_all;
   have ftnf := @Term.neutral_form_app f t n sp fnf;
   have omp : Γ.is_openm n := by simp; rw[om]; unfold Frame.is_openm; simp;
-  symm at ip; symm at instsp;
+  symm at instsp;
   symm at et; symm at fnf;
   generalize tlp' : List.map (·.apply_spine sp) insts = tl' at *; symm at tlp'
-  have fred := Red.inst fnf omp ip instsp tlp';
+  have fred := Red.inst fnf omp instsp tlp';
   apply Red.appt_congr fred; simp_all
 
 case _ Γ f t _ n sp fnf A t' lt et =>
