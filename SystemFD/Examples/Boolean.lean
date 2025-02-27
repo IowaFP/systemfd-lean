@@ -43,18 +43,6 @@ def eqBoolTerm : Term :=
         (Term.ite #3 #1 (Term.ite #3 #0 #2 #3)
           #3))
 
--- #eval eqBoolTerm
--- #eval notTerm
-
--- #eval infer_type boolCtx notTerm
-
--- #eval eval_ctx_loop boolCtx (notTerm `@ #1)
--- #eval eval_ctx_loop boolCtx (notTerm `@ #0)
-
--- #eval infer_type boolCtx eqBoolTerm
--- #eval eval_ctx_loop boolCtx (eqBoolTerm `@ #1 `@ #1)
--- #eval eval_ctx_loop boolCtx (eqBoolTerm `@ #0 `@ #1)
-
 
 def EqBoolCtx : Ctx Term := [
 
