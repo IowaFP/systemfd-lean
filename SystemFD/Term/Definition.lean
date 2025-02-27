@@ -52,18 +52,18 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .type => "★"
 
   | .ctor1 .refl t => "≮" ++ Term.repr t p ++ "≯"
-  | .ctor1 .sym t => "sym" ++ Std.Format.paren (Term.repr t p)
+  | .ctor1 .sym t => "(sym! " ++ Term.repr t p ++ "!)"
   | .ctor1 .fst t => "(" ++ Term.repr t p ++ ")●1"
   | .ctor1 .snd t => "(" ++ Term.repr t p ++ ")●2"
 
-  | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ " → " ++ Term.repr t2 p
+  | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ Std.Format.line ++" → " ++ Term.repr t2 p
   | .ctor2 .appk t1 t2 => Std.Format.paren (Term.repr t1 p ++ " @ " ++ Term.repr t2 p)
   | .ctor2 .appc t1 t2 => Std.Format.paren (Term.repr t1 p ++ " `@c " ++ Term.repr t2 p)
   | .ctor2 .appt t1 t2 => Std.Format.paren (Term.repr t1 p) ++ Std.Format.sbracket (Term.repr t2 p)
-  | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@tc " ++ Term.repr t2 p
-  | .ctor2 .app t1 t2 => Std.Format.paren (Term.repr t1 p ++ " ⬝ " ++ Term.repr t2 p)
-  | .ctor2 .cast t1 t2 => Std.Format.paren (Term.repr t1 p  ++ " ▹ " ++ Term.repr t2 p)
-  | .ctor2 .seq t1 t2 => Term.repr t1 p ++ " `; " ++ Term.repr t2 p
+  | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@c[ " ++ Term.repr t2 p ++ " ]"
+  | .ctor2 .app t1 t2 => Std.Format.paren (Term.repr t1 p ++ " ⬝ " ++ Std.Format.line ++ Term.repr t2 p)
+  | .ctor2 .cast t1 t2 => Std.Format.paren (Term.repr t1 p  ++ " ▹ "  ++ Std.Format.line ++ Term.repr t2 p)
+  | .ctor2 .seq t1 t2 => Term.repr t1 p ++ " `; "  ++ Std.Format.line ++ Term.repr t2 p
   | .ctor2 .eq t1 t2 => Term.repr t1 p ++ " ∼ " ++ Term.repr t2 p
 
   | .bind2 .all t1 t2 => "∀" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p

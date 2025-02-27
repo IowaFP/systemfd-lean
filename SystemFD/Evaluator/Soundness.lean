@@ -211,8 +211,40 @@ case _ Γ _ _  ih et =>
 
 case _ Γ t t' et => simp at et; rw [<-et]; apply Red.appc
 
+case _ ih et =>
+  simp at et; rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih et1;
+  apply Red.appc_congr2 lem1; simp
+
+case _ ih et =>
+  simp at et; rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih et1;
+  apply Red.appc_congr1 lem1; simp
+
 case _ et => simp at et; subst et; apply Red.fst
+case _ ih et =>
+  simp at et; rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih et1;
+  apply Red.fst_congr lem1; simp
+
 case _ et => simp at et; subst et; apply Red.snd
+case _ ih et =>
+  simp at et; rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih et1;
+  apply Red.snd_congr lem1; simp
+
 case _ et => simp at et; subst et; apply Red.arrowc
 case _ Γ t η _ ih et =>
   simp at et; rw[Option.bind_eq_some] at et;
@@ -233,6 +265,25 @@ case _ Γ t η _ ih1 et=>
     have ih := @ih1 w (And.left h);
     injection (And.right h) with w;
     subst w; apply Red.allc_congr ih; rfl
+
+case _ et =>
+  simp at et;  subst et; apply Red.apptc
+
+case _ ih et =>
+  simp at et; rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih et1;
+  apply Red.apptc_congr1 lem1; simp
+
+case _ ih et =>
+  simp at et; rw[Option.bind_eq_some] at et;
+  cases et; case _ u et =>
+  have et1 := et.1
+  replace et := et.2;  injection et with et; subst et
+  have lem1 := ih et1;
+  apply Red.apptc_congr2 lem1; simp
 
 case _ Γ t a ih =>
   simp at ih; rw[<-ih]; exact Red.cast

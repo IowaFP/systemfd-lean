@@ -106,21 +106,33 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
       if t == t'
       then .some [refl! t]
       else .none
-
     | .ctor2 .seq (.ctor1 .refl t) η2 => do
       let η2' <- eval_inst Γ η2
       .some (List.map (.ctor1 .refl t `; ·) η2')
-
     | .ctor2 .seq η1 η2 => do
       let η1' <- eval_inst Γ η1
       .some (List.map (· `; η2) η1')
 
     | .ctor2 .appc (.ctor1 .refl t) (.ctor1 .refl t') =>
       .some [refl! (t `@k t')]
+    | .ctor2 .appc (.ctor1 .refl t) η2 => do
+      let η2' <- eval_inst Γ η2
+      .some (List.map (.ctor1 .refl t `@c ·) η2')
+    | .ctor2 .appc η1 η2 => do
+      let η1' <- eval_inst Γ η1
+      .some (List.map (· `@c η2) η1')
+
     | .ctor1 .fst (.ctor1 .refl (.ctor2 .appk A _)) =>
       .some [refl! A]
+    | .ctor1 .fst η => do
+       let η' <- eval_inst Γ η
+       .some (List.map (·.!1) η')
+
     | .ctor1 .snd (.ctor1 .refl (.ctor2 .appk _ B)) =>
       .some [refl! B]
+    | .ctor1 .snd η => do
+       let η' <- eval_inst Γ η
+       .some (List.map (·.!2) η')
 
     | .bind2 .arrowc (.ctor1 .refl t) (.ctor1 .refl t') => .some [refl! (t -t> t')]
     | .bind2 .arrowc (.ctor1 .refl t) η => do
@@ -129,10 +141,21 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option (List Term) :=
     | .bind2 .arrowc η η' => do
       let η'' <- eval_inst Γ η
       .some (List.map (· -c> η') η'')
+
     | .bind2 .allc t (.ctor1 .refl t') => .some [refl! (∀[t] t')]
     | .bind2 .allc t η => do
       let η' <- eval_inst (.kind t :: Γ) η
       .some (List.map (∀c[t] ·) η')
+
+    | .ctor2 .apptc (.ctor1 .refl (.bind2 .all _ t1)) (.ctor1 .refl t2) => .some [refl! (t1 β[t2])]
+    | .ctor2 .apptc η1 (.ctor1 .refl t) => do
+      let η1' <- eval_inst Γ η1
+      .some (List.map ( · `@c[ .ctor1 .refl t ]) η1')
+    | .ctor2 .apptc η1 η => do
+      let η' <- eval_inst Γ η
+      .some (List.map (η1 `@c[ · ]) η')
+
+
     | .ctor2 .cast t (.ctor1 .refl _) => .some [t]
     | .ctor2 .cast t η => do
       let η' <- eval_inst Γ η

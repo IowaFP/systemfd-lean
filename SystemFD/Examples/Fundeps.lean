@@ -14,7 +14,7 @@ def FundepsCtx : Ctx Term := [
   --     guard EqualTT[t, u] <- i1 then λ c1.
   --     guard EqualTT[t', u] <- i2 then λ c2.
   --         c1 ; sym c2
-  .inst 2 (Λ[★] Λ[★] Λ[★] `λ[#7 `@k #2 `@k #0] `λ[#8 `@k #2 `@k #1]
+  .inst #2 (Λ[★] Λ[★] Λ[★] `λ[#7 `@k #2 `@k #0] `λ[#8 `@k #2 `@k #1]
     .guard (#6 `@t #4 `@t #2) #1 (`λ[#4 ~ #2]
       .guard (#7 `@t #4 `@t #3) #1 (`λ[#4 ~ #3]
         #1 `; sym! #0
@@ -23,7 +23,7 @@ def FundepsCtx : Ctx Term := [
   --     guard EqualTT[t, u] <- i1 then λ c1.
   --     guard EqualTT[t, u'] <- i2 then λ c2.
   --         sym c1 ; c2
-  .inst 2 (Λ[★] Λ[★] Λ[★] `λ[#6 `@k #2 `@k #1] `λ[#7 `@k #3 `@k #1]
+  .inst #2 (Λ[★] Λ[★] Λ[★] `λ[#6 `@k #2 `@k #1] `λ[#7 `@k #3 `@k #1]
     .guard (#5 `@t #4 `@t #3) #1 (`λ[#4 ~ #3]
       .guard (#6 `@t #5 `@t #3) #1 (`λ[#5 ~ #3]
         sym! #1 `; #0
