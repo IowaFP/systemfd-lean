@@ -139,15 +139,15 @@ def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
   else .none
 
 def prefix_type_match (Γ : Ctx Term) (A B : Term) : Option Term := do
-  let (τ, sR) := Term.to_telescope A
+  let (τ, R) := Term.to_telescope A
   let (τ', sT) := Term.to_telescope B
   let ξ <- prefix_equal τ τ'
   let T := [P' τ.length](Term.from_telescope ξ sT)
-  let R := [P' τ.length]sR
   let (x, _) <- Term.neutral_form R
+  let x' := x - τ.length
   if [S' τ.length]T == Term.from_telescope ξ sT
-    && [S' τ.length]R == sR
-    && (Γ d@ x).is_stable
+    && x = x' + τ.length
+    && (Γ d@ x').is_stable
   then .some T
   else .none
 
@@ -269,6 +269,15 @@ def infer_type : Ctx Term -> Term -> Option Term
   if K1 == K3 && K2 == K4
   then .some (A ~ B)
   else .none
+| Γ, .letterm A t b => do
+  let Ak <- infer_kind Γ A
+  let _ <- is_type Ak
+  let A' <- infer_type Γ t
+  let sT <- infer_type (.term A t :: Γ) b
+  let T := [P]sT
+  let Tk <- infer_kind Γ T
+  let _ <- is_type Tk
+  if A == A' then .some T else .none
 | Γ, .ctor1 .snd t => do
   let T <- infer_type Γ t
   let (U, V) <- is_eq T

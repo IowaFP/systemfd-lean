@@ -24,21 +24,26 @@ def ctx : Ctx Term := [
   --     If FMM[t][u] ← d1 then Λ a' b'. λ (h1: Maybe a' ~  t) (h2 : Maybe b' ~ u) (e1 : F a' b').
   --     If FMM[t][v] ← d2 then Λ a'' b''. λ (k1: Maybe a'' ~ t) (k2 : Maybe b'' ~ v) (e2 : F a'' b'').
   --     let j : (a' ~ a'') = (h1 ; sym k1).2 in
-  --     let e1' : F a'' b = e1 ▹ <F> `@c j `@c <b'> in
+  --     let e1' : F a'' b' = e1 ▹ <F> `@c j `@c <b'> in
   --       sym h2 ; <Maybe> `@c fdF[a''][b'][b''] e1' e2 ; k2
-    -- .inst #6
-      -- (Λ[★]Λ[★]Λ[★]  `λ[#10 `@k #2 `@k  #1]  `λ[#11 `@k #3 `@k #2]
-      -- Term.guard  (#5 `@t #4 `@t #3) #1
-      --          (Λ[★] Λ[★] `λ[(#10 `@k #1) ~ #6] `λ[(#11 `@k #1) ~ #6] `λ[(#16 `@k #3 `@k #2)]
-      -- Term.guard  (#10 `@t #9 `@t #8) #5
-      --          (Λ[★] Λ[★] `λ[(#14 `@k #1) ~ #11] `λ[(#15 `@k #1) ~ #10] `λ[(#20 `@k #3 `@k #2)]
-      --       ((sym! #8) `;
-      --         ((refl!(∀[★](#21 `@k #0))) `@c[#23 `@t #6 `@t #10 `@t #5 `@
-      --                 (#6 ▹ ((refl!(∀[★] ∀[★] (#25 `@k #1 `@k #0)))
-      --                     `@c[(#7 `; sym! #2).!2]
-      --                     `@c[refl! #4])) `@ #2]) `;
-      --         #3)
-      --       ))),
+    .inst #6
+      (Λ[★]Λ[★]Λ[★]  `λ[#10 `@k #2 `@k  #1]  `λ[#11 `@k #3 `@k #1]
+      Term.guard  (#5 `@t #4 `@t #3) #1
+               (Λ[★] Λ[★] `λ[(#10 `@k #1) ~ #6] `λ[(#11 `@k #1) ~ #6] `λ[(#16 `@k #3 `@k #2)]
+      Term.guard  (#10 `@t #9 `@t #8) #5
+              (Λ[★] Λ[★] `λ[(#15 `@k #1) ~ #11] `λ[(#16 `@k #1) ~ #11] `λ[(#21 `@k #3 `@k #2)]
+                .letterm (#9 ~ #4) ((#7 `; sym! #2).!2) (
+                  .letterm (#22 `@k #5 `@k #9) (#7 ▹ (refl! #22 `@c #0 `@c refl! #9))
+                    (sym! #8) `; (refl! #20 `@c (#23 `@t #6 `@t #10 `@t #5 `@ #0 `@ #2)) `; #3
+                )
+              ))),
+            -- ((sym! #8) `;
+            --   ((refl!(∀[★](#21 `@k #0))) `@c[#23 `@t #6 `@t #10 `@t #5 `@
+            --           (#6 ▹ ((refl!(∀[★] ∀[★] (#25 `@k #1 `@k #0)))
+            --               `@c[(#7 `; sym! #2).!2]
+            --               `@c[refl! #4])) `@ #2]) `;
+            --   #3)
+            -- ))),
 
   -- FMM : ∀ a b a' b'. Maybe a' ~ a → Maybe b' ~ b → F a' b' → F a b
   .insttype (∀[★]∀[★]∀[★]∀[★]
@@ -97,6 +102,118 @@ def t := Λ[★] Λ[★] Λ[★] `λ[#10 `@k #2 `@k  #1] `λ[#11 `@k #3 `@k #1]
         `@ (#0 `@t (#3 `@k #8) `@t (#3 `@k #11) `@t #8 `@t #11 `@ (refl! (#3 `@k #8)) `@ (refl! (#3 `@k #11))
              `@ (#5 `@t #8 `@t #11 `@ (refl! #8) `@ (refl! #11)))
         )
+-- ∀[★](∀[★]((#10 @ #1) ∼ #6 → (#11 @ #1) ∼ #6 → ((#16 @ #3) @ #2) → ((#17 @ #9) @ #8)))
+-- ((#12 @ #4) @ #3)
+
+def unwrap : Option Term -> Term
+| x => Option.getD x .kind
+
+def ctx2 := ([.type (#11 `@k #3 `@k #2), .type (#10 `@k #2 `@k  #1), .kind ★, .kind ★, .kind ★] ++ ctx)
+
+  -- let A <- infer_type Γ p
+  def A := unwrap (infer_type ctx2 (#5 `@t #4 `@t #3))
+  #eval A
+  -- let R <- infer_type Γ s
+  def R := unwrap (infer_type ctx2 #1)
+  #eval R
+  -- let Rk <- infer_kind Γ R
+  -- let _ <- wf_kind Rk
+  -- let _ <- stable_type_match Γ A R
+  #eval stable_type_match ctx2 A R
+  -- let (ph, _) <- Term.neutral_form p
+  def ph := Option.getD (Term.neutral_form ((#5 `@t #4 `@t #3))) (0, [])
+  #eval ph
+  -- let (rh, _) <- Term.neutral_form R
+  def rh := Option.getD (Term.neutral_form R) (0, [])
+  #eval rh
+  -- let insttype_headed := Γ.is_insttype ph
+  #eval Ctx.is_insttype ctx2 ph.1
+  -- let ot_headed := Γ.is_opent rh
+  #eval Ctx.is_opent ctx2 rh.1
+  -- let B <- infer_type Γ t
+  def t' := Λ[★] Λ[★] `λ[(#10 `@k #1) ~ #6] `λ[(#11 `@k #1) ~ #6] `λ[#16 `@k #3 `@k #2] #19
+  def B := unwrap (infer_type ctx2 t')
+  #eval B
+  -- let T <- prefix_type_match Γ A B
+  #eval prefix_type_match ctx2 A B
+  -- let Tk <- infer_kind Γ T
+  -- let _ <- wf_kind Tk
+  -- if (insttype_headed && ot_headed)
+  --   then .some T
+  --   else .none
+
+
+-- def prefix_type_match (Γ : Ctx Term) (A B : Term) : Option Term := do
+--   let (τ, sR) := Term.to_telescope A
+def τ := (Term.to_telescope A).fst
+def sR := (Term.to_telescope A).snd
+#eval (τ, sR)
+--   let (τ', sT) := Term.to_telescope B
+def τ' := (Term.to_telescope B).fst
+def sT := (Term.to_telescope B).snd
+#eval (τ', sT)
+--   let ξ <- prefix_equal τ τ'
+def ξ := prefix_equal τ τ'
+#eval ξ
+--   let T := [P' τ.length](Term.from_telescope ξ sT)
+def T := [P' τ.length](Term.from_telescope [] sT)
+#eval T
+--   let R := [P' τ.length]sR
+def R' := [P' τ.length]sR
+#eval R'
+--   let (x, _) <- Term.neutral_form R
+--   if [S' τ.length]T == Term.from_telescope ξ sT
+--     && [S' τ.length]R == sR
+--     && (Γ d@ x).is_stable
+--   then .some T
+--   else .none
+
+#eval Term.to_telescope (Option.getD (infer_type ctx2 (#5 `@t #4 `@t #3)) .kind)
+#eval ([P' 5]((#17 `@ #9) `@ #8))
+
+-- def t := (
+--     -- Term.guard  (#5 `@t #4 `@t #3) #1 (Λ[★] Λ[★] `λ[(#10 `@k #1) ~ #6] `λ[(#11 `@k #1) ~ #6] `λ[#16 `@k #3 `@k #2]
+--             #1
+--       -- Term.guard  (#10 `@t #9 `@t #8) #5
+--       --          (Λ[★] Λ[★] `λ[(#14 `@k #1) ~ #11] `λ[(#15 `@k #1) ~ #10] `λ[(#20 `@k #3 `@k #2)]
+--       --            ((sym! #6) `; (((refl!(∀[★](#19 `@k #0)))
+--       --                    `@c[#21 `@t #4 `@t #8 `@t #3 `@
+--       --                (#5 ▹ ((refl!(∀[★] ∀[★] (#24 `@k #1 `@k #0))) `@c[(#7 `; sym! #2).!2] `@c[refl! #8])) `@ #0]) `;
+--       --         #1))
+--       --       )
+--             )
+
+-- #eval infer_type ([.type (#11 `@k #3 `@k #2), .type (#10 `@k #2 `@k  #1), .kind ★, .kind ★, .kind ★] ++ ctx) t
+
+
+
+
+-- def t := Λ[★]Λ[★]Λ[★]  `λ[#11 `@k #2 `@k  #1]  `λ[#12 `@k #3 `@k #1]
+--       Term.guard (#6 `@t #4 `@t #3) #1
+--                (Λ[★] Λ[★] `λ[(#11 `@k #1) ~ #6] `λ[(#12 `@k #1) ~ #6] `λ[(#17 `@k #3 `@k #2)]
+--       Term.guard  (#11 `@t #9 `@t #7) #5
+--                (Λ[★] Λ[★] `λ[(#16 `@k #1) ~ #11] `λ[(#17 `@k #1) ~ #10] `λ[(#22 `@k #3 `@k #2)]
+--                (#25)
+--         -- Term.letterm (#23 `@k #5 `@k #9) (#6 ▹ ((refl!(∀[★] ∀[★] (#25 `@k #1 `@k #0))) `@c[#0]  `@c[refl! #4])) (
+--         --     ((sym! #8) `; ((refl!(∀[★](#21 `@k #0))) `@c[#23 `@t #6 `@t #10 `@t #5 `@ #0 `@ #2]) `; #3)
+--         --        )
+--         --       )
+--                 )
+--                )
+
+-- #eval infer_type ctx t
+-- #eval eval_ctx_loop ctx
+--     (t
+--         `@t (#3 `@k #8)  -- Maybe Int
+--         `@t (#3 `@k #11)  -- Maybe Bool
+--         `@t (#3 `@k #11)  -- Maybe Bool
+--         -- FMM[Maybe Int][Maybe Bool][Int][Bool] <Maybe Int>  <Maybe Bool> (FIB[Int][Bool] <Int> <Bool>)
+--         `@ (#0 `@t (#3 `@k #8) `@t (#3 `@k #11) `@t #8 `@t #11 `@ (refl! (#3 `@k #8)) `@ (refl! (#3 `@k #11))
+--              `@ (#5 `@t #8 `@t #11 `@ (refl! #8) `@ (refl! #11)))
+--        -- -- FMM[Maybe Int][Maybe Bool][Int][Bool] <Maybe Int>  <Maybe Bool> (FIB[Int][Bool] <Int> <Bool>)
+--         `@ (#0 `@t (#3 `@k #8) `@t (#3 `@k #11) `@t #8 `@t #11 `@ (refl! (#3 `@k #8)) `@ (refl! (#3 `@k #11))
+--              `@ (#5 `@t #8 `@t #11 `@ (refl! #8) `@ (refl! #11)))
+--         )
 
 
 
