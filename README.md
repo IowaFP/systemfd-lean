@@ -1,14 +1,32 @@
 # SystemFD
 
-- Terms: Terms of the language
-- Evaulator: evaluates terms
-- Algoritm: typecheck terms
+## Overview
 
-- Reduction : Specification for reduction
-- Judgements: Specification of type checking
+This development formalizes the metatheory of System FD in Lean4, specifically:
+- Progress, and
+- Preservation
 
+The following files are revelant to the development:
 
-This formalization proves:
-- [ ] Soundness of type checking with respect to type checking judgements
-- [ ] Soundness of evaluation with respect to reduction semantics
-- [ ] Progress and preservation
+- SystemFD.Terms.Definitions: Terms of the language
+- SystemFD.Evaulator: evaluates terms
+- SystemFD.Algoritm: typecheck terms
+
+- SystemFD.Reduction : Term reduction specification
+- SystemFD.Judgements: Typing judgment specification
+
+- SystemFD.Metatheory.Progress : States the Progress lemma
+- SystemFD.Metatheory.Preservation: States and proves the Preservation lemma
+
+- SystemFD.Metatheory.Examples : Contains all the examples from the paper submission along with some extra ones
+
+## Building instructions
+
+[VSCode](https://lean-lang.org/lean4/doc/quickstart.html) or [Emacs](https://github.com/leanprover-community/lean4-mode)
+
+```lean4
+$ cd systemfd-lean
+$ lake build
+```
+
+This development has been tested on `lean4:4.15.0`
