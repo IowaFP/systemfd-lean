@@ -8,17 +8,17 @@ This development formalizes the metatheory of System FD in Lean4, specifically:
 
 The following files are revelant to the development:
 
-- SystemFD.Terms.Definitions: Terms of the language
+- SystemFD.Term.Definition: Terms of the language
 - SystemFD.Evaulator: evaluates terms
 - SystemFD.Algoritm: typecheck terms
 
 - SystemFD.Reduction : Term reduction specification
-- SystemFD.Judgements: Typing judgment specification
+- SystemFD.Judgement: Typing judgment specification
 
 - SystemFD.Metatheory.Progress : States the Progress lemma
 - SystemFD.Metatheory.Preservation: States and proves the Preservation lemma
 
-- SystemFD.Metatheory.Examples : Contains all the examples from the paper submission along with some extra ones
+- SystemFD.Examples : Contains all the examples from the paper submission along with some extra ones
 
 ## Building instructions
 
