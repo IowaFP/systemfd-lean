@@ -30,7 +30,7 @@ deriving Repr
 inductive Term : Type where
 | kind : Term
 | var : Nat -> Term
-| type : Term
+| type : Term -- ★
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
 | bind2 : Bind2Variant -> Term -> Term -> Term
@@ -57,7 +57,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor1 .snd t => "(" ++ Term.repr t p ++ ")●2"
 
   | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ Std.Format.line ++" → " ++ Term.repr t2 p
-  | .ctor2 .appk t1 t2 => Std.Format.paren (Term.repr t1 p ++ " @ " ++ Term.repr t2 p)
+  | .ctor2 .appk t1 t2 => Std.Format.paren (Term.repr t1 p ++ " `@k " ++ Term.repr t2 p)
   | .ctor2 .appc t1 t2 => Std.Format.paren (Term.repr t1 p ++ " `@c " ++ Term.repr t2 p)
   | .ctor2 .appt t1 t2 => Std.Format.paren (Term.repr t1 p) ++ Std.Format.sbracket (Term.repr t2 p)
   | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@c[ " ++ Term.repr t2 p ++ " ]"

@@ -5,8 +5,8 @@ set_option maxHeartbeats 500000
 
 @[simp]
 def wf_kind : Term -> Option Unit
-| .type => .some ()
-| .ctor2 .arrowk A B => do
+| .type => .some ()  -- ★
+| .ctor2 .arrowk A B => do -- κ → κ'
   let _ <- wf_kind A
   let _ <- wf_kind B
   .some ()
@@ -93,13 +93,13 @@ def infer_kind : Ctx Term -> Term -> Option Term
 | Γ, ∀[A] B => do
   let _ <- wf_kind A
   let Bk <- infer_kind (.kind A::Γ) B
-  let _ <- wf_kind Bk
+  let _ <- is_type Bk
   .some ★
 | Γ, .bind2 .arrow A B => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   let Bk <- infer_kind (.empty::Γ) B
-  let _ <- wf_kind Bk
+  let _ <- is_type Bk
   .some ★
 | Γ, .ctor2 .appk f a => do
   let fk <- infer_kind Γ f

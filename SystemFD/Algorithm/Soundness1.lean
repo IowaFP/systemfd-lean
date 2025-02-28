@@ -40,13 +40,14 @@ case _ Γ A' B ih => -- ∀[A] B
   simp at h3; rw [Option.bind_eq_some] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-    injection h4 with e; subst e
-    have lem1 := wf_kind_sound h1 wf
-    have lem2 : ⊢ (.kind A' :: Γ) := by
-      constructor; apply lem1; apply wf;
-    replace h3 := is_type_some h3; subst h3;
-    have lem3 := ih h2 lem2;
-    apply Judgment.allt lem1 lem3;
+  injection h4 with e; subst e
+  have lem1 := wf_kind_sound h1 wf
+  have lem2 : ⊢ (.kind A' :: Γ) := by
+    constructor; apply lem1; apply wf;
+  have lem3 := ih h2 lem2;
+  replace h3 := is_type_some h3; subst h3;
+  have lem3 := ih h2 lem2;
+  apply Judgment.allt lem1 lem3;
 
 case _ Γ A' B ih1 ih2 => -- A -t> B
   simp at h; rw [Option.bind_eq_some] at h
@@ -61,13 +62,13 @@ case _ Γ A' B ih1 ih2 => -- A -t> B
   rw [Option.bind_eq_some] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-    replace h2 := is_type_some h2; subst h2
-    injection h5 with e; subst e
-    replace h4 := is_type_some h4; subst h4
-    have lem1 := ih1 h1 wf
-    have lem2 : ⊢ (.empty :: Γ) := by apply Judgment.wfempty wf
-    have lem3 := @ih2 ★ h3 lem2
-    apply Judgment.arrow lem1 lem3;
+  replace h2 := is_type_some h2; subst h2
+  injection h5 with e; subst e
+  replace h4 := is_type_some h4; subst h4
+  have lem1 := ih1 h1 wf
+  have lem2 : ⊢ (.empty :: Γ) := by apply Judgment.wfempty wf
+  have lem3 := @ih2 ★ h3 lem2
+  apply Judgment.arrow lem1 lem3;
 
 case _ Γ f a ih1 ih2 =>
   simp at h; rw [Option.bind_eq_some] at h
@@ -97,11 +98,13 @@ case _ ih1 ih2 =>
   rw [Option.bind_eq_some] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-    injection h5 with e; subst e
-    replace h2 := is_type_some h2; subst h2
-    replace h4 := is_type_some h4; subst h4
-    have ih1' := ih1 h1 wf; have ih2' := ih2 h3 wf;
-    apply Judgment.eq (Judgment.ax wf) ih1' ih2';
+    simp at h5; have e := h5.2; subst e
+    simp at h5;
+    replace h1 := ih1 h1 wf;
+    replace h3 := ih2 h3 wf;
+    replace h5 := Term.eq_of_beq h5; subst h5;
+    have h6 := wf_kind_sound h2 wf;
+    apply Judgment.eq h6 h1 h3;
 case _ Γ t h1 h2 h3 h4 h5 =>
   exfalso
   cases t <;> simp at *
