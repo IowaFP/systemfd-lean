@@ -49,7 +49,6 @@ def OrdEqBoolCtx : Ctx Term := [
 
 -- leq : ∀ a. Ord a → a → a → Bool
 -- leq = Λ a. λ (d: Ord a). λ x y. ((<) [a] d x y) || (== [a] (ordEq [a] d) x y)
-
 def leq := Λ[★] `λ[#8 `@k #0] `λ[#1] `λ[#2] (
    #6
    `@ (#10  `@t #3 `@ #2 `@ #1 `@ #0)
@@ -57,3 +56,5 @@ def leq := Λ[★] `λ[#8 `@k #0] `λ[#1] `λ[#2] (
  )
 
 #eval infer_type OrdEqBoolCtx leq
+#eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! #15)) `@ #13 `@ #14)
+#eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! #15)) `@ #14 `@ #13)

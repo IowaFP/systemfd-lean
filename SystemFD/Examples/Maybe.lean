@@ -19,7 +19,7 @@ def MaybeBoolCtx : Ctx Term := [
 
 
                    )
-
+    -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
     , .term ((∀[★] (#9 `@k #0) -t> (#5 `@k #1) -t> (#6 `@k #2) -t> #15))
          ((Λ[★] `λ[#9 `@k #0] `λ[#5 `@k #1] `λ[#6 `@k #2]
                 .ite (#6 `@t #3) #1
@@ -33,10 +33,8 @@ def MaybeBoolCtx : Ctx Term := [
                                    (`λ[#4] ((#13 `@t #5 `@ #4) `@ #1 `@ #0))
                                     #14)))
                 #14)))
-
   -- EqMaybe : ∀ t u. t ~ Maybe u → Eq u → Eq t
    , .insttype (∀[★]∀[★] (#1 ~ (#4 `@k #0)) -t> (#10 `@k #1) -t> (#11 `@k #3))
-
   -- Just : ∀ a. a → Maybe a
   , .ctor (∀[★] #0 -t> (#3 `@k #1))
   -- Nothing : ∀ a. Maybe a
@@ -44,12 +42,9 @@ def MaybeBoolCtx : Ctx Term := [
   -- Maybe : ★ → ★
   , .datatype (★ -k> ★)
 
-
   , .inst #2 (Λ[★] `λ[#4 `@k #0] -- EqBool : Eq t
-               Term.guard (#3 `@t #1) -- EqBool[t]
-               #0                     -- i
+               Term.guard (#3 `@t #1) #0 (`λ[#1 ~ #8] -- i
                 -- λ (tBool : t ~ Bool).  ==@Bool ▹ sym! (tBool -c> tBool -c> rfl Bool)
-               (`λ[#1 ~ #8]
                      (#3 ▹ sym! (#0 -c> (#1 -c> refl! #11)))))
 
     -- ==@Bool : Bool → Bool → Bool
@@ -61,56 +56,22 @@ def MaybeBoolCtx : Ctx Term := [
                                     True → False
                                     False → True
     -/
-  , .term (#5 -t> (#6 -t> #7))
-     (`λ[#5] `λ[#6]
+  , .term (#5 -t> (#6 -t> #7)) (`λ[#5] `λ[#6]
         (Term.ite #5 #1 (Term.ite #5 #0 #5 #6)
         (Term.ite #6 #1 (Term.ite #6 #0 #5 #6)
-          #6)))
-
-  -- EqBool : ∀ t. t ~ Bool → Eq t
-  , .insttype (∀[★] (#0 ~ #5) -t> #3 `@k #1)
-
-  -- == : ∀ t. Eq t → t → t → Bool
-  , .openm (∀[★] (#1 `@k #0) -t> (#1 -t> (#2 -t> #7)))
-
-  -- Eq : ★ → ★
-  , .opent (★ -k> ★)
-
-  -- True : Bool
-  , .ctor #1
-  -- False : Bool
-  , .ctor #0
-  -- Bool : ★
-  , .datatype  ★
+         #6)))
+  , .insttype (∀[★] (#0 ~ #5) -t> #3 `@k #1)   -- EqBool : ∀ t. t ~ Bool → Eq t
+  , .openm (∀[★] (#1 `@k #0) -t> (#1 -t> (#2 -t> #7)))   -- == : ∀ t. Eq t → t → t → Bool
+  , .opent (★ -k> ★)   -- Eq : ★ → ★
+  , .ctor #1   -- True : Bool
+  , .ctor #0  -- False : Bool
+  , .datatype  ★   -- Bool : ★
 ]
 
 #eval wf_ctx MaybeBoolCtx
 
-
--- /-
--- isNothing : ∀ a. Maybe a → Bool
--- isNothing = Λ a. λ x:Maybe a. case x of
---                         Nothing → True
---                         Just y → False
--- -/
--- def isNothing : Term :=
---   Λ[★]`λ[#3 `@k #0]
---            .ite (#3 `@t #1) #0 #5
---           (.ite (#2 `@t #1) #0 (`λ[#1] #7) #6)
-
--- #eval isNothing
--- #eval infer_type MaybeBoolCtx isNothing
-
--- #eval infer_type MaybeBoolCtx ((isNothing `@t #5) `@ (#1 `@t #5))
-
--- #eval eval_ctx_loop MaybeBoolCtx ((isNothing `@t #5) `@ (#1 `@t #5))
--- #eval eval_ctx_loop MaybeBoolCtx ((isNothing `@t #5) `@ (#0 `@t #5 `@ #4))
-
-#eval get_instances MaybeBoolCtx 9
-
 #eval infer_type MaybeBoolCtx (#4 `@t #13) -- Nothing : Maybe Bool
 #eval infer_type MaybeBoolCtx (#3 `@t #13 `@ #12) -- Just True : Maybe Bool
-
 #eval! eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#8 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#4 `@t #13))
 #eval! eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#9 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#3 `@t #13 `@ #12))
 
@@ -131,10 +92,10 @@ def MaybeBoolCtx : Ctx Term := [
       (#9 `@t maybeBool
           `@ (#2 `@t maybeBool `@t bool `@ (refl! maybeBool) `@ (#8 `@t bool `@ refl! bool))
           `@ (#4 `@t bool) `@ (#4 `@t bool ))
+
 -- == [Maybe Bool]
 --           (EqMaybeU[Maybe Bool, Bool] <Maybe Bool> (EqBool[Bool] <Bool>)
 --           Nothing (Just False)
-
 #eval let bool := #13;
       let maybe := #5
       let maybeBool := maybe `@k bool;
@@ -142,32 +103,3 @@ def MaybeBoolCtx : Ctx Term := [
       (#9 `@t maybeBool
           `@ (#2 `@t maybeBool `@t bool `@ (refl! maybeBool) `@ (#8 `@t bool `@ refl! bool))
           `@ (#4 `@t bool) `@ (#3 `@t bool `@ #12))
-
-def test : Ctx Term := [
-  -- Just : ∀ a. a → Maybe a
-    .ctor (∀[★] #0 -t> (#3 `@k #1))
-  -- -- Nothing : ∀ a. Maybe a
-  ,  .ctor (∀[★] #1 `@k #0)
-  -- Maybe : ★ → ★
-  , .datatype  (★ -k> ★)
-]
-
--- #eval is_all (∀[★] #1 `@k #0)
--- #eval infer_kind [.ctor (∀[★] #1 `@k #0), .datatype (★ -k> ★)] (∀[★] #0 -t> (#3 `@k #1))
--- #eval valid_ctor [.ctor (∀[★] #1 `@k #0), .datatype (★ -k> ★)] (∀[★] #0 -t> (#3 `@k #1))
-
--- #eval Term.to_telescope (∀[★] #1 `@k #0) -- ([kind ★], (#2 @ #1))
--- #eval Term.from_telescope [.kind ★] (#2 `@k #1)
--- #eval [P' 1] (#2 `@k #1) -- (#1 @ #0)
--- #eval (#1 `@k #0).neutral_form -- some (1, [(SpineVariant.kind, #0)])
--- #eval ([S' 1](#1 `@k #0)) -- (#1 @ #0)
--- #eval valid_ctor [.datatype (★ -k> ★)] (∀[★] #1 `@k #0)
-
--- #eval Term.to_telescope (∀[★] #0 -t> (#3 `@k #1)) -- ([kind ★, type #1], (#5 @ #3))
--- #eval [P' 2] (#5 `@k #3)
--- #eval (#3 `@k #1).neutral_form -- some (5, [(SpineVariant.kind, #3)])
--- #eval ([S' 2](#3 `@k #1))
--- #eval valid_ctor [.ctor (∀[★] #1 `@k #0), .datatype (★ -k> ★)] (∀[★] #0 -t> (#3 `@k #1))
-
-
-#eval wf_ctx test

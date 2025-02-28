@@ -43,7 +43,6 @@ def eqBoolTerm : Term :=
         (Term.ite #3 #1 (Term.ite #3 #0 #2 #3)
           #3))
 
-
 def EqBoolCtx : Ctx Term := [
 
   -- instance (==)[t] i
@@ -76,13 +75,10 @@ def EqBoolCtx : Ctx Term := [
 
   -- EqBool : ∀ t. t ~ Bool → Eq t
   , .insttype (∀[★] (#0 ~ #5) -t> #3 `@k #1)
-
   -- == : ∀ t. Eq t → t → t → Bool
   , .openm (∀[★] (#1 `@k #0) -t> (#1 -t> (#2 -t> #7)))
-
   -- Eq : ★ → ◯
   , .opent (★ -k> ★)
-
   -- True : Bool
   , .ctor #1
     -- False : Bool
@@ -93,7 +89,6 @@ def EqBoolCtx : Ctx Term := [
 
 #eval wf_ctx EqBoolCtx
 #eval infer_type EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- some 7
-
 -- == [Bool] (EqBool[Bool] refl) True True ⟶★ True
 #eval eval_ctx_loop EqBoolCtx (#3 `@t #7 `@ (#2 `@t #7 `@ refl! #7) `@ #5 `@ #5) -- some 5
 -- == [Bool] (EqBool[Bool] refl) True False ⟶★ False

@@ -40,12 +40,6 @@ def ctx : Ctx Term := [
       --         #3)
       --       ))),
 
-  -- .term (∀[★](∀[★](∀[★] (#11 `@k #2 `@k #1) -t> (#12 `@k #3 `@k #1) -t> #17)))
-  --          (Λ[★]Λ[★]Λ[★]Λ[★] `λ[#3 ~ #2] `λ[#13 `@k #4 `@k #1]
-  --            (#0 ▹ (∀c[★]∀c[★](#17 `@k #1 `@k #2) `@c[#1] `@c[refl! #3]))),
-  -- inj : ∀ t a a'. (Maybe a ~ t) → (Maybe a' ~ t) → a ~ a'
-  -- .term (∀[★]∀[★]∀[★] (#6 `@k #1 ~ #2) -t> (#7 `@k #1 ~ #3) -t> (#3 ~ #2))
-  --       (Λ[★]Λ[★]Λ[★] `λ[#6 `@k #1 ~ #2]`λ[#7 `@k #1 ~ #3] (#1 `; sym! #0).!2),
   -- FMM : ∀ a b a' b'. Maybe a' ~ a → Maybe b' ~ b → F a' b' → F a b
   .insttype (∀[★]∀[★]∀[★]∀[★]
                 (#6 `@k #1 ~ #3) -t> (#7 `@k #1 ~ #3) -t> (#12 `@k #3 `@k #2) -t> (#13 `@k #6 `@k #5)),
@@ -77,18 +71,17 @@ def ctx : Ctx Term := [
   --     If FMM[t][v] ← d2 then Λ a'' b''. λ (k1: Maybe a'' ~ t) (k2 : Maybe b'' ~ v) (e2 : F a'' b'').
   --       sym h2 ; <Maybe> `@c fdF[a''][b'][b''] (e1 ▹ <F> `@c[ (h1 ; sym k1).2] `@c[b']) e2 ; k2
 
-def t :=  (Λ[★]Λ[★]Λ[★]  `λ[#10 `@k #2 `@k  #1]  `λ[#11 `@k #3 `@k #2]
-      Term.guard  (#5 `@t #4 `@t #3) #1
-               (Λ[★] Λ[★] `λ[(#10 `@k #1) ~ #6] `λ[(#11 `@k #1) ~ #6] `λ[(#16 `@k #3 `@k #2)]
-      Term.guard  (#10 `@t #9 `@t #8) #5
-               (Λ[★] Λ[★] `λ[(#14 `@k #1) ~ #11] `λ[(#15 `@k #1) ~ #10] `λ[(#20 `@k #3 `@k #2)]
-                 ((sym! #6) `;
-                 ((refl!(∀[★](#19 `@k #0))) `@c[#21 `@t #4 `@t #8 `@t #3 `@
-                                  (#5 ▹ ((refl!(∀[★] ∀[★] (#24 `@k #1 `@k #0)))
-                                          `@c[(#7 `; sym! #2).!2]
-                                          `@c[refl! #8])) `@ #0]) `;
-              #1)
-            )))
+def t := Λ[★] Λ[★] Λ[★] `λ[#10 `@k #2 `@k  #1] `λ[#11 `@k #3 `@k #2] (
+    Term.guard  (#5 `@t #4 `@t #3) #1 (Λ[★] Λ[★] `λ[(#10 `@k #1) ~ #6] `λ[(#11 `@k #1) ~ #6] `λ[#16 `@k #3 `@k #2]
+            #18
+      -- Term.guard  (#10 `@t #9 `@t #8) #5
+      --          (Λ[★] Λ[★] `λ[(#14 `@k #1) ~ #11] `λ[(#15 `@k #1) ~ #10] `λ[(#20 `@k #3 `@k #2)]
+      --            ((sym! #6) `; (((refl!(∀[★](#19 `@k #0)))
+      --                    `@c[#21 `@t #4 `@t #8 `@t #3 `@
+      --                (#5 ▹ ((refl!(∀[★] ∀[★] (#24 `@k #1 `@k #0))) `@c[(#7 `; sym! #2).!2] `@c[refl! #8])) `@ #0]) `;
+      --         #1))
+      --       )
+            ))
 
 #eval infer_type ctx t
 
@@ -109,18 +102,18 @@ def t :=  (Λ[★]Λ[★]Λ[★]  `λ[#10 `@k #2 `@k  #1]  `λ[#11 `@k #3 `@k #2
 --                )
 
 -- #eval infer_type ctx t
-#eval eval_ctx_loop ctx
-    (t
-        `@t (#3 `@k #8)  -- Maybe Int
-        `@t (#3 `@k #11)  -- Maybe Bool
-        `@t (#3 `@k #11)  -- Maybe Bool
-        -- FMM[Maybe Int][Maybe Bool][Int][Bool] <Maybe Int>  <Maybe Bool> (FIB[Int][Bool] <Int> <Bool>)
-        `@ (#0 `@t (#3 `@k #8) `@t (#3 `@k #11) `@t #8 `@t #11 `@ (refl! (#3 `@k #8)) `@ (refl! (#3 `@k #11))
-             `@ (#5 `@t #8 `@t #11 `@ (refl! #8) `@ (refl! #11)))
-       -- -- FMM[Maybe Int][Maybe Bool][Int][Bool] <Maybe Int>  <Maybe Bool> (FIB[Int][Bool] <Int> <Bool>)
-        `@ (#0 `@t (#3 `@k #8) `@t (#3 `@k #11) `@t #8 `@t #11 `@ (refl! (#3 `@k #8)) `@ (refl! (#3 `@k #11))
-             `@ (#5 `@t #8 `@t #11 `@ (refl! #8) `@ (refl! #11)))
-        )
+-- #eval eval_ctx_loop ctx
+--     (t
+--         `@t (#3 `@k #8)  -- Maybe Int
+--         `@t (#3 `@k #11)  -- Maybe Bool
+--         `@t (#3 `@k #11)  -- Maybe Bool
+--         -- FMM[Maybe Int][Maybe Bool][Int][Bool] <Maybe Int>  <Maybe Bool> (FIB[Int][Bool] <Int> <Bool>)
+--         `@ (#0 `@t (#3 `@k #8) `@t (#3 `@k #11) `@t #8 `@t #11 `@ (refl! (#3 `@k #8)) `@ (refl! (#3 `@k #11))
+--              `@ (#5 `@t #8 `@t #11 `@ (refl! #8) `@ (refl! #11)))
+--        -- -- FMM[Maybe Int][Maybe Bool][Int][Bool] <Maybe Int>  <Maybe Bool> (FIB[Int][Bool] <Int> <Bool>)
+--         `@ (#0 `@t (#3 `@k #8) `@t (#3 `@k #11) `@t #8 `@t #11 `@ (refl! (#3 `@k #8)) `@ (refl! (#3 `@k #11))
+--              `@ (#5 `@t #8 `@t #11 `@ (refl! #8) `@ (refl! #11)))
+--         )
 
 
 
