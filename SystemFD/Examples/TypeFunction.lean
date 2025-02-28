@@ -6,25 +6,14 @@ import SystemFD.Algorithm
 import SystemFD.Evaluator
 
 def ctx : Ctx Term := [
-    -- f : ∀ t. F Int t → t → t
-    --   = Λ t λd.
-    --     let h = fdF[Int][Bool][t](FIB [Int][Bool] <Int> <Bool>) d in
-    --     not ▹ <→> `@c h `@c h
-    -- .term (∀[★] (#9 `@k #10 `@k #0) -t> #1 -t> #2)
-    --   (Λ[★]`λ[#8 `@k #9 `@k #0]
-    --     Term.letterm ((#15 ~ #1)) (#10 `@t #12 `@t #15 `@t  #1 `@ (#9 `@t #12 `@t #15 `@t #1) `@ #0) (
-    --     #3 ▹ (#0 -c> #1))),
-
-     -- not : Bool → Bool → Bool
-     --     = λ x if x ← True then False else True
-    -- .term (#12 -t> #13)
-    --        (`λ[#12] Term.ite #11 #0 #12 #11),
-
+     -- not : Bool → Bool → Bool = λ x if x ← True then False else True
+    .term (#12 -t> #13)
+           (`λ[#12] Term.ite #11 #0 #12 #11),
   --   Λ t u v. λ d1 d2.
   --     If FMM[t][u] ← d1 then Λ a' b'. λ (h1: Maybe a' ~  t) (h2 : Maybe b' ~ u) (e1 : F a' b').
   --     If FMM[t][v] ← d2 then Λ a'' b''. λ (k1: Maybe a'' ~ t) (k2 : Maybe b'' ~ v) (e2 : F a'' b'').
-  --     let j : (a' ~ a'') = (h1 ; sym k1).2 in
-  --     let e1' : F a'' b' = e1 ▹ <F> `@c j `@c <b'> in
+  --     let j : (a' ~ a'') = (h1 ; sym k1).2
+  --     let e1' : F a'' b' = e1 ▹ <F> `@c[ j ] `@c[<b'>]
   --       sym h2 ; <Maybe> `@c fdF[a''][b'][b''] e1' e2 ; k2
     .inst #6
       (Λ[★]Λ[★]Λ[★]  `λ[#10 `@k #2 `@k  #1]  `λ[#11 `@k #3 `@k #1]
@@ -38,7 +27,6 @@ def ctx : Ctx Term := [
                         #0
                 )
               )))),
-
   -- FMM : ∀ a b a' b'. Maybe a' ~ a → Maybe b' ~ b → F a' b' → F a b
   .insttype (∀[★]∀[★]∀[★]∀[★]
                 (#6 `@k #1 ~ #3) -t> (#7 `@k #1 ~ #3) -t> (#12 `@k #3 `@k #2) -t> (#13 `@k #6 `@k #5)),
@@ -64,6 +52,21 @@ def ctx : Ctx Term := [
 ]
 
 #eval wf_ctx ctx
+
+ --  (∀[★] (#9 `@k #10 `@k #0) -t> #1 -t> #2)
+-- f : ∀ t. F Int t → t → t
+--   = Λ t λ (d : F Int t).
+--     let h : Bool ~ t = fdF[Int][Bool][t](FIB [Int][Bool] <Int> <Bool>) d in
+--     not ▹ <→> `@c h `@c h
+def fnot := Λ[★]`λ[#10 `@k #11 `@k #0]
+        .letterm ((#15 ~ #1))
+          (#10 `@t #12 `@t #15 `@t #1
+               `@ (#9 `@t #12 `@t #15 `@ (refl! #12) `@ (refl! #15))
+               `@ #0)
+            (#3 ▹ (#0 -c> #1))
+
+#eval infer_type ctx fnot
+
 
   --   Λ t u v. λ (d1: F t u) (d2 : F t v).
   --     If FMM[t][u] ← d1 then Λ a' b'. λ (h1: Maybe a' ~  t) (h2 : Maybe b' ~ u) (e1 : F a' b').
