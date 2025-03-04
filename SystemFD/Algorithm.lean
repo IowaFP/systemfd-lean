@@ -123,8 +123,8 @@ def valid_ctor : (Γ : Ctx Term) -> (A : Term) -> Option Unit
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_datatype x) then .some () else .none
 
-#eval valid_ctor [.datatype ★] (∀[★] #1)
-#eval valid_ctor [.datatype ★] (∀[★] #1 -t> #2)
+-- #eval valid_ctor [.datatype ★] (∀[★] #1)
+-- #eval valid_ctor [.datatype ★] (∀[★] #1 -t> #2)
 
 -- A is of the form
 -- ∀[★]∀[★].. x -t> y -t> T p q r
@@ -135,8 +135,8 @@ def valid_insttype : (Γ : Ctx Term) -> (A : Term) -> Option Unit
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_opent x) then .some () else .none
 
-#eval valid_insttype [.opent ★] (∀[★] #1)
-#eval valid_insttype [.opent ★] (∀[★] #1 -t> #2)
+-- #eval valid_insttype [.opent ★] (∀[★] #1)
+-- #eval valid_insttype [.opent ★] (∀[★] #1 -t> #2)
 
 -- A is the type of the pattern
 -- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
@@ -154,8 +154,9 @@ def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
 -- A is the type of the pattern and has the form
 -- ∀[★]∀[★].. x -t> y -t> T p q r
 -- T is the type of the rhs of the branch and has the form
--- ∀[★]∀[★].. x' -t> y' -t> T' p' q' r'
--- A potentially has more ∀s and -t>s than in the branch
+-- ∀[★]∀[★].. x' -t> y' -t> ... z -t> T' p' q' r'
+-- A potentially has more ∀s and -t> s than in the branch
+-- This function returns the 'extra' bits
 def prefix_type_match : Ctx Term -> Term -> Term -> Option Term
   | Γ, (.bind2 .arrow A B), (.bind2 .arrow A' B') => do
     if A == A'
@@ -175,25 +176,10 @@ def prefix_type_match : Ctx Term -> Term -> Term -> Option Term
       then .some T
       else .none
 
-#eval prefix_type_match [.datatype ★] (∀[★] #1) (∀[★] #1)
-#eval prefix_type_match [.datatype ★] (∀[★] #1) (∀[★] #1 -t> #2)
-#eval prefix_type_match [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #2)
-#eval prefix_type_match [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #2 -t> #3)
-
-
--- def prefix_type_match' (Γ : Ctx Term) (A B : Term) : Option Term := do
---   let (τ, R) := Term.to_telescope A
---   let (τ', sT) := Term.to_telescope B
---   let ξ <- prefix_equal τ τ'
---   let T := [P' τ.length](Term.from_telescope ξ sT)
---   let (x, _) <- Term.neutral_form R
---   let x' := x - τ.length
---   if [S' τ.length]T == Term.from_telescope ξ sT
---     && x = x' + τ.length
---     && (Γ d@ x').is_stable
---   then .some T
---   else .none
--- #eval prefix_type_match' [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #1 -t> #3)
+-- #eval prefix_type_match [.datatype ★] (∀[★] #1) (∀[★] #1)
+-- #eval prefix_type_match [.datatype ★] (∀[★] #1) (∀[★] #1 -t> #2)
+-- #eval prefix_type_match [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #2)
+-- #eval prefix_type_match [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #2 -t> #3)
 
 @[simp]
 def infer_type : Ctx Term -> Term -> Option Term
@@ -204,7 +190,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let A <- infer_type Γ p
   let R <- infer_type Γ s
   let Rk <- infer_kind Γ R
-  let _ <- wf_kind Rk
+  let _ <- is_type Rk
   let B <- infer_type Γ i
   let T' <- infer_type Γ e
   let _ <- stable_type_match Γ A R
@@ -214,15 +200,15 @@ def infer_type : Ctx Term -> Term -> Option Term
   let dt_headed := Γ.is_datatype rh
   let T <- prefix_type_match Γ A B
   let Tk <- infer_kind Γ T
-  let _ <- wf_kind Tk
-  if B == T' && ctor_headed && dt_headed
+  let _ <- is_type Tk
+  if T == T' && ctor_headed && dt_headed
   then .some T
   else .none
 | Γ, .guard p s t => do
   let A <- infer_type Γ p
   let R <- infer_type Γ s
   let Rk <- infer_kind Γ R
-  let _ <- wf_kind Rk
+  let _ <- is_type Rk
   let _ <- stable_type_match Γ A R
   let (ph, _) <- Term.neutral_form p
   let (rh, _) <- Term.neutral_form R
@@ -231,14 +217,16 @@ def infer_type : Ctx Term -> Term -> Option Term
   let B <- infer_type Γ t
   let T <- prefix_type_match Γ A B
   let Tk <- infer_kind Γ T
-  let _ <- wf_kind Tk
+  let _ <- is_type Tk
   if (insttype_headed && ot_headed)
     then .some T
     else .none
 | Γ, `λ[A] t => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   let B <- infer_type (.type A::Γ) t
+  let Bk <- infer_kind Γ (A -t> B)
+  let _ <- is_type Bk
   .some (A -t> B)
 | Γ, .ctor2 .app f a => do
   let T <- infer_type Γ f
@@ -248,6 +236,8 @@ def infer_type : Ctx Term -> Term -> Option Term
 | Γ, Λ[A] t => do
   let _ <- wf_kind A
   let B <- infer_type (.kind A::Γ) t
+  let k <- infer_kind Γ (∀[A]B)
+  let _ <- is_type k
   .some (∀[A] B)
 | Γ, .ctor2 .appt f a => do
   let T <- infer_type Γ f
@@ -292,14 +282,14 @@ def infer_type : Ctx Term -> Term -> Option Term
   let T2 <- infer_type (.empty :: Γ) t2
   let (A, B) <- is_eq T1
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   let Bk <- infer_kind Γ B
-  let _ <- wf_kind Bk
+  let _ <- is_type Bk
   let (C, D) <- is_eq T2
   let Ck <- infer_kind (.empty :: Γ) C
-  let _ <- wf_kind Ck
+  let _ <- is_type Ck
   let Dk <- infer_kind (.empty :: Γ) D
-  let _ <- wf_kind Dk
+  let _ <- is_type Dk
   .some ((A -t> C) ~ (B -t> D))
 | Γ, .ctor1 .fst t => do
   let T <- infer_type Γ t
@@ -321,7 +311,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let T := [P]sT
   let Tk <- infer_kind Γ T
   let _ <- is_type Tk
-  if A == A' then .some T else .none
+  if A == A' && sT == [S][P]sT then .some T else .none
 | Γ, .ctor1 .snd t => do
   let T <- infer_type Γ t
   let (U, V) <- is_eq T
@@ -335,9 +325,9 @@ def infer_type : Ctx Term -> Term -> Option Term
   let T <- infer_type (.kind K :: Γ) t
   let (A, B) <- is_eq T
   let Ak <- infer_kind Γ (∀[K] A)
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   let Bk <- infer_kind Γ (∀[K] B)
-  let _ <- wf_kind Bk
+  let _ <- is_type Bk
   .some ((∀[K] A) ~ (∀[K] B))
 | Γ, f `@c[a] => do
   let T1 <- infer_type Γ f
@@ -359,7 +349,7 @@ def wf_ctx : Ctx Term -> Option Unit
 | .cons .empty Γ => wf_ctx Γ
 | .cons (.type A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   wf_ctx Γ
 | .cons (.kind A) Γ => do
   let _ <- wf_kind A
@@ -369,7 +359,7 @@ def wf_ctx : Ctx Term -> Option Unit
   wf_ctx Γ
 | .cons (.ctor A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   let _ <- valid_ctor Γ A
   wf_ctx Γ
 | .cons (.opent A) Γ => do
@@ -377,16 +367,16 @@ def wf_ctx : Ctx Term -> Option Unit
   wf_ctx Γ
 | .cons (.openm A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   wf_ctx Γ
 | .cons (.insttype A) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   let _ <- valid_insttype Γ A
   wf_ctx Γ
 | .cons (.term A t) Γ => do
   let Ak <- infer_kind Γ A
-  let _ <- wf_kind Ak
+  let _ <- is_type Ak
   let A' <- infer_type Γ t
   let _ <- wf_ctx Γ
   if A == A' then .some () else .none

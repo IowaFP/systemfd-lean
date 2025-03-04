@@ -25,7 +25,7 @@ def test : Ctx Term := [
 
 #eval wf_ctx test
 
-#eval stable_type_match test (#1 `@t #6) (#1 `@t #6 `@ #5)
+#eval stable_type_match test (#3 `@k #6) (#3 `@k #6)
 
 #eval infer_type test (((refl! (∀[★]#4 `@k #0))) `@c[refl! #0])
 
@@ -38,7 +38,7 @@ def test : Ctx Term := [
 #eval infer_type test (#1 `@t #6 `@ #5)
 #eval infer_type test (#1 `@t #6)
 #eval infer_type test (`λ[#6] #0)
-#eval infer_type test (.ite (#1 `@t #6) (#1 `@t #6 `@ #5) (`λ[#6] #0) (`λ[#6] #0))
+#eval infer_type test (.ite (#1 `@t #6) (#1 `@t #6 `@ #5) (`λ[#6] #0) (#4))
 
 
 -- #eval eval_ctx_loop test (.ite (#1 `@t #6) (#1 `@t #6 `@ #5) (`λ[#6] #0) (`λ[#6] #0))
