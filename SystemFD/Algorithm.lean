@@ -114,21 +114,23 @@ def infer_kind : Ctx Term -> Term -> Option Term
   if Ak == Bk then .some ★ else .none
 | _, _ => .none
 
-def valid_ctor (Γ : Ctx Term) (A : Term) : Option Unit := do
-  let (τ, R) := Term.to_telescope A
-  let (x, _) <- R.neutral_form
-  let x' := x - τ.length
-  if x = x' + τ.length && Γ.is_datatype x'
-  then .some ()
-  else .none
+-- A is of the form
+-- ∀[★]∀[★].. x -t> y -t> T p q r
+-- we need to check that T is a datatype in Γ
+def valid_ctor : (Γ : Ctx Term) -> (A : Term) -> Option Unit
+  | Γ, .bind2 .arrow A B => valid_ctor (.type A :: Γ) B -- arrow case
+  | Γ, .bind2 .all A B => valid_ctor (.kind A :: Γ)  B  -- all case
+  | Γ, A => do let (x, _) <- A.neutral_form -- refl case
+               if (Γ.is_datatype x) then .some () else .none
 
-def valid_insttype (Γ : Ctx Term) (A : Term) : Option Unit := do
-  let (τ, R) := Term.to_telescope A
-  let (x, _) <- R.neutral_form
-  let x' := x - τ.length
-  if x = x' + τ.length && Γ.is_opent x'
-  then .some ()
-  else .none
+-- A is of the form
+-- ∀[★]∀[★].. x -t> y -t> T p q r
+-- we need to check that T is an inst type in Γ
+def valid_insttype : (Γ : Ctx Term) -> (A : Term) -> Option Unit
+  | Γ, .bind2 .arrow A B => valid_insttype (.type A :: Γ) B -- arrow case
+  | Γ, .bind2 .all A B => valid_insttype (.kind A :: Γ)  B  -- all case
+  | Γ, A => do let (x, _) <- A.neutral_form -- refl case
+               if (Γ.is_opent x) then .some () else .none
 
 def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
   let (τ, sR) := Term.to_telescope A

@@ -110,8 +110,6 @@ namespace Term
   simp at h; have h2 := h.2.1; have h3 := h.2.2;
   subst h2; subst h3; simp_all;
 
-
-
   theorem neutral_form_appt_rev:
   (f `@t t).neutral_form = .some (h, sp ++ [(.type, t)] ) ->
   f.neutral_form = .some (h, sp) := by
@@ -120,6 +118,21 @@ namespace Term
   rw [Option.bind_eq_some] at h; cases h; case _ w h =>
   simp at h; have h2 := h.2.1; have h3 := h.2.2;
   subst h2; subst h3; simp_all;
+
+  theorem neutral_form_bind2 : (Term.bind2 a1 a2 a3).neutral_form = .none := by
+  unfold Term.neutral_form; rfl
+
+  theorem neutral_form_ctor1 : (Term.ctor1 a1 a2).neutral_form = .none := by
+  unfold Term.neutral_form; rfl
+
+  theorem neutral_form_ite : (Term.ite p s i e).neutral_form = .none := by
+  unfold Term.neutral_form; rfl
+
+  theorem neutral_form_guard : (Term.guard p s e).neutral_form = .none := by
+  unfold Term.neutral_form; rfl
+
+  theorem neutral_form_letterm : (Term.letterm a1 a2 a3).neutral_form = .none := by
+  unfold Term.neutral_form; rfl
 
   theorem apply_spine_compose :
     Term.apply_spine t (t1 ++ t2) = Term.apply_spine (Term.apply_spine t t1) t2
@@ -272,10 +285,56 @@ namespace Term
   @[simp]
   def from_telescope (Γ : Ctx Term) (t : Term) : Term :=
     from_telescope_rev Γ.reverse t
-
 end Term
 
 instance substTypeLaws_Term : SubstitutionTypeLaws Term where
   apply_id := Term.apply_id
   apply_compose := Term.apply_compose
   apply_stable := Term.apply_stable
+
+
+  @[simp]
+  def size_of_subst_rename_renamer : Ren -> Ren
+  | _, 0 => 0
+  | r, n + 1 => (r n) + 1
+
+  @[simp]
+  theorem size_of_subst_rename {t : Term} (r : Ren)
+    : Term.size ([r.to]t) = Term.size t
+  := by
+  have lem (r : Ren) :
+    .re 0::((@S Term) ⊙ r.to) = (size_of_subst_rename_renamer r).to
+  := by
+    unfold Ren.to; simp
+    funext; case _ x =>
+      cases x <;> simp
+      case _ n => unfold Subst.compose; simp
+  induction t generalizing r <;> simp [*]
+  case _ ih => rw[<-@ih r]; rfl
+  case _ ih1 ih2 => rw[<-@ih1 r]; rw[<-@ih2 r]; rfl
+  case _ a1 a2 ih1 ih2 =>
+     rw[<-(@ih1 r)]; rw[<-@ih2 (size_of_subst_rename_renamer r)];  rfl
+  case _ ih1 ih2 ih3 ih4 =>
+     rw[<-@ih1 r]; rw[<-@ih2 r]; rw[<-@ih3 r];  rw[<-@ih4 r]; rfl
+  case _ ih1 ih2 ih3 =>
+     rw[<-ih1]; rw[<-ih2]; rw[<-ih3]; rfl
+  case _ ih1 ih2 ih3 =>
+     replace ih3 := @ih3 (size_of_subst_rename_renamer r);
+     rw[<-ih1]; rw[<-ih2]; rw[<-ih3]; rfl
+
+
+  theorem right_shifting_size_no_change {s : Term} : s.size = ([S' k]s).size := by
+  have lem := @size_of_subst_rename s (fun n => n + k);
+  unfold S'; rw [<-lem]; rfl
+
+  theorem right_shifting_size_no_change1 {s : Term} : s.size = ([S]s).size := by
+  have lem := @right_shifting_size_no_change 1 s;
+  unfold S; unfold S' at lem; assumption
+
+  theorem left_shifting_size_no_change {s : Term} : s.size = ([P' k]s).size := by
+  have lem := @size_of_subst_rename s (fun n => n - k);
+  unfold P'; rw [<-lem]; rfl
+
+  theorem left_shifting_size_no_change1 {s : Term} : s.size = ([P]s).size := by
+  have lem := @left_shifting_size_no_change 1 s;
+  unfold P; unfold P' at lem; assumption

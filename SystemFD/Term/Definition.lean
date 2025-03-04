@@ -123,3 +123,6 @@ namespace Term
   | guard t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
   | letterm t1 t2 t3 => (size t1) + (size t2) + (size t3) + 1
 end Term
+
+instance sizeOf_Term : SizeOf Term where
+  sizeOf := Term.size
