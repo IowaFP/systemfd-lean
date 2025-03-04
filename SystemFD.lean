@@ -17,9 +17,10 @@ import SystemFD.Metatheory.Progress
 import SystemFD.Evaluator.Soundness
 import SystemFD.Evaluator
 
+import SystemFD.Algorithm
 import SystemFD.Algorithm.TypeMatch
 import SystemFD.Algorithm.Soundness1
-import SystemFD.Algorithm.Soundness2
+-- import SystemFD.Algorithm.Soundness2
 
 
 import SystemFD.Examples.Boolean

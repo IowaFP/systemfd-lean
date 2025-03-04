@@ -123,6 +123,9 @@ def valid_ctor : (Γ : Ctx Term) -> (A : Term) -> Option Unit
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_datatype x) then .some () else .none
 
+#eval valid_ctor [.datatype ★] (∀[★] #1)
+#eval valid_ctor [.datatype ★] (∀[★] #1 -t> #2)
+
 -- A is of the form
 -- ∀[★]∀[★].. x -t> y -t> T p q r
 -- we need to check that T is an inst type in Γ
@@ -132,6 +135,14 @@ def valid_insttype : (Γ : Ctx Term) -> (A : Term) -> Option Unit
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_opent x) then .some () else .none
 
+#eval valid_insttype [.opent ★] (∀[★] #1)
+#eval valid_insttype [.opent ★] (∀[★] #1 -t> #2)
+
+-- A is the type of the pattern
+-- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
+-- R is the type of the scrutinee
+-- and is of the form T' p' q' r'
+-- we need to make sure T == T' and T is stable (i.e. it is a datatype or an opent)
 def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
   let (τ, sR) := Term.to_telescope A
   let (x, _) <- Term.neutral_form R
@@ -140,18 +151,49 @@ def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
   then .some ()
   else .none
 
-def prefix_type_match (Γ : Ctx Term) (A B : Term) : Option Term := do
-  let (τ, R) := Term.to_telescope A
-  let (τ', sT) := Term.to_telescope B
-  let ξ <- prefix_equal τ τ'
-  let T := [P' τ.length](Term.from_telescope ξ sT)
-  let (x, _) <- Term.neutral_form R
-  let x' := x - τ.length
-  if [S' τ.length]T == Term.from_telescope ξ sT
-    && x = x' + τ.length
-    && (Γ d@ x').is_stable
-  then .some T
-  else .none
+-- A is the type of the pattern and has the form
+-- ∀[★]∀[★].. x -t> y -t> T p q r
+-- T is the type of the rhs of the branch and has the form
+-- ∀[★]∀[★].. x' -t> y' -t> T' p' q' r'
+-- A potentially has more ∀s and -t>s than in the branch
+def prefix_type_match : Ctx Term -> Term -> Term -> Option Term
+  | Γ, (.bind2 .arrow A B), (.bind2 .arrow A' B') => do
+    if A == A'
+    then let x <- prefix_type_match (.type A :: Γ) B B'
+         if ([S][P]x == x)
+         then .some ([P]x) else .none
+    else .none
+  | Γ, (.bind2 .all A B), (.bind2 .all A' B') => do
+    if A == A'
+    then let x <- prefix_type_match (.kind A :: Γ) B B'
+         if ([S][P]x == x)
+         then .some ([P]x) else .none
+    else .none
+  | Γ, A, T => do
+      let (x, _) <- A.neutral_form
+      if Γ.is_stable x
+      then .some T
+      else .none
+
+#eval prefix_type_match [.datatype ★] (∀[★] #1) (∀[★] #1)
+#eval prefix_type_match [.datatype ★] (∀[★] #1) (∀[★] #1 -t> #2)
+#eval prefix_type_match [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #2)
+#eval prefix_type_match [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #2 -t> #3)
+
+
+-- def prefix_type_match' (Γ : Ctx Term) (A B : Term) : Option Term := do
+--   let (τ, R) := Term.to_telescope A
+--   let (τ', sT) := Term.to_telescope B
+--   let ξ <- prefix_equal τ τ'
+--   let T := [P' τ.length](Term.from_telescope ξ sT)
+--   let (x, _) <- Term.neutral_form R
+--   let x' := x - τ.length
+--   if [S' τ.length]T == Term.from_telescope ξ sT
+--     && x = x' + τ.length
+--     && (Γ d@ x').is_stable
+--   then .some T
+--   else .none
+-- #eval prefix_type_match' [.datatype ★] (∀[★] #0 -t> #2) (∀[★] #0 -t> #1 -t> #3)
 
 @[simp]
 def infer_type : Ctx Term -> Term -> Option Term
@@ -164,6 +206,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let Rk <- infer_kind Γ R
   let _ <- wf_kind Rk
   let B <- infer_type Γ i
+  let T' <- infer_type Γ e
   let _ <- stable_type_match Γ A R
   let (ph, _) <- Term.neutral_form p
   let (rh, _) <- Term.neutral_form R
@@ -172,8 +215,7 @@ def infer_type : Ctx Term -> Term -> Option Term
   let T <- prefix_type_match Γ A B
   let Tk <- infer_kind Γ T
   let _ <- wf_kind Tk
-  let T' <- infer_type Γ e
-  if T == T' && ctor_headed && dt_headed
+  if B == T' && ctor_headed && dt_headed
   then .some T
   else .none
 | Γ, .guard p s t => do

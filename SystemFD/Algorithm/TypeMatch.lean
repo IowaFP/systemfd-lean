@@ -292,32 +292,41 @@ case _ h =>
 theorem prefix_type_match_sound :
   prefix_type_match Γ A B = .some T ->
   PrefixTypeMatch Γ A B T
-:= by sorry
--- intros h;
--- unfold prefix_type_match at h; simp at h
--- rw [Option.bind_eq_some] at h
--- cases h; case _ ξ h =>
--- cases h; case _ h1 h2 =>
--- rw [Option.bind_eq_some] at h2; simp at h2
--- cases h2; case _ x h2 =>
--- cases h2; case _ h2 h3 =>
--- cases h3; case _ h3 h4 =>
--- cases h3; case _ h3 h5 =>
--- cases h3; case _ h3 h6 =>
--- cases h2; case _ sp h2 =>
---   generalize Aspdef : A.to_telescope = Asp at *
---   generalize Bspdef : B.to_telescope = Bsp at *
---   cases Asp; case _ τ sR =>
---   cases Bsp; case _ τ' sT =>
---     simp at *
---     replace h6 := Term.eq_of_beq h6
---     replace h3 := Term.eq_of_beq h3
---     apply prefix_type_match_sound_lemma
---       (Eq.symm Aspdef) (Eq.symm Bspdef) (Eq.symm h1)
---     rw [<-h4]; simp; apply h3
---     rw [<-Subst.apply_compose_commute] at h6
---     apply h6; apply Eq.symm h2
---     apply h5
+:= by
+intros h; induction Γ, A, B using prefix_type_match.induct generalizing T;
+all_goals try (unfold prefix_type_match at h; simp at h;
+               have h1 := h.1; replace h := h.2;
+               rw[Option.bind_eq_some] at h)
+case _ heq ih =>
+  have hbeq := Term.eq_of_beq heq; subst hbeq;
+  cases h; case _ w' h =>
+  cases h; case _ w'' h =>
+  simp at h;
+  have heq := h.2; subst heq; simp at h;
+  replace ih := ih w'';
+  replace h := Term.eq_of_beq h;
+  apply PrefixTypeMatch.arrow;
+  rw[<-h]; simp; rw [h]; assumption
+case _ h' => contradiction
+case _ heq ih =>
+  have hbeq := Term.eq_of_beq heq; subst hbeq;
+  cases h; case _ w' h =>
+  cases h; case _ w'' h =>
+  simp at h;
+  have heq := h.2; subst heq; simp at h;
+  replace ih := ih w'';
+  replace h := Term.eq_of_beq h;
+  apply PrefixTypeMatch.all;
+  rw[<-h]; simp; rw [h]; assumption
+case _ h' => contradiction
+case _ =>
+  unfold prefix_type_match at h; simp at h;
+  rw[Option.bind_eq_some] at h;
+  cases h; case _ w h =>
+  have h1 := h.1; have h2 := h.2; simp at h2;
+  rw [h2.2];
+  apply PrefixTypeMatch.refl; unfold ValidHeadVariable;
+  symm at h1; apply Exists.intro w; apply And.intro h1 (by unfold Ctx.is_stable; apply h2.1)
 
 theorem valid_ctor_sound : valid_ctor Γ A = .some () -> ValidCtor Γ A := by
 intro h; induction Γ, A using valid_ctor.induct;
