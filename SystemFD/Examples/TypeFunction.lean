@@ -50,6 +50,7 @@ def ctx : Ctx Term := [
 ]
 
 #eval wf_ctx ctx
+#guard (wf_ctx ctx == .some ())
 
  --  (∀[★] (#9 `@k #10 `@k #0) -t> #1 -t> #2)
 -- f : ∀ t. F Int t → t → t
@@ -64,3 +65,4 @@ def fnot := Λ[★]`λ[#10 `@k #11 `@k #0]
             (#3 ▹ (#0 -c> #1))
 
 #eval infer_type ctx fnot
+#guard (infer_type ctx fnot == .some (∀[★] #10 `@k #11 `@k #0 -t> #1 -t> #2))

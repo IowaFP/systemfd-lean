@@ -10,7 +10,8 @@ def boolCtx : Ctx Term := [
   , .ctor #0 -- False : Bool
   , .datatype  ★   -- Bool : ★
 ]
-#eval! wf_ctx boolCtx
+
+#guard (wf_ctx boolCtx == .some ())
 
 def test : Ctx Term := [
     .datatype ★
@@ -23,23 +24,37 @@ def test : Ctx Term := [
   , .datatype ★
 ]
 
-#eval wf_ctx test
+#guard (wf_ctx test == .some ())
 
-#eval stable_type_match test (#3 `@k #6) (#3 `@k #6)
+-- #eval stable_type_match test (#3 `@k #6) (#3 `@k #6)
+#guard (stable_type_match test (#3 `@k #6) (#3 `@k #6) == .some ())
 
-#eval infer_type test (((refl! (∀[★]#4 `@k #0))) `@c[refl! #0])
+-- #eval infer_type test (((refl! (∀[★]#4 `@k #0))) `@c[refl! #0])
+#guard (infer_type test (((refl! (∀[★]#4 `@k #0))) `@c[refl! #0]) == .some ((#3 `@k #0) ~ (#3 `@k #0)))
 
 #eval infer_type test (#2 `@t #6)
-#eval infer_type test (#4)
-#eval prefix_type_match test (#3 `@k #6) #6
-#eval infer_type test (.ite (#2 `@t #6) (#2 `@t #6) (#4) (#4))
+#guard (infer_type test (#2 `@t #6) == .some (#3 `@k #6))
 
+#eval infer_type test (#4)
+#guard (infer_type test (#4) == .some (#6))
+
+#eval prefix_type_match test (#3 `@k #6) #6
+#guard (prefix_type_match test (#3 `@k #6) #6 == .some #6)
+
+#eval infer_type test (.ite (#2 `@t #6) (#2 `@t #6) (#4) (#4))
+#guard (infer_type test (.ite (#2 `@t #6) (#2 `@t #6) (#4) (#4)) == .some #6)
 
 #eval infer_type test (#1 `@t #6 `@ #5)
-#eval infer_type test (#1 `@t #6)
-#eval infer_type test (`λ[#6] #0)
-#eval infer_type test (.ite (#1 `@t #6) (#1 `@t #6 `@ #5) (`λ[#6] #0) (#4))
+#guard (infer_type test (#1 `@t #6 `@ #5) == .some (#3 `@k #6))
 
+#eval infer_type test (#1 `@t #6)
+#guard (infer_type test  (#1 `@t #6) == .some (#6 -t> (#4 `@k #7)))
+
+#eval infer_type test (`λ[#6] #0)
+#guard (infer_type test (`λ[#6] #0) == .some (#6 -t> #7))
+
+#eval infer_type test (.ite (#1 `@t #6) (#1 `@t #6 `@ #5) (`λ[#6] #0) (#4))
+#guard (infer_type test (.ite (#1 `@t #6) (#1 `@t #6 `@ #5) (`λ[#6] #0) (#4)) == .some #6)
 
 -- #eval eval_ctx_loop test (.ite (#1 `@t #6) (#1 `@t #6 `@ #5) (`λ[#6] #0) (`λ[#6] #0))
 
@@ -52,7 +67,8 @@ def test : Ctx Term := [
 def test1 : Ctx Term := [
   .term (∀[★] #0 -t> #1) (Λ[★] `λ[#0] #0)
 ]
-#eval! wf_ctx test1
+#eval wf_ctx test1
+#guard (wf_ctx test1 == .some ())
 
 
 def test2 : Ctx Term := [
@@ -60,9 +76,11 @@ def test2 : Ctx Term := [
   .datatype ★
 ]
 
-#eval! wf_ctx test2
+#eval wf_ctx test2
+#guard (wf_ctx test2 == .some ())
 
-#eval! infer_type test2 (.letterm #1 #0 #1)
+#eval infer_type test2 (.letterm #1 #0 #1)
+#guard (infer_type test2 (.letterm #1 #0 #1) == .some #1)
 -- #eval infer_kind [] (∀[★] #0 -t> #1)
 -- #eval infer_type [] (Λ[★] `λ[#0] #0)
 -- #eval wf_kind ★

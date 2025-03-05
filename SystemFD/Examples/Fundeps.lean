@@ -38,4 +38,4 @@ def FundepsCtx : Ctx Term := [
   .opent (★ -k> ★ -k> ★)
 ]
 
-#eval wf_ctx FundepsCtx
+#guard (wf_ctx FundepsCtx == .some ())

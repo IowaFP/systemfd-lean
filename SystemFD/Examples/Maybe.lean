@@ -69,9 +69,16 @@ def MaybeBoolCtx : Ctx Term := [
 ]
 
 #eval wf_ctx MaybeBoolCtx
+#guard (wf_ctx MaybeBoolCtx == .some ())
 
 #eval infer_type MaybeBoolCtx (#4 `@t #13) -- Nothing : Maybe Bool
+#guard (infer_type MaybeBoolCtx (#4 `@t #13) == .some (#5 `@k #13))
+
 #eval infer_type MaybeBoolCtx (#3 `@t #13 `@ #12) -- Just True : Maybe Bool
+#guard (infer_type MaybeBoolCtx (#3 `@t #13 `@ #12) == .some (#5 `@k #13))
+
+
+
 #eval! eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#8 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#4 `@t #13))
 #eval! eval_ctx_loop MaybeBoolCtx (#1 `@t #13 `@ (#9 `@t #13 `@ refl! #13) `@ (#4 `@t #13) `@ (#3 `@t #13 `@ #12))
 

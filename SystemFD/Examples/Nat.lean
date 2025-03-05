@@ -33,9 +33,14 @@ def NatCtxFix : Ctx Term := [
 
 
 #eval wf_ctx NatCtxFix
+#guard (wf_ctx NatCtxFix == .some ())
+
 #eval infer_type NatCtxFix (#1 `@ #0 `@ #0)
+#guard (infer_type NatCtxFix (#1 `@ #0 `@ #0) == .some (#7))
 
 #eval infer_type NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
+#guard (infer_type NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0) == .some (#7))
+
 #eval eval_ctx_loop NatCtxFix (((#4 `@t (#7 -t> #8 -t> #9)) `@ #2) `@ (#5 `@ #6) `@ #0)
 
 def NatCtxDirect : Ctx Term := [
@@ -88,8 +93,10 @@ def NatCtxDirect : Ctx Term := [
 
 
 #eval eval_ctx_loop NatCtxDirect (#1 `@ (#7 `@ #5 `@ #5) `@ (#7 `@ #5 `@ #5)) -- (2 + 2) =? (2 + 2)
+#guard (infer_type NatCtxDirect (#1 `@ (#7 `@ #5 `@ #5) `@ (#7 `@ #5 `@ #5)) == .some #4) -- (2 + 2) =? (2 + 2)
 #eval eval_ctx_loop NatCtxDirect (#1 `@ #5 `@ (#8 `@ #9))
 
 #eval wf_ctx NatCtxDirect
 #eval infer_type NatCtxDirect (#7 `@ #5 `@ #5)
+#guard (infer_type NatCtxDirect (#7 `@ #5 `@ #5) == .some #10)
 #eval eval_ctx_loop NatCtxDirect (#7 `@ #5 `@ #5)
