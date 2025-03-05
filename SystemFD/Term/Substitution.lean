@@ -268,10 +268,10 @@ namespace Term
   @[simp]
   def to_telescope : Term -> Ctx Term × Term
   | bind2 .arrow A B =>
-    let (Γ, r) := to_telescope (B)
+    let (Γ, r) := to_telescope B
     (.type A::Γ, r)
   | ∀[A] B =>
-    let (Γ, r) := to_telescope (B)
+    let (Γ, r) := to_telescope B
     (.kind A::Γ, r)
   | t => ([], t)
 
@@ -285,6 +285,19 @@ namespace Term
   @[simp]
   def from_telescope (Γ : Ctx Term) (t : Term) : Term :=
     from_telescope_rev Γ.reverse t
+
+  theorem telescope_neutral_form_lemma {t : Term} :
+    t.neutral_form = .some (x, xs) ->
+    t.to_telescope = ([], t) := by
+    induction t;
+    any_goals (solve | simp_all)
+
+  theorem unique_telescope {t : Term} :
+    t.to_telescope = (x, xs) ->
+    t.to_telescope = (x', xs') ->
+    x = x' ∧ xs = xs' :=  by
+    intros h1 h2; rw [h1] at h2; simp at h2; assumption;
+
 end Term
 
 instance substTypeLaws_Term : SubstitutionTypeLaws Term where

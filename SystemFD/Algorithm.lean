@@ -123,9 +123,6 @@ def valid_ctor : (Γ : Ctx Term) -> (A : Term) -> Option Unit
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_datatype x) then .some () else .none
 
--- #eval valid_ctor [.datatype ★] (∀[★] #1)
--- #eval valid_ctor [.datatype ★] (∀[★] #1 -t> #2)
-
 -- A is of the form
 -- ∀[★]∀[★].. x -t> y -t> T p q r
 -- we need to check that T is an inst type in Γ
@@ -134,9 +131,6 @@ def valid_insttype : (Γ : Ctx Term) -> (A : Term) -> Option Unit
   | Γ, .bind2 .all A B => valid_insttype (.kind A :: Γ)  B  -- all case
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_opent x) then .some () else .none
-
--- #eval valid_insttype [.opent ★] (∀[★] #1)
--- #eval valid_insttype [.opent ★] (∀[★] #1 -t> #2)
 
 -- A is the type of the pattern
 -- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
