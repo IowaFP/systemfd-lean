@@ -54,9 +54,9 @@ case _ A B j1 j2 ih1 ih2 =>
   constructor; apply ih1; apply ih2
 case _ A B j1 j2 ih1 ih2 =>
   replace ih1 := ih1 r wf h
-  have lem : ⊢ (Frame.empty :: Δ) := by
-    constructor; apply wf
-  replace ih2 := @ih2 (Frame.empty :: Δ) r.lift lem (rename_lift r .empty h)
+  have lem : ⊢ (Frame.type ([r.to]A) :: Δ) := by
+    constructor; assumption; assumption
+  replace ih2 := @ih2 (Frame.type ([r.to]A) :: Δ) r.lift lem (rename_lift r (.type A) h)
   rw [Subst.lift_lemma] at ih2; simp at ih2
   constructor; apply ih1; apply ih2
 case _ ih1 ih2 =>
@@ -129,13 +129,19 @@ case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
   constructor; apply ih3 r wf h; apply ih4 r wf h
   apply ih5 r wf h; apply ih1 r wf h
   apply ih2 r wf h; apply ih6 r wf h
-case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
-  have lem1 : ⊢ (Frame.empty :: Δ) := by constructor; apply wf
-  replace ih4 := @ih4 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r .empty h)
-  rw [Subst.lift_lemma] at ih4; simp at ih4
-  replace ih5 := @ih5 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r .empty h)
-  rw [Subst.lift_lemma] at ih5; simp at ih5
-  replace ih6 := @ih6 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r .empty h)
+case _ A B _ _ _ _ ih ih' _ _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 =>
+  have lem1 : ⊢ (Frame.type ([r.to]A) :: Δ) := by
+    replace ih1 := @ih1 Δ r wf h
+    apply Judgment.wftype; assumption; assumption
+  replace ih4 := @ih4 (Frame.type ([r.to]A) :: Δ) (Ren.lift r) lem1 (rename_lift r (Frame.type A) h)
+  rw [Subst.lift_lemma] at ih4; simp at ih4;
+  have lem2 : ⊢ (Frame.type ([r.to]B) :: Δ) := by
+    replace ih2 := @ih2 Δ r wf h
+    apply Judgment.wftype; assumption; assumption
+  replace ih5 := @ih5 (Frame.type ([r.to]B) :: Δ) (Ren.lift r) lem2 (rename_lift r (Frame.type B) h)
+  rw [Subst.lift_lemma] at ih5; simp at ih5;
+  have lem3 : ⊢ (Frame.empty :: Δ) := by constructor; assumption
+  replace ih6 := @ih6 (Frame.empty :: Δ) (Ren.lift r) lem3 (rename_lift r .empty h)
   rw [Subst.lift_lemma] at ih6; simp at ih6
   constructor; apply ih1 r wf h; apply ih2 r wf h
   apply ih3 r wf h; apply ih4; apply ih5; apply ih6

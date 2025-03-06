@@ -98,7 +98,7 @@ def infer_kind : Ctx Term -> Term -> Option Term
 | Γ, .bind2 .arrow A B => do
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
-  let Bk <- infer_kind (.empty::Γ) B
+  let Bk <- infer_kind (.type A::Γ) B
   let _ <- is_type Bk
   .some ★
 | Γ, .ctor2 .appk f a => do
@@ -280,9 +280,9 @@ def infer_type : Ctx Term -> Term -> Option Term
   let Bk <- infer_kind Γ B
   let _ <- is_type Bk
   let (C, D) <- is_eq T2
-  let Ck <- infer_kind (.empty :: Γ) C
+  let Ck <- infer_kind (.type A :: Γ) C
   let _ <- is_type Ck
-  let Dk <- infer_kind (.empty :: Γ) D
+  let Dk <- infer_kind (.type B :: Γ) D
   let _ <- is_type Dk
   .some ((A -t> C) ~ (B -t> D))
 | Γ, .ctor1 .fst t => do

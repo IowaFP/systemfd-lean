@@ -263,7 +263,7 @@ case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
     case _ lem =>
       cases lem; case _ K lem =>
       cases lem.2; case _ j4 j5 =>
-        replace j5 := beta_empty a j5; simp at j5
+        replace j5 := beta_type j5 j2; simp at j5
         rw [j3] at h1
         have lem := uniqueness_of_types h1 j5
         injection lem

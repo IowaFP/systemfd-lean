@@ -158,7 +158,7 @@ case _ ih => -- lam
   replace h4 := infer_kind_sound h7 wf
   replace h8 := is_type_some h8; subst h8;
   replace h10 := is_type_some h10; subst h10;
-  replace h9 := infer_kind_sound h9 (Judgment.wfempty wf)
+  replace h9 := infer_kind_sound h9 (Judgment.wftype h4 wf)
   apply Judgment.lam; assumption; assumption;
   apply Judgment.arrow; assumption; assumption;
 
@@ -396,13 +396,14 @@ case _ ih1 ih2 => -- arrowc
   replace h6 := infer_kind_sound h6 wf
   replace h7 := is_type_some h7
   replace h8 := is_eq_some h8
-  replace h9 := infer_kind_sound h9 (Judgment.wfempty wf)
   replace h10 := is_type_some h10
-  replace h11 := infer_kind_sound h11 (Judgment.wfempty wf)
   replace h12 := is_type_some h12
   subst h13; subst h5; subst h7; subst h10
   subst h3; subst h8; subst h12
-  apply Judgment.arrowc h4 h6 h1 h9 h11 h2;
+  replace h9 := infer_kind_sound h9 (Judgment.wftype h4 wf)
+  replace h11 := infer_kind_sound h11 (Judgment.wftype h6 wf)
+  apply Judgment.arrowc;
+  assumption; assumption; assumption;assumption; assumption; assumption
 
 case _ ih => -- fst
   rw [Option.bind_eq_some] at h
