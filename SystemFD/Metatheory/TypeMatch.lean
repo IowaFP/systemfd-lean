@@ -283,3 +283,74 @@ case _ =>
 case _ =>
   exfalso
   apply no_valid_head_variable_with_all j1
+
+
+theorem datatype_indexing_exists {Γ : Ctx Term} : (Γ d@ n).is_datatype = true -> ∃ t, Γ d@ n = .datatype t := by
+intros h;
+unfold Frame.is_datatype at h; simp at h;
+split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+theorem insttype_indexing_exists {Γ : Ctx Term} : (Γ d@ n).is_insttype = true -> ∃ t, Γ d@ n = .insttype t := by
+intros h;
+unfold Frame.is_insttype at h; simp at h;
+split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+theorem opent_indexing_exists {Γ : Ctx Term} : (Γ d@ n).is_opent = true -> ∃ t, Γ d@ n = .opent t := by
+intros h;
+unfold Frame.is_opent at h; simp at h;
+split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+theorem indexing_uniqueness_datatype {Γ : Ctx Term} : (Γ d@ t).is_datatype -> (Γ d@ t).is_opent -> False := by
+intro h1 h2;
+replace h1 := datatype_indexing_exists h1;
+cases h1; case _ h1 =>
+rw [h1]at h2; unfold Frame.is_opent at h2; simp at h2
+
+theorem indexing_uniqueness_opent {Γ : Ctx Term} : (Γ d@ t).is_opent -> (Γ d@ t).is_datatype -> False := by
+intro h1 h2;
+replace h1 := opent_indexing_exists h1;
+cases h1; case _ h1 =>
+rw [h1]at h2; unfold Frame.is_datatype at h2; simp at h2
+
+theorem datatype_opent_distinct : ValidCtor Γ T -> ValidInstType Γ T -> False := by
+intros vctor vit;
+cases vctor;
+case refl h1 =>
+  cases vit;
+  case refl h2 =>
+    unfold ValidHeadVariable at h1; unfold ValidHeadVariable at h2
+    cases h1; case _ h1 =>
+    cases h1; case _ tnf dt =>
+    cases h2; case _ h2 =>
+    cases h2; case _ tnf' ot =>
+    rw[<-tnf] at tnf'; cases tnf'; simp at *;
+    apply indexing_uniqueness_datatype dt ot;
+  case arrow h2 =>
+    cases h1;
+    case _ ts h1 =>
+      cases h1; case _ nf _ => cases nf;
+  case all h2 =>
+    cases h1;
+    case _ ts h1 =>
+      cases h1; case _ nf _ => cases nf;
+case arrow h1 =>
+  cases vit;
+  case refl h2 =>
+    cases h2;
+    case _ h2 =>
+    cases h2; case _ nf _ => cases nf
+  case arrow h2 =>
+    apply datatype_opent_distinct h1 h2
+case all h1 =>
+  cases vit;
+  case refl h2 =>
+    cases h2; case _ h2 =>
+    cases h2; case _ nf _ => cases nf
+  case all h2 =>
+    apply datatype_opent_distinct h1 h2

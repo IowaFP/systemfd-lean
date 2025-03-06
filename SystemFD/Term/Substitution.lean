@@ -181,6 +181,7 @@ namespace Term
       rw [apply_spine_peel_kind, ih]
   case _ h1 h2 h3 h4 => simp at h
 
+
   @[simp]
   def smap (lf : Subst.Lift Term) (f : Nat -> Subst.Action Term) : Term -> Term
   | var x =>

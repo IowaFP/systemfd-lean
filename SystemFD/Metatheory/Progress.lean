@@ -6,19 +6,8 @@ import SystemFD.Metatheory.Classification
 import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
+import SystemFD.Metatheory.Cannonicity
 
-inductive Val : Ctx Term -> Term -> Prop where
-| app : t.neutral_form = .some (n, ts)
-      -> (Γ.is_stable_red n)
-      -> Val Γ t
-| lam :  Val Γ (`λ[a] b)
-| lamt : Val Γ (Λ[A] b)
-| refl : Val Γ (refl! _)
-| star : Val Γ ★
-| arr :  Val Γ (A -t> B)
-| arrk : Val Γ (A -k> B)
-| all : Val Γ (∀[A]B)
-| eq : Val Γ (A ~ B)
 
 theorem val_sound_var_lemma :
   t.neutral_form = .some (n, sp) ->
@@ -300,42 +289,6 @@ theorem types_are_values :
 := by
 intro j1 j2
 apply types_are_values_lemma j1 j2
-
-theorem refl_var_spine_lemma :
-  Γ.is_stable_red n ->
-  Γ ⊢ (#n).apply_spine sp : (A ~ B) ->
-  False
-:= by
-intro j1 j2
-have lem := inversion_apply_spine j2
-cases lem; case _ C lem =>
-cases lem; case _ h1 h2 =>
-cases h2; case _ j3 j4 =>
-  have lem := classification_lemma j2 <;> simp at lem
-  cases lem
-  case _ lem => cases lem
-  case _ lem =>
-    cases lem; case _ K lem =>
-    cases lem.2; case _ q1 q2 q3 =>
-      apply ctx_get_var_no_spine_eq_type j3 j1
-      rw [j4]; apply lem.2; apply h1
-
-theorem refl_is_val :
-  Γ ⊢ η : (A ~ B) ->
-  Val Γ η ->
-  η = refl! A ∧ A = B
-:= by
-intros ηJ vη; induction vη;
-any_goals(solve | cases ηJ)
-case _ Γ t n ts tnf n_stable =>
-     symm at tnf; replace tnf := Term.neutral_form_law tnf;
-     subst tnf;
-     exfalso;
-     apply (refl_var_spine_lemma n_stable ηJ);
-case _ => cases ηJ; case _ fJ =>
-  have lem := classification_lemma fJ; simp at lem; cases lem;
-  case _ h => cases h; case _ h => cases h
-  case _ h => apply And.intro rfl rfl
 
 @[simp]
 abbrev ProgressLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
