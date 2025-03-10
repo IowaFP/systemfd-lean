@@ -47,7 +47,7 @@ inductive Term : Type where
 
 protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   match a with
-  | .kind => "kind"
+  | .kind => "□"
   | .var n => "#" ++ Nat.repr n
   | .type => "★"
 

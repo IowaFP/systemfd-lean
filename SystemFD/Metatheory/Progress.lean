@@ -9,6 +9,121 @@ import SystemFD.Reduction
 import SystemFD.Metatheory.Cannonicity
 
 
+@[simp]
+abbrev TypesAreValuesLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
+| .prf => λ Γ => λ(t , K) => Γ ⊢ K : .kind -> Val Γ t
+| .wf  => λ _ => λ () => true
+
+theorem types_are_values_lemma :
+  Judgment v Γ ix ->
+  TypesAreValuesLemmaType v Γ ix
+:= by
+intro j; induction j <;> simp at *
+all_goals (intro h1)
+case _ j _ _ _ _ =>
+  have lem := uniqueness_of_types j h1
+  injection lem
+case _ => cases h1
+case _ Γ x T j1 j2 _ =>
+  generalize fdef : Γ d@ x = f at *
+  have lem := frame_wf_by_index x j1
+  rw [fdef] at lem
+  cases lem
+  all_goals (
+    unfold Frame.get_type at j2
+    simp at j2
+  )
+  case type j3 =>
+    subst j2
+    have lem := uniqueness_of_types h1 j3
+    injection lem
+  case openm j3 =>
+    subst j2
+    have lem := uniqueness_of_types h1 j3
+    injection lem
+  case term j3 _ =>
+    subst j2
+    have lem := uniqueness_of_types h1 j3
+    injection lem
+  all_goals (
+    case _ =>
+      subst j2; apply @Val.app Γ #x x []
+      simp; simp; rw [fdef]; unfold Frame.is_stable_red
+      simp
+  )
+case _ => cases h1
+case _ => apply Val.all
+case _ => apply Val.arr
+case _ Γ f A B a j1 j2 ih1 ih2 =>
+  have lem := classification_lemma j1 <;> simp at lem
+  cases lem
+  case _ lem =>
+    replace ih1 := ih1 lem
+    cases ih1
+    case app x sp q1 q2 =>
+      apply @Val.app Γ (f `@k a) x (sp ++ [(.kind, a)])
+      simp; rw [Option.bind_eq_some]; simp; apply q2
+      apply q1
+    all_goals (cases j1)
+  case _ lem =>
+    cases lem; case _ K lem =>
+      cases lem.2; cases lem.1
+case _ => apply Val.eq
+case _ j _ _ _ _ _ _ _ =>
+  have lem := uniqueness_of_types j h1
+  injection lem
+case _ j _ _ _ _ _ =>
+  have lem := uniqueness_of_types j h1
+  injection lem
+case _ => apply Val.lam
+case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
+  have lem := classification_lemma j1
+  cases lem <;> simp at *
+  case _ lem =>
+    cases lem <;> simp at *
+    case _ lem => cases lem
+    case _ lem =>
+      cases lem; case _ K lem =>
+      cases lem.2; case _ j4 j5 =>
+        replace j5 := beta_type j5 j2; simp at j5
+        rw [j3] at h1
+        have lem := uniqueness_of_types h1 j5
+        injection lem
+case _ => apply Val.lamt
+case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
+  have lem := classification_lemma j1
+  cases lem <;> simp at *
+  case _ lem =>
+    cases lem <;> simp at *
+    case _ lem => cases lem
+    case _ lem =>
+      cases lem; case _ K lem =>
+      cases lem.2; case _ j4 j5 =>
+        replace j5 := beta_kind j5 j2; simp at j5
+        rw [j3] at h1
+        have lem := uniqueness_of_types h1 j5
+        injection lem
+case _ j _ _ =>
+  have lem := classification_lemma j <;> simp at lem
+  cases lem
+  case _ lem => cases lem
+  case _ lem =>
+    cases lem; case _ K lem =>
+    cases lem.2; case _ q _ j2 =>
+      have lem2 := uniqueness_of_types h1 j2
+      subst lem2; cases q
+case _ => apply Val.refl
+all_goals (case _ => cases h1)
+
+theorem types_are_values :
+  Γ ⊢ t : K ->
+  Γ ⊢ K : .kind ->
+  Val Γ t
+:= by
+intro j1 j2
+apply types_are_values_lemma j1 j2
+
+
 theorem val_sound_var_lemma :
   t.neutral_form = .some (n, sp) ->
   Γ.is_stable_red n ->
@@ -176,119 +291,6 @@ case _ =>
   unfold Frame.is_type; simp
 case _ n => simp at *; rw [<-Frame.is_type_apply]; apply h n
 
-@[simp]
-abbrev TypesAreValuesLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
-| .prf => λ Γ => λ(t , K) => Γ ⊢ K : .kind -> Val Γ t
-| .wf  => λ _ => λ () => true
-
-theorem types_are_values_lemma :
-  Judgment v Γ ix ->
-  TypesAreValuesLemmaType v Γ ix
-:= by
-intro j; induction j <;> simp at *
-all_goals (intro h1)
-case _ j _ _ _ _ =>
-  have lem := uniqueness_of_types j h1
-  injection lem
-case _ => cases h1
-case _ Γ x T j1 j2 _ =>
-  generalize fdef : Γ d@ x = f at *
-  have lem := frame_wf_by_index x j1
-  rw [fdef] at lem
-  cases lem
-  all_goals (
-    unfold Frame.get_type at j2
-    simp at j2
-  )
-  case type j3 =>
-    subst j2
-    have lem := uniqueness_of_types h1 j3
-    injection lem
-  case openm j3 =>
-    subst j2
-    have lem := uniqueness_of_types h1 j3
-    injection lem
-  case term j3 _ =>
-    subst j2
-    have lem := uniqueness_of_types h1 j3
-    injection lem
-  all_goals (
-    case _ =>
-      subst j2; apply @Val.app Γ #x x []
-      simp; simp; rw [fdef]; unfold Frame.is_stable_red
-      simp
-  )
-case _ => cases h1
-case _ => apply Val.all
-case _ => apply Val.arr
-case _ Γ f A B a j1 j2 ih1 ih2 =>
-  have lem := classification_lemma j1 <;> simp at lem
-  cases lem
-  case _ lem =>
-    replace ih1 := ih1 lem
-    cases ih1
-    case app x sp q1 q2 =>
-      apply @Val.app Γ (f `@k a) x (sp ++ [(.kind, a)])
-      simp; rw [Option.bind_eq_some]; simp; apply q2
-      apply q1
-    all_goals (cases j1)
-  case _ lem =>
-    cases lem; case _ K lem =>
-      cases lem.2; cases lem.1
-case _ => apply Val.eq
-case _ j _ _ _ _ _ _ _ =>
-  have lem := uniqueness_of_types j h1
-  injection lem
-case _ j _ _ _ _ _ =>
-  have lem := uniqueness_of_types j h1
-  injection lem
-case _ => apply Val.lam
-case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
-  have lem := classification_lemma j1
-  cases lem <;> simp at *
-  case _ lem =>
-    cases lem <;> simp at *
-    case _ lem => cases lem
-    case _ lem =>
-      cases lem; case _ K lem =>
-      cases lem.2; case _ j4 j5 =>
-        replace j5 := beta_type j5 j2; simp at j5
-        rw [j3] at h1
-        have lem := uniqueness_of_types h1 j5
-        injection lem
-case _ => apply Val.lamt
-case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
-  have lem := classification_lemma j1
-  cases lem <;> simp at *
-  case _ lem =>
-    cases lem <;> simp at *
-    case _ lem => cases lem
-    case _ lem =>
-      cases lem; case _ K lem =>
-      cases lem.2; case _ j4 j5 =>
-        replace j5 := beta_kind j5 j2; simp at j5
-        rw [j3] at h1
-        have lem := uniqueness_of_types h1 j5
-        injection lem
-case _ j _ _ =>
-  have lem := classification_lemma j <;> simp at lem
-  cases lem
-  case _ lem => cases lem
-  case _ lem =>
-    cases lem; case _ K lem =>
-    cases lem.2; case _ q _ j2 =>
-      have lem2 := uniqueness_of_types h1 j2
-      subst lem2; cases q
-case _ => apply Val.refl
-all_goals (case _ => cases h1)
-
-theorem types_are_values :
-  Γ ⊢ t : K ->
-  Γ ⊢ K : .kind ->
-  Val Γ t
-:= by
-intro j1 j2
-apply types_are_values_lemma j1 j2
 
 @[simp]
 abbrev ProgressLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
