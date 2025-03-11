@@ -138,27 +138,36 @@ case _ ih => -- lam
   rw [Option.bind_eq_some] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h4
-  cases h4; case _ u7 h7 =>
+  rw [Option.bind_eq_some] at h6
+  cases h6; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
   rw [Option.bind_eq_some] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
-  rw [Option.bind_eq_some] at h9
-  cases h9; case _ u9 h9 =>
-  cases h9; case _ h9 h10 =>
+  rw [Option.bind_eq_some] at h7
+  cases h9; case _ u9 h7 =>
+  cases h7; case _ h9 h10 =>
   rw [Option.bind_eq_some] at h10
   cases h10; case _ u10 h10 =>
   cases h10; case _ h10 h11 =>
-  injection h6 with h6; subst h6;
-  injection h11 with h11; subst h11;
+  rw [Option.bind_eq_some] at h11
+  cases h11; case _ u11 h11 =>
+  cases h11; case _ h10 h11 =>
+  cases h11; case _ h11 h12 =>
+  rw [Option.bind_eq_some] at h12
+  cases h12; case _ u12 h13 =>
+  cases h13; case _ h13 h14 =>
+  cases h14;
   replace h1 := infer_kind_sound h1 wf;
   replace h2 := is_type_some h2; subst h2;
   replace h3 := ih h3 (Judgment.wftype h1 wf);
-  replace h4 := infer_kind_sound h7 wf
-  replace h8 := is_type_some h8; subst h8;
-  replace h10 := is_type_some h10; subst h10;
-  replace h9 := infer_kind_sound h9 (Judgment.wftype h4 wf)
+  replace h4 := infer_kind_sound h4 (Judgment.wfempty wf)
+  replace h5 := is_type_some h5; subst h5;
+  replace h11 := infer_kind_sound h11 (Judgment.wfempty wf)
+  replace h8 := is_type_some h8; cases h8
+  replace h13 := is_type_some h13; subst h13;
+  replace u11 := is_type_some u11; subst u11;
+  replace u10 := infer_kind_sound u10 wf
   apply Judgment.lam; assumption; assumption;
   apply Judgment.arrow; assumption; assumption;
 
@@ -400,8 +409,8 @@ case _ ih1 ih2 => -- arrowc
   replace h12 := is_type_some h12
   subst h13; subst h5; subst h7; subst h10
   subst h3; subst h8; subst h12
-  replace h9 := infer_kind_sound h9 (Judgment.wftype h4 wf)
-  replace h11 := infer_kind_sound h11 (Judgment.wftype h6 wf)
+  replace h9 := infer_kind_sound h9 (Judgment.wfempty wf)
+  replace h11 := infer_kind_sound h11 (Judgment.wfempty wf)
   apply Judgment.arrowc;
   assumption; assumption; assumption;assumption; assumption; assumption
 

@@ -21,8 +21,7 @@ case _ hd tl ih =>
     cases ih; case _ h1 h2 =>
     cases h2; case _ C D j1 j2 j3 =>
       subst j3; apply Exists.intro (C -t> D)
-      apply And.intro; apply SpineType.arrow j2 h1
-      apply j1
+      apply And.intro; apply SpineType.arrow; assumption; assumption;
   case _ =>
     replace ih := ih j
     cases ih; case _ B ih =>
@@ -198,7 +197,7 @@ intro e h1 h2
 induction h1 generalizing C D Γ
 case _ =>
   subst e; apply valid_ctor_not_equality h2
-case _ Γ a A B T j1 j2 ih =>
+case _ j2 ih =>
   cases h2
   case _ h =>
     unfold ValidHeadVariable at h; simp at *
@@ -256,7 +255,7 @@ intro e h1 h2
 induction h1 generalizing C D Γ
 case _ =>
   subst e; apply valid_insttype_not_equality h2
-case _ Γ a A B T j1 j2 ih =>
+case _ j2 ih =>
   cases h2
   case _ h =>
     unfold ValidHeadVariable at h; simp at *

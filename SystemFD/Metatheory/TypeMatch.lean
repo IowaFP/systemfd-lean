@@ -98,9 +98,9 @@ case _ R Γ j =>
 case _ Γ A B j ih =>
   simp; apply ValidCtor.arrow
   replace ih := @ih (^σ)
-    (((Frame.type A).apply σ) :: Δ)
-    (lift_subst_rename (Frame.type A) h1)
-    (lift_subst_stable (Frame.type A) h2)
+    (((Frame.empty).apply σ) :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_stable (Frame.empty) h2)
   simp at ih; apply ih
 case _ Γ A B j ih =>
   simp; apply ValidCtor.all
@@ -130,9 +130,9 @@ case _ R Γ j =>
 case _ Γ A B j ih =>
   simp; apply ValidInstType.arrow
   replace ih := @ih (^σ)
-    (((Frame.type A).apply σ) :: Δ)
-    (lift_subst_rename (Frame.type A) h1)
-    (lift_subst_stable (Frame.type A) h2)
+    (((Frame.empty).apply σ) :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_stable (Frame.empty) h2)
   simp at ih; apply ih
 case _ Γ A B j ih =>
   simp; apply ValidInstType.all
@@ -159,9 +159,9 @@ case _ R Γ j =>
     simp at h3; apply h3
 case _ R Γ A B j1 j2 ih =>
   replace ih := @ih (^σ)
-    (((Frame.type A).apply σ) :: Δ)
-    (lift_subst_rename (Frame.type A) h1)
-    (lift_subst_stable (Frame.type A) h2)
+    (((Frame.empty).apply σ) :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_stable (Frame.empty) h2)
   simp at ih;
   simp; constructor; simp
   case _ =>
@@ -223,9 +223,9 @@ case _ Γ B j =>
 case _ Γ A B V T j ih =>
   simp; constructor; simp
   replace ih := @ih (^σ)
-    (((Frame.type A).apply σ) :: Δ)
-    (lift_subst_rename (Frame.type A) h1)
-    (lift_subst_stable (Frame.type A) h2)
+    (((Frame.empty).apply σ) :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_stable (Frame.empty) h2)
   simp at ih; apply ih
 case _ Γ A B V T j ih =>
   simp; constructor; simp

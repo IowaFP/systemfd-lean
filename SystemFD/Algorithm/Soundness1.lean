@@ -66,7 +66,7 @@ case _ Γ A' B ih1 ih2 => -- A -t> B
   injection h5 with e; subst e
   replace h4 := is_type_some h4; subst h4
   have lem1 := ih1 h1 wf
-  have lem2 : ⊢ (.type A' :: Γ) := by constructor; assumption; assumption
+  have lem2 : ⊢ (.empty :: Γ) := by constructor; assumption
   have lem3 := ih2 h3 lem2
   apply Judgment.arrow;
   assumption; assumption;

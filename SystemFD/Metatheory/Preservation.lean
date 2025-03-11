@@ -92,7 +92,7 @@ case _ hd tl ih =>
         cases lem0; case _ q1 q2 q3 =>
           have lem0 := uniqueness_of_types j1 q1
           injection lem0 with _ e1 e2; subst e1; subst e2
-          have lem1 : Γ ⊢ q : U := q2
+          have lem1 : Γ ⊢ q : V := q2
           have lem2 := Judgment.app j3 lem1 rfl
           have lem3 := Judgment.app j1 lem1 rfl
           replace h1 := stable_type_match_beta q (by unfold Frame.is_stable; simp) h1
@@ -249,7 +249,7 @@ case guard j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
     cases h; case _ h1 h2 =>
       subst h2; replace ih2 := ih2 r h1
       apply Judgment.guard j1 ih2 j3 j4 j5 j6 j7 j8 j9
-case app j1 j2 j3 ih1 ih2 =>
+case app a _ j1 j2 j3 ih1 ih2 =>
   cases r
   case _ =>
     simp at rin; subst rin

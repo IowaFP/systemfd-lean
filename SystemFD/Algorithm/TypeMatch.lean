@@ -109,7 +109,7 @@ case _ v t1 t2 ih1 ih2 =>
         replace h3 := Eq.symm h3
         have lem := neutral_form_rename (fun x => x + 1) h3
         rw [Subst.to_S] at lem; rw [lem]; simp
-      have lem4 : ((Frame.type t1 :: Γ)d@(x + 1)).is_stable := by
+      have lem4 : ((Frame.empty :: Γ)d@(x + 1)).is_stable := by
         simp; rw [Frame.is_stable_stable]; apply h4
       apply StableTypeMatch.arrow
       case _ =>
@@ -224,70 +224,6 @@ case bind2 v t1 t2 ih1 ih2 =>
 all_goals (
   cases h; case _ h1 h2 =>
     subst h1; subst h2; simp)
-
-theorem prefix_type_match_sound_lemma :
-  (τ, sR) = Term.to_telescope A ->
-  (τ', sT) = Term.to_telescope B ->
-  .some ξ = prefix_equal τ τ' ->
-  [S' τ.length]T = Term.from_telescope ξ sT ->
-  [S' τ.length]R = sR ->
-  .some (x, sp) = Term.neutral_form R ->
-  (Γ d@ x).is_stable ->
-  PrefixTypeMatch Γ A B T
-:= by
-intro h1 h2 h3 h4 h5 h6 h7
-induction τ, τ' using prefix_equal.induct generalizing Γ x sp sR R A sT B ξ T
-case _ t =>
-  simp at *; subst h3; subst h4
-  replace h1 := telescope_empty h1; subst h1; subst h5
-  have lem : sT.from_telescope ξ = B := by apply to_from_telescope h2
-  simp at lem; rw [lem]
-  have vhv : ValidHeadVariable R Γ.is_stable := by
-       unfold ValidHeadVariable; apply Exists.intro (x, sp) (And.intro h6 h7);
-  apply PrefixTypeMatch.refl vhv
-case _ => simp at *
-case _ x1 t1 x2 t2 _ ih1 =>
-  simp at h3; cases h3; case _ h3e h3 =>
-    replace h3e := Frame.eq_of_beq h3e; subst h3e
-    have lem1 := telescope_valid_frames h2
-    cases lem1
-    case _ lem1 =>
-      cases lem1; case _ u lem1 =>
-        subst lem1
-        replace h1 := telescope_type_head h1
-        replace h2 := telescope_type_head h2
-        cases h1; case _ D1 h1 =>
-        cases h1; case _ h1 h1' =>
-        cases h2; case _ D2 h2 =>
-        cases h2; case _ h2 h2' =>
-          subst h1; subst h2; simp at h4; simp at h5
-          replace h6 := neutral_form_rename (fun x => x + 1) (Eq.symm h6); rw [Subst.to_S] at h6
-          simp at h6; constructor
-          replace ih1 := @ih1 sR D1 sT D2 ξ ([S]T) ([S]R) (x + 1)
-            (List.map (λ (v, t) => (v, [S]t)) sp) (.type u::Γ) h1' h2' h3
-          simp at ih1; replace ih1 := ih1 h4 h5 (Eq.symm h6)
-          apply ih1; rw [Frame.is_stable_stable]; apply h7
-    case _ lem1 =>
-      cases lem1; case _ u lem1 =>
-        subst lem1
-        replace h1 := telescope_kind_head h1
-        replace h2 := telescope_kind_head h2
-        cases h1; case _ D1 h1 =>
-        cases h1; case _ h1 h1' =>
-        cases h2; case _ D2 h2 =>
-        cases h2; case _ h2 h2' =>
-          subst h1; subst h2; simp at h4; simp at h5
-          replace h6 := neutral_form_rename (fun x => x + 1) (Eq.symm h6); rw [Subst.to_S] at h6
-          simp at h6; constructor
-          replace ih1 := @ih1 sR D1 sT D2 ξ ([S]T) ([S]R) (x + 1)
-            (List.map (λ (v, t) => (v, [S]t)) sp) (.kind u::Γ) h1' h2' h3
-          simp at ih1; replace ih1 := ih1 h4 h5 (Eq.symm h6)
-          apply ih1; rw [Frame.is_stable_stable]; apply h7
-case _ h =>
-  simp at h3; replace h := not_eq_of_beq h
-  cases h3; case _ h3e h3 =>
-    replace h3e := Frame.eq_of_beq h3e; subst h3e
-    exfalso; apply h rfl
 
 theorem prefix_type_match_sound :
   prefix_type_match Γ A B = .some T ->

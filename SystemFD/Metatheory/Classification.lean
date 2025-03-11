@@ -255,7 +255,7 @@ case _ a _ _ _ _ ih1 ih2 =>
     apply And.intro; assumption;
     have lem : ((★ β[a]) = ★) := by simp
     rw[<-lem];
-    apply beta_type; assumption; assumption
+    apply beta_empty; assumption
 case _ j _ _ _ =>
   apply Or.inr; apply Exists.intro ★
   apply And.intro; constructor

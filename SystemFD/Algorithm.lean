@@ -98,7 +98,7 @@ def infer_kind : Ctx Term -> Term -> Option Term
 | Γ, .bind2 .arrow A B => do
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
-  let Bk <- infer_kind (.type A::Γ) B
+  let Bk <- infer_kind (.empty::Γ) B
   let _ <- is_type Bk
   .some ★
 | Γ, .ctor2 .appk f a => do
@@ -118,7 +118,7 @@ def infer_kind : Ctx Term -> Term -> Option Term
 -- ∀[★]∀[★].. x -t> y -t> T p q r
 -- we need to check that T is a datatype in Γ
 def valid_ctor : (Γ : Ctx Term) -> (A : Term) -> Option Unit
-  | Γ, .bind2 .arrow A B => valid_ctor (.type A :: Γ) B -- arrow case
+  | Γ, .bind2 .arrow _ B => valid_ctor (.empty :: Γ) B -- arrow case
   | Γ, .bind2 .all A B => valid_ctor (.kind A :: Γ)  B  -- all case
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_datatype x) then .some () else .none
@@ -127,7 +127,7 @@ def valid_ctor : (Γ : Ctx Term) -> (A : Term) -> Option Unit
 -- ∀[★]∀[★].. x -t> y -t> T p q r
 -- we need to check that T is an inst type in Γ
 def valid_insttype : (Γ : Ctx Term) -> (A : Term) -> Option Unit
-  | Γ, .bind2 .arrow A B => valid_insttype (.type A :: Γ) B -- arrow case
+  | Γ, .bind2 .arrow _ B => valid_insttype (.empty :: Γ) B -- arrow case
   | Γ, .bind2 .all A B => valid_insttype (.kind A :: Γ)  B  -- all case
   | Γ, A => do let (x, _) <- A.neutral_form -- refl case
                if (Γ.is_opent x) then .some () else .none
@@ -154,7 +154,7 @@ def stable_type_match (Γ : Ctx Term) (A R : Term) : Option Unit := do
 def prefix_type_match : Ctx Term -> Term -> Term -> Option Term
   | Γ, (.bind2 .arrow A B), (.bind2 .arrow A' B') => do
     if A == A'
-    then let x <- prefix_type_match (.type A :: Γ) B B'
+    then let x <- prefix_type_match (.empty :: Γ) B B'
          if ([S][P]x == x)
          then .some ([P]x) else .none
     else .none
@@ -219,8 +219,10 @@ def infer_type : Ctx Term -> Term -> Option Term
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
   let B <- infer_type (.type A::Γ) t
-  let Bk <- infer_kind Γ (A -t> B)
+  let Bk <- infer_kind (.empty :: Γ) B
   let _ <- is_type Bk
+  let arrK <- infer_kind Γ (A -t> B)
+  let _ <- is_type arrK
   .some (A -t> B)
 | Γ, .ctor2 .app f a => do
   let T <- infer_type Γ f
@@ -280,9 +282,9 @@ def infer_type : Ctx Term -> Term -> Option Term
   let Bk <- infer_kind Γ B
   let _ <- is_type Bk
   let (C, D) <- is_eq T2
-  let Ck <- infer_kind (.type A :: Γ) C
+  let Ck <- infer_kind (.empty :: Γ) C
   let _ <- is_type Ck
-  let Dk <- infer_kind (.type B :: Γ) D
+  let Dk <- infer_kind (.empty :: Γ) D
   let _ <- is_type Dk
   .some ((A -t> C) ~ (B -t> D))
 | Γ, .ctor1 .fst t => do

@@ -10,7 +10,7 @@ inductive ValidCtor : Ctx Term -> Term -> Prop where
   ValidHeadVariable R Γ.is_datatype ->
   ValidCtor Γ R
 | arrow :
-  ValidCtor (.type A::Γ) B ->
+  ValidCtor (.empty::Γ) B ->
   ValidCtor Γ (A -t> B)
 | all :
   ValidCtor (.kind A::Γ) B ->
@@ -21,7 +21,7 @@ inductive ValidInstType : Ctx Term -> Term -> Prop where
   ValidHeadVariable R Γ.is_opent ->
   ValidInstType Γ R
 | arrow :
-  ValidInstType (.type A::Γ) B ->
+  ValidInstType (.empty::Γ) B ->
   ValidInstType Γ (A -t> B)
 | all :
   ValidInstType (.kind A::Γ) B ->
@@ -33,7 +33,7 @@ inductive StableTypeMatch : Ctx Term -> Term -> Term -> Prop where
   StableTypeMatch Γ R R
 | arrow :
   ValidHeadVariable R (Ctx.is_stable Γ) ->
-  StableTypeMatch (.type A::Γ) B ([S]R) ->
+  StableTypeMatch (.empty::Γ) B ([S]R) ->
   StableTypeMatch Γ (A -t> B) R
 | all :
   ValidHeadVariable R (Ctx.is_stable Γ) ->
@@ -45,7 +45,7 @@ inductive PrefixTypeMatch : Ctx Term -> Term -> Term -> Term -> Prop where
   ValidHeadVariable B Γ.is_stable ->
   PrefixTypeMatch Γ B T T
 | arrow :
-  PrefixTypeMatch (.type A::Γ) B V ([S]T) ->
+  PrefixTypeMatch (.empty::Γ) B V ([S]T) ->
   PrefixTypeMatch Γ (A -t> B) (A -t> V) T
 | all :
   PrefixTypeMatch (.kind A::Γ) B V ([S]T) ->
@@ -136,7 +136,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (∀[A] B, ★)
 | arrow :
   Judgment .prf Γ (A, ★) ->
-  Judgment .prf (.type A::Γ) (B, ★) ->
+  Judgment .prf (.empty::Γ) (B, ★) ->
   Judgment .prf Γ (A -t> B, ★)
 | appk :
   Judgment .prf Γ (f, A -k> B) ->
@@ -229,8 +229,8 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (A, ★) ->
   Judgment .prf Γ (B, ★) ->
   Judgment .prf Γ (t1, A ~ B) ->
-  Judgment .prf (.type A::Γ) (C, ★) ->
-  Judgment .prf (.type B::Γ) (D, ★) ->
+  Judgment .prf (.empty::Γ) (C, ★) ->
+  Judgment .prf (.empty::Γ) (D, ★) ->
   Judgment .prf (.empty::Γ) (t2, C ~ D) ->
   Judgment .prf Γ (t1 -c> t2, (A -t> C) ~ (B -t> D))
 | fst :
@@ -319,7 +319,6 @@ inductive SpineType : Term -> Term -> Prop where
 | refl :
   SpineType T T
 | arrow :
-  Γ ⊢ a : A ->
   SpineType (B β[a]) T ->
   SpineType (A -t> B) T
 | all :
