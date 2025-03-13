@@ -55,7 +55,7 @@ case _ => cases ηJ; case _ fJ =>
   case _ h => cases h; case _ h => cases h
   case _ h => apply And.intro rfl rfl
 
-theorem cannonical_ctor_head :
+theorem cannonical_ctor_var :
   Γ ⊢ #h : T ->
   Γ ⊢ T : ★ ->
   ValidCtor Γ T ->
@@ -93,7 +93,7 @@ cases tJ; case _ wf h1 =>
     exfalso
     apply datatype_opent_distinct vctor vit
 
-theorem cannonical_insttype_head :
+theorem cannonical_insttype_var :
   Γ ⊢ #h : T ->
   Γ ⊢ T : ★ ->
   ValidInstType Γ T ->
@@ -133,9 +133,186 @@ cases tJ; case _ wf h1 =>
     injection h1 with h1; cases h1;
     simp; rw [fh]; unfold Frame.is_insttype; simp;
 
+
+-- @[simp]
+-- abbrev ValidCtorSubtInvType : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
+-- | .prf => λ Δ => λ (A, τ) => ∀ Γ σ,
+--     (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+--     (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
+--     ValidCtor Δ ([σ]A) ->
+--     Δ ⊢ A : τ ->
+--     (★ = τ) ->
+--     ValidCtor Γ A
+
+-- | .wf  => λ _ => λ () => true
+
+-- theorem valid_ctor_subst_inv :
+--   Judgment v Γ idx ->
+--   ValidCtorSubtInvType v Γ idx
+-- := by
+-- intro j; induction j <;> simp at *;
+-- all_goals (intro Γ σ f1 f2 vctor tJ)
+-- all_goals try (intro e; subst e)
+-- any_goals try (solve | cases tJ; case _ h _ => cases h)
+-- any_goals try (solve | cases tJ; case _ h => cases h)
+-- case _ =>
+--   sorry
+-- case _ =>
+--   sorry
+-- case _ aJ bJ ih1 ih2 =>
+--   have ih1' := ih1 Γ σ f1 f2; -- stuck here as we have no easy way to build ValidCtor Γ ([σ] A)
+--   have ih2' := ih2 Γ σ
+--   sorry
+-- case _ => cases vctor; sorry -- bogus case
+-- case _ => exfalso; apply valid_ctor_not_equality vctor
+-- case _ =>
+--   sorry
+-- case _ =>
+--   sorry
+-- case _ =>
+--   sorry
+
+theorem valid_head_variable_subst_inv test σtest :
+  (∀ n, test n -> ∃ y, σ n = .re y ∧ σtest y) ->
+  (z = [σ]A) ->
+  ValidHeadVariable z σtest ->
+  ValidHeadVariable A test
+:= by
+intros f1 eq j; induction j <;> simp at *;
+case _ w fnf =>
+  unfold ValidHeadVariable;
+  exists w;
+  sorry
+
+
+theorem valid_ctor_subst_inv :
+    (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+    (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
+    Γ ⊢ A : τ ->
+    (★ = τ) ->
+    ([σ] A = Z) ->
+    ValidCtor Δ Z ->
+    ValidCtor Γ A
+:= by
+intro f1 f2 tJ eq1 eq2 j; induction j <;> simp at *;
+case refl vhv =>
+  subst eq1;
+  cases vhv; case _ Rnf =>
+  cases Rnf; case _ Rnf test =>
+
+  sorry
+case arrow ih =>
+
+  sorry
+case all ih =>
+
+  sorry
+
 inductive ArrowLike  : (T : Term) -> Prop where
   | arrowt : ArrowLike (A -t> B)
   | allt : ArrowLike (∀[A] B)
+
+@[simp]
+abbrev CannonicalCtorHeadType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
+| .prf => λ (t, τ) => ∀ h ts,
+       Val Γ t ->
+       Γ ⊢ t : τ ->
+       Γ ⊢ τ : ★ ->
+       t.neutral_form = .some (h, ts) ->
+       ValidCtor Γ τ ->
+       Γ.is_ctor h
+| .wf => λ () => true
+
+theorem cannonical_ctor_head :
+  Judgment v Γ idx ->
+  CannonicalCtorHeadType Γ v idx
+ := by
+intros j; induction j <;> simp at *
+all_goals (intro n sp tv tJ τJ)
+any_goals try (solve | cases tv; case _ h => cases h)
+any_goals try (solve | apply Exists.intro 0;
+                         intro h; cases h; case _ h => cases h)
+case _ n τ wf gt _ =>
+  intro e1 e2 vctor;
+  subst e1; subst e2;
+  cases tv; case _ n sp nst ntf =>
+  cases ntf;
+  apply cannonical_ctor_var;
+  assumption; assumption; assumption; assumption
+
+all_goals (intro fnf vctor)
+case appk fJ aJ ih _ => -- bogus case
+  have lem := classification_lemma fJ; simp at lem
+  cases lem;
+  case _ h =>
+    cases h; case _ h =>
+    have uniq := uniqueness_of_types h τJ; cases uniq
+  case _ h =>
+    cases h; case _ h =>
+    cases h; case _ h h1 =>
+    cases h1; case _ h => cases h
+
+case _ Γ f A B a B' fJ aJ eq' ih1 _ =>
+  cases tv; case _ n ts ns fanf =>
+  simp at fanf; rw[Option.bind_eq_some] at fanf;
+  cases fanf; case _ w fnf' =>
+  cases fnf'; case _ fnf' fanf' =>
+  rw[Option.bind_eq_some] at fnf;
+  cases fnf; case _ w fnf =>
+  cases fnf; case _ fnf tsh =>
+  cases tsh;
+  rw[fnf] at fnf'; cases fnf';
+  cases fanf';
+  have lem := classification_lemma fJ; simp at lem;
+  cases lem;
+  case _ h => cases h;
+  case _ h =>
+  cases h; case _ h =>
+  cases h; case _ arrJ =>
+  have arrK := invert_arr_kind arrJ; subst arrK;
+  have h1 : ValidCtor (.empty::Γ) B := by
+    apply valid_ctor_subst_inv _ _ _ _ (Eq.symm eq') vctor; apply ★;
+    case _ =>
+      intro n y σ; induction n <;> simp at *;
+      rw[σ]; rw[Frame.apply_compose]; simp -- f1
+    case _ =>
+      intro n st; induction n <;> simp at *;
+      unfold Frame.is_stable at st; unfold Frame.apply at st; simp at *;
+    case _ => rw[eq'] at τJ; cases arrJ; assumption -- well typed
+    case _ => rfl -- ★ = ★
+  have h2 :ValidCtor Γ (A -t> B)  := ValidCtor.arrow h1;
+  apply ih1 w.fst w.snd (Val.app fnf ns) fJ arrJ fnf h2;
+
+case appt Γ f A B a B' fJ aJ eq' ih1 _ =>
+  cases tv; case _ n ts ns fanf =>
+  simp at fanf; rw[Option.bind_eq_some] at fanf;
+  cases fanf; case _ w fnf' =>
+  cases fnf'; case _ fnf' fanf' =>
+  rw[Option.bind_eq_some] at fnf;
+  cases fnf; case _ w fnf =>
+  cases fnf; case _ fnf tsh =>
+  cases tsh;
+  rw[fnf] at fnf'; cases fnf';
+  cases fanf';
+  have lem := classification_lemma fJ; simp at lem;
+  cases lem;
+  case _ h => cases h;
+  case _ h =>
+  cases h; case _ h =>
+  cases h; case _ arrJ =>
+  have arrK := invert_all_kind arrJ; subst arrK;
+  have h1 : ValidCtor (.kind A::Γ) B := by
+    apply valid_ctor_subst_inv _ _ _ _ (Eq.symm eq') vctor; apply ★;
+    case _ =>
+      intro n y σ; induction n <;> simp at *;
+      rw[σ]; rw[Frame.apply_compose]; simp -- f1
+    case _ =>
+      intro n st; induction n <;> simp at *;
+      unfold Frame.is_stable at st; unfold Frame.apply at st; simp at *;
+    case _ => rw[eq'] at τJ; cases arrJ; assumption -- well typed
+    case _ => rfl -- ★ = ★
+  have h2 :ValidCtor Γ (∀[A] B)  := ValidCtor.all h1;
+  apply ih1 w.fst w.snd (Val.app fnf ns) fJ arrJ fnf h2;
 
 inductive LambdaLike : (T : Term) -> Prop where
   | lam : LambdaLike (`λ[A] B)

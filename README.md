@@ -1,14 +1,14 @@
 # SystemFD
 
-- Terms: Terms of the language
-- Evaulator: evaluates terms
+- Term.lean: Terms of the language
+- Evaluator.lean: evaluates terms
 - Algoritm: typecheck terms
 
-- Reduction : Specification for reduction
-- Judgements: Specification of type checking
+- Reduction.lean : Specification for reduction
+- Judgment.lean: Specification of type checking
 
 
 This formalization proves:
-- [ ] Soundness of type checking with respect to type checking judgements
-- [ ] Soundness of evaluation with respect to reduction semantics
-- [ ] Progress and preservation
+- [x] Soundness of type checking with respect to type checking judgements
+- [x] Soundness of evaluation with respect to reduction semantics
+- [x] Progress and preservation

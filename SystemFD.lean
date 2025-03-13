@@ -1,9 +1,4 @@
 
--- import SystemFD.Algorithm.Soundness1
--- import SystemFD.Algorithm.Soundness2
--- -- import SystemFD.Evaluator.Soundness2
-
-
 import SystemFD.Metatheory.TypeMatch
 import SystemFD.Metatheory.Weaken
 import SystemFD.Metatheory.Substitution
