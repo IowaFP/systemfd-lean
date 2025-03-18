@@ -206,7 +206,7 @@ case _ => intro x; simp; rw [Subst.to_S]
 
 theorem weaken_ctor :
   Γ ⊢ T : ★ ->
-  ValidCtor Γ T ->
+  ValidCtorType Γ T ->
   Γ ⊢ t : A ->
   (.ctor T::Γ) ⊢ ([S]t) : ([S]A)
 := by

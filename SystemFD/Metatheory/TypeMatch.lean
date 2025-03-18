@@ -81,8 +81,8 @@ cases h1; case _ sp h1 =>
 theorem valid_ctor_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
-  ValidCtor Γ A ->
-  ValidCtor Δ ([σ]A)
+  ValidCtorType Γ A ->
+  ValidCtorType Δ ([σ]A)
 := by
 intro h1 h2 j
 induction j generalizing Δ σ
@@ -96,14 +96,14 @@ case _ R Γ j =>
     rw [<-h1 n w h2, Frame.is_datatype_stable]
     simp at h3; apply h3
 case _ Γ A B j ih =>
-  simp; apply ValidCtor.arrow
+  simp; apply ValidCtorType.arrow
   replace ih := @ih (^σ)
     (((Frame.empty).apply σ) :: Δ)
     (lift_subst_rename (Frame.empty) h1)
     (lift_subst_stable (Frame.empty) h2)
   simp at ih; apply ih
 case _ Γ A B j ih =>
-  simp; apply ValidCtor.all
+  simp; apply ValidCtorType.all
   replace ih := @ih (^σ)
     (((Frame.kind A).apply σ) :: Δ)
     (lift_subst_rename (Frame.kind A) h1)
@@ -318,7 +318,7 @@ replace h1 := opent_indexing_exists h1;
 cases h1; case _ h1 =>
 rw [h1]at h2; unfold Frame.is_datatype at h2; simp at h2
 
-theorem datatype_opent_distinct : ValidCtor Γ T -> ValidInstType Γ T -> False := by
+theorem datatype_opent_distinct : ValidCtorType Γ T -> ValidInstType Γ T -> False := by
 intros vctor vit;
 cases vctor;
 case refl h1 =>

@@ -5,16 +5,17 @@ import SystemFD.Ctx
 def ValidHeadVariable (t : Term) (test : Nat -> Bool) : Prop :=
   ∃ x, .some x = Term.neutral_form t ∧ test x.fst
 
-inductive ValidCtor : Ctx Term -> Term -> Prop where
+inductive ValidCtorType : Ctx Term -> Term -> Prop where
 | refl :
   ValidHeadVariable R Γ.is_datatype ->
-  ValidCtor Γ R
+  ValidCtorType Γ R
 | arrow :
-  ValidCtor (.empty::Γ) B ->
-  ValidCtor Γ (A -t> B)
+  ValidCtorType (.empty::Γ) B ->
+  ValidCtorType Γ (A -t> B)
 | all :
-  ValidCtor (.kind A::Γ) B ->
-  ValidCtor Γ (∀[A] B)
+  ValidCtorType (.kind A::Γ) B ->
+  ValidCtorType Γ (∀[A] B)
+
 
 inductive ValidInstType : Ctx Term -> Term -> Prop where
 | refl :
@@ -82,7 +83,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 | wfctor :
   Judgment .prf Γ (A, ★) ->
   Judgment .wf Γ () ->
-  ValidCtor Γ A ->
+  ValidCtorType Γ A ->
   Judgment .wf (.ctor A::Γ) ()
 | wfopent :
   Judgment .prf Γ (A, .kind) ->
@@ -292,7 +293,7 @@ inductive FrameWf : Ctx Term -> Frame Term -> Prop
   FrameWf Γ (.datatype A)
 | ctor :
   Γ ⊢ A : ★ ->
-  ValidCtor Γ A ->
+  ValidCtorType Γ A ->
   FrameWf Γ (.ctor A)
 | opent :
   Γ ⊢ A : .kind ->
@@ -319,12 +320,16 @@ inductive SpineType : Term -> Term -> Prop where
 | refl :
   SpineType T T
 | arrow :
+  Γ ⊢ a : A' ->
+  Γ ⊢ (A -t> B) : ★ ->
   SpineType (B β[a]) T ->
   SpineType (A -t> B) T
 | all :
   Γ ⊢ a : A ->
+  Γ ⊢ (∀[A] B) : ★ ->
   SpineType (B β[a]) T ->
   SpineType (∀[A] B) T
 | arrowk :
+  Γ ⊢ (A -k> B) : .kind ->
   SpineType B T ->
   SpineType (A -k> B) T

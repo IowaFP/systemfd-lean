@@ -264,22 +264,22 @@ case _ =>
   apply PrefixTypeMatch.refl; unfold ValidHeadVariable;
   symm at h1; apply Exists.intro w; apply And.intro h1 (by unfold Ctx.is_stable; apply h2.1)
 
-theorem valid_ctor_sound : valid_ctor Γ A = .some () -> ValidCtor Γ A := by
+theorem valid_ctor_sound : valid_ctor Γ A = .some () -> ValidCtorType Γ A := by
 intro h; induction Γ, A using valid_ctor.induct;
 case _ ih =>
   unfold valid_ctor at h;
   replace ih := ih h;
-  apply ValidCtor.arrow ih;
+  apply ValidCtorType.arrow ih;
 case _ ih =>
   unfold valid_ctor at h;
   replace ih := ih h;
-  apply ValidCtor.all ih;
+  apply ValidCtorType.all ih;
 case _ =>
   unfold valid_ctor at h;
   simp at h; rw[Option.bind_eq_some] at h;
   cases h; case _ w h =>
   simp at h; have h1 := h.1; symm at h1; have h2 := h.2;
-  apply ValidCtor.refl; unfold ValidHeadVariable; apply Exists.intro w;
+  apply ValidCtorType.refl; unfold ValidHeadVariable; apply Exists.intro w;
   apply And.intro h1 (by simp; apply h2)
 
 theorem valid_insttype_sound : valid_insttype Γ A = .some () -> ValidInstType Γ A := by
