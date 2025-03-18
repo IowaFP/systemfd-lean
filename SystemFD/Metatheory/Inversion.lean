@@ -32,7 +32,7 @@ intros tJ; cases tJ; simp_all;
 
 theorem inversion_apply_spine :
   Γ ⊢ t.apply_spine sp : A ->
-  ∃ B, SpineType B A ∧ Γ ⊢ t : B
+  ∃ B, SpineType Γ B A ∧ Γ ⊢ t : B
 := by
 intro j; induction sp generalizing Γ t A <;> simp at *
 case _ =>
@@ -252,22 +252,29 @@ case _ j1 j2 =>
   case _ j2 =>
     unfold ValidHeadVariable at j2; simp at j2
 
+
+theorem spine_type_is_type :
+  Γ ⊢ τ : ★ ->
+  SpineType Γ τ' τ ->
+  Γ ⊢ τ' : ★ := by
+intro τJ sp;
+induction sp;
+case _ => assumption
+case _ => assumption
+case _ => assumption
+case _ h _ ih =>
+  replace ih := ih τJ;
+  cases h; case _ bj => have uniq := uniqueness_of_types ih bj; cases uniq
+
 theorem spine_type_is_not_kind :
-  SpineType A T ->
+  SpineType Γ A T ->
   Γ ⊢ T : ★ ->
   Γ ⊢ A : .kind ->
   False
 := by
 intro h1 h2 h3
-induction h1
-case _ =>
-  have lem := uniqueness_of_types h2 h3
-  injection lem
-case _ => cases h3
-case _ => cases h3
-case _ j ih =>
-  cases h3; case _ h3 =>
-    apply ih h2 h3
+have h4 := spine_type_is_type h2 h1;
+have uniq := uniqueness_of_types h3 h4; cases uniq
 
 theorem valid_ctor_not_equality :
   ¬ (ValidCtorType Γ (A ~ B))
@@ -283,12 +290,12 @@ case _ => injection Tdef
 
 theorem spine_type_is_not_valid_ctor :
   T = (C ~ D) ->
-  SpineType A T ->
+  SpineType Γ A T ->
   ValidCtorType Γ A ->
   False
 := by
 intro e h1 h2
-induction h1 generalizing C D Γ
+induction h1 generalizing C D
 case _ =>
   subst e; apply valid_ctor_not_equality h2
 case _ j2 ih =>
@@ -296,7 +303,7 @@ case _ j2 ih =>
   case _ h =>
     unfold ValidHeadVariable at h; simp at *
   case _ h =>
-    apply @ih C D Γ e; apply valid_ctor_subst _ _ h
+    apply @ih C D e; apply valid_ctor_subst _ _ h
     case _ =>
       intro n y h1
       cases n <;> simp at *
@@ -312,7 +319,7 @@ case _ Γ a A B T j1 j2 ih =>
   case _ h =>
     unfold ValidHeadVariable at h; simp at *
   case _ h =>
-    apply @ih C D Γ e; apply valid_ctor_subst _ _ h
+    apply @ih C D e; apply valid_ctor_subst _ _ h
     case _ =>
       intro n y h1
       cases n <;> simp at *
@@ -341,12 +348,12 @@ case _ => injection Tdef
 
 theorem spine_type_is_not_valid_insttype :
   T = (C ~ D) ->
-  SpineType A T ->
+  SpineType Γ A T ->
   ValidInstType Γ A ->
   False
 := by
 intro e h1 h2
-induction h1 generalizing C D Γ
+induction h1 generalizing C D
 case _ =>
   subst e; apply valid_insttype_not_equality h2
 case _ j2 ih =>
@@ -354,7 +361,7 @@ case _ j2 ih =>
   case _ h =>
     unfold ValidHeadVariable at h; simp at *
   case _ h =>
-    apply @ih C D Γ e; apply valid_insttype_subst _ _ h
+    apply @ih C D e; apply valid_insttype_subst _ _ h
     case _ =>
       intro n y h1
       cases n <;> simp at *
@@ -370,7 +377,7 @@ case _ Γ a A B T j1 j2 ih =>
   case _ h =>
     unfold ValidHeadVariable at h; simp at *
   case _ h =>
-    apply @ih C D Γ e; apply valid_insttype_subst _ _ h
+    apply @ih C D e; apply valid_insttype_subst _ _ h
     case _ =>
       intro n y h1
       cases n <;> simp at *
@@ -390,7 +397,7 @@ theorem ctx_get_var_no_spine_eq_type:
   Γ.is_stable_red x ->
   (Γ d@ x).get_type = some T ->
   Γ ⊢ (A ~ B) : ★ ->
-  SpineType T (A ~ B) ->
+  SpineType Γ T (A ~ B) ->
   False
 := by
 intro h1 h2 h3 h4 h5
@@ -409,7 +416,7 @@ case _ j1 j2 => subst h3; apply spine_type_is_not_valid_insttype rfl h5 j2
 theorem ctx_get_var_spine_type :
   ⊢ Γ ->
   (Γ d@ n).get_type = some τ' ->
-  SpineType τ' τ ->
+  SpineType Γ τ' τ ->
   Γ ⊢ τ : ★ ->
   Γ ⊢ τ' : ★ := by
 intro wf gt spTy τJ;

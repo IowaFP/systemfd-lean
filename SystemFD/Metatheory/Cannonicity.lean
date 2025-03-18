@@ -57,51 +57,12 @@ case _ => cases ηJ; case _ fJ =>
   case _ h => cases h; case _ h => cases h
   case _ h => apply And.intro rfl rfl
 
-theorem cannonical_ctor_var :
+theorem cannonical_var :
   Γ ⊢ #h : T ->
   Γ ⊢ T : ★ ->
-  ValidCtorType Γ T ->
   Γ.is_stable_red h ->
-  Γ.is_ctor h := by
-intros tJ tstar vctor n_stable;
-cases tJ; case _ wf h1 =>
-  have h2 := @frame_wf_by_index Γ h wf;
-  have h3 := @frame_wf_implies_typed_var Γ h T h2 h1;
-  generalize fh : Γ d@ h = f at *;
-  unfold Frame.get_type at h1;
-  split at h1;
-  any_goals (solve | simp at *)
-  all_goals (unfold Ctx.is_stable_red at n_stable; unfold Frame.is_stable_red at n_stable)
-  any_goals (solve |  rw [fh] at n_stable; simp at n_stable)
-  case _ =>
-    injection h1 with h1; cases h1;
-    have lem := ctx_get_var_type wf fh;
-    have uniq := uniqueness_of_types tstar lem;
-    cases uniq;
-  case _ =>
-    injection h1 with h1; cases h1;
-    have lem := ctx_get_datatype_kind wf fh;
-    have uniq := uniqueness_of_types tstar lem;
-    cases uniq;
-  case _ => unfold Ctx.is_ctor; unfold Frame.is_ctor; rw [fh]
-  case _ =>
-    injection h1 with h1; cases h1;
-    have lem := ctx_get_opent_kind wf fh;
-    have uniq := uniqueness_of_types tstar lem;
-    cases uniq;
-  case _ =>
-    injection h1 with h1; cases h1;
-    cases h2; case _ vit =>
-    exfalso
-    apply datatype_opent_distinct vctor vit
-
-theorem cannonical_insttype_var :
-  Γ ⊢ #h : T ->
-  Γ ⊢ T : ★ ->
-  ValidInstType Γ T ->
-  Γ.is_stable_red h ->
-  Γ.is_insttype h := by
-intros tJ tstar vctor n_stable;
+  (Γ.is_ctor h ∨ Γ.is_insttype h) := by
+intros tJ tstar n_stable;
 cases tJ; case _ wf h1 =>
   have h2 := @frame_wf_by_index Γ h wf;
   have h3 := @frame_wf_implies_typed_var Γ h T h2 h1;
@@ -122,25 +83,23 @@ cases tJ; case _ wf h1 =>
     have uniq := uniqueness_of_types tstar lem;
     cases uniq;
   case _ =>
-    injection h1 with h1; cases h1;
-    cases h2; case _ vit =>
-      exfalso
-      apply datatype_opent_distinct vit vctor
+      cases h1; apply Or.inl;
+      unfold Ctx.is_ctor; unfold Frame.is_ctor; rw [fh]
   case _ =>
     injection h1 with h1; cases h1;
     have lem := ctx_get_opent_kind wf fh;
     have uniq := uniqueness_of_types tstar lem;
     cases uniq;
   case _ =>
-    injection h1 with h1; cases h1;
-    simp; rw [fh]; unfold Frame.is_insttype; simp;
+    cases h1; apply Or.inr;
+    unfold Ctx.is_insttype; unfold Frame.is_insttype; rw[fh]
 
-theorem cannonical_ctor_head :
+theorem cannonical_head :
        Val Γ t ->
        Γ ⊢ t : τ ->
        Γ ⊢ τ : ★ ->
        t.neutral_form = .some (h, ts) ->
-       (ValidCtorType Γ τ -> Γ.is_ctor h) ∨ (ValidInstType Γ τ -> Γ.is_insttype h) := by
+       (Γ.is_ctor h ∨ Γ.is_insttype h) := by
 intro vt tJ τJ tnf;
 have tshape := Term.neutral_form_law (Eq.symm tnf)
 rw[<-tshape] at tJ;
@@ -152,13 +111,14 @@ any_goals(solve | cases tnf)
 case app h_stable tnf' =>
   rw[tnf] at tnf'; cases tnf';
   cases hJ; case _ wf gt =>
-  have τ'J := ctx_get_var_spine_type wf (Eq.symm gt) spTy τJ
+  have τ'J := spine_type_is_type τJ spTy
+  have hJ := Judgment.var wf gt;
   simp at h_stable;
   generalize fh : Γ d@ h = f at *;
   cases f;
   any_goals (solve | cases gt)
   all_goals (unfold Frame.is_stable_red at h_stable; simp at h_stable)
-  all_goals (unfold Frame.get_type at gt; simp at gt; cases gt)
+  all_goals (clear h_stable; unfold Frame.get_type at gt; simp at gt; cases gt)
   case _ =>
     have h := ctx_get_var_type wf fh;
     have uniq := uniqueness_of_types h τ'J; cases uniq;
@@ -166,13 +126,13 @@ case app h_stable tnf' =>
     have h := ctx_get_datatype_kind wf fh;
     have uniq := uniqueness_of_types h τ'J; cases uniq;
   case _ =>
-    apply Or.inl; intro vctor;
+    apply Or.inl;
     simp; rw[fh]; unfold Frame.is_ctor; simp;
   case _ =>
     have h := ctx_get_opent_kind wf fh
     have uniq := uniqueness_of_types h τ'J; cases uniq;
   case _ =>
-    apply Or.inr; intro vctor;
+    apply Or.inr;
     simp; rw[fh]; unfold Frame.is_insttype; simp;
 
 
