@@ -28,7 +28,7 @@ inductive Bind2Variant : Type where
 deriving Repr
 
 inductive Term : Type where
-| kind : Term
+| kind : Term -- □
 | var : Nat -> Term
 | type : Term -- ★
 | ctor1 : Ctor1Variant -> Term -> Term
@@ -84,7 +84,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
                      ++ Term.repr t2 p
 
 
-instance : Repr Term where
+instance Term_repr : Repr Term where
   reprPrec a p := Term.repr a p
 
 notation "★" => Term.type
