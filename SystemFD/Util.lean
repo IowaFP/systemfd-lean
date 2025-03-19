@@ -21,7 +21,7 @@ case _ h2 =>
 
 instance : Monad List where
   pure a := List.cons a List.nil
-  bind l f := List.flatMap l f
+  bind l f := List.flatten (List.map f l)
 
 theorem option_lemma :
   (∀ v, ¬ t = Option.some v) ->
