@@ -8,6 +8,7 @@ import SystemFD.Metatheory.Classification
 import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Preservation
 import SystemFD.Metatheory.Progress
+import SystemFD.Metatheory.Canonicity
 
 import SystemFD.Evaluator.Soundness
 import SystemFD.Evaluator

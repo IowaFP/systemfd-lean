@@ -1,7 +1,7 @@
 import Lake
 open Lake DSL
 
-require "leanprover-community" / "mathlib" @ git "v4.15.0"
+require "leanprover-community" / "mathlib" @ git "v4.18.0-rc1"
 
 package SystemFD where
   -- add package configuration options here

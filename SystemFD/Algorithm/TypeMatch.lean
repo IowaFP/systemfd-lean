@@ -11,6 +11,7 @@ theorem neutral_form_rename {t : Term} (r : Ren) :
 intro h
 induction t generalizing r q
 any_goals try (simp at h; subst h; simp)
+case _ => unfold Ren.to; simp
 case _ v t1 t2 ih1 ih2 =>
   cases v; any_goals try solve | (simp at h; subst h; simp)
   all_goals case _ =>
@@ -21,15 +22,14 @@ case _ v t1 t2 ih1 ih2 =>
         apply option_lemma; intro v
         apply h v.fst v.snd
       replace ih1 := @ih1 .none r lem; simp at ih1
-      unfold Subst.apply at ih1; simp at ih1; rw [h2] at ih1
-      injection ih1
+      rw [h2] at ih1; injection ih1
     case _ v =>
       simp at h; simp; rw [Option.bind_eq_some] at h
       cases h; case _ a h =>
       cases h; case _ h1 h2 =>
         injection h2 with e; rw [Option.bind_eq_some]; subst e; simp
-        replace ih1 := ih1 r h1; simp at ih1
-        exists (r a.fst); exists (List.map (fun x => (x.fst, [r.to]x.snd)) a.snd)
+        replace ih1 := ih1 r h1; simp at ih1; apply ih1
+        -- exists (r a.fst); exists (List.map (fun x => (x.fst, [r.to]x.snd)) a.snd)
 
 theorem stable_type_match_sound_lemma :
   (τ, sR) = Term.to_telescope A ->

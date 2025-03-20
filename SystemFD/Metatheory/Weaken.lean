@@ -11,10 +11,12 @@ intro h x; simp
 cases x <;> simp at *
 case _ =>
   rw [Subst.lift_lemma]; simp
+  unfold Ren.lift; simp
   rw [Frame.apply_compose, Frame.apply_compose]; simp
 case _ x =>
-  rw [Subst.lift_lemma, <-h x]; simp
-  rw [Frame.apply_compose, Frame.apply_compose]; simp
+  rw [Subst.lift_lemma]; simp
+  unfold Ren.lift; simp
+  rw [<-h x, Frame.apply_compose, Frame.apply_compose]; simp
 
 @[simp]
 abbrev idx_ren (r : Ren) : JudgmentArgs v -> JudgmentArgs v :=

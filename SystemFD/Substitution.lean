@@ -297,7 +297,7 @@ section
 
 end
 
-  macro "solve_compose" Ty:term "," apply_stable:term "," s:term "," σ:term "," τ:term : tactic => `(tactic| {
+  macro "solve_compose" Ty:term "," apply_stable:term "," s:Lean.Parser.Tactic.elimTarget "," σ:term "," τ:term : tactic => `(tactic| {
     have lem1 (τ : Subst $Ty) : ^τ ⊙ (Ren.to (λ x => x + 1)) = (Ren.to (λ x => x + 1)) ⊙ τ := by
       funext; unfold Subst.compose; simp; unfold Ren.to; simp; case _ x =>
         generalize zdef : τ x = z; generalize vdef : ^τ (x + 1) = v

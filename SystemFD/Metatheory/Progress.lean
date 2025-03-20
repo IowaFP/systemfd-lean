@@ -6,7 +6,7 @@ import SystemFD.Metatheory.Classification
 import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
-import SystemFD.Metatheory.Cannonicity
+import SystemFD.Metatheory.Canonicity
 
 
 @[simp]
@@ -316,11 +316,11 @@ case _ Γ x T j1 j2 _ =>
     apply @Red.letterm A #x x [] Γ t
     simp; rw [fdef]
   case openm A =>
-    let insts := get_instances Γ x
+    generalize instsdef : get_instances Γ x = insts at *
     apply Or.inr; apply Exists.intro insts
     apply @Red.inst #x x [] insts Γ insts
-    simp; simp; rw [fdef]; unfold Frame.is_openm; simp
-    simp; simp
+    simp; simp; rw [fdef]; unfold Frame.is_openm
+    simp; rw [<-instsdef]; simp
   case type =>
     replace h1 := h1 x
     rw [fdef] at h1; unfold Frame.is_type at h1

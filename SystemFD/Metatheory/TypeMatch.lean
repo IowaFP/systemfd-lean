@@ -54,8 +54,7 @@ case ctor2 v t1 t2 ih1 ih2 =>
         rw [Option.bind_eq_some]; subst e1; subst e2; simp
         cases a; case _ ax asp =>
           replace ih1 := ih1 σ h1 h2; simp at ih1
-          unfold Subst.apply at ih1; simp at ih1
-          exists y; exists (List.map (fun x => (x.fst, [σ]x.snd)) asp)
+          apply ih1
 all_goals simp at h2
 case _ z =>
   cases h2; case _ e1 e2 =>

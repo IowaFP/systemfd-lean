@@ -324,18 +324,7 @@ instance substTypeLaws_Term : SubstitutionTypeLaws Term where
       cases x <;> simp
       case _ n => unfold Subst.compose; simp
   induction t generalizing r <;> simp [*]
-  case _ ih => rw[<-@ih r]; rfl
-  case _ ih1 ih2 => rw[<-@ih1 r]; rw[<-@ih2 r]; rfl
-  case _ a1 a2 ih1 ih2 =>
-     rw[<-(@ih1 r)]; rw[<-@ih2 (size_of_subst_rename_renamer r)];  rfl
-  case _ ih1 ih2 ih3 ih4 =>
-     rw[<-@ih1 r]; rw[<-@ih2 r]; rw[<-@ih3 r];  rw[<-@ih4 r]; rfl
-  case _ ih1 ih2 ih3 =>
-     rw[<-ih1]; rw[<-ih2]; rw[<-ih3]; rfl
-  case _ ih1 ih2 ih3 =>
-     replace ih3 := @ih3 (size_of_subst_rename_renamer r);
-     rw[<-ih1]; rw[<-ih2]; rw[<-ih3]; rfl
-
+  case _ x => unfold Ren.to; simp
 
   theorem right_shifting_size_no_change {s : Term} : s.size = ([S' k]s).size := by
   have lem := @size_of_subst_rename s (fun n => n + k);

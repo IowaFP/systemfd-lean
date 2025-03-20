@@ -178,7 +178,7 @@ def eval_outer (Γ : Ctx Term) (ts : List Term) : Option (List Term) :=
 unsafe def eval_ctx_loop (Γ : Ctx Term) (t : Term) : List Term := do
   match (eval_outer Γ [t]) with
   | .none => [t]
-  | .some ts => List.flatMap ts (eval_ctx_loop Γ)
+  | .some ts => List.flatMap (eval_ctx_loop Γ) ts
 
 unsafe def eval (t : Term) : List Term :=
   eval_ctx_loop [] t
