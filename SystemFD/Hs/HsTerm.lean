@@ -3,13 +3,15 @@ import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Metatheory.Classification
 
+set_option maxHeartbeats 500000
+
 -- Surface syntax terms
 inductive HsTerm : Type where
 | HsVar : Nat -> HsTerm
 | HsLam : Term -> HsTerm -> HsTerm
 | HsApp : HsTerm -> HsTerm -> HsTerm
 | HsLet : Term -> HsTerm -> HsTerm -> HsTerm
-| HsIte : HsTerm -> HsTerm -> HsTerm -> HsTerm -> HsTerm
+| HsIte : Nat -> HsTerm -> HsTerm -> HsTerm -> HsTerm
 -- | HsType : Term -> HsTerm
 
 protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
@@ -18,7 +20,7 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsApp t1 t2, p => (HsTerm.repr t1 p) ++ " ⬝" ++ (HsTerm.repr t2 p)
 | HsLet t1 t2 t3 , p => "let!" ++ HsTerm.repr t2 p ++ " : " ++ repr t1 ++";;" ++ Std.Format.line ++ HsTerm.repr t3 p
 | HsIte t1 t2 t3 t4, p =>
-  "if!" ++ HsTerm.repr t1 p ++ " ← " ++ HsTerm.repr t2 p ++
+  "if!" ++ Nat.repr t1 ++ " ← " ++ HsTerm.repr t2 p ++
   "then" ++ Std.Format.line ++ HsTerm.repr t3 p ++
   "else" ++ Std.Format.line ++ HsTerm.repr t4 p
 -- | HsType t , p => Term.repr t p
@@ -38,7 +40,7 @@ namespace HsTerm
  | HsLam t1 t2 => Term.size t1 + size t2 + 1
  | HsApp t1 t2 => size t1 + size t2 + 1
  | HsLet t1 t2 t3 => Term.size t1 + size t2 + size t3 + 1
- | HsIte t1 t2 t3 t4 => size t1 + size t2 + size t3 + size t4 + 1
+ | HsIte _ t2 t3 t4 => size t2 + size t3 + size t4 + 1
  -- | HsType t => Term.size t
 
   @[simp]
@@ -52,10 +54,6 @@ end HsTerm
 
 instance sizeOf_HsTerm : SizeOf HsTerm where
   sizeOf := HsTerm.size
-
-
-def HsValidHeadVariable (t : HsTerm) (test : Nat -> Bool) : Prop :=
-  ∃ x, .some x = HsTerm.neutral_form t ∧ test x.fst
 
 inductive HsJudgment : Ctx Term -> HsTerm -> Term -> Prop where
 | var :
@@ -95,7 +93,7 @@ inductive HsJudgment : Ctx Term -> HsTerm -> Term -> Prop where
   HsJudgment (.type A :: Γ) t2 ([S] B) ->
   HsJudgment Γ (.HsLet A t1 t2) B
 | ite :
-  HsJudgment Γ t1 A ->
+  HsJudgment Γ #t1 A ->
   HsJudgment Γ t2 A ->
   HsJudgment Γ t3 B ->
   HsJudgment Γ t4 B' ->
@@ -151,13 +149,13 @@ inductive Compile : {Γ : Ctx Term} -> {τ : Term} -> (t : HsTerm) ->  Γ ⊢s t
   StableTypeMatch Γ A R ->
   PrefixTypeMatch Γ A B T ->
   ValidHeadVariable R Γ.is_datatype ->
-  HsValidHeadVariable p Γ.is_ctor ->
-  (j1 : Γ ⊢s p : A) ->
+  (Γ d@ p).is_ctor ->
+  (j1 : Γ ⊢s #p : A) ->
   (j2 : Γ ⊢s s : R) ->
   (j3 : Γ ⊢s i : B) ->
   (j4 : Γ ⊢s e : T) ->
   (j5 : Γ ⊢s .HsIte p s i e : T) ->
-  Compile p j1 p' ->
+  Compile #p j1 p' ->
   Compile s j2 s' ->
   Compile i j3 i' ->
   Compile e j4 e' ->
@@ -165,41 +163,41 @@ inductive Compile : {Γ : Ctx Term} -> {τ : Term} -> (t : HsTerm) ->  Γ ⊢s t
 
 notation:180 " ⟅ " t:180 " ⟆ " j:180 " ⟶  " t':180 => Compile t j t'
 
-theorem compilation_head_preserving :
-  HsValidHeadVariable p test ->
+theorem compile_head_preserving :
+  p = .HsVar i ->
   (j : Γ ⊢s p : τ) ->
-  Compile p j p' ->
-  ValidHeadVariable p' test := by
-intro vhv j c;
-induction j;
-all_goals try (cases vhv; case _ h => cases h; case _ w h t => cases h)
-case var x _ _ _ =>
-  cases vhv; case _ w h t =>
-  cases t; case _ f s =>
-  cases f; simp at s;
-  unfold ValidHeadVariable; simp at *;
-  exists x;
+  (Γ d@ i).is_ctor ->
+  (⟅ p ⟆ j ⟶  p') ->
+  ValidHeadVariable p' Γ.is_ctor := by
+intro e j pctor c;
+induction c;
+all_goals (cases e)
+case _ => unfold ValidHeadVariable; simp; assumption
+case _ e _ _ _ _ _ _ ih =>
+  replace ih := ih rfl pctor;
+  unfold ValidHeadVariable at ih;
+  cases ih; case _ w h =>
+  cases h; case _ t1nf h =>
+  unfold ValidHeadVariable; simp;
+  exists w.fst;
   apply And.intro;
-  { case _ =>
-    cases c;
-    case _ => exists [];
-    case _  e _ _ j c _ =>
-      exists [(.term, e)]; simp; symm;
-      rw[Option.bind_eq_some]; simp;
-      sorry
-    case _ τ _ j c =>
-      exists [(.type, τ)]; simp; symm;
-      rw[Option.bind_eq_some]; simp;
-      sorry }
+  apply Exists.intro (w.snd ++ [(.term, e)]);
+  symm; rw[Option.bind_eq_some]; exists w;
+  apply And.intro; symm; assumption; simp
+  assumption
+case _ e _ _ _ _ ih =>
+  replace ih := ih rfl pctor;
+  unfold ValidHeadVariable at ih;
+  cases ih; case _ w h =>
+  cases h; case _ t1nf h =>
+  unfold ValidHeadVariable; simp;
+  exists w.fst;
+  apply And.intro;
+  apply Exists.intro (w.snd ++ [(.type, e)]);
+  symm; rw[Option.bind_eq_some]; exists w;
+  apply And.intro; symm; assumption; simp
   assumption
 
-case implicitArrI j1 j2 ih =>
-  replace ih := ih vhv;
-  sorry
-case implicitArrE => sorry
-case implicitAllI => sorry
-case implicitAllE => sorry
-case app => sorry
 
 theorem compile_type_preserving :
   (j : Γ ⊢s t : τ) ->
@@ -235,14 +233,15 @@ case _ j1 c1 j2 c2 j3 ih1 ih2 =>
   assumption;
   assumption;
   assumption;
-case _ vhv j1 j2 j3 j4 _ c1 c2 c3 c4 _ _ _ _ =>
+case _ p _ _ _ _ _ _ _ _ _ _ _ _ vhv j1 j2 j3 j4 _ c1 c2 c3 c4 _ _ _ _ =>
   apply Judgment.ite;
   assumption;
   assumption;
   assumption;
   assumption;
-  apply compilation_head_preserving vhv; assumption; assumption
+  apply compile_head_preserving; rfl; apply vhv; apply c1;
   assumption;
   assumption;
   assumption;
   assumption;
+  assumption
