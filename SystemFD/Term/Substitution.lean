@@ -306,18 +306,12 @@ instance substTypeLaws_Term : SubstitutionTypeLaws Term where
   apply_compose := Term.apply_compose
   apply_stable := Term.apply_stable
 
-
-  @[simp]
-  def size_of_subst_rename_renamer : Ren -> Ren
-  | _, 0 => 0
-  | r, n + 1 => (r n) + 1
-
   @[simp]
   theorem size_of_subst_rename {t : Term} (r : Ren)
     : Term.size ([r.to]t) = Term.size t
   := by
   have lem (r : Ren) :
-    .re 0::((@S Term) ⊙ r.to) = (size_of_subst_rename_renamer r).to
+    .re 0::((@S Term) ⊙ r.to) = (Subst.size_of_subst_rename_renamer r).to
   := by
     unfold Ren.to; simp
     funext; case _ x =>

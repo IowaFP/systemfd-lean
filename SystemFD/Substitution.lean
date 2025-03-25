@@ -388,4 +388,9 @@ end
     )
   })
 
+  @[simp]
+  def size_of_subst_rename_renamer : Ren -> Ren
+  | _, 0 => 0
+  | r, n + 1 => (r n) + 1
+
 end Subst

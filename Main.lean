@@ -1,4 +1,5 @@
 import SystemFD
+import Hs
 
 def hello : String := "world"
 

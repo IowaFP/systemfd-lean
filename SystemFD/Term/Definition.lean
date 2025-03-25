@@ -88,9 +88,10 @@ instance Term_repr : Repr Term where
   reprPrec a p := Term.repr a p
 
 notation "★" => Term.type
-infixr:14 " -k> " => Term.ctor2 Ctor2Variant.arrowk
-infixr:14 " -t> " => Term.bind2 Bind2Variant.arrow
-infixr:14 " -c> " => Term.bind2 Bind2Variant.arrowc
+notation "□" => Term.kind
+notation:14 a " -k> " b => Term.ctor2 Ctor2Variant.arrowk a b
+notation:14 a " -t> " b => Term.bind2 Bind2Variant.arrow a b
+notation:14 a " -c> " b => Term.bind2 Bind2Variant.arrowc a b
 notation "∀[" A "]" B => Term.bind2 Bind2Variant.all A B
 infixl:15 " `@k " => Term.ctor2 Ctor2Variant.appk
 infixl:15 " `@t " => Term.ctor2 Ctor2Variant.appt
@@ -104,6 +105,7 @@ infixl:15 " `; " => Term.ctor2 Ctor2Variant.seq
 infixl:15 " `@c " => Term.ctor2 Ctor2Variant.appc
 notation:15 f:15 " `@c[" a "]" => Term.ctor2 Ctor2Variant.apptc f a
 infixl:15 " ~ " => Term.ctor2 Ctor2Variant.eq
+notation:15 "If " p " ← " s " then " i " else " e => Term.ite p s i e
 
 prefix:max "refl! " => Term.ctor1 Ctor1Variant.refl
 prefix:max "sym! " => Term.ctor1 Ctor1Variant.sym

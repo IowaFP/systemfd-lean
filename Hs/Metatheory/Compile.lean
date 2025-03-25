@@ -1,0 +1,138 @@
+
+
+-- theorem compile_head_preserving :
+--   p = .HsVar i ->
+--   (j : Γ ⊢s p : τ) ->
+--   (Γ d@ i).is_ctor ->
+--   (⟅ p ⟆ j ⟶  p') ->
+--   ValidHeadVariable p' Γ.is_ctor := by
+-- intro e j pctor c;
+-- induction c;
+-- all_goals (cases e)
+-- case _ => unfold ValidHeadVariable; simp; assumption
+-- case _ e _ _ _ _ _ _ ih =>
+--   replace ih := ih rfl pctor;
+--   unfold ValidHeadVariable at ih;
+--   cases ih; case _ w h =>
+--   cases h; case _ t1nf h =>
+--   unfold ValidHeadVariable; simp;
+--   exists w.fst;
+--   apply And.intro;
+--   apply Exists.intro (w.snd ++ [(.term, e)]);
+--   symm; rw[Option.bind_eq_some]; exists w;
+--   apply And.intro; symm; assumption; simp
+--   assumption
+-- case _ e _ _ _ _ ih =>
+--   replace ih := ih rfl pctor;
+--   unfold ValidHeadVariable at ih;
+--   cases ih; case _ w h =>
+--   cases h; case _ t1nf h =>
+--   unfold ValidHeadVariable; simp;
+--   exists w.fst;
+--   apply And.intro;
+--   apply Exists.intro (w.snd ++ [(.type, e)]);
+--   symm; rw[Option.bind_eq_some]; exists w;
+--   apply And.intro; symm; assumption; simp
+--   assumption
+
+
+-- theorem compile_type_preserving :
+--   (j : Γ ⊢s t : τ) ->
+--   (⟅ t ⟆ j ⟶  t') ->
+--   Γ ⊢ t' : τ := by
+-- intro j1 c;
+-- induction c;
+-- case _ gt _ =>
+--   apply Judgment.var; assumption; symm; assumption
+-- case _ =>
+--   apply Judgment.app;
+--   assumption;
+--   assumption;
+--   rfl
+-- case appev =>
+--   apply Judgment.app;
+--   assumption;
+--   assumption;
+--   rfl;
+-- case appt =>
+--   apply Judgment.appt;
+--   assumption;
+--   assumption;
+--   rfl
+-- case _ j1 j2 c j3 =>
+--   apply Judgment.lam;
+--   have lem := hsJ_preserves_kinds j2; cases lem; assumption
+--   assumption
+--   apply hsJ_preserves_kinds j2
+-- case _ j1 c1 j2 c2 j3 ih1 ih2 =>
+--   apply Judgment.letterm
+--   apply hsJ_preserves_kinds j1
+--   assumption;
+--   assumption;
+--   apply hsJ_preserves_kinds j3
+-- case _ _ j1 j2 j3 j4 j5 c1 c2 c3 c4 _ _ _ _ =>
+--   cases j5;
+--   case implicitArrI ih =>
+--       apply Judgment.ite;
+--       assumption
+--       assumption;
+--       apply hsJ_preserves_kinds j2
+--       assumption;
+--       apply compile_head_preserving rfl; sorry; apply c1;
+--       sorry
+--       sorry
+--       sorry
+--       case _ =>
+--         have lem := classification_lemma ih; simp at lem;
+--         cases lem;
+--         case _ h => have lem := invert_arr_kind h; cases lem
+--         case _ h =>
+--           cases h; case _ h =>
+--           cases h; case _ h =>
+--           have lem := invert_arr_kind h; cases lem; assumption
+--       assumption
+--   case implicitArrE => sorry
+--   case implicitAllI => sorry
+--   case implicitAllE => sorry
+--   case ite stm vhv pctor j1 j2 j3 j4 ptm j5 =>
+--     apply Judgment.ite;
+--     assumption;
+--     assumption;
+--     sorry
+--     assumption;
+--     case _ =>
+--       apply compile_head_preserving;
+--       rfl;
+--       apply pctor;
+--       apply c1;
+--     sorry -- assumption
+--     sorry -- assumption
+--     sorry -- assumption
+--     sorry
+--     assumption
+
+
+-- def compile (Γ : Ctx Term) : (t : HsTerm) -> (τ : Term) -> HsJudgment Γ t τ -> Option Term
+-- -- | t, _, .implicitAllE _ _ =>  .none -- dependent pattern match failed
+-- -- | t, _, .implicitAllI _ _ =>  .none -- dependent pattern match failed
+-- -- | t, _, .implicitArrE _ _ =>  .none -- dependent match elimination failed
+-- -- | t, _, .implicitArrI _ _ _ =>  .none -- dependent pattern match failed
+-- | .HsVar i, τ, .var _ gt =>
+
+--   .some #i
+-- | .HsApp t1 t2, _, .app j1 j2 r  => do
+--   let t1' <- compile Γ t1 _ j1
+--   let t2' <- compile Γ t2 _ j2
+--   .some (t1' `@ t2')
+-- | .HsLet A t1 t2, τ, .letterm j1 j2  => do
+--   let t1' <- compile Γ t1 A j1
+--   let t2' <- compile (.type A ::Γ) t2 ([S]τ) j2
+--   .some (.letterm A t1' t2')
+-- | .HsLam A t1, (Term.bind2 .arrow A' B') , x  =>
+--   if A == A'
+--   then do
+--        let t1' <- compile (.type A :: Γ) t1 B' sorry
+--        .some (`λ[A] t1')
+--   else .none
+-- | .HsIte p s i e, τ, x => .none
+-- | _ , _ , _=> .none
