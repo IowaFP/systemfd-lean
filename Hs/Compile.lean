@@ -1,79 +1,144 @@
 import Hs.HsJudgment
-import SystemFD.Judgment
 
 set_option maxHeartbeats 500000
 
-inductive Compile : {Γ : Ctx HsTerm} -> {τ : HsTerm} -> (t : HsTerm) -> Γ ⊢s t : τ -> Term -> Prop where
+inductive CompileVariant where
+| term | ctx
+
+@[simp]
+abbrev CompileJArgs : CompileVariant -> Ctx HsTerm -> Type
+| .ctx => λ _ => Ctx Term
+| .term => λ Γ => ((w : (HsTerm × HsTerm)) × Γ ⊢s w.fst : w.snd) × Term
+
+notation "⟨ " t "," τ ";" j "," t' "⟩" => (Sigma.mk (t, τ) j , t')
+
+inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v Γ -> Prop where
+-----------------------------------
+--- Contexts
+------------------------------------
+| wfnil : CompileJ .ctx [] []
+| wfempty :
+  CompileJ .ctx Γ Γ' ->
+  CompileJ .ctx (.empty :: Γ) (.empty :: Γ')
+| wftype :
+  (j : Γ ⊢s A : `★) ->
+  CompileJ .term Γ (⟨A, `★; j, A'⟩) ->
+  CompileJ .ctx (.type A :: Γ) (.type A' :: Γ')
+| wfkind :
+  (j : Γ ⊢s A : `□) ->
+  CompileJ .term Γ (⟨A, `□; j, A'⟩) ->
+  CompileJ .ctx (.kind A :: Γ) (.kind A' :: Γ')
+| wfdatatype :
+  (j : Γ ⊢s A : `□) ->
+  CompileJ .term Γ (⟨A, `□; j, A'⟩) ->
+  CompileJ .ctx (.datatype A :: Γ) (.datatype A' :: Γ')
+| wfctor :
+  (j : Γ ⊢s A : `★) ->
+  CompileJ .term Γ (⟨A, `★; j, A'⟩) ->
+  CompileJ .ctx (.ctor A :: Γ) (.ctor A' :: Γ')
+| wfterm :
+  (j1 : Γ ⊢s A : `★) ->
+  (j2 : Γ ⊢s t1 : A) ->
+  CompileJ .term Γ (⟨A, `★; j1, A'⟩) ->
+  CompileJ .term Γ (⟨t1, A; j2, t1'⟩) ->
+  CompileJ .ctx (.term A t1 :: Γ) (.term A' t1' :: Γ')
+
 ------------------------------------
 -- Types and kinds
 -----------------------------------
 | type :
-  Compile `★ j1 ★
-| kind :
-  Compile `□ j1 □
+  (wf : ⊢s Γ) ->
+  CompileJ .term Γ (⟨`★, `□; HsJudgment.ax wf , ★⟩)
 | arrowk :
-  Compile κ1 j1 κ1' ->
-  Compile κ2 j2 κ2' ->
-  Compile (κ1 `-k> κ2) j3 (κ1' -k> κ2')
-------------------------------------
--- Implicits
------------------------------------
+  (j1 : Γ ⊢s κ1 : `□) ->
+  (j2 : Γ ⊢s κ2 : `□) ->
+  (j3 : Γ ⊢s (κ1 `-k> κ2) : `□) ->
+  CompileJ .term Γ ⟨κ1, `□ ; j1 , κ1'⟩ ->
+  CompileJ .term Γ ⟨κ2, `□ ; j2 , κ2'⟩ ->
+  CompileJ .term Γ ⟨(κ1 `-k> κ2), `□; j3, (κ1' -k> κ2')⟩
+| appk :
+  (j1 : Γ ⊢s A : (κ1 `-k> κ2)) ->
+  (j2 : Γ ⊢s B : κ1) ->
+  (j3 : Γ ⊢s (A `•k B) : κ2) ->
+  CompileJ .term Γ ⟨A, (κ1 `-k> κ2) ; j1 , A'⟩ ->
+  CompileJ .term Γ ⟨B,  κ1; j2 , B'⟩ ->
+  CompileJ .term Γ ⟨(A `•k B), κ2 ; j3 , (A' `@k B')⟩
+| arrow :
+  (j1 : Γ ⊢s A : `★) ->
+  (j2 : (.empty :: Γ) ⊢s B : `★) ->
+  (j3 : Γ ⊢s (A → B) : `★) ->
+  CompileJ .term Γ ⟨A, `★ ; j1 , A'⟩ ->
+  CompileJ .term (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
+  CompileJ .term Γ ⟨(A → B), `★; j3, (A' -t> B')⟩
+| farrow :
+  (j1 : Γ ⊢s A : `★) ->
+  (j2 : (.empty :: Γ) ⊢s B : `★) ->
+  (j3 : Γ ⊢s (A ⇒ B) : `★) ->
+  CompileJ .term Γ ⟨A, `★ ; j1 , A'⟩ ->
+  CompileJ .term (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
+  CompileJ .term Γ ⟨(A ⇒ B), `★; j3, (A' -t> B')⟩
+
+-- ------------------------------------
+-- -- Implicits
+-- -----------------------------------
 | appev :
-  (j1 : Γ ⊢s t1 : (π ⇒ τ)) -> -- Γ ⊢ t1 : F a => τ
+  (j1 : Γ ⊢s e : π) ->
+  (j2 : Γ ⊢s t1 : (π ⇒ τ)) -> -- Γ ⊢ t1 : F a => τ
   (HsValidHeadVariable π Γ.is_opent) ->
-  (j0 : Γ ⊢s e : π) ->
-  Compile e j0 e' ->
-  Compile t1 j1 t1' ->
-  (j2 : Γ ⊢s t1 : (τ β[e])) ->
-  Compile t1 j2 (t1' `@ e')
+  CompileJ .term Γ ⟨e, π; j0, e'⟩ ->
+  CompileJ .term Γ ⟨t1, (π ⇒ τ); j2, t1'⟩ ->
+  τ' = τ β[e] ->
+  (j3 : Γ ⊢s t1 : τ') ->
+  CompileJ .term Γ ⟨t1, τ'; j3, (t1' `@ e')⟩
 | appt :
-  (j0 : Γ ⊢s τ : A) ->
-  Compile τ j0 τ' ->
-  (j1 : Γ ⊢s t1 : (`∀{A}B)) -> -- Γ ⊢ t1 : ∀[A]τ
-  Compile t1 j1 t1' ->
-  (j2 : Γ ⊢s t1 : (B β[τ])) ->
-  Compile t1 j2 (t1' `@t τ')
-------------------------------------
--- Terms
------------------------------------
+  (j1 : Γ ⊢s τ : A) ->
+  (j2 : Γ ⊢s t1 : (`∀{A}B)) -> -- Γ ⊢ t1 : ∀[A]τ
+  (j3 : Γ ⊢s t1 : (B β[τ])) ->
+  CompileJ .term Γ ⟨τ, A; j1, τ'⟩ ->
+  CompileJ .term Γ ⟨t1,`∀{A}B; j2, t1'⟩ ->
+  CompileJ .term Γ ⟨t1, B β[τ]; j3, (t1' `@t τ')⟩
+
+-- ------------------------------------
+-- -- Terms
+-- -----------------------------------
 | var :
   ⊢s Γ ->
   (Γ d@ i).get_type = .some τ ->
-  (j1 : Γ ⊢s (.HsVar i) : τ) ->
-  Compile (.HsVar i) j1 (Term.var i)
+  (j : Γ ⊢s (.HsVar i) : τ) ->
+  CompileJ .term Γ ⟨(.HsVar i), τ; j, #i⟩
 | app :
   (j1 : Γ ⊢s t1 : (τ' → τ)) ->
   (j2 : Γ ⊢s t2 : τ') ->
   (j3 : Γ ⊢s (t1 `• t2) : (τ β[t2])) ->
-  Compile t1 j1 t1' ->
-  Compile t2 j2 t2' ->
-  Compile (t1 `• t2) j3 (t1' `@ t2')
+  CompileJ .term Γ ⟨t1, (τ' → τ); j1, t1'⟩ ->
+  CompileJ .term Γ ⟨t2, τ'; j2, t2'⟩ ->
+  CompileJ .term Γ ⟨(t1 `• t2), τ β[t2]; j3, (t1' `@ t2')⟩
 | lam :
-  (j0 : Γ ⊢s A : `★) ->
-  Compile A j0 A' ->
-  (j1 : (.type A :: Γ) ⊢s t1 : τ) ->
-  (j2 : Γ ⊢s (`λ{A} t1) : (A → τ)) ->
-  Compile t1 j1 t1' ->
-  Compile (`λ{A} t1) j2 (`λ[A'] t1')
+  (j1 : Γ ⊢s A : `★) ->
+  (j2 : (.type A :: Γ) ⊢s t1 : τ) ->
+  (j3 : Γ ⊢s (`λ{A} t1) : (A → τ)) ->
+  CompileJ .term Γ ⟨A, `★; j0, A'⟩ ->
+  CompileJ .term (.type A :: Γ)  ⟨t1,τ; j2, t1'⟩ ->
+  CompileJ .term Γ ⟨(`λ{A} t1), A → τ; j3, (`λ[A'] t1')⟩
 | letterm :
-  (j0 : Γ ⊢s A : `★) ->
-  Compile A j0 A' ->
-  (j1 : Γ ⊢s t1 : A) ->
-  Compile t1 j1 t1' ->
-  (j2 : (.term A t1 :: Γ) ⊢s t2 : ([S]τ)) ->
-  Compile t2 j2 t2' ->
-  (j3 : Γ ⊢s (.HsLet A t1 t2) : τ) ->
-  Compile (.HsLet A t1 t2) j3 (.letterm A' t1' t2')
+  (j1 : Γ ⊢s A : `★) ->
+  (j2 : Γ ⊢s t1 : A) ->
+  (j3 : (.term A t1 :: Γ) ⊢s t2 : ([S]τ)) ->
+  (j4 : Γ ⊢s (.HsLet A t1 t2) : τ) ->
+  CompileJ .term Γ ⟨A, `★; j1, A'⟩ ->
+  CompileJ .term Γ ⟨t1, A; j2, t1'⟩ ->
+  CompileJ .term (.term A t1 :: Γ) ⟨t2, [S]τ; j3, t2'⟩ ->
+  CompileJ .term Γ ⟨(.HsLet A t1 t2), τ; j4, (.letterm A' t1' t2')⟩
 | ite :
   (j1 : Γ ⊢s p : A) ->
   (j2 : Γ ⊢s s : R) ->
   (j3 : Γ ⊢s i : B) ->
   (j4 : Γ ⊢s e : T) ->
   (j5 : Γ ⊢s .HsIte p s i e : T) ->
-  Compile p j1 p' ->
-  Compile s j2 s' ->
-  Compile i j3 i' ->
-  Compile e j4 e' ->
-  Compile (.HsIte p s i e) j5 (.ite p' s' i' e')
+  CompileJ .term Γ ⟨p, A; j1, p'⟩ ->
+  CompileJ .term Γ ⟨s, R; j2, s'⟩ ->
+  CompileJ .term Γ ⟨i, B; j3, i'⟩ ->
+  CompileJ .term Γ ⟨e, T; j4, e'⟩ ->
+  CompileJ .term Γ ⟨(.HsIte p s i e), T; j5, (.ite p' s' i' e')⟩
 
-notation:180 " ⟅ " t:180 " ⟆ " j:180 " ⟶  " t':180 => Compile t j t'
+-- notation:180 " ⟅ " j " ⟆ " j:180 " ⟶  " t':180 => CompileJ t j t'

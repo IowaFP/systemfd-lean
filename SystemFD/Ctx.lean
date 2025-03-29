@@ -319,3 +319,45 @@ namespace Ctx
   @[simp]
   def is_lam_bound (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_lam_bound
 end Ctx
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem datatype_indexing_exists {Γ : Ctx T} :
+  (Γ d@ n).is_datatype = true ->
+  ∃ t, Γ d@ n = .datatype t := by
+intros h; unfold Frame.is_datatype at h; split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem insttype_indexing_exists {Γ : Ctx T} :
+  (Γ d@ n).is_insttype = true ->
+  ∃ t, Γ d@ n = .insttype t := by
+intros h; unfold Frame.is_insttype at h; split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem opent_indexing_exists {Γ : Ctx T} :
+  (Γ d@ n).is_opent = true ->
+  ∃ t, Γ d@ n = .opent t := by
+intros h; unfold Frame.is_opent at h; split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem indexing_uniqueness_datatype {Γ : Ctx T} :
+  (Γ d@ t).is_datatype ->
+  (Γ d@ t).is_opent -> False := by
+intro h1 h2;
+replace h1 := datatype_indexing_exists h1;
+cases h1; case _ h1 =>
+rw [h1]at h2; unfold Frame.is_opent at h2; simp at h2
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem indexing_uniqueness_opent {Γ : Ctx T} :
+  (Γ d@ t).is_opent ->
+  (Γ d@ t).is_datatype -> False := by
+intro h1 h2;
+replace h1 := opent_indexing_exists h1;
+cases h1; case _ h1 =>
+rw [h1]at h2; unfold Frame.is_datatype at h2; simp at h2

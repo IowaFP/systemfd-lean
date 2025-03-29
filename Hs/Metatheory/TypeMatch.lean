@@ -1,9 +1,9 @@
-import SystemFD.Term
-import SystemFD.Judgment
+import Hs.HsTerm
+import Hs.HsJudgment
 import SystemFD.Ctx
-import SystemFD.Metatheory.Uniqueness
 
-theorem lift_subst_rename {Γ : Ctx Term} (A : Frame Term) :
+
+theorem lift_subst_rename {Γ : Ctx HsTerm} (A : Frame HsTerm) :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n y, ^σ n = .re y -> ((A :: Γ) d@ n).apply (^σ) = (A.apply σ :: Δ) d@ y)
 := by
@@ -22,7 +22,7 @@ case _ n =>
     rw [Frame.apply_compose]; simp; rw [<-h1]
     rw [Frame.apply_compose]
 
-theorem lift_subst_stable {σ : Subst Term} (A : Frame Term) :
+theorem lift_subst_stable {σ : Subst HsTerm} (A : Frame HsTerm) :
   (∀ n, (Γ d@ n).is_stable -> ∃ y, σ n = .re y) ->
   (∀ n, ((A :: Γ) d@ n).is_stable → ∃ y, (^σ) n = .re y)
 := by
@@ -35,14 +35,14 @@ case _ n =>
   cases h1; case _ z h2 =>
     rw [h2]; simp
 
-theorem neutral_form_subst {t : Term} (σ : Subst Term) :
+theorem neutral_form_subst {t : HsTerm} (σ : Subst HsTerm) :
   (σ x = .re y) ->
   t.neutral_form = .some (x, sp) ->
   ([σ]t).neutral_form = .some (y, List.map (λ (v, l) => (v, [σ]l)) sp)
 := by
 intro h1 h2
 induction t generalizing σ y x sp
-case ctor2 v t1 t2 ih1 ih2 =>
+case HsCtor2 v t1 t2 ih1 ih2 =>
   cases v; any_goals try simp at h2
   all_goals
     case _ =>
@@ -63,10 +63,10 @@ case _ z =>
 
 theorem valid_head_variable_subst test σtest :
   (∀ n, test n -> ∃ y, σ n = .re y ∧ σtest y) ->
-  ValidHeadVariable A test ->
-  ValidHeadVariable ([σ]A) σtest
+  HsValidHeadVariable A test ->
+  HsValidHeadVariable ([σ]A) σtest
 := by
-intro q h; unfold ValidHeadVariable at *; simp at *
+intro q h; unfold HsValidHeadVariable at *; simp at *
 cases h; case _ x h =>
 cases h; case _ h1 h2 =>
 cases h1; case _ sp h1 =>
@@ -80,12 +80,12 @@ cases h1; case _ sp h1 =>
 theorem valid_ctor_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
-  ValidCtorType Γ A ->
-  ValidCtorType Δ ([σ]A)
+  ValidHsCtorType Γ A ->
+  ValidHsCtorType Δ ([σ]A)
 := by
 intro h1 h2 j
 induction j generalizing Δ σ
-case _ R Γ j =>
+case refl R Γ j =>
   constructor; apply valid_head_variable_subst Γ.is_datatype Δ.is_datatype _ j
   intro n h3
   have lem1 := Frame.is_datatype_implies_is_stable h3
@@ -95,14 +95,21 @@ case _ R Γ j =>
     rw [<-h1 n w h2, Frame.is_datatype_stable]
     simp at h3; apply h3
 case _ Γ A B j ih =>
-  simp; apply ValidCtorType.arrow
+  simp; apply ValidHsCtorType.arrow
   replace ih := @ih (^σ)
     (((Frame.empty).apply σ) :: Δ)
     (lift_subst_rename (Frame.empty) h1)
     (lift_subst_stable (Frame.empty) h2)
   simp at ih; apply ih
 case _ Γ A B j ih =>
-  simp; apply ValidCtorType.all
+  simp; apply ValidHsCtorType.farrow
+  replace ih := @ih (^σ)
+    (((Frame.empty).apply σ) :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_stable (Frame.empty) h2)
+  simp at ih; apply ih
+case _ Γ A B j ih =>
+  simp; apply ValidHsCtorType.all
   replace ih := @ih (^σ)
     (((Frame.kind A).apply σ) :: Δ)
     (lift_subst_rename (Frame.kind A) h1)
@@ -112,8 +119,8 @@ case _ Γ A B j ih =>
 theorem valid_insttype_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
-  ValidInstType Γ A ->
-  ValidInstType Δ ([σ]A)
+  ValidHsInstType Γ A ->
+  ValidHsInstType Δ ([σ]A)
 := by
 intro h1 h2 j
 induction j generalizing Δ σ
@@ -127,14 +134,22 @@ case _ R Γ j =>
     rw [<-h1 n w h2, Frame.is_opent_stable]
     simp at h3; apply h3
 case _ Γ A B j ih =>
-  simp; apply ValidInstType.arrow
+  simp; apply ValidHsInstType.arrow
   replace ih := @ih (^σ)
     (((Frame.empty).apply σ) :: Δ)
     (lift_subst_rename (Frame.empty) h1)
     (lift_subst_stable (Frame.empty) h2)
   simp at ih; apply ih
 case _ Γ A B j ih =>
-  simp; apply ValidInstType.all
+  simp; apply ValidHsInstType.farrow
+  replace ih := @ih (^σ)
+    (((Frame.empty).apply σ) :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_stable (Frame.empty) h2)
+  simp at ih; apply ih
+
+case _ Γ A B j ih =>
+  simp; apply ValidHsInstType.all
   replace ih := @ih (^σ)
     (((Frame.kind A).apply σ) :: Δ)
     (lift_subst_rename (Frame.kind A) h1)
@@ -144,8 +159,8 @@ case _ Γ A B j ih =>
 theorem stable_type_match_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
-  StableTypeMatch Γ A B ->
-  StableTypeMatch Δ ([σ]A) ([σ]B)
+  StableHsTypeMatch Γ A B ->
+  StableHsTypeMatch Δ ([σ]A) ([σ]B)
 := by
 intro h1 h2 j
 induction j generalizing Δ σ
@@ -156,6 +171,21 @@ case _ R Γ j =>
     exists w; rw [h2]; simp
     rw [<-h1 n w h2, Frame.is_stable_stable]
     simp at h3; apply h3
+case _ R Γ A B j1 j2 ih =>
+  replace ih := @ih (^σ)
+    (((Frame.empty).apply σ) :: Δ)
+    (lift_subst_rename (Frame.empty) h1)
+    (lift_subst_stable (Frame.empty) h2)
+  simp at ih;
+  simp; constructor; simp
+  case _ =>
+    apply valid_head_variable_subst Γ.is_stable Δ.is_stable _ j1
+    intro n h3; replace h2 := h2 n h3
+    cases h2; case _ w h2 =>
+      exists w; rw [h2]; simp
+      rw [<-h1 n w h2, Frame.is_stable_stable]
+      simp at h3; apply h3
+  case _ => simp; apply ih
 case _ R Γ A B j1 j2 ih =>
   replace ih := @ih (^σ)
     (((Frame.empty).apply σ) :: Δ)
@@ -189,8 +219,8 @@ case _ R Γ A B j1 j2 ih =>
 
 theorem stable_type_match_beta t :
   ¬ f.is_stable ->
-  StableTypeMatch (f :: Γ) A B ->
-  StableTypeMatch Γ (A β[t]) (B β[t])
+  StableHsTypeMatch (f :: Γ) A B ->
+  StableHsTypeMatch Γ (A β[t]) (B β[t])
 := by
 intro j1 j2
 apply stable_type_match_subst _ _ j2
@@ -207,8 +237,8 @@ case _ =>
 theorem prefix_type_match_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
-  PrefixTypeMatch Γ A B T ->
-  PrefixTypeMatch Δ ([σ]A) ([σ]B) ([σ]T)
+  PrefixHsTypeMatch Γ A B T ->
+  PrefixHsTypeMatch Δ ([σ]A) ([σ]B) ([σ]T)
 := by
 intro h1 h2 j
 induction j generalizing Δ σ
@@ -236,8 +266,8 @@ case _ Γ A B V T j ih =>
 
 theorem prefix_type_match_beta t :
   ¬ f.is_stable ->
-  PrefixTypeMatch (f :: Γ) A B T ->
-  PrefixTypeMatch Γ (A β[t]) (B β[t]) (T β[t])
+  PrefixHsTypeMatch (f :: Γ) A B T ->
+  PrefixHsTypeMatch Γ (A β[t]) (B β[t]) (T β[t])
 := by
 intro j1 j2
 apply prefix_type_match_subst _ _ j2
@@ -263,14 +293,31 @@ case _ v t1 t2 ih1 ih2 =>
     simp at ih2; apply ih2; simp at h2; rw [h2]
 
 theorem stable_type_match_refl_inversion :
-  StableTypeMatch Γ A A ->
-  ValidHeadVariable A Γ.is_stable
+  StableHsTypeMatch Γ A A ->
+  HsValidHeadVariable A Γ.is_stable
 := by
 intro j; cases j <;> simp [*]
 
+theorem no_valid_head_variable_with_all :
+  ¬ HsValidHeadVariable (`∀{A}B) test
+:= by
+intro h; unfold HsValidHeadVariable at h
+cases h; case _ x h =>
+cases h; case _ h1 h2 =>
+  simp at h1
+
+theorem no_valid_head_variable_with_arrow :
+  ¬ HsValidHeadVariable (A → B) test
+:= by
+intro h; unfold HsValidHeadVariable at h
+cases h; case _ x h =>
+cases h; case _ h1 h2 =>
+  simp at h1
+
+
 theorem prefix_type_match_forced_refl :
-  ValidHeadVariable A Γ.is_stable ->
-  PrefixTypeMatch Γ A B T ->
+  HsValidHeadVariable A Γ.is_stable ->
+  PrefixHsTypeMatch Γ A B T ->
   B = T
 := by
 intro j1 j2
@@ -283,39 +330,30 @@ case _ =>
   exfalso
   apply no_valid_head_variable_with_all j1
 
-theorem datatype_opent_distinct : ValidCtorType Γ T -> ValidInstType Γ T -> False := by
+theorem datatype_opent_distinct : ValidHsCtorType Γ T -> ValidHsInstType Γ T -> False := by
 intros vctor vit;
 cases vctor;
 case refl h1 =>
   cases vit;
   case refl h2 =>
-    unfold ValidHeadVariable at h1; unfold ValidHeadVariable at h2
+    unfold HsValidHeadVariable at h1; unfold HsValidHeadVariable at h2
     cases h1; case _ h1 =>
     cases h1; case _ tnf dt =>
     cases h2; case _ h2 =>
     cases h2; case _ tnf' ot =>
     rw[<-tnf] at tnf'; cases tnf'; simp at *;
     apply indexing_uniqueness_datatype dt ot;
-  case arrow h2 =>
+  all_goals (
+  case _ h2 =>
     cases h1;
     case _ ts h1 =>
-      cases h1; case _ nf _ => cases nf;
-  case all h2 =>
-    cases h1;
-    case _ ts h1 =>
-      cases h1; case _ nf _ => cases nf;
-case arrow h1 =>
+      cases h1; case _ nf _ => cases nf;)
+all_goals (
+  case _ h1 =>
   cases vit;
   case refl h2 =>
     cases h2;
     case _ h2 =>
     cases h2; case _ nf _ => cases nf
-  case arrow h2 =>
-    apply datatype_opent_distinct h1 h2
-case all h1 =>
-  cases vit;
-  case refl h2 =>
-    cases h2; case _ h2 =>
-    cases h2; case _ nf _ => cases nf
-  case all h2 =>
-    apply datatype_opent_distinct h1 h2
+  case _ h2 =>
+    apply datatype_opent_distinct h1 h2)
