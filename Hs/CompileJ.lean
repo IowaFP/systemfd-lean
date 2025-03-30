@@ -2,13 +2,15 @@ import Hs.HsJudgment
 
 set_option maxHeartbeats 500000
 
-inductive CompileVariant where
-| term | ctx
+inductive CompileVariant where -- what i am compiling?
+| kind | type | term | ctx
 
 @[simp]
 abbrev CompileJArgs : CompileVariant -> Ctx HsTerm -> Type
 | .ctx => λ _ => Ctx Term
 | .term => λ Γ => ((w : (HsTerm × HsTerm)) × Γ ⊢s w.fst : w.snd) × Term
+| .kind => λ Γ => ((w : (HsTerm × HsTerm)) × Γ ⊢s w.fst : w.snd) × Term
+| .type => λ Γ => ((w : (HsTerm × HsTerm)) × Γ ⊢s w.fst : w.snd) × Term
 
 notation "⟨ " t "," τ ";" j "," t' "⟩" => (Sigma.mk (t, τ) j , t')
 
@@ -22,61 +24,65 @@ inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v
   CompileJ .ctx (.empty :: Γ) (.empty :: Γ')
 | wftype :
   (j : Γ ⊢s A : `★) ->
-  CompileJ .term Γ (⟨A, `★; j, A'⟩) ->
+  CompileJ .type Γ (⟨A, `★; j, A'⟩) ->
+  CompileJ .ctx Γ Γ' ->
   CompileJ .ctx (.type A :: Γ) (.type A' :: Γ')
 | wfkind :
   (j : Γ ⊢s A : `□) ->
-  CompileJ .term Γ (⟨A, `□; j, A'⟩) ->
+  CompileJ .kind Γ (⟨A, `□; j, A'⟩) ->
+  CompileJ .ctx Γ Γ' ->
   CompileJ .ctx (.kind A :: Γ) (.kind A' :: Γ')
 | wfdatatype :
   (j : Γ ⊢s A : `□) ->
-  CompileJ .term Γ (⟨A, `□; j, A'⟩) ->
+  CompileJ .kind Γ ⟨A, `□; j, A'⟩ ->
+  CompileJ .ctx Γ Γ' ->
   CompileJ .ctx (.datatype A :: Γ) (.datatype A' :: Γ')
 | wfctor :
   (j : Γ ⊢s A : `★) ->
-  CompileJ .term Γ (⟨A, `★; j, A'⟩) ->
+  CompileJ .type Γ ⟨A, `★; j, A'⟩ ->
+  CompileJ .ctx Γ Γ' ->
   CompileJ .ctx (.ctor A :: Γ) (.ctor A' :: Γ')
 | wfterm :
   (j1 : Γ ⊢s A : `★) ->
   (j2 : Γ ⊢s t1 : A) ->
-  CompileJ .term Γ (⟨A, `★; j1, A'⟩) ->
+  CompileJ .type Γ (⟨A, `★; j1, A'⟩) ->
   CompileJ .term Γ (⟨t1, A; j2, t1'⟩) ->
+  CompileJ .ctx Γ Γ' ->
   CompileJ .ctx (.term A t1 :: Γ) (.term A' t1' :: Γ')
-
 ------------------------------------
 -- Types and kinds
 -----------------------------------
 | type :
   (wf : ⊢s Γ) ->
-  CompileJ .term Γ (⟨`★, `□; HsJudgment.ax wf , ★⟩)
+  CompileJ .kind Γ (⟨`★, `□; HsJudgment.ax wf , ★⟩)
 | arrowk :
   (j1 : Γ ⊢s κ1 : `□) ->
   (j2 : Γ ⊢s κ2 : `□) ->
   (j3 : Γ ⊢s (κ1 `-k> κ2) : `□) ->
-  CompileJ .term Γ ⟨κ1, `□ ; j1 , κ1'⟩ ->
-  CompileJ .term Γ ⟨κ2, `□ ; j2 , κ2'⟩ ->
-  CompileJ .term Γ ⟨(κ1 `-k> κ2), `□; j3, (κ1' -k> κ2')⟩
+  CompileJ .kind Γ ⟨κ1, `□ ; j1 , κ1'⟩ ->
+  CompileJ .kind Γ ⟨κ2, `□ ; j2 , κ2'⟩ ->
+  CompileJ .kind Γ ⟨(κ1 `-k> κ2), `□; j3, (κ1' -k> κ2')⟩
 | appk :
   (j1 : Γ ⊢s A : (κ1 `-k> κ2)) ->
   (j2 : Γ ⊢s B : κ1) ->
   (j3 : Γ ⊢s (A `•k B) : κ2) ->
-  CompileJ .term Γ ⟨A, (κ1 `-k> κ2) ; j1 , A'⟩ ->
-  CompileJ .term Γ ⟨B,  κ1; j2 , B'⟩ ->
-  CompileJ .term Γ ⟨(A `•k B), κ2 ; j3 , (A' `@k B')⟩
+  CompileJ .kind Γ ⟨A, (κ1 `-k> κ2) ; j1 , A'⟩ ->
+  CompileJ .kind Γ ⟨B,  κ1; j2 , B'⟩ ->
+  CompileJ .kind Γ ⟨(A `•k B), κ2 ; j3 , (A' `@k B')⟩
 | arrow :
   (j1 : Γ ⊢s A : `★) ->
   (j2 : (.empty :: Γ) ⊢s B : `★) ->
   (j3 : Γ ⊢s (A → B) : `★) ->
-  CompileJ .term Γ ⟨A, `★ ; j1 , A'⟩ ->
-  CompileJ .term (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
-  CompileJ .term Γ ⟨(A → B), `★; j3, (A' -t> B')⟩
+  CompileJ .type Γ ⟨A, `★ ; j1 , A'⟩ ->
+  CompileJ .type (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
+  CompileJ .type Γ ⟨(A → B), `★; j3, (A' -t> B')⟩
 | farrow :
   (j1 : Γ ⊢s A : `★) ->
   (j2 : (.empty :: Γ) ⊢s B : `★) ->
   (j3 : Γ ⊢s (A ⇒ B) : `★) ->
-  CompileJ .term Γ ⟨A, `★ ; j1 , A'⟩ ->
-  CompileJ .term (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
-  CompileJ .term Γ ⟨(A ⇒ B), `★; j3, (A' -t> B')⟩
+  CompileJ .type Γ ⟨A, `★ ; j1 , A'⟩ ->
+  CompileJ .type (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
+  CompileJ .type Γ ⟨(A ⇒ B), `★; j3, (A' -t> B')⟩
 
 -- ------------------------------------
 -- -- Implicits
