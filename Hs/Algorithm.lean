@@ -54,23 +54,20 @@ def compile (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢s t : τ -> Opt
 ----------------------------------------
 --- Implicit
 --------------------------------------
-| @HsJudgment.implicitAllE _ _ _ _ _ _ _  => .none
-  -- let t1 <- (compile Γ t _ j1)
-  -- let t2 <- (compile Γ e _ j2)
-  -- .some (t1 `@t t2)
-| @HsJudgment.implicitAllI Γ A t τ j1 j2 j3 => .none
-  -- do
-  -- let j1' := HsJudgment.implicitAllI j1 j2 j3
-  -- let t' <- compile Γ t (`∀{A}τ) j1'
-  -- .some t'
-| @HsJudgment.implicitArrI Γ π t τ e j1 j2 j3 j4 => .none  -- do
-  -- let j1' : Γ ⊢s (π ⇒ τ) : `★ := HsJudgment.farrow j1 j2 sorry
-  -- let j2' : Γ ⊢s t : (π ⇒ τ) := HsJudgment.lam j1 j2 j1'
-  -- let π' <- compile Γ π `★ j1
-  -- let t' <- compile Γ t (π ⇒ τ) j2'
-  -- .some (`λ[π'] t')
+| @HsJudgment.implicitAllE Γ t A τ e j1 j2  => do
+  let t1 <- (compile Γ t (`∀{A}τ) j1)
+  let t2 <- (compile Γ e A j2)
+  .some (t1 `@t t2)
+| @HsJudgment.implicitAllI Γ A t τ j1 j2 j3 => do
+  let t' <- compile (.kind A :: Γ) t τ j1
+  let A' <- compile Γ A `□ j2
+  .some (∀[A']t')
+| @HsJudgment.implicitArrI Γ π t τ _ j1 j2 j3 j4 => do
+  let π' <- compile Γ π `★ j1
+  let t' <- compile (.empty :: Γ) t τ j3
+  .some (`λ[π'] t')
 | @HsJudgment.implicitArrE Γ t π τ e j1 j2 => do
-  -- let t' <- compile Γ t (π ⇒ τ) j1
-  -- let e' <- compile Γ e π j2
-  -- .some (t' `@ e')
-  .none
+  let t' <- compile Γ t (π ⇒ τ) j1
+  let e' <- compile Γ e π j2
+  .some (t' `@ e')
+termination_by h => h.size

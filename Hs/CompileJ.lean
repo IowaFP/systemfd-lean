@@ -54,6 +54,7 @@ inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v
 -----------------------------------
 | type :
   (wf : ⊢s Γ) ->
+  CompileJ .ctx Γ Γ' ->
   CompileJ .kind Γ (⟨`★, `□; HsJudgment.ax wf , ★⟩)
 | arrowk :
   (j1 : Γ ⊢s κ1 : `□) ->
@@ -66,9 +67,12 @@ inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v
   (j1 : Γ ⊢s A : (κ1 `-k> κ2)) ->
   (j2 : Γ ⊢s B : κ1) ->
   (j3 : Γ ⊢s (A `•k B) : κ2) ->
-  CompileJ .kind Γ ⟨A, (κ1 `-k> κ2) ; j1 , A'⟩ ->
-  CompileJ .kind Γ ⟨B,  κ1; j2 , B'⟩ ->
-  CompileJ .kind Γ ⟨(A `•k B), κ2 ; j3 , (A' `@k B')⟩
+  (jk1 : Γ ⊢s (κ1 `-k> κ2): `□) ->
+  CompileJ .kind Γ ⟨κ1 `-k> κ2, `□; jk1, κ1' -k> κ2'⟩ ->
+  CompileJ .kind Γ ⟨κ2, `□; jk2, κ2'⟩ ->
+  CompileJ .type Γ ⟨A, (κ1 `-k> κ2) ; j1 , A'⟩ ->
+  CompileJ .type Γ ⟨B,  κ1; j2 , B'⟩ ->
+  CompileJ .type Γ ⟨(A `•k B), κ2 ; j3 , (A' `@k B')⟩
 | arrow :
   (j1 : Γ ⊢s A : `★) ->
   (j2 : (.empty :: Γ) ⊢s B : `★) ->

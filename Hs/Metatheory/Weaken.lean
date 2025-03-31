@@ -30,9 +30,9 @@ def rename (r : Ren) : (v : JudgmentVariant) -> {idx : HsJudgmentArgs v} ->
   (∀ x, (Γ d@ x).apply r.to = Δ d@ (r x)) ->
   HsJudgment v Δ (idx_ren r idx)
 | .prf, (t, τ) , j, wf, f => match j with
-  | .implicitAllI h1 h2 => .implicitAllI sorry (rename r .prf h2 wf f)
+  | .implicitAllI h1 h2 h3 => .implicitAllI sorry (rename r .prf h2 wf f) sorry
   | .implicitAllE h1 h2 => sorry
-  | .implicitArrI h1 h2 h3 => .implicitArrI (rename r .prf h1 wf f) sorry (rename r .prf h3 wf f)
+  | .implicitArrI h1 h2 h3 h4 => sorry -- .implicitArrI (rename r .prf h1 wf f) sorry sorry sorry
   | .implicitArrE h1 h2 => sorry
   | .ax wf' => .ax wf
   | .arrowk h1 h2 => .arrowk (rename r .prf h1 wf f) (rename r .prf h2 wf f)
@@ -44,7 +44,8 @@ def rename (r : Ren) : (v : JudgmentVariant) -> {idx : HsJudgmentArgs v} ->
     .arrow (rename r .prf h1 wf f) sorry
            -- (by have h' := rename r .prf h2 (.wfempty wf) (rename_lift r .empty f); rw[Subst.lift_lemma]; sorry)
            -- (rename r .prf h2 (by sorry) (by sorry))
-
+  | .farrow h1 h3 h2  =>
+    .farrow (rename r .prf h1 wf f) sorry sorry
   | @HsJudgment.var Γ x T wf' h => .var wf (by
     have e := f x; unfold Frame.get_type at h;
     split at h;
