@@ -21,12 +21,12 @@ theorem compile_soundness_kinds :
   τ = `□ ->
   (j : Γ ⊢s t : τ) ->
   compile Γ t τ j = .some t' ->
-  CompileKind t t' := by
+  CompileJ .kind Γ ⟨t, τ; j, t'⟩ := by
 intro h e j c;
 induction Γ, t, τ, j using compile.induct generalizing t'
 case _ =>
   unfold compile at c; cases c;
-  apply CompileKind.type;
+  apply CompileJ.type;
 case _ j1 j2 ih1 ih2 =>
   unfold compile at c; simp at c;
   rw[Option.bind_eq_some] at c;
@@ -37,7 +37,7 @@ case _ j1 j2 ih1 ih2 =>
   cases c2; case _ c2 t3 =>
   cases t3; cases h;
   case _ h1 h2 =>
-  apply CompileKind.arrowk;
+  apply CompileJ.arrowk;
   apply ih1 h1 rfl c1;
   apply ih2 h2 rfl c2;
 all_goals (cases h)
