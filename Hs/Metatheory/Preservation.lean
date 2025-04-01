@@ -1,42 +1,87 @@
 import Hs.CompileJ
+import Hs.Metatheory.Weaken
+
+inductive HsKindLike : HsTerm -> Term -> Prop
+| HsType : HsKindLike `★ ★
+| HsArrk : HsKindLike k1 k1' -> HsKindLike k2 k2' -> HsKindLike (k1 `-k> k2) (k1' -k> k2')
 
 @[simp]
-abbrev HsKindLike : HsTerm -> Term -> Prop
-| k1 `-k> k2 , k1' -k> k2' => HsKindLike k1 k1' ∧ HsKindLike k2 k2'
-| `★, ★ => true
-| _, _ => false
+abbrev CompilePreservesKinds : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> (CompileJArgs v Γ) -> Prop
+| .kind => λ Γ => λ ⟨k, ki ; j , k'⟩ =>
+  CompileJ .kind Γ ⟨k, ki; j, k'⟩ ->
+  HsKindLike k k'
+| _ => λ _ => λ _ => true
+
+theorem compile_preserves_kinds_lemma :
+  CompileJ v Γ idx ->
+  CompilePreservesKinds v Γ idx := by
+intro j; induction j <;> simp at *;
+case _ =>
+ intro j; apply HsKindLike.HsType;
+case _ h1 h2 ih1 ih2=>
+  intro j;
+  apply HsKindLike.HsArrk;
+  apply ih1 h1;
+  apply ih2 h2;
+
+theorem compile_preserves_kind_shape :
+  (j : Γ ⊢s k : `□) ->
+  CompileJ .kind Γ ⟨k, `□; j, k'⟩ ->
+  HsKindLike k k' := by
+intro j cj;
+have lem := compile_preserves_kinds_lemma cj; simp at lem;
+apply lem cj;
+
+inductive HsTypeLike : Ctx HsTerm -> HsTerm -> Term -> Prop
+| HsArrow : HsTypeLike Γ t1 t1' -> HsTypeLike (.empty :: Γ) t2 t2' -> HsTypeLike Γ (t1 → t2) (t1' -t> t2')
+| HsFArrow : HsTypeLike Γ t1 t1' -> HsTypeLike (.empty :: Γ) t2 t2' -> HsTypeLike Γ (t1 ⇒ t2) (t1' -t> t2')
+| HsAll : HsTypeLike (.kind A :: Γ) t t' -> HsKindLike A A' -> HsTypeLike Γ (`∀{A} t) (∀[A']t')
+| HsAppk : HsTypeLike Γ t1 t1' -> HsTypeLike Γ t2 t2' -> HsTypeLike Γ (t1 `•k t2) (t1' `@k t2')
 
 @[simp]
-abbrev KindLike : Term -> Prop
-| _ -k> _ => true
-| ★ => true
-| _ => false
+abbrev  CompilePreservesTypes : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v Γ -> Prop
+| .type => λ Γ => λ ⟨τ, k; j, τ'⟩ =>
+  CompileJ .type Γ ⟨τ, k; j, τ'⟩ ->
+  HsTypeLike Γ τ τ'
+| _ => λ _ => λ _ => true
 
-@[simp]
-abbrev HsTypeLike (Γ : Ctx HsTerm) : HsTerm -> Prop
-| .HsBind2 .arrow _ _ => true
-| .HsBind2 .all _ _ => true
-| `# x => (Γ d@ x).is_datatype
-| _ => false
-
+theorem compile_preserves_type_shape :
+  CompileJ v Γ idx ->
+  CompilePreservesTypes v Γ idx := by
+intro j; induction j <;> simp at *;
+case _ h1 h2 ih1 ih2 _ _ =>
+  intro j;
+  apply HsTypeLike.HsAppk;
+  apply ih1 h1
+  apply ih2 h2
+case _ h1 h2 ih1 ih2 =>
+  intro j;
+  apply HsTypeLike.HsArrow;
+  apply ih1 h1
+  apply ih2 h2
+case _ h1 h2 ih1 ih2 =>
+  intro j;
+  apply HsTypeLike.HsFArrow;
+  apply ih1 h1
+  apply ih2 h2
 
 -- needs some sort of classification lemma?
 @[simp]
 abbrev CompileCtxWfType : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> (CompileJArgs v Γ) -> Prop
-| .term => λ Γ => λ ⟨t , τ ; j , t'⟩ => ∀ Γ' τ',
+| .term => λ Γ => λ ⟨t , τ; j , t'⟩ => ∀ Γ' τ',
   CompileJ .ctx Γ Γ' ->
   CompileJ .term Γ ⟨t, τ; j, t'⟩ ->
   (jk : Γ ⊢s τ : `★) ->
   CompileJ .type Γ ⟨τ, `★; jk, τ'⟩ ->
   (Γ' ⊢ t' : τ')
-| .type => λ Γ => λ ⟨τ , k ; j , τ'⟩ => ∀ Γ' k',
+| .type => λ Γ => λ ⟨τ , k; j , τ'⟩ => ∀ Γ' k',
   CompileJ .ctx Γ Γ' ->
   HsKindLike k k' ->
   (jk : Γ ⊢s k : `□) ->
   CompileJ .kind Γ ⟨k, `□; jk, k'⟩ ->
   CompileJ .type Γ ⟨τ, k; j, τ'⟩ ->
   (Γ' ⊢ τ' : k')
-| .kind => λ Γ => λ ⟨k , ki ; j , k'⟩ => ∀ Γ',
+| .kind => λ Γ => λ ⟨k, ki ; j , k'⟩ => ∀ Γ',
   ki = `□ ->
   CompileJ .ctx Γ Γ' ->
   CompileJ .kind Γ ⟨k, ki; j, k'⟩ ->
@@ -59,8 +104,6 @@ case _ => sorry
 case _ => sorry
 case _ => sorry
 
-
-
 theorem compile_preserves_typing :
  CompileJ v Γ idx -> CompileCtxWfType v Γ idx :=
 by
@@ -77,13 +120,13 @@ case _  Γ' j c1 c2 ih1 ih2 =>
   case _ cc wf _ =>
   apply Judgment.wftype;
   have ih1' := ih1 Γ' ★ c2; simp at ih1';
-  have ih1'' := ih1' (HsJudgment.ax wf) (CompileJ.type wf cc) c1;
+  have ih1'' := ih1' .HsType (HsJudgment.ax wf) (CompileJ.type _) c1;
   assumption
   apply ih2 wf c2;
 case _ Γ' j1 c1 c2 ih1 ih2 =>
   intro wf cc
   cases cc; cases wf;
-  case _ cc wf _ =>
+  case _ c3 cc wf _ =>
   apply Judgment.wfkind;
   apply ih2 Γ' c2 c1
   apply ih1 wf c2
@@ -100,7 +143,7 @@ case _ Γ' j1 c1 c2 ih1 ih2 =>
   case _ cc wf _ j4 =>
   apply Judgment.wfctor;
   have ih1' := ih1 Γ' ★; simp at ih1';
-  have ih1'' := ih1' cc (HsJudgment.ax wf) (CompileJ.type wf cc) c1;
+  have ih1'' := ih1' cc .HsType (HsJudgment.ax wf) (CompileJ.type _) c1;
   assumption;
   apply ih2 wf c2
   apply compile_preserves_validctors j1 j4 c2 c1;
@@ -110,31 +153,42 @@ case _ A' _ Γ' j1 j2 c1 c2 c3 ih1 ih2 ih3 =>
   case _ cc wf _ _ =>
   apply Judgment.wfterm;
   have ih1' := ih1 Γ' ★; simp at ih1';
-  have ih1'' := ih1' cc (HsJudgment.ax wf) (CompileJ.type wf cc) c1; assumption
+  have ih1'' := ih1' cc .HsType (HsJudgment.ax wf) (CompileJ.type _) c1; assumption
   have ih2' := ih2 Γ' A' c3 c2 j1 c1; assumption;
   apply ih3 wf c3
-case _ wf cc ih =>
+case _ wf =>
   intro Γ' cc cc'
+  cases cc';
   apply Judgment.ax;
   sorry
 
 case _ j1 j2 j3 c1 c2 ih1 ih2 =>
-  intro Γ' cc cc'
+  intro Γ' cc cc';
   apply Judgment.allk
   apply ih1 Γ' cc c1
   apply ih2 Γ' cc c2
-case _ κ1' κ2' _ _ _ _ _ jk1 jk2 ck1 ck2 c1 c2 ihk1 ihk2 ih1 ih2 =>
+case _ κ1' κ2' jk2 _ _ _ _ j1 jk1 ck1 ck2 c1 c2 ihk1 ihk2 ih1 ih2 =>
   intro Γ' k' cc h1 h2 jk2' cc'; -- k' = κ2'
-  have ihk1' := ihk1 Γ' (κ1' -k> κ2') cc; simp at ihk1';
-  have ihk2' := ihk2 Γ' (k') cc; simp at ihk2';
+  cases ck1; case _ j1' j2' jk1' jk2' =>
+  replace ihk2 := ihk2 Γ' κ1' cc (compile_preserves_kind_shape j1' jk1') j1' jk1' c2;
+  have ihk1'  := ihk1 Γ' (κ1' -k> k') cc sorry;
+  -- have ihk1'' := ihk1' sorry sorry sorry ck1 c1;
   -- have ih1' := ih1 Γ' (κ1' -k> k'); simp at ih1';
   -- have ih1'' := ih1' cc (HsJudgment.arrowk jk1 jk2);
   -- have ih2' := ih2 Γ' κ1'; simp at ih2';
   apply Judgment.appk;
   case _ => sorry
-  case _ => sorry
-  apply κ1'
-case _ => sorry
+  case _ => apply ihk2;
+
+case _ j1 j2 j3 h1 h2 ih1 ih2 =>
+  intro Γ' k' cc kl; cases kl;
+  intro jk ck ct;
+  apply Judgment.arrow;
+  apply ih1 Γ' ★ cc .HsType jk ck h1;
+  have wax := hs_weaken_empty jk
+  apply ih2 (.empty :: Γ') ★ (.wfempty cc) .HsType wax _ h2
+  case _ =>
+  sorry
 case _ => sorry
 case _ => sorry
 case _ => sorry

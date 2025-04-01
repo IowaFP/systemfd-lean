@@ -97,24 +97,6 @@ inductive HsJudgment : (v : JudgmentVariant) -> Ctx HsTerm -> HsJudgmentArgs v -
   HsJudgment .wf Γ () ->
   ValidHsCtorType Γ A ->
   HsJudgment .wf (.ctor A::Γ) ()
--- | wfopent :
---   HsJudgment .prf Γ (A, `□) ->
---   HsJudgment .wf Γ () ->
---   HsJudgment .wf (.opent A::Γ) ()
--- | wfopenm :
---   HsJudgment .prf Γ (A, `★) ->
---   HsJudgment .wf Γ () ->
---   HsJudgment .wf (.openm A::Γ) ()
--- | wfinsttype :
---   HsJudgment .prf Γ (A, `★) ->
---   HsJudgment .wf Γ () ->
---   ValidHsInstType Γ A ->
---   HsJudgment .wf (.insttype A::Γ) ()
--- | wfinst :
---   .openm T = Γ d@ x ->
---   HsJudgment .prf Γ (t, T) ->
---   HsJudgment .wf Γ () ->
---   HsJudgment .wf (.inst `#x t::Γ) ()
 | wfterm :
   HsJudgment .prf Γ (A, `★) ->
   HsJudgment .prf Γ (t, A) ->
@@ -126,6 +108,7 @@ inductive HsJudgment : (v : JudgmentVariant) -> Ctx HsTerm -> HsJudgmentArgs v -
 -----------------------------------
 | implicitArrI :
   HsJudgment .prf Γ (π, `★) ->
+  HsJudgment .prf (.empty::Γ) (τ, `★) ->
   HsValidHeadVariable π Γ.is_opent ->
   HsJudgment .prf (.empty :: Γ) (t, τ) ->
   HsJudgment .prf Γ (e, π) ->
@@ -216,7 +199,7 @@ def hs_judgment_ctx_wf : (v : JudgmentVariant) -> {idx : HsJudgmentArgs v} -> Hs
 | .prf , _ , x => match x with
   | .implicitAllI _ h2 _ => hs_judgment_ctx_wf .prf h2
   | .implicitAllE h1 _ => hs_judgment_ctx_wf .prf h1
-  | .implicitArrI h1 _ _ _ => hs_judgment_ctx_wf .prf h1
+  | .implicitArrI h1 _ _ _ _ => hs_judgment_ctx_wf .prf h1
   | .implicitArrE h1 _ => hs_judgment_ctx_wf .prf h1
   | .ax h => h
   | .arrowk h _ => hs_judgment_ctx_wf .prf h
@@ -241,7 +224,7 @@ namespace HsJudgment
  | .wfdatatype h1 h2 => 1 + size h1 + size h2
  | .wfctor h1 h2 _ => 1 + size h1 + size h2
  | .wfterm h1 h2 h3 => 1 + size h1 + size h2 + size h3
- | .implicitArrI h1 _ h2 h3 => 1 + size h1 + size h2 + size h3
+ | .implicitArrI h1 h2 _ h3 h4 => 1 + size h1 + size h2 + size h3  + size h4
  | .implicitArrE h1 h2 => 1 + size h1 + size h2
  | .implicitAllI h1 h2 h3 => 1 + size h1 + size h2 + size h2
  | .implicitAllE h1 h2 => 1 + size h1 + size h2

@@ -62,9 +62,9 @@ def compile (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢s t : τ -> Opt
   let t' <- compile (.kind A :: Γ) t τ j1
   let A' <- compile Γ A `□ j2
   .some (∀[A']t')
-| @HsJudgment.implicitArrI Γ π t τ _ j1 j2 j3 j4 => do
+| @HsJudgment.implicitArrI Γ π τ t _ j1 _ j3 j4 j5 => do
   let π' <- compile Γ π `★ j1
-  let t' <- compile (.empty :: Γ) t τ j3
+  let t' <- compile (.empty :: Γ) t τ j4
   .some (`λ[π'] t')
 | @HsJudgment.implicitArrE Γ t π τ e j1 j2 => do
   let t' <- compile Γ t (π ⇒ τ) j1

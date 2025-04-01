@@ -2,6 +2,42 @@ import Hs.HsJudgment
 
 set_option maxHeartbeats 500000
 
+inductive CompileKind : HsTerm -> Term -> Prop where
+| type :
+  CompileKind `★ ★
+| arrowk :
+  CompileKind κ1 κ1' ->
+  CompileKind κ2 κ2' ->
+  CompileKind (κ1 `-k> κ2) (κ1' -k> κ2')
+
+-- inductive CompileType : HsTerm -> Term -> Type where
+-- | appk :
+--   CompileKind (κ1 `-k> κ2) (κ1' -k> κ2') ->
+--   CompileKind κ2 κ2' ->
+--   CompileType A A' ->
+--   CompileType B B' ->
+--   CompileType (A `•k B) (A' `@k B')
+-- | arrow :
+--   (j1 : Γ ⊢s A : `★) ->
+--   (j2 : (.empty :: Γ) ⊢s B : `★) ->
+--   (j3 : Γ ⊢s (A → B) : `★) ->
+--   CompileJ .type Γ ⟨A, `★ ; j1 , A'⟩ ->
+--   CompileJ .type (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
+--   CompileJ .type Γ ⟨(A → B), `★; j3, (A' -t> B')⟩
+-- | farrow :
+--   (j1 : Γ ⊢s A : `★) ->
+--   (j2 : (.empty :: Γ) ⊢s B : `★) ->
+--   (j3 : Γ ⊢s (A ⇒ B) : `★) ->
+--   CompileJ .type Γ ⟨A, `★ ; j1 , A'⟩ ->
+--   CompileJ .type (.empty :: Γ) ⟨B, `★ ; j2 , B'⟩ ->
+--   CompileJ .type Γ ⟨(A ⇒ B), `★; j3, (A' -t> B')⟩
+
+
+
+
+
+
+
 inductive CompileVariant where -- what i am compiling?
 | kind | type | term | ctx
 
@@ -29,7 +65,7 @@ inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v
   CompileJ .ctx (.type A :: Γ) (.type A' :: Γ')
 | wfkind :
   (j : Γ ⊢s A : `□) ->
-  CompileJ .kind Γ (⟨A, `□; j, A'⟩) ->
+  CompileJ .kind Γ ⟨A, `□; j, A'⟩ ->
   CompileJ .ctx Γ Γ' ->
   CompileJ .ctx (.kind A :: Γ) (.kind A' :: Γ')
 | wfdatatype :
@@ -45,17 +81,16 @@ inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v
 | wfterm :
   (j1 : Γ ⊢s A : `★) ->
   (j2 : Γ ⊢s t1 : A) ->
-  CompileJ .type Γ (⟨A, `★; j1, A'⟩) ->
-  CompileJ .term Γ (⟨t1, A; j2, t1'⟩) ->
+  CompileJ .type Γ ⟨A, `★; j1, A'⟩ ->
+  CompileJ .term Γ ⟨t1, A; j2, t1'⟩ ->
   CompileJ .ctx Γ Γ' ->
   CompileJ .ctx (.term A t1 :: Γ) (.term A' t1' :: Γ')
 ------------------------------------
 -- Types and kinds
 -----------------------------------
 | type :
-  (wf : ⊢s Γ) ->
-  CompileJ .ctx Γ Γ' ->
-  CompileJ .kind Γ (⟨`★, `□; HsJudgment.ax wf , ★⟩)
+  (j : Γ ⊢s `★ : `□) ->
+  CompileJ .kind Γ ⟨`★, `□; j, ★⟩
 | arrowk :
   (j1 : Γ ⊢s κ1 : `□) ->
   (j2 : Γ ⊢s κ2 : `□) ->
@@ -72,7 +107,7 @@ inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v
   CompileJ .kind Γ ⟨κ2, `□; jk2, κ2'⟩ ->
   CompileJ .type Γ ⟨A, (κ1 `-k> κ2) ; j1 , A'⟩ ->
   CompileJ .type Γ ⟨B,  κ1; j2 , B'⟩ ->
-  CompileJ .type Γ ⟨(A `•k B), κ2 ; j3 , (A' `@k B')⟩
+  CompileJ .type Γ ⟨(A `•k B), κ2; j3, (A' `@k B')⟩
 | arrow :
   (j1 : Γ ⊢s A : `★) ->
   (j2 : (.empty :: Γ) ⊢s B : `★) ->

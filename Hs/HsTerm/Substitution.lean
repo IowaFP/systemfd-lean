@@ -177,7 +177,7 @@ namespace HsTerm
   := by simp
 
   @[simp]
-  theorem subst_HsKind : [σ]HsKind = HsKind := by unfold Subst.apply; simp
+  theorem subst_HsKind : [σ]`□ = `□ := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_const : [σ]HsType = HsType := by unfold Subst.apply; simp
