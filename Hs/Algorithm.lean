@@ -40,7 +40,7 @@ def compile (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢s t : τ -> Opt
   let t1' <- compile Γ t1 (A → B) j1
   let t2' <- compile Γ t2 A j2
   .some (t1' `@ t2')
-| @HsJudgment.hslet Γ A t1 t2 B _ j1 j2 j3 j4 => do
+| @HsJudgment.hslet Γ A t1 t2 B j1 j2 j3 j4 => do
   let A' <- compile Γ  A `★ j1
   let t1' <- compile Γ t1 A j2
   let t2' <- compile (.term A t1 :: Γ) t2 ([S]B) j3
@@ -51,6 +51,7 @@ def compile (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢s t : τ -> Opt
   let i' <- compile Γ i B j3
   let t' <- compile Γ t T j4
   .some (.ite p' s' i' t')
+
 ----------------------------------------
 --- Implicit
 --------------------------------------

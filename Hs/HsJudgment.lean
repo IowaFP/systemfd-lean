@@ -176,7 +176,7 @@ inductive HsJudgment : (v : JudgmentVariant) -> Ctx HsTerm -> HsJudgmentArgs v -
   HsJudgment .prf Γ (A, `★) ->
   HsJudgment .prf Γ (t1,  A) ->
   HsJudgment .prf (.term A t1 :: Γ) (t2, [S] B) ->
-  HsJudgment .prf Γ (T, `★) ->
+  HsJudgment .prf Γ (B, `★) ->
   HsJudgment .prf Γ (.HsLet A t1 t2,  B)
 | hsIte :
   HsJudgment .prf Γ (t1, A) ->
