@@ -30,9 +30,9 @@ def hs_rename (r : Ren) : (v : JudgmentVariant) -> {idx : HsJudgmentArgs v} ->
   (∀ x, (Γ d@ x).apply r.to = Δ d@ (r x)) ->
   HsJudgment v Δ (hs_idx_ren r idx)
 | .prf, (t, τ) , j, wf, f => match j with
-  | .implicitAllI h1 h2 h3 => .implicitAllI sorry (hs_rename r .prf h2 wf f) sorry
+  | .implicitAllI h1 h2 h3 => sorry
   | .implicitAllE h1 h2 => sorry
-  | .implicitArrI h1 h2 h3 h4 h5 => sorry -- .implicitArrI (hs_rename r .prf h1 wf f) sorry sorry sorry
+  | .implicitArrI h1 h2 h3 h4 => sorry -- .implicitArrI (hs_rename r .prf h1 wf f) sorry sorry sorry
   | .implicitArrE h1 h2 => sorry
   | .ax wf' => .ax wf
   | .arrowk h1 h2 => .arrowk (hs_rename r .prf h1 wf f) (hs_rename r .prf h2 wf f)

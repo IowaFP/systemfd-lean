@@ -120,10 +120,10 @@ inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v
 | lamt :
   (j1 : Γ ⊢s A : `□) ->
   (j2 : Γ ⊢s (`∀{A}τ) : `★) ->
-  (j3 : Γ ⊢s t1 : (`∀{A}τ)) ->
+  (j3 : Γ ⊢s t : (`∀{A}τ)) ->
   CompileJ .kind Γ ⟨A, `□; j1, A'⟩ ->
-  CompileJ .type Γ ⟨`∀{A}τ, `★; j2, ∀[A']τ' ⟩ ->
-  CompileJ .term Γ ⟨t1, `∀{A}τ; j3, ∀[A']τ'⟩
+  CompileJ .type Γ ⟨`∀{A}τ, `★; j2, ∀[A']τ'⟩ ->
+  CompileJ .term Γ ⟨t, `∀{A}τ; j3, Λ[A']t'⟩
 
 -- ------------------------------------
 -- -- Terms

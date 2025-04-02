@@ -54,7 +54,7 @@ def compile (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢s t : τ -> Opt
 
 ----------------------------------------
 --- Implicit
---------------------------------------
+----------------------------------------
 | @HsJudgment.implicitAllE Γ t A τ e j1 j2  => do
   let t1 <- (compile Γ t (`∀{A}τ) j1)
   let t2 <- (compile Γ e A j2)
@@ -62,13 +62,23 @@ def compile (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢s t : τ -> Opt
 | @HsJudgment.implicitAllI Γ A t τ j1 j2 j3 => do
   let t' <- compile (.kind A :: Γ) t τ j1
   let A' <- compile Γ A `□ j2
-  .some (∀[A']t')
-| @HsJudgment.implicitArrI Γ π τ t _ j1 _ j3 j4 j5 => do
+  .some (Λ[A']t')
+| @HsJudgment.implicitArrI Γ π τ t j1 j2 _ j3 => do
   let π' <- compile Γ π `★ j1
-  let t' <- compile (.empty :: Γ) t τ j4
+  let t' <- compile (.type π :: Γ) t τ j3
   .some (`λ[π'] t')
 | @HsJudgment.implicitArrE Γ t π τ e j1 j2 => do
   let t' <- compile Γ t (π ⇒ τ) j1
   let e' <- compile Γ e π j2
   .some (t' `@ e')
 termination_by h => h.size
+
+notation "⟨" t "," τ ";" j "⟩" => Sigma.mk (t, τ) j
+
+-- def compile_ctx : Ctx (HsTerm, ⟨t, τ; j⟩) -> Option (Ctx Term)
+-- | [] => .some []
+-- | .cons (.kind A) Γ => do
+--   let A' <- compile Γ A `□ _
+--   let Γ' <- compile_ctx Γ
+--   .some (.kind A' :: Γ')
+-- | _ => .none

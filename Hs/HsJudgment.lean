@@ -110,8 +110,7 @@ inductive HsJudgment : (v : JudgmentVariant) -> Ctx HsTerm -> HsJudgmentArgs v -
   HsJudgment .prf Γ (π, `★) ->
   HsJudgment .prf (.empty::Γ) (τ, `★) ->
   HsValidHeadVariable π Γ.is_opent ->
-  HsJudgment .prf (.empty :: Γ) (t, τ) ->
-  HsJudgment .prf Γ (e, π) ->
+  HsJudgment .prf (.type π :: Γ) (t, τ) ->
   HsJudgment .prf Γ (t, π ⇒ τ) -- F a => τ
 | implicitArrE :
   HsJudgment .prf Γ (t, π ⇒ τ) -> -- F a => τ
@@ -199,7 +198,7 @@ def hs_judgment_ctx_wf : (v : JudgmentVariant) -> {idx : HsJudgmentArgs v} -> Hs
 | .prf , _ , x => match x with
   | .implicitAllI _ h2 _ => hs_judgment_ctx_wf .prf h2
   | .implicitAllE h1 _ => hs_judgment_ctx_wf .prf h1
-  | .implicitArrI h1 _ _ _ _ => hs_judgment_ctx_wf .prf h1
+  | .implicitArrI h1 _ _ _ => hs_judgment_ctx_wf .prf h1
   | .implicitArrE h1 _ => hs_judgment_ctx_wf .prf h1
   | .ax h => h
   | .arrowk h _ => hs_judgment_ctx_wf .prf h
@@ -224,7 +223,7 @@ namespace HsJudgment
  | .wfdatatype h1 h2 => 1 + size h1 + size h2
  | .wfctor h1 h2 _ => 1 + size h1 + size h2
  | .wfterm h1 h2 h3 => 1 + size h1 + size h2 + size h3
- | .implicitArrI h1 h2 _ h3 h4 => 1 + size h1 + size h2 + size h3  + size h4
+ | .implicitArrI h1 h2 _ h4 => 1 + size h1 + size h2 + size h4
  | .implicitArrE h1 h2 => 1 + size h1 + size h2
  | .implicitAllI h1 h2 h3 => 1 + size h1 + size h2 + size h2
  | .implicitAllE h1 h2 => 1 + size h1 + size h2
