@@ -2,11 +2,8 @@ import Hs.HsJudgment
 
 set_option maxHeartbeats 500000
 
-inductive CompileVariant where -- what i am compiling?
-| kind | type | term | ctx
-
 @[simp]
-abbrev CompileJArgs : CompileVariant -> Ctx HsTerm -> Type
+abbrev CompileJArgs : HsVariant -> Ctx HsTerm -> Type
 | .ctx => λ _ => Ctx Term
 | .term => λ Γ => ((w : (HsTerm × HsTerm)) × Γ ⊢s w.fst : w.snd) × Term
 | .kind => λ Γ => ((w : (HsTerm × HsTerm)) × Γ ⊢s w.fst : w.snd) × Term
@@ -14,7 +11,7 @@ abbrev CompileJArgs : CompileVariant -> Ctx HsTerm -> Type
 
 notation "⟨ " t "," τ ";" j "," t' "⟩" => (Sigma.mk (t, τ) j , t')
 
-inductive CompileJ : (v : CompileVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v Γ -> Prop where
+inductive CompileJ : (v : HsVariant) -> (Γ : Ctx HsTerm) -> CompileJArgs v Γ -> Prop where
 -----------------------------------
 --- Contexts
 ------------------------------------

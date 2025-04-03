@@ -82,6 +82,12 @@ namespace Frame
     | .type _ => true
     | _ => false
 
+
+  def is_kind (f : Frame T) : Bool :=
+    match f with
+    | .kind _ => true
+    | _ => false
+
   def is_stable : Frame T -> Bool
   | .type _ => false
   | .kind _ => false

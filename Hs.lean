@@ -1,5 +1,5 @@
 import Hs.HsTerm
 import Hs.HsJudgment
 import Hs.Algorithm
-import Hs.CompileJ
-import Hs.Metatheory.Preservation
+-- import Hs.CompileJ
+import Hs.Metatheory.Preservation2
