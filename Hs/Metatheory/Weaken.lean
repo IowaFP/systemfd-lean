@@ -21,84 +21,83 @@ case _ x =>
 @[simp]
 abbrev hs_idx_ren (r : Ren) : HsJudgmentArgs v -> HsJudgmentArgs v :=
   match v with
-  | .prf => λ (t, A) => ([r.to]t, [r.to]A)
-  | .wf => λ () => ()
+  | .term => λ (t, A) => ([r.to]t, [r.to]A)
+  | .kind => λ (t, A) => ([r.to]t, [r.to]A)
+  | .type => λ (t, A) => ([r.to]t, [r.to]A)
+  | .ctx => λ () => ()
 
-def hs_rename (r : Ren) : (v : JudgmentVariant) -> {idx : HsJudgmentArgs v} ->
+def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
   HsJudgment v Γ idx ->
   ⊢s Δ ->
   (∀ x, (Γ d@ x).apply r.to = Δ d@ (r x)) ->
   HsJudgment v Δ (hs_idx_ren r idx)
-| .prf, (t, τ) , j, wf, f => match j with
+| .kind, (t, τ) , j, wf, f => match j with
+  | .ax wf' => .ax wf
+  | .arrowk h1 h2 => .arrowk (hs_rename r .kind h1 wf f) (hs_rename r .kind h2 wf f)
+| .type, (t, τ) , j, wf, f => match j with
+  | @HsJudgment.varTy Γ x t wf test gt  => sorry
+  | .appk h1 h2 =>
+    .appk (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f)
+  | @HsJudgment.allt Γ A _ h1 h2 =>
+      .allt (hs_rename r .kind h1 wf f) sorry
+  | .arrow h1 _ h2 =>
+    .arrow (hs_rename r .type h1 wf f) sorry sorry
+           -- (by have h' := hs_rename r .prf h2 (.wfempty wf) (hs_rename_lift r .empty f); rw[Subst.lift_lemma]; sorry)
+           -- (hs_rename r .prf h2 (by sorry) (by sorry))
+  | .farrow h1 h3 h2  =>
+    .farrow (hs_rename r .type h1 wf f) sorry sorry
+| .term, (t, τ) , j, wf, f => match j with
   | .implicitAllI h1 h2 h3 => sorry
   | .implicitAllE h1 h2 => sorry
   | .implicitArrI h1 h2 h3 h4 => sorry -- .implicitArrI (hs_rename r .prf h1 wf f) sorry sorry sorry
   | .implicitArrE h1 h2 => sorry
-  | .ax wf' => .ax wf
-  | .arrowk h1 h2 => .arrowk (hs_rename r .prf h1 wf f) (hs_rename r .prf h2 wf f)
-  | .appk h1 h2 =>
-    .appk (hs_rename r .prf h1 wf f) (hs_rename r .prf h2 wf f)
-  | @HsJudgment.allt Γ A _ h1 h2 =>
-      .allt (hs_rename r .prf h1 wf f) sorry
-  | .arrow h1 h2  =>
-    .arrow (hs_rename r .prf h1 wf f) sorry
-           -- (by have h' := hs_rename r .prf h2 (.wfempty wf) (hs_rename_lift r .empty f); rw[Subst.lift_lemma]; sorry)
-           -- (hs_rename r .prf h2 (by sorry) (by sorry))
-  | .farrow h1 h3 h2  =>
-    .farrow (hs_rename r .prf h1 wf f) sorry sorry
-  | @HsJudgment.var Γ x T wf' h => .var wf (by
-    have e := f x; unfold Frame.get_type at h;
-    split at h;
-    all_goals(cases h)
-    case _ h =>
-      have h' : (Γ d@ x).apply r.to = (Frame.kind T).apply r.to := by rw [h]
-      rw [e] at h'; unfold Frame.apply at h'; simp at h';
-      have h'' : (Δ d@ r x).get_type = (Frame.kind ([r.to] T)).get_type := by rw[h']
-      symm at h'';apply h'';
-    case _ h =>
-      have h' : (Γ d@ x).apply r.to = (Frame.type T).apply r.to := by rw [h]
-      rw [e] at h'; unfold Frame.apply at h'; simp at h';
-      have h'' : (Δ d@ r x).get_type = (Frame.type ([r.to] T)).get_type := by rw[h']
-      symm at h'';apply h'';
-    case _ => sorry
-    case _ => sorry
-    case _ => sorry
-    case _ => sorry
-    case _ => sorry
-    case _ => sorry)
-  | .lam h1 h2 h3 => .lam (hs_rename r .prf h1 wf f) sorry (hs_rename r .prf h3 wf f)
+  | @HsJudgment.var Γ x T wf' h _ => .var sorry sorry sorry
+  | .lam h1 h2 h3 => .lam (hs_rename r .type h1 wf f) sorry (hs_rename r .type h3 wf f)
   | .app h1 h2 h3 =>
-    .app (hs_rename r .prf h1 wf f) (hs_rename r .prf h2 wf f) (by rw [h3]; rw[<-Subst.lift_lemma]; sorry)
+    .app (hs_rename r .term h1 wf f) (hs_rename r .term h2 wf f) (by rw [h3]; rw[<-Subst.lift_lemma]; sorry)
   | .hslet h1 h2 h3 h4 =>
-    .hslet (hs_rename r .prf h1 wf f) (hs_rename r .prf h2 wf f) sorry (hs_rename r .prf h4 wf f)
+    .hslet (hs_rename r .type h1 wf f) (hs_rename r .term h2 wf f) sorry (hs_rename r .type h4 wf f)
   | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
-    .hsIte (hs_rename r .prf h1 wf f) (hs_rename r .prf h2 wf f) (hs_rename r .prf h3 wf f) (hs_rename r .prf h4 wf f)
-           (hs_rename r .prf h5 wf f) (hs_rename r .prf h6 wf f) sorry sorry (by sorry)  sorry
-| .wf, () , j, wf, r => by simp; apply wf
+    .hsIte (hs_rename r .term h1 wf f) (hs_rename r .term h2 wf f) (hs_rename r .term h3 wf f) (hs_rename r .term h4 wf f)
+           (hs_rename r .type h5 wf f) (hs_rename r .type h6 wf f) sorry sorry (by sorry)  sorry
+| .ctx, () , j, wf, r => by simp; apply wf
 
-
-def hs_weaken :
-  ⊢s (f :: Γ) ->
-  Γ ⊢s t : A ->
-  (f::Γ) ⊢s ([S]t) : ([S]A)
-| wf , h => hs_rename (λ x => x + 1) .prf h wf (by intro; rw [Subst.to_S]; simp)
-
-def hs_weaken_empty :
-  Γ ⊢s t : A ->
-  (.empty::Γ) ⊢s ([S]t) : ([S]A)
- := λ x => hs_weaken (.wfempty (hs_judgment_ctx_wf .prf x)) x
 
 def hs_weaken_type :
-  Γ ⊢s T : `★ ->
-  Γ ⊢s t : A ->
-  (.type T::Γ) ⊢s ([S]t) : ([S]A)
-:= λ h1 h2 => hs_weaken (.wftype h1 (hs_judgment_ctx_wf .prf h1)) h2
+  ⊢s (f :: Γ) ->
+  Γ ⊢τ t : A ->
+  (f::Γ) ⊢τ ([S]t) : ([S]A)
+| wf , h => hs_rename (λ x => x + 1) .type h wf (by intro; rw [Subst.to_S]; simp)
 
 def hs_weaken_kind :
-  Γ ⊢s T : `□ ->
-  Γ ⊢s t : A ->
-  (.kind T::Γ) ⊢s ([S]t) : ([S]A)
-:= sorry
+  ⊢s (f :: Γ) ->
+  Γ ⊢κ t : A ->
+  (f::Γ) ⊢κ ([S]t) : ([S]A)
+| wf , h => hs_rename (λ x => x + 1) .kind h wf (by intro; rw [Subst.to_S]; simp)
+
+def hs_weaken_term :
+  ⊢s (f :: Γ) ->
+  Γ ⊢t t : A ->
+  (f::Γ) ⊢t ([S]t) : ([S]A)
+| wf , h => hs_rename (λ x => x + 1) .term h wf (by intro; rw [Subst.to_S]; simp)
+
+
+def hs_weaken_empty_term :
+  Γ ⊢t t : A ->
+  (.empty::Γ) ⊢t ([S]t) : ([S]A)
+ := λ x => hs_weaken_term (.wfempty (hs_judgment_ctx_wf .term x)) x
+
+def hs_weaken_type_term :
+  Γ ⊢τ T : `★ ->
+  Γ ⊢t t : A ->
+  (.type T::Γ) ⊢t ([S]t) : ([S]A)
+:= λ h1 h2 => hs_weaken_term (.wftype h1 (hs_judgment_ctx_wf .type h1)) h2
+
+def hs_weaken_kind_term :
+  Γ ⊢κ T : `□ ->
+  Γ ⊢t t : A ->
+  (.kind T::Γ) ⊢t ([S]t) : ([S]A)
+:= λ h1 h2 => hs_weaken_term (.wfkind h1 (hs_judgment_ctx_wf .kind h1)) h2
 
 -- theorem weaken_kind :
 --   Γ ⊢s T : `□ ->
@@ -109,10 +108,10 @@ def hs_weaken_kind :
 -- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1
 -- case _ => intro x; simp; rw [Subst.to_S]
 
-def hs_weaken_datatype :
-  Γ ⊢s T : `□ ->
-  Γ ⊢s t : A ->
-  (.datatype T::Γ) ⊢s ([S]t) : ([S]A)
+def hs_weaken_datatype_term :
+  Γ ⊢κ T : `□ ->
+  Γ ⊢t t : A ->
+  (.datatype T::Γ) ⊢t ([S]t) : ([S]A)
 := sorry
 -- := by
 -- intro j1 j2; apply hs_rename _ j2
@@ -120,38 +119,38 @@ def hs_weaken_datatype :
 -- case _ => intro x; simp; rw [Subst.to_S]
 
 def hs_weaken_ctor :
-  Γ ⊢s T : `★ ->
+  Γ ⊢τ T : `★ ->
   ValidHsCtorType Γ T ->
-  Γ ⊢s t : A ->
-  (.ctor T::Γ) ⊢s ([S]t) : ([S]A) := sorry
+  Γ ⊢t t : A ->
+  (.ctor T::Γ) ⊢t ([S]t) : ([S]A) := sorry
 -- := by
 -- intro j1 j2 j3; apply hs_rename _ j3
 -- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1; apply j2
 -- case _ => intro x; simp; rw [Subst.to_S]
 
 def hs_weaken_opent :
-  Γ ⊢s T : `□ ->
-  Γ ⊢s t : A ->
-  (.opent T::Γ) ⊢s ([S]t) : ([S]A) := sorry
+  Γ ⊢κ T : `□ ->
+  Γ ⊢t t : A ->
+  (.opent T::Γ) ⊢κ ([S]t) : ([S]A) := sorry
 -- := by
 -- intro j1 j2; apply hs_rename _ j2
 -- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1
 -- case _ => intro x; simp; rw [Subst.to_S]
 
-def hs_weaken_openm :
-  Γ ⊢s T : `★ ->
-  Γ ⊢s t : A ->
-  (.openm T::Γ) ⊢s ([S]t) : ([S]A) := sorry
+-- def hs_weaken_openm :
+--   Γ ⊢s T : `★ ->
+--   Γ ⊢s t : A ->
+--   (.openm T::Γ) ⊢s ([S]t) : ([S]A) := sorry
 -- by
 -- intro j1 j2; apply hs_rename _ j2
 -- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1
 -- case _ => intro x; simp; rw [Subst.to_S]
 
-def hs_weaken_insttype :
-  Γ ⊢s T : `★ ->
-  ValidHsInstType Γ T ->
-  Γ ⊢s t : A ->
-  (.insttype T::Γ) ⊢s ([S]t) : ([S]A) := sorry
+-- def hs_weaken_insttype :
+--   Γ ⊢s T : `★ ->
+--   ValidHsInstType Γ T ->
+--   Γ ⊢s t : A ->
+--   (.insttype T::Γ) ⊢s ([S]t) : ([S]A) := sorry
 -- := by
 -- intro j1 j2 j3; apply hs_rename _ j3
 -- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1; apply j2
@@ -167,9 +166,9 @@ def hs_weaken_insttype :
 -- case _ => constructor; apply j1; apply j2; apply hs_judgment_ctx_wf j2
 -- case _ => intro x; simp; rw [Subst.to_S]
 
-def hs_weaken_term :
-  Γ ⊢s T : `★ ->
-  Γ ⊢s b : T ->
-  Γ ⊢s t : A ->
-  (.term T b::Γ) ⊢s ([S]t) : ([S]A)
-:= λ h1 h2 h3 => hs_weaken (.wfterm h1 h2 (hs_judgment_ctx_wf .prf h1)) h3
+def hs_weaken_term_term :
+  Γ ⊢τ T : `★ ->
+  Γ ⊢t b : T ->
+  Γ ⊢t t : A ->
+  (.term T b::Γ) ⊢t ([S]t) : ([S]A)
+:= λ h1 h2 h3 => hs_weaken_term (.wfterm h1 h2 (hs_judgment_ctx_wf .type h1)) h3

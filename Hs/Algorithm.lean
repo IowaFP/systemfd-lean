@@ -22,7 +22,7 @@ def compile_type (Γ : Ctx HsTerm) (τ : HsTerm) (k : HsTerm) : Γ ⊢τ τ : k 
   let t1 <- compile_kind Γ A `□ j1
   let t2 <- compile_type (.kind A :: Γ) B `★ j2
   .some (∀[t1] t2)
-| @HsJudgment.arrow Γ A B j1 _ j2 => do
+| @HsJudgment.arrow Γ A B j1 j2 => do
   let t1 <- compile_type Γ A `★ j1
   let t2 <- compile_type (.empty ::Γ) B `★ j2
   .some (t1 -t> t2)
@@ -78,12 +78,39 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   .some (t' `@ e')
 termination_by h => h.size
 
--- notation "⟨" t "," τ ";" j "⟩" => Sigma.mk (t, τ) j
+@[aesop safe [constructors, cases]]
+inductive HsCtx : Ctx HsTerm -> Type where
+| nil : HsCtx []
+| empty : HsCtx Γ -> HsCtx (.empty::Γ)
+| kind : HsCtx Γ -> (k : HsTerm) × (Γ ⊢κ k : `□) -> HsCtx (.kind k :: Γ)
+| datatype : HsCtx Γ -> (k : HsTerm) × (Γ ⊢κ k : `□) -> HsCtx (.datatype k :: Γ)
+| type : HsCtx Γ -> (τ : HsTerm) × (Γ ⊢τ τ : `★) -> HsCtx (.type τ :: Γ)
+| ctor : HsCtx Γ -> (τ : HsTerm) × (Γ ⊢τ τ : `★) -> HsCtx (.ctor τ :: Γ)
+| openm : HsCtx Γ -> (τ : HsTerm) × (Γ ⊢τ τ : `★) -> HsCtx (.ctor τ :: Γ)
 
--- def compile_ctx : Ctx (HsTerm, ⟨t, τ; j⟩) -> Option (Ctx Term)
--- | [] => .some []
--- | .cons (.kind A) Γ => do
---   let A' <- compile Γ A `□ _
---   let Γ' <- compile_ctx Γ
---   .some (.kind A' :: Γ')
--- | _ => .none
+@[simp]
+def compile_ctx : HsCtx Γ -> Option (Ctx Term)
+| .nil => .some []
+| .empty Γ => do
+  let Γ' <- compile_ctx Γ
+  .some (.empty :: Γ')
+| @HsCtx.kind Γ _ Γ' ⟨t, j⟩ => do
+  let Δ <- compile_ctx Γ'
+  let τ <- compile_kind Γ t `□ j
+  .some (.kind τ :: Δ)
+| @HsCtx.datatype Γ _ Γ' ⟨t, j⟩ => do
+  let Δ <- compile_ctx Γ'
+  let τ <- compile_kind Γ t `□ j
+  .some (.datatype τ :: Δ)
+| @HsCtx.type Γ _ Γ' ⟨t, j⟩ => do
+  let Δ <- compile_ctx Γ'
+  let τ <- compile_type Γ t `★ j
+  .some (.type τ :: Δ)
+| @HsCtx.ctor Γ _ Γ' ⟨t, j⟩ => do
+  let Δ <- compile_ctx Γ'
+  let τ <- compile_type Γ t `★ j
+  .some (.ctor τ :: Δ)
+| @HsCtx.openm Γ _ Γ' ⟨t, j⟩ => do
+  let Δ <- compile_ctx Γ'
+  let τ <- compile_type Γ t `★ j
+  .some (.openm τ :: Δ)

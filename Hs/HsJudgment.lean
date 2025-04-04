@@ -3,11 +3,15 @@ import SystemFD.Ctx
 import SystemFD.Substitution
 import SystemFD.Judgment
 
+import Aesop
+
 set_option maxHeartbeats 500000
 
+@[aesop safe]
 def HsValidHeadVariable (t : HsTerm) (test : Nat -> Bool) : Prop :=
   ∃ x, .some x = HsTerm.neutral_form t ∧ test x.fst
 
+@[aesop safe [constructors, cases]]
 inductive ValidHsCtorType : Ctx HsTerm -> HsTerm -> Prop where
 | refl :
   HsValidHeadVariable R Γ.is_datatype ->
@@ -22,7 +26,7 @@ inductive ValidHsCtorType : Ctx HsTerm -> HsTerm -> Prop where
   ValidHsCtorType (.kind A::Γ) B ->
   ValidHsCtorType Γ (`∀{A} B)
 
-
+@[aesop safe [constructors, cases]]
 inductive ValidHsInstType : Ctx HsTerm -> HsTerm -> Prop where
 | refl :
   HsValidHeadVariable R Γ.is_opent ->
@@ -37,6 +41,7 @@ inductive ValidHsInstType : Ctx HsTerm -> HsTerm -> Prop where
   ValidHsInstType (.kind A::Γ) B ->
   ValidHsInstType Γ (`∀{A} B)
 
+@[aesop safe [constructors, cases]]
 inductive StableHsTypeMatch : Ctx HsTerm -> HsTerm -> HsTerm -> Prop where
 | refl :
   HsValidHeadVariable R Γ.is_stable ->
@@ -54,6 +59,7 @@ inductive StableHsTypeMatch : Ctx HsTerm -> HsTerm -> HsTerm -> Prop where
   StableHsTypeMatch (.kind A::Γ) B ([S]R) ->
   StableHsTypeMatch Γ (`∀{A} B) R
 
+@[aesop safe [constructors, cases]]
 inductive PrefixHsTypeMatch : Ctx HsTerm -> HsTerm -> HsTerm -> HsTerm -> Prop where
 | refl :
   HsValidHeadVariable B Γ.is_stable ->
@@ -65,6 +71,7 @@ inductive PrefixHsTypeMatch : Ctx HsTerm -> HsTerm -> HsTerm -> HsTerm -> Prop w
   PrefixHsTypeMatch (.kind A::Γ) B V ([S]T) ->
   PrefixHsTypeMatch Γ (`∀{A} B) (`∀{A} V) T
 
+@[aesop safe [constructors, cases]]
 inductive HsVariant where -- what i am checking
 | kind | type | term | ctx
 
@@ -75,6 +82,7 @@ abbrev HsJudgmentArgs : HsVariant -> Type
 | .type => HsTerm × HsTerm
 | .term => HsTerm × HsTerm
 
+@[aesop safe [constructors, cases]]
 inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type where
 --------------------------------------------------------------------------------------
 ---- Well-Formed Contexts and Declarations
@@ -145,7 +153,6 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
   HsJudgment .type Γ (`∀{A} B, `★)
 | arrow :
   HsJudgment .type Γ (A, `★) ->
-  HsValidHeadVariable A Γ.is_datatype ->
   HsJudgment .type (.empty::Γ) (B, `★) ->
   HsJudgment .type Γ (A → B, `★)
 | farrow :
@@ -214,7 +221,7 @@ def hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgme
   | .varTy h _ _ => hs_judgment_ctx_wf .ctx h
   | .appk h _ => hs_judgment_ctx_wf .type h
   | .allt h _ =>  hs_judgment_ctx_wf .kind h
-  | .arrow h _ _ => hs_judgment_ctx_wf .type h
+  | .arrow h _ => hs_judgment_ctx_wf .type h
   | .farrow h _ _ => hs_judgment_ctx_wf .type h
 | .term , _ , x => match x with
   | .implicitAllI _ h2 _ => hs_judgment_ctx_wf .kind h2
@@ -245,7 +252,7 @@ namespace HsJudgment
  | .ax h1 => 1 + size h1
  | .arrowk h1 h2 => 1 + size h1 + size h2
  | .allt h1 h2 =>  1 + size h1 + size h2
- | .arrow h1 _ h2 => 1 + size h1 + size h2
+ | .arrow h1 h2 => 1 + size h1 + size h2
  | .farrow h1 _ h2 => 1 + size h1 + size h2
  | .appk h1 h2 => 1 + size h1 + size h2
  | .varTy h1 _ _ => 1 + size h1
@@ -259,7 +266,7 @@ end HsJudgment
 instance sizeOf_HsJudgment : SizeOf (HsJudgment v Γ idx) where
   sizeOf := HsJudgment.size
 
-
+@[aesop safe [constructors, cases]]
 inductive HsFrameWf : Ctx HsTerm -> Frame HsTerm -> Type
 | empty :
   ⊢s Γ ->
@@ -284,9 +291,9 @@ inductive HsFrameWf : Ctx HsTerm -> Frame HsTerm -> Type
 | opent :
   Γ ⊢κ A : `□ ->
   HsFrameWf Γ (.opent A)
--- | openm :
---   Γ ⊢s A : `★ ->
---   HsFrameWf Γ (.openm A)
+| openm :
+  Γ ⊢τ A : `★ ->
+  HsFrameWf Γ (.openm A)
 -- | insttype :
 --   Γ ⊢s A : `★ ->
 --   ValidInstType Γ A ->
