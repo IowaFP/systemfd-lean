@@ -84,6 +84,7 @@ abbrev HsJudgmentArgs : HsVariant -> Type
 
 @[aesop safe [constructors, cases]]
 inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type where
+-- TODO: Should I store HsCtx Γ in all the wf judgments instead of a ()
 --------------------------------------------------------------------------------------
 ---- Well-Formed Contexts and Declarations
 --------------------------------------------------------------------------------------

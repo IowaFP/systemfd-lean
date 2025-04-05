@@ -86,7 +86,7 @@ inductive HsCtx : Ctx HsTerm -> Type where
 | datatype : HsCtx Γ -> (k : HsTerm) × (Γ ⊢κ k : `□) -> HsCtx (.datatype k :: Γ)
 | type : HsCtx Γ -> (τ : HsTerm) × (Γ ⊢τ τ : `★) -> HsCtx (.type τ :: Γ)
 | ctor : HsCtx Γ -> (τ : HsTerm) × (Γ ⊢τ τ : `★) -> HsCtx (.ctor τ :: Γ)
-| openm : HsCtx Γ -> (τ : HsTerm) × (Γ ⊢τ τ : `★) -> HsCtx (.ctor τ :: Γ)
+| openm : HsCtx Γ -> (τ : HsTerm) × (Γ ⊢τ τ : `★) -> HsCtx (.openm τ :: Γ)
 
 @[simp]
 def compile_ctx : HsCtx Γ -> Option (Ctx Term)
@@ -114,3 +114,18 @@ def compile_ctx : HsCtx Γ -> Option (Ctx Term)
   let Δ <- compile_ctx Γ'
   let τ <- compile_type Γ t `★ j
   .some (.openm τ :: Δ)
+
+
+@[simp]
+abbrev CompileArgs : (HsVariant) -> (Ctx HsTerm) -> Type
+| .ctx => λ Γ => HsCtx Γ -> Option (Ctx Term)
+| .kind => λ Γ => (p : HsTerm × HsTerm) × HsJudgment .kind Γ p -> Option Term
+| .type => λ Γ => (p : HsTerm × HsTerm) × HsJudgment .type Γ p -> Option Term
+| .term =>  λ Γ => (p : HsTerm × HsTerm) × HsJudgment .term Γ p -> Option Term
+
+
+def compile : (v : HsVariant) -> (Γ : Ctx HsTerm) -> CompileArgs v Γ
+| .ctx => λ _ => λ ctx => compile_ctx ctx
+| .kind => λ Γ => λ ⟨p, j⟩ => compile_kind Γ p.fst p.snd j
+| .type => λ Γ => λ ⟨p, j⟩ => compile_type Γ p.fst p.snd j
+| .term =>  λ Γ => λ ⟨p, j⟩ => compile_term Γ p.fst p.snd j

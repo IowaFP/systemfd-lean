@@ -69,19 +69,13 @@ def idTerm := compile_term [] idHsTerm idHsType idTyping
 #eval idType
 #eval idTerm
 
-def MbCtx' : Ctx HsTerm :=
+def MbCtx : Ctx HsTerm :=
   [ .ctor (`∀{`★} `#2 `•k `#0)   -- Nothing :: ∀ a. Maybe a
   , .ctor (`∀{`★} `#0 → `#2 `•k `#1)          -- Just :: ∀ a. a -> Maybe a
   , .datatype (`★ `-k> `★) ]
 
-def MbCtx : Ctx HsTerm :=
-  [ .ctor (`∀{`★} `#2 `•k `#0)   -- Nothing :: ∀ a. Maybe a
-  ,.ctor (`∀{`★} `#0 → `#2 `•k `#1)          -- Just :: ∀ a. a -> Maybe a
-  , .datatype (`★ `-k> `★) ]
-
 -- set_option trace.aesop.tree true
 -- set_option trace.aesop true
-attribute [aesop norm] Option.bind_eq_some
 def MaybeCtx : HsCtx MbCtx :=
   .ctor
     (.ctor
@@ -550,7 +544,7 @@ def MaybeCtx : HsCtx MbCtx :=
                 simp_all only [Frame.apply, Frame.is_datatype];
               }
             };
-            {apply HsJudgment.wfctor;
+            { apply HsJudgment.wfctor;
               {
 
         apply HsJudgment.allt
@@ -656,4 +650,8 @@ def MaybeCtx : HsCtx MbCtx :=
 #eval compile_ctx MaybeCtx
 #guard compile_ctx MaybeCtx == .some [ .ctor (∀[★](#2 `@k #0))
                                      , .ctor (∀[★]#0 -t> (#2 `@k #1))
-                                     , .datatype (★ -k> ★)]
+                                     , .datatype (★ -k> ★) ]
+
+#guard compile .ctx MbCtx MaybeCtx == compile_ctx MaybeCtx
+#guard compile .type [] ⟨(idHsType, `★), idTypeKinding⟩ == compile_type [] idHsType `★ idTypeKinding
+#guard compile .term [] ⟨(idHsTerm, idHsType), idTyping⟩ == compile_term [] idHsTerm idHsType idTyping
