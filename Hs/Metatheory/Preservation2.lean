@@ -1,7 +1,12 @@
 import Hs.Algorithm
 import Hs.Metatheory.Uniqueness
 
+import Aesop
+
+set_option maxHeartbeats 500000
+
 -- Says how the shape of the core context changes with Hs Ctx
+@[aesop safe [constructors, cases]]
 inductive CompileCtx : Ctx HsTerm -> Ctx Term -> Prop where
 | nil : CompileCtx [] []
 | empty :
@@ -61,6 +66,16 @@ theorem compile_preserves_kinds :
    apply ih1';
    apply ih2'
 
+def wf_ctx_well_kinded_types : ⊢s Γ -> (Γ d@ x).is_datatype -> (Γ d@ x).get_type = .some T ->  Γ ⊢κ T : `□ := sorry
+
+def typing_implies_kinding : ∀ Γ, Γ ⊢τ τ : κ -> Γ ⊢κ κ : `□
+| Γ, .varTy wf c gt => sorry
+| Γ, .appk h _ => sorry
+| Γ, .allt h _ =>  HsJudgment.ax (hs_judgment_ctx_wf .kind h)
+| Γ, .arrow h _ => HsJudgment.ax (hs_judgment_ctx_wf .type h)
+| Γ, .farrow h _ _ => HsJudgment.ax (hs_judgment_ctx_wf .type h)
+
+
 theorem compile_preserves_types :
   CompileCtx Γ Γ' ->
   ⊢ Γ' ->
@@ -76,13 +91,13 @@ case _ Γ x wf test gt =>
      cases c2;
      apply Judgment.var;
      assumption;
-     have lem1 := compile_preserves_kinds wf j1 c1;
+
      sorry
   -- apply compile_ctx_wf; assumption; assumption;
   -- have lem1 := HsJudgment.varTy wf test gt
   -- have lem := compile_preserves_type_indices cc lem1 c1; symm at lem;
   -- assumption
-case _ h1 h2 ih1 ih2 =>
+case _ B Γ f A a h1 h2 ih1 ih2 =>
   rw[Option.bind_eq_some] at c2;
   cases c2; case _ w1 c2 =>
   cases c2; case _ c2 c3 =>
@@ -90,12 +105,20 @@ case _ h1 h2 ih1 ih2 =>
   cases c3; case _ w2 c3 =>
   cases c3; case _ c3 e =>
   cases e;
-  have ih1' := @ih1 Γ'
-  have ih2' := @ih2 Γ'
   apply Judgment.appk;
-  case _ => sorry;
-  case _ => sorry;
-  case _ => sorry
+  case _ =>
+    apply @ih1 Γ' _ w1 cc wf _ _ c2
+    case _ => sorry
+    case _ =>
+      apply HsJudgment.arrowk;
+      apply typing_implies_kinding Γ h2;
+      assumption
+    case _ => sorry
+  case _ =>
+    apply @ih2 Γ' _ w2 cc wf _ _ c3
+    case _ => apply typing_implies_kinding Γ h2;
+    case _ => sorry
+
 case _ h1 h2 ih1 =>
   rw[Option.bind_eq_some] at c2;
   cases c2; case _ w1 c2 =>
@@ -108,12 +131,12 @@ case _ h1 h2 ih1 =>
   apply Judgment.allt;
   apply compile_preserves_kinds wf h1 c2;
   apply @ih1 (.kind w1 :: Γ') ★ w2 _ _ _ _ c3
-  case _ => apply sorry
-  case _ => apply sorry
+  case _ => apply CompileCtx.kind; assumption; assumption; assumption; assumption
+  case _ => apply Judgment.wfkind; apply compile_preserves_kinds wf h1 c2; assumption
   case _ => apply HsJudgment.ax; apply HsJudgment.wfkind; assumption; assumption
   case _ => unfold compile_kind; rfl
 
-case _ j1 _ j2 ih1 ih2 =>
+case _ A B j1' j2' ih1 ih2 =>
   rw[Option.bind_eq_some] at c2;
   cases c2; case _ w1 c2 =>
   cases c2; case _ c2 c3 =>
@@ -125,13 +148,12 @@ case _ j1 _ j2 ih1 ih2 =>
   unfold compile_kind at c1; simp at c1;
   cases j1; simp at c1; cases c1;
   apply Judgment.arrow;
-  apply @ih1 Γ' ★ w1 cc wf _ _ _;
+  apply @ih1 Γ' ★ w1 cc wf _ _ c2;
   case _ => apply HsJudgment.ax; assumption
-  case _ => sorry
-  case _ => sorry
+  case _ => unfold compile_kind; rfl
 
   apply @ih2 (.empty::Γ') ★ w2 _ _ _ _ c3;
-  case _ => sorry
+  case _ => apply CompileCtx.empty; assumption; assumption; assumption
   case _ => apply Judgment.wfempty; assumption;
   case _ => apply HsJudgment.ax; apply HsJudgment.wfempty; assumption
   case _ => unfold compile_kind; rfl
@@ -153,12 +175,12 @@ case _ j1 _ j2 ih1 ih2 =>
   case _ => apply HsJudgment.ax; assumption
   case _ => unfold compile_kind; rfl
   apply @ih2 (.empty::Γ') ★ w2 _ _ _ _ c3
-  case _ => sorry
-  case _ => sorry -- apply CompileCtx.empty; assumption; assumption
+  case _ => apply CompileCtx.empty; assumption; assumption; assumption
+  case _ => apply Judgment.wfempty; assumption
   case _ => apply HsJudgment.ax; apply HsJudgment.wfempty; assumption
   case _ => unfold compile_kind; rfl
 
-theorem compile_preserves_typing :
+theorem compile_preserves_terms :
   (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
   ⊢ Γ' ->
   (j1 : Γ ⊢τ τ : k) ->
