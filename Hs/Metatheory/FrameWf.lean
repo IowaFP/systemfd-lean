@@ -18,62 +18,50 @@ namespace FrameWf
     apply wf
   case _ j =>
     unfold Frame.apply; simp; constructor
-    have lem := rename r .prf j wf h; simp at lem
+    have lem := hs_rename r .type j wf h; simp at lem
     apply lem
   case _ j =>
     unfold Frame.apply; simp; constructor
-    have lem := rename r .prf j wf h; simp at lem
+    have lem := hs_rename r .kind j wf h; simp at lem
     apply lem
   case _ j =>
     unfold Frame.apply; simp; constructor
-    have lem := rename r .prf j wf h; simp at lem
+    have lem := hs_rename r .kind j wf h; simp at lem
     apply lem
   case _ j1 j2 =>
     unfold Frame.apply; simp; constructor
-    have lem := rename r .prf j1 wf h; simp at lem
-    apply lem; apply valid_ctor_subst _ _ j2
+    have lem := hs_rename r .type j1 wf h; simp at lem
+    apply lem; apply hs_valid_ctor_subst _ _ j2
     case _ =>
       intro n y h2; rw [h]
       unfold Ren.to at h2; simp at h2; subst h2
       simp
     case _ =>
       intro n h2; unfold Ren.to; simp
-  -- case _ j =>
-  --   unfold Frame.apply; simp; constructor
-  --   have lem := rename r .prf j wf h; simp at lem
-  --   apply lem
-  -- case _ j =>
-  --   unfold Frame.apply; simp; constructor
-  --   have lem := rename r j wf h; simp at lem
-  --   apply lem
-  -- case _ j1 j2 =>
-  --   unfold Frame.apply; simp; constructor
-  --   have lem := rename r j1 wf h; simp at lem
-  --   apply lem; apply valid_insttype_subst _ _ j2
-  --   case _ =>
-  --     intro n y h2; rw [h]
-  --     unfold Ren.to at h2; simp at h2; subst h2
-  --     simp
-  --   case _ =>
-  --     intro n h2; unfold Ren.to; simp
-  -- case _ x T t j1 j2 =>
-  --   have h2 := h x; rw [<-j1] at h2
-  --   unfold Frame.apply at h2; simp at h2
-  --   constructor; apply h2
-  --   have lem := rename r j2 wf h; simp at lem
-  --   apply lem
   case _ j1 j2 =>
     unfold Frame.apply; simp; constructor
-    have lem1 := rename r .prf j1 wf h; simp at lem1; apply lem1
-    have lem2 := rename r .prf j2 wf h; simp at lem2; apply lem2
+    have lem := hs_rename r .type j1 wf h; simp at lem
+    apply lem
+    have lem := hs_rename r .term j2 wf h; simp at lem
+    apply lem
+  case _ j =>
+    unfold Frame.apply; simp; constructor
+    have lem := hs_rename r .kind j wf h; simp at lem
+    apply lem
+  case _ j =>
+    unfold Frame.apply; simp; constructor
+    have lem := hs_rename r .type j wf h; simp at lem
+    apply lem
 end FrameWf
 
--- @[simp]
--- abbrev FrameWfByIndexLemmaType (Γ : Ctx HsTerm) : (v : JudgmentVariant) -> HsJudgmentArgs v -> Type
--- | .prf => λ _ => Int
--- | .wf => λ () => ∀ x, Γ ⊢s Γ d@ x
+@[simp]
+abbrev FrameWfByIndexLemmaType (Γ : Ctx HsTerm) : (v : HsVariant) -> HsJudgmentArgs v -> Type
+| .term => λ _ => Int
+| .type => λ _ => Int
+| .kind => λ _ => Int
+| .ctx => λ () => ∀ x, Γ ⊢s Γ d@ x
 
-def hs_frame_wf_by_index_lemma : (v : JudgmentVariant) -> (ix : HsJudgmentArgs v)
+def hs_frame_wf_by_index_lemma : (v : HsVariant) -> (ix : HsJudgmentArgs v)
   -> HsJudgment v Γ ix
   -> ∀ x, Γ ⊢s Γ d@ x
 := sorry
@@ -216,19 +204,28 @@ def hs_frame_wf_by_index_lemma : (v : JudgmentVariant) -> (ix : HsJudgmentArgs v
 --       simp
 
 def hs_frame_wf_by_index x : ⊢s Γ -> Γ ⊢s Γ d@ x :=
-λ wf => hs_frame_wf_by_index_lemma .wf () wf x
+λ wf => hs_frame_wf_by_index_lemma .ctx () wf x
 
 def hs_frame_wf_implies_wf : Γ ⊢s f -> ⊢s Γ
 | .empty h1 => h1
-| .kind h1 => hs_judgment_ctx_wf .prf h1
-| .type h1 => hs_judgment_ctx_wf .prf h1
-| .datatype h1 => hs_judgment_ctx_wf .prf h1
-| .ctor h1 _ => hs_judgment_ctx_wf .prf h1
-| .term h1 _ => hs_judgment_ctx_wf .prf h1
-
+| .kind h1 => hs_judgment_ctx_wf .kind h1
+| .type h1 => hs_judgment_ctx_wf .type h1
+| .datatype h1 => hs_judgment_ctx_wf .kind h1
+| .ctor h1 _ => hs_judgment_ctx_wf .type h1
+| .term h1 _ => hs_judgment_ctx_wf .type h1
+| .openm h1 => hs_judgment_ctx_wf .type h1
+| .opent h1 => hs_judgment_ctx_wf .kind h1
 
 def hs_frame_wf_implies_typed_var T :
   Γ ⊢s Γ d@ x ->
+  (Γ d@ x).is_ctor || (Γ d@ x).is_term || (Γ d@ x).is_type ->
   .some T = (Γ d@ x).get_type ->
-  Γ ⊢s (.HsVar x) : T :=
-λ fwf gt => HsJudgment.var (hs_frame_wf_implies_wf fwf) gt
+  Γ ⊢t (`#x) : T :=
+λ fwf h gt => HsJudgment.var (hs_frame_wf_implies_wf fwf) h gt
+
+def hs_frame_wf_implies_kinded_varTy T :
+  Γ ⊢s Γ d@ x ->
+  (Γ d@ x).is_datatype || (Γ d@ x).is_kind ->
+  .some T = (Γ d@ x).get_type ->
+  Γ ⊢τ (`#x) : T :=
+λ fwf h gt => HsJudgment.varTy (hs_frame_wf_implies_wf fwf) h gt

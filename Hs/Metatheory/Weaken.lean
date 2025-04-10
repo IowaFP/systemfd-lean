@@ -36,19 +36,19 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
   | .arrowk h1 h2 => .arrowk (hs_rename r .kind h1 wf f) (hs_rename r .kind h2 wf f)
 | .type, (t, τ) , j, wf, f => match j with
   | @HsJudgment.varTy Γ x t wf test gt  => sorry
-  | .appk h1 h2 =>
-    .appk (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f)
+  | .appk h1 h2 h3 h4 =>
+    .appk (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f) (hs_rename r .kind h3 wf f) (hs_rename r .kind h4 wf f)
   | @HsJudgment.allt Γ A _ h1 h2 =>
       .allt (hs_rename r .kind h1 wf f) sorry
-  | .arrow h1 _ h2 =>
-    .arrow (hs_rename r .type h1 wf f) sorry sorry
+  | .arrow h1 h2 =>
+    .arrow (hs_rename r .type h1 wf f) sorry
            -- (by have h' := hs_rename r .prf h2 (.wfempty wf) (hs_rename_lift r .empty f); rw[Subst.lift_lemma]; sorry)
            -- (hs_rename r .prf h2 (by sorry) (by sorry))
   | .farrow h1 h3 h2  =>
     .farrow (hs_rename r .type h1 wf f) sorry sorry
 | .term, (t, τ) , j, wf, f => match j with
   | .implicitAllI h1 h2 h3 => sorry
-  | .implicitAllE h1 h2 => sorry
+  | .implicitAllE h1 h2 h3 h4 => sorry
   | .implicitArrI h1 h2 h3 h4 => sorry -- .implicitArrI (hs_rename r .prf h1 wf f) sorry sorry sorry
   | .implicitArrE h1 h2 => sorry
   | @HsJudgment.var Γ x T wf' h _ => .var sorry sorry sorry
@@ -74,6 +74,14 @@ def hs_weaken_kind :
   Γ ⊢κ t : A ->
   (f::Γ) ⊢κ ([S]t) : ([S]A)
 | wf , h => hs_rename (λ x => x + 1) .kind h wf (by intro; rw [Subst.to_S]; simp)
+
+def hs_weaken_kind_unique :
+  ⊢s (f :: Γ) ->
+  Γ ⊢κ t : A ->
+  (f::Γ) ⊢κ t : A
+| wf , HsJudgment.ax wf' => HsJudgment.ax wf
+| wf , .arrowk h1 h2 => HsJudgment.arrowk (hs_weaken_kind_unique wf h1) (hs_weaken_kind_unique wf h2)
+
 
 def hs_weaken_term :
   ⊢s (f :: Γ) ->

@@ -114,6 +114,10 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
   HsJudgment .term Γ (t, A) ->
   HsJudgment .ctx Γ () ->
   HsJudgment .ctx (.term A t::Γ) ()
+| wfopenm :
+  HsJudgment .type Γ (A, `★) ->
+  HsJudgment .ctx Γ () ->
+  HsJudgment .ctx (.openm A::Γ) ()
 
 -----------------------------------
 -- Implicits
@@ -134,8 +138,10 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
   HsJudgment .type (.kind A :: Γ) (τ, `★) ->
   HsJudgment .term Γ (t, `∀{A} τ)
 | implicitAllE :
+  HsJudgment .type Γ (`∀{A} τ, `★) ->
+  HsJudgment .kind Γ (A, `□) ->
   HsJudgment .term Γ (t, `∀{A} τ) ->
-  HsJudgment .term Γ (e, A) ->
+  HsJudgment .type Γ (e, A) ->
   HsJudgment .term Γ (t, τ β[e])
 
 --------------------------------------
@@ -164,11 +170,14 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
 | appk :
   HsJudgment .type Γ (f, A `-k> B) ->
   HsJudgment .type Γ (a, A) ->
+  HsJudgment .kind Γ (A, `□) ->
+  HsJudgment .kind Γ (B, `□) ->
   HsJudgment .type Γ (f `•k a, B)
 | varTy :
   HsJudgment .ctx Γ () ->
   (Γ d@ x).is_datatype || (Γ d@ x).is_kind  ->
   .some T = (Γ d@ x).get_type ->
+  HsJudgment .kind Γ (T, `□) ->
   HsJudgment .type Γ (`#x, T)
 
 ------------------------------------
@@ -219,14 +228,14 @@ def hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgme
   | .ax h => h
   | .arrowk h _ => hs_judgment_ctx_wf .kind h
 | .type , _ , x => match x with
-  | .varTy h _ _ => hs_judgment_ctx_wf .ctx h
-  | .appk h _ => hs_judgment_ctx_wf .type h
+  | .varTy h _ _ _ => hs_judgment_ctx_wf .ctx h
+  | .appk _ _ h _ => hs_judgment_ctx_wf .kind h
   | .allt h _ =>  hs_judgment_ctx_wf .kind h
   | .arrow h _ => hs_judgment_ctx_wf .type h
   | .farrow h _ _ => hs_judgment_ctx_wf .type h
 | .term , _ , x => match x with
   | .implicitAllI _ h2 _ => hs_judgment_ctx_wf .kind h2
-  | .implicitAllE h1 _ => hs_judgment_ctx_wf .term h1
+  | .implicitAllE h1 _ _ _ => hs_judgment_ctx_wf .type h1
   | .implicitArrI h1 _ _ _ => hs_judgment_ctx_wf .type h1
   | .implicitArrE h1 _ => hs_judgment_ctx_wf .term h1
   | .var h _ _ => h
@@ -245,18 +254,19 @@ namespace HsJudgment
  | .wfkind h1 h2 => 1 + size h1 + size h2
  | .wfdatatype h1 h2 => 1 + size h1 + size h2
  | .wfctor h1 h2 _ => 1 + size h1 + size h2
+ | .wfopenm h1 h2 => 1 + size h1 + size h2
  | .wfterm h1 h2 h3 => 1 + size h1 + size h2 + size h3
  | .implicitArrI h1 h2 _ h4 => 1 + size h1 + size h2 + size h4
  | .implicitArrE h1 h2 => 1 + size h1 + size h2
  | .implicitAllI h1 h2 h3 => 1 + size h1 + size h2 + size h2
- | .implicitAllE h1 h2 => 1 + size h1 + size h2
+ | .implicitAllE h1 h2 h3 h4 => 1 + size h1 + size h2 + size h3 + size h4
  | .ax h1 => 1 + size h1
  | .arrowk h1 h2 => 1 + size h1 + size h2
  | .allt h1 h2 =>  1 + size h1 + size h2
  | .arrow h1 h2 => 1 + size h1 + size h2
  | .farrow h1 _ h2 => 1 + size h1 + size h2
- | .appk h1 h2 => 1 + size h1 + size h2
- | .varTy h1 _ _ => 1 + size h1
+ | .appk h1 h2 h3 h4 => 1 + size h1 + size h2 + size h3 + size h4
+ | .varTy h1 _ _ h2 => 1 + size h1 + size h2
  | .var h1 _ _ => 1 + size h1
  | .lam h1 h2 h3 =>  1 + size h1 + size h2 + size h3
  | .app h1 h2 _ =>   1 + size h1 + size h2
@@ -295,13 +305,5 @@ inductive HsFrameWf : Ctx HsTerm -> Frame HsTerm -> Type
 | openm :
   Γ ⊢τ A : `★ ->
   HsFrameWf Γ (.openm A)
--- | insttype :
---   Γ ⊢s A : `★ ->
---   ValidInstType Γ A ->
---   HsFrameWf Γ (.insttype A)
--- | inst :
---   .openm T = Γ d@ x ->
---   Γ ⊢s t : T ->
---   HsFrameWf Γ (.inst #x t)
 
 notation:170 Γ:170 " ⊢s " f:170 => HsFrameWf Γ f

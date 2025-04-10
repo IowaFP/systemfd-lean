@@ -6,10 +6,16 @@ import Hs.Metatheory.Weaken
 
 set_option maxHeartbeats 500000
 
+def lift_subst_replace_type (A : Frame HsTerm) :
+  ⊢s (A.apply σ :: Δ) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
+  (∀ n t T, ^σ n = .su t -> .some T = ((A::Γ) d@ n).get_type -> (A.apply σ :: Δ) ⊢τ t : ([^σ]T))
+:= by sorry
+
 def lift_subst_replace (A : Frame HsTerm) :
   ⊢s (A.apply σ :: Δ) ->
-  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢s t : ([σ]T)) ->
-  (∀ n t T, ^σ n = .su t -> .some T = ((A::Γ) d@ n).get_type -> (A.apply σ :: Δ) ⊢s t : ([^σ]T))
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢t t : ([σ]T)) ->
+  (∀ n t T, ^σ n = .su t -> .some T = ((A::Γ) d@ n).get_type -> (A.apply σ :: Δ) ⊢t t : ([^σ]T))
 := by sorry
 -- intro j h1 n t T h2 h3
 -- cases n <;> simp at *
@@ -39,12 +45,14 @@ def lift_subst_replace (A : Frame HsTerm) :
 @[simp]
 abbrev idx_subst (σ : Subst HsTerm) : HsJudgmentArgs v -> HsJudgmentArgs v :=
   match v with
-  | .prf => λ (t, A) => ([σ]t, [σ]A)
-  | .wf => λ () => ()
+  | .term => λ (t, A) => ([σ]t, [σ]A)
+  | .kind => λ (t, A) => ([σ]t, [σ]A)
+  | .type => λ (t, A) => ([σ]t, [σ]A)
+  | .ctx => λ () => ()
 
 def subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
-  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢s t : ([σ]T)) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
   HsJudgment v Γ idx ->
   ⊢s Δ ->
@@ -306,12 +314,12 @@ def subst :
 --   apply Judgment.apptc ih1 ih2 ih3 ih4
 --   simp [*]; simp [*]
 
-def beta_empty t :
-  (.empty::Γ) ⊢s b : B ->
-  Γ ⊢s (b β[t]) : (B β[t])
+def hs_beta_empty t :
+  (.empty::Γ) ⊢t b : B ->
+  Γ ⊢t (b β[t]) : (B β[t])
 := by sorry
 -- intro j
--- have lem : ⊢s Γ := by
+-- have lem : ⊢t Γ := by
 --   have lem := hs_judgment_ctx_wf .prf j
 --   cases lem;
 -- apply @subst (.su t :: I) (.empty::Γ) Γ _ _ _ _ _ j
@@ -332,10 +340,10 @@ def beta_empty t :
 --   unfold Frame.is_stable at h1
 --   simp at h1
 
-def beta_type :
-  (.type A::Γ) ⊢s b : B ->
-  Γ ⊢s t : A ->
-  Γ ⊢s (b β[t]) : (B β[t])
+def hs_beta_type :
+  (.type A::Γ) ⊢t b : B ->
+  Γ ⊢t t : A ->
+  Γ ⊢t (b β[t]) : (B β[t])
 := by sorry
 -- intro j1 j2
 -- apply @subst (.su t :: I) (.type A::Γ) Γ _ _ _ _ _ j1
@@ -357,11 +365,18 @@ def beta_type :
 --   unfold Frame.is_stable at h1
 --   simp at h1
 
-def beta_kind :
-  (.kind A::Γ) ⊢s b : B ->
-  Γ ⊢s t : A ->
-  Γ ⊢s (b β[t]) : (B β[t])
+def hs_beta_kind :
+  (.kind A::Γ) ⊢t b : B ->
+  Γ ⊢t t : A ->
+  Γ ⊢t (b β[t]) : (B β[t])
 := by sorry
+
+def hs_beta_kind_type :
+  (.kind A::Γ) ⊢τ b : B ->
+  Γ ⊢τ t : A ->
+  Γ ⊢τ (b β[t]) : (B β[t])
+:= by sorry
+
 -- intro j1 j2
 -- apply @subst (.su t :: I) (.kind A::Γ) Γ _ _ _ _ _ j1
 -- apply judgment_ctx_wf j2
@@ -382,10 +397,10 @@ def beta_kind :
 --   unfold Frame.is_stable at h1
 --   simp at h1
 
-def beta_term :
-  (.term A t::Γ) ⊢s b : B ->
-  Γ ⊢s t : A ->
-  Γ ⊢s (b β[t]) : (B β[t])
+def hs_beta_term :
+  (.term A t::Γ) ⊢t b : B ->
+  Γ ⊢t t : A ->
+  Γ ⊢t (b β[t]) : (B β[t])
 := by sorry
 -- intro j1 j2
 -- apply @subst (.su t :: I) (.term A t::Γ) Γ _ _ _ _ _ j1
@@ -407,10 +422,10 @@ def beta_term :
 --   unfold Frame.is_stable at h1
 --   simp at h1
 
-def beta_openm :
-  (.openm A::Γ) ⊢s b : B ->
-  Γ ⊢s t : A ->
-  Γ ⊢s (b β[t]) : (B β[t])
+def hs_beta_openm :
+  (.openm A::Γ) ⊢t b : B ->
+  Γ ⊢t t : A ->
+  Γ ⊢t (b β[t]) : (B β[t])
 := by sorry
 -- intro j1 j2
 -- apply @subst (.su t :: I) (.openm A::Γ) Γ _ _ _ _ _ j1
