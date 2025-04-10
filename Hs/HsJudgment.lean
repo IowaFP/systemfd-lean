@@ -191,7 +191,7 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
 | lam :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .term (.type A :: Γ) (t, B) ->
-  HsJudgment .type Γ (A → B, `★) ->
+  HsJudgment .type (.empty :: Γ) (B, `★) ->
   HsJudgment .term Γ (`λ{A} t, A → B)
 | app :
   HsJudgment .term Γ (t1, A → B) ->

@@ -90,7 +90,7 @@ induction t generalizing k k'
 all_goals (cases j1)
 case _ =>
   cases j2
-  case _ h2 _ _ h1 =>
+  case _ h2 _ _ _ h1 =>
   rw [<-h1] at h2; injection h2;
 all_goals(cases j2)
 case _ f a ih1 ih2 k'' hk1 ht1 hk2 ht2 B hk3 ht3 hk4 ht4 =>
@@ -146,11 +146,13 @@ case _ Γ _ _ _ _ jf ja jka jkb ih1 ih2 _ _ =>
   have lem := kinds_have_unique_judgments h jkb1 jkb2; cases lem;
   have lem := kinds_have_unique_judgments h jka1 jka2; cases lem;
   simp
-case _ Γ _ _ _ _ _ _ =>
+case _ Γ _ _ _ _ _ _ _ _ =>
   intro j1 j2;
   cases j1; cases j2;
+  case _ wf1 _ h1 _ wf2 _ h2 _ =>
+  have lem :=  kinds_have_unique_judgments h h1 h2; cases lem;
   simp at *;
-  case _ wf1 _ _ wf2 _ _ => apply @h Γ wf1 wf2;
+  apply @h Γ wf1 wf2;
 
 theorem types_have_unique_judgments :
   (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
@@ -171,3 +173,11 @@ theorem compile_type_uniqueness :
 intro h j1 j2 c1 c2;
 have lem := types_have_unique_judgments h j1 j2; cases lem;
 rw[c1] at c2; injection c2;
+
+theorem arrow_kind_inversion :
+  Γ ⊢τ (A → B) : k -> k = `★ := by
+intro j; cases j; rfl
+
+theorem all_kind_inversion :
+  Γ ⊢τ (`∀{A} B) : k -> k = `★ := by
+intro j; cases j; rfl

@@ -35,7 +35,7 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
   | .ax wf' => .ax wf
   | .arrowk h1 h2 => .arrowk (hs_rename r .kind h1 wf f) (hs_rename r .kind h2 wf f)
 | .type, (t, τ) , j, wf, f => match j with
-  | @HsJudgment.varTy Γ x t wf test gt  => sorry
+  | @HsJudgment.varTy Γ x t wf test gt _ => sorry
   | .appk h1 h2 h3 h4 =>
     .appk (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f) (hs_rename r .kind h3 wf f) (hs_rename r .kind h4 wf f)
   | @HsJudgment.allt Γ A _ h1 h2 =>
@@ -52,7 +52,7 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
   | .implicitArrI h1 h2 h3 h4 => sorry -- .implicitArrI (hs_rename r .prf h1 wf f) sorry sorry sorry
   | .implicitArrE h1 h2 => sorry
   | @HsJudgment.var Γ x T wf' h _ => .var sorry sorry sorry
-  | .lam h1 h2 h3 => .lam (hs_rename r .type h1 wf f) sorry (hs_rename r .type h3 wf f)
+  | .lam h1 h2 h3 => .lam (hs_rename r .type h1 wf f) sorry sorry
   | .app h1 h2 h3 =>
     .app (hs_rename r .term h1 wf f) (hs_rename r .term h2 wf f) (by rw [h3]; rw[<-Subst.lift_lemma]; sorry)
   | .hslet h1 h2 h3 h4 =>
@@ -94,6 +94,17 @@ def hs_weaken_empty_term :
   Γ ⊢t t : A ->
   (.empty::Γ) ⊢t ([S]t) : ([S]A)
  := λ x => hs_weaken_term (.wfempty (hs_judgment_ctx_wf .term x)) x
+
+def hs_weaken_empty_type :
+  Γ ⊢τ t : A ->
+  (.empty::Γ) ⊢τ ([S]t) : ([S]A)
+ := λ x => hs_weaken_type (.wfempty (hs_judgment_ctx_wf .type x)) x
+
+def hs_weaken_empty_kind :
+  Γ ⊢κ t : A ->
+  (.empty::Γ) ⊢κ ([S]t) : ([S]A)
+ := λ x => hs_weaken_kind (.wfempty (hs_judgment_ctx_wf .kind x)) x
+
 
 def hs_weaken_type_term :
   Γ ⊢τ T : `★ ->
@@ -180,3 +191,10 @@ def hs_weaken_term_term :
   Γ ⊢t t : A ->
   (.term T b::Γ) ⊢t ([S]t) : ([S]A)
 := λ h1 h2 h3 => hs_weaken_term (.wfterm h1 h2 (hs_judgment_ctx_wf .type h1)) h3
+
+def hs_weaken_term_type :
+  Γ ⊢τ T : `★ ->
+  Γ ⊢t b : T ->
+  Γ ⊢τ t : A ->
+  (.term T b::Γ) ⊢τ ([S]t) : ([S]A)
+:= λ h1 h2 h3 => hs_weaken_type (.wfterm h1 h2 (hs_judgment_ctx_wf .type h1)) h3

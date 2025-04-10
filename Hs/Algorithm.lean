@@ -3,12 +3,14 @@ import Hs.HsTerm
 import SystemFD.Term
 import SystemFD.Algorithm
 
+
 def compile_kind (Γ : Ctx HsTerm) (κ : HsTerm) (ty : HsTerm) : Γ ⊢κ κ : ty -> Option Term
 | .ax _ => some ★
 | @HsJudgment.arrowk Γ A B j1 j2 => do
   let t1 <- compile_kind Γ A `□ j1
   let t2 <- compile_kind Γ B `□ j2
   .some (t1 -k> t2)
+
 
 def compile_type (Γ : Ctx HsTerm) (τ : HsTerm) (k : HsTerm) : Γ ⊢τ τ : k -> Option Term
 -----------------------------
@@ -43,8 +45,9 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
 ----- terms
 -----------------------------------------
 | @HsJudgment.var _ x _ _ _ _ => #x
-| @HsJudgment.lam Γ A t B j1 j2 _ => do
+| @HsJudgment.lam Γ A t B j1 j2 j3 => do
   let A' <- compile_type Γ A `★ j1
+  let _ <- compile_type (.empty::Γ) B `★ j3
   let t' <- compile_term (.type A :: Γ) t B j2
   .some (`λ[A'] t')
 | @HsJudgment.app Γ t1 A B t2 B' j1 j2 _ => do

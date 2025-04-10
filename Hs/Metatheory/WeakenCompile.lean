@@ -42,7 +42,16 @@ theorem weaken_compile_type :
 intro j sj c;
 induction Γ, t, k, j using compile_type.induct generalizing t' <;> simp at *;
 case _ =>
-  unfold compile_type; cases sj; simp; unfold compile_type at c; cases c; simp
+  unfold compile_type; cases sj; simp;
+  unfold compile_type at c; simp at c;
+  rw[Option.bind_eq_some] at c;
+  cases c; case _ wa c =>
+  cases c; case _ ca cb =>
+  cases cb; simp
+  rw[Option.bind_eq_some];
+  exists ([S]wa); simp;
+  case _ j _ _ sj _ =>
+  apply weaken_compile_kind j sj ca;
 case _ => sorry
 case _ => sorry
 case _ j1 j2 ih1 ih2 =>
