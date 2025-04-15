@@ -91,6 +91,8 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let t' <- compile_term (.type π :: Γ) t τ j3
   .some (`λ[π'] t')
 | @HsJudgment.implicitArrE Γ t π τ e j1 j2 _ => do
+  let _ <- compile_type Γ (π ⇒ τ) `★ (extract_typing j1)
+  let _ <- compile_type Γ π `★ (extract_typing j2)
   let t' <- compile_term Γ t (π ⇒ τ) j1
   let e' <- compile_term Γ e π j2
   .some (t' `@ e')

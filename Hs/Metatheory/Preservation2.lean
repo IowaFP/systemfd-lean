@@ -4,6 +4,7 @@ import Hs.Metatheory.Weaken
 import Hs.Metatheory.WeakenCompile
 import Hs.Metatheory.Substitution
 import Hs.Metatheory.SubstitutionCompile
+import Hs.Metatheory.TypeMatchCompile
 import Hs.Metatheory.Preservation1
 import SystemFD.Algorithm.Soundness2
 
@@ -70,7 +71,7 @@ case _ Γ A t B j1' j2 j3 ih1 => -- lam
    have lem1' := Judgment.wfempty wf
    have lem1 := HsJudgment.wfempty (hs_judgment_ctx_wf .type ja)
    have lem2 := HsJudgment.ax (hs_judgment_ctx_wf .type ja)
-   apply compile_preserves_types (cc .kind) _ h _ _ j3 c3;
+   apply compile_preserves_types (cc .kind) _ h _ _ j3 c3
    case _ => apply lem1'
    case _ => have lem := hs_weaken_empty_kind lem2; simp at lem; apply lem
    case _ =>
@@ -177,14 +178,14 @@ case _ T Γ A R B p s i t jA jR jB jT jp js ji jt j9 j10 j11 j12 ih1 ih2 ih3 ih4
  have lemAx : Γ ⊢κ `★ : `□ := by apply HsJudgment.ax (hs_judgment_ctx_wf .type jA)
  have lemK : compile_kind Γ `★ `□ lemAx = .some ★ := by unfold compile_kind; cases lemAx; simp
  apply Judgment.ite;
- apply @ih1 Γ' `★ wA wp wf jA c2 c6
+ apply @ih1 Γ' `★ wA wp wf jA c2 c6;
  apply @ih2 Γ' `★ wR ws wf jR c3 c7
  apply compile_preserves_types (cc .kind) wf h lemAx lemK jR c3
  apply @ih3 Γ' `★ wB wi wf jB c4 c8;
- sorry
- sorry
- sorry
- sorry
+ apply compile_preserves_vhv_terms Γ.is_ctor Γ'.is_ctor cc wf jp c6 j12
+ apply compile_preserves_vhv_types Γ.is_datatype Γ'.is_datatype cc wf jR c3 j11
+ apply compile_stable_match cc wf jA c2 jR c3 j9
+ apply compile_prefix_match cc wf jA c2 jB c4 j1 c1 j10
  apply compile_preserves_types (cc .kind) wf h lemAx lemK j1 c1
  apply @ih4 Γ' `★ τ' wt wf j1 c1
  apply c9
@@ -297,7 +298,6 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
  cases c2'; case _ c2' e =>
  cases e; case _ ja _ jb =>
  have lem := compile_type_uniqueness h j1' ja c2 c1'; cases lem;
- -- have lem := compile_type_uniqueness h jb j2 c2' c3; cases lem;
  apply Judgment.lam;
  apply compile_preserves_types (cc .kind) wf h _ _ ja c1'
  case _ => apply HsJudgment.ax (hs_judgment_ctx_wf .type ja)
@@ -326,21 +326,38 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
      unfold hs_weaken_empty_kind; unfold hs_weaken_kind; cases lem2;
      unfold hs_judgment_ctx_wf; simp;
      unfold hs_rename; simp; unfold compile_kind; rfl
-case _ => -- implicitArrE
+case _ Γ t π τ e j1' j2 j3 ih1 ih2 => -- implicitArrE
   rw[Option.bind_eq_some] at c2;
-  cases c2; case _ wt c2 =>
+  cases c2; case _ warr c2 =>
   cases c2; case _ c2 c3 =>
   rw[Option.bind_eq_some] at c3;
-  cases c3; case _ we c3 =>
-  cases c3; case _ c3 e =>
+  cases c3; case _ wπ c3 =>
+  cases c3; case _ c3 c4 =>
+  rw[Option.bind_eq_some] at c4;
+  cases c4; case _ wt c4 =>
+  cases c4; case _ c4 c5 =>
+  rw[Option.bind_eq_some] at c5;
+  cases c5; case _ we c5 =>
+  cases c5; case _ c5 e =>
   cases e;
+  have u := types_have_unique_kinds j3 j1; cases u
+  have lem := compile_preserves_type_shape_farrow (extract_typing j1') c2;
+  cases lem; case _ wA lem =>
+  cases lem; case _ wB lem  =>
+  cases lem; case _ ja' lem =>
+  cases lem; case _ jb' lem =>
+  cases lem; case _ e lem =>
+  cases lem; case _ c1' c2' =>
+  cases e;
+  have lem := compile_beta_empty_term jb' c2' j2 c5 j1;
   apply Judgment.app;
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
-
+  case _ =>
+    apply @ih1 Γ' `★ (wA -t> wB) wt wf (extract_typing j1') c2 c4
+  case _ => apply @ih2 Γ' `★ wA we wf ja' c1' c5
+  case _ =>
+    have e' : compile_type Γ ([Subst.Action.su e::I]τ) ([Subst.Action.su e::I]`★) j1 =
+              compile_type Γ ([Subst.Action.su e::I]τ) `★ j1 := by rfl
+    rw[e'] at lem; rw[c1] at lem; injection lem
 
 
 ---------------------------------------------
@@ -400,161 +417,28 @@ case _ j ih =>
   apply compile_preserves_kinds _ j cc2;
   case _ => apply @ih w wf cc
   apply @ih w wf cc
-case _ j ih =>
+case _ Γ τ a j ih =>
   cases wf; case _ wf jk =>
   unfold compile_ctx at cc; simp at cc;
   rw[Option.bind_eq_some] at cc;
-  cases cc; case _ w cc =>
+  cases cc; case _ Γ' cc =>
   cases cc; case _ cc cc1 =>
   rw[Option.bind_eq_some] at cc1;
   cases cc1; case _ w1 cc1 =>
   cases cc1; case _ cc1 cc2 =>
   rw[Option.bind_eq_some] at cc2;
-  cases cc2; case _ w2 cc2 =>
+  cases cc2; case _ τ' cc2 =>
   cases cc2; case _ cc2 cc3 =>
   cases cc3; cases w1;
-  have lem := @ih w wf cc
+  have lem := @ih Γ' wf cc
+  have lemAx : Γ ⊢κ `★ : `□ := by apply HsJudgment.ax (hs_judgment_ctx_wf .type jk)
+  have lemK : compile_kind Γ `★ `□ lemAx = .some ★ := by unfold compile_kind; cases lemAx; simp
   apply Judgment.wftype;
-  sorry -- apply compile_preserves_types lem sorry
-  apply @ih w wf cc
-  -- apply compile_preserves_types _ j cc2;
-  -- case _ => apply @ih w wf cc
-  --
+  sorry
+  assumption
 
+case _ ih =>
+  cases wf; case _ wf j vhv =>
+  unfold compile_ctx at cc; simp at cc;
+  sorry
 case _ => sorry
-case _ => sorry
-
-
--- theorem cc_soundness Γ : ⊢s Γ -> (Η : HsCtx Γ) -> compile_ctx Η = .some Γ' -> CompileCtx Γ Γ'
---   := by
--- intro wf h j
--- induction h using compile_ctx.induct generalizing Γ'
--- case _ =>
---   unfold compile_ctx at j; cases j;
---   constructor;
--- case _ Γ Η ih =>
---   unfold compile_ctx at j; simp at j;
---   rw[Option.bind_eq_some] at j;
---   cases j; case _ w j =>
---   cases j; case _ j j1 =>
---   rw[Option.bind_eq_some] at j1;
---   cases j1; case _ w1 j1 =>
---   cases j1; case _ j1 e =>
---   cases e; cases wf; case _ wf =>
---   apply CompileCtx.empty;
---   assumption
---   apply compile_preserves_wf Γ wf Η j
---   apply ih wf j
--- case _ Γ k Η jk ih =>
---   unfold compile_ctx at j; simp at j;
---   rw[Option.bind_eq_some] at j;
---   cases j; case _ w j =>
---   cases j; case _ j j1 =>
---   rw[Option.bind_eq_some] at j1;
---   cases j1; case _ w1 j1 =>
---   cases j1; case _ j1 j2 =>
---   rw[Option.bind_eq_some] at j2;
---   cases j2; case _ w2 j2 =>
---   cases j2; case _ j2 e =>
---   cases e; cases wf; case _ wf jk' =>
---   apply CompileCtx.kind;
---   assumption
---   apply compile_preserves_wf Γ wf Η j
---   apply ih wf j
---   assumption
--- case _ Γ k Η jk ih =>
---   unfold compile_ctx at j; simp at j;
---   rw[Option.bind_eq_some] at j;
---   cases j; case _ w j =>
---   cases j; case _ j j1 =>
---   rw[Option.bind_eq_some] at j1;
---   cases j1; case _ w1 j1 =>
---   cases j1; case _ j1 j2 =>
---   rw[Option.bind_eq_some] at j2;
---   cases j2; case _ w2 j2 =>
---   cases j2; case _ j2 e =>
---   cases e; cases wf; case _ wf jk' =>
---   apply CompileCtx.datatype;
---   assumption
---   apply compile_preserves_wf Γ wf Η j
---   apply ih wf j
---   assumption
--- case _  Γ k Η _ ih =>
---   unfold compile_ctx at j; simp at j;
---   rw[Option.bind_eq_some] at j;
---   cases j; case _ w j =>
---   cases j; case _ j j1 =>
---   rw[Option.bind_eq_some] at j1;
---   cases j1; case _ w1 j1 =>
---   cases j1; case _ j1 j2 =>
---   rw[Option.bind_eq_some] at j2;
---   cases j2; case _ w2 j2 =>
---   cases j2; case _ j2 e =>
---   cases e; cases wf; case _ wf jk' =>
---   apply CompileCtx.type;
---   assumption
---   apply compile_preserves_wf Γ wf Η j
---   apply ih wf j
---   assumption
--- case _  Γ k Η _ ih =>
---   unfold compile_ctx at j; simp at j;
---   rw[Option.bind_eq_some] at j;
---   cases j; case _ w j =>
---   cases j; case _ j j1 =>
---   rw[Option.bind_eq_some] at j1;
---   cases j1; case _ w1 j1 =>
---   cases j1; case _ j1 j2 =>
---   rw[Option.bind_eq_some] at j2;
---   cases j2; case _ w2 j2 =>
---   cases j2; case _ j2 e =>
---   cases e; cases wf; case _ wf _ vh =>
---   apply CompileCtx.ctor;
---   assumption
---   apply compile_preserves_wf Γ wf Η j
---   apply ih wf j
---   assumption
--- case _  Γ k Η _ ih =>
---   unfold compile_ctx at j; simp at j;
---   rw[Option.bind_eq_some] at j;
---   cases j; case _ w j =>
---   cases j; case _ j j1 =>
---   rw[Option.bind_eq_some] at j1;
---   cases j1; case _ w1 j1 =>
---   cases j1; case _ j1 j2 =>
---   rw[Option.bind_eq_some] at j2;
---   cases j2; case _ w2 j2 =>
---   cases j2; case _ j2 e =>
---   cases e; cases wf; case _ wf jk =>
---   apply CompileCtx.openm;
---   assumption
---   apply compile_preserves_wf Γ wf Η j
---   apply ih wf j
---   assumption
-
--- theorem cc_completeness Γ : ⊢s Γ -> (Η : HsCtx Γ) -> CompileCtx Γ Γ' -> compile_ctx Η = .some Γ'
---   := by
--- intro wf h cc
--- induction cc;
--- case _ =>
---   cases h; unfold compile_ctx; rfl;
--- case _ =>
---   cases h; cases wf; case _ Γ Γ' _ wf' cc ih h wf =>
---   unfold compile_ctx; simp
---   rw[Option.bind_eq_some];
---   exists Γ'; apply And.intro;
---   apply ih wf
---   rw[Option.bind_eq_some];
---   exists (); apply And.intro;
---   sorry
---   simp
--- case _ => sorry
--- case _ => sorry
--- case _ => sorry
--- case _ => sorry
-
-theorem compile_preserves_term_indices :
-  ⊢ Γ' ->
-  (j1 : Γ ⊢t `#x : T) ->
-  compile_type Γ T k j = .some T' ->
-  (Γ' d@ x).get_type = .some T' := by
-sorry

@@ -56,8 +56,10 @@ abbrev CompileCtxPred : (v : HsVariant) -> Prop
   (j : Γ ⊢t T : A) ->
   compile .term Γ ⟨(T, A), j⟩ = .some T' ->
   (Γ' d@ x).get_type = .some T'
-| .ctx => true
-
+| .ctx => ∀ (Γ : Ctx HsTerm) (Γ' : Ctx Term) (Η : HsCtx Γ),
+  ⊢s Γ ->
+  compile_ctx Η = .some Γ' ->
+  ⊢ Γ'
 
 theorem compile_preserves_types :
   CompileCtxPred .kind ->
@@ -202,33 +204,6 @@ intro j c;
 have lem := comile_preserves_type_shape_all_lemma j; simp at lem;
 apply @lem A τ cτ rfl rfl j c
 
-
-@[simp]
-abbrev CompilePreservesTypeShapeArrow :  (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
-| .type => λ Γ => λ (τ, k) => ∀ wA wB cτ,
-  τ = (.HsBind2 .arrow wA wB) ->
-  k = `★ ->
-  (j3 : Γ ⊢τ τ : k) ->
-  compile_type Γ τ k j3 = .some cτ ->
-  ∃ A' B', cτ = (A' -t> B')
-| _ => λ _ => λ _ => true
-
-theorem comile_preserves_type_shape_arrow_lemma :
-  HsJudgment v Γ idx -> CompilePreservesTypeShapeArrow v Γ idx
- := by
-intro j; induction j <;> simp at *;
-intro wA wτ cτ e1 e2 j3 c3;
-cases j3; case _ hka hkb =>
-unfold compile_type at c3; simp at c3;
-rw[Option.bind_eq_some] at c3;
-cases c3; case _ A' c3 =>
-cases c3; case _ cA c4 =>
-rw[Option.bind_eq_some] at c4;
-cases c4; case _ B' c4 =>
-cases c4; case _ cB e =>
-cases e; simp;
-
-
 theorem compile_preserves_type_shape_arrow :
   (j1 : Γ ⊢τ (A → B) : `★) ->
   compile_type Γ (A → B) `★ j1 = .some cτ ->
@@ -246,3 +221,22 @@ cases j3; case _ B' j3 =>
 cases j3; case _ j3 e =>
 cases e; case _ ja jb =>
 exists A'; exists B'; exists ja; exists jb;
+
+
+theorem compile_preserves_type_shape_farrow :
+  (j1 : Γ ⊢τ (A ⇒ B) : `★) ->
+  compile_type Γ (A ⇒ B) `★ j1 = .some cτ ->
+  ∃ (A' : Term)  (B' : Term) (j2 : Γ ⊢τ A : `★) (j3 : (.empty :: Γ) ⊢τ B : `★),
+        cτ = (A' -t> B')
+         ∧ (compile_type Γ A `★ j2 = .some A')
+         ∧ (compile_type (.empty::Γ) B `★ j3 = .some B')  := by
+intro j1 j2;
+unfold compile_type at j2; cases j1; simp at j2;
+rw[Option.bind_eq_some] at j2;
+cases j2; case _ A' j2 =>
+cases j2; case _ j2 j3 =>
+rw[Option.bind_eq_some] at j3;
+cases j3; case _ B' j3 =>
+cases j3; case _ j3 e =>
+cases e; case _ ja _ jb =>
+exists A'; exists B'; exists ja; exists jb
