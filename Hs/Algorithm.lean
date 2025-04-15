@@ -50,7 +50,10 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let _ <- compile_type (.empty::Γ) B `★ j3
   let t' <- compile_term (.type A :: Γ) t B j2
   .some (`λ[A'] t')
-| @HsJudgment.app Γ t1 A B t2 B' j1 j2 _ => do
+| @HsJudgment.app Γ t1 A B t2 B' j1 j2 _ j3 j4 => do
+  let _ <- compile_type Γ (A → B) `★ (extract_typing j1)
+  let _ <- compile_type Γ A `★ j3
+  let _ <- compile_type Γ B' `★ j4
   let t1' <- compile_term Γ t1 (A → B) j1
   let t2' <- compile_term Γ t2 A j2
   .some (t1' `@ t2')
@@ -59,17 +62,21 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let t1' <- compile_term Γ t1 A j2
   let t2' <- compile_term (.term A t1 :: Γ) t2 ([S]B) j3
   .some (.letterm A' t1' t2')
-| @HsJudgment.hsIte Γ p A s R i B t T j1 j2 j3 j4 _ _ _ _ _ _  => do
-  let p' <- compile_term Γ p A j1
-  let s' <- compile_term Γ s R j2
-  let i' <- compile_term Γ i B j3
-  let t' <- compile_term Γ t T j4
+| @HsJudgment.hsIte Γ A R B T p s i e j1 j2 j3 j4 j5 j6 j7 j8 _ _ _ _  => do
+  let _ <- compile_type Γ A `★ j1
+  let _ <- compile_type Γ R `★ j2
+  let _ <- compile_type Γ B `★ j3
+  let _ <- compile_type Γ T `★ j4
+  let p' <- compile_term Γ p A j5
+  let s' <- compile_term Γ s R j6
+  let i' <- compile_term Γ i B j7
+  let t' <- compile_term Γ e T j8
   .some (.ite p' s' i' t')
 
 ----------------------------------------
 --- Implicit
 ----------------------------------------
-| @HsJudgment.implicitAllE Γ A τ t e j1 j2 j3 j4 => do
+| @HsJudgment.implicitAllE Γ A τ t e j1 j2 j3 j4 _ => do
   let _ <- compile_type Γ (`∀{A}τ) `★ j1
   let _ <- compile_kind Γ A `□ j2
   let t1 <- (compile_term Γ t (`∀{A}τ) j3)
@@ -83,7 +90,7 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let π' <- compile_type Γ π `★ j1
   let t' <- compile_term (.type π :: Γ) t τ j3
   .some (`λ[π'] t')
-| @HsJudgment.implicitArrE Γ t π τ e j1 j2 => do
+| @HsJudgment.implicitArrE Γ t π τ e j1 j2 _ => do
   let t' <- compile_term Γ t (π ⇒ τ) j1
   let e' <- compile_term Γ e π j2
   .some (t' `@ e')

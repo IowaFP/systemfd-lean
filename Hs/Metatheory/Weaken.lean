@@ -35,46 +35,89 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
   | .ax wf' => .ax wf
   | .arrowk h1 h2 => .arrowk (hs_rename r .kind h1 wf f) (hs_rename r .kind h2 wf f)
 | .type, (t, τ) , j, wf, f => match j with
-  | @HsJudgment.varTy Γ x t wf test gt _ => sorry
+  | @HsJudgment.varTy Γ x t wf' test gt h =>
+    .varTy wf
+    (by rw[<-f]; simp;
+        generalize fh : Γ d@ x = f at *;
+        cases f;
+        all_goals (unfold Frame.is_datatype at test; unfold Frame.is_kind at test; simp at test)
+        all_goals (unfold Frame.apply; unfold Frame.get_type at gt; simp at gt; cases gt)
+        case _ => unfold Frame.is_kind; simp;
+        case _ => unfold Frame.is_datatype; simp
+    )
+    (by rw [<-f];
+        unfold Frame.get_type;
+        generalize fh : Γ d@ x = f at *;
+        cases f;
+        all_goals (unfold Frame.is_datatype at test; unfold Frame.is_kind at test; simp at test)
+        all_goals (unfold Frame.apply; unfold Frame.get_type at gt; simp at gt; cases gt)
+        case _ => simp
+        case _ => simp)
+    (hs_rename r .kind h wf f)
   | .appk h1 h2 h3 h4 =>
-    .appk (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f) (hs_rename r .kind h3 wf f) (hs_rename r .kind h4 wf f)
+    .appk (hs_rename r .type h1 wf f)
+          (hs_rename r .type h2 wf f) (hs_rename r .kind h3 wf f) (hs_rename r .kind h4 wf f)
   | @HsJudgment.allt Γ A _ h1 h2 =>
       .allt (hs_rename r .kind h1 wf f) sorry
   | .arrow h1 h2 =>
     .arrow (hs_rename r .type h1 wf f) sorry
-           -- (by have h' := hs_rename r .prf h2 (.wfempty wf) (hs_rename_lift r .empty f); rw[Subst.lift_lemma]; sorry)
-           -- (hs_rename r .prf h2 (by sorry) (by sorry))
   | .farrow h1 h3 h2  =>
     .farrow (hs_rename r .type h1 wf f) sorry sorry
 | .term, (t, τ) , j, wf, f => match j with
   | .implicitAllI h1 h2 h3 => sorry
-  | .implicitAllE h1 h2 h3 h4 => sorry
+  | .implicitAllE h1 h2 h3 h4 h5 => sorry
   | .implicitArrI h1 h2 h3 h4 => sorry -- .implicitArrI (hs_rename r .prf h1 wf f) sorry sorry sorry
-  | .implicitArrE h1 h2 => sorry
+  | .implicitArrE h1 h2 _ => sorry
   | @HsJudgment.var Γ x T wf' h _ => .var sorry sorry sorry
   | .lam h1 h2 h3 => .lam (hs_rename r .type h1 wf f) sorry sorry
-  | .app h1 h2 h3 =>
-    .app (hs_rename r .term h1 wf f) (hs_rename r .term h2 wf f) (by rw [h3]; rw[<-Subst.lift_lemma]; sorry)
+  | .app h1 h2 h3 h4 h5 =>
+    .app (hs_rename r .term h1 wf f) (hs_rename r .term h2 wf f)
+      sorry
+      (hs_rename r .type h4 wf f)
+      (hs_rename r .type h5 wf f)
   | .hslet h1 h2 h3 h4 =>
-    .hslet (hs_rename r .type h1 wf f) (hs_rename r .term h2 wf f) sorry (hs_rename r .type h4 wf f)
-  | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 =>
-    .hsIte (hs_rename r .term h1 wf f) (hs_rename r .term h2 wf f) (hs_rename r .term h3 wf f) (hs_rename r .term h4 wf f)
-           (hs_rename r .type h5 wf f) (hs_rename r .type h6 wf f) sorry sorry (by sorry)  sorry
+    .hslet (hs_rename r .type h1 wf f)
+      (hs_rename r .term h2 wf f)
+      sorry
+      (hs_rename r .type h4 wf f)
+  | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 =>
+    .hsIte
+      (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f)
+      (hs_rename r .type h3 wf f) (hs_rename r .type h4 wf f)
+      (hs_rename r .term h5 wf f) (hs_rename r .term h6 wf f)
+      (hs_rename r .term h7 wf f) (hs_rename r .term h8 wf f)
+      (by apply hs_stable_type_match_subst
+          case _ => intro n j1 j2; sorry
+          case _ => sorry
+          apply h9
+      )
+      (by apply hs_prefix_type_match_subst _ _;
+          case _ => apply h10
+          case _ => sorry
+          case _ => sorry
+      )
+      (by apply @hs_valid_head_variable_subst _ _;
+          case _ => sorry
+          case _ => apply h11)
+      sorry
 | .ctx, () , j, wf, r => by simp; apply wf
 
-
+@[simp]
 def hs_weaken_type :
   ⊢s (f :: Γ) ->
   Γ ⊢τ t : A ->
   (f::Γ) ⊢τ ([S]t) : ([S]A)
 | wf , h => hs_rename (λ x => x + 1) .type h wf (by intro; rw [Subst.to_S]; simp)
 
+
+@[simp]
 def hs_weaken_kind :
   ⊢s (f :: Γ) ->
   Γ ⊢κ t : A ->
   (f::Γ) ⊢κ ([S]t) : ([S]A)
 | wf , h => hs_rename (λ x => x + 1) .kind h wf (by intro; rw [Subst.to_S]; simp)
 
+@[simp]
 def hs_weaken_kind_unique :
   ⊢s (f :: Γ) ->
   Γ ⊢κ t : A ->
@@ -82,36 +125,39 @@ def hs_weaken_kind_unique :
 | wf , HsJudgment.ax wf' => HsJudgment.ax wf
 | wf , .arrowk h1 h2 => HsJudgment.arrowk (hs_weaken_kind_unique wf h1) (hs_weaken_kind_unique wf h2)
 
-
+@[simp]
 def hs_weaken_term :
   ⊢s (f :: Γ) ->
   Γ ⊢t t : A ->
   (f::Γ) ⊢t ([S]t) : ([S]A)
 | wf , h => hs_rename (λ x => x + 1) .term h wf (by intro; rw [Subst.to_S]; simp)
 
-
+@[simp]
 def hs_weaken_empty_term :
   Γ ⊢t t : A ->
   (.empty::Γ) ⊢t ([S]t) : ([S]A)
  := λ x => hs_weaken_term (.wfempty (hs_judgment_ctx_wf .term x)) x
 
+@[simp]
 def hs_weaken_empty_type :
   Γ ⊢τ t : A ->
   (.empty::Γ) ⊢τ ([S]t) : ([S]A)
  := λ x => hs_weaken_type (.wfempty (hs_judgment_ctx_wf .type x)) x
 
+@[simp]
 def hs_weaken_empty_kind :
   Γ ⊢κ t : A ->
   (.empty::Γ) ⊢κ ([S]t) : ([S]A)
  := λ x => hs_weaken_kind (.wfempty (hs_judgment_ctx_wf .kind x)) x
 
-
+@[simp]
 def hs_weaken_type_term :
   Γ ⊢τ T : `★ ->
   Γ ⊢t t : A ->
   (.type T::Γ) ⊢t ([S]t) : ([S]A)
 := λ h1 h2 => hs_weaken_term (.wftype h1 (hs_judgment_ctx_wf .type h1)) h2
 
+@[simp]
 def hs_weaken_kind_term :
   Γ ⊢κ T : `□ ->
   Γ ⊢t t : A ->
@@ -198,3 +244,23 @@ def hs_weaken_term_type :
   Γ ⊢τ t : A ->
   (.term T b::Γ) ⊢τ ([S]t) : ([S]A)
 := λ h1 h2 h3 => hs_weaken_type (.wfterm h1 h2 (hs_judgment_ctx_wf .type h1)) h3
+
+
+
+def hs_replace_empty_kind :
+  Γ ⊢τ A : `★ ->
+  (.empty :: Γ) ⊢κ B : `□ ->
+  (.type A :: Γ) ⊢κ B : `□
+| ja, .ax h => by apply HsJudgment.ax; cases h; case _ h => apply HsJudgment.wftype; assumption; assumption
+| ja, .arrowk h1 h2 => by apply HsJudgment.arrowk (hs_replace_empty_kind ja h1) (hs_replace_empty_kind ja h2)
+
+
+def hs_replace_empty_type :
+  Γ ⊢τ A : `★ ->
+  (.empty :: Γ) ⊢τ B : `★ ->
+  (.type A :: Γ) ⊢τ B : `★
+| ja, .allt h1 h2 => by apply HsJudgment.allt; apply hs_replace_empty_kind ja h1; sorry
+| ja, .varTy h1 h2 h3 h4 => by sorry
+| ja, .arrow h1 h2 => by sorry
+| ja, .farrow h1 h2 h3 => by sorry
+| ja, .appk h1 h2 h3 h4  => by sorry

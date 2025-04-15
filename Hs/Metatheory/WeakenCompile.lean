@@ -36,10 +36,10 @@ case _ j1 j2 ih1 ih2 =>
 
 theorem weaken_compile_type :
   (j : Γ ⊢τ t : k) ->
-  (sj : (f :: Γ) ⊢τ ([S]t) : ([S]k)) ->
   compile_type Γ t k j = .some t' ->
+  (sj : (f :: Γ) ⊢τ ([S]t) : ([S]k)) ->
   compile_type (f::Γ) ([S]t) ([S]k) sj = .some ([S]t') := by
-intro j sj c;
+intro j c sj;
 induction Γ, t, k, j using compile_type.induct generalizing t' <;> simp at *;
 case _ =>
   unfold compile_type; cases sj; simp;
@@ -76,4 +76,11 @@ case _ j1 j2 ih1 ih2 =>
   apply And.intro
   sorry
   simp
+
 case _ => sorry
+
+def compile_replace_empty :
+  (j1 : (.empty :: Γ) ⊢τ τ : k) ->
+  (j2 : (f :: Γ) ⊢τ τ : k) ->
+  compile_type (.empty :: Γ) τ k j1 = .some τ' ->
+  compile_type (f :: Γ) τ k j2 = .some τ' := by sorry

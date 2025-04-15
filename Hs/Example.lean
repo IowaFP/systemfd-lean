@@ -120,7 +120,7 @@ def idTerm := compile_term [] idHsTerm idHsType idTyping
 #guard idType == do { let t <- idTerm; infer_type [] t }
 
 #eval idType
-#eval idTerm
+#eval! idTerm
 
 def MbCtx : Ctx HsTerm :=
   [ .ctor (`∀{`★} `#2 `•k `#0)          -- Nothing :: ∀ a. Maybe a

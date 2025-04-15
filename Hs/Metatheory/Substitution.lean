@@ -314,7 +314,13 @@ def subst :
 --   apply Judgment.apptc ih1 ih2 ih3 ih4
 --   simp [*]; simp [*]
 
-def hs_beta_empty t :
+def hs_beta_empty_type t :
+  (.empty::Γ) ⊢τ b : B ->
+  Γ ⊢τ (b β[t]) : (B β[t])
+:= by sorry
+
+
+def hs_beta_empty_term t :
   (.empty::Γ) ⊢t b : B ->
   Γ ⊢t (b β[t]) : (B β[t])
 := by sorry

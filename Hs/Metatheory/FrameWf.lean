@@ -228,4 +228,4 @@ def hs_frame_wf_implies_kinded_varTy T :
   (Γ d@ x).is_datatype || (Γ d@ x).is_kind ->
   .some T = (Γ d@ x).get_type ->
   Γ ⊢τ (`#x) : T :=
-λ fwf h gt => HsJudgment.varTy (hs_frame_wf_implies_wf fwf) h gt
+λ fwf h gt => HsJudgment.varTy (hs_frame_wf_implies_wf fwf) h gt sorry
