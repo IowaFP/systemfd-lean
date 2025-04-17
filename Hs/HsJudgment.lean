@@ -288,7 +288,7 @@ namespace HsJudgment
  | .var h1 _ _ => 1 + size h1
  | .lam h1 h2 h3 =>  1 + size h1 + size h2 + size h3
  | .app h1 h2 _ h3 h4 =>   1 + size h1 + size h2 + size h3 + size h4
- | .hslet h1 h2 h3 h4 =>  1 + size h1 + size h2 + size h3 + size h3
+ | .hslet h1 h2 h3 h4 =>  1 + size h1 + size h2 + size h3 + size h4
  | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 _ _ _ _ =>
    1 + size h1 + size h2 + size h3 + size h4 + size h5 + size h6 + size h7 + size h8
 end HsJudgment
@@ -326,26 +326,3 @@ inductive HsFrameWf : Ctx HsTerm -> Frame HsTerm -> Type
   HsFrameWf Γ (.openm A)
 
 notation:170 Γ:170 " ⊢s " f:170 => HsFrameWf Γ f
-
-def extract_kinding :
-  Γ ⊢τ τ : k ->
-  Γ ⊢κ k : `□
-| .arrow h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
-| .farrow h1 h2 _ => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
-| .allt h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .kind h1)
-| .appk _ _ _ h => h
-| .varTy _ _ _ h => h
-
-
-def extract_typing :
-  Γ ⊢t t : τ ->
-  Γ ⊢τ τ : `★
-| .implicitAllI _ h1 h2  => HsJudgment.allt h1 h2
-| .implicitAllE _ _ _ _ h => h
-| .implicitArrI h1 h2 h3 _ => HsJudgment.farrow h1 h3 h2
-| .implicitArrE _ _ h => h
-| .var h1 h2 h3 => sorry
-| .hsIte _ _ _ h _ _ _ _ _ _ _ _ => h
-| .hslet _ _ _  h => h
-| .app _ _ _ _ h3 => h3
-| .lam h1 _ h3 => HsJudgment.arrow h1 h3

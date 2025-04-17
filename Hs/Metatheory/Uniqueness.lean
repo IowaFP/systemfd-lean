@@ -178,39 +178,10 @@ theorem arrow_kind_inversion :
   Γ ⊢τ (A → B) : k -> k = `★ := by
 intro j; cases j; rfl
 
+theorem farrow_kind_inversion :
+  Γ ⊢τ (A ⇒ B) : k -> k = `★ := by
+intro j; cases j; rfl
+
 theorem all_kind_inversion :
   Γ ⊢τ (`∀{A} B) : k -> k = `★ := by
 intro j; cases j; rfl
-
-
-@[simp]
-abbrev TypingJudgmentsUniquessType : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
-| .term => λ Γ => λ (t, τ) =>
-  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
-   (j1 : Γ ⊢t t : τ) -> (j2 : Γ ⊢t t : τ) -> j1 = j2
-| _ => λ _ => λ _ => true
-
-theorem terms_have_unique_judgments_lemma :
-  HsJudgment v Γ idx -> TypingJudgmentsUniquessType v Γ idx := by
-intro j; induction j <;> simp at *
-all_goals (intro h j1 j2)
-case _ h1 h2 vhv j3 ih1 ih2 ih3 =>
-  sorry
-case _ =>
-  sorry
-case _ =>
-  sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-
-theorem terms_have_unique_judgments :
-  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
-  (j1 : Γ ⊢t t : k) ->
-  (j2 : Γ ⊢t t : k) ->
-  j1 = j2 := by
-intro h j1 j2;
-apply terms_have_unique_judgments_lemma j2 h j1 j2;

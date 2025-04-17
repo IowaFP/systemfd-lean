@@ -56,10 +56,7 @@ abbrev CompileCtxPred : (v : HsVariant) -> Prop
   (j : Γ ⊢t T : A) ->
   compile .term Γ ⟨(T, A), j⟩ = .some T' ->
   (Γ' d@ x).get_type = .some T'
-| .ctx => ∀ (Γ : Ctx HsTerm) (Γ' : Ctx Term) (Η : HsCtx Γ),
-  ⊢s Γ ->
-  compile_ctx Η = .some Γ' ->
-  ⊢ Γ'
+| .ctx => true
 
 theorem compile_preserves_types :
   CompileCtxPred .kind ->

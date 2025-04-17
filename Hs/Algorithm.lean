@@ -1,8 +1,39 @@
 import Hs.HsJudgment
 import Hs.HsTerm
+import Hs.Metatheory.FrameWf
 import SystemFD.Term
 import SystemFD.Algorithm
 
+
+def extract_kinding :
+  Γ ⊢τ τ : k ->
+  Γ ⊢κ k : `□
+| .arrow h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
+| .farrow h1 h2 _ => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
+| .allt h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .kind h1)
+| .appk _ _ _ h => h
+| .varTy _ _ _ h => h
+
+
+def extract_typing :
+  Γ ⊢t t : τ ->
+  Γ ⊢τ τ : `★
+| .implicitAllI _ h1 h2  => HsJudgment.allt h1 h2
+| .implicitAllE _ _ _ _ h => h
+| .implicitArrI h1 h2 h3 _ => HsJudgment.farrow h1 h3 h2
+| .implicitArrE _ _ h => h
+| @HsJudgment.var Γ x T h1 h2 h3 =>
+  (by
+  generalize fh : Γ d@x = f at *;
+  have lem := hs_frame_wf_by_index x h1
+  cases f;
+  all_goals (unfold Frame.is_ctor at h2; unfold Frame.is_type at h2; unfold Frame.is_term at h2; simp at h2)
+  all_goals (unfold Frame.get_type at h3; simp at h3; cases h3; clear h2)
+  all_goals (rw[fh] at lem; cases lem; assumption))
+| .hsIte _ _ _ h _ _ _ _ _ _ _ _ => h
+| .hslet _ _ _  h => h
+| .app _ _ _ _ h3 => h3
+| .lam h1 _ h3 => HsJudgment.arrow h1 h3
 
 def compile_kind (Γ : Ctx HsTerm) (κ : HsTerm) (ty : HsTerm) : Γ ⊢κ κ : ty -> Option Term
 | .ax _ => some ★
@@ -107,6 +138,7 @@ inductive HsCtx : Ctx HsTerm -> Type where
 | type : HsCtx Γ -> (Γ ⊢τ τ : `★) -> HsCtx (.type τ :: Γ)
 | ctor : HsCtx Γ -> (Γ ⊢τ τ : `★) -> HsCtx (.ctor τ :: Γ)
 | openm : HsCtx Γ -> (Γ ⊢τ τ : `★) -> HsCtx (.openm τ :: Γ)
+| term : HsCtx Γ -> (Γ ⊢τ A : `★) -> (Γ ⊢t t : A) -> HsCtx (.term A t :: Γ)
 
 @[simp]
 def compile_ctx : HsCtx Γ -> Option (Ctx Term)
@@ -140,7 +172,12 @@ def compile_ctx : HsCtx Γ -> Option (Ctx Term)
   let _ <- wf_ctx Δ
   let τ <- compile_type Γ t `★ j
   .some (.openm τ :: Δ)
-
+| @HsCtx.term Γ A t Γ' jA jt => do
+  let Δ <- compile_ctx Γ'
+  let _ <- wf_ctx Δ
+  let A' <- compile_type Γ A `★ jA
+  let t' <- compile_term Γ t A jt
+  .some (.term A' t' :: Δ)
 
 @[simp]
 abbrev CompileArgs : (HsVariant) -> (Ctx HsTerm) -> Type

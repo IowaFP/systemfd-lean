@@ -4,7 +4,7 @@ import SystemFD.Ctx
 import Hs.Metatheory.Weaken
 import Hs.Metatheory.TypeMatch
 
-namespace FrameWf
+namespace HsFrameWf
   def weaken (r : Ren) :
     ⊢s Δ ->
     (∀ x, (Γ d@ x).apply r.to = Δ d@ (r x)) ->
@@ -52,20 +52,23 @@ namespace FrameWf
     unfold Frame.apply; simp; constructor
     have lem := hs_rename r .type j wf h; simp at lem
     apply lem
-end FrameWf
+end HsFrameWf
 
 @[simp]
-abbrev FrameWfByIndexLemmaType (Γ : Ctx HsTerm) : (v : HsVariant) -> HsJudgmentArgs v -> Type
+abbrev HsFrameWfByIndexLemmaType (Γ : Ctx HsTerm) : (v : HsVariant) -> HsJudgmentArgs v -> Type
 | .term => λ _ => Int
 | .type => λ _ => Int
 | .kind => λ _ => Int
 | .ctx => λ () => ∀ x, Γ ⊢s Γ d@ x
 
-def hs_frame_wf_by_index_lemma : (v : HsVariant) -> (ix : HsJudgmentArgs v)
-  -> HsJudgment v Γ ix
-  -> ∀ x, Γ ⊢s Γ d@ x
-:= sorry
-
+def hs_frame_wf_by_index_lemma : (v : HsVariant) -> (ix : HsJudgmentArgs v) ->
+  HsJudgment v Γ ix -> HsFrameWfByIndexLemmaType Γ v ix
+| .ctx, args, j =>
+  match j with
+  | j => sorry
+| .kind, args, j => by (simp at args); sorry
+| .type, args, j => by (simp at args); sorry
+| .term, args, j => by (simp at args); sorry
 
 -- by
 -- intro j; induction j <;> simp at *

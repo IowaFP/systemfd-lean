@@ -363,6 +363,15 @@ case _ a h' => apply Exists.intro a; assumption
 case _ => cases h
 
 omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem ctor_indexing_exists {Γ : Ctx T} :
+  (Γ d@ n).is_ctor = true ->
+  ∃ t, Γ d@ n = .ctor t := by
+intros h; unfold Frame.is_ctor at h; split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
 theorem indexing_uniqueness_datatype {Γ : Ctx T} :
   (Γ d@ t).is_datatype ->
   (Γ d@ t).is_opent -> False := by

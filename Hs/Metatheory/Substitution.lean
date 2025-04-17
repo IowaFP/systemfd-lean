@@ -6,13 +6,13 @@ import Hs.Metatheory.Weaken
 
 set_option maxHeartbeats 500000
 
-def lift_subst_replace_type (A : Frame HsTerm) :
+def hs_lift_subst_replace_type (A : Frame HsTerm) :
   ⊢s (A.apply σ :: Δ) ->
   (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
   (∀ n t T, ^σ n = .su t -> .some T = ((A::Γ) d@ n).get_type -> (A.apply σ :: Δ) ⊢τ t : ([^σ]T))
 := by sorry
 
-def lift_subst_replace (A : Frame HsTerm) :
+def hs_lift_subst_replace (A : Frame HsTerm) :
   ⊢s (A.apply σ :: Δ) ->
   (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢t t : ([σ]T)) ->
   (∀ n t T, ^σ n = .su t -> .some T = ((A::Γ) d@ n).get_type -> (A.apply σ :: Δ) ⊢t t : ([^σ]T))
@@ -43,20 +43,20 @@ def lift_subst_replace (A : Frame HsTerm) :
 --     apply lem4
 
 @[simp]
-abbrev idx_subst (σ : Subst HsTerm) : HsJudgmentArgs v -> HsJudgmentArgs v :=
+abbrev hs_idx_subst (σ : Subst HsTerm) : HsJudgmentArgs v -> HsJudgmentArgs v :=
   match v with
   | .term => λ (t, A) => ([σ]t, [σ]A)
   | .kind => λ (t, A) => ([σ]t, [σ]A)
   | .type => λ (t, A) => ([σ]t, [σ]A)
   | .ctx => λ () => ()
 
-def subst :
+def hs_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
   HsJudgment v Γ idx ->
   ⊢s Δ ->
-  HsJudgment v Δ (idx_subst σ idx)
+  HsJudgment v Δ (hs_idx_subst σ idx)
 := by sorry
 -- intro h1 h2 h3 j wf
 -- induction j generalizing Δ σ
