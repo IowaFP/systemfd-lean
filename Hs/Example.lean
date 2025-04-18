@@ -86,31 +86,6 @@ def idTyping : [] ⊢t idHsTerm : idHsType := by
   apply HsJudgment.ax
   apply HsJudgment.wfnil
    };
-   apply HsJudgment.arrow;
-     apply HsJudgment.varTy;
-     apply HsJudgment.wfkind; apply HsJudgment.ax (HsJudgment.wfnil); apply HsJudgment.wfnil;
-     unfold Frame.is_kind; unfold dnth; unfold Frame.apply; simp;
-     unfold Frame.get_type; unfold dnth; unfold Frame.apply; simp;
-     {
-  apply HsJudgment.ax
-  apply HsJudgment.wfkind
-  · apply HsJudgment.ax
-    apply HsJudgment.wfnil
-  · apply HsJudgment.wfnil
-     };
-     apply HsJudgment.varTy;
-     apply HsJudgment.wfempty;
-     apply HsJudgment.wfkind; apply HsJudgment.ax (HsJudgment.wfnil); apply HsJudgment.wfnil;
-   unfold Frame.is_kind; unfold dnth; unfold Frame.apply; simp; unfold Frame.apply; simp;
-   unfold Frame.get_type; unfold dnth; unfold Frame.apply; unfold dnth; simp; unfold Frame.apply; simp;
-   {
-  apply HsJudgment.ax
-  apply HsJudgment.wfempty
-  apply HsJudgment.wfkind
-  · apply HsJudgment.ax
-    apply HsJudgment.wfnil
-  · apply HsJudgment.wfnil
-  };
 
 def idType := compile_type [] idHsType `★ idTypeKinding
 def idTerm := compile_term [] idHsTerm idHsType idTyping

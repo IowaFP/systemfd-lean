@@ -143,20 +143,20 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
 | implicitArrE :
   HsJudgment .term Γ (t, π ⇒ τ) -> -- F a => τ
   HsJudgment .term Γ (e, π) ->
-  HsJudgment .type Γ (τ β[e], `★) ->
-  HsJudgment .term Γ (t, τ β[e])
+  τ' = τ β[e] ->
+  HsJudgment .type Γ (τ', `★) ->
+  HsJudgment .term Γ (t, τ')
 | implicitAllI :
   HsJudgment .term (.kind A :: Γ) (t, τ) ->
   HsJudgment .kind Γ (A, `□) ->
-  HsJudgment .type (.kind A :: Γ) (τ, `★) ->
   HsJudgment .term Γ (t, `∀{A} τ)
 | implicitAllE :
   HsJudgment .type Γ (`∀{A} τ, `★) ->
   HsJudgment .kind Γ (A, `□) ->
   HsJudgment .term Γ (t, `∀{A} τ) ->
   HsJudgment .type Γ (e, A) ->
-  HsJudgment .type Γ (τ β[e], `★) ->
-  HsJudgment .term Γ (t, τ β[e])
+  τ' = τ β[e] ->
+  HsJudgment .term Γ (t, τ')
 
 --------------------------------------
 -- Types and Kinds
@@ -217,7 +217,8 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
 | hslet :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .term Γ (t1,  A) ->
-  HsJudgment .term (.term A t1 :: Γ) (t2, [S] B) ->
+  B' = [S]B ->
+  HsJudgment .term (.term A t1 :: Γ) (t2, B') ->
   HsJudgment .type Γ (B, `★) ->
   HsJudgment .term Γ (.HsLet A t1 t2,  B)
 | hsIte :
@@ -252,14 +253,14 @@ def hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgme
   | .arrow h _ => hs_judgment_ctx_wf .type h
   | .farrow h _ _ => hs_judgment_ctx_wf .type h
 | .term , _ , x => match x with
-  | .implicitAllI _ h2 _ => hs_judgment_ctx_wf .kind h2
+  | .implicitAllI _ h2 => hs_judgment_ctx_wf .kind h2
   | .implicitAllE h1 _ _ _ _ => hs_judgment_ctx_wf .type h1
   | .implicitArrI h1 _ _ _ => hs_judgment_ctx_wf .type h1
-  | .implicitArrE h1 _ _=> hs_judgment_ctx_wf .term h1
+  | .implicitArrE h1 _ _ _ => hs_judgment_ctx_wf .term h1
   | .var h _ _ => h
   | .lam h _ _ => hs_judgment_ctx_wf .type h
   | .app h _ _ _ _ => hs_judgment_ctx_wf .term h
-  | .hslet h _ _ _ => hs_judgment_ctx_wf .type h
+  | .hslet h _ _ _ _ => hs_judgment_ctx_wf .type h
   | .hsIte h _ _ _ _ _ _ _ _ _ _ _ => hs_judgment_ctx_wf .type h
 
 
@@ -275,9 +276,9 @@ namespace HsJudgment
  | .wfopenm h1 h2 => 1 + size h1 + size h2
  | .wfterm h1 h2 h3 => 1 + size h1 + size h2 + size h3
  | .implicitArrI h1 h2 _ h4 => 1 + size h1 + size h2 + size h4
- | .implicitArrE h1 h2 h3 => 1 + size h1 + size h2 + size h3
- | .implicitAllI h1 h2 h3 => 1 + size h1 + size h2 + size h2
- | .implicitAllE h1 h2 h3 h4 h5 => 1 + size h1 + size h2 + size h3 + size h4 + size h5
+ | .implicitArrE h1 h2 _ h3 => 1 + size h1 + size h2 + size h3
+ | .implicitAllI h1 h2 => 1 + size h1 + size h2
+ | .implicitAllE h1 h2 h3 h4 _ => 1 + size h1 + size h2 + size h3 + size h4
  | .ax h1 => 1 + size h1
  | .arrowk h1 h2 => 1 + size h1 + size h2
  | .allt h1 h2 =>  1 + size h1 + size h2
@@ -288,7 +289,7 @@ namespace HsJudgment
  | .var h1 _ _ => 1 + size h1
  | .lam h1 h2 h3 =>  1 + size h1 + size h2 + size h3
  | .app h1 h2 _ h3 h4 =>   1 + size h1 + size h2 + size h3 + size h4
- | .hslet h1 h2 h3 h4 =>  1 + size h1 + size h2 + size h3 + size h4
+ | .hslet h1 h2 _ h3 h4 =>  1 + size h1 + size h2 + size h3 + size h4
  | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 _ _ _ _ =>
    1 + size h1 + size h2 + size h3 + size h4 + size h5 + size h6 + size h7 + size h8
 end HsJudgment

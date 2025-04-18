@@ -132,7 +132,7 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
    apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
    unfold compile_kind; rfl
  have lemt1 := @ih1 Γ' `★ A' t1' wf j1' c2 c3
- have lem := types_have_unique_kinds j1 j4; cases lem;
+ have lem := types_have_unique_kinds j1 j3; cases lem;
  have lemΓ' := by apply Judgment.wfterm; assumption; assumption; assumption
  have lemΓ : ⊢s (.term A t1 :: Γ) := by apply HsJudgment.wfterm; assumption; assumption; (apply hs_judgment_ctx_wf .type j1')
  apply Judgment.letterm;
@@ -190,7 +190,7 @@ case _ T Γ A R B p s i t jA jR jB jT jp js ji jt j9 j10 j11 j12 ih1 ih2 ih3 ih4
  apply c9
 
 -- implicits
-case _ Γ t A τ e h1 h2 h3 h4 h5 ih => -- implicitAllE
+case _ Γ A t τ e h1 h2 h3 h4 ih => -- implicitAllE
  rw[Option.bind_eq_some] at c2;
  cases c2; case _ wτ c2 =>
  cases c2; case _ c2 c3 =>
@@ -243,7 +243,7 @@ case _ Γ t A τ e h1 h2 h3 h4 h5 ih => -- implicitAllE
    rw[lem1] at lem;
    rw[c1] at lem; cases lem; rfl
 
-case _ Γ t A τ j1' j2 j3 ih =>
+case _ Γ t A τ j1' j2 ih =>
   rw[Option.bind_eq_some] at c2;
   cases c2; case _ wt c2 =>
   cases c2; case _ c2 c3 =>

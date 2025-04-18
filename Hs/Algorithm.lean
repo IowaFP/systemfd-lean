@@ -1,6 +1,7 @@
 import Hs.HsJudgment
 import Hs.HsTerm
 import Hs.Metatheory.FrameWf
+import Hs.Metatheory.Substitution
 import SystemFD.Term
 import SystemFD.Algorithm
 
@@ -18,10 +19,15 @@ def extract_kinding :
 def extract_typing :
   Γ ⊢t t : τ ->
   Γ ⊢τ τ : `★
-| .implicitAllI _ h1 h2  => HsJudgment.allt h1 h2
-| .implicitAllE _ _ _ _ h => h
+| .implicitAllI h1 h2  => HsJudgment.allt h2 (extract_typing h1)
+| .implicitAllE h1 _ _ _ e => by
+   cases h1; case _ j1 j2 =>
+   rw[e]; apply hs_subst _ _ _ j2 (hs_judgment_ctx_wf .kind j1);
+   sorry;
+   sorry;
+   sorry
 | .implicitArrI h1 h2 h3 _ => HsJudgment.farrow h1 h3 h2
-| .implicitArrE _ _ h => h
+| .implicitArrE _ _ _ h => h
 | @HsJudgment.var Γ x T h1 h2 h3 =>
   (by
   generalize fh : Γ d@x = f at *;
@@ -31,7 +37,7 @@ def extract_typing :
   all_goals (unfold Frame.get_type at h3; simp at h3; cases h3; clear h2)
   all_goals (rw[fh] at lem; cases lem; assumption))
 | .hsIte _ _ _ h _ _ _ _ _ _ _ _ => h
-| .hslet _ _ _  h => h
+| .hslet _ _ _ _  h => h
 | .app _ _ _ _ h3 => h3
 | .lam h1 _ h3 => HsJudgment.arrow h1 h3
 
@@ -88,10 +94,10 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let t1' <- compile_term Γ t1 (A → B) j1
   let t2' <- compile_term Γ t2 A j2
   .some (t1' `@ t2')
-| @HsJudgment.hslet Γ A t1 t2 B j1 j2 j3 j4 => do
+| @HsJudgment.hslet Γ A t1 B' B t2 j1 j2 _ j3 j4 => do
   let A' <- compile_type Γ  A `★ j1
   let t1' <- compile_term Γ t1 A j2
-  let t2' <- compile_term (.term A t1 :: Γ) t2 ([S]B) j3
+  let t2' <- compile_term (.term A t1 :: Γ) t2 B' j3
   .some (.letterm A' t1' t2')
 | @HsJudgment.hsIte Γ A R B T p s i e j1 j2 j3 j4 j5 j6 j7 j8 _ _ _ _  => do
   let _ <- compile_type Γ A `★ j1
@@ -107,13 +113,13 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
 ----------------------------------------
 --- Implicit
 ----------------------------------------
-| @HsJudgment.implicitAllE Γ A τ t e j1 j2 j3 j4 _ => do
+| @HsJudgment.implicitAllE Γ A τ t e τ' j1 j2 j3 j4 _ => do
   let _ <- compile_type Γ (`∀{A}τ) `★ j1
   let _ <- compile_kind Γ A `□ j2
   let t1 <- (compile_term Γ t (`∀{A}τ) j3)
   let t2 <- (compile_type Γ e A j4)
   .some (t1 `@t t2)
-| @HsJudgment.implicitAllI Γ A t τ j1 j2 j3 => do
+| @HsJudgment.implicitAllI Γ A t τ j1 j2 => do
   let t' <- compile_term (.kind A :: Γ) t τ j1
   let A' <- compile_kind Γ A `□ j2
   .some (Λ[A']t')
@@ -121,7 +127,7 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let π' <- compile_type Γ π `★ j1
   let t' <- compile_term (.type π :: Γ) t τ j3
   .some (`λ[π'] t')
-| @HsJudgment.implicitArrE Γ t π τ e j1 j2 _ => do
+| @HsJudgment.implicitArrE Γ t π τ e _ j1 j2 _ _ => do
   let _ <- compile_type Γ (π ⇒ τ) `★ (extract_typing j1)
   let _ <- compile_type Γ π `★ (extract_typing j2)
   let t' <- compile_term Γ t (π ⇒ τ) j1

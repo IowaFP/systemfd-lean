@@ -71,19 +71,87 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
           have h := @hs_rename (.kind A :: Γ) (.kind ([r.to] A) :: Δ) (Ren.lift r) .type (B, `★) h2 wf' f';
           simp at h; unfold Subst.apply at h; rw[Subst.lift_lemma] at h;
           apply h)
-  | .arrow h1 h2 =>
+  | @HsJudgment.arrow Γ A B h1 h2 =>
     .arrow
     (hs_rename r .type h1 wf f)
-    sorry
-  | .farrow h1 h2 h3  => .farrow
+    (by have wf' : ⊢s (.empty :: Δ) := by apply HsJudgment.wfempty wf
+        have f' := hs_rename_lift r (.empty) f
+        have h := @hs_rename (.empty :: Γ) (.empty :: Δ) (Ren.lift r) .type (B, `★) h2 wf' f';
+        simp at h; unfold Subst.apply at h; rw[Subst.lift_lemma] at h; apply h)
+  | @HsJudgment.farrow Γ A B h1 h2 h3  => .farrow
     (hs_rename r .type h1 wf f)
-    sorry
-    sorry
+    (by apply hs_valid_head_variable_subst Γ.is_opent Δ.is_opent _ h2
+        intro n h;
+        have f' := f n; unfold Frame.apply at f'; simp at f'
+        have h' := opent_indexing_exists h
+        cases h'; case _ w h' =>
+        rw [h'] at f'; simp at f'; unfold Ren.to; simp; rw[<-f']; unfold Frame.is_opent; simp)
+    (by have wf' : ⊢s (.empty :: Δ) := by apply HsJudgment.wfempty wf
+        have f' := hs_rename_lift r (.empty) f
+        have h := @hs_rename (.empty :: Γ) (.empty :: Δ) (Ren.lift r) .type (B, `★) h3 wf' f';
+        simp at h; unfold Subst.apply at h; rw[Subst.lift_lemma] at h; apply h)
 | .term, (t, τ) , j, wf, f => match j with
-  | .implicitAllI h1 h2 h3 => sorry
-  | .implicitAllE h1 h2 h3 h4 h5 => sorry
-  | .implicitArrI h1 h2 h3 h4 => sorry -- .implicitArrI (hs_rename r .prf h1 wf f) sorry sorry sorry
-  | .implicitArrE h1 h2 _ => sorry
+  | @HsJudgment.implicitAllI Γ A t τ h1 h2 => by
+    simp
+    have wf' : ⊢s (.kind ([r.to] A) :: Δ) := by
+       apply HsJudgment.wfkind;
+       apply hs_rename r .kind h2 wf f
+       apply wf
+    have f' := hs_rename_lift r (.kind A) f
+    have lem1 := @hs_rename (.kind A :: Γ) (.kind ([r.to]A) :: Δ) (Ren.lift r) .term (t, τ) h1 wf' f'; simp at lem1
+    have lem2 := hs_rename r .kind h2 wf f; simp at lem2
+    apply HsJudgment.implicitAllI
+    sorry
+    apply lem2
+  | @HsJudgment.implicitArrI Γ π τ t h1 h2 h3 h4 => by
+    have lem1 := hs_rename r .type h1 wf f; simp at lem1
+    have wf' : ⊢s (.empty :: Δ) := by
+       apply HsJudgment.wfempty;
+       apply wf
+    have f' := hs_rename_lift r (.empty) f
+    have lem2 := @hs_rename (.empty :: Γ) (.empty :: Δ) (Ren.lift r) .type (τ, `★) h2 wf' f'; simp at lem2
+    have lem3 : HsValidHeadVariable ([r.to]π) Δ.is_opent := by
+      apply hs_valid_head_variable_subst _ _ _;
+      case _ => apply h3
+      case _ =>
+         intro n test; have f' := f n;
+         unfold Ren.to; simp; rw[<-f'];
+         unfold Frame.is_opent; unfold Ctx.is_opent at test;
+         replace test := opent_indexing_exists test;
+         cases test; case _ test =>
+         rw[test]; unfold Frame.apply; simp
+    have wf' : ⊢s (.type ([r.to]π) :: Δ) := by
+       apply HsJudgment.wftype;
+       apply hs_rename r .type h1 wf f
+       apply wf
+    have f' := hs_rename_lift r (.type π) f
+    have lem4 := @hs_rename (.type π :: Γ) (.type ([r.to] π) :: Δ) (Ren.lift r) .term (t, τ) h4 wf' f';
+    simp at lem4
+    apply HsJudgment.implicitArrI
+    apply lem1
+    unfold Subst.apply at lem2; rw[Subst.lift_lemma] at lem2; apply lem2
+    apply lem3
+    unfold Subst.apply at lem4; rw[Subst.lift_lemma] at lem4; sorry
+  | @HsJudgment.implicitAllE Γ A τ t e τ' h1 h2 h3 h4 h5 => .implicitAllE
+     (hs_rename r .type h1 wf f)
+     (hs_rename r .kind h2 wf f)
+     (hs_rename r .term h3 wf f)
+     (hs_rename r .type h4 wf f)
+     (by have lem1 : [.su ([r.to]e)::I]([^r.to]τ) = [.su ([r.to]e)::I]HsTerm.smap Subst.lift (^r.to) τ := by rfl
+         have lem : [r.to][.su e::I]τ = [.su ([r.to]e)::I]([^r.to] τ) := by simp
+         rw[<-lem1]; rw[<-lem]; congr)
+  | @HsJudgment.implicitArrE Γ t π τ e τ' h1 h2 h3 h4 => by
+     simp
+     have lem1 := hs_rename r .term h1 wf f; simp at lem1
+     have lem2 := hs_rename r .term h2 wf f; simp at lem2
+     have lem3 : [r.to][.su e::I]τ = [.su ([r.to]e)::I][.re 0::S ⊙ r.to]τ := by simp
+     have lem4 := hs_rename r .type h4 wf f; simp at lem4
+     apply HsJudgment.implicitArrE;
+     apply lem1
+     apply lem2
+     rw[<-lem3]; congr
+     apply lem4
+
   | @HsJudgment.var Γ x T wf' test gt => .var wf
     (by rw[<-f]; simp;
         generalize hf : Γ d@ x = f at *;
@@ -93,8 +161,7 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
         all_goals (unfold Frame.apply; unfold Frame.get_type at gt; simp at gt; cases gt)
         case _ => unfold Frame.is_type; simp
         case _ => unfold Frame.is_ctor; simp
-        case _ => unfold Frame.is_term; simp
-    )
+        case _ => unfold Frame.is_term; simp)
     (by rw [<-f];
         unfold Frame.get_type;
         generalize fh : Γ d@ x = f at *;
@@ -102,22 +169,47 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
         all_goals (unfold Frame.is_ctor at test; unfold Frame.is_term at test; unfold Frame.is_type at test;
                    simp at test)
         all_goals (unfold Frame.apply; unfold Frame.get_type at gt; simp at gt; cases gt; simp))
-  | .lam h1 h2 h3 => .lam
+  | @HsJudgment.lam Γ A t B h1 h2 h3 => .lam
      (hs_rename r .type h1 wf f)
-     sorry
-     sorry
-  | .app h1 h2 h3 h4 h5 =>
-    .app
+     (by have wf' : ⊢s (.type ([r.to] A) :: Δ) := by
+              apply HsJudgment.wftype;
+              apply hs_rename r .type h1 wf f
+              apply wf
+         have f' := hs_rename_lift r (Frame.type A) f
+         have h := @hs_rename (.type A :: Γ) (.type ([r.to]A) :: Δ) (Ren.lift r) .term (t, B) h2 wf' f';
+         simp at h; unfold Subst.apply at h; rw[Subst.lift_lemma] at h; apply h)
+     (by have wf' : ⊢s (.empty :: Δ) := by apply HsJudgment.wfempty wf
+         have f' := hs_rename_lift r (.empty) f
+         have h := @hs_rename (.empty :: Γ) (.empty :: Δ) (Ren.lift r) .type (B, `★) h3 wf' f';
+         simp at h; unfold Subst.apply at h; rw[Subst.lift_lemma] at h; apply h)
+  | @HsJudgment.app Γ t1 A B t2 B' h1 h2 h3 h4 h5 => .app
       (hs_rename r .term h1 wf f)
       (hs_rename r .term h2 wf f)
-      sorry
+      (by have lem1 : [.su ([r.to]t2)::I]([^r.to]B) = [.su (HsTerm.smap Subst.lift r.to t2)::I]HsTerm.smap Subst.lift (^r.to) B := by rfl
+          have lem : [r.to][.su t2::I]B = [.su ([r.to]t2)::I]([^r.to] B) := by simp
+          rw[<-lem1]; rw[<-lem]; congr)
       (hs_rename r .type h4 wf f)
       (hs_rename r .type h5 wf f)
-  | .hslet h1 h2 h3 h4 =>
-    .hslet (hs_rename r .type h1 wf f)
-      (hs_rename r .term h2 wf f)
-      sorry
-      (hs_rename r .type h4 wf f)
+  | @HsJudgment.hslet Γ A t1 B' B t2 h1 h2 h3 h4 h5 => by
+     apply HsJudgment.hslet;
+     apply (hs_rename r .type h1 wf f)
+     apply (hs_rename r .term h2 wf f)
+     rfl
+     case _ =>
+       have wf' : ⊢s (.term ([r.to] A) ([r.to] t1) :: Δ) := by
+              apply HsJudgment.wfterm;
+              apply hs_rename r .type h1 wf f
+              apply hs_rename r .term h2 wf f
+              apply wf
+       have f' := hs_rename_lift r (Frame.term A t1) f
+       have h := @hs_rename (.term A t1 :: Γ) (.term ([r.to]A) ([r.to] t1) :: Δ) (Ren.lift r) .term (t2, B') h4 wf' f';
+       have lem : [S][r.to]B = [r.lift.to][S]B := by
+            rw[Subst.apply_compose_commute]; rw[Subst.lift_lemma]; simp
+       simp at h; rw [h3] at h; rw[lem];
+       unfold Subst.apply at h; rw[Subst.lift_lemma] at h; unfold Subst.apply;
+       rw[Subst.lift_lemma]; apply h
+     apply (hs_rename r .type h5 wf f)
+
   | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 =>
     .hsIte
       (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f)
