@@ -6,10 +6,10 @@ import Hs.Metatheory.TypeMatch
 
 namespace HsFrameWf
   def weaken (r : Ren) :
-    ⊢s Δ ->
+    ⊢s[ Δ1 ◆ Δ2 ]->
     (∀ x, (Γ d@ x).apply r.to = Δ d@ (r x)) ->
-    Γ ⊢s f ->
-    Δ ⊢s f.apply r.to
+    Γ1 ;; Γ2 ⊢s f ->
+    Δ1 ;; Δ2 ⊢s f.apply r.to
   := by
   intro wf h j
   cases j

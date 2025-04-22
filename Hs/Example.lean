@@ -7,7 +7,7 @@ import Aesop
 def idHsTerm : HsTerm := `λ{`#0} `#0
 def idHsType : HsTerm := `∀{`★} `#0 → `#1
 
-def idTypeKinding : [] ⊢τ idHsType : `★ := by
+def idTypeKinding : [] ; [] ⊢τ idHsType : `★ := by
   unfold idHsType;
   apply HsJudgment.allt;
   case _ => apply HsJudgment.ax (HsJudgment.wfnil)
