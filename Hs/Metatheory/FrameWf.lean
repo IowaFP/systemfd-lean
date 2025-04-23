@@ -63,10 +63,11 @@ abbrev HsFrameWfByIndexLemmaType (Γ : Ctx HsTerm) : (v : HsVariant) -> HsJudgme
 
 def hs_frame_wf_by_index_lemma : (v : HsVariant) -> (ix : HsJudgmentArgs v) ->
   HsJudgment v Γ ix -> HsFrameWfByIndexLemmaType Γ v ix
-| .ctx, args, j =>
-  match j with
-  | j => sorry
-| .kind, args, j => by (simp at args); sorry
+| .ctx, (), j => by
+  simp at *; intro x;
+
+  sorry
+| .kind, args, j => by (simp at *); sorry
 | .type, args, j => by (simp at args); sorry
 | .term, args, j => by (simp at args); sorry
 
@@ -231,4 +232,11 @@ def hs_frame_wf_implies_kinded_varTy T :
   (Γ d@ x).is_datatype || (Γ d@ x).is_kind ->
   .some T = (Γ d@ x).get_type ->
   Γ ⊢τ (`#x) : T :=
-λ fwf h gt => HsJudgment.varTy (hs_frame_wf_implies_wf fwf) h gt sorry
+λ fwf h gt => HsJudgment.varTy (hs_frame_wf_implies_wf fwf) h gt
+  (by generalize fh : Γ d@ x = f at *;
+      cases f;
+      all_goals(unfold Frame.get_type at gt; simp at gt)
+      all_goals(unfold Frame.is_datatype at h; simp at h; cases h)
+      all_goals(cases gt)
+      sorry
+      sorry)

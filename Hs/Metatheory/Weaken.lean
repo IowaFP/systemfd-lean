@@ -138,6 +138,7 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
     unfold Subst.apply at lem2; rw[Subst.lift_lemma] at lem2; apply lem2
     apply lem3
     unfold Subst.apply at lem4; rw[Subst.lift_lemma] at lem4; rw[lem5]; apply lem4
+
   | @HsJudgment.implicitAllE Γ A τ t e τ' h1 h2 h3 h4 h5 => .implicitAllE
      (hs_rename r .type h1 wf f)
      (hs_rename r .kind h2 wf f)
@@ -146,6 +147,7 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
      (by have lem1 : [.su ([r.to]e)::I]([^r.to]τ) = [.su ([r.to]e)::I]HsTerm.smap Subst.lift (^r.to) τ := by rfl
          have lem : [r.to][.su e::I]τ = [.su ([r.to]e)::I]([^r.to] τ) := by simp
          rw[<-lem1]; rw[<-lem]; congr)
+
   | @HsJudgment.implicitArrE Γ t π τ e τ' h1 h2 h3 h4 => by
      simp
      have lem1 := hs_rename r .term h1 wf f; simp at lem1
@@ -271,14 +273,6 @@ def hs_weaken_kind :
   Γ ⊢κ t : A ->
   (f::Γ) ⊢κ ([S]t) : ([S]A)
 | wf , h => hs_rename (λ x => x + 1) .kind h wf (by intro; rw [Subst.to_S]; simp)
-
-@[simp]
-def hs_weaken_kind_unique :
-  ⊢s (f :: Γ) ->
-  Γ ⊢κ t : A ->
-  (f::Γ) ⊢κ t : A
-| wf , HsJudgment.ax wf' => HsJudgment.ax wf
-| wf , .arrowk h1 h2 => HsJudgment.arrowk (hs_weaken_kind_unique wf h1) (hs_weaken_kind_unique wf h2)
 
 @[simp]
 def hs_weaken_term :
