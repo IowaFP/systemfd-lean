@@ -452,3 +452,24 @@ def hs_beta_openm :
 --   rw [Frame.is_stable_stable] at h1
 --   unfold Frame.is_stable at h1
 --   simp at h1
+
+
+def hs_replace_empty : (v : HsVariant) ->  {idx : HsJudgmentArgs v} ->
+  HsJudgment v (.empty :: Γ) idx ->
+  Γ ⊢τ A : `★ ->
+  HsJudgment v (.type A :: Γ) idx
+| .ctx, () , j, j' => by
+  cases j; constructor; assumption; assumption
+| .kind, (t, τ), j, j' => match j with
+  | .ax h => by apply HsJudgment.ax; cases h; case _ h => apply HsJudgment.wftype; assumption; assumption
+  | .arrowk h1 h2 => by apply HsJudgment.arrowk (hs_replace_empty .kind h1 j') (hs_replace_empty .kind h2 j')
+| .type, (t, τ), j, j' => sorry
+| .term, (t, τ), j, j' => sorry
+termination_by _ _ h => h.size
+
+
+def hs_replace_empty_type :
+  Γ ⊢τ A : `★ ->
+  (.empty :: Γ) ⊢τ B : `★ ->
+  (.type A :: Γ) ⊢τ B : `★
+:= λ a b => hs_replace_empty .type b a

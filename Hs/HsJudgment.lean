@@ -116,6 +116,10 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
   HsJudgment .kind Γ (A, `□) ->
   HsJudgment .ctx Γ () ->
   HsJudgment .ctx (.datatype A::Γ) ()
+| wfopent :
+  HsJudgment .kind Γ (A, `□) ->
+  HsJudgment .ctx Γ () ->
+  HsJudgment .ctx (.opent A::Γ) ()
 | wfctor :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .ctx Γ () ->
@@ -272,6 +276,7 @@ namespace HsJudgment
  | .wftype h1 h2 => 1 + size h1 + size h2
  | .wfkind h1 h2 => 1 + size h1 + size h2
  | .wfdatatype h1 h2 => 1 + size h1 + size h2
+ | .wfopent h1 h2 => 1 + size h1 + size h2
  | .wfctor h1 h2 _ => 1 + size h1 + size h2
  | .wfopenm h1 h2 => 1 + size h1 + size h2
  | .wfterm h1 h2 h3 => 1 + size h1 + size h2 + size h3

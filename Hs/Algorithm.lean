@@ -20,12 +20,11 @@ def extract_typing :
   Γ ⊢t t : τ ->
   Γ ⊢τ τ : `★
 | .implicitAllI h1 h2  => HsJudgment.allt h2 (extract_typing h1)
-| .implicitAllE h1 _ _ _ e => by
-   cases h1; case _ j1 j2 =>
-   rw[e]; apply hs_subst _ _ _ j2 (hs_judgment_ctx_wf .kind j1);
-   sorry;
-   sorry;
-   sorry
+| .implicitAllE h1 h2 _ h4 e => by
+    cases h1; case _ h1 h2 =>
+    rw[e];
+    have lem := hs_beta_kind_type h2 h4; simp at lem;
+    apply lem
 | .implicitArrI h1 h2 h3 _ => HsJudgment.farrow h1 h3 h2
 | .implicitArrE _ _ _ h => h
 | @HsJudgment.var Γ x T h1 h2 h3 =>

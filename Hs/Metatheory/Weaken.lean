@@ -336,49 +336,9 @@ def hs_weaken_ctor :
   Γ ⊢τ T : `★ ->
   ValidHsCtorType Γ T ->
   Γ ⊢t t : A ->
-  (.ctor T::Γ) ⊢t ([S]t) : ([S]A) := sorry
--- := by
--- intro j1 j2 j3; apply hs_rename _ j3
--- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1; apply j2
--- case _ => intro x; simp; rw [Subst.to_S]
+  (.ctor T::Γ) ⊢t ([S]t) : ([S]A) :=
+λ h1 h2 h3 => hs_weaken_term (.wfctor h1 (hs_judgment_ctx_wf .type h1) h2) h3
 
-def hs_weaken_opent :
-  Γ ⊢κ T : `□ ->
-  Γ ⊢t t : A ->
-  (.opent T::Γ) ⊢κ ([S]t) : ([S]A) := sorry
--- := by
--- intro j1 j2; apply hs_rename _ j2
--- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1
--- case _ => intro x; simp; rw [Subst.to_S]
-
--- def hs_weaken_openm :
---   Γ ⊢s T : `★ ->
---   Γ ⊢s t : A ->
---   (.openm T::Γ) ⊢s ([S]t) : ([S]A) := sorry
--- by
--- intro j1 j2; apply hs_rename _ j2
--- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1
--- case _ => intro x; simp; rw [Subst.to_S]
-
--- def hs_weaken_insttype :
---   Γ ⊢s T : `★ ->
---   ValidHsInstType Γ T ->
---   Γ ⊢s t : A ->
---   (.insttype T::Γ) ⊢s ([S]t) : ([S]A) := sorry
--- := by
--- intro j1 j2 j3; apply hs_rename _ j3
--- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1; apply j2
--- case _ => intro x; simp; rw [Subst.to_S]
-
--- theorem weaken_inst :
---   .openm T = Γ d@ x ->
---   Γ ⊢s b : T ->
---   Γ ⊢s t : A ->
---   (.inst #x b::Γ) ⊢s ([S]t) : ([S]A)
--- := by
--- intro j1 j2 j3; apply hs_rename _ j3
--- case _ => constructor; apply j1; apply j2; apply hs_judgment_ctx_wf j2
--- case _ => intro x; simp; rw [Subst.to_S]
 
 def hs_weaken_term_term :
   Γ ⊢τ T : `★ ->
@@ -393,23 +353,3 @@ def hs_weaken_term_type :
   Γ ⊢τ t : A ->
   (.term T b::Γ) ⊢τ ([S]t) : ([S]A)
 := λ h1 h2 h3 => hs_weaken_type (.wfterm h1 h2 (hs_judgment_ctx_wf .type h1)) h3
-
-
-
-def hs_replace_empty_kind :
-  Γ ⊢τ A : `★ ->
-  (.empty :: Γ) ⊢κ B : `□ ->
-  (.type A :: Γ) ⊢κ B : `□
-| ja, .ax h => by apply HsJudgment.ax; cases h; case _ h => apply HsJudgment.wftype; assumption; assumption
-| ja, .arrowk h1 h2 => by apply HsJudgment.arrowk (hs_replace_empty_kind ja h1) (hs_replace_empty_kind ja h2)
-
-
-def hs_replace_empty_type :
-  Γ ⊢τ A : `★ ->
-  (.empty :: Γ) ⊢τ B : `★ ->
-  (.type A :: Γ) ⊢τ B : `★
-| ja, .allt h1 h2 => by apply HsJudgment.allt; apply hs_replace_empty_kind ja h1; sorry
-| ja, .varTy h1 h2 h3 h4 => by sorry
-| ja, .arrow h1 h2 => by sorry
-| ja, .farrow h1 h2 h3 => by sorry
-| ja, .appk h1 h2 h3 h4  => by sorry
