@@ -120,12 +120,12 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let t2 <- (compile_type Γ e A j4)
   .some (t1 `@t t2)
 | @HsJudgment.implicitAllI Γ A t τ j1 j2 => do
-  let t' <- compile_term (.kind A :: Γ) t τ j1
+  let t' <- compile_term (.kind A :: Γ) ([S]t) τ j1
   let A' <- compile_kind Γ A `□ j2
   .some (Λ[A']t')
 | @HsJudgment.implicitArrI Γ π τ t j1 j2 _ j3 => do
   let π' <- compile_type Γ π `★ j1
-  let t' <- compile_term (.type π :: Γ) t τ j3
+  let t' <- compile_term (.type π :: Γ) ([S]t) τ j3
   .some (`λ[π'] t')
 | @HsJudgment.implicitArrE Γ t π τ e _ j1 j2 _ _ => do
   let _ <- compile_type Γ (π ⇒ τ) `★ (extract_typing j1)

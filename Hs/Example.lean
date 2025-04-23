@@ -4,7 +4,7 @@ import SystemFD.Algorithm
 
 import Aesop
 
-def idHsTerm : HsTerm := `λ{`#0} `#0
+def idHsTerm : HsTerm := `λ `#0
 def idHsType : HsTerm := `∀{`★} `#0 → `#1
 
 def idTypeKinding : [] ⊢τ idHsType : `★ := by
@@ -40,7 +40,7 @@ def idTypeKinding : [] ⊢τ idHsType : `★ := by
 
 def idTyping : [] ⊢t idHsTerm : idHsType := by
  unfold idHsTerm; unfold idHsType;
- apply HsJudgment.implicitAllI;
+ apply HsJudgment.implicitAllI; simp;
  apply HsJudgment.lam;
    apply HsJudgment.varTy; apply HsJudgment.wfkind; apply HsJudgment.ax (HsJudgment.wfnil);
    apply HsJudgment.wfnil; unfold Frame.is_kind; unfold dnth; unfold Frame.apply; simp;

@@ -153,6 +153,7 @@ namespace HsTerm
   | HsType => HsType
   | HsCtor2 v t1 t2 => HsCtor2 v (smap lf f t1) (smap lf f t2)
   | HsBind2 v t1 t2 => HsBind2 v (smap lf f t1) (smap lf (lf f) t2)
+  | HsBind1 v t1 => HsBind1 v (smap lf (lf f) t1)
   | HsIte t1 t2 t3 t4 => .HsIte (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
   | HsLet t1 t2 t3 => HsLet (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
 end HsTerm
@@ -190,6 +191,9 @@ namespace HsTerm
 
   @[simp]
   theorem subst_HsBind2 : [σ]HsBind2 v t1 t2 = HsBind2 v ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp
+
+  @[simp]
+  theorem subst_HsBind1 : [σ]HsBind1 v t1 = HsBind1 v ([^σ]t1) := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_letterm: [σ]HsLet t1 t2 t3 = HsLet ([σ]t1) ([σ]t2) ([^σ]t3) := by unfold Subst.apply; simp
