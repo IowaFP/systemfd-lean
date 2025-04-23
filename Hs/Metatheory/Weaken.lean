@@ -18,6 +18,7 @@ case _ x =>
   unfold Ren.lift; simp
   rw [<-h x, Frame.apply_compose, Frame.apply_compose]; simp
 
+
 @[simp]
 abbrev hs_idx_ren (r : Ren) : HsJudgmentArgs v -> HsJudgmentArgs v :=
   match v with
@@ -98,11 +99,15 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
        apply hs_rename r .kind h2 wf f
        apply wf
     have f' := hs_rename_lift r (.kind A) f
-    have lem1 := @hs_rename (.kind A :: Γ) (.kind ([r.to]A) :: Δ) (Ren.lift r) .term (t, τ) h1 wf' f'; simp at lem1
+    have lem1 := @hs_rename (.kind A :: Γ) (.kind ([r.to]A) :: Δ) (Ren.lift r) .term ([S]t, τ) h1 wf' f';
+    simp at lem1; rw[Subst.lift_lemma] at lem1; rw[Subst.lift_unfold] at lem1;
     have lem2 := hs_rename r .kind h2 wf f; simp at lem2
+    have lem3 : [(Subst.Action.re 0::S ⊙ r.to) ⊙ S]t = [S][r.to]t := by
+      simp
     apply HsJudgment.implicitAllI
-    sorry
+    rw[lem3] at lem1; apply lem1;
     apply lem2
+
   | @HsJudgment.implicitArrI Γ π τ t h1 h2 h3 h4 => by
     have lem1 := hs_rename r .type h1 wf f; simp at lem1
     have wf' : ⊢s (.empty :: Δ) := by
@@ -125,13 +130,14 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
        apply hs_rename r .type h1 wf f
        apply wf
     have f' := hs_rename_lift r (.type π) f
-    have lem4 := @hs_rename (.type π :: Γ) (.type ([r.to] π) :: Δ) (Ren.lift r) .term (t, τ) h4 wf' f';
+    have lem4 := @hs_rename (.type π :: Γ) (.type ([r.to] π) :: Δ) (Ren.lift r) .term ([S]t, τ) h4 wf' f';
     simp at lem4
+    have lem5 : [S][r.to] t = [^r.to ⊙ S]t := by simp
     apply HsJudgment.implicitArrI
     apply lem1
     unfold Subst.apply at lem2; rw[Subst.lift_lemma] at lem2; apply lem2
     apply lem3
-    unfold Subst.apply at lem4; rw[Subst.lift_lemma] at lem4; sorry
+    unfold Subst.apply at lem4; rw[Subst.lift_lemma] at lem4; rw[lem5]; apply lem4
   | @HsJudgment.implicitAllE Γ A τ t e τ' h1 h2 h3 h4 h5 => .implicitAllE
      (hs_rename r .type h1 wf f)
      (hs_rename r .kind h2 wf f)
@@ -259,7 +265,6 @@ def hs_weaken_type :
   (f::Γ) ⊢τ ([S]t) : ([S]A)
 | wf , h => hs_rename (λ x => x + 1) .type h wf (by intro; rw [Subst.to_S]; simp)
 
-
 @[simp]
 def hs_weaken_kind :
   ⊢s (f :: Γ) ->
@@ -321,24 +326,11 @@ def hs_weaken_kind_type :
   (.kind T::Γ) ⊢τ ([S]t) : ([S]A)
 := λ h1 h2 => hs_weaken_type (.wfkind h1 (hs_judgment_ctx_wf .kind h1)) h2
 
--- theorem weaken_kind :
---   Γ ⊢s T : `□ ->
---   Γ ⊢s t : A ->
---   (.kind T::Γ) ⊢s ([S]t) : ([S]A)
--- := by
--- intro j1 j2; apply hs_rename _ j2
--- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1
--- case _ => intro x; simp; rw [Subst.to_S]
-
 def hs_weaken_datatype_term :
   Γ ⊢κ T : `□ ->
   Γ ⊢t t : A ->
   (.datatype T::Γ) ⊢t ([S]t) : ([S]A)
-:= sorry
--- := by
--- intro j1 j2; apply hs_rename _ j2
--- case _ => constructor; apply j1; apply hs_judgment_ctx_wf j1
--- case _ => intro x; simp; rw [Subst.to_S]
+:= λ h1 h2 => hs_weaken_term (.wfdatatype h1 (hs_judgment_ctx_wf .kind h1)) h2
 
 def hs_weaken_ctor :
   Γ ⊢τ T : `★ ->
