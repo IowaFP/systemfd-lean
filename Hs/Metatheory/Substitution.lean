@@ -4,7 +4,7 @@ import SystemFD.Ctx
 import Hs.Metatheory.TypeMatch
 import Hs.Metatheory.Weaken
 
-set_option maxHeartbeats 500000
+set_option maxHeartbeats 1000000
 
 def hs_lift_subst_replace_type (A : Frame HsTerm) :
   ⊢s (A.apply σ :: Δ) ->
@@ -36,7 +36,7 @@ case _ n =>
     rw [lem3] at lem4; simp at lem4
     apply lem4
 
-def hs_lift_subst_replace (A : Frame HsTerm) :
+def hs_lift_subst_replace_term (A : Frame HsTerm) :
   ⊢s (A.apply σ :: Δ) ->
   (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢t t : ([σ]T)) ->
   (∀ n t T, ^σ n = .su t -> .some T = ((A::Γ) d@ n).get_type -> (A.apply σ :: Δ) ⊢t t : ([^σ]T))
@@ -79,16 +79,26 @@ abbrev hs_idx_subst (σ : Subst HsTerm) : HsJudgmentArgs v -> HsJudgmentArgs v :
   | .type => λ (t, A) => ([σ]t, [σ]A)
   | .ctx => λ () => ()
 
-def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
-  (∀ (Γ : Ctx HsTerm) (Δ : Ctx HsTerm) σ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
-  (∀ Γ Δ σ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
-  (∀ Γ Δ σ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢t t : ([σ]T)) ->
-  (∀ (Γ : Ctx HsTerm) (σ: Subst HsTerm) n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
+@[simp]
+abbrev hs_idx_subst_ty (σ : Subst HsTerm) : HsJudgmentArgs v -> HsJudgmentArgs v :=
+  match v with
+  | .term => λ (t, A) => (t, [σ]A)
+  | .kind => λ (t, A) => (t, [σ]A)
+  | .type => λ (t, A) => (t, [σ]A)
+  | .ctx => λ () => ()
+
+
+
+def hs_subst : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm}-> (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
+  (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢t t : ([σ]T)) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
   HsJudgment v Γ idx ->
   ⊢s Δ ->
   HsJudgment v Δ (hs_idx_subst σ idx)
-| .ctx, (), f1, f2, f3, f4, j, wf => wf
-| .kind, (t, τ), f1, f2, f3, f4, j, wf => match j with
+| Γ, Δ, σ, .ctx, (), f1, f2, f3, f4, j, wf => wf
+| Γ, Δ, σ, .kind, (t, τ), f1, f2, f3, f4, j, wf => match j with
   | .ax wf' => by constructor; assumption
   | @HsJudgment.arrowk Γ A B h1 h2 => by
     simp;
@@ -96,13 +106,13 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
     have lem2 := @hs_subst Γ Δ σ .kind _ f1 f2 f3 f4 h2 wf; simp at lem2
     constructor; assumption; assumption;
 
-| .type, (t, τ), f1, f2, f3, f4, j, wf => match j with
+| Γ, Δ, σ, .type, (t, τ), f1, f2, f3, f4, j, wf => match j with
   | @HsJudgment.varTy Γ x T h1 h2 h3 h4 => by
     generalize zdef : σ x = z at *;
     cases z <;> simp
     case _ y =>
-      have lem1 := f1 Γ Δ σ x y zdef
-      have lem2 := f2 Γ Δ σ x
+      have lem1 := f1 x y zdef
+      have lem2 := f2 x
       have lem3 := @hs_subst Γ Δ σ .kind (T, `□) f1 f2 f3 f4 h4 wf
       rw[zdef]; simp;
       apply HsJudgment.varTy;
@@ -123,7 +133,7 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
         rw[<-lem1]; rw[Frame.get_type_apply_commute]; rw[<-h3]; simp;
       apply lem3
     case _ a =>
-      have lem := f2 Γ Δ σ x a T zdef h3
+      have lem := f2 x a T zdef h3
       rw[zdef]; simp;
       apply lem
 
@@ -142,10 +152,10 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
       case _ =>
         intro n t;
         have t' := Frame.is_opent_implies_is_stable t
-        have f4' := f4 Γ σ n t'
+        have f4' := f4 n t'
         cases f4'; case _ w f3 =>
         exists w; constructor; assumption
-        have f1' := f1 Γ Δ σ n w f3; simp at t;
+        have f1' := f1 n w f3; simp at t;
         replace t := opent_indexing_exists t;
         cases t; case _ t =>
         rw[t] at f1'; simp; rw[<-f1'];
@@ -153,8 +163,12 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
       apply h2
     have wf' : ⊢s (.empty :: Δ) := by
       constructor; assumption
+    have f1' := hs_lift_subst_rename .empty f1
+    have f2' := hs_lift_subst_replace_type .empty wf' f2
+    have f3' := hs_lift_subst_replace_term .empty wf' f3
+    have f4' := hs_lift_subst_stable .empty f4
     have lem3 : (Frame.empty :: Δ) ⊢τ ([^σ] B) : `★ := by
-      apply @hs_subst (.empty :: Γ) (.empty :: Δ) (^σ) .type _ f1 f2 f3 f4 h3 wf'
+      apply @hs_subst (.empty :: Γ) (.empty :: Δ) (^σ) .type _ f1' f2' f3' f4' h3 wf'
     apply HsJudgment.farrow;
     apply lem1
     apply lem2
@@ -164,27 +178,39 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
     have lem1 := @hs_subst Γ Δ σ .kind _ f1 f2 f3 f4 h1 wf
     have wf' : ⊢s (Frame.kind ([σ]A) :: Δ) := by
       constructor; assumption; assumption
+    have f1' := hs_lift_subst_rename (.kind A) f1
+    have f2' := hs_lift_subst_replace_type (.kind A) wf' f2
+    have f3' := hs_lift_subst_replace_term (.kind A) wf' f3
+    have f4' := hs_lift_subst_stable (.kind A) f4
     have lem2 : (Frame.kind ([σ]A) :: Δ) ⊢τ ([^σ]B) : `★ := by
-      apply hs_subst .type f1 f2 f3 f4 h2 wf'
+      apply hs_subst .type f1' f2' f3' f4' h2 wf'
     constructor; assumption; assumption
 
   | @HsJudgment.arrow Γ A B h1 h2 => by
     have lem1 := @hs_subst Γ Δ σ .type _ f1 f2 f3 f4 h1 wf
     have wf' : ⊢s (.empty :: Δ) := by
       constructor; assumption
+    have f1' := hs_lift_subst_rename .empty f1
+    have f2' := hs_lift_subst_replace_type .empty wf' f2
+    have f3' := hs_lift_subst_replace_term .empty wf' f3
+    have f4' := hs_lift_subst_stable .empty f4
     have lem2 : (Frame.empty :: Δ) ⊢τ ([^σ] B) : `★ := by
-      apply hs_subst .type  f1 f2 f3 f4 h2 wf'
+      apply hs_subst .type  f1' f2' f3' f4' h2 wf'
     apply HsJudgment.arrow;
     apply lem1
     apply lem2
 
-| .term, (t, τ), f1, f2, f3, f4, j, wf => match j with
+| Γ, Δ, σ, .term, (t, τ), f1, f2, f3, f4, j, wf => match j with
   | @HsJudgment.implicitAllI Γ A t τ h1 h2 => by
     simp
     have lem2 := @hs_subst Γ Δ σ .kind _ f1 f2 f3 f4 h2 wf
     have wf' : ⊢s (.kind ([σ]A) :: Δ) := by
       constructor; assumption; assumption
-    have lem := @hs_subst (.kind A :: Γ) (.kind ([σ]A) :: Δ) (^σ) .term _ f1 f2 f3 f4 h1 wf'; simp at lem
+    have f1' := hs_lift_subst_rename (.kind A) f1
+    have f2' := hs_lift_subst_replace_type (.kind A) wf' f2
+    have f3' := hs_lift_subst_replace_term (.kind A) wf' f3
+    have f4' := hs_lift_subst_stable (.kind A) f4
+    have lem := @hs_subst (.kind A :: Γ) (.kind ([σ]A) :: Δ) (^σ) .term _ f1' f2' f3' f4' h1 wf'; simp at lem
     apply HsJudgment.implicitAllI
     rw[Subst.apply_compose_commute]; apply lem
     assumption
@@ -194,12 +220,20 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
     have wf' : ⊢s (.empty :: Δ) := by
       constructor; assumption
     have lem1 : Δ ⊢τ ([σ]π) : `★ := @hs_subst Γ Δ σ .type _ f1 f2 f3 f4 h1 wf
+    have f1' := hs_lift_subst_rename .empty f1
+    have f2' := hs_lift_subst_replace_type .empty wf' f2
+    have f3' := hs_lift_subst_replace_term .empty wf' f3
+    have f4' := hs_lift_subst_stable .empty f4
     have lem2 : (.empty :: Δ) ⊢τ ([^σ]τ) : `★ := by
-      apply @hs_subst (.empty :: Γ) (.empty :: Δ) (^σ) .type _ f1 f2 f3 f4 h2 wf'
+      apply @hs_subst (.empty :: Γ) (.empty :: Δ) (^σ) .type _ f1' f2' f3' f4' h2 wf'
     have wf'' : ⊢s (.type ([σ]π) :: Δ) := by
       constructor; assumption; assumption
+    have f1'' := hs_lift_subst_rename (.type π) f1
+    have f2'' := hs_lift_subst_replace_type (.type π) wf'' f2
+    have f3'' := hs_lift_subst_replace_term (.type π) wf'' f3
+    have f4'' := hs_lift_subst_stable (.type π) f4
     have lem3 : (.type ([σ]π) :: Δ) ⊢t ([^σ][S]t) : ([^σ]τ) := by
-      apply @hs_subst (.type π :: Γ) (.type ([σ]π) :: Δ) (^σ) .term _ f1 f2 f3 f4 h4 wf''
+      apply @hs_subst (.type π :: Γ) (.type ([σ]π) :: Δ) (^σ) .term _ f1'' f2'' f3'' f4'' h4 wf''
     apply HsJudgment.implicitArrI
     assumption
     rw[Subst.lift_unfold] at lem2; assumption
@@ -207,10 +241,10 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
       case _ =>
         intro n t;
         have t' := Frame.is_opent_implies_is_stable t;
-        replace f4 := f4 Γ σ n t'; cases f4;
+        replace f4 := f4 n t'; cases f4;
         case _ w f4 =>
         exists w; apply And.intro; assumption
-        have f1' := f1 Γ Δ σ n w f4; simp; rw[<-f1'];
+        have f1' := f1 n w f4; simp; rw[<-f1'];
         simp at t; replace t := opent_indexing_exists t;
         cases t; case _ t =>
           rw[t]; unfold Frame.apply; unfold Frame.is_opent; simp
@@ -238,7 +272,7 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
     generalize zdef : σ x = z at *;
     cases z <;> (simp; rw[zdef]; simp)
     case _ n =>
-      have f1' := f1 Γ Δ σ x n zdef
+      have f1' := f1 x n zdef
       apply HsJudgment.var;
       apply wf
       simp at h2; cases h2;
@@ -248,35 +282,46 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
           have u := ctor_indexing_exists h;
           cases u; case _ u =>
             rw[<-f1]; rw[u]; unfold Frame.apply; simp; unfold Frame.is_ctor; simp;
-            apply σ; apply zdef
+            apply zdef
         case _ h =>
           have u := term_indexing_exists h;
           cases u; case _ A u =>
           cases u; case _ t1 u =>
             rw[<-f1]; rw[u]; unfold Frame.apply; simp; unfold Frame.is_term; simp;
-            apply σ; apply zdef
+            apply zdef
       case _ h =>
         have u := type_indexing_exists h;
         cases u; case _ u =>
           rw[<-f1]; rw[u]; unfold Frame.apply; simp; unfold Frame.is_type; simp;
-          apply σ; apply zdef
+          apply zdef
       case _ =>
         rw[<-f1']; rw[Frame.get_type_apply_commute]; rw[<-h3]; simp
     case _ a =>
-      apply f3 Γ Δ σ x a T zdef h3
+      apply f3 x a T zdef h3
 
 
   | @HsJudgment.lam Γ A t B h1 h2 h3 => by
 
     have lem1 := @hs_subst Γ Δ σ .type _ f1 f2 f3 f4 h1 wf
-    have wf1' : ⊢s (.empty :: Δ) := by
+    have wf'' : ⊢s (.empty :: Δ) := by
       constructor; assumption
-    have wf2' : ⊢s (.type ([σ]A) :: Δ) := by
+    have wf' : ⊢s (.type ([σ]A) :: Δ) := by
       constructor; assumption; assumption
+
+    have f1' := hs_lift_subst_rename (.type A) f1
+    have f2' := hs_lift_subst_replace_type (.type A) wf' f2
+    have f3' := hs_lift_subst_replace_term (.type A) wf' f3
+    have f4' := hs_lift_subst_stable (.type A) f4
+
+    have f1'' := hs_lift_subst_rename (.empty) f1
+    have f2'' := hs_lift_subst_replace_type .empty wf'' f2
+    have f3'' := hs_lift_subst_replace_term .empty wf'' f3
+    have f4'' := hs_lift_subst_stable .empty f4
+
     apply HsJudgment.lam
     assumption
-    apply @hs_subst (.type A :: Γ) (.type ([σ]A) :: Δ) (^σ) .term _ f1 f2 f3 f4 h2 wf2'
-    apply @hs_subst (.empty :: Γ) (.empty :: Δ) (^σ) .type _ f1 f2 f3 f4 h3 wf1'
+    apply @hs_subst (.type A :: Γ) (.type ([σ]A) :: Δ) (^σ) .term _ f1' f2' f3' f4' h2 wf'
+    apply @hs_subst (.empty :: Γ) (.empty :: Δ) (^σ) .type _ f1'' f2'' f3'' f4'' h3 wf''
 
 
   | @HsJudgment.app Γ t1 A B t2 B' h1 h2 h3 h4 h5 => by
@@ -299,16 +344,16 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
     apply (hs_subst .term f1 f2 f3 f4 h6 wf)
     apply (hs_subst .term f1 f2 f3 f4 h7 wf)
     apply (hs_subst .term f1 f2 f3 f4 h8 wf)
-    apply hs_stable_type_match_subst (f1 Γ Δ σ) (f4 Γ σ) h9
-    apply hs_prefix_type_match_subst (f1 Γ Δ σ) (f4 Γ σ) h10
+    apply hs_stable_type_match_subst f1 f4 h9
+    apply hs_prefix_type_match_subst f1 f4 h10
     apply hs_valid_head_variable_subst Γ.is_datatype _
     case _ =>
       intro n t;
       have t' := Frame.is_datatype_implies_is_stable t;
-      replace f4 := f4 Γ σ n t'; cases f4;
+      replace f4 := f4 n t'; cases f4;
       case _ w f4 =>
       exists w; apply And.intro; assumption
-      have f1' := f1 Γ Δ σ n w f4; simp; rw[<-f1'];
+      have f1' := f1 n w f4; simp; rw[<-f1'];
       simp at t; replace t := datatype_indexing_exists t;
       cases t; case _ t =>
         rw[t]; unfold Frame.apply; unfold Frame.is_datatype; simp
@@ -317,173 +362,100 @@ def hs_subst : (v: HsVariant) -> {idx : HsJudgmentArgs v} ->
     case _ =>
       intro n t;
       have t' := Frame.is_ctor_implies_is_stable t;
-      replace f4 := f4 Γ σ n t'; cases f4;
+      replace f4 := f4 n t'; cases f4;
       case _ w f4 =>
       exists w; apply And.intro; assumption
-      have f1' := f1 Γ Δ σ n w f4; simp; rw[<-f1'];
+      have f1' := f1 n w f4; simp; rw[<-f1'];
       simp at t; replace t := ctor_indexing_exists t;
       cases t; case _ t =>
         rw[t]; unfold Frame.apply; unfold Frame.is_ctor; simp
     case _ => apply h12
 
   | @HsJudgment.hslet Γ A t1 B' B t2 h1 h2 h3 h4 h5 => by
+    have wf' : ⊢s (.term ([σ]A) ([σ]t1) :: Δ) := by
+      apply HsJudgment.wfterm;
+      apply hs_subst .type f1 f2 f3 f4 h1 wf
+      apply hs_subst .term f1 f2 f3 f4 h2 wf
+      apply wf
+
+    have f1' := hs_lift_subst_rename (.term A t1) f1
+    have f2' := hs_lift_subst_replace_type (.term A t1) wf' f2
+    have f3' := hs_lift_subst_replace_term (.term A t1) wf' f3
+    have f4' := hs_lift_subst_stable (.term A t1) f4
+
     apply HsJudgment.hslet;
     apply hs_subst .type f1 f2 f3 f4 h1 wf
     apply hs_subst .term f1 f2 f3 f4 h2 wf
     rfl
     case _ =>
-      have wf' : ⊢s (.term ([σ]A) ([σ]t1) :: Δ) := by
-        apply HsJudgment.wfterm;
-        apply hs_subst .type f1 f2 f3 f4 h1 wf
-        apply hs_subst .term f1 f2 f3 f4 h2 wf
-        apply wf
       have e : [S][σ]B = [^σ][S]B := by
         rw[Subst.apply_compose_commute]; simp
       rw[e]; rw[h3] at h4;
       have h : (.term ([σ]A) ([σ]t1) :: Δ) ⊢t ([^σ]t2) : ([^σ][S] B) := by
-        apply @hs_subst (.term A t1 :: Γ) (.term ([σ]A) ([σ]t1) :: Δ) ^σ .term _ f1 f2 f3 f4 h4 wf'
+        apply @hs_subst (.term A t1 :: Γ) (.term ([σ]A) ([σ]t1) :: Δ) ^σ .term _ f1' f2' f3' f4' h4 wf'
       apply h
     apply hs_subst .type f1 f2 f3 f4 h5 wf
-termination_by _ _ _ _ _ _ h => h.size
+termination_by _ _ _ _ _ _ _ _ _ h => h.size
 
 def hs_beta_empty_type t :
-  (.empty::Γ) ⊢τ b : B ->
-  Γ ⊢τ (b β[t]) : (B β[t])
-:= by sorry
+  (.empty::Γ) ⊢τ τ : k ->
+  Γ ⊢τ (τ β[t]) : (k β[t])
+:= by
+intro j
+have lem := hs_judgment_ctx_wf .type j;
+cases lem; case _ lem =>
+apply @hs_subst (.empty :: Γ) Γ (.su t :: I) .type (τ, k) _ _ _ _ j lem;
+case _ =>
+  intro n y h;
+  cases n <;> simp at *; subst h
+  case _ => rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2
+case _ =>
+  intro n t T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1
 
-
-def hs_beta_empty_term t :
-  (.empty::Γ) ⊢t b : B ->
-  Γ ⊢t (b β[t]) : (B β[t])
-:= by sorry
--- intro j
--- have lem : ⊢t Γ := by
---   have lem := hs_judgment_ctx_wf .prf j
---   cases lem;
--- apply @subst (.su t :: I) (.empty::Γ) Γ _ _ _ _ _ j
--- apply lem
--- case _ =>
---   intro n y h1
---   cases n <;> simp at *; subst h1
---   case _ n =>
---     rw [Frame.apply_compose]; simp
--- case _ =>
---   intro n s T h1 h2
---   cases n <;> simp at *; subst h1
---   injection h2
--- case _ =>
---   intro n h1
---   cases n <;> simp at *
---   rw [Frame.is_stable_stable] at h1
---   unfold Frame.is_stable at h1
---   simp at h1
-
-def hs_beta_type :
-  (.type A::Γ) ⊢t b : B ->
-  Γ ⊢t t : A ->
-  Γ ⊢t (b β[t]) : (B β[t])
-:= by sorry
--- intro j1 j2
--- apply @subst (.su t :: I) (.type A::Γ) Γ _ _ _ _ _ j1
--- apply judgment_ctx_wf j2
--- case _ =>
---   intro n y h1
---   cases n <;> simp at *; subst h1
---   case _ n =>
---     rw [Frame.apply_compose]; simp
--- case _ =>
---   intro n s T h1 h2
---   cases n <;> simp at *; subst h1
---   injection h2 with e; subst e; simp
---   apply j2
--- case _ =>
---   intro n h1
---   cases n <;> simp at *
---   rw [Frame.is_stable_stable] at h1
---   unfold Frame.is_stable at h1
---   simp at h1
-
-def hs_beta_kind :
-  (.kind A::Γ) ⊢t b : B ->
-  Γ ⊢t t : A ->
-  Γ ⊢t (b β[t]) : (B β[t])
-:= by sorry
 
 def hs_beta_kind_type :
-  (.kind A::Γ) ⊢τ b : B ->
+  (.kind A::Γ) ⊢τ τ : k ->
   Γ ⊢τ t : A ->
-  Γ ⊢τ (b β[t]) : (B β[t])
-:= by sorry
+  Γ ⊢τ (τ β[t]) : (k β[t])
+:= by
+intro j1 j2
+have lem := hs_judgment_ctx_wf .type j2;
+apply @hs_subst (.kind A :: Γ) Γ (.su t :: I) .type (τ, k) _ _ _ _ j1 lem;
+case _ =>
+  intro n y h1
+  cases n <;> simp at *; subst h1
+  case _ n =>
+    rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2 with e; subst e; simp
+  apply j2
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  injection h2 with e; subst e; simp
+  sorry
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1
 
--- intro j1 j2
--- apply @subst (.su t :: I) (.kind A::Γ) Γ _ _ _ _ _ j1
--- apply judgment_ctx_wf j2
--- case _ =>
---   intro n y h1
---   cases n <;> simp at *; subst h1
---   case _ n =>
---     rw [Frame.apply_compose]; simp
--- case _ =>
---   intro n s T h1 h2
---   cases n <;> simp at *; subst h1
---   injection h2 with e; subst e; simp
---   apply j2
--- case _ =>
---   intro n h1
---   cases n <;> simp at *
---   rw [Frame.is_stable_stable] at h1
---   unfold Frame.is_stable at h1
---   simp at h1
 
-def hs_beta_term :
-  (.term A t::Γ) ⊢t b : B ->
-  Γ ⊢t t : A ->
-  Γ ⊢t (b β[t]) : (B β[t])
-:= by sorry
--- intro j1 j2
--- apply @subst (.su t :: I) (.term A t::Γ) Γ _ _ _ _ _ j1
--- apply judgment_ctx_wf j2
--- case _ =>
---   intro n y h1
---   cases n <;> simp at *; subst h1
---   case _ n =>
---     rw [Frame.apply_compose]; simp
--- case _ =>
---   intro n s T h1 h2
---   cases n <;> simp at *; subst h1
---   injection h2 with e; subst e; simp
---   apply j2
--- case _ =>
---   intro n h1
---   cases n <;> simp at *
---   rw [Frame.is_stable_stable] at h1
---   unfold Frame.is_stable at h1
---   simp at h1
-
-def hs_beta_openm :
-  (.openm A::Γ) ⊢t b : B ->
-  Γ ⊢t t : A ->
-  Γ ⊢t (b β[t]) : (B β[t])
-:= by sorry
--- intro j1 j2
--- apply @subst (.su t :: I) (.openm A::Γ) Γ _ _ _ _ _ j1
--- apply judgment_ctx_wf j2
--- case _ =>
---   intro n y h1
---   cases n <;> simp at *; subst h1
---   case _ n =>
---     rw [Frame.apply_compose]; simp
--- case _ =>
---   intro n s T h1 h2
---   cases n <;> simp at *; subst h1
---   injection h2 with e; subst e; simp
---   apply j2
--- case _ =>
---   intro n h1
---   cases n <;> simp at *
---   rw [Frame.is_stable_stable] at h1
---   unfold Frame.is_stable at h1
---   simp at h1
 
 
 def hs_replace_empty : (v : HsVariant) ->  {idx : HsJudgmentArgs v} ->
