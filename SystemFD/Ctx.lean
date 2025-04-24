@@ -339,6 +339,24 @@ case _ a h' => apply Exists.intro a; assumption
 case _ => cases h
 
 omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem type_indexing_exists {Γ : Ctx T} :
+  (Γ d@ n).is_type = true ->
+  ∃ t, Γ d@ n = .type t := by
+intros h; unfold Frame.is_type at h; split at h;
+case _ a h' => apply Exists.intro a; assumption
+case _ => cases h
+
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
+theorem term_indexing_exists {Γ : Ctx T} :
+  (Γ d@ n).is_term = true ->
+  ∃ A t, Γ d@ n = .term A t := by
+intros h; unfold Frame.is_term at h; split at h;
+case _ a T h' => exists a; exists T
+case _ => cases h
+
+
+omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
 theorem datatype_indexing_exists {Γ : Ctx T} :
   (Γ d@ n).is_datatype = true ->
   ∃ t, Γ d@ n = .datatype t := by
