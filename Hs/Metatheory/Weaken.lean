@@ -260,12 +260,27 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
 | .ctx, () , j, wf, r => by simp; apply wf
 termination_by v idx h => h.size
 
+
+@[simp]
+abbrev hs_idx_weaken : HsJudgmentArgs v -> HsJudgmentArgs v := λ x =>
+  @hs_idx_ren v (λ x => x + 1) x
+
+def hs_weaken :
+  (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
+  ⊢s (f :: Γ) ->
+  HsJudgment v Γ idx ->
+  HsJudgment v (f :: Γ) (hs_idx_weaken idx) := by
+intro v idx wf h;
+unfold hs_idx_weaken;
+apply hs_rename (λx => x + 1) v h wf (by intro; rw [Subst.to_S]; simp)
+
+
 @[simp]
 def hs_weaken_type :
   ⊢s (f :: Γ) ->
   Γ ⊢τ t : A ->
   (f::Γ) ⊢τ ([S]t) : ([S]A)
-| wf , h => hs_rename (λ x => x + 1) .type h wf (by intro; rw [Subst.to_S]; simp)
+| wf , h => hs_weaken .type wf h
 
 @[simp]
 def hs_weaken_kind :
