@@ -195,7 +195,7 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
   HsJudgment .ctx Γ () ->
   (Γ d@ x).is_datatype || (Γ d@ x).is_kind  ->
   .some T = (Γ d@ x).get_type ->
-  HsJudgment .kind Γ (T, `□) ->
+  HsJudgment .kind Γ (T, `□) -> -- should be derivable?
   HsJudgment .type Γ (`#x, T)
 
 ------------------------------------
