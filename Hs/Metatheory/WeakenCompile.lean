@@ -78,9 +78,3 @@ case _ j1 j2 ih1 ih2 =>
   simp
 
 case _ => sorry
-
-def compile_replace_empty :
-  (j1 : (.empty :: Γ) ⊢τ τ : k) ->
-  (j2 : (f :: Γ) ⊢τ τ : k) ->
-  compile_type (.empty :: Γ) τ k j1 = .some τ' ->
-  compile_type (f :: Γ) τ k j2 = .some τ' := by sorry

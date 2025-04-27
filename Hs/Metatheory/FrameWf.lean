@@ -52,7 +52,19 @@ namespace HsFrameWf
     unfold Frame.apply; simp; constructor
     have lem := hs_rename r .type j wf h; simp at lem
     apply lem
+
 end HsFrameWf
+
+namespace Ctx
+def weaken_frame :
+  ⊢s Γ ->
+  Γ ⊢s f ->
+  ⊢s (f::Γ) := by
+intro wf f
+cases f;
+all_goals(constructor; assumption)
+all_goals(assumption)
+end Ctx
 
 @[simp]
 abbrev HsFrameWfByIndexLemmaType (Γ : Ctx HsTerm) : (v : HsVariant) -> HsJudgmentArgs v -> Type
@@ -65,7 +77,6 @@ def hs_frame_wf_by_index_lemma : (v : HsVariant) -> (ix : HsJudgmentArgs v) ->
   HsJudgment v Γ ix -> HsFrameWfByIndexLemmaType Γ v ix
 | .ctx, (), j => by
   simp at *; intro x;
-
   sorry
 | .kind, args, j => by (simp at *); sorry
 | .type, args, j => by (simp at args); sorry

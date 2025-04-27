@@ -406,3 +406,9 @@ intro h1 h2;
 replace h1 := opent_indexing_exists h1;
 cases h1; case _ h1 =>
 rw [h1]at h2; unfold Frame.is_datatype at h2; simp at h2
+
+
+theorem replace_eq_except : (Γ Γ' : Ctx T) ->
+  Γ.modify n (λ _ => f) = Γ' ->
+  ∀ k, k ≠ n -> Γ d@ k = Γ' d@ k
+:= by sorry

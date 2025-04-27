@@ -357,3 +357,26 @@ all_goals (
     cases h2; case _ nf _ => cases nf
   case _ h2 =>
     apply hs_datatype_opent_distinct h1 h2)
+
+theorem empty_not_opent : (Γ : Ctx HsTerm) ->
+  Γ d@n = .empty ->
+  (Γ d@ x).is_opent = true ->
+  x ≠ n := by
+intro Γ h1 h2 h3;
+rw [h3] at h2; rw[h1] at h2; unfold Frame.is_opent at h2; simp at h2;
+
+theorem hs_replace_empty_valid_head_variable_opent (Γ Γ' : Ctx HsTerm) :
+  Γ d@ n = .empty ->
+  Γ.modify n (λ _ => f) = Γ' ->
+  HsValidHeadVariable A Γ.is_opent ->
+  HsValidHeadVariable A Γ'.is_opent := by
+intro h1 h2 h3
+cases h3; case _ w h =>
+cases h; case _ h3 h4 =>
+simp at h4;
+have lem1 := empty_not_opent Γ h1 h4;
+have lem2 := replace_eq_except Γ Γ' h2 w.1 lem1
+unfold HsValidHeadVariable; exists w;
+constructor;
+assumption;
+rw[lem2] at h4; assumption
