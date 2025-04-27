@@ -411,4 +411,7 @@ rw [h1]at h2; unfold Frame.is_datatype at h2; simp at h2
 theorem replace_eq_except : (Γ Γ' : Ctx T) ->
   Γ.modify n (λ _ => f) = Γ' ->
   ∀ k, k ≠ n -> Γ d@ k = Γ' d@ k
-:= by sorry
+:= by
+intro Γ Γ' j1 k j2
+rw[<-j1]; unfold List.modify;
+sorry

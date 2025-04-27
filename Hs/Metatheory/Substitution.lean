@@ -432,56 +432,35 @@ case _ =>
   simp at h1
 
 
+def hs_replace_empty_kind_lemma : (τ k : HsTerm) -> (Γ Γ' : Ctx HsTerm) ->
+  (Γ d@ n) = .empty ->
+  Γ.drop (n + 1) ⊢s f ->
+  Γ.modify n (λ _ => f) = Γ' ->
+  ⊢s Γ' ->
+  Γ ⊢κ τ : k ->
+  Γ' ⊢κ τ : k := by
+intro τ k Γ Γ' j1 j2 j3 j4 j5;
+cases j5;
+case _ =>
+  constructor; assumption
+case _ A B h1 h2 =>
+  constructor;
+  apply hs_replace_empty_kind_lemma A `□ Γ Γ' j1 j2 j3 j4 h1
+  apply hs_replace_empty_kind_lemma B `□ Γ Γ' j1 j2 j3 j4 h2
+termination_by h => h.size
+
 def hs_replace_empty_kind : (k : HsTerm) ->
   (.empty :: Γ) ⊢κ k : s ->
   Γ ⊢s f ->
   (f :: Γ) ⊢κ k : s := by
 intro k j1 j2
-have wf := hs_judgment_ctx_wf .kind j1
-cases wf; case _ wf =>
-have lem := Ctx.weaken_frame wf j2
-cases j1
-case _ h => constructor; assumption
-case _ k1 k2 h1 h2 =>
-  have h1' := hs_replace_empty_kind k1 h1 j2
-  have h2' := hs_replace_empty_kind k2 h2 j2
-  constructor; assumption; assumption
-termination_by h => h.size -- this is hilariously stupid lean4
-
-
-theorem empty_never_indexed_kind : (t A : HsTerm) ->
-  (Γ d@ n) = .empty ->
-  Γ ⊢κ t : A ->
-  n ∉ t.fvs ∧ n ∉ A.fvs := by
-intro _ _ h1 h2;
-cases h2;
-case _ => simp
-case _ A B ih1 ih2 =>
-have lem1 := empty_never_indexed_kind A `□ h1 ih1
-have lem2 := empty_never_indexed_kind B `□ h1 ih2
-cases lem1; cases lem2
-simp; constructor; assumption; assumption
-termination_by h => h.size
-
-theorem empty_never_indexed_type : (t A : HsTerm) ->
-  (Γ d@ n) = .empty ->
-  Γ ⊢τ t : A ->
-  n ∉ t.fvs ∧ n ∉ A.fvs := by sorry
-
-
-theorem empty_never_indexed_term : (t A : HsTerm) ->
-  (Γ d@ n) = .empty ->
-  Γ ⊢t t : A ->
-  n ∉ t.fvs ∧ n ∉ A.fvs := by sorry
-
-
-def hs_replace_kind_lemma : (τ k : HsTerm) -> (Γ Γ' : Ctx HsTerm) ->
-  (Γ d@ n) = .empty ->
-  Γ.drop (n + 1) ⊢s f ->
-  Γ.modify n (λ _ => f) = Γ' ->
-  Γ ⊢κ τ : k ->
-  Γ' ⊢κ τ : k := by sorry
-
+have lem : (.empty :: Γ) d@ 0 = .empty := by simp; unfold Frame.apply; simp
+apply hs_replace_empty_kind_lemma k s (.empty :: Γ) (f :: Γ);
+assumption
+simp; assumption
+simp; apply Ctx.weaken_frame; apply hs_frame_wf_implies_wf; assumption
+assumption
+assumption
 
 theorem n_x_different : (Γ : Ctx HsTerm) ->
   Γ d@ n = .empty ->
@@ -502,13 +481,13 @@ have lem : ∀ f, (f :: Γ) d@ (n + 1) = .empty := by intro f; simp; unfold Fram
 cases j5;
 case _ A B h1 h2 =>
   constructor;
-  apply hs_replace_kind_lemma A `□ Γ Γ' j1 j2 j3 h1
+  apply hs_replace_empty_kind_lemma A `□ Γ Γ' j1 j2 j3 j4 h1
   apply hs_replace_type_lemma B `★ (.kind A :: Γ) (.kind A :: Γ');
   apply lem
   assumption
   simp; assumption
   constructor;
-  apply hs_replace_kind_lemma A `□ Γ Γ' j1 j2 j3 h1
+  apply hs_replace_empty_kind_lemma A `□ Γ Γ' j1 j2 j3 j4 h1
   assumption
   assumption
 case _ A B h1 h2 =>
@@ -534,8 +513,8 @@ case _ f A a h1 h2 h3 h4 =>
   constructor;
   apply hs_replace_type_lemma f (A `-k> k) Γ Γ' j1 j2 j3 j4 h3
   apply hs_replace_type_lemma a A Γ Γ' j1 j2 j3 j4 h1
-  apply hs_replace_kind_lemma A `□ Γ Γ' j1 j2 j3 h2
-  apply hs_replace_kind_lemma k `□ Γ Γ' j1 j2 j3 h4
+  apply hs_replace_empty_kind_lemma A `□ Γ Γ' j1 j2 j3 j4 h2
+  apply hs_replace_empty_kind_lemma k `□ Γ Γ' j1 j2 j3 j4 h4
 case _ x wf h1 h2 h3 =>
   have lem1 := n_x_different Γ j1 (Eq.symm h2)
   have lem2 := replace_eq_except Γ Γ' j3 x lem1
@@ -543,12 +522,12 @@ case _ x wf h1 h2 h3 =>
   assumption
   case _ => rw [<-lem2]; assumption
   case _ => rw [<-lem2]; assumption
-  apply hs_replace_kind_lemma k `□ Γ Γ' j1 j2 j3 h3
+  apply hs_replace_empty_kind_lemma k `□ Γ Γ' j1 j2 j3 j4 h3
 
 termination_by h => h.size
 
-#eval ([1,2,3]).modify 1 (λ _ => 5)
-#eval ([1,2,3].take 1 ++ [5] ++ [1,2,3].drop 2)
+-- #eval ([1,2,3]).modify 1 (λ _ => 5)
+-- #eval ([1,2,3].take 1 ++ [5] ++ [1,2,3].drop 2)
 
 
 def hs_replace_empty_type_lemma : (τ : HsTerm) ->
