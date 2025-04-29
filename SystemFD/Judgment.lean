@@ -333,3 +333,10 @@ inductive SpineType : Ctx Term -> Term -> Term -> Prop where
   Γ ⊢ (A -k> B) : .kind ->
   SpineType Γ B T ->
   SpineType Γ (A -k> B) T
+
+inductive ListJudgment : Ctx Term -> List Term -> Term -> Prop where
+| nil : ListJudgment Γ [] A
+| cons :
+  Γ ⊢ h : A ->
+  ListJudgment Γ tl A ->
+  ListJudgment Γ (h :: tl) A
