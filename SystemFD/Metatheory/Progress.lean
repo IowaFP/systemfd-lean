@@ -610,3 +610,33 @@ theorem progress :
 := by
 intro h j
 apply progress_lemma h j
+
+theorem progress_list :
+  (∀ x, ¬ Γ.is_type x) ->
+  ListJudgment Γ tl A ->
+  (∀ x ∈ tl, Val Γ x) ∨ ∃ tl', ListRed Γ tl tl' := by
+intro j1 rl
+induction rl
+case _ =>
+  apply Or.inl; intro x y; cases y
+case _ h _ tl j rl ih =>
+  cases ih;
+  case _ h =>
+    have lem := progress j1 j;
+    cases lem;
+    case _ h' =>
+      apply Or.inl;
+      intro x j2;
+      cases j2;
+      assumption;
+      apply h; assumption
+    case _ h' =>
+      apply Or.inr;
+      cases h'; case _ w h' =>
+      exists (w ++ tl);
+      constructor; assumption
+
+  case _ h' =>
+    cases h'; case _ w r =>
+    apply Or.inr
+    exists (h :: w); constructor; assumption
