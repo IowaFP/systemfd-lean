@@ -340,3 +340,23 @@ inductive ListJudgment : Ctx Term -> List Term -> Term -> Prop where
   Γ ⊢ h : A ->
   ListJudgment Γ tl A ->
   ListJudgment Γ (h :: tl) A
+
+theorem list_judgment_by_elems : (∀ t, t ∈ ℓ -> Γ ⊢ t : A) -> ListJudgment Γ ℓ A := by
+intro h
+induction ℓ
+case nil => constructor
+case cons hd tl ih =>
+  constructor
+  apply h hd; simp
+  have lem : ∀ t, t ∈ tl -> Γ ⊢ t : A := by
+    intro t tin
+    apply h t; simp; apply Or.inr tin
+  apply ih lem
+
+theorem list_judgment_append : ListJudgment Γ ℓ1 A -> ListJudgment Γ ℓ2 A -> ListJudgment Γ (ℓ1 ++ ℓ2) A := by
+intro j1 j2
+induction j1 generalizing ℓ2
+case nil => simp; apply j2
+case cons hd A tl h1 h2 ih =>
+  constructor; apply h1
+  apply ih j2

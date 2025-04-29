@@ -498,3 +498,22 @@ theorem preservation :
 := by
 intro j1 j2 t' j3
 apply preservation_lemma j1 j2 j3
+
+theorem preservation_list :
+  ListJudgment Γ ℓ A ->
+  ListRed Γ ℓ ℓ' ->
+  ListJudgment Γ ℓ' A
+:= by
+intro j1 j2
+induction j1 generalizing ℓ'
+case nil => cases j2
+case cons hd B tl j h1 ih =>
+  cases j2
+  case head ℓ' h2 =>
+    replace j := preservation j h2
+    apply list_judgment_append
+    apply list_judgment_by_elems j
+    apply h1
+  case tail tl' h2 =>
+    replace ih := ih h2
+    constructor; apply j; apply ih
