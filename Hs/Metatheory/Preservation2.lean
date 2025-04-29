@@ -142,7 +142,7 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
    apply @ih2 (.term A' t1' :: Γ') `★ ([S]τ') t2' _ _ _ c4;
    case _ => assumption
    case _ => apply hs_weaken_type lemΓ j1
-   case _ => apply weaken_compile_type j1 c1
+   case _ => apply weaken_compile_type h j1 c1 (HsFrameWf.term j1' j2)
  case _ =>
    apply compile_preserves_types (cc .kind) wf h _ _ _ c1;
    apply HsJudgment.ax (hs_judgment_ctx_wf .type j1)

@@ -56,7 +56,7 @@ namespace HsFrameWf
 end HsFrameWf
 
 namespace Ctx
-def weaken_frame :
+def hs_weaken_frame :
   ⊢s Γ ->
   Γ ⊢s f ->
   ⊢s (f::Γ) := by
@@ -220,6 +220,12 @@ def hs_frame_wf_by_index_lemma : (v : HsVariant) -> (ix : HsJudgmentArgs v) ->
 
 def hs_frame_wf_by_index x : ⊢s Γ -> Γ ⊢s Γ d@ x :=
 λ wf => hs_frame_wf_by_index_lemma .ctx () wf x
+
+def hs_frame_wf_strength f : ⊢s (f :: Γ) -> ⊢s Γ :=
+by
+intro wwf
+cases wwf
+all_goals(assumption)
 
 def hs_frame_wf_implies_wf : Γ ⊢s f -> ⊢s Γ
 | .empty h1 => h1

@@ -458,7 +458,7 @@ have lem : (.empty :: Γ) d@ 0 = .empty := by simp; unfold Frame.apply; simp
 apply hs_replace_empty_kind_lemma k s (.empty :: Γ) (f :: Γ);
 assumption
 simp; assumption
-simp; apply Ctx.weaken_frame; apply hs_frame_wf_implies_wf; assumption
+simp; apply Ctx.hs_weaken_frame; apply hs_frame_wf_implies_wf; assumption
 assumption
 assumption
 
@@ -540,7 +540,7 @@ apply hs_replace_type_lemma
 assumption
 assumption
 unfold List.modify; simp
-apply Ctx.weaken_frame; apply hs_frame_wf_implies_wf f; assumption
+apply Ctx.hs_weaken_frame; apply hs_frame_wf_implies_wf f; assumption
 assumption
 
 def hs_replace_empty_type :
