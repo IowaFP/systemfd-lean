@@ -7,20 +7,23 @@ import Hs.Metatheory.SubstitutionCompile
 import Hs.Metatheory.Preservation1
 import SystemFD.Algorithm.Soundness2
 
+import Mathlib.Tactic.CasesM
+
 theorem compile_preserves_type_neutral_form :
-  ⊢ Γ' ->
   (j : Γ ⊢τ t : k) ->
   compile_type Γ t k j = .some t' ->
   t.neutral_form = .some (h, sp) ->
-  ∃ h' sp', t'.neutral_form = .some (h', sp') := by
-intro wf j ct tnf;
-induction Γ, t, k, j using compile_type.induct generalizing Γ' t' h sp
+  ∃ sp', t'.neutral_form = .some (h, sp') := by
+intro j ct tnf;
+induction Γ, t, k, j using compile_type.induct generalizing t' h sp
 case _ x _ _ _ _ =>
   unfold compile_type at ct; simp at ct;
   rw[Option.bind_eq_some] at ct;
   cases ct; case _ k ct =>
   cases ct; case _ ct e =>
-  cases e; exists x; exists []
+  cases e; exists [];
+  unfold HsTerm.neutral_form at tnf; cases tnf;
+  unfold Term.neutral_form; simp
 case _ a _ _ _ _ ih _ =>
   unfold compile_type at ct; simp at ct;
   rw[Option.bind_eq_some] at ct;
@@ -41,14 +44,14 @@ case _ a _ _ _ _ ih _ =>
   cases tnf; case _ nf tnf =>
   cases tnf; case _ fnf e =>
   cases e;
-  have ih' := @ih Γ' f' nf.1 nf.snd wf ct2 fnf
-  cases ih'; case _ h' ih' =>
+  have ih' := @ih f' nf.1 nf.snd ct2 fnf
   cases ih'; case _ sp' ih' =>
-  exists h'; exists (sp' ++ [( SpineVariant.kind, a') ]);
+  exists (sp' ++ [( SpineVariant.kind, a') ]);
   unfold Term.neutral_form; simp;
-  rw[Option.bind_eq_some];
-  exists (h', sp');
+  rw[Option.bind_eq_some]; simp;
+  assumption
 all_goals (cases tnf)
+
 
 -- theorem compile_preserves_term_neutral_form :
 --   ⊢ Γ' ->
@@ -113,6 +116,130 @@ all_goals (cases tnf)
 -- case _ => sorry
 -- case _ => sorry
 
+theorem compile_preserves_vhv_types_stable :
+ (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
+ ⊢ Γ' ->
+ (jT : Γ ⊢τ T : `★) ->
+ compile_type Γ T `★ jT = .some T' ->
+ HsValidHeadVariable T Γ.is_stable ->
+ ValidHeadVariable T' Γ'.is_stable := by
+intro cc' wf jT cT vhv;
+cases vhv; case _ sp vhv =>
+cases vhv; case _ tnf st =>
+have lem := compile_preserves_type_neutral_form jT cT (Eq.symm tnf)
+cases lem; case _ l' lem =>
+unfold ValidHeadVariable;
+exists (sp.fst, l')
+constructor
+apply Eq.symm lem
+apply cc' sp.fst st
+
+
+theorem compile_preserves_vhv_types_datatype :
+ (∀ x,  (Γ d@ x).is_datatype ->  (Γ' d@ x).is_datatype) ->
+ ⊢ Γ' ->
+ (jT : Γ ⊢τ T : `★) ->
+ compile_type Γ T `★ jT = .some T' ->
+ HsValidHeadVariable T Γ.is_datatype ->
+ ValidHeadVariable T' Γ'.is_datatype := by
+intro cc wf jT cT vhv;
+cases vhv; case _ sp vhv =>
+cases vhv; case _ tnf st =>
+have lem := compile_preserves_type_neutral_form jT cT (Eq.symm tnf)
+cases lem; case _ l' lem =>
+unfold ValidHeadVariable;
+exists (sp.fst, l')
+constructor
+apply Eq.symm lem
+apply cc sp.fst st
+
+theorem compile_preserves_valid_ctor_type :
+  ⊢ Γ' ->
+  (∀ x,  (Γ d@ x).is_datatype ->  (Γ' d@ x).is_datatype) ->
+  (j : Γ ⊢τ T : `★) ->
+  compile_type Γ T `★ j = .some T' ->
+  ValidHsCtorType Γ T ->
+  ValidCtorType Γ' T' := by
+intro wf cc j cj vctor
+induction vctor generalizing Γ' T';
+case _ vhv =>
+  apply ValidCtorType.refl
+  apply compile_preserves_vhv_types_datatype cc wf j cj vhv
+case _ Γ B A vhv ih =>
+  have lem := compile_preserves_type_shape_arrow j cj
+  cases lem; case _ A' lem =>
+  cases lem; case _ B' lem =>
+  cases lem; case _ jA lem =>
+  cases lem; case _ jB lem =>
+  cases lem; case _ e lem =>
+  cases lem; case _ cA cB =>
+  subst e;
+  apply ValidCtorType.arrow;
+  apply @ih (.empty :: Γ') B' _ _ jB cB
+  case _ => constructor; assumption
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => unfold Frame.is_datatype at j; unfold Frame.apply at j; simp at j
+    case _ n =>
+      rw[<-@Frame.is_datatype_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_datatype_apply];
+      assumption
+case _ Γ B A vhv ih =>
+  have lem := compile_preserves_type_shape_farrow j cj
+  cases lem; case _ A' lem =>
+  cases lem; case _ B' lem =>
+  cases lem; case _ jA lem =>
+  cases lem; case _ jB lem =>
+  cases lem; case _ e lem =>
+  cases lem; case _ cA cB =>
+  subst e;
+  apply ValidCtorType.arrow;
+  apply @ih (.empty :: Γ') B' _ _ jB cB
+  case _ => constructor; assumption
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => unfold Frame.is_datatype at j; unfold Frame.apply at j; simp at j
+    case _ n =>
+      rw[<-@Frame.is_datatype_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_datatype_apply];
+      assumption
+case _ Γ A B vhv ih =>
+  have lem := compile_preserves_type_shape_all j cj
+  cases lem; case _ A' lem =>
+  cases lem; case _ B' lem =>
+  cases lem; cases j;
+  case _ jk jB =>
+  unfold compile_type at cj; simp at cj;
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ A' cj =>
+  cases cj; case _ cA cj =>
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ B'' cj =>
+  cases cj; case _ cB e =>
+  cases e;
+  apply ValidCtorType.all;
+  apply @ih (.kind A' :: Γ') B' _ _ _ _
+  case _ =>
+    constructor
+    apply compile_preserves_kinds wf jk cA
+    assumption
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => unfold Frame.is_datatype at j; unfold Frame.apply at j; simp at j
+    case _ n =>
+      rw[<-@Frame.is_datatype_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_datatype_apply];
+      assumption
+  case _ => assumption
+  case _ => assumption
+
+
 theorem compile_preserves_vhv_types test σtest :
  (∀ v, CompileCtxPred v) ->
  ⊢ Γ' ->
@@ -132,7 +259,7 @@ theorem compile_preserves_vhv_terms test σtest :
 
 theorem compile_stable_match :
  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
- (∀ v, CompileCtxPred v) ->
+ (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
  ⊢ Γ' ->
  (jA : Γ ⊢τ A : `★) ->
  compile_type Γ A `★ jA = .some A' ->
@@ -144,7 +271,7 @@ induction stm generalizing Γ' A' R';
 case _ R Γ vhv =>
   have u := compile_type_uniqueness h jA jR cA cR; cases u
   apply StableTypeMatch.refl;
-  apply compile_preserves_vhv_types Γ.is_stable Γ'.is_stable cc wf jR cR vhv;
+  apply compile_preserves_vhv_types_stable cc wf jR cR vhv;
 case _ R Γ B A vhv stm ih =>
   have lem := compile_preserves_type_shape_arrow jA cA;
   cases lem; case _ A' lem =>
@@ -155,10 +282,22 @@ case _ R Γ B A vhv stm ih =>
   subst e
   cases lem; case _ cA' cB' =>
   apply StableTypeMatch.arrow;
-  apply compile_preserves_vhv_types Γ.is_stable Γ'.is_stable cc wf jR cR vhv
+  apply compile_preserves_vhv_types_stable cc wf jR cR vhv
   have lem := weaken_compile_type h jR cR (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jR)
-  apply @ih (.empty :: Γ') B' ([S]R') _ jB' cB' (hs_weaken_empty_type jR) lem
+  apply @ih (.empty :: Γ') B' ([S]R') _ _ _ _ _
+  apply lem
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => assumption
+    case _ n =>
+      rw[<-@Frame.is_stable_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_stable_apply];
+      assumption
   case _ => apply Judgment.wfempty wf
+  assumption
+  assumption
 
 case _ R Γ B A vhv stm ih =>
   have lem := compile_preserves_type_shape_farrow jA cA;
@@ -170,10 +309,22 @@ case _ R Γ B A vhv stm ih =>
   subst e
   cases lem; case _ cA' cB' =>
   apply StableTypeMatch.arrow;
-  apply compile_preserves_vhv_types Γ.is_stable Γ'.is_stable cc wf jR cR vhv
+  apply compile_preserves_vhv_types_stable cc wf jR cR vhv
   have lem := weaken_compile_type h jR cR (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jR)
-  apply @ih (.empty :: Γ') B' ([S]R') _ jB' cB' (hs_weaken_empty_type jR) lem
+  apply @ih (.empty :: Γ') B' ([S]R') _ _ _ _ _
+  apply lem
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => assumption
+    case _ n =>
+      rw[<-@Frame.is_stable_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_stable_apply];
+      assumption
   case _ => apply Judgment.wfempty wf
+  assumption
+  assumption
 
 case _ R Γ A B vhv stm ih =>
   have lem := compile_preserves_type_shape_all jA cA;
@@ -182,7 +333,7 @@ case _ R Γ A B vhv stm ih =>
   subst e
   case _ cA' cB' =>
   apply StableTypeMatch.all;
-  apply compile_preserves_vhv_types Γ.is_stable Γ'.is_stable cc wf jR cR vhv
+  apply compile_preserves_vhv_types_stable cc wf jR cR vhv
   unfold compile_type at cA; cases jA; simp at cA; case _ jA jB =>
   rw[Option.bind_eq_some] at cA;
   cases cA; case _ A' cA =>
@@ -194,12 +345,24 @@ case _ R Γ A B vhv stm ih =>
   have lem := weaken_compile_type h jR cR
                 (HsFrameWf.kind jA)
                 (hs_weaken_kind_type jA jR)
-  apply @ih (.kind A' :: Γ') B' ([S]R') _ jB cB (hs_weaken_kind_type jA jR) lem
+  apply @ih (.kind A' :: Γ') B' ([S]R') _ _ _ _ _
+  apply lem
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => assumption
+    case _ n =>
+      rw[<-@Frame.is_stable_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_stable_apply];
+      assumption
   apply Judgment.wfkind; apply compile_preserves_kinds wf jA cA; apply wf
+  assumption
+  assumption
 
 theorem compile_prefix_match :
  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
- (∀ v, CompileCtxPred v) ->
+ (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
  ⊢ Γ' ->
  (jA : Γ ⊢τ A : `★) ->
  compile_type Γ A `★ jA = .some A' ->
@@ -213,7 +376,7 @@ induction ptm generalizing Γ' A' R' T'
 case _ Γ T vhv =>
   have u := compile_type_uniqueness h jR jT cR cT; cases u
   apply PrefixTypeMatch.refl;
-  apply compile_preserves_vhv_types Γ.is_stable Γ'.is_stable cc wf jA cA vhv;
+  apply compile_preserves_vhv_types_stable cc wf jA cA vhv;
 case _ Γ B V T A ptm ih =>
   have lem := compile_preserves_type_shape_arrow jA cA;
   cases lem; case _ A' lem =>
@@ -234,8 +397,20 @@ case _ Γ B V T A ptm ih =>
   have cV := weaken_compile_type h jT cT (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jT)
   have u := compile_type_uniqueness h jA' jA' cA' cA''; cases u;
   apply PrefixTypeMatch.arrow;
-  apply @ih (.empty :: Γ') B' V' ([S]T') _ jB' cB' jV' lem (hs_weaken_empty_type jT) cV
-  case _ => apply Judgment.wfempty wf
+  apply @ih (.empty :: Γ') B' V' ([S]T')
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => assumption
+    case _ n =>
+      rw[<-@Frame.is_stable_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_stable_apply];
+      assumption
+  apply Judgment.wfempty wf
+  assumption
+  assumption
+  assumption
 
 case _ Γ A B V T ptm ih =>
   have lem := compile_preserves_type_shape_all jA cA;
@@ -272,5 +447,17 @@ case _ Γ A B V T ptm ih =>
   have wf' := hs_weaken_kind_type jA1 jT
   have cST := weaken_compile_type h jT cT (HsFrameWf.kind jA1) wf';
   apply PrefixTypeMatch.all;
-  apply @ih (.kind A' :: Γ') B' V' ([S]T') _ jB cB jV cV wf' cST
+  apply @ih (.kind A' :: Γ') B' V' ([S]T') -- _ jB cB jV cV wf' cST
+  case _ =>
+    intro x j;
+    cases x <;> simp at *
+    case _ => assumption
+    case _ n =>
+      rw[<-@Frame.is_stable_apply] at j;
+      replace cc := cc n j;
+      rw[<-@Frame.is_stable_apply];
+      assumption
   case _ => apply Judgment.wfkind lem wf
+  assumption
+  assumption
+  assumption

@@ -101,6 +101,58 @@ case _ => rfl
 case _ => rfl
 case _ => rfl
 
+
+theorem kinds_subst_eff_free σ : (k : HsTerm) ->
+  (Γ ⊢κ k : s) ->
+  [σ] k = k := by
+intro k j;
+cases j;
+case _ => simp
+case _ A B j1 j2 =>
+  have h1 := kinds_subst_eff_free σ A j1
+  have h2 := kinds_subst_eff_free σ B j2
+  simp; constructor; assumption; assumption
+termination_by h => h.size
+
+theorem idempotent_substitution_kinding σ : (k : HsTerm) ->
+  (Γ ⊢κ k : s) ->
+  (Γ ⊢κ ([σ]k) : ([σ]s)) = (Γ ⊢κ k : s) := by
+intro k j
+cases j;
+case _ => simp
+case _ A B j1 j2 =>
+  simp;
+  have h1 := idempotent_substitution_kinding σ A j1;
+  have h2 := idempotent_substitution_kinding σ B j2;
+  have h3 := kinds_subst_eff_free σ A j1;
+  have h4 := kinds_subst_eff_free σ B j2;
+  congr
+termination_by h => h.size
+
+theorem kinds_subst_eff_free_types σ : (k : HsTerm) ->
+  (Γ ⊢τ t : k) ->
+  (Γ ⊢τ t : ([σ]k)) = (Γ ⊢τ t : k) := by
+intro k j1
+cases j1;
+all_goals (simp)
+case _ f A a ja jak jf jk =>
+  have u2 := kinds_subst_eff_free σ k jk; rw[u2]
+case _ x wf _ gt jk =>
+  have u2 := kinds_subst_eff_free σ k jk; rw[u2]
+
+
+theorem idempotent_substitution_typing σ : (k : HsTerm) ->
+  (Γ ⊢τ t : k) ->
+  (Γ ⊢τ ([σ]t) : ([σ]k)) = (Γ ⊢τ ([σ]t) : k) := by
+intro k j
+cases j;
+all_goals (simp)
+case _ f A jk =>
+  have u := kinds_subst_eff_free σ k jk; rw [u]
+case _ jk =>
+  have u := kinds_subst_eff_free σ k jk; rw [u]
+
+
 @[simp]
 abbrev KindingJudgmentsUniquessType : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
 | .type => λ Γ => λ (t, τ) =>

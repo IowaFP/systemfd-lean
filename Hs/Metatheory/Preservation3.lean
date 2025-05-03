@@ -124,6 +124,22 @@ case _ Γ τ a j ih =>
 case _ ih =>
   cases wf; case _ wf j vhv =>
   unfold compile_ctx at cc; simp at cc;
+  rw[Option.bind_eq_some] at cc;
+  cases cc; case _ Γ' cc =>
+  cases cc; case _ ca cc =>
+  rw[Option.bind_eq_some] at cc;
+  cases cc; case _ w cc =>
+  cases cc; case _ w' cc =>
+  rw[Option.bind_eq_some] at cc;
+  cases cc; case _ τ' cc =>
+  cases cc; case _ cτ cc =>
+  cases cc
+  constructor;
+  sorry
+  case _ =>
+    apply ih;
+    assumption
+    assumption
   sorry
 case _ => sorry
 case _ => sorry

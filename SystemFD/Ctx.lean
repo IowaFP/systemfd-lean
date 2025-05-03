@@ -114,6 +114,18 @@ namespace Frame
   unfold apply; unfold is_type; cases f <;> simp
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_datatype_apply {σ : Subst T} : is_datatype f = is_datatype (apply f σ) := by
+  unfold apply; unfold is_datatype; cases f <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_stable_apply {σ : Subst T} : is_stable f = is_stable (apply f σ) := by
+  unfold apply; unfold is_stable; cases f <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_insttype_apply {σ : Subst T} : is_insttype f = is_insttype (apply f σ) := by
+  unfold apply; unfold is_insttype; cases f <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_openm_destruct : is_openm f -> ∃ T, f = .openm T := by
   intro h; unfold is_openm at h
   split at h <;> simp at *

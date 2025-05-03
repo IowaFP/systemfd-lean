@@ -35,7 +35,6 @@ theorem compile_preserves_kinds :
    apply ih1';
    apply ih2'
 
-
 @[simp]
 abbrev CompileCtxPred : (v : HsVariant) -> Prop
 | .kind => ∀ Γ Γ' x T T',
@@ -57,6 +56,7 @@ abbrev CompileCtxPred : (v : HsVariant) -> Prop
   compile .term Γ ⟨(T, A), j⟩ = .some T' ->
   (Γ' d@ x).get_type = .some T'
 | .ctx => true
+
 
 theorem compile_preserves_types :
   CompileCtxPred .kind ->

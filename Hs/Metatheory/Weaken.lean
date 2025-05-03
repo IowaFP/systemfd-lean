@@ -261,6 +261,13 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
 termination_by v idx h => h.size
 
 
+def hs_rename_type (r : Ren) :
+  ⊢s Δ ->
+  (∀ x, (Γ d@x).apply r.to = Δ d@ r x) ->
+  (j : Γ ⊢τ τ : k) ->
+  Δ ⊢τ ([r.to]τ) : ([r.to]k)
+:= λ wf h j => hs_rename r .type j wf h
+
 @[simp]
 abbrev hs_idx_weaken : HsJudgmentArgs v -> HsJudgmentArgs v := λ x =>
   @hs_idx_ren v (λ x => x + 1) x

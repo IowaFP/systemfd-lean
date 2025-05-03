@@ -237,6 +237,20 @@ def hs_frame_wf_implies_wf : Γ ⊢s f -> ⊢s Γ
 | .openm h1 => hs_judgment_ctx_wf .type h1
 | .opent h1 => hs_judgment_ctx_wf .kind h1
 
+def hs_frame_wf_implies_wkn_wf : Γ ⊢s f -> ⊢s (f :: Γ) := by
+intro h
+cases f;
+all_goals (cases h)
+case empty => constructor; assumption;
+case kind => constructor; assumption; apply hs_judgment_ctx_wf .kind; assumption
+case datatype => constructor; assumption; apply hs_judgment_ctx_wf .kind; assumption
+case opent => constructor; assumption; apply hs_judgment_ctx_wf .kind; assumption
+case type => constructor; assumption; apply hs_judgment_ctx_wf .type; assumption
+case ctor => constructor; assumption; apply hs_judgment_ctx_wf .type; assumption; assumption
+case openm => constructor; assumption; apply hs_judgment_ctx_wf .type; assumption
+case term => constructor; assumption; assumption; apply hs_judgment_ctx_wf .term; assumption
+
+
 def hs_frame_wf_implies_typed_var T :
   Γ ⊢s Γ d@ x ->
   (Γ d@ x).is_ctor || (Γ d@ x).is_term || (Γ d@ x).is_type ->

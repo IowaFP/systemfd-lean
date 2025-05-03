@@ -12,13 +12,14 @@ set_option maxHeartbeats 5000000
 theorem compile_preserves_terms :
   (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
   (∀ v, CompileCtxPred v) ->
+  (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
   ⊢ Γ' ->
   (j1 : Γ ⊢τ τ : k) ->
   compile_type Γ τ k j1 = .some τ' ->
   (j2 : Γ ⊢t t : τ) ->
   compile_term Γ t τ j2 = .some t' ->
   Γ' ⊢ t' : τ' := by
-intro h cc wf j1 c1 j2 c2;
+intro h cc cc' wf j1 c1 j2 c2;
 induction Γ, t, τ, j2 using compile_term.induct generalizing Γ' t' τ' k
 all_goals (unfold compile_term at c2; simp at c2)
 case _ τ Γ x wf' test gt =>
@@ -55,7 +56,8 @@ case _ Γ A t B j1' j2 j3 ih1 => -- lam
  case _ =>
    have j' := (hs_replace_empty_type ja jb)
    have lem := compile_replace_empty jb j' c2'
-   apply @ih1 (.type A' :: Γ') `★ B' t' _ j' lem c4
+   apply @ih1 (.type A' :: Γ') `★ B' t' _ _ j' lem c4
+   case _ => sorry
    apply Judgment.wftype
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2
    case _ => apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
@@ -109,10 +111,10 @@ case _ Γ t1 A B t2 h1 h2 h3 h4 ih1 ih2 => -- app
    have lem' := compile_type_uniqueness h (hs_beta_empty_type t2 jb') j1 lem c1
    apply Judgment.app;
    case _ =>
-     have ih' := @ih1 Γ' `★ (A' -t> wB) t1' wf (extract_typing h1) c2 c5;
+     have ih' := @ih1 Γ' `★ (A' -t> wB) t1' cc' wf (extract_typing h1) c2 c5;
      apply ih'
    case _ =>
-     have ih' :=  @ih2 Γ' `★ A' t2' wf h3 c3 c6
+     have ih' :=  @ih2 Γ' `★ A' t2' cc' wf h3 c3 c6
      apply ih'
    symm at lem'; apply lem'
 
@@ -131,7 +133,7 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2;
    apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
    unfold compile_kind; rfl
- have lemt1 := @ih1 Γ' `★ A' t1' wf j1' c2 c3
+ have lemt1 := @ih1 Γ' `★ A' t1' cc' wf j1' c2 c3
  have lem := types_have_unique_kinds j1 j3; cases lem;
  have lemΓ' := by apply Judgment.wfterm; assumption; assumption; assumption
  have lemΓ : ⊢s (.term A t1 :: Γ) := by apply HsJudgment.wfterm; assumption; assumption; (apply hs_judgment_ctx_wf .type j1')
@@ -139,7 +141,8 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
  case _ => assumption
  case _ => assumption
  case _ =>
-   apply @ih2 (.term A' t1' :: Γ') `★ ([S]τ') t2' _ _ _ c4;
+   apply @ih2 (.term A' t1' :: Γ') `★ ([S]τ') t2' _ _ _ _ c4;
+   case _ => sorry
    case _ => assumption
    case _ => apply hs_weaken_type lemΓ j1
    case _ => apply weaken_compile_type h j1 c1 (HsFrameWf.term j1' j2)
@@ -177,16 +180,16 @@ case _ T Γ A R B p s i t jA jR jB jT jp js ji jt j9 j10 j11 j12 ih1 ih2 ih3 ih4
  have lemAx : Γ ⊢κ `★ : `□ := by apply HsJudgment.ax (hs_judgment_ctx_wf .type jA)
  have lemK : compile_kind Γ `★ `□ lemAx = .some ★ := by unfold compile_kind; cases lemAx; simp
  apply Judgment.ite;
- apply @ih1 Γ' `★ wA wp wf jA c2 c6;
- apply @ih2 Γ' `★ wR ws wf jR c3 c7
+ apply @ih1 Γ' `★ wA wp cc' wf jA c2 c6;
+ apply @ih2 Γ' `★ wR ws cc' wf jR c3 c7
  apply compile_preserves_types (cc .kind) wf h lemAx lemK jR c3
- apply @ih3 Γ' `★ wB wi wf jB c4 c8;
+ apply @ih3 Γ' `★ wB wi cc' wf jB c4 c8;
  apply compile_preserves_vhv_terms Γ.is_ctor Γ'.is_ctor cc wf jp c6 j12
  apply compile_preserves_vhv_types Γ.is_datatype Γ'.is_datatype cc wf jR c3 j11
- apply compile_stable_match h cc wf jA c2 jR c3 j9
- apply compile_prefix_match h cc wf jA c2 jB c4 j1 c1 j10
+ apply compile_stable_match h cc' wf jA c2 jR c3 j9
+ apply compile_prefix_match h cc' wf jA c2 jB c4 j1 c1 j10
  apply compile_preserves_types (cc .kind) wf h lemAx lemK j1 c1
- apply @ih4 Γ' `★ τ' wt wf j1 c1
+ apply @ih4 Γ' `★ τ' wt cc' wf j1 c1
  apply c9
 
 -- implicits
@@ -210,7 +213,7 @@ case _ Γ A t τ e h1 h2 h3 h4 ih => -- implicitAllE
  cases lem;
  apply Judgment.appt;
  case _ => --
-   have ih' := @ih Γ' `★ (∀[A']τ') wt wf h1 c2 c4;
+   have ih' := @ih Γ' `★ (∀[A']τ') wt cc' wf h1 c2 c4;
    apply ih'
  case _ =>
    have h' := compile_preserves_types (cc .kind) wf h h2 c3 h4 c5
@@ -268,7 +271,8 @@ case _ Γ t A τ j1' j2 ih =>
     apply compile_preserves_kinds wf j2 c1; assumption
   apply Judgment.lamt;
   apply compile_preserves_kinds wf j2 c1
-  apply @ih (Frame.kind wA :: Γ') `★ wt' wt lem j1 c2' c2;
+  apply @ih (Frame.kind wA :: Γ') `★ wt' wt _ lem j1 c2' c2;
+  case _ => sorry
   case _ =>
     apply Judgment.allt;
     apply compile_preserves_kinds wf j2 c1;
@@ -304,7 +308,8 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
  case _ =>
    have j' := (hs_replace_empty_type ja jb)
    have lem := compile_replace_empty jb j' c2'
-   apply @ih1 (.type π' :: Γ') `★ B' t' _ j' lem c3
+   apply @ih1 (.type π' :: Γ') `★ B' t' _ _ j' lem c3
+   case _ => sorry
    apply Judgment.wftype
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2
    case _ => apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
@@ -351,8 +356,8 @@ case _ Γ t π τ e j1' j2 j3 ih1 ih2 => -- implicitArrE
   have lem := compile_beta_empty_term jb' c2' j2 c5 j1;
   apply Judgment.app;
   case _ =>
-    apply @ih1 Γ' `★ (wA -t> wB) wt wf (extract_typing j1') c2 c4
-  case _ => apply @ih2 Γ' `★ wA we wf ja' c1' c5
+    apply @ih1 Γ' `★ (wA -t> wB) wt cc' wf (extract_typing j1') c2 c4
+  case _ => apply @ih2 Γ' `★ wA we cc' wf ja' c1' c5
   case _ =>
     have e' : compile_type Γ ([Subst.Action.su e::I]τ) ([Subst.Action.su e::I]`★) j1 =
               compile_type Γ ([Subst.Action.su e::I]τ) `★ j1 := by rfl
