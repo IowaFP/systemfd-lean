@@ -5,8 +5,8 @@ import Hs.Metatheory.WeakenCompile
 import Hs.Metatheory.Substitution
 import Hs.Metatheory.SubstitutionCompile
 import Hs.Metatheory.TypeMatchCompile
-import Hs.Metatheory.Preservation1
-import Hs.Metatheory.Preservation2
+import Hs.Metatheory.Soundness1
+import Hs.Metatheory.Soundness2
 import SystemFD.Algorithm.Soundness2
 
 ---------------------------------------------

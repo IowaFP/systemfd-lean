@@ -8,6 +8,24 @@ import Hs.Metatheory.Substitution
 import Hs.Algorithm
 
 
+def subst_compile_kind : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
+  (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢κ t : ([σ]T)) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
+
+  (j : Γ ⊢κ t : k) ->
+  compile_kind Γ t k j = .some t' ->
+  ⊢s Δ ->
+
+  (sj : Δ ⊢κ ([σ]t) : ([σ]k)) ->
+  compile_kind Δ ([σ]t) ([σ]k) sj = .some ([σ']t') := by
+
+sorry
+
+
+
+
+
 theorem compile_beta_kind_type :
   (j1 : (.kind A::Γ) ⊢τ b : B) ->
   compile_type (.kind A::Γ) b B j1 = .some b' ->

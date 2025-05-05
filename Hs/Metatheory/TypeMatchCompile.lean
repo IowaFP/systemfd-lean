@@ -4,7 +4,7 @@ import Hs.Metatheory.Weaken
 import Hs.Metatheory.WeakenCompile
 import Hs.Metatheory.Substitution
 import Hs.Metatheory.SubstitutionCompile
-import Hs.Metatheory.Preservation1
+import Hs.Metatheory.Soundness1
 import SystemFD.Algorithm.Soundness2
 
 import Mathlib.Tactic.CasesM
