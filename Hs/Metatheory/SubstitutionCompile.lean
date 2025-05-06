@@ -5,7 +5,7 @@ import Hs.Metatheory.TypeMatch
 import Hs.Metatheory.Weaken
 import Hs.Metatheory.WeakenCompile
 import Hs.Metatheory.Substitution
--- import Hs.Metatheory.Soundness1
+import Hs.Metatheory.UniquenessCompile
 import Hs.Algorithm
 
 set_option maxHeartbeats 1000000
@@ -81,10 +81,14 @@ case _ Γ T n wf' test gt ck  =>
   rw[Option.bind_eq_some] at cj;
   cases cj; case _ T' cj =>
   cases cj; case _ cT cj =>
-  cases cj
+  cases cj;
+  generalize ej : @hs_subst_type (`#n) T Γ Δ σ f1 f2 f3 (.varTy wf' test gt ck) wf = sj' at *;
+  have u := types_have_unique_judgments h sj sj'; cases u
+  rw[<-ej]
   generalize zdef : σ n = y at *;
   cases y;
   case _ x =>
+    unfold compile_type; simp; unfold hs_subst_type; simp;
     -- have lem1 := f4 n x zdef;
     -- simp; rw[lem1]; simp;
     -- have sj' := sj
@@ -92,6 +96,7 @@ case _ Γ T n wf' test gt ck  =>
     -- have lem2 := f2 n
     sorry
   case _ st =>
+    unfold compile_type; simp; unfold hs_subst_type; simp;
     -- have lemf5 := f5 n st zdef
     -- cases lemf5; case _ st' lemf5 =>
     -- have lemf6 := f6 n st
@@ -327,12 +332,32 @@ apply hs_judgment_ctx_wf .type j2
 
 
 theorem compile_beta_empty_term :
+  (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (j1 : (.empty::Γ) ⊢τ b : B) ->
   compile_type (.empty::Γ) b B j1 = .some b' ->
   (j2 : Γ ⊢t t : A) ->
   compile_term Γ t A j2 = .some t' ->
   (j3 : Γ ⊢τ (b β[t]) : (B β[t])) ->
-  compile_type Γ (b β[t]) (B β[t]) j3 = .some (b' β[t']) := by sorry
+  compile_type Γ (b β[t]) (B β[t]) j3 = .some (b' β[t']) := by
+intro h j1 cj1 j2 cj2 j3;
+apply @subst_compile_type b B b' (.empty :: Γ) Γ (.su t :: I) (.su t' :: I) h
+case _ =>
+  intro n y h1;
+  cases n <;> simp at *; subst h1
+  case _ n =>
+    rw [Frame.apply_compose]; simp
+case _ =>
+  intro n s T h1 h2
+  cases n <;> simp at *; subst h1
+  unfold Frame.get_type at h2; simp at h2
+case _ =>
+  intro n h1
+  cases n <;> simp at *
+  rw [Frame.is_stable_stable] at h1
+  unfold Frame.is_stable at h1
+  simp at h1
+assumption
+apply hs_judgment_ctx_wf .term j2
 
 def compile_replace_empty :
   (j1 : (.empty :: Γ) ⊢τ τ : k) ->
