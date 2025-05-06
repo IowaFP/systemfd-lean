@@ -63,7 +63,6 @@ abbrev hs_idx_subst (σ : Subst HsTerm) : HsJudgmentArgs v -> HsJudgmentArgs v :
   | .ctx => λ () => ()
 
 
-
 def hs_subst_kind : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm}  ->
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
@@ -76,7 +75,6 @@ def hs_subst_kind : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm}  ->
     have lem1 := hs_subst_kind f1 f3 h1 wf; simp at lem1
     have lem2 := hs_subst_kind f1 f3 h2 wf; simp at lem2
     constructor; assumption; assumption;
-
 
 def hs_subst_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} ->
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
@@ -554,7 +552,7 @@ have lem : Γ ⊢s (.type A) := by constructor; assumption
 apply hs_replace_empty_type_lemma; assumption; assumption
 
 
-def hs_replace_term : (t : HsTerm) ->
-  (.empty :: Γ) ⊢t t : τ ->
-  Γ ⊢s f ->
-  (f :: Γ) ⊢t t : τ := by sorry
+-- def hs_replace_term : (t : HsTerm) ->
+--   (.empty :: Γ) ⊢t t : τ ->
+--   Γ ⊢s f ->
+--   (f :: Γ) ⊢t t : τ := by sorry
