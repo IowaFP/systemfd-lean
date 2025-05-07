@@ -5,17 +5,6 @@ import Hs.Metatheory.Substitution
 import SystemFD.Term
 import SystemFD.Algorithm
 
-
-def extract_kinding :
-  Γ ⊢τ τ : k ->
-  Γ ⊢κ k : `□
-| .arrow h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
-| .farrow h1 h2 _ => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
-| .allt h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .kind h1)
-| .appk _ _ _ h => h
-| .varTy _ _ _ h => h
-
-
 def extract_typing :
   Γ ⊢t t : τ ->
   Γ ⊢τ τ : `★

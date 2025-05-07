@@ -21,7 +21,7 @@ inductive HsTerm : Type where
 | HsCtor2 : HsCtor2Variant -> HsTerm -> HsTerm -> HsTerm
 | HsBind2 : HsBind2Variant -> HsTerm -> HsTerm -> HsTerm
 | HsBind1 : HsBind1Variant           -> HsTerm -> HsTerm
-| HsLet : HsTerm -> HsTerm -> HsTerm -> HsTerm
+| HsLet :                     HsTerm -> HsTerm -> HsTerm
 | HsIte : HsTerm -> HsTerm -> HsTerm -> HsTerm -> HsTerm
 
 protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
@@ -35,11 +35,11 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsBind2 .all t1 t2 , p => "`∀" ++ Std.Format.sbracket (HsTerm.repr t1 p) ++ HsTerm.repr t2 p
 | HsBind2 .arrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " → " ++ HsTerm.repr t2 p) p
 | HsBind2 .farrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " ⇒ " ++ HsTerm.repr t2 p) p
-| HsLet t1 t2 t3 , p => "HsLet " ++ HsTerm.repr t2 p ++ " : " ++ HsTerm.repr t1 p ++";;" ++ Std.Format.line ++ HsTerm.repr t3 p
+| HsLet t2 t3 , p => "HsLet " ++ HsTerm.repr t2 p ++ "In" ++ Std.Format.line ++ HsTerm.repr t3 p
 | HsIte t1 t2 t3 t4, p =>
   "HsIf" ++ HsTerm.repr t1 p ++ " ← " ++ HsTerm.repr t2 p ++
-  "then" ++ Std.Format.line ++ HsTerm.repr t3 p ++
-  "else" ++ Std.Format.line ++ HsTerm.repr t4 p
+  "Then" ++ Std.Format.line ++ HsTerm.repr t3 p ++
+  "Else" ++ Std.Format.line ++ HsTerm.repr t4 p
 
 instance HsTerm_repr : Repr HsTerm where
   reprPrec a p := HsTerm.repr a p
@@ -65,7 +65,7 @@ namespace HsTerm
  | HsCtor2 _ t1 t2 => size t1 + size t2 + 1
  | HsBind2 _ t1 t2 => size t1 + size t2 + 1
  | HsBind1 _ t1 => 1 + size t1
- | HsLet t1 t2 t3 => size t1 + size t2 + size t3 + 1
+ | HsLet t1 t2 => size t1 + size t2 + 1
  | HsIte _ t1 t2 t3 => size t1 + size t2 + size t3 + 1
 end HsTerm
 
@@ -143,8 +143,8 @@ namespace HsTerm
   | HsVar x, HsVar y => x == y
   | HsIte x1 x2 x3 x4, HsIte y1 y2 y3 y4 =>
     beq x1 y1 && beq x2 y2 && beq x3 y3 && beq x4 y4
-  | HsLet x1 x2 x3, HsLet y1 y2 y3 =>
-    beq x1 y1 && beq x2 y2 && beq x3 y3
+  | HsLet x1 x2, HsLet y1 y2 =>
+    beq x1 y1 && beq x2 y2
   | HsCtor2 v1 x1 x2, HsCtor2 v2 y1 y2 =>
     v1 == v2 && beq x1 y1 && beq x2 y2
   | HsBind2 v1 x1 x2, HsBind2 v2 y1 y2 =>
@@ -176,9 +176,9 @@ namespace HsTerm
 
   case _ ih _ _ => rw[ih h]
 
-  case _ ih1 ih2 ih3 _ _ _ =>
-    rw [ih1 h.1.1, ih2 h.1.2]
-    rw [ih3 h.2]; simp
+  case _ ih1 ih2 _ _ =>
+    rw [ih1 h.1, ih2 h.2]
+    simp
 
   case _ ih1 ih2 ih3 ih4 _ _ _ _ =>
     rw [ih1 h.1.1.1, ih2 h.1.1.2]

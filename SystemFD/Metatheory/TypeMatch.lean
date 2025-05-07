@@ -3,6 +3,10 @@ import SystemFD.Judgment
 import SystemFD.Ctx
 import SystemFD.Metatheory.Uniqueness
 
+-- theorem lift_subst_tx (σ : Subst HsTerm) (σ' : Subst Term) :
+--   (∀ n y, σ n = .re y -> (σ' n = .re y)) ->
+--   (∀ n y, (^σ n = .re y) -> (^σ' n = .re y)) := by sorry
+
 theorem lift_subst_rename {Γ : Ctx Term} (A : Frame Term) :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n y, ^σ n = .re y -> ((A :: Γ) d@ n).apply (^σ) = (A.apply σ :: Δ) d@ y)

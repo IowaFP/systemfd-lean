@@ -102,7 +102,7 @@ namespace HsTerm
   theorem neutral_form_ite : (HsTerm.HsIte p s i e).neutral_form = .none := by
   unfold HsTerm.neutral_form; rfl
 
-  theorem neutral_form_letterm : (HsTerm.HsLet a1 a2 a3).neutral_form = .none := by
+  theorem neutral_form_letterm : (HsTerm.HsLet a1 a2).neutral_form = .none := by
   unfold HsTerm.neutral_form; rfl
 
   theorem apply_spine_compose :
@@ -155,7 +155,7 @@ namespace HsTerm
   | HsBind2 v t1 t2 => HsBind2 v (smap lf f t1) (smap lf (lf f) t2)
   | HsBind1 v t1 => HsBind1 v (smap lf (lf f) t1)
   | HsIte t1 t2 t3 t4 => .HsIte (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
-  | HsLet t1 t2 t3 => HsLet (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
+  | HsLet t2 t3 => HsLet (smap lf f t2) (smap lf (lf f) t3)
 end HsTerm
 
 @[simp]
@@ -196,7 +196,7 @@ namespace HsTerm
   theorem subst_HsBind1 : [σ]HsBind1 v t1 = HsBind1 v ([^σ]t1) := by unfold Subst.apply; simp
 
   @[simp]
-  theorem subst_letterm: [σ]HsLet t1 t2 t3 = HsLet ([σ]t1) ([σ]t2) ([^σ]t3) := by unfold Subst.apply; simp
+  theorem subst_letterm: [σ]HsLet t2 t3 = HsLet ([σ]t2) ([^σ]t3) := by unfold Subst.apply; simp
 
 
   theorem apply_id {t : HsTerm} : [I]t = t := by

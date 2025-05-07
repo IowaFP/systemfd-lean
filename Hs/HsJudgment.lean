@@ -83,16 +83,6 @@ abbrev HsJudgmentArgs : HsVariant -> Type
 | .type => HsTerm × HsTerm
 | .term => HsTerm × HsTerm
 
--- def TyCtx := List (Frame HsTerm)
--- def TmCtx := List (Frame HsTerm)
-
-
--- @[simp]
--- abbrev HsCtxArgs : HsVariant -> Type
--- | .ctx => Unit
--- | .kind => Unit
--- | .type => TyCtx
--- | .term => TyCtx × TmCtx
 
 @[aesop safe [constructors, cases]]
 inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type where
@@ -224,7 +214,7 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
   B' = [S]B ->
   HsJudgment .term (.term A t1 :: Γ) (t2, B') ->
   HsJudgment .type Γ (B, `★) ->
-  HsJudgment .term Γ (.HsLet A t1 t2,  B)
+  HsJudgment .term Γ (.HsLet t1 t2, B)
 | hsIte :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .type Γ (R, `★) ->
@@ -267,6 +257,15 @@ def hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgme
   | .hslet h _ _ _ _ => hs_judgment_ctx_wf .type h
   | .hsIte h _ _ _ _ _ _ _ _ _ _ _ => hs_judgment_ctx_wf .type h
 
+
+def extract_kinding :
+  Γ ⊢τ τ : k ->
+  Γ ⊢κ k : `□
+| .arrow h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
+| .farrow h1 h2 _ => HsJudgment.ax (hs_judgment_ctx_wf .type h1)
+| .allt h1 h2 => HsJudgment.ax (hs_judgment_ctx_wf .kind h1)
+| .appk _ _ _ h => h
+| .varTy _ _ _ h => h
 
 namespace HsJudgment
  @[simp]
