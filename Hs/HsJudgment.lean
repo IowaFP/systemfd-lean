@@ -134,16 +134,30 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
   HsValidHeadVariable π Γ.is_opent ->
   HsJudgment .term (.type π :: Γ) ([S]t, τ) ->
   HsJudgment .term Γ (t, π ⇒ τ) -- F a => τ
+
 | implicitArrE :
   HsJudgment .term Γ (t, π ⇒ τ) -> -- F a => τ
   HsJudgment .term Γ (e, π) ->
   τ' = τ β[e] ->
   HsJudgment .type Γ (τ', `★) ->
   HsJudgment .term Γ (t, τ')
+
+/-
+      A, Γ ⊢ [S]t : τ       Γ ⊢ A : □
+ --------------------------------------------
+             Γ ⊢ t : ∀ A. τ
+
+Alternative : --- BOO!!
+      A, Δ; [S]Γ ⊢ [S]t : τ       Δ ⊢ A : □
+ --------------------------------------------
+             Δ, Γ ⊢ t : ∀ A. τ
+
+-/
 | implicitAllI :
   HsJudgment .term (.kind A :: Γ) ([S]t, τ) ->
   HsJudgment .kind Γ (A, `□) ->
   HsJudgment .term Γ (t, `∀{A} τ)
+
 | implicitAllE :
   HsJudgment .type Γ (`∀{A} τ, `★) ->
   HsJudgment .kind Γ (A, `□) ->

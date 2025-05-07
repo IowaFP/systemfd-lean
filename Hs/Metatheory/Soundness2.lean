@@ -10,12 +10,14 @@ import Hs.Metatheory.Soundness1
 set_option maxHeartbeats 5000000
 
 theorem compile_preserves_terms :
-  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->
+  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) -> -- needs fixing
   (∀ v, CompileCtxPred v) ->
   (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
   ⊢ Γ' ->
+
   (j1 : Γ ⊢τ τ : k) ->
   compile_type Γ τ k j1 = .some τ' ->
+
   (j2 : Γ ⊢t t : τ) ->
   compile_term Γ t τ j2 = .some t' ->
   Γ' ⊢ t' : τ' := by
@@ -144,7 +146,8 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
  have lemt1 := @ih1 Γ' `★ A' t1' cc' wf j1' c2 c3
  have lem := types_have_unique_kinds j1 j3; cases lem;
  have lemΓ' := by apply Judgment.wfterm; assumption; assumption; assumption
- have lemΓ : ⊢s (.term A t1 :: Γ) := by apply HsJudgment.wfterm; assumption; assumption; (apply hs_judgment_ctx_wf .type j1')
+ have lemΓ : ⊢s (.term A t1 :: Γ) := by
+   apply HsJudgment.wfterm; assumption; assumption; (apply hs_judgment_ctx_wf .type j1')
  apply Judgment.letterm;
  case _ => assumption
  case _ => assumption
@@ -394,3 +397,5 @@ case _ Γ t π τ e j1' j2 j3 ih1 ih2 => -- implicitArrE
     have e' : compile_type Γ ([Subst.Action.su e::I]τ) ([Subst.Action.su e::I]`★) j1 =
               compile_type Γ ([Subst.Action.su e::I]τ) `★ j1 := by rfl
     rw[e'] at lem; rw[c1] at lem; injection lem
+
+-- #print Nat.recOn

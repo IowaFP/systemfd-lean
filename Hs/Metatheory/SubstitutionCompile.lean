@@ -44,6 +44,19 @@ case _ Γ A B j1 j2 ih1 ih2 =>
   simp
 
 
+theorem lifting_substitution_compile : (σ : Subst HsTerm) -> (σ' : Subst Term) ->
+  (∀ (n y : Nat), σ n = .re y -> σ' n = .re y) ->
+  (∀ (n y y' : Nat), σ n = .re y -> (^σ) n = .re y' -> (^σ') n = .re y') := by
+intro σ σ' f n y y' h1 h2 <;> simp at *
+have f := f n y h1
+cases n <;> simp at *;
+case _ => assumption
+case _ n =>
+  unfold Subst.compose at *; simp at *
+
+  sorry
+
+
 def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (f1 : ∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
@@ -54,40 +67,40 @@ def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : S
 
   -- Substitutions are related via compilation
   (∀ n y, σ n = .re y -> σ' n = .re y) ->
-  -- (∀ n t, σ n = .su t -> ∃ t', σ' n = .su t') ->
-  (∀ i t,
-     σ i = .su t -> (∃ wt t' k,
-     σ' i = .su t' ->
-     (j : Γ ⊢τ t : k) ->
-     compile_type Γ t k j = .some wt ->
-     (j' : Δ ⊢τ ([σ]t) : ([σ]k)) ->
-     compile_type Δ ([σ]t) ([σ]k) j' = .some ([σ'] wt))
+  (∀ n t, σ n = .su t -> ∃ t', σ' n = .su t') ->
+  (∀ i t T wt,
+     σ i = .su t ->
+     σ' i = .su wt ->
+     (j : Δ ⊢τ t : T) ->
+     compile_type Δ t T j = .some wt
   ) ->
 
   (j : Γ ⊢τ t : k) ->
   compile_type Γ t k j = .some t' ->
-  (wf : ⊢s Δ) ->
+  ⊢s Δ ->
 
   (sj : Δ ⊢τ ([σ]t) :  ([σ] k)) ->
 
   compile_type Δ ([σ]t) ([σ]k) sj = .some ([σ']t')
 := by
-intro Γ Δ σ σ' h f1 f2 f3 f4 f5 j cj wf sj
+intro Γ Δ σ σ' h f1 f2 f3 f4 f5 f6 j cj wf sj
 induction Γ, t, k, j using compile_type.induct generalizing Δ t' σ σ'
 case _ Γ T n wf' test gt ck  =>
   have j := HsJudgment.varTy wf' test gt ck
-  unfold compile_type at cj; simp at cj;
-  rw[Option.bind_eq_some] at cj;
-  cases cj; case _ T' cj =>
-  cases cj; case _ cT cj =>
-  cases cj;
+  generalize jh1 : HsJudgment.varTy wf' test gt ck = j' at *;
+  have u := types_have_unique_judgments h j j'; cases u
   generalize zdef : σ n = y at *;
   cases y;
   case _ x =>
+    unfold compile_type at cj; simp at cj; rw[<-jh1] at cj;
+    rw[Option.bind_eq_some] at cj;
+    cases cj; case _ T' cj =>
+    cases cj; case _ cT cj =>
+    cases cj;
     simp at sj; rw[zdef] at sj; simp at sj;
     simp
     have lem4 := f4 n x zdef; rw[lem4]; simp;
-    have lem5 : compile_type Δ (`#x) ([σ]T) sj = #x := by
+    have lem5 : compile_type Δ (`#x) ([σ]T) sj = .some #x := by
       unfold compile_type; cases sj; case _ jk _ =>
       simp; rw[Option.bind_eq_some]
       exists ([σ']T')
@@ -101,14 +114,19 @@ case _ Γ T n wf' test gt ck  =>
     simp; rw[zdef]
     rfl
   case _ t =>
-    simp at sj; rw[zdef] at sj; simp at sj;
-    have f5' := f5 n t zdef
-    cases f5'; case _ wt f5' =>
-    cases f5'; case _ t' f5' =>
-    cases f5'; case _ k f5' =>
-
-    sorry
-
+    have cj' := cj
+    unfold compile_type at cj'; simp at cj'; rw[<-jh1] at cj';
+    rw[Option.bind_eq_some] at cj';
+    cases cj'; case _ T' cj' =>
+    cases cj'; case _ cT cj' =>
+    cases cj';
+    have f5 := f5 n t zdef; cases f5; case _ wt f5 =>
+    have lem2 := f2 n t T zdef gt
+    have f6 := f6 n t ([σ]T) wt zdef f5 lem2
+    simp; rw[f5]; simp; rw[<-f6]
+    apply compile_type_congr h
+    simp; rw[zdef]
+    rfl
 
 case _ Γ B f A a jf ja jA jB ih1 ih2 => -- appk
   generalize ej : hs_subst_type f1 f2 f3 (jf.appk ja jA jB) wf = sj' at *;
@@ -140,12 +158,12 @@ case _ Γ B f A a jf ja jA jB ih1 ih2 => -- appk
   rw[Option.bind_eq_some]
   exists([σ']f')
   constructor;
-  apply @ih1 f' Δ σ σ' f1 f2 f3 f4 f5 cf wf
+  apply @ih1 f' Δ σ σ' f1 f2 f3 f4 f5 f6 cf wf
   rw[Option.bind_eq_some]
   exists ([σ']a')
   constructor
   simp
-  apply @ih2 a' Δ σ σ' f1 f2 f3 f4 f5 ca wf
+  apply @ih2 a' Δ σ σ' f1 f2 f3 f4 f5 f6 ca wf
   simp
 
 case _ Γ A B jA jB ih => -- allt
@@ -158,7 +176,6 @@ case _ Γ A B jA jB ih => -- allt
   cases lem''; case _ A' lem'' =>
   cases lem''; case _ B' lem'' =>
   cases lem''
-  -- cases e;
   rw[cj]; simp;
   unfold compile_type at cj; simp at cj;
   rw[Option.bind_eq_some] at cj;
@@ -187,10 +204,20 @@ case _ Γ A B jA jB ih => -- allt
   generalize f2e : hs_lift_subst_replace (.kind A) wf'' f2 = f2' at *
   generalize f3e : hs_lift_subst_stable (.kind A) f3 = f3' at *
 
-  apply  @ih B' (.kind ([σ]A) :: Δ) (^σ) (^σ') f1' f2' f3' _ _ cB wf'
-  sorry
+  apply  @ih B' (.kind ([σ]A) :: Δ) (^σ) (^σ') f1' f2' f3' _ _ _ cB wf'
   case _ =>
-    intro n y; simp;
+    intro n y;
+    sorry
+  case _ =>
+    intro n t h
+    cases n <;> simp
+    case _ => simp at h
+    case _ n =>
+      generalize zdef : σ n = y at *;
+      cases y <;> (simp at h; unfold Subst.compose at h; simp at h; rw[zdef] at h; simp at h)
+      case _ => sorry
+  case _ =>
+    intro n t T wt;
     sorry
   simp;
 
@@ -221,7 +248,7 @@ case _ Γ A B jA jB ih1 ih2 => -- arrow
   cases sj; case _ sjA sjB =>
     clear ih2;
     unfold hs_subst_type at ej; simp at ej; cases ej;
-    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f5 cjA wf
+    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f5 f6 cjA wf
 
   rw[Option.bind_eq_some]
   exists ([^σ'] B')
@@ -237,7 +264,8 @@ case _ Γ A B jA jB ih1 ih2 => -- arrow
 
   have f3' := hs_lift_subst_stable .empty f3
 
-  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' _ _ cjB wf'
+  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' _ _ _ cjB wf'
+  sorry
   sorry
   sorry
   simp
@@ -269,7 +297,7 @@ case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
   cases sj; case _ sjA sjB =>
     clear ih2;
     unfold hs_subst_type at ej; simp at ej; cases ej;
-    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f5 cjA wf
+    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f5 f6 cjA wf
 
   rw[Option.bind_eq_some]
   exists ([^σ'] B')
@@ -285,13 +313,14 @@ case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
 
   have f3' := hs_lift_subst_stable .empty f3
 
-  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' _ _ cjB wf'
+  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' _ _ _ cjB wf'
   case _ =>
     intro n y h
     replace f4 := f4 n y
     cases n <;> simp
     case _ => simp at h; assumption
     case _ n => simp at h; unfold Subst.compose; sorry
+  sorry
   sorry
   simp
 
@@ -328,6 +357,7 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 sorry
+sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -362,6 +392,7 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 case _ => sorry
+sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -396,6 +427,7 @@ case _ =>
   cases n <;> simp
   case _ => simp at h1
   case _ => simp at h1; assumption
+sorry
 sorry
 assumption
 apply hs_judgment_ctx_wf .term j2

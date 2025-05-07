@@ -342,12 +342,14 @@ def hs_weaken_kind_type :
   (.kind T::Γ) ⊢τ ([S]t) : ([S]A)
 := λ h1 h2 => hs_weaken_type (.wfkind h1 (hs_judgment_ctx_wf .kind h1)) h2
 
+@[simp]
 def hs_weaken_datatype_term :
   Γ ⊢κ T : `□ ->
   Γ ⊢t t : A ->
   (.datatype T::Γ) ⊢t ([S]t) : ([S]A)
 := λ h1 h2 => hs_weaken_term (.wfdatatype h1 (hs_judgment_ctx_wf .kind h1)) h2
 
+@[simp]
 def hs_weaken_ctor :
   Γ ⊢τ T : `★ ->
   ValidHsCtorType Γ T ->
@@ -355,7 +357,7 @@ def hs_weaken_ctor :
   (.ctor T::Γ) ⊢t ([S]t) : ([S]A) :=
 λ h1 h2 h3 => hs_weaken_term (.wfctor h1 (hs_judgment_ctx_wf .type h1) h2) h3
 
-
+@[simp]
 def hs_weaken_term_term :
   Γ ⊢τ T : `★ ->
   Γ ⊢t b : T ->
@@ -363,6 +365,7 @@ def hs_weaken_term_term :
   (.term T b::Γ) ⊢t ([S]t) : ([S]A)
 := λ h1 h2 h3 => hs_weaken_term (.wfterm h1 h2 (hs_judgment_ctx_wf .type h1)) h3
 
+@[simp]
 def hs_weaken_term_type :
   Γ ⊢τ T : `★ ->
   Γ ⊢t b : T ->
