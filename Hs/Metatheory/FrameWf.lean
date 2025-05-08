@@ -227,6 +227,14 @@ intro wwf
 cases wwf
 all_goals(assumption)
 
+def hs_frame_wf f : ⊢s (f :: Γ) -> Γ ⊢s f :=
+by
+intro wwf
+cases wwf
+any_goals (constructor; assumption)
+all_goals (assumption)
+
+
 def hs_frame_wf_implies_wf : Γ ⊢s f -> ⊢s Γ
 | .empty h1 => h1
 | .kind h1 => hs_judgment_ctx_wf .kind h1
@@ -249,25 +257,3 @@ case type => constructor; assumption; apply hs_judgment_ctx_wf .type; assumption
 case ctor => constructor; assumption; apply hs_judgment_ctx_wf .type; assumption; assumption
 case openm => constructor; assumption; apply hs_judgment_ctx_wf .type; assumption
 case term => constructor; assumption; assumption; apply hs_judgment_ctx_wf .term; assumption
-
-
-def hs_frame_wf_implies_typed_var T :
-  Γ ⊢s Γ d@ x ->
-  (Γ d@ x).is_ctor || (Γ d@ x).is_term || (Γ d@ x).is_type ->
-  .some T = (Γ d@ x).get_type ->
-  Γ ⊢t (`#x) : T :=
-λ fwf h gt => HsJudgment.var (hs_frame_wf_implies_wf fwf) h gt
-
-def hs_frame_wf_implies_kinded_varTy T :
-  Γ ⊢s Γ d@ x ->
-  (Γ d@ x).is_datatype || (Γ d@ x).is_kind ->
-  .some T = (Γ d@ x).get_type ->
-  Γ ⊢τ (`#x) : T :=
-λ fwf h gt => HsJudgment.varTy (hs_frame_wf_implies_wf fwf) h gt
-  (by generalize fh : Γ d@ x = f at *;
-      cases f;
-      all_goals(unfold Frame.get_type at gt; simp at gt)
-      all_goals(unfold Frame.is_datatype at h; simp at h; cases h)
-      all_goals(cases gt)
-      sorry
-      sorry)

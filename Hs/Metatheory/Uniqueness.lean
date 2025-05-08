@@ -141,7 +141,6 @@ case _ f A jk =>
 case _ jk =>
   have u := kinds_subst_eff_free σ k jk; rw [u]
 
-
 @[simp]
 abbrev KindingJudgmentsUniquessType : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
 | .type => λ Γ => λ (t, τ) =>

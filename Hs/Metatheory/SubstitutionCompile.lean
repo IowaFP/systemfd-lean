@@ -43,6 +43,62 @@ case _ Γ A B j1 j2 ih1 ih2 =>
   apply @ih2 B' Δ cB wf jB'
   simp
 
+def hs_lift_subst_compile_rename (σ : Subst HsTerm) (σ' : Subst Term):
+  (∀ n y, σ n = .re y -> σ' n = .re y) ->
+  (∀ n y, ^σ n = .re y -> ^σ' n = .re y) := by
+intro h1 n y h2
+cases n <;> simp at *
+case _ => assumption
+case _ n =>
+  generalize zdef : σ n = y at *;
+  cases y
+  case _ a =>
+    unfold Subst.compose at h2; simp at h2;
+    rw[zdef] at h2; simp at h2;
+    have h1' := h1 n a zdef
+    unfold Subst.compose; simp; rw[h1']; simp
+    assumption
+  case _ a =>
+    unfold Subst.compose at h2; simp at h2;
+    rw[zdef] at h2; simp at h2;
+
+
+def hs_lift_subst_compile_subst (f : Frame HsTerm) (σ : Subst HsTerm) (σ' : Subst Term):
+  ⊢s (f.apply σ :: Δ) ->
+ (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
+  (∀ i t T,
+     σ i = .su t ->
+  ∃ (wt : Term),
+     σ' i = .su wt ∧
+  ∃ (j : Δ ⊢τ t : ([σ]T)),
+     compile_type Δ t ([σ]T) j = .some wt
+  ) ->
+  (∀ i t T,
+     ^σ i = .su t ->
+  ∃ (wt : Term),
+     ^σ' i = .su wt ∧
+  ∃ (j : (f.apply σ :: Δ) ⊢τ t : ([^σ]T)),
+     compile_type (f.apply σ :: Δ) t ([^σ]T) j = .some wt) := by
+intro wf h1 h2 n t T h3
+cases n <;> simp at *
+case _ n =>
+generalize zdef : σ n = y at *;
+cases y
+all_goals (unfold Subst.compose at h3; simp at h3; rw[zdef] at h3; simp at h3;)
+case _ a =>
+ replace h2 := h2 n a T zdef
+ cases h2; case _ wt h2 =>
+ cases h2; case _ zdef' h2 =>
+ cases h2; case _ j cj =>
+ cases h3;
+ generalize sjh : hs_weaken_type wf j = sj at *;
+ exists [S]wt;
+ constructor;
+ unfold Subst.compose; simp; rw[zdef']
+ have lem := @weaken_compile_type Δ a ([σ]T) wt (f.apply σ) h1 j cj (hs_frame_wf (f.apply σ) wf) sj
+ sorry
+
+
 def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (f1 : ∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
@@ -51,14 +107,15 @@ def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : S
 
   (f3 : ∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
 
-  -- Substitutions are related via compilation
+  -- Substitutions are related
   (∀ n y, σ n = .re y -> σ' n = .re y) ->
-  (∀ n t, σ n = .su t -> ∃ t', σ' n = .su t') ->
-  (∀ i t T wt,
+
+  (∀ i t T,
      σ i = .su t ->
-     σ' i = .su wt ->
-     (j : Δ ⊢τ t : T) ->
-     compile_type Δ t T j = .some wt
+  ∃ (wt : Term),
+     σ' i = .su wt ∧
+  ∃ (j : Δ ⊢τ t : ([σ]T)),
+     compile_type Δ t ([σ]T) j = .some wt
   ) ->
 
   (j : Γ ⊢τ t : k) ->
@@ -69,7 +126,7 @@ def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : S
 
   compile_type Δ ([σ]t) ([σ]k) sj = .some ([σ']t')
 := by
-intro Γ Δ σ σ' h f1 f2 f3 f4 f5 f6 j cj wf sj
+intro Γ Δ σ σ' h f1 f2 f3 f4 f6 j cj wf sj
 induction Γ, t, k, j using compile_type.induct generalizing Δ t' σ σ'
 case _ Γ T n wf' test gt ck  =>
   have j := HsJudgment.varTy wf' test gt ck
@@ -106,13 +163,16 @@ case _ Γ T n wf' test gt ck  =>
     cases cj'; case _ T' cj' =>
     cases cj'; case _ cT cj' =>
     cases cj';
-    have f5 := f5 n t zdef; cases f5; case _ wt f5 =>
     have lem2 := f2 n t T zdef gt
-    have f6 := f6 n t ([σ]T) wt zdef f5 lem2
-    simp; rw[f5]; simp; rw[<-f6]
-    apply compile_type_congr h
+    have f6 := f6 n t T zdef;
+    cases f6; case _ wt f6 =>
+    cases f6; case _ zdef' f6 =>
+    cases f6; case _ j f6 =>
+    simp; rw[zdef']; simp
+    rw[<-f6]; apply compile_type_congr h;
     simp; rw[zdef]
     rfl
+
 
 case _ Γ B f A a jf ja jA jB ih1 ih2 => -- appk
   generalize ej : hs_subst_type f1 f2 f3 (jf.appk ja jA jB) wf = sj' at *;
@@ -144,12 +204,12 @@ case _ Γ B f A a jf ja jA jB ih1 ih2 => -- appk
   rw[Option.bind_eq_some]
   exists([σ']f')
   constructor;
-  apply @ih1 f' Δ σ σ' f1 f2 f3 f4 f5 f6 cf wf
+  apply @ih1 f' Δ σ σ' f1 f2 f3 f4 f6 cf wf
   rw[Option.bind_eq_some]
   exists ([σ']a')
   constructor
   simp
-  apply @ih2 a' Δ σ σ' f1 f2 f3 f4 f5 f6 ca wf
+  apply @ih2 a' Δ σ σ' f1 f2 f3 f4 f6 ca wf
   simp
 
 case _ Γ A B jA jB ih => -- allt
@@ -189,26 +249,10 @@ case _ Γ A B jA jB ih => -- allt
   generalize f1e : hs_lift_subst_rename (.kind A) f1 = f1' at *
   generalize f2e : hs_lift_subst_replace (.kind A) wf'' f2 = f2' at *
   generalize f3e : hs_lift_subst_stable (.kind A) f3 = f3' at *
+  generalize f4e : hs_lift_subst_compile_rename σ σ' f4 = f4' at *
+  generalize f6e : hs_lift_subst_compile_subst (.kind A) σ σ' wf'' h f6 = f6' at *
 
-  apply  @ih B' (.kind ([σ]A) :: Δ) (^σ) (^σ') f1' f2' f3' _ _ _ cB wf'
-  case _ =>
-    intro n y;
-    sorry
-  case _ =>
-    intro n t h
-    cases n <;> simp
-    case _ => simp at h
-    case _ n =>
-      generalize zdef : σ n = y at *;
-      cases y <;> (simp at h; unfold Subst.compose at h; simp at h; rw[zdef] at h; simp at h)
-      case _ a =>
-        have f5 := f5 n a zdef; cases f5; case _ t' f5 =>
-        simp at f5;
-        exists [S] t';
-        unfold Subst.compose; simp; rw[f5]
-  case _ =>
-    intro n t T wt;
-    sorry
+  apply  @ih B' (.kind ([σ]A) :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cB wf'
   simp;
 
 case _ Γ A B jA jB ih1 ih2 => -- arrow
@@ -238,7 +282,7 @@ case _ Γ A B jA jB ih1 ih2 => -- arrow
   cases sj; case _ sjA sjB =>
     clear ih2;
     unfold hs_subst_type at ej; simp at ej; cases ej;
-    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f5 f6 cjA wf
+    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f6 cjA wf
 
   rw[Option.bind_eq_some]
   exists ([^σ'] B')
@@ -253,22 +297,10 @@ case _ Γ A B jA jB ih1 ih2 => -- arrow
     rw [fh]
 
   have f3' := hs_lift_subst_stable .empty f3
+  have f4' := hs_lift_subst_compile_rename σ σ' f4
+  have f6' := hs_lift_subst_compile_subst .empty σ σ' wf' h f6
 
-  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' _ _ _ cjB wf'
-  sorry
-  case _ =>
-    intro n t h
-    cases n <;> simp
-    case _ => simp at h
-    case _ n =>
-      generalize zdef : σ n = y at *;
-      cases y <;> (simp at h; unfold Subst.compose at h; simp at h; rw[zdef] at h; simp at h)
-      case _ a =>
-        have f5 := f5 n a zdef; cases f5; case _ t' f5 =>
-        simp at f5;
-        exists [S] t';
-        unfold Subst.compose; simp; rw[f5]
-  sorry
+  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cjB wf'
   simp
 
 case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
@@ -298,7 +330,7 @@ case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
   cases sj; case _ sjA sjB =>
     clear ih2;
     unfold hs_subst_type at ej; simp at ej; cases ej;
-    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f5 f6 cjA wf
+    apply @ih1 A' Δ σ σ' f1 f2 f3 f4 f6 cjA wf
 
   rw[Option.bind_eq_some]
   exists ([^σ'] B')
@@ -313,32 +345,9 @@ case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
     rw [fh]
 
   have f3' := hs_lift_subst_stable .empty f3
-
-  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' _ _ _ cjB wf'
-  case _ =>
-    intro n y h
-    replace f4 := f4 n y
-    cases n <;> simp
-    case _ => simp at h; assumption
-    case _ n =>
-      simp at h; unfold Subst.compose; sorry
-  case _ =>
-    intro n t h
-    cases n <;> simp
-    case _ => simp at h
-    case _ n =>
-      generalize zdef : σ n = y at *;
-      cases y <;> (simp at h; unfold Subst.compose at h; simp at h; rw[zdef] at h; simp at h)
-      case _ a =>
-        have f5 := f5 n a zdef; cases f5; case _ t' f5 =>
-        simp at f5;
-        exists [S] t';
-        unfold Subst.compose; simp; rw[f5]
-  case _ =>
-    intro i t T wt h1 h2 j
-    have f6 := f6 i t T wt
-    simp at h1; unfold Subst.compose at h1; simp at h1;
-    sorry
+  have f4' := hs_lift_subst_compile_rename σ σ' f4
+  have f6' := hs_lift_subst_compile_subst .empty σ σ' wf' h f6
+  apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cjB wf'
   simp
 
 
@@ -374,17 +383,14 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 case _ =>
-  intro n t h1
-  cases n <;> simp
-  case _ n => simp at h1
-case _ =>
-  intro n t T wt h1 h2 j
-  cases n <;> simp at *
-  case _ =>
-  cases h1; cases h2;
-  have u := types_have_unique_kinds j2 j; cases u
-  have u := types_have_unique_judgments h j2 j; cases u
-  assumption
+  intro i t T h1
+  exists t'
+  constructor;
+  cases i <;> simp;
+  case _ => simp at h1
+  case _  =>
+
+    sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -418,18 +424,7 @@ case _ =>
   cases n <;> simp
   case _ => simp at h1
   case _ => simp at h1; assumption
-case _ =>
-  intro n t h1
-  cases n <;> simp
-  case _ n => simp at h1
-case _ =>
-  intro n t T wt h1 h2 j
-  cases n <;> simp at *
-  case _ =>
-  cases h1; cases h2;
-  have u := types_have_unique_kinds j2 j; cases u
-  have u := types_have_unique_judgments h j2 j; cases u
-  assumption
+sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -438,11 +433,11 @@ theorem compile_beta_empty_term :
   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (j1 : (.empty::Γ) ⊢τ b : B) ->
   compile_type (.empty::Γ) b B j1 = .some b' ->
-  -- (j2 : Γ ⊢t t : A) ->
-  -- compile_term Γ t A j2 = .some t' ->
+  (j2 : Γ ⊢t t : A) ->
+  compile_term Γ t A j2 = .some t' ->
   (j3 : Γ ⊢τ (b β[t]) : (B β[t])) ->
   compile_type Γ (b β[t]) (B β[t]) j3 = .some (b' β[t']) := by
-intro h j1 cj1 /-j2 cj2-/ j3;
+intro h j1 cj1 j2 cj2 j3;
 apply @subst_compile_type b B b' (.empty :: Γ) Γ (.su t :: I) (.su t' :: I) h
 case _ =>
   intro n y h1;
@@ -464,11 +459,7 @@ case _ =>
   cases n <;> simp
   case _ => simp at h1
   case _ => simp at h1; assumption
-sorry
-case _ =>
-  intro n t T wt h1 h2 j
-  cases n <;> simp at *
-  case _ => cases h1; cases h2; sorry
+case _ => sorry
 assumption
 case _ => apply hs_judgment_ctx_wf .type j3
 
@@ -517,7 +508,7 @@ case _ A B h1 h2 ih1 ih2 =>
   exists B'
 
 
-theorem compile_type_replace_empty_lemma : -- (τ k : HsTerm) -> (Γ Γ' : Ctx HsTerm) ->
+theorem compile_type_replace_empty_lemma :
   (j1 : Γ ⊢τ τ : k) ->
   compile_type Γ τ k j1 = .some τ' ->
   (Γ d@ n) = .empty ->
@@ -526,7 +517,7 @@ theorem compile_type_replace_empty_lemma : -- (τ k : HsTerm) -> (Γ Γ' : Ctx H
   ⊢s Γ' ->
   (j2 : Γ' ⊢τ τ : k) ->
   compile_type Γ' τ k j2 = .some τ' := by
-intro /-τ k Γ Γ'-/ j cj h1 fwf h2 wf h3
+intro j cj h1 fwf h2 wf h3
 induction Γ, τ, k, j using compile_type.induct generalizing Γ' n τ'
 case _ Γ T x j1 j2 j3 j4 =>
   cases h3; case _ j4' _ =>
