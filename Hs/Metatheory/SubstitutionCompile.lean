@@ -43,20 +43,6 @@ case _ Γ A B j1 j2 ih1 ih2 =>
   apply @ih2 B' Δ cB wf jB'
   simp
 
-
-theorem lifting_substitution_compile : (σ : Subst HsTerm) -> (σ' : Subst Term) ->
-  (∀ (n y : Nat), σ n = .re y -> σ' n = .re y) ->
-  (∀ (n y y' : Nat), σ n = .re y -> (^σ) n = .re y' -> (^σ') n = .re y') := by
-intro σ σ' f n y y' h1 h2 <;> simp at *
-have f := f n y h1
-cases n <;> simp at *;
-case _ => assumption
-case _ n =>
-  unfold Subst.compose at *; simp at *
-
-  sorry
-
-
 def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (f1 : ∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
@@ -540,9 +526,22 @@ theorem compile_type_replace_empty_lemma : -- (τ k : HsTerm) -> (Γ Γ' : Ctx H
   ⊢s Γ' ->
   (j2 : Γ' ⊢τ τ : k) ->
   compile_type Γ' τ k j2 = .some τ' := by
-intro /-τ k Γ Γ'-/ j cj h1 fwf h2 wf j'
+intro /-τ k Γ Γ'-/ j cj h1 fwf h2 wf h3
 induction Γ, τ, k, j using compile_type.induct generalizing Γ' n τ'
-case _ => sorry
+case _ Γ T x j1 j2 j3 j4 =>
+  cases h3; case _ j4' _ =>
+  have cj' := cj;
+  unfold compile_type at cj'; simp at cj'
+  rw[Option.bind_eq_some] at cj'
+  cases cj'; case _ T' cj' =>
+  cases cj'; case _ cT cj' =>
+  cases cj'
+  unfold compile_type; simp;
+  rw[Option.bind_eq_some];
+  exists T';
+  constructor
+  apply compile_kind_replace_empty_lemma Γ' j4 cT j4'
+  simp
 
 case _ Γ B f A a j1 j2 j3 j4 ih1 ih2 =>
   unfold compile_type at cj; simp at cj;
@@ -562,7 +561,7 @@ case _ Γ B f A a j1 j2 j3 j4 ih1 ih2 =>
   have j3' := kind_ctx_replace A j3 Γ' wf
   have j4' := kind_ctx_replace B j4 Γ' wf
   have lem2 := hs_replace_type_lemma a A Γ Γ' h1 fwf h2 wf j2
-  cases j'; case _ A j3'' j2' j4'' j1' =>
+  cases h3; case _ A j3'' j2' j4'' j1' =>
   have u := types_have_unique_kinds j2' lem2; cases u
   have ih1' := @ih1 f' n Γ' cf h1 fwf h2 wf j1'
   have ih2' := @ih2 a' n Γ' ca h1 fwf h2 wf j2'
@@ -577,11 +576,74 @@ case _ Γ B f A a j1 j2 j3 j4 ih1 ih2 =>
   constructor; assumption
   rw[Option.bind_eq_some]; exists a'
 
-case _ => sorry
-case _ => sorry
-case _ =>
-  sorry
-
+case _ Γ A B j1 j2 ih =>
+  unfold compile_type at cj; simp at cj;
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ A' cj =>
+  cases cj; case _ cA cj =>
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ B' cj =>
+  cases cj; case _ cB cj =>
+  cases cj; cases h3; case _ j1' j2' =>
+  unfold compile_type; simp
+  rw[Option.bind_eq_some];
+  exists A';
+  constructor; apply compile_kind_replace_empty_lemma Γ' j1 cA j1'
+  rw[Option.bind_eq_some];
+  exists B';
+  constructor;
+  apply @ih B' (n + 1) (.kind A :: Γ') cB
+  case _ => simp; rw[h1]; unfold Frame.apply; simp
+  case _ => simp; assumption
+  case _ => simp; assumption
+  case _ => constructor; assumption; assumption
+  rfl
+case _ Γ A B h1 h2 ih1 ih2 =>
+  unfold compile_type at cj; simp at cj;
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ A' cj =>
+  cases cj; case _ cA cj =>
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ B' cj =>
+  cases cj; case _ cB cj =>
+  cases cj; cases h3; case _ j1' j2' =>
+  unfold compile_type; simp
+  rw[Option.bind_eq_some];
+  exists A';
+  constructor;
+  apply @ih1 A' n Γ' cA h1 fwf h2 wf
+  rw[Option.bind_eq_some];
+  exists B';
+  constructor;
+  apply @ih2 B' (n + 1) (.empty :: Γ') cB
+  case _ => simp; rw[h1]; unfold Frame.apply; simp
+  case _ => simp; assumption
+  case _ => simp; assumption
+  case _ => constructor; assumption
+  rfl
+case _ Γ A B j1 vhv j2 ih1 ih2 =>
+  unfold compile_type at cj; simp at cj;
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ A' cj =>
+  cases cj; case _ cA cj =>
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ B' cj =>
+  cases cj; case _ cB cj =>
+  cases cj; cases h3; case _ j1' j2' =>
+  unfold compile_type; simp
+  rw[Option.bind_eq_some];
+  exists A';
+  constructor;
+  apply @ih1 A' n Γ' cA h1 fwf h2 wf
+  rw[Option.bind_eq_some];
+  exists B';
+  constructor;
+  apply @ih2 B' (n + 1) (.empty :: Γ') cB
+  case _ => simp; rw[h1]; unfold Frame.apply; simp
+  case _ => simp; assumption
+  case _ => simp; assumption
+  case _ => constructor; assumption
+  rfl
 
 
 theorem compile_replace_empty :
