@@ -387,7 +387,10 @@ case _ =>
   cases n <;> simp
   case _ => simp at h1
   case _ => simp at h1; assumption
-sorry
+case _ =>
+  intro n t h1
+  cases n <;> simp
+  case _ n => simp at h1
 case _ =>
   intro n t T wt h1 h2 j
   cases n <;> simp at *
@@ -429,7 +432,10 @@ case _ =>
   cases n <;> simp
   case _ => simp at h1
   case _ => simp at h1; assumption
-case _ => sorry
+case _ =>
+  intro n t h1
+  cases n <;> simp
+  case _ n => simp at h1
 case _ =>
   intro n t T wt h1 h2 j
   cases n <;> simp at *
@@ -446,11 +452,11 @@ theorem compile_beta_empty_term :
   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (j1 : (.empty::Γ) ⊢τ b : B) ->
   compile_type (.empty::Γ) b B j1 = .some b' ->
-  (j2 : Γ ⊢t t : A) ->
-  compile_term Γ t A j2 = .some t' ->
+  -- (j2 : Γ ⊢t t : A) ->
+  -- compile_term Γ t A j2 = .some t' ->
   (j3 : Γ ⊢τ (b β[t]) : (B β[t])) ->
   compile_type Γ (b β[t]) (B β[t]) j3 = .some (b' β[t']) := by
-intro h j1 cj1 j2 cj2 j3;
+intro h j1 cj1 /-j2 cj2-/ j3;
 apply @subst_compile_type b B b' (.empty :: Γ) Γ (.su t :: I) (.su t' :: I) h
 case _ =>
   intro n y h1;
@@ -477,12 +483,118 @@ case _ =>
   intro n t T wt h1 h2 j
   cases n <;> simp at *
   case _ => cases h1; cases h2; sorry
-
 assumption
-apply hs_judgment_ctx_wf .term j2
+case _ => apply hs_judgment_ctx_wf .type j3
 
-def compile_replace_empty :
+
+def kind_ctx_replace : (k : HsTerm) ->
+  Γ ⊢κ k : s ->
+  ∀ Γ',  ⊢s Γ' -> Γ' ⊢κ k : s := by
+intro k j Γ' wf
+cases j
+case _ =>
+  constructor; assumption
+case _ A B jA jB =>
+  have lem1 := kind_ctx_replace A jA Γ' wf
+  have lem2 := kind_ctx_replace B jB Γ' wf
+  constructor;
+  assumption; assumption
+termination_by h => h.size
+
+theorem compile_kind_replace_empty_lemma Γ' :
+  (j1 : Γ ⊢κ k : s) ->
+  compile_kind Γ k s j1 = .some τ' ->
+  (j2 : Γ' ⊢κ k : s) ->
+  compile_kind Γ' k s j2 = .some τ' := by
+intro j1 c1 j2
+induction Γ, k, s, j1 using compile_kind.induct generalizing Γ' τ'
+case _ =>
+  cases j2;
+  unfold compile_kind at *; assumption
+case _ A B h1 h2 ih1 ih2 =>
+  cases j2; case _ j2a j2b =>
+  unfold compile_kind at c1; simp at c1;
+  rw[Option.bind_eq_some] at c1;
+  cases c1; case _ A' c1 =>
+  cases c1; case _ cA c1 =>
+  rw[Option.bind_eq_some] at c1;
+  cases c1; case _ B' c1 =>
+  cases c1; case _ cB c1 =>
+  cases c1
+  have ih1' := ih1 Γ' cA j2a
+  have ih2' := ih2 Γ' cB j2b
+  unfold compile_kind; simp
+  rw[Option.bind_eq_some];
+  exists A'
+  constructor; assumption
+  rw[Option.bind_eq_some];
+  exists B'
+
+
+theorem compile_type_replace_empty_lemma : -- (τ k : HsTerm) -> (Γ Γ' : Ctx HsTerm) ->
+  (j1 : Γ ⊢τ τ : k) ->
+  compile_type Γ τ k j1 = .some τ' ->
+  (Γ d@ n) = .empty ->
+  Γ.drop (n + 1) ⊢s f ->
+  Γ.modify n (λ _ => f) = Γ' ->
+  ⊢s Γ' ->
+  (j2 : Γ' ⊢τ τ : k) ->
+  compile_type Γ' τ k j2 = .some τ' := by
+intro /-τ k Γ Γ'-/ j cj h1 fwf h2 wf j'
+induction Γ, τ, k, j using compile_type.induct generalizing Γ' n τ'
+case _ => sorry
+
+case _ Γ B f A a j1 j2 j3 j4 ih1 ih2 =>
+  unfold compile_type at cj; simp at cj;
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ A' cj =>
+  cases cj; case _ cA cj =>
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ B' cj =>
+  cases cj; case _ cB cj =>
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ f' cj =>
+  cases cj; case _ cf cj =>
+  rw[Option.bind_eq_some] at cj;
+  cases cj; case _ a' cj =>
+  cases cj; case _ ca cj =>
+  cases cj
+  have j3' := kind_ctx_replace A j3 Γ' wf
+  have j4' := kind_ctx_replace B j4 Γ' wf
+  have lem2 := hs_replace_type_lemma a A Γ Γ' h1 fwf h2 wf j2
+  cases j'; case _ A j3'' j2' j4'' j1' =>
+  have u := types_have_unique_kinds j2' lem2; cases u
+  have ih1' := @ih1 f' n Γ' cf h1 fwf h2 wf j1'
+  have ih2' := @ih2 a' n Γ' ca h1 fwf h2 wf j2'
+  have cA' := compile_kind_replace_empty_lemma Γ' j3 cA j3'';
+  have cB' := compile_kind_replace_empty_lemma Γ' j4 cB j4'';
+  unfold compile_type; simp;
+  rw[Option.bind_eq_some]; exists A'
+  constructor; assumption
+  rw[Option.bind_eq_some]; exists B'
+  constructor; assumption
+  rw[Option.bind_eq_some]; exists f'
+  constructor; assumption
+  rw[Option.bind_eq_some]; exists a'
+
+case _ => sorry
+case _ => sorry
+case _ =>
+  sorry
+
+
+
+theorem compile_replace_empty :
+  Γ ⊢s f ->
   (j1 : (.empty :: Γ) ⊢τ τ : k) ->
   (j2 : (f :: Γ) ⊢τ τ : k) ->
   compile_type (.empty :: Γ) τ k j1 = .some τ' ->
-  compile_type (f :: Γ) τ k j2 = .some τ' := by sorry
+  compile_type (f :: Γ) τ k j2 = .some τ' := by
+intro fwf j1 j2 c1
+apply compile_type_replace_empty_lemma j1 c1 _ _ _
+apply hs_frame_wf_implies_wkn_wf fwf
+apply 0
+apply f
+simp; unfold Frame.apply; simp;
+apply fwf
+simp

@@ -57,8 +57,7 @@ case _ Γ A t B j1' j2 j3 ih1 => -- lam
  case _ => unfold compile_kind; rfl
  case _ =>
    have j' := (hs_replace_empty_type ja jb)
-   have lem := compile_replace_empty jb j' c2'
-   apply @ih1 (.type A' :: Γ') `★ B' t' _ _ j' lem c4
+   apply @ih1 (.type A' :: Γ') `★ B' t' _ _ j' _ c4
    case _ =>
      intro x;
      cases x <;> simp
@@ -73,6 +72,10 @@ case _ Γ A t B j1' j2 j3 ih1 => -- lam
    case _ => apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
    case _ => unfold compile_kind; rfl
    apply wf
+   -- have lem :=
+   case _ =>
+     apply compile_replace_empty _ jb j' c2'
+     constructor; assumption
  case _ =>
    apply Judgment.arrow;
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2
@@ -334,8 +337,7 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
  case _ => unfold compile_kind; rfl
  case _ =>
    have j' := (hs_replace_empty_type ja jb)
-   have lem := compile_replace_empty jb j' c2'
-   apply @ih1 (.type π' :: Γ') `★ B' t' _ _ j' lem c3
+   apply @ih1 (.type π' :: Γ') `★ B' t' _ _ j' _ c3
    case _ =>
      intro x;
      cases x <;> simp
@@ -350,6 +352,9 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
    case _ => apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
    case _ => unfold compile_kind; rfl
    apply wf
+   case _ =>
+     apply compile_replace_empty _ jb j' c2'
+     constructor; assumption
  case _ =>
    apply Judgment.arrow;
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2
