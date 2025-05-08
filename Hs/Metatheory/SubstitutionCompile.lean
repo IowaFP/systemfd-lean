@@ -215,7 +215,11 @@ case _ Γ A B jA jB ih => -- allt
     case _ n =>
       generalize zdef : σ n = y at *;
       cases y <;> (simp at h; unfold Subst.compose at h; simp at h; rw[zdef] at h; simp at h)
-      case _ => sorry
+      case _ a =>
+        have f5 := f5 n a zdef; cases f5; case _ t' f5 =>
+        simp at f5;
+        exists [S] t';
+        unfold Subst.compose; simp; rw[f5]
   case _ =>
     intro n t T wt;
     sorry
@@ -266,7 +270,18 @@ case _ Γ A B jA jB ih1 ih2 => -- arrow
 
   apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' _ _ _ cjB wf'
   sorry
-  sorry
+  case _ =>
+    intro n t h
+    cases n <;> simp
+    case _ => simp at h
+    case _ n =>
+      generalize zdef : σ n = y at *;
+      cases y <;> (simp at h; unfold Subst.compose at h; simp at h; rw[zdef] at h; simp at h)
+      case _ a =>
+        have f5 := f5 n a zdef; cases f5; case _ t' f5 =>
+        simp at f5;
+        exists [S] t';
+        unfold Subst.compose; simp; rw[f5]
   sorry
   simp
 
@@ -319,9 +334,25 @@ case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
     replace f4 := f4 n y
     cases n <;> simp
     case _ => simp at h; assumption
-    case _ n => simp at h; unfold Subst.compose; sorry
-  sorry
-  sorry
+    case _ n =>
+      simp at h; unfold Subst.compose; sorry
+  case _ =>
+    intro n t h
+    cases n <;> simp
+    case _ => simp at h
+    case _ n =>
+      generalize zdef : σ n = y at *;
+      cases y <;> (simp at h; unfold Subst.compose at h; simp at h; rw[zdef] at h; simp at h)
+      case _ a =>
+        have f5 := f5 n a zdef; cases f5; case _ t' f5 =>
+        simp at f5;
+        exists [S] t';
+        unfold Subst.compose; simp; rw[f5]
+  case _ =>
+    intro i t T wt h1 h2 j
+    have f6 := f6 i t T wt
+    simp at h1; unfold Subst.compose at h1; simp at h1;
+    sorry
   simp
 
 
@@ -357,7 +388,14 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 sorry
-sorry
+case _ =>
+  intro n t T wt h1 h2 j
+  cases n <;> simp at *
+  case _ =>
+  cases h1; cases h2;
+  have u := types_have_unique_kinds j2 j; cases u
+  have u := types_have_unique_judgments h j2 j; cases u
+  assumption
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -392,7 +430,14 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 case _ => sorry
-sorry
+case _ =>
+  intro n t T wt h1 h2 j
+  cases n <;> simp at *
+  case _ =>
+  cases h1; cases h2;
+  have u := types_have_unique_kinds j2 j; cases u
+  have u := types_have_unique_judgments h j2 j; cases u
+  assumption
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -428,7 +473,11 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 sorry
-sorry
+case _ =>
+  intro n t T wt h1 h2 j
+  cases n <;> simp at *
+  case _ => cases h1; cases h2; sorry
+
 assumption
 apply hs_judgment_ctx_wf .term j2
 
