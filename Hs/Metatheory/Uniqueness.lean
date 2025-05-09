@@ -103,6 +103,19 @@ case _ A B j1 j2 =>
   simp; constructor; assumption; assumption
 termination_by h => h.size
 
+
+theorem kinds_subst_eff_free2 : (k : HsTerm) ->
+  (Γ ⊢κ k : s) ->
+  ∀ σ, [σ] k = k := by
+intro k j σ;
+cases j;
+case _ => simp
+case _ A B j1 j2 =>
+  have h1 := kinds_subst_eff_free σ A j1
+  have h2 := kinds_subst_eff_free σ B j2
+  simp; constructor; assumption; assumption
+
+
 theorem idempotent_substitution_kinding σ : (k : HsTerm) ->
   (Γ ⊢κ k : s) ->
   (Γ ⊢κ ([σ]k) : ([σ]s)) = (Γ ⊢κ k : s) := by

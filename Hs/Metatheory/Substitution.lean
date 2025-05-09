@@ -55,14 +55,6 @@ theorem subst_valid [SubstitutionType T][SubstitutionTypeLaws T] {σ : Subst T} 
 := by
 rw[Subst.apply_compose_commute]; simp;
 
-@[simp]
-abbrev hs_idx_subst (σ : Subst HsTerm) : HsJudgmentArgs v -> HsJudgmentArgs v :=
-  match v with
-  | .term => λ (t, A) => ([σ]t, [σ]A)
-  | .kind => λ (t, A) => ([σ]t, [σ]A)
-  | .type => λ (t, A) => ([σ]t, [σ]A)
-  | .ctx => λ () => ()
-
 
 def hs_subst_kind : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm}  ->
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->

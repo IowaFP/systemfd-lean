@@ -116,6 +116,18 @@ case _ Γ A B j ih =>
     (hs_lift_subst_stable (Frame.kind A) h2)
   simp at ih; apply ih
 
+theorem hs_valid_ctor_weaken f :
+  ⊢s (f :: Γ) ->
+  ValidHsCtorType Γ A ->
+  ValidHsCtorType (f :: Γ) ([S]A) := by
+intro wf j;
+apply @hs_valid_ctor_subst (λ x => .re (x + 1)) Γ (f :: Γ) A _ _ j
+case _ =>
+  intro n y h1; cases n
+  all_goals (simp at *; cases h1; unfold Frame.apply; simp; unfold Frame.apply; unfold S; simp)
+case _ => intro n h1; exists n + 1;
+
+
 theorem hs_valid_insttype_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
@@ -155,6 +167,19 @@ case _ Γ A B j ih =>
     (hs_lift_subst_rename (Frame.kind A) h1)
     (hs_lift_subst_stable (Frame.kind A) h2)
   simp at ih; apply ih
+
+
+theorem hs_valid_insttype_weaken f :
+  ⊢s (f :: Γ) ->
+  ValidHsInstType Γ A ->
+  ValidHsInstType (f :: Γ) ([S]A) := by
+intro wf j;
+apply @hs_valid_insttype_subst (λ x => .re (x + 1)) Γ (f :: Γ) A _ _ j
+case _ =>
+  intro n y h1; cases n
+  all_goals (simp at *; cases h1; unfold Frame.apply; simp; unfold Frame.apply; unfold S; simp)
+case _ => intro n h1; exists n + 1;
+
 
 theorem hs_stable_type_match_subst :
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->

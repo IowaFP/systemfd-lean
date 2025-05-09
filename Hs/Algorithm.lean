@@ -41,7 +41,6 @@ def compile_type (Γ : Ctx HsTerm) (τ : HsTerm) (k : HsTerm) : Γ ⊢τ τ : k 
 -----------------------------
 ----- Types and kinds
 -----------------------------
--- TODO: What if we just return the compiled type with the compiled term?
 | @HsJudgment.varTy _ x T _ _ _ j => do
   let _ <- compile_kind Γ T `□ j
   .some #x

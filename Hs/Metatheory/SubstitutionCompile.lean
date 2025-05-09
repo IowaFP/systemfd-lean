@@ -67,36 +67,40 @@ def hs_lift_subst_compile_subst (f : Frame HsTerm) (σ : Subst HsTerm) (σ' : Su
   ⊢s (f.apply σ :: Δ) ->
  (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (∀ i t T,
-     σ i = .su t ->
+    (∀ σ, [σ] T = T) ->
+    σ i = .su t ->
   ∃ (wt : Term),
      σ' i = .su wt ∧
-  ∃ (j : Δ ⊢τ t : ([σ]T)),
-     compile_type Δ t ([σ]T) j = .some wt
+  ∃ (j : Δ ⊢τ t : T),
+     compile_type Δ t T j = .some wt
   ) ->
   (∀ i t T,
+     (∀ σ, [σ] T = T) ->
      ^σ i = .su t ->
   ∃ (wt : Term),
      ^σ' i = .su wt ∧
-  ∃ (j : (f.apply σ :: Δ) ⊢τ t : ([^σ]T)),
-     compile_type (f.apply σ :: Δ) t ([^σ]T) j = .some wt) := by
-intro wf h1 h2 n t T h3
+  ∃ (j : (f.apply σ :: Δ) ⊢τ t : T),
+     compile_type (f.apply σ :: Δ) t T j = .some wt) := by
+intro wf h1 h2 n t T e h3
 cases n <;> simp at *
 case _ n =>
 generalize zdef : σ n = y at *;
 cases y
-all_goals (unfold Subst.compose at h3; simp at h3; rw[zdef] at h3; simp at h3;)
+all_goals (unfold Subst.compose at h3; simp at h3; rw[zdef] at h3; simp at h3)
 case _ a =>
- replace h2 := h2 n a T zdef
+ replace h2 := h2 n a T e zdef
  cases h2; case _ wt h2 =>
  cases h2; case _ zdef' h2 =>
  cases h2; case _ j cj =>
  cases h3;
  generalize sjh : hs_weaken_type wf j = sj at *;
+ have sj' := sj;
  exists [S]wt;
  constructor;
- unfold Subst.compose; simp; rw[zdef']
- have lem := @weaken_compile_type Δ a ([σ]T) wt (f.apply σ) h1 j cj (hs_frame_wf (f.apply σ) wf) sj
+ unfold Subst.compose; simp; rw[zdef']; rw[e] at sj;
+ exists sj;
  sorry
+ --
 
 
 def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
@@ -111,11 +115,12 @@ def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : S
   (∀ n y, σ n = .re y -> σ' n = .re y) ->
 
   (∀ i t T,
+    (∀ σ, [σ] T = T) ->
      σ i = .su t ->
   ∃ (wt : Term),
      σ' i = .su wt ∧
-  ∃ (j : Δ ⊢τ t : ([σ]T)),
-     compile_type Δ t ([σ]T) j = .some wt
+  ∃ (j : Δ ⊢τ t : T),
+     compile_type Δ t T j = .some wt
   ) ->
 
   (j : Γ ⊢τ t : k) ->
@@ -164,15 +169,16 @@ case _ Γ T n wf' test gt ck  =>
     cases cj'; case _ cT cj' =>
     cases cj';
     have lem2 := f2 n t T zdef gt
-    have f6 := f6 n t T zdef;
+    have tk := extract_kinding j
+    have u := kinds_subst_eff_free2 T tk
+    have f6 := f6 n t T u zdef;
     cases f6; case _ wt f6 =>
     cases f6; case _ zdef' f6 =>
     cases f6; case _ j f6 =>
     simp; rw[zdef']; simp
     rw[<-f6]; apply compile_type_congr h;
     simp; rw[zdef]
-    rfl
-
+    apply u
 
 case _ Γ B f A a jf ja jA jB ih1 ih2 => -- appk
   generalize ej : hs_subst_type f1 f2 f3 (jf.appk ja jA jB) wf = sj' at *;
@@ -383,14 +389,13 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 case _ =>
-  intro i t T h1
+  intro i t T e h1
   exists t'
   constructor;
   cases i <;> simp;
   case _ => simp at h1
   case _  =>
-
-    sorry
+  sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -424,7 +429,13 @@ case _ =>
   cases n <;> simp
   case _ => simp at h1
   case _ => simp at h1; assumption
-sorry
+case _ =>
+  intro n e T e h1
+  cases n <;> simp
+  case _ =>
+    simp at h1; cases h1;
+    sorry
+  sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 

@@ -74,149 +74,139 @@ abbrev HsFrameWfByIndexLemmaType (Γ : Ctx HsTerm) : (v : HsVariant) -> HsJudgme
 | .ctx => λ () => ∀ x, Γ ⊢s Γ d@ x
 
 def hs_frame_wf_by_index_lemma : (v : HsVariant) -> (ix : HsJudgmentArgs v) ->
-  HsJudgment v Γ ix -> HsFrameWfByIndexLemmaType Γ v ix
-| .ctx, (), j => by
-  simp at *; intro x;
-  sorry
-| .kind, args, j => by (simp at *); sorry
-| .type, args, j => by (simp at args); sorry
-| .term, args, j => by (simp at args); sorry
+  HsJudgment v Γ ix -> HsFrameWfByIndexLemmaType Γ v ix := by
+intro v ix j
+cases j <;> simp at *
+case _ =>
+  intro n; constructor; constructor
+case _ Γ wf =>
+  intro n;
+  cases n <;> simp at *
+  case _ => unfold Frame.apply; simp; constructor; constructor; assumption
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
+case _ Γ A j wf =>
+  intro n;
+  cases n <;> simp at *
+  case _ =>
+    have wf' := j.wftype wf
+    have lem := hs_weaken_type wf' j
+    unfold Frame.apply; simp; constructor;
+    rw[HsTerm.subst_const] at lem; assumption
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
+case _ Γ A j wf =>
+  intro n;
+  cases n <;> simp at *
+  case _ =>
+    have wf' := j.wfkind wf
+    have lem := hs_weaken_kind wf' j
+    unfold Frame.apply; simp; constructor;
+    rw[HsTerm.subst_HsKind] at lem; assumption
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
+case _ Γ A j wf =>
+  intro n;
+  cases n <;> simp at *
+  case _ =>
+    have wf' := j.wfdatatype wf
+    have lem := hs_weaken_kind wf' j
+    unfold Frame.apply; simp; constructor;
+    rw[HsTerm.subst_HsKind] at lem; assumption
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
+case _ Γ A j wf =>
+  intro n;
+  cases n <;> simp at *
+  case _ =>
+    have wf' := j.wfopent wf
+    have lem := hs_weaken_kind wf' j
+    unfold Frame.apply; simp; constructor;
+    rw[HsTerm.subst_HsKind] at lem; assumption
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
+case _ Γ A j wf vcty =>
+  intro n;
+  cases n <;> simp at *
+  case _ =>
+    have wf' := j.wfctor wf vcty
+    have lem := hs_weaken_type wf' j
+    unfold Frame.apply; simp; constructor;
+    rw[HsTerm.subst_const] at lem; assumption
+    apply hs_valid_ctor_weaken (.ctor A) wf' vcty
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption; assumption; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
+case _ Γ A t j1 j2 wf =>
+  intro n
+  cases n <;> simp at *
+  case _ =>
+    have wf' := j1.wfterm j2 wf
+    have lem2 := hs_weaken_term wf' j2
+    have lem1 := hs_weaken_type wf' j1
+    unfold Frame.apply; simp; constructor;
+    rw[HsTerm.subst_const] at lem1; assumption; assumption
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption; assumption; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
 
--- by
--- intro j; induction j <;> simp at *
--- case _ => constructor; constructor
--- case _ wf ih =>
---   intro x; cases x <;> simp at *
---   case _ =>
---     unfold Frame.apply; simp; constructor
---     constructor; apply wf
---   case _ x =>
---     apply FrameWf.weaken (· + 1) _ _ (ih x)
---     constructor; apply wf
---     case _ =>
---       intro y; simp; unfold S; unfold Ren.to
---       simp
--- case _ j1 j2 ih1 ih2 =>
---   intro x; cases x <;> simp at *
---   case _ =>
---     unfold Frame.apply; simp; constructor
---     have lem := weaken_type j1 j1; simp at lem
---     apply lem;
---   case _ x =>
---     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
---     case _ => apply HsJudgment.wftype j1 j2
---     case _ =>
---       intro y; simp; unfold S; unfold Ren.to
---       simp
--- case _ j1 j2 ih1 ih2 =>
---   intro x; cases x <;> simp at *
---   case _ =>
---     unfold Frame.apply; simp; constructor
---     have lem := weaken_kind j1 j1; simp at lem
---     apply lem;
---   case _ x =>
---     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
---     case _ => apply HsJudgment.wfkind j1 j2
---     case _ =>
---       intro y; simp; unfold S; unfold Ren.to
---       simp
--- case _ j1 j2 ih1 ih2 =>
---   intro x; cases x <;> simp at *
---   case _ =>
---     unfold Frame.apply; simp; constructor
---     have lem := weaken_datatype j1 j1; simp at lem
---     apply lem;
---   case _ x =>
---     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
---     case _ => apply HsJudgment.wfdatatype j1 j2
---     case _ =>
---       intro y; simp; unfold S; unfold Ren.to
---       simp
--- case _ j1 j2 j3 ih1 ih2 =>
---   intro x; cases x <;> simp at *
---   case _ =>
---     unfold Frame.apply; simp; constructor
---     have lem := weaken_ctor j1 j3 j1; simp at lem
---     apply lem; apply valid_ctor_subst _ _ j3
---     case _ =>
---       intro n y h; unfold S at h
---       injection h with e; subst e; simp
---     case _ =>
---       intro n h; exists n + 1
---   case _ x =>
---     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
---     case _ => apply HsJudgment.wfctor j1 j2 j3
---     case _ =>
---       intro y; simp; unfold S; unfold Ren.to
---       simp
--- -- case _ j1 j2 ih1 ih2 =>
--- --   intro x; cases x <;> simp at *
--- --   case _ =>
--- --     unfold Frame.apply; simp; constructor
--- --     have lem := weaken_opent j1 j1; simp at lem
--- --     apply lem;
--- --   case _ x =>
--- --     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
--- --     case _ => apply HsJudgment.wfopent j1 j2
--- --     case _ =>
--- --       intro y; simp; unfold S; unfold Ren.to
--- --       simp
--- -- case _ j1 j2 ih1 ih2 =>
--- --   intro x; cases x <;> simp at *
--- --   case _ =>
--- --     unfold Frame.apply; simp; constructor
--- --     have lem := weaken_openm j1 j1; simp at lem
--- --     apply lem;
--- --   case _ x =>
--- --     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
--- --     case _ => apply Judgment.wfopenm j1 j2
--- --     case _ =>
--- --       intro y; simp; unfold S; unfold Ren.to
--- --       simp
--- -- case _ j1 j2 j3 ih1 ih2 =>
--- --   intro x; cases x <;> simp at *
--- --   case _ =>
--- --     unfold Frame.apply; simp; constructor
--- --     have lem := weaken_insttype j1 j3 j1; simp at lem
--- --     apply lem; apply valid_insttype_subst _ _ j3
--- --     case _ =>
--- --       intro n y h; unfold S at h
--- --       injection h with e; subst e; simp
--- --     case _ =>
--- --       intro n h; exists n + 1
--- --   case _ x =>
--- --     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
--- --     case _ => apply Judgment.wfinsttype j1 j2 j3
--- --     case _ =>
--- --       intro y; simp; unfold S; unfold Ren.to
--- --       simp
--- -- case _ Γ x T t j1 j2 j3 ih1 ih2 =>
--- --   have lem1 : .openm ([S]T) = (Γ d@ x).apply S := by
--- --     rw [<-j1]; unfold Frame.apply; simp
--- --   intro x; cases x <;> simp at *
--- --   case _ =>
--- --     have lem2 := weaken_inst j1 j2 j2; simp at lem2
--- --     unfold Frame.apply; simp; constructor
--- --     simp; apply lem1; apply lem2
--- --   case _ x =>
--- --     apply FrameWf.weaken (· + 1) _ _ (ih2 x)
--- --     case _ => apply Judgment.wfinst j1 j2 j3
--- --     case _ =>
--- --       intro y; simp; unfold S; unfold Ren.to
--- --       simp
--- case _ j1 j2 j3 ih1 ih2 ih3 =>
---   intro x; cases x <;> simp at *
---   case _ =>
---     have lem1 := weaken_term j1 j2 j1; simp at lem1
---     have lem2 := weaken_term j1 j2 j2; simp at lem2
---     unfold Frame.apply; simp; constructor
---     apply lem1; apply lem2
---   case _ x =>
---     apply FrameWf.weaken (· + 1) _ _ (ih3 x)
---     case _ => apply HsJudgment.wfterm j1 j2 j3
---     case _ =>
---       intro y; simp; unfold S; unfold Ren.to
---       simp
+case _ Γ A j wf =>
+  intro n
+  cases n <;> simp at *
+  case _ =>
+    have wf' := j.wfopenm wf
+    have lem := hs_weaken_type wf' j
+    unfold Frame.apply; simp; constructor;
+    rw[HsTerm.subst_const] at lem; assumption
+  case _ n =>
+    have lem := @hs_frame_wf_by_index_lemma Γ .ctx () wf; simp at lem;
+    replace lem := lem n
+    generalize zdef : Γ d@ n = f at *;
+    apply HsFrameWf.weaken (λ x => x + 1) _ _ lem
+    constructor; assumption; assumption
+    case _ =>
+      intro i; simp; unfold S; unfold Ren.to; simp
+all_goals (apply 0)
 
 def hs_frame_wf_by_index x : ⊢s Γ -> Γ ⊢s Γ d@ x :=
 λ wf => hs_frame_wf_by_index_lemma .ctx () wf x
