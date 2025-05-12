@@ -118,6 +118,10 @@ namespace Frame
   unfold apply; unfold is_datatype; cases f <;> simp
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_ctor_apply {σ : Subst T} : is_ctor f = is_ctor (apply f σ) := by
+  unfold apply; unfold is_ctor; cases f <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_stable_apply {σ : Subst T} : is_stable f = is_stable (apply f σ) := by
   unfold apply; unfold is_stable; cases f <;> simp
 

@@ -435,7 +435,7 @@ case _ =>
   case _ =>
     simp at h1; cases h1;
     sorry
-  sorry
+  case _ => sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 

@@ -218,44 +218,44 @@ def hs_rename (r : Ren) : (v : HsVariant) -> {idx : HsJudgmentArgs v} ->
        rw[Subst.lift_lemma]; apply h
      apply (hs_rename r .type h5 wf f)
 
-  | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 =>
-    .hsIte
-      (hs_rename r .type h1 wf f) (hs_rename r .type h2 wf f)
-      (hs_rename r .type h3 wf f) (hs_rename r .type h4 wf f)
-      (hs_rename r .term h5 wf f) (hs_rename r .term h6 wf f)
-      (hs_rename r .term h7 wf f) (hs_rename r .term h8 wf f)
-      (by apply hs_stable_type_match_subst
-          case _ =>
-            intro n1 n2 j; unfold Ren.to at j; simp at j;
-            have f' := f n1; rw[j] at f'; apply f'
-          case _ => intro n test; unfold Ren.to; simp
-          apply h9
-      )
-      (by apply hs_prefix_type_match_subst _ _;
-          case _ => apply h10
-          case _ =>
-            intro n1 n2 j; unfold Ren.to at j; simp at j;
-            have f' := f n1; rw[j] at f'; apply f'
-          case _ => intro n test; unfold Ren.to; simp
-      )
-      (by apply hs_valid_head_variable_subst _ _ _;
-          case _ => apply h11
-          case _ =>
-               intro n test; have f' := f n;
-               unfold Ren.to; simp; rw[<-f'];
-               unfold Frame.is_datatype; unfold Ctx.is_datatype at test;
-               replace test := datatype_indexing_exists test;
-               cases test; case _ test =>
-               rw[test]; unfold Frame.apply; simp)
-      (by apply hs_valid_head_variable_subst _ _ _;
-          case _ => apply h12
-          case _ =>
-               intro n test; have f' := f n;
-               unfold Ren.to; simp; rw[<-f'];
-               unfold Frame.is_ctor; unfold Ctx.is_ctor at test;
-               replace test := ctor_indexing_exists test;
-               cases test; case _ test =>
-               rw[test]; unfold Frame.apply; simp)
+  | @HsJudgment.hsIte _ _ _ _ _ _ _ _ _ n h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 => by
+    apply HsJudgment.hsIte
+    apply (hs_rename r .type h1 wf f); apply (hs_rename r .type h2 wf f)
+    apply (hs_rename r .type h3 wf f); apply (hs_rename r .type h4 wf f)
+    apply (hs_rename r .term h5 wf f); apply (hs_rename r .term h6 wf f)
+    apply (hs_rename r .term h7 wf f); apply (hs_rename r .term h8 wf f)
+    apply hs_stable_type_match_subst
+    case _ =>
+      intro n1 n2 j; unfold Ren.to at j; simp at j;
+      have f' := f n1; rw[j] at f'; apply f'
+    case _ =>
+      intro n test; unfold Ren.to; simp
+    apply h9
+    apply hs_prefix_type_match_subst _ _;
+    case _ => apply h10
+    case _ =>
+      intro n1 n2 j; unfold Ren.to at j; simp at j;
+      have f' := f n1; rw[j] at f'; apply f'
+    case _ => intro n test; unfold Ren.to; simp
+    apply hs_valid_head_variable_subst _ _ _;
+    case _ => apply h11
+    case _ =>
+      intro n test; have f' := f n;
+      unfold Ren.to; simp; rw[<-f'];
+      unfold Frame.is_datatype; unfold Ctx.is_datatype at test;
+      replace test := datatype_indexing_exists test;
+      cases test; case _ test =>
+      rw[test]; unfold Frame.apply; simp
+    case _ => rw[h12]; unfold Ren.to; simp; rfl
+    apply hs_valid_head_variable_subst _ _ _;
+    case _ => apply h13
+    case _ =>
+      intro n test; have f' := f n;
+      unfold Ren.to; simp; rw[<-f'];
+      unfold Frame.is_ctor; unfold Ctx.is_ctor at test;
+      replace test := ctor_indexing_exists test;
+      cases test; case _ test =>
+      rw[test]; unfold Frame.apply; simp
 
 | .ctx, () , j, wf, r => by simp; apply wf
 termination_by v idx h => h.size

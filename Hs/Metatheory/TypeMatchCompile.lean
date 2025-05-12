@@ -53,68 +53,24 @@ case _ a _ _ _ _ ih _ =>
 all_goals (cases tnf)
 
 
--- theorem compile_preserves_term_neutral_form :
---   ⊢ Γ' ->
---   (j1 : Γ ⊢τ A : `★) ->
---   (j2 : Γ ⊢t t : A) ->
---   compile_term Γ t A j2 = .some t' ->
---   t.neutral_form = .some (h, sp) ->
---   ∃ h' sp', t'.neutral_form = .some (h', sp') := by
--- intro wf h1 ht ct tnf;
--- induction Γ, t, A, ht using compile_term.induct generalizing Γ' t' h sp <;> simp at *
--- all_goals try (cases tnf)
--- case _ x _ _ _ e1 e2 =>
---   cases e1; cases e2
---   exists x; exists [];
---   unfold compile_term at ct; cases ct; rfl
--- case _ Γ t1 A B t2 j1 j2 j3 j4 ih _ =>
---   rw[Option.bind_eq_some] at tnf;
---   cases tnf; case _ nf tnf =>
---   cases tnf; case _ tnf e =>
---   cases e;
---   unfold compile_term at ct; simp at ct;
---   rw[Option.bind_eq_some] at ct;
---   cases ct; case _ AB' ct =>
---   cases ct; case _ ct ct1 =>
---   rw[Option.bind_eq_some] at ct1;
---   cases ct1; case _ A' ct1 =>
---   cases ct1; case _ ct1 ct2 =>
---   rw[Option.bind_eq_some] at ct2;
---   cases ct2; case _ B' ct2 =>
---   cases ct2; case _ ct2 ct3 =>
---   rw[Option.bind_eq_some] at ct3;
---   cases ct3; case _ t1' ct3 =>
---   cases ct3; case _ ct3 ct4 =>
---   rw[Option.bind_eq_some] at ct4;
---   cases ct4; case _ t2' ct4 =>
---   cases ct4; case _ ct4 e =>
---   cases e;
---   have ih' := @ih Γ' t1' nf.1 nf.2 wf (extract_typing j1) ct3 tnf
---   cases ih'; case _ h' ih' =>
---   cases ih'; case _ sp' ih' =>
---   exists h'; exists (sp' ++ [(.term, t2')]);
---   simp; rw[Option.bind_eq_some];
---   exists (h', sp');
--- case _ Γ t A τ e j1 j2 j3 j4 j5 ih =>
---   unfold compile_term at ct; simp at ct
---   rw[Option.bind_eq_some] at ct;
---   cases ct; case _ Aτ' ct =>
---   cases ct; case _ ct ct1 =>
---   rw[Option.bind_eq_some] at ct1;
---   cases ct1; case _ A' ct1 =>
---   cases ct1; case _ ct1 ct2 =>
---   rw[Option.bind_eq_some] at ct2;
---   cases ct2; case _ t' ct2 =>
---   cases ct2; case _ ct2 ct3 =>
---   rw[Option.bind_eq_some] at ct3;
---   cases ct3; case _ a' ct3 =>
---   cases ct3; case _ ct3 e =>
---   cases e;
+theorem compile_preserves_vhv_terms_ctor :
+ (∀ x,  (Γ d@ x).is_ctor ->  (Γ' d@ x).is_ctor) ->
+ ⊢ Γ' ->
+ (jp : Γ ⊢t `#n : A) ->
+ (jp = .var wf test gt)->
+ compile_term Γ `#n A jp = .some p' ->
+ HsValidHeadVariable `#n Γ.is_ctor ->
+ ValidHeadVariable p' Γ'.is_ctor := by
+intro h1 wf jp e cp vhv
+unfold compile_term at cp; rw[e] at cp; simp at cp; cases cp;
+cases vhv; unfold ValidHeadVariable;
+exists (n, []); simp;
+case _ tnf =>
+cases tnf; case _ x1 x2 =>
+cases x1; simp at x2;
+apply h1
+apply x2
 
---   sorry
--- case _ => sorry
--- case _ => sorry
--- case _ => sorry
 
 theorem compile_preserves_vhv_types_stable :
  (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
@@ -238,24 +194,6 @@ case _ Γ A B vhv ih =>
       assumption
   case _ => assumption
   case _ => assumption
-
-
-theorem compile_preserves_vhv_types test σtest :
- (∀ v, CompileCtxPred v) ->
- ⊢ Γ' ->
- (jT : Γ ⊢τ T : `★) ->
- compile_type Γ T `★ jT = .some T' ->
- HsValidHeadVariable T test ->
- ValidHeadVariable T' σtest := by sorry
-
-
-theorem compile_preserves_vhv_terms test σtest :
- (∀ v, CompileCtxPred v) ->
- ⊢ Γ' ->
- (jT : Γ ⊢t T : τ) ->
- compile_term Γ T τ jT = .some T' ->
- HsValidHeadVariable T test ->
- ValidHeadVariable T' σtest := by sorry
 
 theorem compile_stable_match :
  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) ->

@@ -24,7 +24,7 @@ def extract_typing :
   all_goals (unfold Frame.is_ctor at h2; unfold Frame.is_type at h2; unfold Frame.is_term at h2; simp at h2)
   all_goals (unfold Frame.get_type at h3; simp at h3; cases h3; clear h2)
   all_goals (rw[fh] at lem; cases lem; assumption))
-| .hsIte _ _ _ h _ _ _ _ _ _ _ _ => h
+| .hsIte _ _ _ h _ _ _ _ _ _ _ _ _ => h
 | .hslet _ _ _ _  h => h
 | .app _ _ _ _ h3 => h3
 | .lam h1 _ h3 => HsJudgment.arrow h1 h3
@@ -86,7 +86,7 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let t1' <- compile_term Γ t1 A j2
   let t2' <- compile_term (.term A t1 :: Γ) t2 B' j3
   .some (.letterm A' t1' t2')
-| @HsJudgment.hsIte Γ A R B T p s i e j1 j2 j3 j4 j5 j6 j7 j8 _ _ _ _  => do
+| @HsJudgment.hsIte Γ A R B T p s i e n j1 j2 j3 j4 j5 j6 j7 j8 _ _ _ _ _ => do
   let _ <- compile_type Γ A `★ j1
   let _ <- compile_type Γ R `★ j2
   let _ <- compile_type Γ B `★ j3
@@ -95,7 +95,12 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let s' <- compile_term Γ s R j6
   let i' <- compile_term Γ i B j7
   let t' <- compile_term Γ e T j8
-  .some (.ite p' s' i' t')
+  if p' == #n
+  then
+    match j5 with
+    | .var _ _ _ => .some (.ite p' s' i' t')
+    | _ => .none
+  else .none
 
 ----------------------------------------
 --- Implicit

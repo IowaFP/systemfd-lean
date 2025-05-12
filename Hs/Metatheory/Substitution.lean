@@ -310,7 +310,15 @@ def hs_subst_term : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} ->
     apply (hs_subst_type f1 f2 f4 h4 wf)
     apply (hs_subst_type f1 f2 f4 h5 wf)
 
-  | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 => by
+  | @HsJudgment.hsIte Γ A R B T p s i t n h1 h2 h3 h4 h5 h6 h7 h8 h9 h10 h11 h12 h13 => by
+    -- have h12' := Frame.is_ctor_implies_is_stable h12
+    -- have f4' := f4 p h12';
+    -- simp;
+    -- generalize zdef : σ p = y at *;
+    -- cases zdef;
+    -- sorry
+    -- -- simp; rw[Option.bind_eq_some];
+    -- apply @HsJudgment.hsIte Δ ([σ]A) ([σ]R) ([σ]B) ([σ]T) p ([σ]s) ([σ]i) ([σ]t)
     apply HsJudgment.hsIte
     apply (hs_subst_type f1 f2 f4 h1 wf)
     apply (hs_subst_type f1 f2 f4 h2 wf)
@@ -334,6 +342,19 @@ def hs_subst_term : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} ->
       cases t; case _ t =>
         rw[t]; unfold Frame.apply; unfold Frame.is_datatype; simp
     case _ => apply h11;
+    case _ =>
+      rw[h12]; simp
+      generalize zdef : σ n = y at *;
+      cases y <;> simp
+      case _ a =>
+        sorry
+      case _ t =>
+        sorry
+      -- cases h13; cases h12; case _ h13 =>
+      -- cases h13; case _ u h13 =>
+      -- simp at u; cases u; simp at h13;
+      -- have h13' : (Γ d@n).is_stable := by sorry
+      -- have f4' := f4 n h13'
     apply hs_valid_head_variable_subst Γ.is_ctor _
     case _ =>
       intro n t;
@@ -345,7 +366,8 @@ def hs_subst_term : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} ->
       simp at t; replace t := ctor_indexing_exists t;
       cases t; case _ t =>
         rw[t]; unfold Frame.apply; unfold Frame.is_ctor; simp
-    case _ => apply h12
+    case _ => apply h13
+    sorry
 
   | @HsJudgment.hslet Γ A t1 B' B t2 h1 h2 h3 h4 h5 => by
     have wf' : ⊢s (.term ([σ]A) ([σ]t1) :: Δ) := by

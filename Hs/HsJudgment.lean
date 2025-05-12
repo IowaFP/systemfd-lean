@@ -234,15 +234,16 @@ Alternative : --- BOO!!
   HsJudgment .type Γ (R, `★) ->
   HsJudgment .type Γ (B, `★) ->
   HsJudgment .type Γ (T, `★) ->
-  HsJudgment .term Γ (t1, A) ->
-  HsJudgment .term Γ (t2, R) ->
-  HsJudgment .term Γ (t3, B) ->
-  HsJudgment .term Γ (t4, T) ->
+  HsJudgment .term Γ (p, A) ->
+  HsJudgment .term Γ (s, R) ->
+  HsJudgment .term Γ (i, B) ->
+  HsJudgment .term Γ (t, T) ->
   StableHsTypeMatch Γ A R ->
   PrefixHsTypeMatch Γ A B T ->
   HsValidHeadVariable R Γ.is_datatype ->
-  HsValidHeadVariable t1 Γ.is_ctor ->
-  HsJudgment .term Γ (.HsIte t1 t2 t3 t4,  T)
+  (p = `#n) ->
+  HsValidHeadVariable p Γ.is_ctor ->
+  HsJudgment .term Γ (.HsIte p s i t,  T)
 
 notation:170 Γ:170 " ⊢κ " t:170 " : " A:170 => HsJudgment HsVariant.kind Γ (t, A)
 notation:170 Γ:170 " ⊢τ " t:170 " : " A:170 => HsJudgment HsVariant.type Γ (t, A)
@@ -269,7 +270,7 @@ def hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgme
   | .lam h _ _ => hs_judgment_ctx_wf .type h
   | .app h _ _ _ _ => hs_judgment_ctx_wf .term h
   | .hslet h _ _ _ _ => hs_judgment_ctx_wf .type h
-  | .hsIte h _ _ _ _ _ _ _ _ _ _ _ => hs_judgment_ctx_wf .type h
+  | .hsIte h _ _ _ _ _ _ _ _ _ _ _ _ => hs_judgment_ctx_wf .type h
 
 
 def extract_kinding :
@@ -308,7 +309,7 @@ namespace HsJudgment
  | .lam h1 h2 h3 =>  1 + size h1 + size h2 + size h3
  | .app h1 h2 _ h3 h4 =>   1 + size h1 + size h2 + size h3 + size h4
  | .hslet h1 h2 _ h3 h4 =>  1 + size h1 + size h2 + size h3 + size h4
- | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 _ _ _ _ =>
+ | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 _ _ _ _ _ =>
    1 + size h1 + size h2 + size h3 + size h4 + size h5 + size h6 + size h7 + size h8
 end HsJudgment
 

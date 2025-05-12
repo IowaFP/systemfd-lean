@@ -9,10 +9,62 @@ import Hs.Metatheory.Soundness1
 
 set_option maxHeartbeats 5000000
 
+theorem hs_compile_is_stable f f' (Γ : Ctx HsTerm) (Γ' : Ctx Term):
+  (f.is_stable -> f'.is_stable) ->
+  (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
+  (∀ x,  ((f :: Γ) d@ x).is_stable ->  ((f' :: Γ') d@ x).is_stable) := by
+intro h0 h1 x h2
+cases x <;> simp
+case _ =>
+  unfold dnth at h2; rw[<-Frame.is_stable_apply] at h2
+  rw[<-Frame.is_stable_apply];
+  apply h0 h2;
+case _ n =>
+  simp at h2;
+  rw[<-Frame.is_stable_apply] at h2
+  rw[<-Frame.is_stable_apply];
+  apply h1 n h2
+
+
+theorem hs_compile_is_datatype f f' (Γ : Ctx HsTerm) (Γ' : Ctx Term):
+  (f.is_datatype -> f'.is_datatype) ->
+  (∀ x,  (Γ d@ x).is_datatype ->  (Γ' d@ x).is_datatype) ->
+  (∀ x,  ((f :: Γ) d@ x).is_datatype ->  ((f' :: Γ') d@ x).is_datatype) := by
+intro h0 h1 x h2
+cases x <;> simp
+case _ =>
+  unfold dnth at h2; rw[<-Frame.is_datatype_apply] at h2
+  rw[<-Frame.is_datatype_apply];
+  apply h0 h2;
+case _ n =>
+  simp at h2;
+  rw[<-Frame.is_datatype_apply] at h2
+  rw[<-Frame.is_datatype_apply];
+  apply h1 n h2
+
+theorem hs_compile_is_ctor f f' (Γ : Ctx HsTerm) (Γ' : Ctx Term):
+  (f.is_ctor -> f'.is_ctor) ->
+  (∀ x,  (Γ d@ x).is_ctor ->  (Γ' d@ x).is_ctor) ->
+  (∀ x,  ((f :: Γ) d@ x).is_ctor ->  ((f' :: Γ') d@ x).is_ctor) := by
+intro h0 h1 x h2
+cases x <;> simp
+case _ =>
+  unfold dnth at h2; rw[<-Frame.is_ctor_apply] at h2
+  rw[<-Frame.is_ctor_apply];
+  apply h0 h2;
+case _ n =>
+  simp at h2;
+  rw[<-Frame.is_ctor_apply] at h2
+  rw[<-Frame.is_ctor_apply];
+  apply h1 n h2
+
+
 theorem compile_preserves_terms :
   (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) -> -- needs fixing
   (∀ v, CompileCtxPred v) ->
   (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
+  (∀ x,  (Γ d@ x).is_datatype ->  (Γ' d@ x).is_datatype) ->
+  (∀ x,  (Γ d@ x).is_ctor ->  (Γ' d@ x).is_ctor) ->
   ⊢ Γ' ->
 
   (j1 : Γ ⊢τ τ : k) ->
@@ -21,7 +73,7 @@ theorem compile_preserves_terms :
   (j2 : Γ ⊢t t : τ) ->
   compile_term Γ t τ j2 = .some t' ->
   Γ' ⊢ t' : τ' := by
-intro h cc cc' wf j1 c1 j2 c2;
+intro h cc cc' cc'' cc''' wf j1 c1 j2 c2;
 induction Γ, t, τ, j2 using compile_term.induct generalizing Γ' t' τ' k
 all_goals (unfold compile_term at c2; simp at c2)
 case _ τ Γ x wf' test gt =>
@@ -57,16 +109,16 @@ case _ Γ A t B j1' j2 j3 ih1 => -- lam
  case _ => unfold compile_kind; rfl
  case _ =>
    have j' := (hs_replace_empty_type ja jb)
-   apply @ih1 (.type A' :: Γ') `★ B' t' _ _ j' _ c4
+   apply @ih1 (.type A' :: Γ') `★ B' t' _ _ _ _ j' _ c4
    case _ =>
-     intro x;
-     cases x <;> simp
-     case _ => unfold Frame.apply; simp; unfold Frame.is_stable; simp
-     case _ n =>
-       intro h1;
-       rw[<-Frame.is_stable_apply] at h1
-       rw[<-Frame.is_stable_apply];
-       apply cc' n h1
+     apply hs_compile_is_stable (.type A) (.type A') Γ Γ' _ cc'
+     unfold Frame.is_stable; simp
+   case _ =>
+     apply hs_compile_is_datatype (.type A) (.type A') Γ Γ' _ cc''
+     unfold Frame.is_datatype; simp
+   case _ =>
+     apply hs_compile_is_ctor (.type A) (.type A') Γ Γ' _ cc'''
+     unfold Frame.is_ctor; simp
    apply Judgment.wftype
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2
    case _ => apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
@@ -124,10 +176,10 @@ case _ Γ t1 A B t2 h1 h2 h3 h4 ih1 ih2 => -- app
    have lem' := compile_type_uniqueness h (hs_beta_empty_type t2 jb') j1 lem c1
    apply Judgment.app;
    case _ =>
-     have ih' := @ih1 Γ' `★ (A' -t> wB) t1' cc' wf (extract_typing h1) c2 c5;
+     have ih' := @ih1 Γ' `★ (A' -t> wB) t1' cc' cc'' cc''' wf (extract_typing h1) c2 c5;
      apply ih'
    case _ =>
-     have ih' :=  @ih2 Γ' `★ A' t2' cc' wf h3 c3 c6
+     have ih' :=  @ih2 Γ' `★ A' t2' cc' cc'' cc''' wf h3 c3 c6
      apply ih'
    symm at lem'; apply lem'
 
@@ -146,7 +198,7 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2;
    apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
    unfold compile_kind; rfl
- have lemt1 := @ih1 Γ' `★ A' t1' cc' wf j1' c2 c3
+ have lemt1 := @ih1 Γ' `★ A' t1' cc' cc'' cc''' wf j1' c2 c3
  have lem := types_have_unique_kinds j1 j3; cases lem;
  have lemΓ' := by apply Judgment.wfterm; assumption; assumption; assumption
  have lemΓ : ⊢s (.term A t1 :: Γ) := by
@@ -155,16 +207,16 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
  case _ => assumption
  case _ => assumption
  case _ =>
-   apply @ih2 (.term A' t1' :: Γ') `★ ([S]τ') t2' _ _ _ _ c4;
+   apply @ih2 (.term A' t1' :: Γ') `★ ([S]τ') t2' _ _ _ _ _ _ c4;
    case _ =>
-     intro x;
-     cases x <;> simp
-     case _ => unfold Frame.apply; simp; unfold Frame.is_stable; simp
-     case _ n =>
-       intro h1;
-       rw[<-Frame.is_stable_apply] at h1
-       rw[<-Frame.is_stable_apply];
-       apply cc' n h1
+     apply hs_compile_is_stable (.term A t1) (.term A' t1') Γ Γ' _ cc'
+     unfold Frame.is_stable; simp
+   case _ =>
+     apply hs_compile_is_datatype (.term A t1) (.term A' t1') Γ Γ' _ cc''
+     unfold Frame.is_datatype; simp
+   case _ =>
+     apply hs_compile_is_ctor (.term A t1) (.term A' t1') Γ Γ' _ cc'''
+     unfold Frame.is_ctor; simp
    case _ => assumption
    case _ => apply hs_weaken_type lemΓ j1
    case _ => apply weaken_compile_type h j1 c1 (HsFrameWf.term j1' j2)
@@ -172,7 +224,8 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
    apply compile_preserves_types (cc .kind) wf h _ _ _ c1;
    apply HsJudgment.ax (hs_judgment_ctx_wf .type j1)
    unfold compile_kind; rfl
-case _ T Γ A R B p s i t jA jR jB jT jp js ji jt j9 j10 j11 j12 ih1 ih2 ih3 ih4 =>
+
+case _ T Γ A R B s i t n jA jR jB jT js ji jt j9 j10 j11 j12 j13 ih1 ih2 ih3 ih4 => -- ite
  have u := types_have_unique_kinds jT j1; cases u;
  rw[Option.bind_eq_some] at c2;
  cases c2; case _ wA c2 =>
@@ -198,21 +251,35 @@ case _ T Γ A R B p s i t jA jR jB jT jp js ji jt j9 j10 j11 j12 ih1 ih2 ih3 ih4
  rw[Option.bind_eq_some] at c9;
  cases c9; case _ wt c9 =>
  cases c9; case _ c9 e =>
- cases e;
- have lemAx : Γ ⊢κ `★ : `□ := by apply HsJudgment.ax (hs_judgment_ctx_wf .type jA)
- have lemK : compile_kind Γ `★ `□ lemAx = .some ★ := by unfold compile_kind; cases lemAx; simp
- apply Judgment.ite;
- apply @ih1 Γ' `★ wA wp cc' wf jA c2 c6;
- apply @ih2 Γ' `★ wR ws cc' wf jR c3 c7
- apply compile_preserves_types (cc .kind) wf h lemAx lemK jR c3
- apply @ih3 Γ' `★ wB wi cc' wf jB c4 c8;
- apply compile_preserves_vhv_terms Γ.is_ctor Γ'.is_ctor cc wf jp c6 j12
- apply compile_preserves_vhv_types Γ.is_datatype Γ'.is_datatype cc wf jR c3 j11
- apply compile_stable_match h cc' wf jA c2 jR c3 j9
- apply compile_prefix_match h cc' wf jA c2 jB c4 j1 c1 j10
- apply compile_preserves_types (cc .kind) wf h lemAx lemK j1 c1
- apply @ih4 Γ' `★ τ' wt cc' wf j1 c1
- apply c9
+ simp at e;
+ cases e; case _ e1 e =>
+ have e1' := Term.eq_of_beq e1; cases e1';
+ split at e
+ case _ p jp e1 vhv1 n wf' test gt e2 vhv _ e3 e4 e5 =>
+   cases e; cases e1; cases e2;
+   have lemAx : Γ ⊢κ `★ : `□ := by apply HsJudgment.ax (hs_judgment_ctx_wf .type jA)
+   have lemK : compile_kind Γ `★ `□ lemAx = .some ★ := by unfold compile_kind; cases lemAx; simp
+   apply Judgment.ite;
+   apply @ih1 Γ' `★ wA #n cc' cc'' cc''' wf jA c2 c6
+   apply @ih2 Γ' `★ wR ws cc' cc'' cc'''  wf jR c3 c7
+   apply compile_preserves_types (cc .kind) wf h lemAx lemK jR c3
+   apply @ih3 Γ' `★ wB wi cc' cc'' cc''' wf jB c4 c8;
+   apply compile_preserves_vhv_terms_ctor cc''' wf j12
+   case _ =>
+
+     sorry
+   assumption
+   assumption
+   assumption
+   assumption
+   assumption
+   apply compile_preserves_vhv_types_datatype cc'' wf jR c3 j11
+   apply compile_stable_match h cc' wf jA c2 jR c3 j9
+   apply compile_prefix_match h cc' wf jA c2 jB c4 j1 c1 j10
+   apply compile_preserves_types (cc .kind) wf h lemAx lemK j1 c1
+   apply @ih4 Γ' `★ τ' wt cc' cc'' cc''' wf j1 c1
+   apply c9
+ case _ => cases e
 
 -- implicits
 case _ Γ A t τ e h1 h2 h3 h4 ih => -- implicitAllE
@@ -235,7 +302,7 @@ case _ Γ A t τ e h1 h2 h3 h4 ih => -- implicitAllE
  cases lem;
  apply Judgment.appt;
  case _ => --
-   have ih' := @ih Γ' `★ (∀[A']τ') wt cc' wf h1 c2 c4;
+   have ih' := @ih Γ' `★ (∀[A']τ') wt cc' cc'' cc''' wf h1 c2 c4;
    apply ih'
  case _ =>
    have h' := compile_preserves_types (cc .kind) wf h h2 c3 h4 c5
@@ -293,16 +360,16 @@ case _ Γ t A τ j1' j2 ih =>
     apply compile_preserves_kinds wf j2 c1; assumption
   apply Judgment.lamt;
   apply compile_preserves_kinds wf j2 c1
-  apply @ih (Frame.kind wA :: Γ') `★ wt' wt _ lem j1 c2' c2;
+  apply @ih (Frame.kind wA :: Γ') `★ wt' wt _ _ _ lem j1 c2' c2;
   case _ =>
-     intro x;
-     cases x <;> simp
-     case _ => unfold Frame.apply; simp; unfold Frame.is_stable; simp
-     case _ n =>
-       intro h1;
-       rw[<-Frame.is_stable_apply] at h1
-       rw[<-Frame.is_stable_apply];
-       apply cc' n h1
+     apply hs_compile_is_stable (.kind A) (.kind wA) Γ Γ' _ cc'
+     unfold Frame.is_stable; simp
+  case _ =>
+     apply hs_compile_is_datatype (.kind A) (.kind wA) Γ Γ' _ cc''
+     unfold Frame.is_datatype; simp
+  case _ =>
+     apply hs_compile_is_ctor (.kind A) (.kind wA) Γ Γ' _ cc'''
+     unfold Frame.is_ctor; simp
   case _ =>
     apply Judgment.allt;
     apply compile_preserves_kinds wf j2 c1;
@@ -337,16 +404,16 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
  case _ => unfold compile_kind; rfl
  case _ =>
    have j' := (hs_replace_empty_type ja jb)
-   apply @ih1 (.type π' :: Γ') `★ B' t' _ _ j' _ c3
+   apply @ih1 (.type π' :: Γ') `★ B' t' _ _ _ _ j' _ c3
    case _ =>
-     intro x;
-     cases x <;> simp
-     case _ => unfold Frame.apply; simp; unfold Frame.is_stable; simp
-     case _ n =>
-       intro h1;
-       rw[<-Frame.is_stable_apply] at h1
-       rw[<-Frame.is_stable_apply];
-       apply cc' n h1
+     apply hs_compile_is_stable (.type π) (.type π') Γ Γ' _ cc'
+     unfold Frame.is_stable; simp
+   case _ =>
+     apply hs_compile_is_datatype (.type π) (.type π') Γ Γ' _ cc''
+     unfold Frame.is_datatype; simp
+   case _ =>
+     apply hs_compile_is_ctor (.type π) (.type π') Γ Γ' _ cc'''
+     unfold Frame.is_ctor; simp
    apply Judgment.wftype
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2
    case _ => apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
@@ -396,8 +463,8 @@ case _ Γ t π τ e j1' j2 j3 ih1 ih2 => -- implicitArrE
   have lem := compile_beta_empty_term h jb' c2' j2 c5 j1;
   apply Judgment.app;
   case _ =>
-    apply @ih1 Γ' `★ (wA -t> wB) wt cc' wf (extract_typing j1') c2 c4
-  case _ => apply @ih2 Γ' `★ wA we cc' wf ja' c1' c5
+    apply @ih1 Γ' `★ (wA -t> wB) wt cc' cc'' cc''' wf (extract_typing j1') c2 c4
+  case _ => apply @ih2 Γ' `★ wA we cc' cc'' cc''' wf ja' c1' c5
   case _ =>
     have e' : compile_type Γ ([Subst.Action.su e::I]τ) ([Subst.Action.su e::I]`★) j1 =
               compile_type Γ ([Subst.Action.su e::I]τ) `★ j1 := by rfl
