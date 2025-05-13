@@ -219,7 +219,7 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
      unfold Frame.is_ctor; simp
    case _ => assumption
    case _ => apply hs_weaken_type lemΓ j1
-   case _ => apply weaken_compile_type h j1 c1 (HsFrameWf.term j1' j2)
+   case _ => apply weaken_compile_type _ h j1 c1 (HsFrameWf.term j1' j2)
  case _ =>
    apply compile_preserves_types (cc .kind) wf h _ _ _ c1;
    apply HsJudgment.ax (hs_judgment_ctx_wf .type j1)
@@ -265,12 +265,7 @@ case _ T Γ A R B s i t n jA jR jB jT js ji jt j9 j10 j11 j12 j13 ih1 ih2 ih3 ih
    apply compile_preserves_types (cc .kind) wf h lemAx lemK jR c3
    apply @ih3 Γ' `★ wB wi cc' cc'' cc''' wf jB c4 c8;
    apply compile_preserves_vhv_terms_ctor cc''' wf j12
-   case _ =>
-
-     sorry
-   assumption
-   assumption
-   assumption
+   case _ => simp at e3; apply e3;
    assumption
    assumption
    apply compile_preserves_vhv_types_datatype cc'' wf jR c3 j11

@@ -221,7 +221,7 @@ case _ R Γ B A vhv stm ih =>
   cases lem; case _ cA' cB' =>
   apply StableTypeMatch.arrow;
   apply compile_preserves_vhv_types_stable cc wf jR cR vhv
-  have lem := weaken_compile_type h jR cR (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jR)
+  have lem := weaken_compile_type .empty h jR cR (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jR)
   apply @ih (.empty :: Γ') B' ([S]R') _ _ _ _ _
   apply lem
   case _ =>
@@ -248,7 +248,7 @@ case _ R Γ B A vhv stm ih =>
   cases lem; case _ cA' cB' =>
   apply StableTypeMatch.arrow;
   apply compile_preserves_vhv_types_stable cc wf jR cR vhv
-  have lem := weaken_compile_type h jR cR (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jR)
+  have lem := weaken_compile_type .empty h jR cR (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jR)
   apply @ih (.empty :: Γ') B' ([S]R') _ _ _ _ _
   apply lem
   case _ =>
@@ -280,7 +280,7 @@ case _ R Γ A B vhv stm ih =>
   cases cB; case _ B' cB =>
   cases cB; case _ cB e =>
   cases e;
-  have lem := weaken_compile_type h jR cR
+  have lem := weaken_compile_type (.kind A) h jR cR
                 (HsFrameWf.kind jA)
                 (hs_weaken_kind_type jA jR)
   apply @ih (.kind A' :: Γ') B' ([S]R') _ _ _ _ _
@@ -332,7 +332,7 @@ case _ Γ B V T A ptm ih =>
   cases lem; case _ e lem =>
   cases lem; subst e; case _ cA'' lem =>
   have u := types_have_unique_judgments h jA' jA''; cases u
-  have cV := weaken_compile_type h jT cT (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jT)
+  have cV := weaken_compile_type .empty h jT cT (HsFrameWf.empty (hs_judgment_ctx_wf .type jA')) (hs_weaken_empty_type jT)
   have u := compile_type_uniqueness h jA' jA' cA' cA''; cases u;
   apply PrefixTypeMatch.arrow;
   apply @ih (.empty :: Γ') B' V' ([S]T')
@@ -383,7 +383,7 @@ case _ Γ A B V T ptm ih =>
   have u := compile_kind_uniqueness h jA1 jA1 cA cR; cases u;
   have lem := compile_preserves_kinds wf jA1 cA;
   have wf' := hs_weaken_kind_type jA1 jT
-  have cST := weaken_compile_type h jT cT (HsFrameWf.kind jA1) wf';
+  have cST := weaken_compile_type (.kind A) h jT cT (HsFrameWf.kind jA1) wf';
   apply PrefixTypeMatch.all;
   apply @ih (.kind A' :: Γ') B' V' ([S]T') -- _ jB cB jV cV wf' cST
   case _ =>

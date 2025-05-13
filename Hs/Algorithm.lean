@@ -94,11 +94,11 @@ def compile_term (Γ : Ctx HsTerm) (t : HsTerm) (τ : HsTerm) : Γ ⊢t t : τ -
   let p' <- compile_term Γ p A j5
   let s' <- compile_term Γ s R j6
   let i' <- compile_term Γ i B j7
-  let t' <- compile_term Γ e T j8
+  let e' <- compile_term Γ e T j8
   if p' == #n
   then
     match j5 with
-    | .var _ _ _ => .some (.ite p' s' i' t')
+    | .var _ _ _ => .some (.ite p' s' i' e')
     | _ => .none
   else .none
 

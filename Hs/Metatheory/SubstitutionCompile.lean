@@ -99,8 +99,12 @@ case _ a =>
  constructor;
  unfold Subst.compose; simp; rw[zdef']; rw[e] at sj;
  exists sj;
- sorry
- --
+ have lem1 := hs_frame_wf (f.apply σ) wf
+ have lem := @weaken_compile_type Δ a T wt (f.apply σ) h1 j cj lem1 sj'
+ rw[<-lem]
+ apply compile_type_congr h1
+ simp;
+ rw[e]
 
 
 def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
@@ -389,12 +393,11 @@ case _ =>
   case _ => simp at h1
   case _ => simp at h1; assumption
 case _ =>
-  intro i t T e h1
+  intro n t1 T e h1
   exists t'
   constructor;
-  cases i <;> simp;
+  cases n <;> simp;
   case _ => simp at h1
-  case _  =>
   sorry
 assumption
 apply hs_judgment_ctx_wf .type j2

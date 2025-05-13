@@ -283,7 +283,7 @@ case _ Γ A B j1 vhv j2 ih1 ih2 =>
   apply e
   simp
 
-theorem weaken_compile_type :
+theorem weaken_compile_type f :
   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
   (j : Γ ⊢τ t : k) ->
   compile_type Γ t k j = .some t' ->
