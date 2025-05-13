@@ -2,8 +2,34 @@ import Hs.HsJudgment
 import Hs.HsTerm
 import Hs.Metatheory.FrameWf
 import Hs.Metatheory.Substitution
+import Hs.Metatheory.Classification
 import SystemFD.Term
 import SystemFD.Algorithm
+
+
+def infer_hs_kind {Γ : Ctx HsTerm} : (⊢s Γ) -> (k : HsTerm) -> Option (Γ ⊢κ k : `□)
+| wf, `★ => .some (.ax wf)
+| wf, (k1 `-k> k2) => do
+  let j1 <- infer_hs_kind wf k1
+  let j2 <- infer_hs_kind wf k2
+  .some (j1.arrowk j2)
+| _, _ => .none
+
+def infer_hs_type : {Γ : Ctx HsTerm} -> (⊢s Γ) -> (t : HsTerm) -> Option (Σ A , Γ ⊢τ t : A)
+| Γ, wf, .HsVar x => do
+  let u1 <- is_hs_type Γ (.HsVar x)
+  let k <- (Γ d@ x).get_type
+  have p : ((Γ d@ x).is_datatype || (Γ d@ x).is_kind) = true := by
+    sorry
+  have q : .some k = (Γ d@ x).get_type := by
+    generalize gt : (Γ d@ x).get_type = x at *;
+    cases x;
+    case _ => sorry
+    case _ => sorry
+  let kj <- infer_hs_kind wf k
+  .some ⟨k, .varTy wf p q kj⟩
+| _, _, _ => .none
+
 
 def extract_typing :
   Γ ⊢t t : τ ->

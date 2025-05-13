@@ -51,21 +51,21 @@ intro h j1 j2;
 apply kinds_have_unique_judgments_lemma h j2 j1 j2;
 
 
-@[simp]
-abbrev WellSortedKindInversion : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
-| .kind => λ Γ => λ (t, τ) => Γ ⊢κ t : τ -> τ = `□
-| _ => λ _ => λ _ => true
+-- @[simp]
+-- abbrev WellSortedKindInversion : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
+-- | .kind => λ Γ => λ (t, τ) => Γ ⊢κ t : τ -> τ = `□
+-- | _ => λ _ => λ _ => true
 
-theorem well_sorted_kind_inversion_lemma :
-  HsJudgment v Γ idx -> WellSortedKindInversion v Γ idx := by
-intro j;
-induction j <;> simp at *;
+-- theorem well_sorted_kind_inversion_lemma :
+--   HsJudgment v Γ idx -> WellSortedKindInversion v Γ idx := by
+-- intro j;
+-- induction j <;> simp at *;
 
-theorem well_sorted_kind_inversion :
-  Γ ⊢κ t : τ -> τ = `□ := by
-intro j;
-have lem := well_sorted_kind_inversion_lemma j;
-apply lem j;
+-- theorem well_sorted_kind_inversion :
+--   Γ ⊢κ t : τ -> τ = `□ := by
+-- intro j;
+-- have lem := well_sorted_kind_inversion_lemma j;
+-- apply lem j;
 ------------------------------------
 -- Judgments For Types
 ------------------------------------

@@ -7,8 +7,24 @@ import Hs.Metatheory.WeakenCompile
 import Hs.Metatheory.Substitution
 import Hs.Metatheory.UniquenessCompile
 import Hs.Algorithm
+import Hs.Metatheory.Classification
 
 set_option maxHeartbeats 1000000
+
+theorem compile_type_congr_exists :
+  (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
+  B = B' -> k = k' ->
+  (j' : Γ ⊢τ B' : k') ->
+  ∃ j, compile_type Γ B k j = compile_type Γ B' k' j' := by
+intro h beq keq j'
+cases j'
+all_goals (cases beq; cases keq)
+case _ j1 j2 =>  exists (j1.allt j2)
+case _ j1 j2 =>  exists (j1.arrow j2)
+case _ j1 j2 j3 =>  exists j1.farrow j2 j3
+case _ j1 j2 j3 j4 => exists (j3.appk j1 j2 j4)
+case _ j1 j2 j3 j4 => exists (j1.varTy j2 j3 j4)
+
 
 def subst_compile_kind : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
   (j : Γ ⊢κ t : k) ->
@@ -394,11 +410,10 @@ case _ =>
   case _ => simp at h1; assumption
 case _ =>
   intro n t1 T e h1
-  exists t'
-  constructor;
-  cases n <;> simp;
-  case _ => simp at h1
-  sorry
+  cases n <;> simp at *;
+  case _ =>
+    cases h1
+    sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -434,11 +449,11 @@ case _ =>
   case _ => simp at h1; assumption
 case _ =>
   intro n e T e h1
-  cases n <;> simp
+  cases n <;> simp at *
   case _ =>
-    simp at h1; cases h1;
+    cases h1; rw[<-cj2];
+    have h1 := infer_hs_type (hs_judgment_ctx_wf .type j2) t
     sorry
-  case _ => sorry
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -473,7 +488,10 @@ case _ =>
   cases n <;> simp
   case _ => simp at h1
   case _ => simp at h1; assumption
-case _ => sorry
+case _ =>
+  intro n t1 T e h1
+  cases n <;> simp at *
+  case _ => cases h1; sorry -- problematic
 assumption
 case _ => apply hs_judgment_ctx_wf .type j3
 
