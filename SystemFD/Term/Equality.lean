@@ -3,7 +3,6 @@ import SystemFD.Term.Definition
 namespace Ctor1Variant
   @[simp]
   def beq : Ctor1Variant -> Ctor1Variant -> Bool
-  | refl, refl => true
   | sym, sym => true
   | fst, fst => true
   | snd, snd => true
@@ -25,6 +24,7 @@ instance instLawfulBEq_Ctor1Variant : LawfulBEq Ctor1Variant where
 namespace Ctor2Variant
   @[simp]
   def beq : Ctor2Variant -> Ctor2Variant -> Bool
+  | refl, refl => true
   | arrowk, arrowk => true
   | appk, appk => true
   | appt, appt => true
@@ -33,7 +33,7 @@ namespace Ctor2Variant
   | seq, seq => true
   | appc, appc => true
   | apptc, apptc => true
-  | eq, eq => true
+  | choice, choice => true
   | _, _ => false
 end Ctor2Variant
 
@@ -78,7 +78,10 @@ namespace Term
   def beq : Term -> Term -> Bool
   | kind, kind => true
   | type, type => true
+  | zero, zero => true
   | var x, var y => x == y
+  | eq x1 x2 x3, eq y1 y2 y3 =>
+    beq x1 y1 && beq x2 y2 && beq x3 y3
   | ite x1 x2 x3 x4, ite y1 y2 y3 y4 =>
     beq x1 y1 && beq x2 y2 && beq x3 y3 && beq x4 y4
   | guard x1 x2 x3, guard y1 y2 y3 =>
@@ -119,6 +122,9 @@ namespace Term
     all_goals (simp at *)
   any_goals (cases b <;> simp at *)
   case _ => simp [*]
+  case _ ih1 ih2 ih3 _ _ _ =>
+    rw [ih1 h.1.1, ih2 h.1.2]
+    rw [ih3 h.2]; simp
   case _ ih1 ih2 ih3 ih4 _ _ _ _ =>
     rw [ih1 h.1.1.1, ih2 h.1.1.2]
     rw [ih3 h.1.2, ih4 h.2]; simp

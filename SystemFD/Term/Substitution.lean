@@ -188,11 +188,13 @@ namespace Term
     match f x with
     | .re y => var y
     | .su t => t
+  | zero => zero
   | kind => kind
   | type => type
   | ctor1 v t => ctor1 v (smap lf f t)
   | ctor2 v t1 t2 => ctor2 v (smap lf f t1) (smap lf f t2)
   | bind2 v t1 t2 => bind2 v (smap lf f t1) (smap lf (lf f) t2)
+  | eq t1 t2 t3 => eq (smap lf f t1) (smap lf f t2) (smap lf f t3)
   | ite t1 t2 t3 t4 => ite (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
   | guard t1 t2 t3 => guard (smap lf f t1) (smap lf f t2) (smap lf f t3)
   | letterm t1 t2 t3 => letterm (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
@@ -222,6 +224,12 @@ namespace Term
 
   @[simp]
   theorem subst_const : [σ]type = type := by unfold Subst.apply; simp
+
+  @[simp]
+  theorem subst_zero : [σ]zero = zero := by unfold Subst.apply; simp
+
+  @[simp]
+  theorem subst_eq : [σ]eq t1 t2 t3 = eq ([σ]t1) ([σ]t2) ([σ]t3) := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_ite : [σ]ite t1 t2 t3 t4 = ite ([σ]t1) ([σ]t2) ([σ]t3) ([σ]t4) := by unfold Subst.apply; simp

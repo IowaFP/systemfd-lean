@@ -236,40 +236,23 @@ case _ ih1 ih2 =>
   replace ih1 := ih1 h1 h2 h3 wf
   replace ih2 := ih2 h1 h2 h3 wf
   apply Judgment.seq ih1 ih2
-case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
+case _ ih1 ih2 =>
   simp at *
   replace ih1 := ih1 h1 h2 h3 wf
   replace ih2 := ih2 h1 h2 h3 wf
-  replace ih3 := ih3 h1 h2 h3 wf
-  replace ih4 := ih4 h1 h2 h3 wf
-  replace ih5 := ih5 h1 h2 h3 wf
-  replace ih6 := ih6 h1 h2 h3 wf
-  apply Judgment.appc ih1 ih2 ih3 ih4 ih5 ih6
-case _ A B _ _ _ _ _ _ _ _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 =>
+  apply Judgment.appc ih1 ih2
+case _ Γ t1 A B t2 C D j1 j2 ih1 ih2 =>
   simp at *
   replace ih1 := ih1 h1 h2 h3 wf
-  replace ih2 := ih2 h1 h2 h3 wf
-  replace ih3 := ih3 h1 h2 h3 wf
-  have lem1 : ⊢ ((Frame.empty).apply σ :: Δ) := by constructor; assumption;
-  replace ih4 := @ih4 (^σ) ((Frame.empty).apply σ :: Δ)
+  have lem2 : ⊢ ((Frame.empty).apply σ :: Δ) := by
+    constructor; apply judgment_ctx_wf ih1
+  replace ih2 := @ih2 (^σ) ((Frame.empty).apply σ :: Δ)
     (lift_subst_rename (Frame.empty) h1)
-    (lift_subst_replace (Frame.empty) lem1 h2)
+    (lift_subst_replace (Frame.empty) lem2 h2)
     (lift_subst_stable (Frame.empty) h3)
-    lem1
-  simp at ih4
-  replace ih5 := @ih5 (^σ) ((Frame.empty).apply σ :: Δ)
-    (lift_subst_rename (Frame.empty) h1)
-    (lift_subst_replace (Frame.empty) lem1 h2)
-    (lift_subst_stable (Frame.empty) h3)
-    lem1
-  simp at ih5
-  replace ih6 := @ih6 (^σ) ((Frame.empty).apply σ :: Δ)
-    (lift_subst_rename (Frame.empty) h1)
-    (lift_subst_replace (Frame.empty) lem1 h2)
-    (lift_subst_stable (Frame.empty) h3)
-    lem1
-  simp at ih6
-  apply Judgment.arrowc ih1 ih2 ih3 ih4 ih5 ih6
+    lem2
+  simp at ih2
+  apply Judgment.arrowc ih1 ih2
 case _ ih1 ih2 ih3 =>
   simp at *
   replace ih1 := ih1 h1 h2 h3 wf
@@ -283,28 +266,34 @@ case _ ih1 ih2 ih3 ih4 =>
   replace ih3 := ih3 h1 h2 h3 wf
   replace ih4 := ih4 h1 h2 h3 wf
   apply Judgment.snd ih1 ih2 ih3 ih4
-case _ Γ K A B t j1 j2 j3 ih1 ih2 ih3 =>
+case _ Γ K t A B j1 j2 ih1 ih2 =>
   simp at *
   replace ih1 := ih1 h1 h2 h3 wf
-  replace ih2 := ih2 h1 h2 h3 wf
   have lem2 : ⊢ ((Frame.kind K).apply σ :: Δ) := by
-    cases ih1; case _ ih1 _ =>
-      apply Judgment.wfkind ih1 wf
-  replace ih3 := @ih3 (^σ) ((Frame.kind K).apply σ :: Δ)
+    apply Judgment.wfkind ih1 wf
+  replace ih2 := @ih2 (^σ) ((Frame.kind K).apply σ :: Δ)
     (lift_subst_rename (Frame.kind K) h1)
     (lift_subst_replace (Frame.kind K) lem2 h2)
     (lift_subst_stable (Frame.kind K) h3)
     lem2
-  simp at ih3
-  apply Judgment.allc ih1 ih2 ih3
-case _ ih1 ih2 ih3 ih4 =>
+  simp at ih2
+  apply Judgment.allc ih1 ih2
+case _ j1 j2 j3 j4 ih1 ih2 =>
+  simp at *
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.apptc ih1 ih2
+  simp [*]; simp [*]
+case empty ih =>
+  simp at *
+  replace ih := ih h1 h2 h3 wf
+  apply Judgment.empty ih
+case choice ih1 ih2 ih3 =>
   simp at *
   replace ih1 := ih1 h1 h2 h3 wf
   replace ih2 := ih2 h1 h2 h3 wf
   replace ih3 := ih3 h1 h2 h3 wf
-  replace ih4 := ih4 h1 h2 h3 wf
-  apply Judgment.apptc ih1 ih2 ih3 ih4
-  simp [*]; simp [*]
+  apply Judgment.choice ih1 ih2 ih3
 
 theorem beta_empty t :
   (.empty::Γ) ⊢ b : B ->

@@ -127,20 +127,13 @@ case _ ih =>
   constructor; apply ih r wf h
 case _ ih1 ih2 =>
   constructor; apply ih1 r wf h; apply ih2 r wf h
-case _ ih1 ih2 ih3 ih4 ih5 ih6 =>
-  constructor; apply ih3 r wf h; apply ih4 r wf h
-  apply ih5 r wf h; apply ih1 r wf h
-  apply ih2 r wf h; apply ih6 r wf h
-case _ A B _ _ _ _ ih ih' _ _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 =>
-  have lem1 : ⊢ (Frame.empty :: Δ) := by constructor; assumption
-  replace ih4 := @ih4 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r (Frame.empty) h)
-  rw [Subst.lift_lemma] at ih4; simp at ih4;
-  replace ih5 := @ih5 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r (Frame.empty) h)
-  rw [Subst.lift_lemma] at ih5; simp at ih5;
-  replace ih6 := @ih6 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r .empty h)
-  rw [Subst.lift_lemma] at ih6; simp at ih6
+case _ ih1 ih2 =>
   constructor; apply ih1 r wf h; apply ih2 r wf h
-  apply ih3 r wf h; apply ih4; apply ih5; apply ih6
+case _ ih1 ih2 =>
+  have lem1 : ⊢ (Frame.empty :: Δ) := by constructor; assumption
+  replace ih2 := @ih2 (Frame.empty :: Δ) (Ren.lift r) lem1 (rename_lift r (Frame.empty) h)
+  rw [Subst.lift_lemma] at ih2; simp at ih2
+  constructor; apply ih1 r wf h; apply ih2
 case _ ih1 ih2 ih3 =>
   constructor; apply ih1 r wf h
   apply ih2 r wf h; apply ih3 r wf h
@@ -148,19 +141,23 @@ case _ ih1 ih2 ih3 ih4 =>
   constructor; apply ih3 r wf h
   apply ih1 r wf h; apply ih2 r wf h
   apply ih4 r wf h
-case _ A B t j1 j2 j3 j4 ih1 ih2 ih3 =>
-  replace ih1 := ih1 r wf h
-  have lem1 : ⊢ (.kind ([r.to]A) :: Δ) := by
-    cases ih1; case _ ih1 _ =>
-      constructor; apply ih1; apply wf
-  replace ih3 := @ih3 (.kind ([r.to]A) :: Δ) (Ren.lift r) lem1 (rename_lift r (.kind A) h)
-  rw [Subst.lift_lemma] at ih3; simp at ih3
-  constructor; apply ih1
-  apply ih2 r wf h; apply ih3
-case _ ih1 ih2 ih3 ih4 =>
+case _ K t A B j1 j2 ih1 ih2 =>
+  have lem1 := ih1 r wf h
+  have lem2 : ⊢ (.kind ([r.to]K) :: Δ) := by
+    constructor; apply lem1; apply wf
+  replace ih2 := @ih2 (.kind ([r.to]K) :: Δ) (Ren.lift r) lem2 (rename_lift r (.kind K) h)
+  rw [Subst.lift_lemma] at ih2; simp at ih2
+  constructor; apply lem1; apply ih2
+case _ j1 j2 ih1 ih2 =>
+  constructor; apply ih1 r wf h
+  apply ih2 r wf h
+  subst j1; simp
+  subst j2; simp
+case _ ih =>
+  constructor; apply ih r wf h
+case _ ih1 ih2 ih3 =>
   constructor; apply ih3 r wf h
   apply ih1 r wf h; apply ih2 r wf h
-  apply ih4 r wf h; simp [*]; simp [*]
 
 theorem weaken :
   ⊢ (f :: Γ) ->

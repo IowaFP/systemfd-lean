@@ -226,6 +226,15 @@ namespace Frame
   unfold Frame.apply; unfold Frame.get_type
   cases f <;> simp
 
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem get_type_apply_eq_destruct {f : Frame T}
+    : some A = (f.apply σ).get_type -> ∃ A', A = [σ]A' ∧ some A' = f.get_type
+  := by
+  intro h; unfold Frame.apply at h; unfold Frame.get_type at h
+  cases f <;> simp at h
+  case term _ B t => exists B
+  all_goals (case _ A => exists A)
+
   @[simp]
   def beq [BEq T] : Frame T -> Frame T -> Bool
   | empty, empty => true

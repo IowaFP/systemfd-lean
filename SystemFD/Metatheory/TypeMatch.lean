@@ -1,7 +1,22 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
-import SystemFD.Metatheory.Uniqueness
+
+theorem no_valid_head_variable_with_all :
+  ¬ ValidHeadVariable (∀[A]B) test
+:= by
+intro h; unfold ValidHeadVariable at h
+cases h; case _ x h =>
+cases h; case _ h1 h2 =>
+  simp at h1
+
+theorem no_valid_head_variable_with_arrow :
+  ¬ ValidHeadVariable (A -t> B) test
+:= by
+intro h; unfold ValidHeadVariable at h
+cases h; case _ x h =>
+cases h; case _ h1 h2 =>
+  simp at h1
 
 -- theorem lift_subst_tx (σ : Subst HsTerm) (σ' : Subst Term) :
 --   (∀ n y, σ n = .re y -> (σ' n = .re y)) ->

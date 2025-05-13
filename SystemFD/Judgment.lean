@@ -73,11 +73,11 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .wf Γ () ->
   Judgment .wf (.type A::Γ) ()
 | wfkind :
-  Judgment .prf Γ (A, .kind) ->
+  Judgment .prf Γ (A, □) ->
   Judgment .wf Γ () ->
   Judgment .wf (.kind A::Γ) ()
 | wfdatatype :
-  Judgment .prf Γ (A, .kind) ->
+  Judgment .prf Γ (A, □) ->
   Judgment .wf Γ () ->
   Judgment .wf (.datatype A::Γ) ()
 | wfctor :
@@ -86,7 +86,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   ValidCtorType Γ A ->
   Judgment .wf (.ctor A::Γ) ()
 | wfopent :
-  Judgment .prf Γ (A, .kind) ->
+  Judgment .prf Γ (A, □) ->
   Judgment .wf Γ () ->
   Judgment .wf (.opent A::Γ) ()
 | wfopenm :
@@ -122,17 +122,17 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 --------------------------------------------------------------------------------------
 | ax :
   Judgment .wf Γ () ->
-  Judgment .prf Γ (★, .kind)
+  Judgment .prf Γ (★, □)
 | var :
   Judgment .wf Γ () ->
   .some T = Frame.get_type (Γ d@ x) ->
   Judgment .prf Γ (#x, T)
 | allk :
-  Judgment .prf Γ (A, .kind) ->
-  Judgment .prf Γ (B, .kind) ->
-  Judgment .prf Γ (A -k> B, .kind)
+  Judgment .prf Γ (A, □) ->
+  Judgment .prf Γ (B, □) ->
+  Judgment .prf Γ (A -k> B, □)
 | allt :
-  Judgment .prf Γ (A, .kind) ->
+  Judgment .prf Γ (A, □) ->
   Judgment .prf (.kind A::Γ) (B, ★) ->
   Judgment .prf Γ (∀[A] B, ★)
 | arrow :
@@ -144,10 +144,10 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (a, A) ->
   Judgment .prf Γ (f `@k a, B)
 | eq :
-  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (K, □) ->
   Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (B, K) ->
-  Judgment .prf Γ (A ~ B, ★)
+  Judgment .prf Γ (A ~[K]~ B, ★)
 --------------------------------------------------------------------------------------
 ---- Datatype case expressions
 --------------------------------------------------------------------------------------
@@ -191,7 +191,7 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   B' = B β[a] ->
   Judgment .prf Γ (f `@ a, B')
 | lamt :
-  Judgment .prf Γ (A, .kind) ->
+  Judgment .prf Γ (A, □) ->
   Judgment .prf (.kind A::Γ) (t, B) ->
   Judgment .prf Γ (∀[A] B, ★) ->
   Judgment .prf Γ (Λ[A] t, ∀[A] B)
@@ -202,62 +202,74 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (f `@t a, B')
 | cast :
   Judgment .prf Γ (t, A) ->
-  Judgment .prf Γ (c, A ~ B) ->
+  Judgment .prf Γ (c, A ~[K]~ B) ->
   Judgment .prf Γ (t ▹ c, B)
 --------------------------------------------------------------------------------------
 ---- Coercions
 --------------------------------------------------------------------------------------
 | refl :
-  Judgment .prf Γ (K, .kind) ->
+  Judgment .prf Γ (K, □) ->
   Judgment .prf Γ (A, K) ->
-  Judgment .prf Γ (refl! A, A ~ A)
+  Judgment .prf Γ (refl! K A, A ~[K]~ A)
 | sym :
-  Judgment .prf Γ (t, A ~ B) ->
-  Judgment .prf Γ (sym! t, B ~ A)
+  Judgment .prf Γ (t, A ~[K]~ B) ->
+  Judgment .prf Γ (sym! t, B ~[K]~ A)
 | seq :
-  Judgment .prf Γ (t1, A ~ B) ->
-  Judgment .prf Γ (t2, B ~ C) ->
-  Judgment .prf Γ (t1 `; t2, A ~ C)
+  Judgment .prf Γ (t1, A ~[K]~ B) ->
+  Judgment .prf Γ (t2, B ~[K]~ C) ->
+  Judgment .prf Γ (t1 `; t2, A ~[K]~ C)
 | appc :
-  Judgment .prf Γ (A, K1 -k> K2) ->
-  Judgment .prf Γ (B, K1 -k> K2) ->
-  Judgment .prf Γ (t1, A ~ B) ->
-  Judgment .prf Γ (C, K1) ->
-  Judgment .prf Γ (D, K1) ->
-  Judgment .prf Γ (t2, C ~ D) ->
-  Judgment .prf Γ (t1 `@c t2, (A `@k C) ~ (B `@k D))
+  -- Judgment .prf Γ (A, K1 -k> K2) ->
+  -- Judgment .prf Γ (B, K1 -k> K2) ->
+  Judgment .prf Γ (t1, A ~[K1 -k> K2]~ B) ->
+  -- Judgment .prf Γ (C, K1) ->
+  -- Judgment .prf Γ (D, K1) ->
+  Judgment .prf Γ (t2, C ~[K1]~ D) ->
+  Judgment .prf Γ (t1 `@c t2, (A `@k C) ~[K2]~ (B `@k D))
 | arrowc :
-  Judgment .prf Γ (A, ★) ->
-  Judgment .prf Γ (B, ★) ->
-  Judgment .prf Γ (t1, A ~ B) ->
-  Judgment .prf (.empty::Γ) (C, ★) ->
-  Judgment .prf (.empty::Γ) (D, ★) ->
-  Judgment .prf (.empty::Γ) (t2, C ~ D) ->
-  Judgment .prf Γ (t1 -c> t2, (A -t> C) ~ (B -t> D))
+  -- Judgment .prf Γ (A, ★) ->
+  -- Judgment .prf Γ (B, ★) ->
+  Judgment .prf Γ (t1, A ~[★]~ B) ->
+  -- Judgment .prf (.empty::Γ) (C, ★) ->
+  -- Judgment .prf (.empty::Γ) (D, ★) ->
+  Judgment .prf (.empty::Γ) (t2, C ~[★]~ D) ->
+  Judgment .prf Γ (t1 -c> t2, (A -t> C) ~[★]~ (B -t> D))
 | fst :
   Judgment .prf Γ (A, K1 -k> K2) ->
   Judgment .prf Γ (B, K1 -k> K2) ->
-  Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
-  Judgment .prf Γ (t.!1, A ~ B)
+  Judgment .prf Γ (t, (A `@k C) ~[K2]~ (B `@k D)) ->
+  Judgment .prf Γ (t.!1, A ~[K1 -k> K2]~ B)
 | snd :
-  Judgment .prf Γ (K, .kind) ->
-  Judgment .prf Γ (C, K) ->
-  Judgment .prf Γ (D, K) ->
-  Judgment .prf Γ (t, (A `@k C) ~ (B `@k D)) ->
-  Judgment .prf Γ (t.!2, C ~ D)
+  Judgment .prf Γ (K1, □) ->
+  Judgment .prf Γ (C, K1) ->
+  Judgment .prf Γ (D, K1) ->
+  Judgment .prf Γ (t, (A `@k C) ~[K2]~ (B `@k D)) ->
+  Judgment .prf Γ (t.!2, C ~[K1]~ D)
 | allc :
-  Judgment .prf Γ (∀[K] A, ★) ->
-  Judgment .prf Γ (∀[K] B, ★) ->
-  Judgment .prf (.kind K :: Γ) (t, A ~ B) ->
-  Judgment .prf Γ (∀c[K] t, (∀[K] A) ~ (∀[K] B))
+  -- Judgment .prf Γ (∀[K] A, ★) ->
+  -- Judgment .prf Γ (∀[K] B, ★) ->
+  Judgment .prf Γ (K, □) -> -- This could be dropped if strengthening is provable with weakening/substitution
+  Judgment .prf (.kind K :: Γ) (t, A ~[★]~ B) ->
+  Judgment .prf Γ (∀c[K] t, (∀[K] A) ~[★]~ (∀[K] B))
 | apptc :
-  Judgment .prf Γ (t1, (∀[K] A) ~ (∀[K] B)) ->
-  Judgment .prf Γ (C, K) ->
-  Judgment .prf Γ (D, K) ->
-  Judgment .prf Γ (t2, C ~ D) ->
+  Judgment .prf Γ (t1, (∀[K] A) ~[★]~ (∀[K] B)) ->
+  -- Judgment .prf Γ (C, K) ->
+  -- Judgment .prf Γ (D, K) ->
+  Judgment .prf Γ (t2, C ~[K]~ D) ->
   A' = A β[C] ->
   B' = B β[D] ->
-  Judgment .prf Γ (t1 `@c[ t2 ], A' ~ B')
+  Judgment .prf Γ (t1 `@c[ t2 ], A' ~[★]~ B')
+--------------------------------------------------------------------------------------
+---- Non-determinism
+--------------------------------------------------------------------------------------
+| empty :
+  Judgment .prf Γ (A, ★) ->
+  Judgment .prf Γ (`0, A)
+| choice :
+  Judgment .prf Γ (A, ★) ->
+  Judgment .prf Γ (t1, A) ->
+  Judgment .prf Γ (t2, A) ->
+  Judgment .prf Γ (t1 ⊕ t2, A)
 
 notation:170 Γ:170 " ⊢ " t:170 " : " A:170 => Judgment JudgmentVariant.prf Γ (t, A)
 notation:170 "⊢ " Γ:170 => Judgment JudgmentVariant.wf Γ ()
@@ -330,33 +342,6 @@ inductive SpineType : Ctx Term -> Term -> Term -> Prop where
   SpineType Γ (B β[a]) T ->
   SpineType Γ (∀[A] B) T
 | arrowk :
-  Γ ⊢ (A -k> B) : .kind ->
+  Γ ⊢ (A -k> B) : □ ->
   SpineType Γ B T ->
   SpineType Γ (A -k> B) T
-
-inductive ListJudgment : Ctx Term -> List Term -> Term -> Prop where
-| nil : ListJudgment Γ [] A
-| cons :
-  Γ ⊢ h : A ->
-  ListJudgment Γ tl A ->
-  ListJudgment Γ (h :: tl) A
-
-theorem list_judgment_by_elems : (∀ t, t ∈ ℓ -> Γ ⊢ t : A) -> ListJudgment Γ ℓ A := by
-intro h
-induction ℓ
-case nil => constructor
-case cons hd tl ih =>
-  constructor
-  apply h hd; simp
-  have lem : ∀ t, t ∈ tl -> Γ ⊢ t : A := by
-    intro t tin
-    apply h t; simp; apply Or.inr tin
-  apply ih lem
-
-theorem list_judgment_append : ListJudgment Γ ℓ1 A -> ListJudgment Γ ℓ2 A -> ListJudgment Γ (ℓ1 ++ ℓ2) A := by
-intro j1 j2
-induction j1 generalizing ℓ2
-case nil => simp; apply j2
-case cons hd A tl h1 h2 ih =>
-  constructor; apply h1
-  apply ih j2

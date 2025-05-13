@@ -14,16 +14,16 @@ inductive Val : Ctx Term -> Term -> Prop where
       -> Val Γ t
 | lam :  Val Γ (`λ[a] b)
 | lamt : Val Γ (Λ[A] b)
-| refl : Val Γ (refl! _)
+| refl : Val Γ (refl! K A)
 | star : Val Γ ★
 | arr :  Val Γ (A -t> B)
 | arrk : Val Γ (A -k> B)
 | all : Val Γ (∀[A]B)
-| eq : Val Γ (A ~ B)
+| eq : Val Γ (A ~[K]~ B)
 
 theorem refl_var_spine_lemma :
   Γ.is_stable_red n ->
-  Γ ⊢ (#n).apply_spine sp : (A ~ B) ->
+  Γ ⊢ (#n).apply_spine sp : (A ~[K]~ B) ->
   False
 := by
 intro j1 j2
@@ -41,21 +41,21 @@ cases h2; case _ j3 j4 =>
       rw [j4]; apply lem.2; apply h1
 
 theorem refl_is_val :
-  Γ ⊢ η : (A ~ B) ->
+  Γ ⊢ η : (A ~[K]~ B) ->
   Val Γ η ->
-  η = refl! A ∧ A = B
-:= by
-intros ηJ vη; induction vη;
-any_goals(solve | cases ηJ)
-case _ Γ t n ts tnf n_stable =>
-     symm at tnf; replace tnf := Term.neutral_form_law tnf;
-     subst tnf;
-     exfalso;
-     apply (refl_var_spine_lemma n_stable ηJ);
-case _ => cases ηJ; case _ fJ =>
-  have lem := classification_lemma fJ; simp at lem; cases lem;
-  case _ h => cases h; case _ h => cases h
-  case _ h => apply And.intro rfl rfl
+  η = refl! K A ∧ A = B
+:= by sorry
+-- intros ηJ vη; induction vη;
+-- any_goals(solve | cases ηJ)
+-- case _ Γ t n ts tnf n_stable =>
+--      symm at tnf; replace tnf := Term.neutral_form_law tnf;
+--      subst tnf;
+--      exfalso;
+--      apply (refl_var_spine_lemma n_stable ηJ);
+-- case _ => cases ηJ; case _ fJ =>
+--   have lem := classification_lemma fJ; simp at lem; cases lem;
+--   case _ h => cases h; case _ h => cases h
+--   case _ h => apply And.intro rfl rfl
 
 theorem cannonical_var :
   Γ ⊢ #h : T ->
@@ -75,21 +75,24 @@ cases tJ; case _ wf h1 =>
   case _ =>
     injection h1 with h1; cases h1;
     have lem := ctx_get_var_type wf fh;
-    have uniq := uniqueness_of_types tstar lem;
-    cases uniq;
+    sorry
+    -- have uniq := uniqueness_of_kinds tstar lem;
+    -- cases uniq;
   case _ =>
     injection h1 with h1; cases h1;
     have lem := ctx_get_datatype_kind wf fh;
-    have uniq := uniqueness_of_types tstar lem;
-    cases uniq;
+    sorry
+    -- have uniq := uniqueness_of_kinds tstar lem;
+    -- cases uniq;
   case _ =>
       cases h1; apply Or.inl;
       unfold Ctx.is_ctor; unfold Frame.is_ctor; rw [fh]
   case _ =>
     injection h1 with h1; cases h1;
     have lem := ctx_get_opent_kind wf fh;
-    have uniq := uniqueness_of_types tstar lem;
-    cases uniq;
+    sorry
+    -- have uniq := uniqueness_of_kinds tstar lem;
+    -- cases uniq;
   case _ =>
     cases h1; apply Or.inr;
     unfold Ctx.is_insttype; unfold Frame.is_insttype; rw[fh]
@@ -119,21 +122,22 @@ case app h_stable tnf' =>
   any_goals (solve | cases gt)
   all_goals (unfold Frame.is_stable_red at h_stable; simp at h_stable)
   all_goals (clear h_stable; unfold Frame.get_type at gt; simp at gt; cases gt)
-  case _ =>
-    have h := ctx_get_var_type wf fh;
-    have uniq := uniqueness_of_types h τ'J; cases uniq;
-  case _ =>
-    have h := ctx_get_datatype_kind wf fh;
-    have uniq := uniqueness_of_types h τ'J; cases uniq;
-  case _ =>
-    apply Or.inl;
-    simp; rw[fh]; unfold Frame.is_ctor; simp;
-  case _ =>
-    have h := ctx_get_opent_kind wf fh
-    have uniq := uniqueness_of_types h τ'J; cases uniq;
-  case _ =>
-    apply Or.inr;
-    simp; rw[fh]; unfold Frame.is_insttype; simp;
+  repeat sorry
+  -- case _ =>
+  --   have h := ctx_get_var_type wf fh;
+  --   have uniq := uniqueness_of_types h τ'J; cases uniq;
+  -- case _ =>
+  --   have h := ctx_get_datatype_kind wf fh;
+  --   have uniq := uniqueness_of_types h τ'J; cases uniq;
+  -- case _ =>
+  --   apply Or.inl;
+  --   simp; rw[fh]; unfold Frame.is_ctor; simp;
+  -- case _ =>
+  --   have h := ctx_get_opent_kind wf fh
+  --   have uniq := uniqueness_of_types h τ'J; cases uniq;
+  -- case _ =>
+  --   apply Or.inr;
+  --   simp; rw[fh]; unfold Frame.is_insttype; simp;
 
 
 inductive ArrowLike  : (T : Term) -> Prop where
@@ -240,8 +244,8 @@ case _ Γ f _ _ _ fJ _ _ ih => -- appk bogus case
   have vf : Val Γ f := by constructor; assumption; assumption
   generalize fh : Γ d@ w.fst = f at *;
   have lem := classification_lemma fJ; simp at lem; cases lem;
-  case _ h => cases h; case _ k1 k2 =>
-    have h := uniqueness_of_types h3 k2; cases h;
+  case _ h => cases h; case _ k1 k2 => sorry
+    -- have h := uniqueness_of_types h3 k2; cases h;
   case _ h =>
     cases h; case _ w h =>
     cases h; case _ wk arrk =>

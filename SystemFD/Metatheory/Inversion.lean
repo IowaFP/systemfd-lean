@@ -8,7 +8,7 @@ import SystemFD.Metatheory.Classification
 
 set_option maxHeartbeats 500000
 
-theorem invert_eq_kind : Γ ⊢ (A ~ B) : w -> w = ★ := by
+theorem invert_eq_kind : Γ ⊢ (A ~[K]~ B) : w -> w = ★ := by
 intros eqJ; cases eqJ; simp_all;
 
 theorem invert_arr_kind : Γ ⊢ (A -t> B) : w -> w = ★ := by
@@ -26,7 +26,7 @@ intros tJ; cases tJ; simp_all;
 theorem lam_typing_unique : Γ ⊢ `λ[A]b : t -> ∃ B', (t = (A -t> B')) := by
 intros tJ; cases tJ; simp_all;
 
-theorem refl_typing_unique : Γ ⊢ refl! A : t -> (t = (A ~ A)) := by
+theorem refl_typing_unique : Γ ⊢ refl! K A : t -> (t = (A ~[K]~ A)) := by
 intros tJ; cases tJ; simp_all;
 
 
@@ -107,48 +107,48 @@ theorem apply_spine_uniform :
   Γ ⊢ b : A ->
   Γ ⊢ a.apply_spine sp : B ->
   Γ ⊢ b.apply_spine sp : B
-:= by
-intro j1 j2 j3
-induction sp generalizing Γ a b A B <;> simp at *
-case _ =>
-  have lem := uniqueness_of_types j1 j3; subst lem
-  apply j2
-case _ hd tl ih =>
-  cases hd; case _ v t =>
-  cases v <;> simp at *
-  case _ =>
-    have lem := inversion_apply_spine j3
-    cases lem; case _ D lem =>
-    cases lem; case _ lem =>
-    cases lem; case _ U V q1 q2 q3 =>
-      have lem1 := uniqueness_of_types j1 q1; subst lem1
-      have lem2 : Γ ⊢ (a `@ t) : (V β[t]) := by
-        constructor; apply q1; apply q2; simp
-      have lem3 : Γ ⊢ (b `@ t) : (V β[t]) := by
-        constructor; apply j2; apply q2; simp
-      apply ih lem2 lem3 j3
-  case _ =>
-    have lem := inversion_apply_spine j3
-    cases lem; case _ D lem =>
-    cases lem; case _ lem =>
-    cases lem; case _ U V q1 q2 q3 =>
-      have lem1 := uniqueness_of_types j1 q1; subst lem1
-      have lem2 : Γ ⊢ (a `@t t) : (V β[t]) := by
-        constructor; apply q1; apply q2; simp
-      have lem3 : Γ ⊢ (b `@t t) : (V β[t]) := by
-        constructor; apply j2; apply q2; simp
-      apply ih lem2 lem3 j3
-  case _ =>
-    have lem := inversion_apply_spine j3
-    cases lem; case _ D lem =>
-    cases lem; case _ lem =>
-    cases lem; case _ U q1 q2 =>
-      have lem1 := uniqueness_of_types j1 q2; subst lem1
-      have lem2 : Γ ⊢ (a `@k t) : D := by
-        constructor; apply q2; apply q1
-      have lem3 : Γ ⊢ (b `@k t) : D := by
-        constructor; apply j2; apply q1
-      apply ih lem2 lem3 j3
+:= by sorry
+-- intro j1 j2 j3
+-- induction sp generalizing Γ a b A B <;> simp at *
+-- case _ =>
+--   have lem := uniqueness_of_kinds j1 j3; subst lem
+--   apply j2
+-- case _ hd tl ih =>
+--   cases hd; case _ v t =>
+--   cases v <;> simp at *
+--   case _ =>
+--     have lem := inversion_apply_spine j3
+--     cases lem; case _ D lem =>
+--     cases lem; case _ lem =>
+--     cases lem; case _ U V q1 q2 q3 =>
+--       have lem1 := uniqueness_of_kinds j1 q1; subst lem1
+--       have lem2 : Γ ⊢ (a `@ t) : (V β[t]) := by
+--         constructor; apply q1; apply q2; simp
+--       have lem3 : Γ ⊢ (b `@ t) : (V β[t]) := by
+--         constructor; apply j2; apply q2; simp
+--       apply ih lem2 lem3 j3
+--   case _ =>
+--     have lem := inversion_apply_spine j3
+--     cases lem; case _ D lem =>
+--     cases lem; case _ lem =>
+--     cases lem; case _ U V q1 q2 q3 =>
+--       have lem1 := uniqueness_of_kinds j1 q1; subst lem1
+--       have lem2 : Γ ⊢ (a `@t t) : (V β[t]) := by
+--         constructor; apply q1; apply q2; simp
+--       have lem3 : Γ ⊢ (b `@t t) : (V β[t]) := by
+--         constructor; apply j2; apply q2; simp
+--       apply ih lem2 lem3 j3
+--   case _ =>
+--     have lem := inversion_apply_spine j3
+--     cases lem; case _ D lem =>
+--     cases lem; case _ lem =>
+--     cases lem; case _ U q1 q2 =>
+--       have lem1 := uniqueness_of_kinds j1 q2; subst lem1
+--       have lem2 : Γ ⊢ (a `@k t) : D := by
+--         constructor; apply q2; apply q1
+--       have lem3 : Γ ⊢ (b `@k t) : D := by
+--         constructor; apply j2; apply q1
+--       apply ih lem2 lem3 j3
 
 theorem ctx_get_term_well_typed :
   ⊢ Γ ->
@@ -231,7 +231,7 @@ case _ => assumption
 theorem ctx_get_var_no_eq_type :
   ⊢ Γ ->
   Γ.is_stable_red x ->
-  ¬ (Γ d@ x).get_type = .some (A ~ B)
+  ¬ (Γ d@ x).get_type = .some (A ~[K]~ B)
 := by
 intro h1 h2 h3
 have lem1 := frame_wf_by_index x h1
@@ -264,7 +264,10 @@ case _ => assumption
 case _ => assumption
 case _ h _ ih =>
   replace ih := ih τJ;
-  cases h; case _ bj => have uniq := uniqueness_of_types ih bj; cases uniq
+  cases h; case _ bj =>
+    have lem1 := kind_shape bj rfl
+    have lem2 := type_shape ih (by constructor)
+    exfalso; apply Term.is_kind_disjoint_is_type lem1 lem2
 
 theorem spine_type_is_not_kind :
   SpineType Γ A T ->
@@ -273,14 +276,16 @@ theorem spine_type_is_not_kind :
   False
 := by
 intro h1 h2 h3
-have h4 := spine_type_is_type h2 h1;
-have uniq := uniqueness_of_types h3 h4; cases uniq
+have h4 := spine_type_is_type h2 h1
+have lem1 := kind_shape h3 rfl
+have lem2 := type_shape h4 (by constructor)
+exfalso; apply Term.is_kind_disjoint_is_type lem1 lem2
 
 theorem valid_ctor_not_equality :
-  ¬ (ValidCtorType Γ (A ~ B))
+  ¬ (ValidCtorType Γ (A ~[K]~ B))
 := by
 intro h
-generalize Tdef : (A ~ B) = T at *
+generalize Tdef : (A ~[K]~ B) = T at *
 induction h generalizing A B
 case _ j =>
   unfold ValidHeadVariable at j; subst Tdef
@@ -289,7 +294,7 @@ case _ j ih => injection Tdef
 case _ => injection Tdef
 
 theorem spine_type_is_not_valid_ctor :
-  T = (C ~ D) ->
+  T = (C ~[K]~ D) ->
   SpineType Γ A T ->
   ValidCtorType Γ A ->
   False
@@ -335,10 +340,10 @@ case _ B T A j ih =>
     unfold ValidHeadVariable at h; simp at *
 
 theorem valid_insttype_not_equality :
-  ¬ (ValidInstType Γ (A ~ B))
+  ¬ (ValidInstType Γ (A ~[K]~ B))
 := by
 intro h
-generalize Tdef : (A ~ B) = T at *
+generalize Tdef : (A ~[K]~ B) = T at *
 induction h generalizing A B
 case _ j =>
   unfold ValidHeadVariable at j; subst Tdef
@@ -347,7 +352,7 @@ case _ j ih => injection Tdef
 case _ => injection Tdef
 
 theorem spine_type_is_not_valid_insttype :
-  T = (C ~ D) ->
+  T = (C ~[K]~ D) ->
   SpineType Γ A T ->
   ValidInstType Γ A ->
   False
@@ -396,8 +401,8 @@ theorem ctx_get_var_no_spine_eq_type:
   ⊢ Γ ->
   Γ.is_stable_red x ->
   (Γ d@ x).get_type = some T ->
-  Γ ⊢ (A ~ B) : ★ ->
-  SpineType Γ T (A ~ B) ->
+  Γ ⊢ (A ~[K]~ B) : ★ ->
+  SpineType Γ T (A ~[K]~ B) ->
   False
 := by
 intro h1 h2 h3 h4 h5
