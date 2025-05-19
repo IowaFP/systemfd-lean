@@ -11,21 +11,6 @@ import Hs.Metatheory.Classification
 
 set_option maxHeartbeats 1000000
 
-theorem compile_type_congr_exists :
-  (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
-  B = B' -> k = k' ->
-  (j' : Γ ⊢τ B' : k') ->
-  ∃ j, compile_type Γ B k j = compile_type Γ B' k' j' := by
-intro h beq keq j'
-cases j'
-all_goals (cases beq; cases keq)
-case _ j1 j2 =>  exists (j1.allt j2)
-case _ j1 j2 =>  exists (j1.arrow j2)
-case _ j1 j2 j3 =>  exists j1.farrow j2 j3
-case _ j1 j2 j3 j4 => exists (j3.appk j1 j2 j4)
-case _ j1 j2 j3 j4 => exists (j1.varTy j2 j3 j4)
-
-
 def subst_compile_kind : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
   (j : Γ ⊢κ t : k) ->
   compile_kind Γ t k j = .some t' ->
@@ -82,22 +67,27 @@ case _ n =>
 def hs_lift_subst_compile_subst (f : Frame HsTerm) (σ : Subst HsTerm) (σ' : Subst Term):
   ⊢s (f.apply σ :: Δ) ->
  (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
+
+ -- (∀ n T, .some T = (Γ d@ n).get_type) ->
+
+ (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
+
   (∀ i t T,
     (∀ σ, [σ] T = T) ->
     σ i = .su t ->
+    -- .some T = (Γ d@ n).get_type ->
   ∃ (wt : Term),
      σ' i = .su wt ∧
-  ∃ (j : Δ ⊢τ t : T),
-     compile_type Δ t T j = .some wt
+  ∀ (j : Δ ⊢τ t : T), compile_type Δ t T j = .some wt
   ) ->
   (∀ i t T,
      (∀ σ, [σ] T = T) ->
      ^σ i = .su t ->
+     -- .some T = ((f :: Γ) d@ n).get_type ->
   ∃ (wt : Term),
      ^σ' i = .su wt ∧
-  ∃ (j : (f.apply σ :: Δ) ⊢τ t : T),
-     compile_type (f.apply σ :: Δ) t T j = .some wt) := by
-intro wf h1 h2 n t T e h3
+  ∀ (j : (f.apply σ :: Δ) ⊢τ t : T), compile_type (f.apply σ :: Δ) t T j = .some wt) := by
+intro wf h1 f1 h2 n t T e h3
 cases n <;> simp at *
 case _ n =>
 generalize zdef : σ n = y at *;
@@ -107,21 +97,23 @@ case _ a =>
  replace h2 := h2 n a T e zdef
  cases h2; case _ wt h2 =>
  cases h2; case _ zdef' h2 =>
- cases h2; case _ j cj =>
+ have lem : Δ ⊢τ a : ([σ]T) := f1 n a T zdef sorry
+ rw[e] at lem;
+ replace h2 := h2 lem
  cases h3;
- generalize sjh : hs_weaken_type wf j = sj at *;
- have sj' := sj;
  exists [S]wt;
  constructor;
- unfold Subst.compose; simp; rw[zdef']; rw[e] at sj;
- exists sj;
+ case _ => unfold Subst.compose; simp; rw[zdef'];
+ case _ =>
  have lem1 := hs_frame_wf (f.apply σ) wf
- have lem := @weaken_compile_type Δ a T wt (f.apply σ) h1 j cj lem1 sj'
- rw[<-lem]
- apply compile_type_congr h1
- simp;
+ intro sj;
+ have sj' := sj
+ rw[<-e S] at sj';
+ have lem2 : compile_type (f.apply σ :: Δ) ([S]a) ([S]T) sj' = some ([S]wt) := by
+   apply @weaken_compile_type Δ a T wt (f.apply σ) h1 lem h2 lem1
+ rw [<-lem2];
+ apply compile_type_congr h1 rfl
  rw[e]
-
 
 def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : Subst Term} ->
   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
@@ -135,13 +127,13 @@ def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : S
   (∀ n y, σ n = .re y -> σ' n = .re y) ->
 
   (∀ i t T,
-    (∀ σ, [σ] T = T) ->
+    (∀ σ, [σ] T = T) -> -- don't technically need this but makes my life easier for now
      σ i = .su t ->
+     -- .some T = (Γ d@ i).get_type ->
   ∃ (wt : Term),
      σ' i = .su wt ∧
-  ∃ (j : Δ ⊢τ t : T),
-     compile_type Δ t T j = .some wt
-  ) ->
+  ∀ (j : Δ ⊢τ t : T),
+     compile_type Δ t T j = .some wt) ->
 
   (j : Γ ⊢τ t : k) ->
   compile_type Γ t k j = .some t' ->
@@ -194,11 +186,11 @@ case _ Γ T n wf' test gt ck  =>
     have f6 := f6 n t T u zdef;
     cases f6; case _ wt f6 =>
     cases f6; case _ zdef' f6 =>
-    cases f6; case _ j f6 =>
     simp; rw[zdef']; simp
     rw[<-f6]; apply compile_type_congr h;
     simp; rw[zdef]
     apply u
+    rw[u] at lem2; assumption
 
 case _ Γ B f A a jf ja jA jB ih1 ih2 => -- appk
   generalize ej : hs_subst_type f1 f2 f3 (jf.appk ja jA jB) wf = sj' at *;
@@ -267,7 +259,7 @@ case _ Γ A B jA jB ih => -- allt
 
   rw[Option.bind_eq_some]
   exists ([^σ'] B')
-  constructor;
+  constructor
 
   have lem := hs_subst_kind f1 f3 jA wf; rw[HsTerm.subst_HsKind] at lem;
   have wf'' : ⊢s (.kind ([σ]A) :: Δ) := by apply HsJudgment.wfkind; assumption; assumption
@@ -276,7 +268,7 @@ case _ Γ A B jA jB ih => -- allt
   generalize f2e : hs_lift_subst_replace (.kind A) wf'' f2 = f2' at *
   generalize f3e : hs_lift_subst_stable (.kind A) f3 = f3' at *
   generalize f4e : hs_lift_subst_compile_rename σ σ' f4 = f4' at *
-  generalize f6e : hs_lift_subst_compile_subst (.kind A) σ σ' wf'' h f6 = f6' at *
+  generalize f6e : hs_lift_subst_compile_subst (.kind A) σ σ' wf'' h f2 f6 = f6' at *
 
   apply  @ih B' (.kind ([σ]A) :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cB wf'
   simp;
@@ -324,7 +316,7 @@ case _ Γ A B jA jB ih1 ih2 => -- arrow
 
   have f3' := hs_lift_subst_stable .empty f3
   have f4' := hs_lift_subst_compile_rename σ σ' f4
-  have f6' := hs_lift_subst_compile_subst .empty σ σ' wf' h f6
+  generalize f6e : hs_lift_subst_compile_subst .empty σ σ' wf' h f2 f6 = f6' at *
 
   apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cjB wf'
   simp
@@ -372,7 +364,8 @@ case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
 
   have f3' := hs_lift_subst_stable .empty f3
   have f4' := hs_lift_subst_compile_rename σ σ' f4
-  have f6' := hs_lift_subst_compile_subst .empty σ σ' wf' h f6
+  have f6' := hs_lift_subst_compile_subst .empty σ σ' wf' h f2 f6
+
   apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cjB wf'
   simp
 
@@ -413,7 +406,10 @@ case _ =>
   cases n <;> simp at *;
   case _ =>
     cases h1
-    sorry
+    intro j
+    have u := types_have_unique_kinds j2 j; cases u;
+    have u := types_have_unique_judgments h j j2; cases u
+    assumption
 assumption
 apply hs_judgment_ctx_wf .type j2
 
@@ -451,9 +447,11 @@ case _ =>
   intro n e T e h1
   cases n <;> simp at *
   case _ =>
-    cases h1; rw[<-cj2];
-    have h1 := infer_hs_type (hs_judgment_ctx_wf .type j2) t
-    sorry
+    cases h1
+    intro j
+    have u := types_have_unique_kinds j2 j; cases u;
+    have u := types_have_unique_judgments h j j2; cases u
+    assumption
 assumption
 apply hs_judgment_ctx_wf .type j2
 

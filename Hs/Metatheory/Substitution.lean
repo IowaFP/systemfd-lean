@@ -50,12 +50,6 @@ case _ n =>
     all_goals try (unfold S at lem3; unfold Ren.to at lem4; rw [lem3] at lem4; simp at lem4; apply lem4)
     case _ => apply j
 
-theorem subst_valid [SubstitutionType T][SubstitutionTypeLaws T] {σ : Subst T} :
-  [.su x :: σ] t = [.su x :: I][^σ] t
-:= by
-rw[Subst.apply_compose_commute]; simp;
-
-
 def hs_subst_kind : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm}  ->
   (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
   (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
@@ -308,7 +302,7 @@ case _ f A a h1 h2 h3 h4 =>
   apply hs_replace_empty_kind_lemma k `□ Γ Γ' j1 j2 j3 j4 h4
 case _ x wf h1 h2 h3 =>
   have lem1 := n_x_different Γ j1 (Eq.symm h2)
-  have lem2 := replace_eq_except Γ Γ' j3 x lem1
+  have lem2 := replace_eq_except n f Γ Γ' j3 x lem1
   constructor;
   assumption
   case _ => rw [<-lem2]; assumption

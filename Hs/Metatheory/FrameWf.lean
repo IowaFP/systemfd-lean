@@ -228,12 +228,13 @@ all_goals (assumption)
 def hs_frame_wf_implies_wf : Γ ⊢s f -> ⊢s Γ
 | .empty h1 => h1
 | .kind h1 => hs_judgment_ctx_wf .kind h1
-| .type h1 => hs_judgment_ctx_wf .type h1
 | .datatype h1 => hs_judgment_ctx_wf .kind h1
+| .opent h1 => hs_judgment_ctx_wf .kind h1
+| .type h1 => hs_judgment_ctx_wf .type h1
 | .ctor h1 _ => hs_judgment_ctx_wf .type h1
 | .term h1 _ => hs_judgment_ctx_wf .type h1
 | .openm h1 => hs_judgment_ctx_wf .type h1
-| .opent h1 => hs_judgment_ctx_wf .kind h1
+
 
 def hs_frame_wf_implies_wkn_wf : Γ ⊢s f -> ⊢s (f :: Γ) := by
 intro h

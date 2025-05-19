@@ -114,6 +114,10 @@ namespace Frame
   unfold apply; unfold is_type; cases f <;> simp
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_kind_apply {σ : Subst T} : is_kind f = is_kind (apply f σ) := by
+  unfold apply; unfold is_kind; cases f <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_datatype_apply {σ : Subst T} : is_datatype f = is_datatype (apply f σ) := by
   unfold apply; unfold is_datatype; cases f <;> simp
 
@@ -433,10 +437,24 @@ cases h1; case _ h1 =>
 rw [h1]at h2; unfold Frame.is_datatype at h2; simp at h2
 
 
-theorem replace_eq_except : (Γ Γ' : Ctx T) ->
+theorem replace_eq_except n f : (Γ Γ' : Ctx T) ->
   Γ.modify n (λ _ => f) = Γ' ->
   ∀ k, k ≠ n -> Γ d@ k = Γ' d@ k
 := by
 intro Γ Γ' j1 k j2
-rw[<-j1]; unfold List.modify;
-sorry
+rw[<-j1];
+cases Γ;
+case _ => simp
+case _ hd tl =>
+  cases Γ' <;> simp at *;
+  case _ hd' tl' =>
+    unfold List.modify at j1;
+    cases n <;> simp at *
+    cases j1; case _ e1 e2 =>
+      cases e1; cases e2;
+      cases k <;> simp; simp at j2
+    cases k <;> simp at *
+    cases j1; case _ e1 e2 =>
+      case _ n k =>
+      have lem := @replace_eq_except n f tl tl' e2 k j2
+      unfold List.modify; rw[e2]; rw[lem]

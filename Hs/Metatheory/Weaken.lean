@@ -2,6 +2,7 @@ import Hs.HsTerm
 import Hs.HsJudgment
 import SystemFD.Ctx
 import Hs.Metatheory.TypeMatch
+import Hs.Metatheory.Classification
 
 theorem hs_rename_lift r (A : Frame HsTerm) :
   (∀ x, (Γ d@ x).apply r.to = Δ d@ (r x)) ->

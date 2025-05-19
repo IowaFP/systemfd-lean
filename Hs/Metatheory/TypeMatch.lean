@@ -400,7 +400,7 @@ cases h3; case _ w h =>
 cases h; case _ h3 h4 =>
 simp at h4;
 have lem1 := empty_not_opent Γ h1 h4;
-have lem2 := replace_eq_except Γ Γ' h2 w.1 lem1
+have lem2 := replace_eq_except n f Γ Γ' h2 w.1 lem1
 unfold HsValidHeadVariable; exists w;
 constructor;
 assumption;

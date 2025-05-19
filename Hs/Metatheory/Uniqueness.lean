@@ -16,6 +16,16 @@ all_goals (cases j1)
 case _ ih1 ih2 kl1 kl2 =>
   cases j2; rfl;
 
+
+theorem kinds_have_unique_sorts :
+  Γ ⊢κ k : s ->
+  ∀ s', Γ ⊢κ k : s' ->
+  s' = s :=  by
+intro j s' j'
+cases j
+case _ => cases j'; simp
+case _ => cases j';  simp
+
 @[simp]
 abbrev SortJudgmentUniquenessType : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
 | .kind => λ Γ => λ (t, τ) =>
@@ -51,21 +61,6 @@ intro h j1 j2;
 apply kinds_have_unique_judgments_lemma h j2 j1 j2;
 
 
--- @[simp]
--- abbrev WellSortedKindInversion : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Prop
--- | .kind => λ Γ => λ (t, τ) => Γ ⊢κ t : τ -> τ = `□
--- | _ => λ _ => λ _ => true
-
--- theorem well_sorted_kind_inversion_lemma :
---   HsJudgment v Γ idx -> WellSortedKindInversion v Γ idx := by
--- intro j;
--- induction j <;> simp at *;
-
--- theorem well_sorted_kind_inversion :
---   Γ ⊢κ t : τ -> τ = `□ := by
--- intro j;
--- have lem := well_sorted_kind_inversion_lemma j;
--- apply lem j;
 ------------------------------------
 -- Judgments For Types
 ------------------------------------
@@ -89,6 +84,14 @@ case _ f a ih1 ih2 k'' hk1 ht1 hk2 ht2 B hk3 ht3 hk4 ht4 =>
 case _ => rfl
 case _ => rfl
 case _ => rfl
+
+
+theorem types_have_unique_kinds2 :
+  Γ ⊢τ t : k ->
+  ∀ k', Γ ⊢τ t : k' ->
+  k = k' := by
+intro j k' j'
+apply types_have_unique_kinds j j'
 
 
 theorem kinds_subst_eff_free σ : (k : HsTerm) ->
