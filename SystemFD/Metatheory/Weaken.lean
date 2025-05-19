@@ -1,6 +1,7 @@
 import SystemFD.Term
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Reduction
 import SystemFD.Metatheory.TypeMatch
 
 theorem rename_lift r (A : Frame Term) :
@@ -153,11 +154,13 @@ case _ j1 j2 ih1 ih2 =>
   apply ih2 r wf h
   subst j1; simp
   subst j2; simp
-case _ ih =>
-  constructor; apply ih r wf h
-case _ ih1 ih2 ih3 =>
-  constructor; apply ih3 r wf h
+case _ ih1 ih2 =>
+  constructor; apply ih2 r wf h
+  apply ih1 r wf h
+case _ ih1 ih2 ih3 ih4 =>
+  constructor; apply ih4 r wf h
   apply ih1 r wf h; apply ih2 r wf h
+  apply ih3 r wf h
 
 theorem weaken :
   ⊢ (f :: Γ) ->

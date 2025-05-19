@@ -29,16 +29,16 @@ intros tJ; cases tJ; simp_all;
 theorem refl_typing_unique : Γ ⊢ refl! K A : t -> (t = (A ~[K]~ A)) := by
 intros tJ; cases tJ; simp_all;
 
-
 theorem inversion_apply_spine :
   Γ ⊢ t.apply_spine sp : A ->
-  ∃ B, SpineType Γ B A ∧ Γ ⊢ t : B
+  ∃ B, SpineType Γ sp B A ∧ Γ ⊢ t : B ∧ (∀ T, Γ ⊢ A : T -> Γ ⊢ B : T)
 := by
 intro j; induction sp generalizing Γ t A <;> simp at *
 case _ =>
   exists A; apply And.intro;
     apply SpineType.refl;
-  assumption
+  apply And.intro; assumption
+  intro T h; apply h
 case _ hd tl ih =>
   cases hd; case _ v a =>
   cases v <;> simp at *
@@ -46,109 +46,105 @@ case _ hd tl ih =>
     replace ih := ih j
     cases ih; case _ B ih =>
     cases ih; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
     cases h2; case _ C D j1 j2 j3 =>
-      have lem := classification_lemma j1; simp at lem;
-      cases lem;
-      case _ h =>
-        have uniq := invert_arr_kind h; cases uniq;
-      case _ h =>
+    have lem := classification_lemma j1; simp at lem;
+    cases lem;
+    case _ h =>
+      have uniq := invert_arr_kind h; cases uniq;
+    case _ h =>
       cases h; case _ h =>
-        cases h; case _ h =>
-        have uniq := invert_arr_kind h; cases uniq;
-        subst j3; apply Exists.intro (C -t> D)
-        apply And.intro;
-          apply SpineType.arrow;
-          apply j2;
-          assumption;
-          assumption;
-        assumption
+      cases h; case _ w h =>
+      have uniq := invert_arr_kind h; cases uniq;
+      subst j3; apply Exists.intro (C -t> D)
+      apply And.intro
+      apply SpineType.arrow
+      apply j2; assumption; assumption
+      apply And.intro; assumption
+      intro T h4; replace h3 := h3 T h4
+      cases h; case _ q1 q2 =>
+      have lem1 := beta_empty a q2; simp at lem1
+      have lem2 := type_shape lem1 (kind_shape w rfl)
+      have lem5 := uniqueness_of_kinds lem2 lem1 h3
+      subst lem5; apply Judgment.arrow q1 q2
   case _ =>
     replace ih := ih j
     cases ih; case _ B ih =>
     cases ih; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
     cases h2; case _ C D j1 j2 j3 =>
-      have lem := classification_lemma j1; simp at lem;
-      cases lem;
-      case _ h =>
-        have uniq := invert_all_kind h; cases h
-      case _ h =>
-        cases h; case _ h =>
-        cases h; case _ h =>
-        have uniq := invert_all_kind h; cases uniq;
-        subst j3; apply Exists.intro (∀[C] D)
-        apply And.intro;
-          apply SpineType.all;
-          apply j2;
-          assumption;
-          apply h1;
-        apply j1
-
+    have lem := classification_lemma j1; simp at lem;
+    cases lem; case _ h => cases h
+    case _ h =>
+    cases h; case _ h =>
+    cases h; case _ w h =>
+    have uniq := invert_all_kind h; cases uniq;
+    subst j3; apply Exists.intro (∀[C] D)
+    apply And.intro;
+    apply SpineType.all j2 h
+    assumption; apply And.intro j1
+    intro T h4; replace h3 := h3 T h4
+    cases h; case _ q1 q2 =>
+    have lem1 := beta_kind q2 j2; simp at lem1
+    have lem2 := type_shape lem1 (kind_shape w rfl)
+    have lem5 := uniqueness_of_kinds lem2 lem1 h3
+    subst lem5; apply Judgment.allt q1 q2
   case _ =>
     replace ih := ih j
     cases ih; case _ B ih =>
     cases ih; case _ j1 j2 =>
-    cases j2; case _ C j2 j3 =>
-      have lem := classification_lemma j3; simp at lem;
-      cases lem;
-      case _ h =>
-        apply Exists.intro (C -k> B)
-        apply And.intro;
-        apply SpineType.arrowk;
-        assumption
-        apply j1;
-        assumption
-      case _ h =>
-        cases h; case _ h =>
-        cases h; case _ w h =>
-        have uniq := invert_arrk_kind h; cases h; cases w;
+    cases j2; case _ j2 j3 =>
+    cases j2; case _ C j2 j4 =>
+    have lem := classification_lemma j4; simp at lem;
+    cases lem;
+    case _ h =>
+      apply Exists.intro (C -k> B)
+      apply And.intro;
+      apply SpineType.arrowk;
+      assumption; assumption
+      apply j1; apply And.intro j4
+      intro T h4; replace j3 := j3 T h4
+      cases h; case _ q1 q2 =>
+      have lem := uniqueness_of_super_kind (kind_shape q2 rfl) q2 j3
+      subst lem; apply Judgment.allk q1 q2
+    case _ h =>
+      cases h; case _ h =>
+      cases h; case _ w h =>
+      have uniq := invert_arrk_kind h; cases h; cases w;
 
-theorem apply_spine_uniform :
+theorem apply_spine_typed :
+  Γ ⊢ t : A ->
+  SpineType Γ sp A B ->
+  Γ ⊢ t.apply_spine sp : B
+:= by
+intro j1 j2
+induction j2 generalizing t <;> simp at *
+case _ => assumption
+case _ c C D sp' T h1 h2 h3 ih =>
+  generalize Cdef : D β[c] = C'
+  have lem := Judgment.app j1 h1 (by rw [Cdef])
+  rw [<-Cdef] at lem; apply ih lem
+case _ c C D sp' T h1 h2 h3 ih =>
+  generalize Cdef : D β[c] = C'
+  have lem := Judgment.appt j1 h1 (by rw [Cdef])
+  rw [<-Cdef] at lem; apply ih lem
+case _ c C D sp' T h1 h2 h3 ih =>
+  have lem := Judgment.appk j1 h1
+  apply ih lem
+
+theorem apply_spine_uniform i asp :
+  a.neutral_form = .some (i, asp) ->
   Γ ⊢ a : A ->
   Γ ⊢ b : A ->
   Γ ⊢ a.apply_spine sp : B ->
   Γ ⊢ b.apply_spine sp : B
-:= by sorry
--- intro j1 j2 j3
--- induction sp generalizing Γ a b A B <;> simp at *
--- case _ =>
---   have lem := uniqueness_of_kinds j1 j3; subst lem
---   apply j2
--- case _ hd tl ih =>
---   cases hd; case _ v t =>
---   cases v <;> simp at *
---   case _ =>
---     have lem := inversion_apply_spine j3
---     cases lem; case _ D lem =>
---     cases lem; case _ lem =>
---     cases lem; case _ U V q1 q2 q3 =>
---       have lem1 := uniqueness_of_kinds j1 q1; subst lem1
---       have lem2 : Γ ⊢ (a `@ t) : (V β[t]) := by
---         constructor; apply q1; apply q2; simp
---       have lem3 : Γ ⊢ (b `@ t) : (V β[t]) := by
---         constructor; apply j2; apply q2; simp
---       apply ih lem2 lem3 j3
---   case _ =>
---     have lem := inversion_apply_spine j3
---     cases lem; case _ D lem =>
---     cases lem; case _ lem =>
---     cases lem; case _ U V q1 q2 q3 =>
---       have lem1 := uniqueness_of_kinds j1 q1; subst lem1
---       have lem2 : Γ ⊢ (a `@t t) : (V β[t]) := by
---         constructor; apply q1; apply q2; simp
---       have lem3 : Γ ⊢ (b `@t t) : (V β[t]) := by
---         constructor; apply j2; apply q2; simp
---       apply ih lem2 lem3 j3
---   case _ =>
---     have lem := inversion_apply_spine j3
---     cases lem; case _ D lem =>
---     cases lem; case _ lem =>
---     cases lem; case _ U q1 q2 =>
---       have lem1 := uniqueness_of_kinds j1 q2; subst lem1
---       have lem2 : Γ ⊢ (a `@k t) : D := by
---         constructor; apply q2; apply q1
---       have lem3 : Γ ⊢ (b `@k t) : D := by
---         constructor; apply j2; apply q1
---       apply ih lem2 lem3 j3
+:= by
+intro js j1 j2 j3
+replace j3 := inversion_apply_spine j3
+cases j3; case _ D j3 =>
+cases j3; case _ h1 h2 =>
+have lem := uniqueness_modulo_neutral_form js j1 h2.1
+subst lem; apply apply_spine_typed j2 h1
 
 theorem ctx_get_term_well_typed :
   ⊢ Γ ->
@@ -227,7 +223,6 @@ have lem1 := frame_wf_by_index x h1
 rw [h2] at lem1; cases lem1
 case _ => assumption
 
-
 theorem ctx_get_var_no_eq_type :
   ⊢ Γ ->
   Γ.is_stable_red x ->
@@ -252,10 +247,9 @@ case _ j1 j2 =>
   case _ j2 =>
     unfold ValidHeadVariable at j2; simp at j2
 
-
 theorem spine_type_is_type :
   Γ ⊢ τ : ★ ->
-  SpineType Γ τ' τ ->
+  SpineType Γ sp τ' τ ->
   Γ ⊢ τ' : ★ := by
 intro τJ sp;
 induction sp;
@@ -270,7 +264,7 @@ case _ h _ ih =>
     exfalso; apply Term.is_kind_disjoint_is_type lem1 lem2
 
 theorem spine_type_is_not_kind :
-  SpineType Γ A T ->
+  SpineType Γ sp A T ->
   Γ ⊢ T : ★ ->
   Γ ⊢ A : .kind ->
   False
@@ -295,7 +289,7 @@ case _ => injection Tdef
 
 theorem spine_type_is_not_valid_ctor :
   T = (C ~[K]~ D) ->
-  SpineType Γ A T ->
+  SpineType Γ sp A T ->
   ValidCtorType Γ A ->
   False
 := by
@@ -353,7 +347,7 @@ case _ => injection Tdef
 
 theorem spine_type_is_not_valid_insttype :
   T = (C ~[K]~ D) ->
-  SpineType Γ A T ->
+  SpineType Γ sp A T ->
   ValidInstType Γ A ->
   False
 := by
@@ -402,7 +396,7 @@ theorem ctx_get_var_no_spine_eq_type:
   Γ.is_stable_red x ->
   (Γ d@ x).get_type = some T ->
   Γ ⊢ (A ~[K]~ B) : ★ ->
-  SpineType Γ T (A ~[K]~ B) ->
+  SpineType Γ sp T (A ~[K]~ B) ->
   False
 := by
 intro h1 h2 h3 h4 h5
@@ -421,7 +415,7 @@ case _ j1 j2 => subst h3; apply spine_type_is_not_valid_insttype rfl h5 j2
 theorem ctx_get_var_spine_type :
   ⊢ Γ ->
   (Γ d@ n).get_type = some τ' ->
-  SpineType Γ τ' τ ->
+  SpineType Γ sp τ' τ ->
   Γ ⊢ τ : ★ ->
   Γ ⊢ τ' : ★ := by
 intro wf gt spTy τJ;

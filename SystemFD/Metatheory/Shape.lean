@@ -262,6 +262,8 @@ case _ ih1 ih2 =>
       apply lem2.2.2; assumption
 case _ ih1 ih2 ih3 =>
   apply And.intro; intro h; cases h
+  have lem1 := Term.not_subexpr_ctor2 ih1.2
+  apply lem1.1; assumption
   apply ih3.1; assumption
   intro h; cases h
   apply ih1.2; assumption
@@ -269,6 +271,7 @@ case _ ih1 ih2 ih3 =>
   apply ih2.1; assumption
 case _ ih1 ih2 ih3 ih4 =>
   apply And.intro; intro h; cases h
+  apply ih3; assumption
   apply ih4.1; assumption
   intro h; cases h
   apply ih3; assumption
@@ -323,14 +326,14 @@ case _ e1 e2 ih1 ih2 =>
     cases h
     apply lem4.2; assumption
     apply lem2.2.2; assumption
-case _ ih =>
+case _ ih1 ih2 =>
   apply And.intro; intro h; cases h
-  apply Or.inr; apply ih.1
-case _ ih1 ih2 ih3 =>
+  apply Or.inr; apply ih1.1
+case _ ih1 ih2 ih3 ih4 =>
   apply And.intro; intro h; cases h
-  apply ih1.1; assumption
   apply ih2.1; assumption
-  apply Or.inr ih3.1
+  apply ih3.1; assumption
+  apply Or.inr ih1.1
 
 @[simp]
 abbrev KindShapeLemmaType (_ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
@@ -384,10 +387,10 @@ case _ j _ _ =>
   exfalso; apply lem.2
   apply Term.Subexpr.eq3
   constructor
-case _ j _ =>
+case _ j _ _ =>
   intro h; rw [h] at j
   cases j
-case _ j1 j2 j3 ih1 ih2 ih3 =>
+case _ j1 j2 j3 ih1 ih2 ih3 ih4 =>
   intro h; rw [h] at j1
   cases j1
 
@@ -494,12 +497,14 @@ case _ => intro h; cases h
 case _ => intro h; cases h
 case _ => intro h; cases h
 case _ => intro h; cases h
-case _ j _ =>
-  intro h; cases h
-  cases j; cases j
-case _ j _ _ _ _ _ =>
-  intro h; cases h
-  cases j; cases j
+case _ j1 j2 ih1 ih2 =>
+  intro h; have lem := kind_shape j1 rfl
+  replace ih2 := ih2 lem
+  exfalso; apply Term.is_kind_disjoint_is_type h ih2
+case _ j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
+  intro h; have lem := kind_shape j1 rfl
+  replace ih2 := ih2 lem
+  exfalso; apply Term.is_kind_disjoint_is_type h ih2
 
 theorem type_shape : Γ ⊢ t : A -> A.IsKind -> t.IsType := by
 intro j1 j2

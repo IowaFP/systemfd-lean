@@ -2,8 +2,11 @@ import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Ctx
 
+@[simp]
 def ctor2_has_congr1 : Ctor2Variant -> Bool
 | .refl => false
+| .fst => false
+| .snd => false
 | .arrowk => false
 | .appk => false
 | .appt => true
@@ -14,8 +17,11 @@ def ctor2_has_congr1 : Ctor2Variant -> Bool
 | .apptc => true
 | .choice => true
 
+@[simp]
 def ctor2_has_congr2 : Ctor2Variant -> Bool
 | .refl => false
+| .fst => true
+| .snd => true
 | .arrowk => false
 | .appk => false
 | .appt => false
@@ -26,6 +32,7 @@ def ctor2_has_congr2 : Ctor2Variant -> Bool
 | .apptc => true
 | .choice => true
 
+@[simp]
 def bind2_has_congr1 : Bind2Variant -> Bool
 | .all => false
 | .lamt => false
@@ -34,6 +41,7 @@ def bind2_has_congr1 : Bind2Variant -> Bool
 | .allc => false
 | .arrowc => true
 
+@[simp]
 def bind2_has_congr2 : Bind2Variant -> Bool
 | .all => false
 | .lamt => false
@@ -41,6 +49,15 @@ def bind2_has_congr2 : Bind2Variant -> Bool
 | .arrow => false
 | .allc => true
 | .arrowc => true
+
+@[simp]
+def bind2_frame (T : Term) : Bind2Variant -> Frame Term
+| .all => .kind T
+| .lamt => .kind T
+| .lam => .type T
+| .arrow => .empty
+| .allc => .kind T
+| .arrowc => .empty
 
 inductive Red : Ctx Term -> Term -> Term -> Prop where
 ----------------------------------------------------------------
@@ -52,12 +69,12 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
 | cast : Red Γ (t ▹ refl! K A) t
 | sym : Red Γ (sym! (refl! K A)) (refl! K A)
 | seq : Red Γ ((refl! K A) `; (refl! K A)) (refl! K A)
-| appc : Red Γ (refl! K A `@c (refl! K B)) (refl! K (A `@k B))
+| appc : Red Γ (refl! (K1 -k> K2) A `@c (refl! K1 B)) (refl! K2 (A `@k B))
 | apptc : Red Γ (refl! K (∀[K] A) `@c[refl! K B]) (refl! K (A β[B]))
-| fst : Red Γ (.ctor1 .fst (refl! K (A `@k B))) (refl! K A)
-| snd : Red Γ (.ctor1 .snd (refl! K (A `@k B))) (refl! K B)
+| fst : Red Γ (fst! K1 (refl! K2 (A `@k B))) (refl! (K1 -k> K2) A)
+| snd : Red Γ (snd! K1 (refl! K2 (A `@k B))) (refl! K1 B)
 | allc : Red Γ (∀c[A] refl! K B) (refl! K (∀[A] B))
-| arrowc : Red Γ (refl! K A -c> refl! K B) (refl! K (A -t> B))
+| arrowc : Red Γ (refl! ★ A -c> refl! ★ B) (refl! ★ (A -t> B))
 | choice1 : Red Γ (`0 ⊕ t) t
 | choice2 : Red Γ (t ⊕ `0) t
 ----------------------------------------------------------------
@@ -126,7 +143,7 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
   Red Γ (.bind2 v t1 t2) (.bind2 v t1' t2)
 | bind2_congr2 :
   bind2_has_congr2 v ->
-  Red Γ t2 t2' ->
+  Red (bind2_frame t1 v :: Γ) t2 t2' ->
   Red Γ (.bind2 v t1 t2) (.bind2 v t1 t2')
 | ite_congr :
   Red Γ s s' ->
@@ -162,9 +179,11 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
   Red Γ (.ctor1 v (c1 ⊕ c2)) (.ctor1 v c1 ⊕ .ctor1 v c2)
 | ctor2_map1 :
   ctor2_has_congr1 v ->
+  v ≠ .choice ->
   Red Γ (.ctor2 v (c1 ⊕ c2) t2) (.ctor2 v c1 t2 ⊕ .ctor2 v c2 t2)
 | ctor2_map2 :
   ctor2_has_congr2 v ->
+  v ≠ .choice ->
   Red Γ (.ctor2 v t1 (c1 ⊕ c2)) (.ctor2 v t1 c1 ⊕ .ctor2 v t1 c2)
 | bind2_map1 :
   bind2_has_congr1 v ->

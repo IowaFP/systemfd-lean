@@ -1,12 +1,12 @@
 
 inductive Ctor1Variant : Type where
 | sym
-| fst
-| snd
 deriving Repr
 
 inductive Ctor2Variant : Type where
 | refl
+| fst
+| snd
 | arrowk
 | appk
 | appt
@@ -54,9 +54,9 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .type => "★"
   | .zero => "0"
 
-  | .ctor1 .sym t => "(sym! " ++ Term.repr t p ++ "!)"
-  | .ctor1 .fst t => "(" ++ Term.repr t p ++ ")●1"
-  | .ctor1 .snd t => "(" ++ Term.repr t p ++ ")●2"
+  | .ctor1 .sym t => "(sym! " ++ Term.repr t p ++ ")"
+  | .ctor2 .fst t1 t2 => "(fst! " ++ Term.repr t1 p ++ ";" ++ Term.repr t2 p ++ ")"
+  | .ctor2 .snd t1 t2 => "(snd! " ++ Term.repr t1 p ++ ";" ++ Term.repr t2 p ++ ")"
 
   | .ctor2 .refl t1 t2 => "(refl! " ++ Term.repr t1 p ++ "; " ++ Term.repr t2 p ++ ")"
   | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ Std.Format.line ++" → " ++ Term.repr t2 p
@@ -113,8 +113,8 @@ notation:15 "If " p " ← " s " then " i " else " e => Term.ite p s i e
 
 prefix:max "refl! " => Term.ctor2 Ctor2Variant.refl
 prefix:max "sym! " => Term.ctor1 Ctor1Variant.sym
-postfix:max ".!1" => Term.ctor1 Ctor1Variant.fst
-postfix:max ".!2" => Term.ctor1 Ctor1Variant.snd
+prefix:max "fst!" => Term.ctor2 Ctor2Variant.fst
+prefix:max "snd!" => Term.ctor2 Ctor2Variant.snd
 
 notation "`0" => Term.zero
 notation:20 t1:20 " ⊕ " t2:20 => Term.ctor2 Ctor2Variant.choice t1 t2

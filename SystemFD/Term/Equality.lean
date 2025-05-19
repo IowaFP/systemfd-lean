@@ -4,9 +4,6 @@ namespace Ctor1Variant
   @[simp]
   def beq : Ctor1Variant -> Ctor1Variant -> Bool
   | sym, sym => true
-  | fst, fst => true
-  | snd, snd => true
-  | _, _ => false
 end Ctor1Variant
 
 @[simp]
@@ -19,12 +16,13 @@ instance instLawfulBEq_Ctor1Variant : LawfulBEq Ctor1Variant where
     cases a <;> cases b <;> simp at *
   rfl := by
     intro a; simp
-    cases a <;> simp
 
 namespace Ctor2Variant
   @[simp]
   def beq : Ctor2Variant -> Ctor2Variant -> Bool
   | refl, refl => true
+  | fst, fst => true
+  | snd, snd => true
   | arrowk, arrowk => true
   | appk, appk => true
   | appt, appt => true
@@ -103,8 +101,7 @@ namespace Term
     cases b
     case ctor1 v2 x2 =>
       have lem := @LawfulBEq.eq_of_beq Ctor1Variant _ _ v1 v2
-      simp at *; replace lem := lem h.1
-      rw [lem, ih h.2]; simp
+      simp at *; rw [ih h]
     all_goals (simp at *)
   case ctor2 v1 x1 x2 ih1 ih2 =>
     cases b

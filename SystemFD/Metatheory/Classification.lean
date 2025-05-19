@@ -409,11 +409,9 @@ case _ j1 j2 j3 j4 ih1 ih2 =>
     have lem6 := beta_kind q5 w3; simp at lem6
     apply And.intro lem3
     apply Judgment.eq lem3 lem5 lem6
-case _ h ih =>
+case _ K _ h1 h2 h3 ih =>
   apply Or.inr; apply Or.inr
-  apply Exists.intro .type; apply And.intro
-  constructor; apply judgment_ctx_wf h
-  apply h
+  apply Exists.intro K; apply And.intro h1 h2
 
 theorem kind_disjoint :
   Γ ⊢ t : A -> A = .kind ->

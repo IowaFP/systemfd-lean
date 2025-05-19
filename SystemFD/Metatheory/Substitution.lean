@@ -284,16 +284,18 @@ case _ j1 j2 j3 j4 ih1 ih2 =>
   replace ih2 := ih2 h1 h2 h3 wf
   apply Judgment.apptc ih1 ih2
   simp [*]; simp [*]
-case empty ih =>
+case empty ih1 ih2 =>
   simp at *
-  replace ih := ih h1 h2 h3 wf
-  apply Judgment.empty ih
-case choice ih1 ih2 ih3 =>
+  replace ih1 := ih1 h1 h2 h3 wf
+  replace ih2 := ih2 h1 h2 h3 wf
+  apply Judgment.empty ih1 ih2
+case choice ih1 ih2 ih3 ih4 =>
   simp at *
   replace ih1 := ih1 h1 h2 h3 wf
   replace ih2 := ih2 h1 h2 h3 wf
   replace ih3 := ih3 h1 h2 h3 wf
-  apply Judgment.choice ih1 ih2 ih3
+  replace ih4 := ih4 h1 h2 h3 wf
+  apply Judgment.choice ih1 ih2 ih3 ih4
 
 theorem beta_empty t :
   (.empty::Γ) ⊢ b : B ->

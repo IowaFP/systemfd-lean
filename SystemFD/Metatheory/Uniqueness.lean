@@ -160,42 +160,6 @@ case _ v t ih =>
       replace ih := ih js q1 q2
       injection ih with e1 e2 e3
       subst e1; subst e2; subst e3; rfl
-  case _ =>
-    cases j1; case _ q1 q2 q3 =>
-    cases j2; case _ r1 r2 r3 =>
-      have lem1 := ih js q3 r3
-      injection lem1 with e1 e2 e3; subst e1
-      injection e2 with _ w1 w2; subst w1; subst w2
-      injection e3 with _ w1 w2; subst w1; subst w2
-      have lem2 := classification_lemma q1; simp at lem2
-      cases lem2
-      case _ lem2 =>
-        have lem3 := kind_shape lem2 rfl
-        have lem4 := type_shape q1 lem3
-        have lem5 := uniqueness_of_kinds lem4 q1 r1
-        injection lem5 with _ e1 e2; subst e1
-        rfl
-      case _ lem2 =>
-        cases lem2; case _ lem2 =>
-          cases lem2.2; cases lem2.1
-  case _ =>
-    cases j1; case _ q1 q2 q3 q4 =>
-    cases j2; case _ r1 r2 r3 r4 =>
-      have lem1 := ih js q4 r4
-      injection lem1 with e1 e2 e3; subst e1
-      injection e2 with _ w1 w2; subst w1; subst w2
-      injection e3 with _ w1 w2; subst w1; subst w2
-      have lem2 := classification_lemma q2; simp at lem2
-      cases lem2; case _ h => subst h; cases q1
-      case _ lem2 =>
-      cases lem2; case _ lem2 =>
-        have lem3 := type_shape q2 (kind_shape lem2 rfl)
-        have lem4 := uniqueness_of_kinds lem3 q2 r2
-        subst lem4; rfl
-      case _ lem2 =>
-        cases lem2; case _ _ lem2 =>
-          have lem3 := uniqueness_of_super_kind (kind_shape q1 rfl) q1 lem2.2
-          subst lem3; cases lem2.1
 case _ v t1 t2 ih1 ih2 =>
   replace js := Term.not_subexpr_ctor2 js
   cases v
@@ -203,6 +167,34 @@ case _ v t1 t2 ih1 ih2 =>
     cases j1; case _ q1 q2 =>
     cases j2; case _ r1 r2 =>
       rfl
+  case _ =>
+    cases j1; case _ q1 q2 q3 =>
+    cases j2; case _ r1 r2 r3 =>
+      have lem1 := ih2 js.2 q3 r3
+      injection lem1 with e1 e2 e3; subst e1
+      injection e2 with _ w1 w2; subst w1; subst w2
+      injection e3 with _ w1 w2; subst w1; subst w2
+      have lem2 := classification_lemma q1; simp at lem2
+      cases lem2
+      case _ lem2 => rfl
+      case _ lem2 =>
+        cases lem2; case _ lem2 =>
+          cases lem2.2; cases lem2.1
+  case _ =>
+    cases j1; case _ q1 q2 q3 q4 =>
+    cases j2; case _ r1 r2 r3 r4 =>
+      have lem1 := ih2 js.2 q4 r4
+      injection lem1 with e1 e2 e3; subst e1
+      injection e2 with _ w1 w2; subst w1; subst w2
+      injection e3 with _ w1 w2; subst w1; subst w2
+      have lem2 := classification_lemma q2; simp at lem2
+      cases lem2; case _ h => subst h; cases q1
+      case _ lem2 =>
+      cases lem2; case _ lem2 => rfl
+      case _ lem2 =>
+        cases lem2; case _ _ lem2 =>
+          have lem3 := uniqueness_of_super_kind (kind_shape q1 rfl) q1 lem2.2
+          subst lem3; cases lem2.1
   case _ =>
     cases j1; case _ q =>
     cases j2; case _ r =>
@@ -357,3 +349,57 @@ cases j2; case _ j2 j2' =>
     have lem1 := type_shape j2' (kind_shape j2 rfl)
     have lem := uniqueness_of_kinds lem1 j2' h; subst lem
     cases j2
+
+theorem uniqueness_modulo_neutral_form :
+  t.neutral_form = .some (x, sp) ->
+  Γ ⊢ t : A ->
+  Γ ⊢ t : B ->
+  A = B
+:= by
+intro j1 j2 j3
+induction t generalizing Γ A B x sp
+all_goals try simp at j1
+case _ i =>
+  cases j1; case _ h1 h2 =>
+  subst h1; subst h2
+  apply uniqueness_modulo_zero _ j2 j3
+  intro h; cases h
+case _ v t1 t2 ih1 ih2 =>
+  cases v; all_goals try simp at j1
+  case _ =>
+    replace j1 := Option.bind_eq_some.1 j1
+    cases j1; case _ w j1 =>
+    cases w; case _ j sp' =>
+    simp at j1; cases j1; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+    subst h2; subst h3
+    cases j2; case _ C q1 q2 =>
+    cases j3; case _ U w1 w2 =>
+    replace ih1 := ih1 h1 q2 w2
+    injection ih1
+  case _ =>
+    replace j1 := Option.bind_eq_some.1 j1
+    cases j1; case _ w j1 =>
+    cases w; case _ j sp' =>
+    simp at j1; cases j1; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+    subst h2; subst h3
+    cases j2; case _ C D q1 q2 q3 =>
+    cases j3; case _ U V w1 w2 w3 =>
+    replace ih1 := ih1 h1 q1 w1
+    injection ih1 with _ e1 e2
+    subst e1; subst e2
+    subst q3; subst w3; rfl
+  case _ =>
+    replace j1 := Option.bind_eq_some.1 j1
+    cases j1; case _ w j1 =>
+    cases w; case _ j sp' =>
+    simp at j1; cases j1; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+    subst h2; subst h3
+    cases j2; case _ C D q1 q2 q3 =>
+    cases j3; case _ U V w1 w2 w3 =>
+    replace ih1 := ih1 h1 q1 w1
+    injection ih1 with _ e1 e2
+    subst e1; subst e2
+    subst q3; subst w3; rfl

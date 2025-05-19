@@ -235,3 +235,10 @@ intro j1 j2
 constructor
 apply frame_wf_implies_wf j1
 apply j2
+
+theorem frame_wf_openm_implies_type T :
+  Γ ⊢ Γ d@ x ->
+  .some T = (Γ d@ x).get_type ->
+  Γ.is_openm x ->
+  Γ ⊢ T : ★
+:= by sorry

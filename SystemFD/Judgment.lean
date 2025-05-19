@@ -16,7 +16,6 @@ inductive ValidCtorType : Ctx Term -> Term -> Prop where
   ValidCtorType (.kind A::Γ) B ->
   ValidCtorType Γ (∀[A] B)
 
-
 inductive ValidInstType : Ctx Term -> Term -> Prop where
 | refl :
   ValidHeadVariable R Γ.is_opent ->
@@ -238,13 +237,13 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
   Judgment .prf Γ (A, K1 -k> K2) ->
   Judgment .prf Γ (B, K1 -k> K2) ->
   Judgment .prf Γ (t, (A `@k C) ~[K2]~ (B `@k D)) ->
-  Judgment .prf Γ (t.!1, A ~[K1 -k> K2]~ B)
+  Judgment .prf Γ (fst! K1 t, A ~[K1 -k> K2]~ B)
 | snd :
   Judgment .prf Γ (K1, □) ->
   Judgment .prf Γ (C, K1) ->
   Judgment .prf Γ (D, K1) ->
   Judgment .prf Γ (t, (A `@k C) ~[K2]~ (B `@k D)) ->
-  Judgment .prf Γ (t.!2, C ~[K1]~ D)
+  Judgment .prf Γ (snd! K1 t, C ~[K1]~ D)
 | allc :
   -- Judgment .prf Γ (∀[K] A, ★) ->
   -- Judgment .prf Γ (∀[K] B, ★) ->
@@ -263,10 +262,12 @@ inductive Judgment : (v : JudgmentVariant) -> Ctx Term -> JudgmentArgs v -> Prop
 ---- Non-determinism
 --------------------------------------------------------------------------------------
 | empty :
-  Judgment .prf Γ (A, ★) ->
+  Judgment .prf Γ (K, □) ->
+  Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (`0, A)
 | choice :
-  Judgment .prf Γ (A, ★) ->
+  Judgment .prf Γ (K, □) ->
+  Judgment .prf Γ (A, K) ->
   Judgment .prf Γ (t1, A) ->
   Judgment .prf Γ (t2, A) ->
   Judgment .prf Γ (t1 ⊕ t2, A)
@@ -328,20 +329,21 @@ inductive FrameWf : Ctx Term -> Frame Term -> Prop
 
 notation:170 Γ:170 " ⊢ " f:170 => FrameWf Γ f
 
-inductive SpineType : Ctx Term -> Term -> Term -> Prop where
+inductive SpineType : Ctx Term -> List (SpineVariant × Term) -> Term -> Term -> Prop where
 | refl :
-  SpineType Γ T T
+  SpineType Γ [] T T
 | arrow :
-  Γ ⊢ a : A' ->
+  Γ ⊢ a : A ->
   Γ ⊢ (A -t> B) : ★ ->
-  SpineType Γ (B β[a]) T ->
-  SpineType Γ (A -t> B) T
+  SpineType Γ sp (B β[a]) T ->
+  SpineType Γ ((.term, a) :: sp) (A -t> B) T
 | all :
   Γ ⊢ a : A ->
   Γ ⊢ (∀[A] B) : ★ ->
-  SpineType Γ (B β[a]) T ->
-  SpineType Γ (∀[A] B) T
+  SpineType Γ sp (B β[a]) T ->
+  SpineType Γ ((.type, a) :: sp) (∀[A] B) T
 | arrowk :
+  Γ ⊢ a : A ->
   Γ ⊢ (A -k> B) : □ ->
-  SpineType Γ B T ->
-  SpineType Γ (A -k> B) T
+  SpineType Γ sp B T ->
+  SpineType Γ ((.kind, a) :: sp) (A -k> B) T
