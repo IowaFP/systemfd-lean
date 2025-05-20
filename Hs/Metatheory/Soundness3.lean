@@ -117,8 +117,11 @@ case _ Γ τ a j ih =>
   case _ =>
     simp;
     intros Γ Γ' x T T' wf gt j ck;
-    unfold compile at ck; simp at ck; sorry
-  case _ => intros; sorry
+    unfold compile at ck; simp at ck;
+    sorry
+  case _ =>
+    intros;
+    sorry
   assumption
 
 case _ ih =>

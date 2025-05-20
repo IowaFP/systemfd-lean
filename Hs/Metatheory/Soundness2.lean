@@ -60,7 +60,6 @@ case _ n =>
 
 
 theorem compile_preserves_terms :
-  (∀ Γ (h1 h2 : ⊢s Γ), h1 = h2) -> -- needs fixing
   (∀ v, CompileCtxPred v) ->
   (∀ x,  (Γ d@ x).is_stable ->  (Γ' d@ x).is_stable) ->
   (∀ x,  (Γ d@ x).is_datatype ->  (Γ' d@ x).is_datatype) ->
@@ -73,7 +72,7 @@ theorem compile_preserves_terms :
   (j2 : Γ ⊢t t : τ) ->
   compile_term Γ t τ j2 = .some t' ->
   Γ' ⊢ t' : τ' := by
-intro h cc cc' cc'' cc''' wf j1 c1 j2 c2;
+intro cc cc' cc'' cc''' wf j1 c1 j2 c2;
 induction Γ, t, τ, j2 using compile_term.induct generalizing Γ' t' τ' k
 all_goals (unfold compile_term at c2; simp at c2)
 case _ τ Γ x wf' test gt =>
@@ -101,6 +100,7 @@ case _ Γ A t B j1' j2 j3 ih1 => -- lam
  cases c2'; case _ B' c2' =>
  cases c2'; case _ c2' e =>
  cases e; case _ ja jb =>
+ have h := cc .ctx; -- simp at h
  have lem := compile_type_uniqueness h j1' ja c2 c1'; cases lem;
  have lem := compile_type_uniqueness h jb j3 c2' c3; cases lem;
  apply Judgment.lam;
@@ -171,6 +171,7 @@ case _ Γ t1 A B t2 h1 h2 h3 h4 ih1 ih2 => -- app
  cases lem; case _ e lem =>
  cases lem; case _ c1' c2' =>
    cases e;
+   have h := cc .ctx; -- simp at h
    have lem := compile_type_uniqueness h h3 ja' c3 c1'; cases lem
    have lem := compile_beta_empty_term h jb' c2' h2 c6 (hs_beta_empty_type t2 jb');
    have lem' := compile_type_uniqueness h (hs_beta_empty_type t2 jb') j1 lem c1
@@ -194,6 +195,7 @@ case _ B Γ A t1 t2 j1' j2 j3 j4 ih1 ih2 => -- letterm
  cases c4; case _ t2' c4 =>
  cases c4; case _ c4 e =>
  cases e;
+ have h := cc .ctx;
  have lemA : Γ' ⊢ A' : ★ := by
    apply compile_preserves_types (cc .kind) wf h _ _ j1' c2;
    apply HsJudgment.ax (hs_judgment_ctx_wf .type j1')
@@ -255,6 +257,7 @@ case _ T Γ A R B s i t n jA jR jB jT js ji jt j9 j10 j11 j12 j13 ih1 ih2 ih3 ih
  cases e; case _ e1 e =>
  have e1' := Term.eq_of_beq e1; cases e1';
  split at e
+ have h := cc .ctx;
  case _ p jp e1 vhv1 n wf' test gt e2 vhv _ e3 e4 e5 =>
    cases e; cases e1; cases e2;
    have lemAx : Γ ⊢κ `★ : `□ := by apply HsJudgment.ax (hs_judgment_ctx_wf .type jA)
@@ -295,6 +298,7 @@ case _ Γ A t τ e h1 h2 h3 h4 ih => -- implicitAllE
  cases lem; case _ A' lem =>
  cases lem; case _ τ' lem =>
  cases lem;
+ have h := cc .ctx;
  apply Judgment.appt;
  case _ => --
    have ih' := @ih Γ' `★ (∀[A']τ') wt cc' cc'' cc''' wf h1 c2 c4;
@@ -326,7 +330,8 @@ case _ Γ A t τ e h1 h2 h3 h4 ih => -- implicitAllE
    have u := types_have_unique_kinds j1 j1''; cases u;
    have u := types_have_unique_judgments h j1 j1''; cases u;
    have lem := compile_beta_kind_type h j1' c3' h4 c5 j1'';
-   have lem1 : compile_type Γ ([Subst.Action.su e::I]τ) ([Subst.Action.su e::I]`★) j1'' = compile_type Γ ([Subst.Action.su e::I]τ) `★ j1'' := by rfl
+   have lem1 : compile_type Γ ([Subst.Action.su e::I]τ) ([Subst.Action.su e::I]`★) j1'' =
+     compile_type Γ ([Subst.Action.su e::I]τ) `★ j1'' := by rfl
    rw[lem1] at lem;
    rw[c1] at lem; cases lem; rfl
 
@@ -348,6 +353,7 @@ case _ Γ t A τ j1' j2 ih =>
   cases c2'; case _ wt' c2' =>
   cases c2'; case _ c2' e =>
   cases e;
+  have h := cc .ctx;
   have u := kinds_have_unique_judgments h ja' j2; cases u;
   rw[c1] at c3; cases c3;
   have lem : ⊢ (.kind wA :: Γ') := by
@@ -392,6 +398,7 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
  cases c2'; case _ B' c2' =>
  cases c2'; case _ c2' e =>
  cases e; case _ ja _ jb =>
+ have h := cc .ctx;
  have lem := compile_type_uniqueness h j1' ja c2 c1'; cases lem;
  apply Judgment.lam;
  apply compile_preserves_types (cc .kind) wf h _ _ ja c1'
@@ -432,6 +439,7 @@ case _ Γ t π τ j1' j2 j4 j3 ih1 => -- implicitArrI
      unfold hs_weaken_empty_kind; unfold hs_weaken_kind; cases lem2;
      unfold hs_judgment_ctx_wf; simp;
      unfold hs_rename; simp; unfold compile_kind; rfl
+
 case _ Γ t π τ e j1' j2 j3 ih1 ih2 => -- implicitArrE
   rw[Option.bind_eq_some] at c2;
   cases c2; case _ warr c2 =>
@@ -455,6 +463,7 @@ case _ Γ t π τ e j1' j2 j3 ih1 ih2 => -- implicitArrE
   cases lem; case _ e lem =>
   cases lem; case _ c1' c2' =>
   cases e;
+  have h := cc .ctx;
   have lem := compile_beta_empty_term h jb' c2' j2 c5 j1;
   apply Judgment.app;
   case _ =>

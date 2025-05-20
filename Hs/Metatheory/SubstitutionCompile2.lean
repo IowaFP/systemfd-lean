@@ -63,63 +63,6 @@ case _ n =>
     unfold Subst.compose at h2; simp at h2;
     rw[zdef] at h2; simp at h2;
 
-theorem hs_lift_subst_compile_subst2 (f : Frame HsTerm) (σ : Subst HsTerm) (σ' : Subst Term):
-  ⊢s (f.apply σ :: Δ) ->
- (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
-
- (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢τ t : ([σ]T)) ->
-
- (∀ i t T,
-    (∀ σ, [σ] T = T) ->
-    σ i = .su t ->
-   .some T = (Γ d@ i).get_type ∧
-  ∀ (j : Δ ⊢τ t : T),
-  ∃ (wt : Term),
-     σ' i = .su wt ∧
-  compile_type Δ t T j = .some wt) ->
-
-  (∀ i t T,
-     (∀ σ, [σ] T = T) ->
-     ^σ i = .su t ->
-     .some T = ((f :: Γ) d@ i).get_type ∧
-  ∀ (j : (f.apply σ :: Δ) ⊢τ t : T),
-  ∃ (wt : Term),
-     ^σ' i = .su wt ∧
-  compile_type (f.apply σ :: Δ) t T j = .some wt) := by
-intro wf h1 f2 h2 n t T e h3
-cases n <;> simp at *
-case _ n =>
-generalize zdef : σ n = y at *;
-cases y
-all_goals (unfold Subst.compose at h3; simp at h3; rw[zdef] at h3; simp at h3)
-case _ a =>
- replace h2 := h2 n a T e zdef
- cases h2; case _ gt h2 =>
- have lem : Δ ⊢τ a : ([σ]T) := f2 n a T zdef gt
- rw[e] at lem;
- replace h2 := h2 lem
- cases h2; case _ wt h2 =>
- cases h2; case _ zdef' h2 =>
- cases h3;
- constructor
- case _ =>
-   rw[<-gt]; simp; rw[e]
- case _ =>
- intro sj
- exists [S]wt;
- constructor;
- case _ => unfold Subst.compose; simp; rw[zdef'];
- case _ =>
- have lem1 := hs_frame_wf (f.apply σ) wf
- have sj' := sj
- rw[<-e S] at sj';
- have lem2 : compile_type (f.apply σ :: Δ) ([S]a) ([S]T) sj' = some ([S]wt) := by
-   apply @weaken_compile_type Δ a T wt (f.apply σ) h1 lem h2 lem1
- rw [<-lem2];
- apply compile_type_congr h1 rfl
- rw[e]
-
-
 theorem hs_lift_subst_compile_subst (f : Frame HsTerm) (σ : Subst HsTerm) (σ' : Subst Term):
   ⊢s (f.apply σ :: Δ) ->
  (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
@@ -148,9 +91,6 @@ all_goals (unfold Subst.compose at h3; simp at h3; rw[zdef] at h3; simp at h3)
 case _ a =>
  replace h2 := h2 n a T e zdef
  cases h2; case _ j h2 =>
- -- have lem : Δ ⊢τ a : ([σ]T) := f2 n a T zdef gt
- -- rw[e] at lem;
- -- replace h2 := h2 lem
  cases h2; case _ wt h2 =>
  cases h2; case _ zdef' h2 =>
  cases h3;
@@ -184,8 +124,7 @@ def subst_compile_type : {Γ Δ : Ctx HsTerm} -> {σ : Subst HsTerm} -> {σ' : S
  (∀ i t T,
     (∀ σ, [σ] T = T) ->
     σ i = .su t ->
-   .some T = (Γ d@ i).get_type ∧
-   ∀ (j : Δ ⊢τ t : T),
+   ∃ (j : Δ ⊢τ t : T),
    ∃ (wt : Term),
      σ' i = .su wt ∧
   compile_type Δ t T j = .some wt) ->
@@ -237,22 +176,16 @@ case _ Γ T n wf' test gt ck  =>
     have lem2 := f2 n t T zdef gt
     have tk := extract_kinding j
     have u := kinds_subst_eff_free2 T tk
-    have sj' := sj;
-    simp at sj'; rw[zdef] at sj'; simp at sj'
-    rw[compile_type_congr h _ rfl sj sj']
-    sorry
-    unfold Subst.apply; simp; rw[zdef]
-
-    -- have f6 := f6 n t T u zdef;
-    -- cases f6; case _ gt f6 =>
-    -- rw[u] at lem2;
+    have f6 := f6 n t T u zdef;
+    cases f6; case _ gt f6 =>
+    rw[u] at lem2;
     -- replace f6 := f6 lem2
-    -- cases f6; case _ wt f6 =>
-    -- cases f6; case _ zdef' f6 =>
-    -- simp; rw[zdef']; simp
-    -- rw[<-f6]; apply compile_type_congr h;
-    -- simp; rw[zdef]
-    -- apply u
+    cases f6; case _ wt f6 =>
+    cases f6; case _ zdef' f6 =>
+    simp; rw[zdef']; simp
+    rw[<-f6]; apply compile_type_congr h;
+    simp; rw[zdef]
+    apply u
 
 case _ Γ B f A a jf ja jA jB ih1 ih2 => -- appk
   generalize ej : hs_subst_type f1 f2 f3 (jf.appk ja jA jB) wf = sj' at *;
@@ -330,7 +263,7 @@ case _ Γ A B jA jB ih => -- allt
   generalize f2e : hs_lift_subst_replace (.kind A) wf'' f2 = f2' at *
   generalize f3e : hs_lift_subst_stable (.kind A) f3 = f3' at *
   generalize f4e : hs_lift_subst_compile_rename σ σ' f4 = f4' at *
-  generalize f6e : hs_lift_subst_compile_subst2 (.kind A) σ σ' wf'' h f2 f6 = f6' at *
+  generalize f6e : hs_lift_subst_compile_subst (.kind A) σ σ' wf'' h f6 = f6' at *
 
   apply  @ih B' (.kind ([σ]A) :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cB wf'
   simp;
@@ -380,7 +313,7 @@ case _ Γ A B jA jB ih1 ih2 => -- arrow
   have f3' := hs_lift_subst_stable .empty f3
   have f4' := hs_lift_subst_compile_rename σ σ' f4
 
-  generalize f6e : hs_lift_subst_compile_subst2 .empty σ σ' wf' h f2 f6 = f6' at *
+  generalize f6e : hs_lift_subst_compile_subst .empty σ σ' wf' h f6 = f6' at *
 
   apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cjB wf'
   simp
@@ -428,7 +361,7 @@ case _ Γ A B jA vhv jB ih1 ih2 =>  -- farrow
 
   have f3' := hs_lift_subst_stable .empty f3
   have f4' := hs_lift_subst_compile_rename σ σ' f4
-  have f6' := hs_lift_subst_compile_subst2 .empty σ σ' wf' h f2 f6
+  have f6' := hs_lift_subst_compile_subst .empty σ σ' wf' h f6
 
   apply  @ih2 B' (.empty :: Δ) (^σ) (^σ') f1' f2' f3' f4' f6' cjB wf'
   simp
@@ -468,59 +401,17 @@ case _ =>
 case _ =>
   intro n t1 T e h1
   cases n <;> simp at *; cases h1
-  case _ =>
-    constructor
-    unfold Frame.get_type; simp; sorry
-    intro j
-    have u := types_have_unique_kinds j2 j; cases u;
-    have u := types_have_unique_judgments h j j2; cases u
-    assumption
+  sorry
+  -- case _ =>
+  --   constructor
+  --   unfold Frame.get_type; simp; sorry
+  --   intro j
+  --   have u := types_have_unique_kinds j2 j; cases u;
+  --   have u := types_have_unique_judgments h j j2; cases u
+  --   assumption
 assumption
 apply hs_judgment_ctx_wf .type j2
 
--- theorem compile_beta_empty_type :
---   (∀ (Γ : Ctx HsTerm) (h1 h2 : ⊢s Γ), h1 = h2) ->
---   (j1 : (.empty::Γ) ⊢τ b : B) ->
---   compile_type (.empty::Γ) b B j1 = .some b' ->
---   (j2 : Γ ⊢τ t : A) ->
---   compile_type Γ t A j2 = .some t' ->
---   (j3 : Γ ⊢τ (b β[t]) : (B β[t])) ->
---   compile_type Γ (b β[t]) (B β[t]) j3 = .some (b' β[t']) := by
--- intro h j1 cj1 j2 cj2 j3;
--- apply @subst_compile_type b B b' (.empty :: Γ) Γ (.su t :: I) (.su t' :: I) h
--- case _ =>
---   intro n y h1;
---   cases n <;> simp at *; subst h1
---   case _ n =>
---     rw [Frame.apply_compose]; simp
--- case _ =>
---   intro n s T h1 h2
---   cases n <;> simp at *; subst h1
---   unfold Frame.get_type at h2; simp at h2
--- case _ =>
---   intro n h1
---   cases n <;> simp at *
---   rw [Frame.is_stable_stable] at h1
---   unfold Frame.is_stable at h1
---   simp at h1
--- case _ =>
---   intro n y h1
---   cases n <;> simp
---   case _ => simp at h1
---   case _ => simp at h1; assumption
--- case _ =>
---   intro n e T e h1
---   cases n <;> simp at *
---   case _ =>
---     cases h1
---     constructor
---     sorry
---     intro j
---     have u := types_have_unique_kinds j2 j; cases u;
---     have u := types_have_unique_judgments h j j2; cases u
---     assumption
--- assumption
--- apply hs_judgment_ctx_wf .type j2
 
 
 theorem compile_beta_empty_term :

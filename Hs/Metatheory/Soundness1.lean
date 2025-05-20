@@ -55,7 +55,7 @@ abbrev CompileCtxPred : (v : HsVariant) -> Prop
   (j : Γ ⊢t T : A) ->
   compile .term Γ ⟨(T, A), j⟩ = .some T' ->
   (Γ' d@ x).get_type = .some T'
-| .ctx => true
+| .ctx => ∀ Γ (h1 h2 : ⊢s Γ), h1 = h2 -- needs fixing. Should ideally be coherence property i think
 
 
 theorem compile_preserves_types :
