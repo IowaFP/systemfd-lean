@@ -70,7 +70,7 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
 | sym : Red Γ (sym! (refl! K A)) (refl! K A)
 | seq : Red Γ ((refl! K A) `; (refl! K A)) (refl! K A)
 | appc : Red Γ (refl! (K1 -k> K2) A `@c (refl! K1 B)) (refl! K2 (A `@k B))
-| apptc : Red Γ (refl! K (∀[K] A) `@c[refl! K B]) (refl! K (A β[B]))
+| apptc : Red Γ (refl! K1 (∀[K2] A) `@c[refl! K2 B]) (refl! K1 (A β[B]))
 | fst : Red Γ (fst! K1 (refl! K2 (A `@k B))) (refl! (K1 -k> K2) A)
 | snd : Red Γ (snd! K1 (refl! K2 (A `@k B))) (refl! K1 B)
 | allc : Red Γ (∀c[A] refl! K B) (refl! K (∀[A] B))
@@ -156,21 +156,21 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
 ----------------------------------------------------------------
 | ctor1_absorb :
   Red Γ (.ctor1 v `0) `0
-| ctor2_abosrb1 :
+| ctor2_absorb1 :
   ctor2_has_congr1 v ->
   Red Γ (.ctor2 v `0 t2) `0
-| ctor2_abosrb2 :
+| ctor2_absorb2 :
   ctor2_has_congr2 v ->
   Red Γ (.ctor2 v t1 `0) `0
-| bind2_abosrb1 :
+| bind2_absorb1 :
   bind2_has_congr1 v ->
   Red Γ (.bind2 v `0 t2) `0
-| bind2_abosrb2 :
+| bind2_absorb2 :
   bind2_has_congr2 v ->
   Red Γ (.bind2 v t1 `0) `0
-| ite_abosrb :
+| ite_absorb :
   Red Γ (.ite p `0 b e) `0
-| guard_abosrb :
+| guard_absorb :
   Red Γ (.guard p `0 b) `0
 ----------------------------------------------------------------
 ---- Mapping Rules

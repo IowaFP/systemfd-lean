@@ -9,9 +9,10 @@ import SystemFD.Reduction
 set_option maxHeartbeats 500000
 
 inductive Val : Ctx Term -> Term -> Prop where
-| app : t.neutral_form = .some (n, ts)
-      -> (Γ.is_stable_red n)
+| app x sp : t.neutral_form = .some (x, sp)
+      -> (Γ.is_stable_red x)
       -> Val Γ t
+| choice : Val Γ t1 -> Val Γ t2 -> Val Γ (t1 ⊕ t2)
 | lam :  Val Γ (`λ[a] b)
 | lamt : Val Γ (Λ[A] b)
 | refl : Val Γ (refl! K A)
@@ -31,31 +32,37 @@ have lem := inversion_apply_spine j2
 cases lem; case _ C lem =>
 cases lem; case _ h1 h2 =>
 cases h2; case _ j3 j4 =>
-  have lem := classification_lemma j2 <;> simp at lem
-  cases lem
-  case _ lem => cases lem
-  case _ lem =>
-    cases lem; case _ K lem =>
-    cases lem.2; case _ q1 q2 q3 =>
-      apply ctx_get_var_no_spine_eq_type j3 j1
-      rw [j4]; apply lem.2; apply h1
+cases j3; case _ j3 j5 =>
+have lem := classification_lemma j2 <;> simp at lem
+cases lem
+case _ lem => cases lem
+case _ lem =>
+  cases lem; case _ K lem =>
+  cases lem.2; case _ q1 q2 q3 =>
+    apply ctx_get_var_no_spine_eq_type j3 j1
+    rw [j5]; apply lem.2; apply h1
 
 theorem refl_is_val :
   Γ ⊢ η : (A ~[K]~ B) ->
   Val Γ η ->
-  η = refl! K A ∧ A = B
-:= by sorry
--- intros ηJ vη; induction vη;
--- any_goals(solve | cases ηJ)
--- case _ Γ t n ts tnf n_stable =>
---      symm at tnf; replace tnf := Term.neutral_form_law tnf;
---      subst tnf;
---      exfalso;
---      apply (refl_var_spine_lemma n_stable ηJ);
--- case _ => cases ηJ; case _ fJ =>
---   have lem := classification_lemma fJ; simp at lem; cases lem;
---   case _ h => cases h; case _ h => cases h
---   case _ h => apply And.intro rfl rfl
+  (η = refl! K A ∧ A = B)
+    ∨ (∃ (c1 c2 : Term), η = (c1 ⊕ c2))
+:= by
+intros ηJ vη; induction vη;
+any_goals (solve | cases ηJ)
+case refl =>
+  cases ηJ; case _ j1 j2 =>
+  have lem := classification_lemma j2; simp at lem; cases lem;
+  case _ h => subst h; cases j1
+  case _ h => apply Or.inl; apply And.intro rfl rfl
+case app x sp j1 j2 =>
+  replace tnf := Term.neutral_form_law (Eq.symm j1);
+  subst tnf;
+  exfalso;
+  apply (refl_var_spine_lemma j2 ηJ);
+case choice =>
+  apply Or.inr; apply Exists.intro _
+  apply Exists.intro _; rfl
 
 theorem cannonical_var :
   Γ ⊢ #h : T ->
@@ -98,31 +105,32 @@ cases tJ; case _ wf h1 =>
     unfold Ctx.is_insttype; unfold Frame.is_insttype; rw[fh]
 
 theorem cannonical_head :
-       Val Γ t ->
-       Γ ⊢ t : τ ->
-       Γ ⊢ τ : ★ ->
-       t.neutral_form = .some (h, ts) ->
-       (Γ.is_ctor h ∨ Γ.is_insttype h) := by
-intro vt tJ τJ tnf;
-have tshape := Term.neutral_form_law (Eq.symm tnf)
-rw[<-tshape] at tJ;
-have hJ := inversion_apply_spine tJ;
-cases hJ; case _ τ' hJ =>
-cases hJ; case _ spTy hJ =>
-cases vt;
-any_goals(solve | cases tnf)
-case app h_stable tnf' =>
-  rw[tnf] at tnf'; cases tnf';
-  cases hJ; case _ wf gt =>
-  have τ'J := spine_type_is_type τJ spTy
-  have hJ := Judgment.var wf gt;
-  simp at h_stable;
-  generalize fh : Γ d@ h = f at *;
-  cases f;
-  any_goals (solve | cases gt)
-  all_goals (unfold Frame.is_stable_red at h_stable; simp at h_stable)
-  all_goals (clear h_stable; unfold Frame.get_type at gt; simp at gt; cases gt)
-  repeat sorry
+  Val Γ t ->
+  Γ ⊢ t : τ ->
+  Γ ⊢ τ : ★ ->
+  t.neutral_form = .some (h, ts) ->
+  (Γ.is_ctor h ∨ Γ.is_insttype h)
+:= by sorry
+-- intro vt tJ τJ tnf;
+-- have tshape := Term.neutral_form_law (Eq.symm tnf)
+-- rw[<-tshape] at tJ;
+-- have hJ := inversion_apply_spine tJ;
+-- cases hJ; case _ τ' hJ =>
+-- cases hJ; case _ spTy hJ =>
+-- cases vt;
+-- any_goals(solve | cases tnf)
+-- case app h_stable tnf' =>
+--   rw[tnf] at tnf'; cases tnf';
+--   cases hJ; case _ wf gt =>
+--   have τ'J := spine_type_is_type τJ spTy
+--   have hJ := Judgment.var wf gt;
+--   simp at h_stable;
+--   generalize fh : Γ d@ h = f at *;
+--   cases f;
+--   any_goals (solve | cases gt)
+--   all_goals (unfold Frame.is_stable_red at h_stable; simp at h_stable)
+--   all_goals (clear h_stable; unfold Frame.get_type at gt; simp at gt; cases gt)
+--   repeat sorry
   -- case _ =>
   --   have h := ctx_get_var_type wf fh;
   --   have uniq := uniqueness_of_types h τ'J; cases uniq;
@@ -140,16 +148,16 @@ case app h_stable tnf' =>
   --   simp; rw[fh]; unfold Frame.is_insttype; simp;
 
 
-inductive ArrowLike  : (T : Term) -> Prop where
-  | arrowt : ArrowLike (A -t> B)
-  | allt : ArrowLike (∀[A] B)
+inductive ArrowLike : (T : Term) -> Prop where
+| arrowt : ArrowLike (A -t> B)
+| allt : ArrowLike (∀[A] B)
 
 inductive LambdaLike : (T : Term) -> Prop where
-  | lam : LambdaLike (`λ[A] B)
-  | lamt : LambdaLike (Λ[A] B)
+| lam : LambdaLike (`λ[A] B)
+| lamt : LambdaLike (Λ[A] B)
 
 @[simp]
-abbrev CannonicalLambdaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
+abbrev CanonicalLambdaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
 | .prf => λ (t, τ) =>
        Val Γ t ->
        Γ ⊢ t : τ ->
@@ -158,188 +166,188 @@ abbrev CannonicalLambdaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentA
        (LambdaLike t ∨ ValidHeadVariable t Γ.is_ctor ∨ ValidHeadVariable t Γ.is_insttype)
 | .wf => λ () => true
 
-theorem cannonical_lambda :
+theorem canonical_lambda :
   Judgment v Γ idx ->
-  CannonicalLambdaType Γ v idx
-  := by
-intro j; induction j <;> simp at *
-all_goals (intro h1 h2 h3 h4)
-any_goals try (solve | cases h1; case _ h1 => cases h1)
-any_goals try (solve | cases h3)
-case _ Γ n T wf gt ih =>
-  cases h1; case _ n_stable nnf =>
-  simp at nnf; cases nnf; case _ e1 e2 =>
-  subst e1; subst e2;
-  generalize fh : Γ d@ n = f at *;
-  unfold Frame.get_type at gt;
-  cases h4;
-  case _ =>
-    split at gt;
-    any_goals (solve | cases gt)
-    any_goals (solve | unfold Ctx.is_stable_red at n_stable; unfold Frame.is_stable_red at n_stable;
-                       exfalso; rw[fh] at n_stable; simp at n_stable)
-    all_goals (cases gt)
-    case _ =>
-      have lem := classification_lemma h3; simp at lem;
-      cases lem;
-      case _ =>
-        have wfr := @frame_wf_by_index Γ n wf;
-        have h := ctx_get_var_type wf fh;
-        cases h
-      case _ h =>
-        cases h; case _ k h => cases h; case _ _ h => cases h; case _ h => cases h
-    case _ =>
-      have wfr := @frame_wf_by_index Γ n wf;
-      have h := ctx_get_datatype_kind wf fh;
-      cases h;
-    case _ =>
-      apply Or.inr; apply Or.inl; unfold ValidHeadVariable;
-      apply Exists.intro (n, []);
-      apply And.intro; simp; simp; rw[fh]; unfold Frame.is_ctor; simp
-    case _ =>
-      have wfr := @frame_wf_by_index Γ n wf;
-      have h := ctx_get_opent_kind wf fh;
-      cases h;
-    case _ =>
-      apply Or.inr; apply Or.inr; unfold ValidHeadVariable;
-      apply Exists.intro (n, []);
-      apply And.intro; simp; simp; rw[fh]; unfold Frame.is_insttype; simp
-  case _ =>
-    split at gt;
-    any_goals (solve | cases gt)
-    any_goals (solve | unfold Ctx.is_stable_red at n_stable; unfold Frame.is_stable_red at n_stable;
-                       exfalso; rw[fh] at n_stable; simp at n_stable)
-    all_goals (cases gt)
-    case _ =>
-      have lem := classification_lemma h3; simp at lem;
-      cases lem;
-      case _ =>
-        have wfr := @frame_wf_by_index Γ n wf;
-        have h := ctx_get_var_type wf fh;
-        cases h
-      case _ h =>
-        cases h; case _ k h => cases h; case _ _ h => cases h; case _ h => cases h
-    case _ =>
-      have wfr := @frame_wf_by_index Γ n wf;
-      have h := ctx_get_datatype_kind wf fh;
-      cases h;
-    case _ =>
-      apply Or.inr; apply Or.inl; unfold ValidHeadVariable;
-      apply Exists.intro (n, []);
-      apply And.intro; simp; simp; rw[fh]; unfold Frame.is_ctor; simp
-    case _ =>
-      have wfr := @frame_wf_by_index Γ n wf;
-      have h := ctx_get_opent_kind wf fh;
-      cases h;
-    case _ =>
-      apply Or.inr; apply Or.inr; unfold ValidHeadVariable;
-      apply Exists.intro (n, []);
-      apply And.intro; simp; simp; rw[fh]; unfold Frame.is_insttype; simp
+  CanonicalLambdaType Γ v idx
+:= by sorry
+-- intro j; induction j <;> simp at *
+-- all_goals (intro h1 h2 h3 h4)
+-- any_goals try (solve | cases h1; case _ h1 => cases h1)
+-- any_goals try (solve | cases h3)
+-- case _ Γ n T wf gt ih =>
+--   cases h1; case _ n_stable nnf =>
+--   simp at nnf; cases nnf; case _ e1 e2 =>
+--   subst e1; subst e2;
+--   generalize fh : Γ d@ n = f at *;
+--   unfold Frame.get_type at gt;
+--   cases h4;
+--   case _ =>
+--     split at gt;
+--     any_goals (solve | cases gt)
+--     any_goals (solve | unfold Ctx.is_stable_red at n_stable; unfold Frame.is_stable_red at n_stable;
+--                        exfalso; rw[fh] at n_stable; simp at n_stable)
+--     all_goals (cases gt)
+--     case _ =>
+--       have lem := classification_lemma h3; simp at lem;
+--       cases lem;
+--       case _ =>
+--         have wfr := @frame_wf_by_index Γ n wf;
+--         have h := ctx_get_var_type wf fh;
+--         cases h
+--       case _ h =>
+--         cases h; case _ k h => cases h; case _ _ h => cases h; case _ h => cases h
+--     case _ =>
+--       have wfr := @frame_wf_by_index Γ n wf;
+--       have h := ctx_get_datatype_kind wf fh;
+--       cases h;
+--     case _ =>
+--       apply Or.inr; apply Or.inl; unfold ValidHeadVariable;
+--       apply Exists.intro (n, []);
+--       apply And.intro; simp; simp; rw[fh]; unfold Frame.is_ctor; simp
+--     case _ =>
+--       have wfr := @frame_wf_by_index Γ n wf;
+--       have h := ctx_get_opent_kind wf fh;
+--       cases h;
+--     case _ =>
+--       apply Or.inr; apply Or.inr; unfold ValidHeadVariable;
+--       apply Exists.intro (n, []);
+--       apply And.intro; simp; simp; rw[fh]; unfold Frame.is_insttype; simp
+--   case _ =>
+--     split at gt;
+--     any_goals (solve | cases gt)
+--     any_goals (solve | unfold Ctx.is_stable_red at n_stable; unfold Frame.is_stable_red at n_stable;
+--                        exfalso; rw[fh] at n_stable; simp at n_stable)
+--     all_goals (cases gt)
+--     case _ =>
+--       have lem := classification_lemma h3; simp at lem;
+--       cases lem;
+--       case _ =>
+--         have wfr := @frame_wf_by_index Γ n wf;
+--         have h := ctx_get_var_type wf fh;
+--         cases h
+--       case _ h =>
+--         cases h; case _ k h => cases h; case _ _ h => cases h; case _ h => cases h
+--     case _ =>
+--       have wfr := @frame_wf_by_index Γ n wf;
+--       have h := ctx_get_datatype_kind wf fh;
+--       cases h;
+--     case _ =>
+--       apply Or.inr; apply Or.inl; unfold ValidHeadVariable;
+--       apply Exists.intro (n, []);
+--       apply And.intro; simp; simp; rw[fh]; unfold Frame.is_ctor; simp
+--     case _ =>
+--       have wfr := @frame_wf_by_index Γ n wf;
+--       have h := ctx_get_opent_kind wf fh;
+--       cases h;
+--     case _ =>
+--       apply Or.inr; apply Or.inr; unfold ValidHeadVariable;
+--       apply Exists.intro (n, []);
+--       apply And.intro; simp; simp; rw[fh]; unfold Frame.is_insttype; simp
 
-case _ Γ f _ _ _ fJ _ _ ih => -- appk bogus case
-  cases h1; case _ n ts n_stable ts' =>
-  simp at ts'; rw [Option.bind_eq_some] at ts';  cases ts'; case _ w fnf =>
-  cases fnf; case _ fnf ts' =>
-  cases ts';
-  have vf : Val Γ f := by constructor; assumption; assumption
-  generalize fh : Γ d@ w.fst = f at *;
-  have lem := classification_lemma fJ; simp at lem; cases lem;
-  case _ h => cases h; case _ k1 k2 => sorry
-    -- have h := uniqueness_of_types h3 k2; cases h;
-  case _ h =>
-    cases h; case _ w h =>
-    cases h; case _ wk arrk =>
-    cases arrk; cases wk;
+-- case _ Γ f _ _ _ fJ _ _ ih => -- appk bogus case
+--   cases h1; case _ n ts n_stable ts' =>
+--   simp at ts'; rw [Option.bind_eq_some] at ts';  cases ts'; case _ w fnf =>
+--   cases fnf; case _ fnf ts' =>
+--   cases ts';
+--   have vf : Val Γ f := by constructor; assumption; assumption
+--   generalize fh : Γ d@ w.fst = f at *;
+--   have lem := classification_lemma fJ; simp at lem; cases lem;
+--   case _ h => cases h; case _ k1 k2 => sorry
+--     -- have h := uniqueness_of_types h3 k2; cases h;
+--   case _ h =>
+--     cases h; case _ w h =>
+--     cases h; case _ wk arrk =>
+--     cases arrk; cases wk;
 
-case lam Γ A t B ih1 ih2 =>  constructor; constructor
+-- case lam Γ A t B ih1 ih2 =>  constructor; constructor
 
-case app Γ f A B a B' fJ aJ h0 ih1 ih2 =>
-  cases h1; case _ n ts n_stable h1 =>
-  simp at h1; rw[Option.bind_eq_some] at h1;
-  cases h1;  case _ ts' fnf =>
-  cases fnf; case _ fnf ts' =>
-  cases ts'; have h := Val.app fnf n_stable;
-  simp at *;
-  have lem := classification_lemma fJ; simp at lem;
-  cases lem;
-  case _ h => cases h
-  case _ h =>
-    cases h; case _ k h =>
-    cases h; case _ k h =>
-    cases h; case _ aK bK =>
-    have arrK := Judgment.arrow aK bK;
-    have ih := ih1 h fJ arrK (ArrowLike.arrowt); cases ih;
-    case _ h =>
-      cases h;
-      case _ => cases fnf
-      case _ => cases fnf
-    case _ h =>
-      cases h;
-      case _ h =>
-        apply Or.inr; apply Or.inl;
-        unfold ValidHeadVariable;
-        have fanf := @Term.neutral_form_app f a ts'.1 ts'.2 fnf; symm at fanf;
-        apply Exists.intro (ts'.1, ts'.snd ++ [(.term, a)]);
-        apply And.intro; assumption; simp;
-        unfold ValidHeadVariable at h; simp at h;
-        cases h; case _ h => cases h; case _ fnf' h =>
-        rw [fnf] at fnf'; cases fnf'; case _ h =>
-        cases h; simp; assumption;
-      case _ h =>
-        apply Or.inr; apply Or.inr;
-        unfold ValidHeadVariable;
-        have fanf := @Term.neutral_form_app f a ts'.1 ts'.2 fnf; symm at fanf;
-        apply Exists.intro (ts'.1, ts'.snd ++ [(.term, a)]);
-        apply And.intro; assumption; simp;
-        unfold ValidHeadVariable at h; simp at h;
-        cases h; case _ h => cases h; case _ fnf' h =>
-        rw [fnf] at fnf'; cases fnf'; case _ h =>
-        cases h; simp; assumption;
-case _ ih1 _ =>
-  cases h1;
-  case _ h => cases h
-  case _ => constructor; constructor
+-- case app Γ f A B a B' fJ aJ h0 ih1 ih2 =>
+--   cases h1; case _ n ts n_stable h1 =>
+--   simp at h1; rw[Option.bind_eq_some] at h1;
+--   cases h1;  case _ ts' fnf =>
+--   cases fnf; case _ fnf ts' =>
+--   cases ts'; have h := Val.app fnf n_stable;
+--   simp at *;
+--   have lem := classification_lemma fJ; simp at lem;
+--   cases lem;
+--   case _ h => cases h
+--   case _ h =>
+--     cases h; case _ k h =>
+--     cases h; case _ k h =>
+--     cases h; case _ aK bK =>
+--     have arrK := Judgment.arrow aK bK;
+--     have ih := ih1 h fJ arrK (ArrowLike.arrowt); cases ih;
+--     case _ h =>
+--       cases h;
+--       case _ => cases fnf
+--       case _ => cases fnf
+--     case _ h =>
+--       cases h;
+--       case _ h =>
+--         apply Or.inr; apply Or.inl;
+--         unfold ValidHeadVariable;
+--         have fanf := @Term.neutral_form_app f a ts'.1 ts'.2 fnf; symm at fanf;
+--         apply Exists.intro (ts'.1, ts'.snd ++ [(.term, a)]);
+--         apply And.intro; assumption; simp;
+--         unfold ValidHeadVariable at h; simp at h;
+--         cases h; case _ h => cases h; case _ fnf' h =>
+--         rw [fnf] at fnf'; cases fnf'; case _ h =>
+--         cases h; simp; assumption;
+--       case _ h =>
+--         apply Or.inr; apply Or.inr;
+--         unfold ValidHeadVariable;
+--         have fanf := @Term.neutral_form_app f a ts'.1 ts'.2 fnf; symm at fanf;
+--         apply Exists.intro (ts'.1, ts'.snd ++ [(.term, a)]);
+--         apply And.intro; assumption; simp;
+--         unfold ValidHeadVariable at h; simp at h;
+--         cases h; case _ h => cases h; case _ fnf' h =>
+--         rw [fnf] at fnf'; cases fnf'; case _ h =>
+--         cases h; simp; assumption;
+-- case _ ih1 _ =>
+--   cases h1;
+--   case _ h => cases h
+--   case _ => constructor; constructor
 
-case _ Γ f A B a B' fJ aJ _ ih1 ih2 =>
-  cases h1; case _ n ts n_stable h1 =>
-  simp at h1; rw[Option.bind_eq_some] at h1;
-  cases h1;  case _ ts' fnf =>
-  cases fnf; case _ fnf ts' =>
-  cases ts'; have h := Val.app fnf n_stable;
-  simp at *;
-  have lem := classification_lemma fJ; simp at lem;
-  cases lem;
-  case _ h => cases h
-  case _ h =>
-    cases h; case _ k h =>
-    cases h; case _ k h =>
-    cases h; case _ aK bK =>
-    have arrK := Judgment.allt aK bK;
-    have ih := ih1 h fJ arrK (ArrowLike.allt); cases ih;
-    case _ h =>
-      cases h;
-      case _ => cases fnf
-      case _ => cases fnf
-    case _ h =>
-      cases h;
-      case _ h =>
-        apply Or.inr; apply Or.inl;
-        unfold ValidHeadVariable;
-        have fanf := @Term.neutral_form_appt f a ts'.1 ts'.2 fnf; symm at fanf;
-        apply Exists.intro (ts'.1, ts'.snd ++ [(.type, a)]);
-        apply And.intro; assumption; simp;
-        unfold ValidHeadVariable at h; simp at h;
-        cases h; case _ h => cases h; case _ fnf' h =>
-        rw [fnf] at fnf'; cases fnf'; case _ h =>
-        cases h; simp; assumption;
-      case _ h =>
-        apply Or.inr; apply Or.inr;
-        unfold ValidHeadVariable;
-        have fanf := @Term.neutral_form_appt f a ts'.1 ts'.2 fnf; symm at fanf;
-        apply Exists.intro (ts'.1, ts'.snd ++ [(.type, a)]);
-        apply And.intro; assumption; simp;
-        unfold ValidHeadVariable at h; simp at h;
-        cases h; case _ h => cases h; case _ fnf' h =>
-        rw [fnf] at fnf'; cases fnf'; case _ h =>
-        cases h; simp; assumption;
-case _ ih2 => cases h4
+-- case _ Γ f A B a B' fJ aJ _ ih1 ih2 =>
+--   cases h1; case _ n ts n_stable h1 =>
+--   simp at h1; rw[Option.bind_eq_some] at h1;
+--   cases h1;  case _ ts' fnf =>
+--   cases fnf; case _ fnf ts' =>
+--   cases ts'; have h := Val.app fnf n_stable;
+--   simp at *;
+--   have lem := classification_lemma fJ; simp at lem;
+--   cases lem;
+--   case _ h => cases h
+--   case _ h =>
+--     cases h; case _ k h =>
+--     cases h; case _ k h =>
+--     cases h; case _ aK bK =>
+--     have arrK := Judgment.allt aK bK;
+--     have ih := ih1 h fJ arrK (ArrowLike.allt); cases ih;
+--     case _ h =>
+--       cases h;
+--       case _ => cases fnf
+--       case _ => cases fnf
+--     case _ h =>
+--       cases h;
+--       case _ h =>
+--         apply Or.inr; apply Or.inl;
+--         unfold ValidHeadVariable;
+--         have fanf := @Term.neutral_form_appt f a ts'.1 ts'.2 fnf; symm at fanf;
+--         apply Exists.intro (ts'.1, ts'.snd ++ [(.type, a)]);
+--         apply And.intro; assumption; simp;
+--         unfold ValidHeadVariable at h; simp at h;
+--         cases h; case _ h => cases h; case _ fnf' h =>
+--         rw [fnf] at fnf'; cases fnf'; case _ h =>
+--         cases h; simp; assumption;
+--       case _ h =>
+--         apply Or.inr; apply Or.inr;
+--         unfold ValidHeadVariable;
+--         have fanf := @Term.neutral_form_appt f a ts'.1 ts'.2 fnf; symm at fanf;
+--         apply Exists.intro (ts'.1, ts'.snd ++ [(.type, a)]);
+--         apply And.intro; assumption; simp;
+--         unfold ValidHeadVariable at h; simp at h;
+--         cases h; case _ h => cases h; case _ fnf' h =>
+--         rw [fnf] at fnf'; cases fnf'; case _ h =>
+--         cases h; simp; assumption;
+-- case _ ih2 => cases h4

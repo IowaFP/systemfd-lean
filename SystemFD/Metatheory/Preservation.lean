@@ -756,7 +756,7 @@ case apptc j1 j2 j3 j4 ih1 ih2 =>
     cases j2; case _ q3 q4 =>
     cases q2; case _ q2 q5 =>
     subst j3; subst j4
-    apply Judgment.refl q3
+    apply Judgment.refl q1
     apply beta_kind q5 q4
   case _ h _ => cases h
   case _ h => cases h

@@ -8,7 +8,6 @@ import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
 import SystemFD.Metatheory.Canonicity
 
-
 @[simp]
 abbrev TypesAreValuesLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
 | .prf => λ Γ => λ(t , K) => Γ ⊢ K : .kind -> Val Γ t
@@ -117,12 +116,11 @@ theorem types_are_values_lemma :
 
 theorem types_are_values :
   Γ ⊢ t : K ->
-  Γ ⊢ K : .kind ->
+  Γ ⊢ K : □ ->
   Val Γ t
 := by
 intro j1 j2
 apply types_are_values_lemma j1 j2
-
 
 theorem val_sound_var_lemma :
   t.neutral_form = .some (n, sp) ->
@@ -294,319 +292,584 @@ case _ n => simp at *; rw [<-Frame.is_type_apply]; apply h n
 
 @[simp]
 abbrev ProgressLemmaType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
-| .prf => λ Γ => λ(t , _) => Val Γ t ∨ ∃ t', Red Γ t t'
+| .prf => λ Γ => λ(t , _) => Val Γ t ∨ (∃ t', Red Γ t t') ∨ (t = `0)
 | .wf  => λ _ => λ () => true
 
 theorem progress_lemma :
   (∀ x, ¬ Γ.is_type x) ->
   Judgment v Γ ix ->
   ProgressLemmaType v Γ ix
-:= by sorry
--- intro h1 j
--- induction j <;> try simp at *
--- case _ =>
---   apply Or.inr; apply Exists.intro _
---   apply Red.letbeta
--- case _ => apply Or.inl; apply Val.star
--- case _ Γ x T j1 j2 _ =>
---   generalize fdef : Γ d@ x = f at *
---   cases f
---   case term A t =>
---     apply Or.inr; apply Exists.intro _
---     apply @Red.letterm A #x x [] Γ t
---     simp; rw [fdef]
---   case openm A =>
---     generalize instsdef : get_instances Γ x = insts at *
---     apply Or.inr; apply Exists.intro insts
---     apply @Red.inst #x x [] insts Γ insts
---     simp; simp; rw [fdef]; unfold Frame.is_openm
---     simp; rw [<-instsdef]; simp
---   case type =>
---     replace h1 := h1 x
---     rw [fdef] at h1; unfold Frame.is_type at h1
---     simp at h1
---   case empty =>
---     unfold Frame.get_type at j2; simp at j2
---   all_goals (
---     apply Or.inl; apply @Val.app Γ #x x []
---     simp; simp; unfold Frame.is_stable_red
---     rw [fdef]
---   )
--- case _ => apply Or.inl; apply Val.arrk
--- case _ => apply Or.inl; apply Val.all
--- case _ => apply Or.inl; apply Val.arr
--- case _ Γ f A B a j1 j2 ih1 ih2 =>
---   have lem := classification_lemma j1; simp at lem
---   cases lem
---   case _ lem =>
---     have lem2 := types_are_values j1 lem
---     cases lem2
---     case app x sp q1 q2 =>
---       apply Or.inl; apply @Val.app Γ (f `@k a) x (sp ++ [(.kind, a)])
---       simp; rw [Option.bind_eq_some]; simp; apply q2
---       apply q1
---     all_goals (cases j1)
---   case _ lem =>
---     cases lem; case _ K lem =>
---     cases lem.2; cases lem.1
--- case _ => apply Or.inl; apply Val.eq
--- case _ Γ p A s R i B T e j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
---   replace ih2 := ih2 h1
---   cases ih2
---   case _ h2 =>
---     apply Or.inr
---     unfold ValidHeadVariable at j5
---     unfold ValidHeadVariable at j6
---     cases j5; case _ w1 j5 =>
---     cases w1; case _ w1 sp1 =>
---     cases j6; case _ w2 j6 =>
---     cases w2; case _ w2 sp2 =>
---       simp at j5; simp at j6
---       cases h2
---       case _ x sp3 q2 q3 =>
---         generalize tstdef : prefix_equal sp1 sp3 = tst
---         cases tst
---         case _ =>
---           apply Exists.intro _
---           apply Red.ite_missed j5.1 (Eq.symm q3) q2 (Or.inr tstdef)
---         case _ ξ =>
---           cases (Nat.decEq w1 x)
---           case _ h =>
---             apply Exists.intro _
---             apply Red.ite_missed j5.1 (Eq.symm q3) q2 (Or.inl h)
---           case _ h =>
---             subst h; apply Exists.intro _
---             apply Red.ite_matched j5.1 (Eq.symm q3) (Eq.symm tstdef) j5.2
---       all_goals (cases j2; simp at j6)
---   case _ h2 =>
---     cases h2; case _ s' h2 =>
---       apply Or.inr
---       apply Exists.intro (List.map (fun x => p.ite x i e) s')
---       apply Red.ite_congr h2; rfl
--- case _ Γ p A s R t B T j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
---   replace ih2 := ih2 h1
---   cases ih2
---   case _ h2 =>
---     apply Or.inr
---     unfold ValidHeadVariable at j5
---     unfold ValidHeadVariable at j6
---     cases j5; case _ w1 j5 =>
---     cases w1; case _ w1 sp1 =>
---     cases j6; case _ w2 j6 =>
---     cases w2; case _ w2 sp2 =>
---       simp at j5; simp at j6
---       cases h2
---       case _ x sp3 q2 q3 =>
---         generalize tstdef : prefix_equal sp1 sp3 = tst
---         cases tst
---         case _ =>
---           apply Exists.intro _
---           apply Red.guard_missed j5.1 (Eq.symm q3) q2 (Or.inr tstdef)
---         case _ ξ =>
---           cases (Nat.decEq w1 x)
---           case _ h =>
---             apply Exists.intro _
---             apply Red.guard_missed j5.1 (Eq.symm q3) q2 (Or.inl h)
---           case _ h =>
---             subst h; apply Exists.intro [t.apply_spine ξ]
---             apply @Red.guard_matched p w1 sp1 s sp3 ξ Γ t
---             apply j5.1; apply Eq.symm q3
---             apply Eq.symm tstdef
---       all_goals (cases j2; simp at j6)
---   case _ h2 =>
---     cases h2; case _ s' h2 =>
---       apply Or.inr
---       apply Exists.intro (List.map (fun x => p.guard x t) s')
---       apply Red.guard_congr h2; rfl
--- case _ => apply Or.inl; apply Val.lam
--- case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
---   replace ih1 := ih1 h1
---   cases ih1
---   case _ h2 =>
---     cases h2
---     case app x sp q1 q2 =>
---       apply Or.inl; apply @Val.app Γ (f `@ a) x (sp ++ [(.term, a)])
---       simp; rw [Option.bind_eq_some]; simp; apply q2
---       apply q1
---     case lam =>
---       apply Or.inr; apply Exists.intro _
---       apply Red.beta
---     all_goals (cases j1)
---   case _ h2 =>
---     cases h2; case _ f' h2 =>
---       apply Or.inr; apply Exists.intro (List.map (· `@ a) f')
---       apply Red.app_congr h2 rfl
--- case _ => apply Or.inl; apply Val.lamt
--- case _ Γ f A B a B' j1 j2 j3 ih1 ih2 =>
---   replace ih1 := ih1 h1
---   cases ih1
---   case _ h2 =>
---     cases h2
---     case app x sp q1 q2 =>
---       apply Or.inl; apply @Val.app Γ (f `@t a) x (sp ++ [(.type, a)])
---       simp; rw [Option.bind_eq_some]; simp; apply q2
---       apply q1
---     case lamt =>
---       apply Or.inr; apply Exists.intro _
---       apply Red.betat
---     all_goals (cases j1)
---   case _ h2 =>
---     cases h2; case _ f' h2 =>
---       apply Or.inr; apply Exists.intro (List.map (· `@t a) f')
---       apply Red.appt_congr h2 rfl
--- case _ Γ t A c B j1 j2 ih1 ih2 =>
---   apply Or.inr
---   replace ih2 := ih2 h1
---   cases ih2
---   case _ h2 =>
---     have lem := refl_is_val j2 h2
---     cases lem; case _ e1 e2 =>
---       subst e1; subst e2
---       apply Exists.intro _
---       apply Red.cast
---   case _ h2 =>
---     cases h2; case _ c' h2 =>
---       apply Exists.intro (List.map (t ▹ ·) c')
---       apply Red.cast_congr h2 rfl
--- case _ => apply Or.inl; apply Val.refl
--- case sym Γ η A B ηJ ηs =>
---   apply Or.inr
---   cases ηs h1;
---   case _ h =>
---     have x := refl_is_val ηJ h;
---     have xeqrefl := x.left;
---     have aeqB := x.right; subst xeqrefl;
---     have reds : ∃ t', Red Γ (sym! refl! A) t' := Exists.intro [refl! A] (@Red.sym Γ A);
---     apply reds;
---   case _ ηreds => cases ηreds; case _ w h =>
---     generalize tlp : List.map (sym! ·) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (sym! η) t' := Exists.intro tl' (Red.sym_congr h tlp);
---     apply reds;
-
--- case seq Γ η1 A B η2 C η1J η2J η1s η2s =>
---   apply Or.inr; cases (η2s h1);
---   case _ h =>
---     have η2refp := refl_is_val η2J h;
---     have η2refl := η2refp.1; cases (η1s h1);
---     case _ h =>
---       have η1refp := refl_is_val η1J h;
---       have η1refl := η1refp.1; have aeqB := η1refp.2; have BeqC := η2refp.2
---       subst η1refl; subst η2refl; subst aeqB;
---       have reds : ∃ t', Red Γ ((refl! A) `; (refl! A)) t' := Exists.intro [refl! A] Red.seq;
---       apply reds;
---     case _ h => cases h; case _ w h =>
---       generalize tlp : List.map (· `; η2) w = tl' at *; symm at tlp;
---       have reds : ∃ t', Red Γ (η1 `; η2) t' := Exists.intro tl' (Red.seq_congr1 h tlp);
---       apply reds
---   case _ h => cases h; case _ w h =>
---     generalize tlp : List.map (η1 `; ·) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (η1 `; η2) t' := Exists.intro tl' (Red.seq_congr2 h tlp);
---     apply reds
-
--- case appc Γ A K1 K2 B η1 C D η2 aK bK η1J cJ dJ η2J _ _ η1s _ _ η2s  =>
---   apply Or.inr;
---   cases (η2s h1);
---   case _ h =>
---     have η2refp := refl_is_val η2J h;
---     have η2refl := η2refp.1; cases (η1s h1);
---     case _ h =>
---       have η1refp := refl_is_val η1J h;
---       have η1refl := η1refp.1;
---       subst η1refl; subst η2refl;
---       have reds : ∃ t', Red Γ ((refl! A) `@c (refl! C)) t' := Exists.intro [refl! (A `@k C)] Red.appc;
---       apply reds
---     case _ h => cases h; case _ w h =>
---       generalize tlp : List.map (· `@c η2) w = tl' at *; symm at tlp;
---       have reds : ∃ t', Red Γ (η1 `@c η2) t' := Exists.intro tl' (Red.appc_congr1 h tlp);
---       apply reds
---   case _ h => cases h; case _ w h =>
---     generalize tlp : List.map (η1 `@c ·) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (η1 `@c η2) t' := Exists.intro tl' (Red.appc_congr2 h tlp);
---     apply reds
-
-
--- case arrowc Γ A B η1 C D η2 _ _ η1J _ _ η2J _ _ η1s _ _ η2s =>
---   apply Or.inr; cases η2s (weaken_ctx_empty h1)
---   case _ h =>
---     have η2refp := refl_is_val η2J h;
---     have η2refl := η2refp.1; cases (η1s h1);
---     case _ h =>
---       have η1refp := refl_is_val η1J h;
---       have η1refl := η1refp.1;
---       subst η1refl; subst η2refl;
---       have reds : ∃ t', Red Γ (refl!(A) -c> refl! C) t' := Exists.intro [(refl! (A -t> C))] Red.arrowc;
---       apply reds
---     case _ h => cases h; case _ w h =>
---       generalize tlp : List.map (· -c> η2) w = tl' at *; symm at tlp;
---       have reds : ∃ t', Red Γ (η1 -c> η2) t' := Exists.intro tl' (Red.arrowc_congr1 h tlp);
---       apply reds
---   case _ h => cases h; case _ w h =>
---     generalize tlp : List.map (η1 -c> ·) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (η1 -c> η2) t' := Exists.intro tl' (Red.arrowc_congr2 h tlp);
---     apply reds
-
--- case fst Γ A _ _ _ η C _ _ _ ηJ _ _ ηs =>
---   apply Or.inr; cases (ηs h1);
---   case inl h =>
---     have ηrp := refl_is_val ηJ h; have ηrfl := ηrp.1; subst ηrfl;
---     have reds : ∃ t', Red Γ ((refl! (A `@k C)).!1) t' := Exists.intro [refl! A] Red.fst;
---     apply reds;
---   case inr h => cases h; case _ w h =>
---     generalize tlp : List.map (·.!1) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (η.!1) t' := Exists.intro tl' (Red.fst_congr h tlp);
---     apply reds
-
--- case snd Γ _ C _ η A _ _ _ _ ηJ _ _ _ ηs =>
---   apply Or.inr;
---   cases (ηs h1);
---   case inl h =>
---     have ηrp := refl_is_val ηJ h; have ηrfl := ηrp.1; subst ηrfl;
---     have reds : ∃ t', Red Γ ((refl! (A `@k C)).!2) t' := Exists.intro [refl! C] Red.snd;
---     apply reds;
---   case inr h => cases h; case _ w h =>
---     generalize tlp : List.map (·.!2) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (η.!2) t' := Exists.intro tl' (Red.snd_congr h tlp);
---     apply reds
-
--- case _ Γ K A B η allAJ allBJ ηJ _ _ ts =>
---   cases allAJ; case _ kkind _ =>
---   have ts' : Val (Frame.kind K :: Γ) η ∨ ∃ t', Red (Frame.kind K :: Γ) η t' := ts (weaken_ctx_kind h1)
---   apply Or.inr;
---   cases ts';
---   case inr h => cases h; case _ w h =>
---     generalize tlp : List.map (∀c[K]·) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (∀c[K] η) t' := Exists.intro tl' (Red.allc_congr h tlp);
---     apply reds
---   case inl h =>
---     have ηrp := refl_is_val ηJ h; have ηrfl := ηrp.1; subst ηrfl;
---     have reds : ∃ t', Red Γ ((∀c[K] refl! A)) t' := Exists.intro [refl! (∀[K]A)] Red.allc;
---     apply reds;
-
--- case _ Γ η1 K A B C D η2 _ _ η1J CKJ _ η2J _ _ η1s _ _ η2s =>
---   apply Or.inr;
---   cases (η2s h1);
---   case _ h =>
---     have η2refp := refl_is_val η2J h;
---     have η2refl := η2refp.1; cases (η1s h1);
---     case _ h =>
---       have η1refp := refl_is_val η1J h;
---       have η1refl := η1refp.1;
---       subst η1refl; subst η2refl;
---       have reds : ∃ t', Red Γ (refl!(∀[K] A) `@c[refl! C]) t' := Exists.intro [refl! (A β[ C ])] Red.apptc;
---       apply reds
---     case _ h => cases h; case _ w h =>
---       generalize tlp : List.map (· `@c[η2]) w = tl' at *; symm at tlp;
---       have reds : ∃ t', Red Γ (η1 `@c[η2]) t' := Exists.intro tl' (Red.apptc_congr1 h tlp);
---       apply reds
---   case _ h => cases h; case _ w h =>
---     generalize tlp : List.map (η1 `@c[·]) w = tl' at *; symm at tlp;
---     have reds : ∃ t', Red Γ (η1 `@c[η2]) t' := Exists.intro tl' (Red.apptc_congr2 h tlp);
---     apply reds
+:= by
+intro h1 j
+induction j <;> simp at *
+case letterm =>
+  apply Or.inr; apply Exists.intro _
+  apply Red.letbeta
+case ax => apply Or.inl; apply Val.star
+case var Γ x T j1 j2 _ =>
+  generalize fdef : Γ d@ x = f at *
+  cases f
+  case term A t =>
+    apply Or.inr; apply Exists.intro _
+    apply @Red.letterm A #x x [] Γ t
+    simp; rw [fdef]
+  case openm A =>
+    generalize tldef : get_instances Γ x = tl at *
+    generalize tdef : List.foldl (·⊕·) `0 tl = t at *
+    apply Or.inr; apply Exists.intro t
+    apply @Red.inst _ x [] tl _ tl t; simp
+    unfold Ctx.is_openm; rw [fdef]
+    unfold Frame.is_openm; simp; rw [tldef]
+    simp; rw [tdef]
+  case type =>
+    replace h1 := h1 x; rw [fdef] at h1;
+    unfold Frame.is_type at h1; simp at h1
+  case empty =>
+    unfold Frame.get_type at j2; simp at j2
+  all_goals (
+    apply Or.inl; apply @Val.app Γ #x x []
+    simp; simp; unfold Frame.is_stable_red
+    rw [fdef]
+  )
+case allk => apply Or.inl; apply Val.arrk
+case allt => apply Or.inl; apply Val.all
+case arrow => apply Or.inl; apply Val.arr
+case appk j1 j2 ih1 ih2 =>
+  have lem1 := classification_lemma j1; simp at lem1
+  cases lem1
+  case _ lem1 =>
+    cases lem1; case _ lem1 lem2 =>
+    have lem3 := Judgment.appk j1 j2
+    apply Or.inl; apply types_are_values lem3 lem2
+  case _ lem1 =>
+    cases lem1; case _ lem1 =>
+    cases lem1.2; cases lem1.1
+case eq => apply Or.inl; apply Val.eq
+case ite j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
+  replace ih2 := ih2 h1
+  cases ih2
+  case _ v =>
+    unfold ValidHeadVariable at j5
+    unfold ValidHeadVariable at j6
+    cases j5; case _ w1 j5 =>
+    cases w1; case _ x1 sp1 =>
+    cases j6; case _ w2 j6 =>
+    cases w2; case _ x2 sp2 =>
+    simp at *; cases v
+    case app x3 sp3 h2 h3 =>
+      generalize t1def : prefix_equal sp1 sp3 = t at *
+      replace h3 := Eq.symm h3
+      cases t
+      case _ =>
+        apply Or.inr; apply Exists.intro _
+        apply Red.ite_missed j5.1 h3 h2 (Or.inr t1def)
+      case _ q =>
+        cases Nat.decEq x1 x3
+        case _ h4 =>
+          apply Or.inr; apply Exists.intro _
+          apply Red.ite_missed j5.1 h3 h2 (Or.inl h4)
+        case _ h4 =>
+          subst h4; apply Or.inr; apply Exists.intro _
+          apply Red.ite_matched j5.1 h3 (Eq.symm t1def) j5.2
+    case choice v1 v2 =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.ite_map
+    all_goals (cases j2; simp at j6)
+  case _ ih2 =>
+  cases ih2
+  case _ ih2 =>
+    cases ih2; case _ t ih2 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ite_congr ih2
+  case _ ih2 =>
+    subst ih2; apply Or.inr
+    apply Exists.intro _
+    apply Red.ite_absorb
+case guard j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
+  replace ih2 := ih2 h1
+  cases ih2
+  case _ v =>
+    unfold ValidHeadVariable at j5
+    unfold ValidHeadVariable at j6
+    cases j5; case _ w1 j5 =>
+    cases w1; case _ x1 sp1 =>
+    cases j6; case _ w2 j6 =>
+    cases w2; case _ x2 sp2 =>
+    simp at *; cases v
+    case app x3 sp3 h2 h3 =>
+      generalize t1def : prefix_equal sp1 sp3 = t at *
+      replace h3 := Eq.symm h3
+      cases t
+      case _ =>
+        apply Or.inr; apply Exists.intro _
+        apply Red.guard_missed j5.1 h3 h2 (Or.inr t1def)
+      case _ q =>
+        cases Nat.decEq x1 x3
+        case _ h4 =>
+          apply Or.inr; apply Exists.intro _
+          apply Red.guard_missed j5.1 h3 h2 (Or.inl h4)
+        case _ h4 =>
+          subst h4; apply Or.inr; apply Exists.intro _
+          apply Red.guard_matched j5.1 h3 (Eq.symm t1def)
+    case choice v1 v2 =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.guard_map
+    all_goals (cases j2; simp at j6)
+  case _ ih2 =>
+  cases ih2
+  case _ ih2 =>
+    cases ih2; case _ t ih2 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.guard_congr ih2
+  case _ ih2 =>
+    subst ih2; apply Or.inr
+    apply Exists.intro _
+    apply Red.guard_absorb
+case lam => apply Or.inl; apply Val.lam
+case app a _ j1 j2 j3 ih1 ih2 =>
+  replace ih1 := ih1 h1
+  cases ih1
+  case _ v =>
+    cases v
+    case app x sp h1 h2 =>
+      apply Or.inl; apply Val.app x (sp ++ [(.term, a)]) _ h1
+      simp; rw [Option.bind_eq_some]; simp; rw [h2]
+    case choice =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.ctor2_map1 rfl; simp
+    case lam =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.beta
+    all_goals (cases j1)
+  case _ ih1 =>
+  cases ih1
+  case _ ih1 =>
+    cases ih1; case _ t ih1 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr1 rfl ih1
+  case _ ih1 =>
+    subst ih1; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb1 rfl
+case lamt => apply Or.inl; apply Val.lamt
+case appt  a _ j1 j2 j3 ih1 ih2 =>
+  replace ih1 := ih1 h1
+  cases ih1
+  case _ v =>
+    cases v
+    case app x sp h1 h2 =>
+      apply Or.inl; apply Val.app x (sp ++ [(.type, a)]) _ h1
+      simp; rw [Option.bind_eq_some]; simp; rw [h2]
+    case choice =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.ctor2_map1 rfl; simp
+    case lamt =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.betat
+    all_goals (cases j1)
+  case _ ih1 =>
+  cases ih1
+  case _ ih1 =>
+    cases ih1; case _ t ih1 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr1 rfl ih1
+  case _ ih1 =>
+    subst ih1; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb1 rfl
+case cast j1 j2 ih1 ih2 =>
+  replace ih2 := ih2 h1
+  cases ih2
+  case _ v =>
+    replace hv := refl_is_val j2 v
+    cases hv
+    case _ hv =>
+      cases hv; case _ e1 e2 =>
+      subst e1; subst e2
+      apply Or.inr; apply Exists.intro _
+      apply Red.cast
+    case _ hv =>
+      cases hv; case _ c1 hv =>
+      cases hv; case _ c2 hv =>
+      subst hv; apply Or.inr
+      apply Exists.intro _
+      apply Red.ctor2_map2 rfl; simp
+  case _ ih2 =>
+  cases ih2
+  case _ ih2 =>
+    cases ih2; case _ t ih2 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr2 rfl ih2
+  case _ ih2 =>
+    subst ih2; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb2 rfl
+case refl => apply Or.inl; apply Val.refl
+case sym j ih =>
+  replace ih := ih h1
+  cases ih
+  case _ v =>
+    have lem := refl_is_val j v
+    cases lem
+    case _ lem =>
+      cases lem; case _ e1 e2 =>
+      subst e1; subst e2
+      apply Or.inr; apply Exists.intro _
+      apply Red.sym
+    case _ lem =>
+      cases lem; case _ c1 lem =>
+      cases lem; case _ c2 lem =>
+      subst lem; apply Or.inr
+      apply Exists.intro _
+      apply Red.ctor1_map
+  case _ ih =>
+  cases ih
+  case _ ih =>
+    cases ih; case _ t ih =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor1_congr ih
+  case _ ih =>
+    subst ih; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor1_absorb
+case seq j1 j2 ih1 ih2 =>
+  replace ih1 := ih1 h1
+  replace ih2 := ih2 h1
+  cases ih1
+  case _ v1 =>
+    cases ih2
+    case _ v2 =>
+      replace v1 := refl_is_val j1 v1
+      replace v2 := refl_is_val j2 v2
+      cases v1
+      case _ v1 =>
+        cases v2
+        case _ v2 =>
+          cases v1; case _ e1 e2 =>
+          cases v2; case _ e3 e4 =>
+          subst e1; subst e2
+          subst e3; subst e4
+          apply Or.inr; apply Exists.intro _
+          apply Red.seq
+        case _ v2 =>
+          cases v2; case _ c1 v2 =>
+          cases v2; case _ c2 v2 =>
+          subst v2; apply Or.inr
+          apply Exists.intro _
+          apply Red.ctor2_map2 rfl; simp
+      case _ v1 =>
+        cases v1; case _ c1 v1 =>
+        cases v1; case _ c2 v1 =>
+        subst v1; apply Or.inr
+        apply Exists.intro _
+        apply Red.ctor2_map1 rfl; simp
+    case _ ih2 =>
+    cases ih2
+    case _ ih2 =>
+      cases ih2; case _ t ih2 =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.ctor2_congr2 rfl ih2
+    case _ ih2 =>
+      subst ih2; apply Or.inr
+      apply Exists.intro _
+      apply Red.ctor2_absorb2 rfl
+  case _ ih1 =>
+  cases ih1
+  case _ ih1 =>
+    cases ih1; case _ t ih1 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr1 rfl ih1
+  case _ ih1 =>
+    subst ih1; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb1 rfl
+case appc j1 j2 ih1 ih2 =>
+  replace ih1 := ih1 h1
+  replace ih2 := ih2 h1
+  cases ih1
+  case _ v1 =>
+    cases ih2
+    case _ v2 =>
+      replace v1 := refl_is_val j1 v1
+      replace v2 := refl_is_val j2 v2
+      cases v1
+      case _ v1 =>
+        cases v2
+        case _ v2 =>
+          cases v1; case _ e1 e2 =>
+          cases v2; case _ e3 e4 =>
+          subst e1; subst e2
+          subst e3; subst e4
+          apply Or.inr; apply Exists.intro _
+          apply Red.appc
+        case _ v2 =>
+          cases v2; case _ c1 v2 =>
+          cases v2; case _ c2 v2 =>
+          subst v2; apply Or.inr
+          apply Exists.intro _
+          apply Red.ctor2_map2 rfl; simp
+      case _ v1 =>
+        cases v1; case _ c1 v1 =>
+        cases v1; case _ c2 v1 =>
+        subst v1; apply Or.inr
+        apply Exists.intro _
+        apply Red.ctor2_map1 rfl; simp
+    case _ ih2 =>
+    cases ih2
+    case _ ih2 =>
+      cases ih2; case _ t ih2 =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.ctor2_congr2 rfl ih2
+    case _ ih2 =>
+      subst ih2; apply Or.inr
+      apply Exists.intro _
+      apply Red.ctor2_absorb2 rfl
+  case _ ih1 =>
+  cases ih1
+  case _ ih1 =>
+    cases ih1; case _ t ih1 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr1 rfl ih1
+  case _ ih1 =>
+    subst ih1; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb1 rfl
+case arrowc j1 j2 ih1 ih2 =>
+  replace ih1 := ih1 h1
+  replace ih2 := ih2 (by
+    intro x; unfold Frame.is_type
+    cases x <;> simp at *
+    unfold Frame.apply; simp
+    case _ x =>
+      replace h1 := h1 x
+      rw [@Frame.is_type_apply _ _ _ S] at h1
+      unfold Frame.is_type at h1
+      apply h1)
+  cases ih1
+  case _ v1 =>
+    cases ih2
+    case _ v2 =>
+      replace v1 := refl_is_val j1 v1
+      replace v2 := refl_is_val j2 v2
+      cases v1
+      case _ v1 =>
+        cases v2
+        case _ v2 =>
+          cases v1; case _ e1 e2 =>
+          cases v2; case _ e3 e4 =>
+          subst e1; subst e2
+          subst e3; subst e4
+          apply Or.inr; apply Exists.intro _
+          apply Red.arrowc
+        case _ v2 =>
+          cases v2; case _ c1 v2 =>
+          cases v2; case _ c2 v2 =>
+          subst v2; apply Or.inr
+          apply Exists.intro _
+          apply Red.bind2_map2 rfl
+      case _ v1 =>
+        cases v1; case _ c1 v1 =>
+        cases v1; case _ c2 v1 =>
+        subst v1; apply Or.inr
+        apply Exists.intro _
+        apply Red.bind2_map1 rfl
+    case _ ih2 =>
+    cases ih2
+    case _ ih2 =>
+      cases ih2; case _ t ih2 =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.bind2_congr2 rfl
+      simp; apply ih2
+    case _ ih2 =>
+      subst ih2; apply Or.inr
+      apply Exists.intro _
+      apply Red.bind2_absorb2 rfl
+  case _ ih1 =>
+  cases ih1
+  case _ ih1 =>
+    cases ih1; case _ t ih1 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.bind2_congr1 rfl ih1
+  case _ ih1 =>
+    subst ih1; apply Or.inr
+    apply Exists.intro _
+    apply Red.bind2_absorb1 rfl
+case fst j1 j2 j3 ih1 ih2 ih3 =>
+  replace ih3 := ih3 h1
+  cases ih3
+  case _ v =>
+    replace v := refl_is_val j3 v
+    cases v
+    case _ v =>
+      cases v; case _ e1 e2 =>
+      subst e1; injection e2 with _ e2 e3
+      subst e2; subst e3
+      apply Or.inr; apply Exists.intro _
+      apply Red.fst
+    case _ v =>
+      cases v; case _ c1 v =>
+      cases v; case _ c2 v =>
+      subst v; apply Or.inr
+      apply Exists.intro _
+      apply Red.ctor2_map2 rfl; simp
+  case _ ih3 =>
+  cases ih3
+  case _ ih3 =>
+    cases ih3; case _ t ih3 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr2 rfl ih3
+  case _ ih3 =>
+    subst ih3; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb2 rfl
+case snd j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
+  replace ih4 := ih4 h1
+  cases ih4
+  case _ v =>
+    replace v := refl_is_val j4 v
+    cases v
+    case _ v =>
+      cases v; case _ e1 e2 =>
+      subst e1; injection e2 with _ e2 e3
+      subst e2; subst e3
+      apply Or.inr; apply Exists.intro _
+      apply Red.snd
+    case _ v =>
+      cases v; case _ c1 v =>
+      cases v; case _ c2 v =>
+      subst v; apply Or.inr
+      apply Exists.intro _
+      apply Red.ctor2_map2 rfl; simp
+  case _ ih4 =>
+  cases ih4
+  case _ ih4 =>
+    cases ih4; case _ t ih4 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr2 rfl ih4
+  case _ ih4 =>
+    subst ih4; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb2 rfl
+case allc j1 j2 ih1 ih2 =>
+  replace ih2 := ih2 (by
+    intro x; unfold Frame.is_type
+    cases x <;> simp at *
+    unfold Frame.apply; simp
+    case _ x =>
+      replace h1 := h1 x
+      rw [@Frame.is_type_apply _ _ _ S] at h1
+      unfold Frame.is_type at h1
+      apply h1)
+  cases ih2
+  case _ v =>
+    replace v := refl_is_val j2 v
+    cases v
+    case _ v =>
+      cases v; case _ e1 e2 =>
+      subst e1; subst e2
+      apply Or.inr; apply Exists.intro _
+      apply Red.allc
+    case _ v =>
+      cases v; case _ c1 v =>
+      cases v; case _ c2 v =>
+      subst v; apply Or.inr
+      apply Exists.intro _
+      apply Red.bind2_map2 rfl
+  case _ ih2 =>
+  cases ih2
+  case _ ih2 =>
+    cases ih2; case _ t ih2 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.bind2_congr2 rfl
+    simp; apply ih2
+  case _ ih2 =>
+    subst ih2; apply Or.inr
+    apply Exists.intro _
+    apply Red.bind2_absorb2 rfl
+case apptc Γ t1 K A B t2 C D _ _ j1 j2 j3 j4 ih1 ih2 =>
+  replace ih1 := ih1 h1
+  replace ih2 := ih2 h1
+  cases ih1
+  case _ v1 =>
+    cases ih2
+    case _ v2 =>
+      replace v1 := refl_is_val j1 v1
+      replace v2 := refl_is_val j2 v2
+      cases v1
+      case _ v1 =>
+        cases v2
+        case _ v2 =>
+          cases v1; case _ e1 e2 =>
+          cases v2; case _ e3 e4 =>
+          subst e1; subst e3; subst e4
+          injection e2 with _ _ e2; subst e2
+          apply Or.inr; apply Exists.intro (refl! ★ (A β[C]))
+          subst j3; apply Red.apptc
+        case _ v2 =>
+          cases v2; case _ c1 v2 =>
+          cases v2; case _ c2 v2 =>
+          subst v2; apply Or.inr
+          apply Exists.intro _
+          apply Red.ctor2_map2 rfl; simp
+      case _ v1 =>
+        cases v1; case _ c1 v1 =>
+        cases v1; case _ c2 v1 =>
+        subst v1; apply Or.inr
+        apply Exists.intro _
+        apply Red.ctor2_map1 rfl; simp
+    case _ ih2 =>
+    cases ih2
+    case _ ih2 =>
+      cases ih2; case _ t ih2 =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.ctor2_congr2 rfl ih2
+    case _ ih2 =>
+      subst ih2; apply Or.inr
+      apply Exists.intro _
+      apply Red.ctor2_absorb2 rfl
+  case _ ih1 =>
+  cases ih1
+  case _ ih1 =>
+    cases ih1; case _ t ih1 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr1 rfl ih1
+  case _ ih1 =>
+    subst ih1; apply Or.inr
+    apply Exists.intro _
+    apply Red.ctor2_absorb1 rfl
+case choice j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
+  replace ih3 := ih3 h1
+  replace ih4 := ih4 h1
+  cases ih3
+  case _ v1 =>
+    cases ih4
+    case _ v2 =>
+      apply Or.inl; apply Val.choice v1 v2
+    case _ ih4 =>
+    cases ih4
+    case _ ih4 =>
+      cases ih4; case _ t' ih4 =>
+      apply Or.inr; apply Exists.intro _
+      apply Red.ctor2_congr2 rfl ih4
+    case _ ih4 =>
+      subst ih4; apply Or.inr
+      apply Exists.intro _
+      apply Red.choice2
+  case _ ih3 =>
+  cases ih3
+  case _ ih3 =>
+    cases ih3; case _ t' ih3 =>
+    apply Or.inr; apply Exists.intro _
+    apply Red.ctor2_congr1 rfl ih3
+  case _ ih3 =>
+    subst ih3; apply Or.inr
+    apply Exists.intro _
+    apply Red.choice1
 
 theorem progress :
   (∀ x, ¬ Γ.is_type x) ->
   Γ ⊢ t : A ->
-  Val Γ t ∨ (∃ t', Red Γ t t')
+  Val Γ t ∨ (∃ t', Red Γ t t') ∨ (t = `0)
 := by
 intro h j
 apply progress_lemma h j
