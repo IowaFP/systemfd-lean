@@ -51,16 +51,14 @@ case _ v A B =>
   cases v <;> simp at h
   rw [h.1, h.2]
 
-def is_eq : Term -> Option (Term × Term)
-| .ctor2 .eq A B => .some (A, B)
+def is_eq : Term -> Option (Term × Term × Term)
+| .eq K A B => .some (K, A, B)
 | _ => .none
 
-theorem is_eq_some : is_eq t = .some (A, B) -> t = (A ~ B) := by
+theorem is_eq_some : is_eq t = .some (K, A, B) -> t = (A ~[K]~ B) := by
 intro h
 unfold is_eq at h; cases t <;> try simp at h
-case _ v A B =>
-  cases v <;> simp at h
-  rw [h.1, h.2]
+case _ v A B => simp; assumption
 
 def is_appk : Term -> Option (Term × Term)
 | .ctor2 .appk A B => .some (A, B)
@@ -106,12 +104,13 @@ def infer_kind : Ctx Term -> Term -> Option Term
   let (A, B) <- is_arrowk fk
   let ak <- infer_kind Γ a
   if A == ak then .some B else .none
-| Γ, .ctor2 .eq A B => do
+| Γ, .eq K A B => do
   let Ak <- infer_kind Γ A
   let _ <- wf_kind Ak
   let Bk <- infer_kind Γ B
   let _ <- wf_kind Bk
-  if Ak == Bk then .some ★ else .none
+  let _ <- wf_kind K
+  if Ak == Bk && Ak == K then .some K else .none
 | _, _ => .none
 
 -- A is of the form
@@ -243,62 +242,76 @@ def infer_type : Ctx Term -> Term -> Option Term
 | Γ, .ctor2 .cast t c => do
   let A <- infer_type Γ t
   let T <- infer_type Γ c
-  let (A', B) <- is_eq T
+  let (K, A', B) <- is_eq T
   if A == A' then .some B else .none
-| Γ, .ctor1 .refl A => do
+| Γ, .ctor2 .refl K A => do
   let Ak <- infer_kind Γ A
   let _ <- wf_kind Ak
-  .some (A ~ A)
+  if K == Ak
+  then .some (A ~[Ak]~ A)
+  else none
 | Γ, .ctor1 .sym t => do
   let T <- infer_type Γ t
-  let (A, B) <- is_eq T
-  .some (B ~ A)
+  let (K, A, B) <- is_eq T
+  .some (B ~[K]~ A)
 | Γ, .ctor2 .seq t1 t2 => do
   let T1 <- infer_type Γ t1
   let T2 <- infer_type Γ t2
-  let (A, B) <- is_eq T1
-  let (B', C) <- is_eq T2
-  if B == B' then .some (A ~ C) else .none
+  let (K, A, B) <- is_eq T1
+  let (K', B', C) <- is_eq T2
+  if B == B' && K == K' then .some (A ~[K]~ C) else .none
 | Γ, .ctor2 .appc f a => do
   let T1 <- infer_type Γ f
   let T2 <- infer_type Γ a
-  let (A, B) <- is_eq T1
-  let (C, D) <- is_eq T2
+  let (Karr, A, B) <- is_eq T1
+  let (Karg, C, D) <- is_eq T2
   let Ak <- infer_kind Γ A
   let Bk <- infer_kind Γ B
   let Ck <- infer_kind Γ C
   let Dk <- infer_kind Γ D
   let (K1, K2) <- is_arrowk Ak
   let (K3, K4) <- is_arrowk Bk
-  if ((K1 == K3) && (K2 == K4) && (Ck == K1) && (Dk == K3))
-  then .some ((A `@k C) ~ (B `@k D))
+  let (K5, K6) <- is_arrowk Karr
+  if ((K1 == K3) && (K3 == K5) && (K1 == Karg) && (K2 == K4) && (K2 == K6) && (Ck == K1) && (Dk == K3))
+  then .some ((A `@k C) ~[K2]~ (B `@k D))
   else .none
 | Γ, .bind2 .arrowc t1 t2 => do
   let T1 <- infer_type Γ t1
   let T2 <- infer_type (.empty :: Γ) t2
-  let (A, B) <- is_eq T1
+  let (K1, A, B) <- is_eq T1
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
   let Bk <- infer_kind Γ B
   let _ <- is_type Bk
-  let (C, D) <- is_eq T2
+  let (K2, C, D) <- is_eq T2
   let Ck <- infer_kind (.empty :: Γ) C
   let _ <- is_type Ck
   let Dk <- infer_kind (.empty :: Γ) D
   let _ <- is_type Dk
-  .some ((A -t> C) ~ (B -t> D))
-| Γ, .ctor1 .fst t => do
+  if (Ak == Bk) && (K1 == Ak) && (Ck == Dk) && (K2 == Ck) && (K1 == ★) && (K2 == ★)
+  then .some ((A -t> C) ~[★]~ (B -t> D))
+  else .none
+| Γ, .ctor2 .fst K t => do
   let T <- infer_type Γ t
-  let (U, V) <- is_eq T
+  let (_, U, V) <- is_eq T
   let (A, _) <- is_appk U
   let Ak <- infer_kind Γ A
   let (K1, K2) <- is_arrowk Ak
   let (B, _) <- is_appk V
   let Bk <- infer_kind Γ B
   let (K3, K4) <- is_arrowk Bk
-  if K1 == K3 && K2 == K4
-  then .some (A ~ B)
+  if K1 == K3 && K2 == K4 && (K == (K1 -k> K2)) && (K == K1)
+  then .some (A ~[K1 -k> K2]~ B)
   else .none
+| Γ, .ctor2 .snd K t => do
+  let T <- infer_type Γ t
+  let (K, U, V) <- is_eq T
+  let (_, C) <- is_appk U
+  let Ck <- infer_kind Γ C
+  let _ <- wf_kind Ck
+  let (_, D) <- is_appk V
+  let Dk <- infer_kind Γ D
+  if Ck == Dk then .some (C ~[Ck]~ D) else .none
 | Γ, .letterm A t b => do
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
@@ -308,34 +321,25 @@ def infer_type : Ctx Term -> Term -> Option Term
   let Tk <- infer_kind Γ T
   let _ <- is_type Tk
   if A == A' && sT == [S][P]sT then .some T else .none
-| Γ, .ctor1 .snd t => do
-  let T <- infer_type Γ t
-  let (U, V) <- is_eq T
-  let (_, C) <- is_appk U
-  let Ck <- infer_kind Γ C
-  let _ <- wf_kind Ck
-  let (_, D) <- is_appk V
-  let Dk <- infer_kind Γ D
-  if Ck == Dk then .some (C ~ D) else .none
 | Γ, ∀c[K] t => do
   let T <- infer_type (.kind K :: Γ) t
-  let (A, B) <- is_eq T
+  let (K', A, B) <- is_eq T -- TODO K' ??
   let Ak <- infer_kind Γ (∀[K] A)
   let _ <- is_type Ak
   let Bk <- infer_kind Γ (∀[K] B)
   let _ <- is_type Bk
-  .some ((∀[K] A) ~ (∀[K] B))
+  .some ((∀[K] A) ~[★]~ (∀[K] B))
 | Γ, f `@c[a] => do
   let T1 <- infer_type Γ f
   let T2 <- infer_type Γ a
-  let (U, V) <- is_eq T1
+  let (K, U, V) <- is_eq T1
   let (K1, A) <- is_all U
   let (K2, B) <- is_all V
-  let (C, D) <- is_eq T2
+  let (K', C, D) <- is_eq T2
   let Ck <- infer_kind Γ C
   let Dk <- infer_kind Γ D
-  if K1 == K2 && Ck == Dk && K1 == Ck
-  then .some ((A β[C]) ~ (B β[D]))
+  if K1 == K2 && Ck == Dk && K1 == Ck && K' == Ck
+  then .some ((A β[C]) ~[★]~ (B β[D]))
   else .none
 | _, _ => .none
 
