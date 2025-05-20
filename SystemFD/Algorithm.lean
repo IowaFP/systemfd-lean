@@ -110,7 +110,7 @@ def infer_kind : Ctx Term -> Term -> Option Term
   let Bk <- infer_kind Γ B
   let _ <- wf_kind Bk
   let _ <- wf_kind K
-  if Ak == Bk && Ak == K then .some K else .none
+  if Ak == Bk && Ak == K then .some ★ else .none
 | _, _ => .none
 
 -- A is of the form

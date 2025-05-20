@@ -99,13 +99,17 @@ case _ ih1 ih2 =>
   rw [Option.bind_eq_some] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-    simp at h5; have e := h5.2; subst e
-    simp at h5;
-    replace h1 := ih1 h1 wf;
-    replace h3 := ih2 h3 wf;
-    replace h5 := Term.eq_of_beq h5; subst h5;
-    have h6 := wf_kind_sound h2 wf;
-    apply Judgment.eq h6 h1 h3;
+  rw [Option.bind_eq_some] at h5
+  cases h5; case _ u5 h5 =>
+  cases h5; case _ h5 h6 =>
+  simp at h6;
+  simp at h5; have e := h6.2; subst e
+  replace h1 := ih1 h1 wf;
+  replace h3 := ih2 h3 wf;
+  replace h7 := Term.eq_of_beq h6.1.1; subst h7;
+  replace h8 := Term.eq_of_beq h6.1.2; subst h8;
+  have h6 := wf_kind_sound h2 wf;
+  apply Judgment.eq h6 h1 h3;
 case _ Γ t h1 h2 h3 h4 h5 =>
   exfalso
   cases t <;> simp at *
