@@ -242,7 +242,7 @@ def infer_type : Ctx Term -> Term -> Option Term
 | Γ, .ctor2 .cast t c => do
   let A <- infer_type Γ t
   let T <- infer_type Γ c
-  let (K, A', B) <- is_eq T
+  let (_, A', B) <- is_eq T
   if A == A' then .some B else .none
 | Γ, .ctor2 .refl K A => do
   let Ak <- infer_kind Γ A
@@ -293,25 +293,27 @@ def infer_type : Ctx Term -> Term -> Option Term
   else .none
 | Γ, .ctor2 .fst K t => do
   let T <- infer_type Γ t
-  let (_, U, V) <- is_eq T
+  let (Kr, U, V) <- is_eq T
   let (A, _) <- is_appk U
   let Ak <- infer_kind Γ A
   let (K1, K2) <- is_arrowk Ak
   let (B, _) <- is_appk V
   let Bk <- infer_kind Γ B
   let (K3, K4) <- is_arrowk Bk
-  if K1 == K3 && K2 == K4 && (K == (K1 -k> K2)) && (K == K1)
+  if K1 == K3 && K2 == K4 && (K == K1) && (Kr == K2)
   then .some (A ~[K1 -k> K2]~ B)
   else .none
 | Γ, .ctor2 .snd K t => do
   let T <- infer_type Γ t
-  let (K, U, V) <- is_eq T
+  let (_, U, V) <- is_eq T
   let (_, C) <- is_appk U
   let Ck <- infer_kind Γ C
   let _ <- wf_kind Ck
   let (_, D) <- is_appk V
   let Dk <- infer_kind Γ D
-  if Ck == Dk then .some (C ~[Ck]~ D) else .none
+  if Ck == Dk && K == Ck
+  then .some (C ~[Ck]~ D)
+  else .none
 | Γ, .letterm A t b => do
   let Ak <- infer_kind Γ A
   let _ <- is_type Ak
@@ -328,7 +330,9 @@ def infer_type : Ctx Term -> Term -> Option Term
   let _ <- is_type Ak
   let Bk <- infer_kind Γ (∀[K] B)
   let _ <- is_type Bk
-  .some ((∀[K] A) ~[★]~ (∀[K] B))
+  if K' == ★
+  then .some ((∀[K] A) ~[★]~ (∀[K] B))
+  else .none
 | Γ, f `@c[a] => do
   let T1 <- infer_type Γ f
   let T2 <- infer_type Γ a
@@ -338,8 +342,18 @@ def infer_type : Ctx Term -> Term -> Option Term
   let (K', C, D) <- is_eq T2
   let Ck <- infer_kind Γ C
   let Dk <- infer_kind Γ D
-  if K1 == K2 && Ck == Dk && K1 == Ck && K' == Ck
+  if K1 == K2 && Ck == Dk && K1 == Ck && K' == Ck && K == ★
   then .some ((A β[C]) ~[★]~ (B β[D]))
+  else .none
+| Γ, .ctor2 .choice t1 t2 => do
+  let A <- infer_type Γ t1
+  let B <- infer_type Γ t2
+  let Ak <- infer_kind Γ A
+  let Bk <- infer_kind Γ B
+  let _ <- wf_kind Ak
+  let _ <- wf_kind Bk
+  if A == B && Ak == Bk
+  then .some A
   else .none
 | _, _ => .none
 
