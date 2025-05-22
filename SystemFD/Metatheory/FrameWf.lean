@@ -241,4 +241,13 @@ theorem frame_wf_openm_implies_type T :
   .some T = (Γ d@ x).get_type ->
   Γ.is_openm x ->
   Γ ⊢ T : ★
-:= by sorry
+:= by
+intro h1 h2 h3
+unfold Ctx.is_openm at h3
+generalize fdef : Γ d@x = f at *
+cases f
+all_goals (unfold Frame.is_openm at h3; simp at h3)
+case _ T' =>
+  unfold Frame.get_type at h2; simp at h2
+  subst h2
+  cases h1; assumption
