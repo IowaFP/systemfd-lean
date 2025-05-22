@@ -334,12 +334,15 @@ case _ et => -- choice
   simp at et; subst et; constructor
 case _ et =>
  simp at et; subst et; constructor
-case _ ih1 et =>
-  simp at et; rw[Option.bind_eq_some] at et
-  cases et; case _ ts' et =>
-  have h' := et.2; injection h' with w'
-  have qq := @ih1 ts' et.1
-  rw [<-w'];
+case _ h ih1 et =>
+  simp at et; rw[h] at et; simp at et; rw[<-et]
+  have ih' := ih1 h
   apply Red.ctor2_congr1; simp; assumption
-
+case _ h1 _ h2 _ ih et =>
+  simp at et; rw[h1] at et; simp at et; rw[h2] at et; simp at et
+  rw[<-et]
+  have ih' := ih h2
+  apply Red.ctor2_congr2; simp; assumption
+case _ h1 h2 _ _ et =>
+  simp at et; rw[h1] at et; simp at et; rw[h2] at et; simp at et
 case _ et => simp at et

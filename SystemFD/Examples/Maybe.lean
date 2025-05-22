@@ -100,6 +100,23 @@ def MaybeBoolCtx : Ctx Term := [
           `@ (#2 `@t maybeBool `@t bool `@ (refl! ★ maybeBool) `@ (#8 `@t bool `@ refl! ★ bool))
           `@ (#4 `@t bool) `@ (#4 `@t bool ))
 
+
+/-
+
+(`λ[(#5 `@k #13)]
+ ( match (#5)[#14] with (#5)[#14] ⇒ ( match #0 with (#5)[#14] ⇒ #12 | #13
+   ) | ( match (#5)[#14] with (#4)[#14] ⇒ `λ[#14]
+   ( match #1 with (#6)[#15] ⇒ #14 | ( match #1 with (#5)[#15] ⇒ `λ[#15]
+     ((((#12)[#16] ⬝  ((#11)[#16] ⬝  (refl! ★; #16))) ⬝  #1) ⬝  #0) | #13
+     )
+    ) | #13
+   )
+  ) ⊕ (0 ⬝ (#4)[#13]) ⬝
+ ((#3)[#13] ⬝  #12))
+
+-/
+
+
 -- == [Maybe Bool]
 --           (EqMaybeU[Maybe Bool, Bool] <Maybe Bool> (EqBool[Bool] <Bool>)
 --           Nothing (Just False)

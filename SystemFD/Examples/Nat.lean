@@ -92,9 +92,9 @@ def NatCtxDirect : Ctx Term := [
 ]
 
 
-#eval eval_ctx_loop NatCtxDirect (#1 `@ (#7 `@ #5 `@ #5) `@ (#7 `@ #5 `@ #5)) -- (2 + 2) =? (2 + 2)
+#eval eval_ctx_loop NatCtxDirect (#1 `@ (#7 `@ #5 `@ #5) `@ (#7 `@ #5 `@ #5)) -- some #2 -- (2 + 2) =? (2 + 2)
 #guard (infer_type NatCtxDirect (#1 `@ (#7 `@ #5 `@ #5) `@ (#7 `@ #5 `@ #5)) == .some #4) -- (2 + 2) =? (2 + 2)
-#eval eval_ctx_loop NatCtxDirect (#1 `@ #5 `@ (#8 `@ #9))
+#eval eval_ctx_loop NatCtxDirect (#1 `@ #5 `@ (#8 `@ #9)) -- .some #3
 
 #eval wf_ctx NatCtxDirect
 #eval infer_type NatCtxDirect (#7 `@ #5 `@ #5)

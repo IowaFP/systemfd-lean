@@ -176,10 +176,12 @@ def eval_inst (Γ : Ctx Term) (t : Term) : Option Term :=
 
     | .ctor2 .choice `0 t2 => t2
     | .ctor2 .choice t1 `0 => t1
-    | .ctor2 .choice t1 t2 => do -- for now, go left to right on choice, get stuck if left choice evals to non-zero
-      let t1' <- eval_inst Γ t1
-      .some (.ctor2 .choice t1' t2)
-
+    | .ctor2 .choice t1 t2 => -- for now, go left to right on choice, get stuck if left choice evals to non-zero
+      match eval_inst Γ t1 with
+      | .some t1' => .some (t1' ⊕ t2)
+      | .none => match eval_inst Γ t2 with
+                 | .some t2' => .some (t1 ⊕ t2')
+                 | .none => .none
     | _ => .none
 
 

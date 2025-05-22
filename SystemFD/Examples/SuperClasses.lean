@@ -12,8 +12,8 @@ def OrdEqBoolCtx : Ctx Term := [
           (λ x y. not x || y) ▹ (h -c> (h -c> <Bool>))
      -/
      .inst #5 (Λ[★] `λ[#7 `@k #0]
-       Term.guard (#5 `@t #1) #0 (`λ[#1 ~ #16]
-         (`λ[#17] `λ[#18] (#6 `@ (#5 `@ #1) `@ #0)) ▹ ((sym! #0) -c> ((sym! #1) -c> refl! #19))
+       Term.guard (#5 `@t #1) #0 (`λ[#1 ~[★]~ #16]
+         (`λ[#17] `λ[#18] (#6 `@ (#5 `@ #1) `@ #0)) ▹ ((sym! #0) -c> ((sym! #1) -c> refl! ★ #19))
        )),
 
     -- not : Bool → Bool
@@ -22,14 +22,14 @@ def OrdEqBoolCtx : Ctx Term := [
      .term (#12 -t> #13 -t> #14) (`λ[#12] `λ[#13] Term.ite #12 #1 #12 (Term.ite #13 #1 #0 #13)),
      -- Λa λ (d: Ord a). OrdBool[a] ← #0 then EqBool[a]
      .inst #1 (Λ[★] `λ[#4 `@k #0] Term.guard (#2 `@t #1) #0 (#8 `@t #1)),
-     .insttype (∀[★](#0 ~ #11) -t> (#4 `@k #1)), -- OrdBool : ∀ t. t ~ Bool → Ord t
+     .insttype (∀[★](#0 ~[★]~ #11) -t> (#4 `@k #1)), -- OrdBool : ∀ t. t ~ Bool → Ord t
      .openm (∀[★] (#2 `@k #0) -t> (#8 `@k #1)), -- eqSuperOrd : ∀ t. Ord t → Eq t
      .openm (∀[★] (#1 `@k #0) -t> #1 -t> #2 -t> #12), -- < : ∀ t : Ord t → t → t → Bool
      .opent (★ -k> ★), -- Ord : ★ → ★
   -- instance (==)[t] i
       .inst #2 (Λ[★] `λ[#4 `@k #0]
-               Term.guard (#3 `@t #1) #0 (`λ[#1 ~ #8]
-                     (#3 ▹ sym! (#0 -c> (#1 -c> refl! #11)))))
+               Term.guard (#3 `@t #1) #0 (`λ[#1 ~[★]~ #8]
+                     (#3 ▹ sym! (#0 -c> (#1 -c> refl! ★ #11)))))
     -- ==@Bool : Bool → Bool → Bool
     , .term (#5 -t> (#6 -t> #7))
      (`λ[#5] `λ[#6]
@@ -37,7 +37,7 @@ def OrdEqBoolCtx : Ctx Term := [
         (Term.ite #6 #1 (Term.ite #6 #0 #5 #6)
           #6)))
 
-  , .insttype (∀[★] (#0 ~ #5) -t> #3 `@k #1)   -- EqBool : ∀ t. t ~ Bool → Eq t
+  , .insttype (∀[★] (#0 ~[★]~ #5) -t> #3 `@k #1)   -- EqBool : ∀ t. t ~ Bool → Eq t
   , .openm (∀[★] (#1 `@k #0) -t> (#1 -t> (#2 -t> #7)))   -- == : ∀ t. Eq t → t → t → Bool
   , .opent (★ -k> ★)   -- Eq : ★ → ◯
   , .ctor #1   -- True : Bool
@@ -56,5 +56,5 @@ def leq := Λ[★] `λ[#8 `@k #0] `λ[#1] `λ[#2] (
  )
 
 #eval infer_type OrdEqBoolCtx leq
-#eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! #15)) `@ #13 `@ #14)
-#eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! #15)) `@ #14 `@ #13)
+#eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! ★ #15)) `@ #13 `@ #14)
+#eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! ★ #15)) `@ #14 `@ #13)

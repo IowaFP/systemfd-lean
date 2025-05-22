@@ -30,7 +30,7 @@ def test : Ctx Term := [
 #guard (stable_type_match test (#3 `@k #6) (#3 `@k #6) == .some ())
 
 -- #eval infer_type test (((refl! (∀[★]#4 `@k #0))) `@c[refl! #0])
-#guard (infer_type test (((refl! (∀[★]#4 `@k #0))) `@c[refl! #0]) == .some ((#3 `@k #0) ~ (#3 `@k #0)))
+#guard (infer_type test (((refl! ★ (∀[★]#4 `@k #0))) `@c[refl! ★ #0]) == .some ((#3 `@k #0) ~[★]~ (#3 `@k #0)))
 
 #eval infer_type test (#2 `@t #6)
 #guard (infer_type test (#2 `@t #6) == .some (#3 `@k #6))
@@ -81,12 +81,6 @@ def test2 : Ctx Term := [
 
 #eval infer_type test2 (.letterm #1 #0 #1)
 #guard (infer_type test2 (.letterm #1 #0 #1) == .some #1)
--- #eval infer_kind [] (∀[★] #0 -t> #1)
--- #eval infer_type [] (Λ[★] `λ[#0] #0)
--- #eval wf_kind ★
 
--- #eval infer_type [.kind ★] (`λ[#0] #0)
--- #eval infer_kind [.kind ★] (#0) -- some ★
--- #eval is_type ★
--- #eval infer_type [(.type #0) , .kind ★] (#0)
--- #eval is_type (#0 -t> #1)
+
+#eval eval_ctx_loop test2 (`0 `@ #0)

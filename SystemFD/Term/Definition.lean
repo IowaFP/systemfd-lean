@@ -77,10 +77,10 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .bind2 .lam t1 t2 => "`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p
 
   | .eq t1 t2 t3 => Term.repr t1 p ++ " ∼[" ++ Term.repr t2 p ++ "]~ " ++ Term.repr t3 p
-  | .ite pat s b c =>
+  | .ite pat s b c => Std.Format.paren (
          " match " ++ Term.repr s p ++ " with " ++
           Repr.addAppParen (Term.repr pat p) p ++ " ⇒ " ++ Term.repr b p ++ " | "
-          ++ Term.repr c p ++ Std.Format.line
+          ++ Term.repr c p ++ Std.Format.line)
   | .guard pat s c =>
            Std.Format.nest 2 <| "Guard " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ",  " ++ Std.Format.line
            ++ Term.repr c p
