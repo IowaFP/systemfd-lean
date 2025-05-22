@@ -82,7 +82,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
           Repr.addAppParen (Term.repr pat p) p ++ " ⇒ " ++ Term.repr b p ++ " | "
           ++ Term.repr c p ++ Std.Format.line
   | .guard pat s c =>
-           Std.Format.nest 2 <| "If " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ", " ++ Std.Format.line
+           Std.Format.nest 2 <| "Guard " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ",  " ++ Std.Format.line
            ++ Term.repr c p
   | .letterm t t1 t2 => "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
                      ++ Term.repr t2 p

@@ -14,7 +14,9 @@ case _ Γ n _ om et =>
   have nfh := @Term.var_neutral_form n; symm at nfh;
   symm at instsp;
   apply Red.inst nfh _ instsp; unfold Term.apply_spine; simp_all;
-  unfold Ctx.is_openm; rw[om]; unfold Frame.is_openm; simp_all;
+  apply instsp; rfl
+  simp; rw[om]; unfold Frame.is_openm; simp
+
 case _ Γ n _ _ lt et =>
     simp at et; rw [lt] at et; simp at et; subst et;
     have nf :=  @Term.var_neutral_form n; symm at nf; symm at lt;
@@ -24,75 +26,79 @@ case _ et => simp at et; subst et; apply Red.beta
 case _ et => simp at et; subst et; apply Red.betat
 case _ Γ _ _ _ et => simp at et; subst et; apply Red.letbeta
 
-case _ Γ f t _ n sp _ t' om et =>
+case _ Γ f t e n sp fnf t' om et => -- app openm
+  simp at et; rw[fnf] at et; simp at et; rw[om] at et; simp at et
+  rw[<-et];
+  generalize instsp : get_instances Γ n = ιs at et; symm at instsp
+  generalize tlp' : List.map (·.apply_spine sp) ιs = tl' at *; symm at tlp'
+  apply Red.ctor2_congr1
+  simp
+  apply Red.inst;
+  apply Eq.symm fnf
+  simp; unfold Frame.is_openm; rw[om]
+  apply instsp;
+  apply tlp'
+  rfl
+
+case _ Γ f t _ n sp fnf A t' lt et => -- app term
+  simp at et; rw[fnf] at et; simp at et; rw[lt] at et; simp at et
+  rw[<-et]
+  apply Red.ctor2_congr1
+  simp
+  apply Red.letterm
+  apply Eq.symm fnf
+  apply Eq.symm lt
+
+case _ et => -- app
   simp at et; split at et;
-  case _ fnf =>
-    simp_all;
-    generalize instsp : get_instances Γ n = insts at *;
-    have ftnf := @Term.neutral_form_app f t n sp fnf; symm at ftnf;
-    symm at instsp
-    symm at et; symm at fnf;
-    generalize tlp' : List.map (·.apply_spine sp) insts = tl' at *; symm at tlp'
-    have omp : Γ.is_openm n := by unfold Ctx.is_openm; rw[om]; unfold Frame.is_openm; simp
-    have fred := Red.inst fnf omp instsp tlp';
-    apply Red.app_congr fred; simp_all
-  case _ =>
-    rw[Option.bind_eq_some] at et;
-    cases et; case _ w h =>
-    have hl := And.left h
-    injection (And.right h) with ts; subst ts;
-    apply @Red.app_congr Γ f w; simp_all; rfl
-case _ Γ f t _ n sp fnf A t' lt et =>
-  simp at et; split at et;
-  case _ fnf =>
-     simp_all;
-     have ftnf := @Term.neutral_form_appt f t n sp fnf;
-     symm at et; symm at lt; symm at fnf;
-     have fred := @Red.letterm A f n sp Γ t' fnf lt;
-     rw[et]; apply Red.app_congr fred; simp_all
   case _ => simp_all
+  case _ => simp_all
+
+case _ Γ f t _ nf ih et =>
+  simp at et; simp_all;
+  rw[Option.bind_eq_some] at et
+  cases et; case _ w h =>
+    have ih' := @ih w (And.left h)
+    injection (And.right h) with ts; subst ts; simp at h;
+    apply Red.ctor2_congr1;
+    simp; assumption
+
+case _ Γ f t _ n sp fnf _ om et => -- appt openm
+  simp at et; rw[fnf] at et; simp at et; rw[om] at et; simp at et
+  rw[<-et];
+  generalize instsp : get_instances Γ n = ιs at et; symm at instsp
+  generalize tlp' : List.map (·.apply_spine sp) ιs = tl' at *; symm at tlp'
+  apply Red.ctor2_congr1
+  simp
+  apply Red.inst;
+  apply Eq.symm fnf
+  simp; unfold Frame.is_openm; rw[om]
+  apply instsp;
+  apply tlp'
+  rfl
+
+case _ Γ f t _ n sp fnf A t' lt et => -- appt term
+  simp at et; rw[fnf] at et; simp at et; rw[lt] at et; simp at et
+  rw[<-et]
+  apply Red.ctor2_congr1
+  simp
+  apply Red.letterm
+  apply Eq.symm fnf
+  apply Eq.symm lt
+
 case _ et =>
-  simp at et; split at et;
+  simp at et; split at et
   case _ => simp_all
   case _ => simp_all
+
 case _ Γ f t _ nf ih et =>
   simp at et; simp_all;
   rw[Option.bind_eq_some] at et
   cases et; case _ w h =>
     have ih' := @ih w (And.left h)
     injection (And.right h) with ts; subst ts;
-    apply Red.app_congr ih'; rfl
-case _ Γ f t _ n sp fnf _ om et =>
-  simp at et;
-  generalize instsp : get_instances Γ n = insts at *;
-  simp_all;
-  have ftnf := @Term.neutral_form_app f t n sp fnf;
-  have omp : Γ.is_openm n := by simp; rw[om]; unfold Frame.is_openm; simp;
-  symm at instsp;
-  symm at et; symm at fnf;
-  generalize tlp' : List.map (·.apply_spine sp) insts = tl' at *; symm at tlp'
-  have fred := Red.inst fnf omp instsp tlp';
-  apply Red.appt_congr fred; simp_all
-
-case _ Γ f t _ n sp fnf A t' lt et =>
-  simp at et;
-  simp_all;
-  have ftnf := @Term.neutral_form_appt f t n sp fnf;
-  symm at et; symm at lt; symm at fnf;
-  have fred := @Red.letterm A f n sp Γ t' fnf lt;
-  rw[et]; apply Red.appt_congr fred; simp_all
-
-case _ et =>
-  simp at et; split at et;
-  case _ => simp_all;
-  case _ => simp_all;
-case _ Γ f t _ nf ih et =>
-  simp at et; simp_all;
-  rw[Option.bind_eq_some] at et
-  cases et; case _ w h =>
-    have ih' := @ih w (And.left h)
-    injection (And.right h) with ts; subst ts;
-    apply Red.appt_congr ih'; rfl
+    simp at h
+    apply Red.ctor2_congr1; simp; assumption
 
 -- ITE
 case _ Γ p s b c ih et =>
@@ -107,7 +113,7 @@ case _ Γ p s b c ih et =>
       cases site; case _ w h =>
       cases h; case _ h =>
       injection (And.right h) with ts; subst ts; simp at h;
-      apply Red.ite_congr (ih h); simp;
+      apply Red.ite_congr (ih h)
     case _ snf =>
       simp_all;
       have wisctor := site.1;
@@ -117,7 +123,7 @@ case _ Γ p s b c ih et =>
         simp at h;
         have tl' := h.2;
         subst tl';
-        apply Red.ite_congr (ih h.1); simp;
+        apply Red.ite_congr (ih h.1)
       case _ s'_stable =>
         simp_all; split at site;
         case _ headeqs =>
@@ -148,7 +154,7 @@ case _ Γ p s c ih et =>
     cases smatch; case _ s' smatch' =>
     cases smatch'; case _ smatch' =>
     have ih' := ih (And.left smatch'); simp_all
-    have h' := And.right smatch'; subst h'; apply Red.guard_congr ih'; rfl
+    have h' := And.right smatch'; subst h'; apply Red.guard_congr ih'
   case _ s' sp' snf =>
     split at smatch;
     case _ frame_term =>
@@ -159,7 +165,7 @@ case _ Γ p s c ih et =>
         cases ts';
         case _ ts' =>
           have ih' := ih (And.left ts'); simp_all
-          have h' := And.right ts'; subst h'; apply Red.guard_congr ih'; rfl
+          have h' := And.right ts'; subst h'; apply Red.guard_congr ih'
     case _ =>
       simp_all; split at smatch;
       case _ s'_stable s_n =>
@@ -177,39 +183,59 @@ case _ Γ p s c ih et =>
            have tl' := smatch.2; injection tl' with tl'; subst tl';
            replace smatch := smatch.1;
            symm at pne; symm at snf;
-           have reds : Red Γ (.guard p s c) [] := (Red.guard_missed pne snf xx (Or.inl heq));
+           have reds : Red Γ (.guard p s c) `0 := (Red.guard_missed pne snf xx (Or.inl heq));
            apply reds
 
 case _ Γ _ et => simp at et; rw[<-et]; apply Red.sym
+
 case _ ih et =>
   simp at et; rw[Option.bind_eq_some] at et;
   cases et; case _ w h =>
   have et' := ih (And.left h); simp_all; rw[<-And.right h];
-  apply Red.sym_congr et'; rfl
-case _ Γ t t' teq et =>
-  have e := eq_of_beq teq; subst e;
+  apply Red.ctor1_congr; assumption
+
+case _ Γ K t K' t' teq et =>
+  simp at teq
+  have e1 := Term.eq_of_beq teq.1; subst e1;
+  have e2 := Term.eq_of_beq teq.2; subst e2;
   simp at et; rw [<-et]; exact Red.seq
-case _ Γ t' t h et =>
+
+case _ Γ K t t' K' h et =>
   simp at et; have nh := And.left et; exfalso;
+  simp at h;
+  have e := h nh.1
+  have e' := nh.2; rw[e] at e'
   contradiction
 
-case _ Γ _ ih1 ih2 et =>
+case _ ih1 ih2 et =>
   simp at et;
   rw[Option.bind_eq_some] at et;
   cases et; case _ u et =>
   have et1 := et.1
   replace et := et.2;  injection et with et; subst et
   have lem1 := ih2 et1;
-  apply Red.seq_congr2 lem1; simp
+  apply Red.ctor2_congr2
+  simp; assumption
+
 case _ Γ _ _  ih et =>
   simp at et; rw[Option.bind_eq_some] at et;
   cases et; case _ u et =>
   have et1 := et.1
   replace et := et.2;  injection et with et; subst et
-  have lem1 := ih et1;
-  apply Red.seq_congr1 lem1; simp
+  have lem1 := ih et1
+  apply Red.ctor2_congr1
+  simp; assumption
 
-case _ Γ t t' et => simp at et; rw [<-et]; apply Red.appc
+case _ Γ K1 K t K2 t' e et =>
+  simp at et;
+  replace et := et.2; rw [<-et];
+  replace e := Term.eq_of_beq e; subst e
+  apply Red.appc
+
+case _ Γ K1 K t K2 t' e et =>
+  simp at et
+  have e1 := Term.eq_of_beq et.1
+  cases e1; simp at e
 
 case _ ih et =>
   simp at et; rw[Option.bind_eq_some] at et;
@@ -217,7 +243,7 @@ case _ ih et =>
   have et1 := et.1
   replace et := et.2;  injection et with et; subst et
   have lem1 := ih et1;
-  apply Red.appc_congr2 lem1; simp
+  apply Red.ctor2_congr2; simp; assumption
 
 case _ ih et =>
   simp at et; rw[Option.bind_eq_some] at et;
@@ -225,16 +251,17 @@ case _ ih et =>
   have et1 := et.1
   replace et := et.2;  injection et with et; subst et
   have lem1 := ih et1;
-  apply Red.appc_congr1 lem1; simp
+  apply Red.ctor2_congr1; simp; assumption
 
 case _ et => simp at et; subst et; apply Red.fst
+
 case _ ih et =>
   simp at et; rw[Option.bind_eq_some] at et;
   cases et; case _ u et =>
   have et1 := et.1
   replace et := et.2;  injection et with et; subst et
   have lem1 := ih et1;
-  apply Red.fst_congr lem1; simp
+  apply Red.ctor2_congr2; simp; assumption
 
 case _ et => simp at et; subst et; apply Red.snd
 case _ ih et =>
@@ -243,54 +270,76 @@ case _ ih et =>
   have et1 := et.1
   replace et := et.2;  injection et with et; subst et
   have lem1 := ih et1;
-  apply Red.snd_congr lem1; simp
+  apply Red.ctor2_congr2; simp; assumption
 
-case _ et => simp at et; subst et; apply Red.arrowc
-case _ Γ t η _ ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ η' h =>
-  have ih' := @ih η' (And.left h);
-  injection (And.right h) with w; subst w;
-  apply Red.arrowc_congr2 ih'; rfl
+case _ et => -- arrowc
+ simp at et; subst et; apply Red.arrowc
 case _ ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ η' h =>
-  have ih' := @ih η' (And.left h);
-  injection (And.right h) with w; subst w;
-  apply Red.arrowc_congr1 ih'; rfl
-case _ et => simp at et; subst et; apply Red.allc
-case _ Γ t η _ ih1 et=>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ w h =>
-    have ih := @ih1 w (And.left h);
-    injection (And.right h) with w;
-    subst w; apply Red.allc_congr ih; rfl
+ simp at et; rw[Option.bind_eq_some] at et;
+ cases et; case _ η' h =>
+ have ih' := @ih η' h.1;
+ injection h.2 with w; subst w
+ apply Red.bind2_congr2; simp; assumption
+case _ Γ η η' ih ih1 ih2 et =>
+ simp at et; rw[Option.bind_eq_some] at et;
+ cases et; case _ η1' h =>
+ have ih' := @ih2 η1' h.1;
+ injection h.2 with w; subst w; simp at h;
+ apply Red.bind2_congr1; simp; assumption
 
-case _ et =>
-  simp at et;  subst et; apply Red.apptc
-
+case _ et => -- allc
+ simp at et; subst et; apply Red.allc
 case _ ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ u et =>
-  have et1 := et.1
-  replace et := et.2;  injection et with et; subst et
-  have lem1 := ih et1;
-  apply Red.apptc_congr1 lem1; simp
+ simp at et; rw[Option.bind_eq_some] at et;
+ cases et; case _ η1' h =>
+ have ih' := @ih η1' h.1;
+ injection h.2 with w; subst w; simp at h;
+ apply Red.bind2_congr2; simp; assumption
 
+case _ et => -- apptc
+ simp at et; have e1 := Term.eq_of_beq et.1; subst e1;
+ replace et := et.2; subst et
+ apply Red.apptc
+case _ e et =>
+ simp at et; have e1 := Term.eq_of_beq et.1; subst e1
+ simp at e
 case _ ih et =>
-  simp at et; rw[Option.bind_eq_some] at et;
-  cases et; case _ u et =>
-  have et1 := et.1
-  replace et := et.2;  injection et with et; subst et
-  have lem1 := ih et1;
-  apply Red.apptc_congr2 lem1; simp
+ simp at et; rw[Option.bind_eq_some] at et;
+ cases et; case _ u et =>
+ have et1 := et.1
+ replace et := et.2;  injection et with et; subst et
+ have lem1 := ih et1;
+ apply Red.ctor2_congr1; simp; assumption
+case _ ih et =>
+ simp at et; rw[Option.bind_eq_some] at et;
+ cases et; case _ u et =>
+ have et1 := et.1
+ replace et := et.2;  injection et with et; subst et
+ have lem1 := ih et1;
+ apply Red.ctor2_congr2; simp; assumption
 
-case _ Γ t a ih =>
+case _ Γ t a ih => -- cast
   simp at ih; rw[<-ih]; exact Red.cast
 case _ Γ t η x ih1 ih=>
   simp at ih; rw[Option.bind_eq_some] at ih;
   cases ih; case _ h w =>
-    have h' := And.right w; injection h' with w';
-    have qq := @ih1 h (And.left w)
-    rw [<-w']; apply Red.cast_congr qq; rfl
-case _ _ et =>  simp at et
+  have h' := w.2; injection h' with w';
+  have qq := @ih1 h w.1
+  rw [<-w'];
+  apply Red.ctor2_congr2; simp; assumption
+
+case _ et => simp at et -- zero
+
+case _ et => -- choice
+  simp at et; subst et; constructor
+case _ et =>
+ simp at et; subst et; constructor
+case _ ih1 et =>
+  simp at et; rw[Option.bind_eq_some] at et
+  cases et; case _ ts' et =>
+  have h' := et.2; injection h' with w'
+  have qq := @ih1 ts' et.1
+  rw [<-w'];
+  apply Red.ctor2_congr1; simp; assumption
+
+case _ et => simp at et
