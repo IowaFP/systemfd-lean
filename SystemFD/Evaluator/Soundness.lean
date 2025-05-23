@@ -1,13 +1,15 @@
 import SystemFD.Term
 import SystemFD.Reduction
 import SystemFD.Ctx
-import SystemFD.Evaluator
+import SystemFD.Evaluator.SmallStep
 import SystemFD.Judgment
-set_option maxHeartbeats 500000
+
+set_option maxHeartbeats 5000000
 
 theorem eval_inst_soundess : eval_inst Γ t = .some ts -> Red Γ t ts := by
-intros
+intro et
 induction Γ, t using eval_inst.induct generalizing ts
+all_goals try (unfold eval_inst at et)
 case _ Γ n _ om et =>
   simp_all; subst et;
   generalize instsp : get_instances Γ n = insts at *;

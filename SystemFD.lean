@@ -11,7 +11,6 @@ import SystemFD.Metatheory.Canonicity
 import SystemFD.Metatheory.Preservation
 import SystemFD.Metatheory.Progress
 
-import SystemFD.Evaluator.Soundness
 import SystemFD.Evaluator
 
 import SystemFD.Algorithm
