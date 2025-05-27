@@ -13,7 +13,7 @@ import SystemFD.Ctx
 
 -- multistep evaluator
 unsafe def eval_ctx_loop (Γ : Ctx Term) (t : Term) : Term :=
-  match (eval_inst Γ t) with
+  match (eval_small_step Γ t) with
   | .none => t
   | .some t => eval_ctx_loop Γ t
 

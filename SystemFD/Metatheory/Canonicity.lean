@@ -6,7 +6,7 @@ import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
 
-set_option maxHeartbeats 500000
+-- set_option maxHeartbeats 500000
 
 inductive Val : Ctx Term -> Term -> Prop where
 | app x sp : t.neutral_form = .some (x, sp)
