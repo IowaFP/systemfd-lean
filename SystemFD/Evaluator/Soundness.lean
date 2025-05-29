@@ -5,33 +5,14 @@ import SystemFD.Ctx
 import SystemFD.Judgment
 import SystemFD.Evaluator.SmallStep
 
-set_option maxHeartbeats 5000000
--- set_option diagnostics true
+-- set_option maxHeartbeats 5000000
 
 
 theorem eval_choice_mapping_soudness : eval_choice_mapping Γ t = .some t' -> Red Γ t t' := by
-intro et;
+intro et
 induction Γ, t using eval_choice_mapping.induct generalizing t'
 all_goals (simp at et)
 all_goals try (rw[<-et])
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ et =>
-  cases et; case _ h1 et =>
-  cases et;
-  replace h1 := ih1 h1
-  apply Red.bind2_congr2; simp; assumption
-)
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ et =>
-  cases et; case _ h1 et =>
-  cases et;
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr2; simp; assumption
-)
 
 case _ => apply Red.ite_map
 case _ ih1 =>
@@ -67,63 +48,52 @@ case _ => apply Red.ctor2_map2; simp; simp
 
 case _ => apply Red.ctor2_map2; simp; simp
 
-case _ h1 ih1 =>
+case _ =>
   simp_all; rw[<-et]; apply Red.ctor2_congr1; simp; assumption
 
-case _ h1 _ h2 ih1 ih2 =>
+case _ =>
   simp_all; rw[<-et]; apply Red.ctor2_congr2; simp; assumption
 
 case _ h1 h2 _ _ => rw[h1] at et; rw[h2] at et; simp at et
 
-case _ v _ _ _ _ _ _ _ _ _ _ h =>
-  cases et; case _ h1 et =>
-  have h' := @LawfulBEq.eq_of_beq Ctor2Variant _ _ v .choice h
-  subst h'; simp at h1
+case _ h => simp_all
 
-case _ v _ _ _ _ _ _ _ _ _ _ h0 h =>
+case _ =>
+  simp_all
   cases et; case _ h1 et =>
   cases et; case _ h2 et =>
-  simp at h; rw[h] at h2
-  rw[<-et]
-  apply Red.ctor2_map1
-  apply h
-  simp; simp at h0;
-  cases v;
-  all_goals (simp_all)
+  apply Red.ctor2_map1;  assumption; assumption
 
-case _ v _ _ _ _ _ _ _ _ _ _ h =>
+case _ h =>
   cases et; case _ h1 et =>
   cases et; case _ h2 et =>
   simp at h; rw[h] at h2; cases h2
 
-case _ => apply Red.bind2_map1; simp
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
 
+case _ => apply Red.bind2_map1; simp
 case _ => apply Red.bind2_map2; simp
+
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
 
 
 theorem eval_const_folding1_soudness : eval_const_folding1 Γ t = .some t' -> Red Γ t t' := by
-intro et;
+intro et
 induction Γ, t using eval_const_folding1.induct generalizing t'
 all_goals(simp at et)
 all_goals try (rw[<-et])
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ et =>
-  cases et; case _ h1 et =>
-  cases et;
-  replace h1 := ih1 h1
-  apply Red.bind2_congr2; simp; assumption
-)
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ et =>
-  cases et; case _ h1 et =>
-  cases et;
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr2; simp; assumption
-)
 
 case _ => apply Red.ite_absorb
 case _ ih1 =>
@@ -154,76 +124,39 @@ case _ ih1 =>
 
 case _ => apply Red.choice1
 case _ => apply Red.choice2
-case _ => apply Red.ctor2_absorb2; simp
 
-case _ => apply Red.ctor2_absorb2; simp
+case _ => rw[<-et.2]; apply Red.ctor2_absorb1; simp; assumption
+case _ => simp_all
+case _ => rw[<-et.2]; apply Red.ctor2_absorb2; assumption
 
-case _ => apply Red.ctor2_absorb2; simp
+case _  h => simp_all
 
-case _ v _ _ _ _ _ _ _ _ h =>
-  cases et; case _ h2 et =>
-  simp at h; rw[h] at h2
-  rw[<-et]
-  apply Red.ctor2_absorb1
-  assumption
-
-case _ v _ _ _ _ _ _ _ _ _ _ =>
-  cases et; case _ h1 et =>
-  rw[<-et]
-  apply @Red.ctor2_absorb1 v;
-  assumption
-
-case _ h1 ih1 =>
-  rw[h1] at et; simp at et; rw[<-et];
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr1; simp; assumption
-case _ h1 _ h2 ih1 ih2 =>
-  rw[h1] at et; rw[h2] at et; simp at et; rw[<-et]
-  replace h2 := ih2 h2
-  apply Red.ctor2_congr2; simp; assumption
-case _ h1 h2 _ _ => rw[h1] at et; rw[h2] at et; simp at et
-case _ h1 _ h2 ih1 =>
-  simp_all
-  rw[<-et]
-  apply Red.ctor2_congr1; assumption; assumption
-case _ h1 h2 h3 h4 _ h5 ih1 ih2 =>
-  simp_all
-  rw[<-et]
-  apply Red.ctor2_congr2; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
 case _ => simp_all
 case _ => simp_all
-case _ =>
-  simp_all
-  rw[<-et]
-  apply Red.ctor2_congr2; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
 case _ => simp_all
 case _ => simp_all
+
 case _ => apply @Red.bind2_absorb1 .arrowc; simp
 case _ => apply @Red.bind2_absorb2 .allc; simp
 
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+
+
 theorem eval_const_folding2_soudness : eval_const_folding2 Γ t = .some t' -> Red Γ t t' := by
-intro et;
+intro et
 induction Γ, t using eval_const_folding2.induct generalizing t'
 all_goals(simp at et)
 all_goals try (rw[<-et])
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ et =>
-  cases et; case _ h1 et =>
-  cases et;
-  replace h1 := ih1 h1
-  apply Red.bind2_congr2; simp; assumption
-)
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ et =>
-  cases et; case _ h1 et =>
-  cases et;
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr2; simp; assumption
-)
+
 all_goals try (
 case _ ih1 =>
   rw[Option.bind_eq_some] at et;
@@ -253,9 +186,7 @@ case _ ih1 =>
 case _ v _ _ => cases v; apply Red.sym;
 
 case _ => apply Red.cast
-
 case _ => apply Red.fst
-
 case _ => apply Red.snd
 
 case _ h =>
@@ -293,24 +224,9 @@ case _ =>
 case _ =>
   have h := Term.eq_of_beq et.1; cases h; simp_all
 
-case _ h1 ih1 =>
-  rw[h1] at et; simp at et; rw[<-et];
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr1; simp; assumption
-
-case _ h1 _ h2 ih1 ih2 =>
-  rw[h1] at et; rw[h2] at et; simp at et; rw[<-et]
-  replace h2 := ih2 h2
-  apply Red.ctor2_congr2; simp; assumption
-
-case _ h1 h2 _ _ => rw[h1] at et; rw[h2] at et; simp at et
-
-case _ h ih1 => simp_all; rw[<-et]; apply Red.ctor2_congr1; assumption; assumption
-
-case _ h1 h2 ih1 => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
-
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
 case _ => simp_all
-
 case _ => simp_all
 case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
 case _ => simp_all
@@ -319,9 +235,18 @@ case _ => simp_all
 case _ => apply Red.arrowc
 case _ => apply Red.allc
 
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+
+
 
 theorem eval_inst_soundess : eval_inst Γ t = .some t' -> Red Γ t t' := by
-intro et;
+intro et
 induction Γ, t using eval_inst.induct generalizing t'
 all_goals (simp at et)
 all_goals try (rw[<-et])
@@ -334,26 +259,6 @@ case _ ih1 =>
   cases et;
   replace h1 := ih1 h1
   apply Red.ctor1_congr; assumption
-)
-
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ t' et =>
-  cases et; case _ h1 et =>
-  cases et
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr1; simp; assumption
-)
-
-all_goals try (
-case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ et =>
-  cases et; case _ h1 et =>
-  cases et;
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr2; simp; assumption
 )
 
 all_goals try (
@@ -508,6 +413,16 @@ case _ n _ tnf _ _ => -- app bogus
 
 
 case _ => apply Red.betat
+
+case _ n _ tnf ih1 => -- appt recursive case
+  rw[tnf] at et; simp at et;
+  rw[Option.bind_eq_some] at et;
+  cases et; case _ t' et =>
+  cases et; case _ h1 et =>
+  cases et
+  replace h1 := ih1 h1
+  apply Red.ctor2_congr1; simp; assumption
+
 case _ Γ f t e n sp fnf t' om =>  -- appt openm
   rw[fnf] at et; simp at et; rw[om] at et; simp at et
   rw[<-et];
@@ -532,44 +447,20 @@ case _ n _ tnf _ _ lt => -- appt let term
 case _ n _ tnf _ _ => -- appt bogus
   rw[tnf] at et; simp at et;
 
-case _ n _ tnf ih1 => -- appt recursive case
-  rw[tnf] at et; simp at et;
-  rw[Option.bind_eq_some] at et;
-  cases et; case _ t' et =>
-  cases et; case _ h1 et =>
-  cases et
-  replace h1 := ih1 h1
-  apply Red.ctor2_congr1; simp; assumption
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+case _ => simp_all; rw[<-et]; apply Red.ctor2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
 
-case _ h0 _ h1 ih1 =>
- rw[h1] at et; simp at et;
- replace h1 := ih1 h1
- simp at h0; rw[h0] at et; simp at et
- rw[<-et]
- apply Red.ctor2_congr1; assumption; assumption
-
-case _ h1 h2 h3 _ h4 ih1 ih2 =>
-  simp at h1; simp at h3; rw[h1] at et; rw[h4] at et; rw[h2] at et; simp at et
-  cases et; case _ et =>
-  replace h4 := ih2 h4
-  rw[<-et]
-  apply Red.ctor2_congr2; assumption; assumption
-
-case _ h1 h2 h3 h4 _ _ => rw[h2] at et; rw[h4] at et; simp at et
-
-case _ h1 h2 h3 ih1 =>
-  simp at h1; rw[h1] at et;
-  rw[h2] at et; simp at et
-  cases et; case _ h4 et =>
-  simp at h3;
-  simp_all
-
-case _ h1 h2 h3 h4 ih1 =>
-  simp_all
-  rw[<-et]
-  apply Red.ctor2_congr2; assumption; assumption
-case _ =>  simp_all
-
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr1; assumption; assumption
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
+case _ => simp_all
+case _ => simp_all; rw[<-et]; apply Red.bind2_congr2; assumption; assumption
+case _ => simp_all
 case _ => simp_all
 
 

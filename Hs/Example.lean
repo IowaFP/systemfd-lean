@@ -2,7 +2,7 @@ import Hs.HsTerm
 import Hs.Algorithm
 import SystemFD.Algorithm
 
-import Aesop
+-- import Aesop
 
 def idHsTerm : HsTerm := `λ `#0
 def idHsType : HsTerm := `∀{`★} `#0 → `#1

@@ -1,6 +1,7 @@
 import SystemFD.Ctx
 import SystemFD.Util
 import SystemFD.Term
+import SystemFD.Reduction
 
 set_option maxHeartbeats 400000
 
@@ -23,19 +24,10 @@ def eval_choice_mapping (Γ : Ctx Term): (t : Term) -> Option Term
   .some (.ctor1 v t')
 
 | .ctor2 .cast f (.ctor2 .choice a1 a2) => .some (.ctor2 .choice (.ctor2 .cast f a1) (.ctor2 .cast f a2))
-| .ctor2 .cast t η => do
-  let η' <- eval_choice_mapping Γ η
-  .some (t ▹ η')
 
 | .ctor2 .fst f (.ctor2 .choice a1 a2) => .some (.ctor2 .choice (.ctor2 .fst f a1) (.ctor2 .fst f a2))
-| .ctor2 .fst K η => do
-   let η' <- eval_choice_mapping Γ η
-   .some (fst! K η')
 
 | .ctor2 .snd f (.ctor2 .choice a1 a2) => .some (.ctor2 .choice (.ctor2 .snd f a1) (.ctor2 .snd f a2))
-| .ctor2 .snd K1 η => do
-   let η' <- eval_choice_mapping Γ η
-   .some (snd! K1 η')
 
 | .ctor2 .choice t1 t2 => -- for now, go left to right on choice
   match eval_choice_mapping Γ t1 with
@@ -51,15 +43,40 @@ def eval_choice_mapping (Γ : Ctx Term): (t : Term) -> Option Term
        then .some (.ctor2 .choice (.ctor2 v f1 a) (.ctor2 v f2 a))
        else .none
 
+| .ctor2 v η1 η2 => if ctor2_has_congr1 v
+  then match eval_choice_mapping Γ η1 with
+       | .some η1' => .some (.ctor2 v η1' η2)
+       | .none => if ctor2_has_congr2 v
+                  then match eval_choice_mapping Γ η2 with
+                       | .some η2' => .some (.ctor2 v η1 η2')
+                       | .none => .none
+                  else .none
+  else (if ctor2_has_congr2 v
+       then match eval_choice_mapping Γ η2 with
+           | .some η2' => .some (.ctor2 v η1 η2')
+           | .none => .none
+       else .none)
+
+
+
 | .bind2 .arrowc (.ctor2 .choice t1 t2) a => .some (.ctor2 .choice (.bind2 .arrowc t1 a) (.bind2 .arrowc t2 a))
-| .bind2 .arrowc t η => do
-  let η' <- eval_choice_mapping (.empty :: Γ) η
-  .some (.bind2 .arrowc t η')
 
 | .bind2 .allc t (.ctor2 .choice a1 a2) => .some (.ctor2 .choice (.bind2 .allc t a1) (.bind2 .allc t a2))
-| .bind2 .allc t η => do
-  let η' <- eval_choice_mapping (.kind t :: Γ) η
-  .some (∀c[t] η')
+
+| .bind2 v η1 η2 =>
+  if bind2_has_congr1 v
+  then match eval_choice_mapping Γ η1 with
+       | .some η1' => .some (.bind2 v η1' η2)
+       | .none => if bind2_has_congr2 v
+                  then match eval_choice_mapping (bind2_frame η1 v :: Γ) η2 with
+                       | .some η2' => .some (.bind2 v η1 η2')
+                       | .none => .none
+                  else .none
+  else (if bind2_has_congr2 v
+       then match eval_choice_mapping (bind2_frame η1 v :: Γ) η2 with
+           | .some η2' => .some (.bind2 v η1 η2')
+           | .none => .none
+       else .none)
 
 | _ => .none
 
@@ -81,35 +98,15 @@ def eval_const_folding1 (Γ : Ctx Term) : (t : Term) -> Option Term
   let t' <- eval_const_folding1 Γ t
   .some (.ctor1 v t')
 
-| .ctor2 .choice `0 t2 => .some t2
-| .ctor2 .choice t1 `0 => .some t1
+| .ctor2 .choice `0 t => .some t
+| .ctor2 .choice t `0 => .some t
 
-| .ctor2 .cast _ `0 => .some `0
-| .ctor2 .cast t η => do
-  let η' <- eval_const_folding1 Γ η
-  .some (t ▹ η')
-
-| .ctor2 .fst _ `0 => .some `0
-| .ctor2 .fst K η => do
-   let η' <- eval_const_folding1 Γ η
-   .some (fst! K η')
-
-| .ctor2 .snd _ `0 => .some `0
-| .ctor2 .snd K1 η => do
-   let η' <- eval_const_folding1 Γ η
-   .some (snd! K1 η')
 
 | .ctor2 v `0 _ => if ctor2_has_congr1 v then .some `0 else .none
--- | .ctor2 _ _ `0 => .some `0 -- TODO?
+| .ctor2 v _ `0 => if ctor2_has_congr2 v then .some `0 else .none
 
-| .ctor2 .choice t1 t2 => -- for now, go left to right on choice
-  match eval_const_folding1 Γ t1 with
-  | .some t1' => .some (t1' ⊕ t2)
-  | .none => match eval_const_folding1 Γ t2 with
-             | .some t2' => .some (t1 ⊕ t2')
-             | .none => .none
-
-| .ctor2 v η1 η2 => if ctor2_has_congr1 v
+| .ctor2 v η1 η2 =>
+  if ctor2_has_congr1 v
   then match eval_const_folding1 Γ η1 with
        | .some η1' => .some (.ctor2 v η1' η2)
        | .none => if ctor2_has_congr2 v
@@ -125,14 +122,23 @@ def eval_const_folding1 (Γ : Ctx Term) : (t : Term) -> Option Term
 
 
 | .bind2 .arrowc `0 _ => .some `0
-| .bind2 .arrowc t η => do
-  let η' <- eval_const_folding1 (.empty :: Γ) η
-  .some (.bind2 .arrowc t η')
 
 | .bind2 .allc _ `0 => .some `0
-| .bind2 .allc t η => do
-  let η' <- eval_const_folding1 (.kind t :: Γ) η
-  .some (∀c[t] η')
+
+| .bind2 v η1 η2 =>
+  if bind2_has_congr1 v
+  then match eval_const_folding1 Γ η1 with
+       | .some η1' => .some (.bind2 v η1' η2)
+       | .none => if bind2_has_congr2 v
+                  then match eval_const_folding1 (bind2_frame η1 v :: Γ) η2 with
+                       | .some η2' => .some (.bind2 v η1 η2')
+                       | .none => .none
+                  else .none
+  else (if bind2_has_congr2 v
+       then match eval_const_folding1 (bind2_frame η1 v :: Γ) η2 with
+           | .some η2' => .some (.bind2 v η1 η2')
+           | .none => .none
+       else .none)
 
 | _ => .none
 
@@ -151,44 +157,19 @@ def eval_const_folding2 (Γ : Ctx Term) : (t : Term) -> Option Term
   .some (.ctor1 v η')
 
 | .ctor2 .cast t (.ctor2 .refl _ _) => .some t
-| .ctor2 .cast t η => do
-  let η' <- eval_const_folding2 Γ η
-  .some (t ▹ η')
 
 | .ctor2 .fst K1 (.ctor2 .refl K2 (.ctor2 .appk A _)) => .some (refl! (K1 -k> K2) A)
-| .ctor2 .fst K η => do
-   let η' <- eval_const_folding2 Γ η
-   .some (fst! K η')
 
 | .ctor2 .snd K1 (.ctor2 .refl _ (.ctor2 .appk _ B)) => .some (refl! K1 B)
-| .ctor2 .snd K1 η => do
-   let η' <- eval_const_folding2 Γ η
-   .some (snd! K1 η')
 
 | .ctor2 .seq (.ctor2 .refl K t) (.ctor2 .refl K' t') =>
   if K == K' && t == t' then .some (refl! K t) else .none
-| .ctor2 .seq (.ctor2 .refl K t) η2 => do
-   let η2' <- eval_const_folding2 Γ η2
-   .some (.ctor2 .seq (.ctor2 .refl K t) η2')
 
 | .ctor2 .appc (.ctor2 .refl (K1 -k> K) t) (.ctor2 .refl K2 t') =>
   if K1 == K2 then .some (refl! K (t `@k t')) else .none
-| .ctor2 .appc (.ctor2 .refl K t) η2 => do
-   let η2' <- eval_const_folding2 Γ η2
-   .some (.ctor2 .appc (.ctor2 .refl K t) η2')
 
 | .ctor2 .apptc (.ctor2 .refl K1 (.bind2 .all K2 t1)) (.ctor2 .refl K2' t2) =>
   if K2 == K2' then .some (refl! K1 (t1 β[t2])) else .none
-| .ctor2 .apptc (.ctor2 .refl K t) η2 => do
-   let η2' <- eval_const_folding2 Γ η2
-   .some (.ctor2 .apptc (.ctor2 .refl K t) η2')
-
-| .ctor2 .choice t1 t2 => -- for now, go left to right on choice
-  match eval_const_folding2 Γ t1 with
-  | .some t1' => .some (t1' ⊕ t2)
-  | .none => match eval_const_folding2 Γ t2 with
-             | .some t2' => .some (t1 ⊕ t2')
-             | .none => .none
 
 | .ctor2 v η1 η2 =>
   if ctor2_has_congr1 v
@@ -206,15 +187,24 @@ def eval_const_folding2 (Γ : Ctx Term) : (t : Term) -> Option Term
        else .none)
 
 | .bind2 .arrowc (.ctor2 .refl ★ t) (.ctor2 .refl ★ t') => .some (refl! ★ (t -t> t'))
-| .bind2 .arrowc t η => do
-  let η' <- eval_const_folding2 (.empty :: Γ) η
-  .some (.bind2 .arrowc t η')
-
 
 | .bind2 .allc t (.ctor2 .refl K t') => .some (refl! K (∀[t] t'))
-| .bind2 .allc t η => do
-  let η' <- eval_const_folding2 (.kind t :: Γ) η
-  .some (∀c[t] η')
+
+| .bind2 v η1 η2 =>
+  if bind2_has_congr1 v
+  then match eval_const_folding2 Γ η1 with
+       | .some η1' => .some (.bind2 v η1' η2)
+       | .none => if bind2_has_congr2 v
+                  then match eval_const_folding2 (bind2_frame η1 v :: Γ) η2 with
+                       | .some η2' => .some (.bind2 v η1 η2')
+                       | .none => .none
+                  else .none
+  else (if bind2_has_congr2 v
+       then match eval_const_folding2 (bind2_frame η1 v :: Γ) η2 with
+           | .some η2' => .some (.bind2 v η1 η2')
+           | .none => .none
+       else .none)
+
 
 | _ => .none
 
@@ -231,14 +221,11 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
   | .term _ b => b  -- inline a let bound term
   | _ => .none -- do not evaluate
 
--- | .letterm _ t `0 => .some `0
 | .letterm _ t t' => .some (t' β[ t ])
 
 ------------------------
 -- Case matching
 ------------------------
--- | .ite _ `0 _ _ => .some `0
--- | .ite p (.ctor2 .choice s1 s2) i t => .some (.ite p s1 i t ⊕ .ite p s2 i t)
 | .ite p s b c => do
   let (h, sp) <- Term.neutral_form p
   if Γ.is_ctor h
@@ -266,8 +253,6 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 ------------------------
 -- Guards over open terms
 ------------------------
--- | .guard _ `0 _ => .some `0
--- | .guard p (.ctor2 .choice s1 s2) i => .some (.guard p s1 i ⊕ .guard p s2 i)
 | .guard p s c => do
   let (p', sp) <- Term.neutral_form p
   if Γ.is_insttype p'
@@ -303,18 +288,6 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 --- Ctors2
 ---------------------------
 
-| .ctor2 .cast t η => do
-  let η' <- eval_inst Γ η
-  .some (t ▹ η')
-
-| .ctor2 .fst K η => do
-   let η' <- eval_inst Γ η
-   .some (fst! K η')
-
-| .ctor2 .snd K1 η => do
-   let η' <- eval_inst Γ η
-   .some (snd! K1 η')
-
 | .ctor2 .app (.bind2 .lam _ b) t => .some (b β[ t ])
 | .ctor2 .app f t =>
   match f.neutral_form with
@@ -334,6 +307,10 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 | .ctor2 .appt (.bind2 .lamt _ b) t => .some (b β[ t ])
 | .ctor2 .appt f t =>
   match f.neutral_form with
+  | .none => do
+      let f' <- eval_inst Γ f
+      .some (f' `@t t) -- call by name
+
   | .some (h, sp) =>
     (match (Γ d@ h) with
       | .openm _ =>
@@ -343,21 +320,7 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
         .some (List.foldl (·⊕·) `0 ts `@t t)
       | .term _ b => .some (b.apply_spine sp `@t t)  -- inline a let bound term
       | _ => .none) -- do not evaluate
-  | .none => do
-      let f' <- eval_inst Γ f
-      .some (f' `@t t) -- call by name
 
-| .ctor2 .seq (.ctor2 .refl K t) η2 => do
-  let η2' <- eval_inst Γ η2
-  .some (refl! K t `; η2')
-
-| .ctor2 .appc (.ctor2 .refl K t) η2 => do
-  let η2' <- eval_inst Γ η2
-  .some ((.ctor2 .refl K t) `@c η2')
-
-| .ctor2 .apptc η1 (.ctor2 .refl K t) => do
-  let η1' <- eval_inst Γ η1
-  .some (η1' `@c[refl! K t])
 
 | .ctor2 v η1 η2 => if ctor2_has_congr1 v
   then match eval_inst Γ η1 with
@@ -380,6 +343,7 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 | .bind2 .arrowc (.ctor2 .refl ★ t) η => do
   let η' <- eval_inst (.empty :: Γ) η
   .some ((refl! ★ t) -c> η')
+
 | .bind2 .arrowc η η' => do
   let η'' <- eval_inst Γ η
   .some (η'' -c> η')
@@ -390,7 +354,21 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
   let η' <- eval_inst (.kind t :: Γ) η
   .some (∀c[t] η')
 
--- CAUTION: No catch-all cases here for mapping rules as we do not evaluate under λ and Λ
+| .bind2 v η1 η2 =>
+  if bind2_has_congr1 v
+  then match eval_inst Γ η1 with
+       | .some η1' => .some (.bind2 v η1' η2)
+       | .none => if bind2_has_congr2 v
+                  then match eval_inst (bind2_frame η1 v :: Γ) η2 with
+                       | .some η2' => .some (.bind2 v η1 η2')
+                       | .none => .none
+                  else .none
+  else (if bind2_has_congr2 v
+       then match eval_inst (bind2_frame η1 v :: Γ) η2 with
+           | .some η2' => .some (.bind2 v η1 η2')
+           | .none => .none
+       else .none)
+
 | _ => .none
 
 

@@ -56,38 +56,7 @@ def leq := Λ[★] `λ[#8 `@k #0] `λ[#1] `λ[#2] (
  )
 
 #eval infer_type OrdEqBoolCtx leq
+
+
 #eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! ★ #15)) `@ #13 `@ #14)
 #eval eval_ctx_loop OrdEqBoolCtx (leq `@t #15 `@ (#4 `@t #15 `@ (refl! ★ #15)) `@ #14 `@ #13)
-
-
-#eval infer_type OrdEqBoolCtx
-      ((sym! (refl! ★ #15)) -c> (sym! (refl! ★ #16)) -c> (refl! ★ #17))
-
-#eval infer_type OrdEqBoolCtx
-      ((sym! (refl! ★ (#15 -t> #16 -t> #17))))
-
-
-#eval infer_type OrdEqBoolCtx
-      (((`λ[#15] (`λ[#16]
-          (((#4 `@  (#3 `@ #1)) `@  #0)
-            ▹ ((sym! (refl! ★ #17)) -c> (sym! (refl! ★ #18)) -c> (refl! ★ #19))
-            -- ▹ ((sym! (refl! ★ (#17 -t> #18 -t> #19))))
-           ))
-          `@ #13)
-          `@ #14
-          ))
-
-
-#eval eval_ctx_loop OrdEqBoolCtx
-      (((`λ[#15] (`λ[#16]
-          (((#4 `@  (#3 `@ #1)) `@  #0)
-            -- ▹ (sym! (refl! ★ #15)) -c> (sym! (refl! ★ #16)) -c> (refl! ★ #17)
-            )))
-          `@ #13)
-          `@ #14
-          )
-
--- #eval eval_ctx_loop OrdEqBoolCtx
---       (`λ[#15] `λ[#16]
---           ((#4 `@  (#3 `@ #1)) `@  #0) ▹
---           (sym! (refl! ★ #15)) -c> (sym! (refl! ★ #16)) -c> (refl! ★ #17)) `@  #13 `@ #14
