@@ -2,53 +2,6 @@ import SystemFD.Util
 import SystemFD.Term
 import SystemFD.Ctx
 
-@[simp]
-def ctor2_has_congr1 : Ctor2Variant -> Bool
-| .refl => false
-| .fst => false
-| .snd => false
-| .arrowk => false
-| .appk => false
-| .appt => true
-| .app => true
-| .cast => false
-| .seq => true
-| .appc => true
-| .apptc => true
-| .choice => true
-
-@[simp]
-def ctor2_has_congr2 : Ctor2Variant -> Bool
-| .refl => false
-| .fst => true
-| .snd => true
-| .arrowk => false
-| .appk => false
-| .appt => false
-| .app => false
-| .cast => true
-| .seq => true
-| .appc => true
-| .apptc => true
-| .choice => true
-
-@[simp]
-def bind2_has_congr1 : Bind2Variant -> Bool
-| .all => false
-| .lamt => false
-| .lam => false
-| .arrow => false
-| .allc => false
-| .arrowc => true
-
-@[simp]
-def bind2_has_congr2 : Bind2Variant -> Bool
-| .all => false
-| .lamt => false
-| .lam => false
-| .arrow => false
-| .allc => true
-| .arrowc => true
 
 @[simp]
 def bind2_frame (T : Term) : Bind2Variant -> Frame Term

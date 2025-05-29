@@ -27,6 +27,55 @@ inductive Bind2Variant : Type where
 | arrowc
 deriving Repr
 
+
+@[simp]
+def ctor2_has_congr1 : Ctor2Variant -> Bool
+| .refl => false
+| .fst => false
+| .snd => false
+| .arrowk => false
+| .appk => false
+| .appt => true
+| .app => true
+| .cast => false
+| .seq => true
+| .appc => true
+| .apptc => true
+| .choice => true
+
+@[simp]
+def ctor2_has_congr2 : Ctor2Variant -> Bool
+| .refl => false
+| .fst => true
+| .snd => true
+| .arrowk => false
+| .appk => false
+| .appt => false
+| .app => false
+| .cast => true
+| .seq => true
+| .appc => true
+| .apptc => true
+| .choice => true
+
+@[simp]
+def bind2_has_congr1 : Bind2Variant -> Bool
+| .all => false
+| .lamt => false
+| .lam => false
+| .arrow => false
+| .allc => false
+| .arrowc => true
+
+@[simp]
+def bind2_has_congr2 : Bind2Variant -> Bool
+| .all => false
+| .lamt => false
+| .lam => false
+| .arrow => false
+| .allc => true
+| .arrowc => true
+
 inductive Term : Type where
 | kind : Term -- □
 | var : Nat -> Term
@@ -76,7 +125,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .bind2 .lamt t1 t2 => "Λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
   | .bind2 .lam t1 t2 => "`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p
 
-  | .eq t1 t2 t3 => Term.repr t1 p ++ " ∼[" ++ Term.repr t2 p ++ "]~ " ++ Term.repr t3 p
+  | .eq t1 t2 t3 => Term.repr t2 p ++ " ~[" ++ Term.repr t1 p ++ "]~ " ++ Term.repr t3 p
   | .ite pat s b c => Std.Format.paren (
          " match " ++ Term.repr s p ++ " with " ++
           Repr.addAppParen (Term.repr pat p) p ++ " ⇒ " ++ Term.repr b p ++ " | "
