@@ -1,20 +1,19 @@
 import Hs.HsTerm
-import SystemFD.Ctx
+import Hs.HsCtx
 import SystemFD.Substitution
-import SystemFD.Judgment
 
-import Aesop
+-- import Aesop
 
 set_option maxHeartbeats 500000
 
-@[aesop safe]
+-- @[aesop safe]
 def HsValidHeadVariable (t : HsTerm) (test : Nat -> Bool) : Prop :=
   ∃ x, .some x = HsTerm.neutral_form t ∧ test x.fst
 
-@[aesop safe [constructors, cases]]
-inductive ValidHsCtorType : Ctx HsTerm -> HsTerm -> Prop where
+-- @[aesop safe [constructors, cases]]
+inductive ValidHsCtorType : HsCtx HsTerm -> HsTerm -> Prop where
 | refl :
-  HsValidHeadVariable R Γ.is_datatype ->
+  HsValidHeadVariable R Γ.is_datatypeDecl ->
   ValidHsCtorType Γ R
 | arrow :
   ValidHsCtorType (.empty::Γ) B ->
@@ -26,10 +25,10 @@ inductive ValidHsCtorType : Ctx HsTerm -> HsTerm -> Prop where
   ValidHsCtorType (.kind A::Γ) B ->
   ValidHsCtorType Γ (`∀{A} B)
 
-@[aesop safe [constructors, cases]]
-inductive ValidHsInstType : Ctx HsTerm -> HsTerm -> Prop where
+-- @[aesop safe [constructors, cases]]
+inductive ValidHsInstType : HsCtx HsTerm -> HsTerm -> Prop where
 | refl :
-  HsValidHeadVariable R Γ.is_opent ->
+  HsValidHeadVariable R Γ.is_classDecl ->
   ValidHsInstType Γ R
 | arrow :
   ValidHsInstType (.empty::Γ) B ->
@@ -41,26 +40,26 @@ inductive ValidHsInstType : Ctx HsTerm -> HsTerm -> Prop where
   ValidHsInstType (.kind A::Γ) B ->
   ValidHsInstType Γ (`∀{A} B)
 
-@[aesop safe [constructors, cases]]
-inductive StableHsTypeMatch : Ctx HsTerm -> HsTerm -> HsTerm -> Prop where
+-- @[aesop safe [constructors, cases]]
+inductive StableHsTypeMatch : HsCtx HsTerm -> HsTerm -> HsTerm -> Prop where
 | refl :
   HsValidHeadVariable R Γ.is_stable ->
   StableHsTypeMatch Γ R R
 | arrow :
-  HsValidHeadVariable R (Ctx.is_stable Γ) ->
+  HsValidHeadVariable R (HsCtx.is_stable Γ) ->
   StableHsTypeMatch (.empty::Γ) B ([S]R) ->
   StableHsTypeMatch Γ (A → B) R
 | farrow :
-  HsValidHeadVariable R (Ctx.is_stable Γ) ->
+  HsValidHeadVariable R (HsCtx.is_stable Γ) ->
   StableHsTypeMatch (.empty::Γ) B ([S]R) ->
   StableHsTypeMatch Γ (A ⇒ B) R
 | all :
-  HsValidHeadVariable R (Ctx.is_stable Γ) ->
+  HsValidHeadVariable R (HsCtx.is_stable Γ) ->
   StableHsTypeMatch (.kind A::Γ) B ([S]R) ->
   StableHsTypeMatch Γ (`∀{A} B) R
 
-@[aesop safe [constructors, cases]]
-inductive PrefixHsTypeMatch : Ctx HsTerm -> HsTerm -> HsTerm -> HsTerm -> Prop where
+-- @[aesop safe [constructors, cases]]
+inductive PrefixHsTypeMatch : HsCtx HsTerm -> HsTerm -> HsTerm -> HsTerm -> Prop where
 | refl :
   HsValidHeadVariable B Γ.is_stable ->
   PrefixHsTypeMatch Γ B T T
@@ -72,11 +71,11 @@ inductive PrefixHsTypeMatch : Ctx HsTerm -> HsTerm -> HsTerm -> HsTerm -> Prop w
   PrefixHsTypeMatch Γ (`∀{A} B) (`∀{A} V) T
 
 
-@[aesop safe [constructors, cases]]
+-- @[aesop safe [constructors, cases]]
 inductive HsVariant where -- what i am checking
 | kind | type | term | ctx
 
-@[simp]
+-- @[simp]
 abbrev HsJudgmentArgs : HsVariant -> Type
 | .ctx => Unit
 | .kind => HsTerm × HsTerm
@@ -84,8 +83,8 @@ abbrev HsJudgmentArgs : HsVariant -> Type
 | .term => HsTerm × HsTerm
 
 
-@[aesop safe [constructors, cases]]
-inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type where
+-- @[aesop safe [constructors, cases]]
+inductive HsJudgment : (v : HsVariant) -> HsCtx HsTerm -> HsJudgmentArgs v -> Prop where
 -- TODO: Should I store HsCtx Γ in all the wf judgments instead of a ()
 --------------------------------------------------------------------------------------
 ---- Well-Formed Contexts and Declarations
@@ -105,42 +104,28 @@ inductive HsJudgment : (v : HsVariant) -> Ctx HsTerm -> HsJudgmentArgs v -> Type
 | wfdatatype :
   HsJudgment .kind Γ (A, `□) ->
   HsJudgment .ctx Γ () ->
-  HsJudgment .ctx (.datatype A::Γ) ()
-| wfopent :
-  HsJudgment .kind Γ (A, `□) ->
-  HsJudgment .ctx Γ () ->
-  HsJudgment .ctx (.opent A::Γ) ()
-| wfctor :
+  HsJudgment .ctx (.datatypeDecl A::Γ) ()
+| wfclass :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .ctx Γ () ->
-  ValidHsCtorType Γ A ->
-  HsJudgment .ctx (.ctor A::Γ) ()
-| wfterm :
-  HsJudgment .type Γ (A, `★) ->
-  HsJudgment .term Γ (t, A) ->
-  HsJudgment .ctx Γ () ->
-  HsJudgment .ctx (.term A t::Γ) ()
-| wfopenm :
-  HsJudgment .type Γ (A, `★) ->
-  HsJudgment .ctx Γ () ->
-  HsJudgment .ctx (.openm A::Γ) ()
+  HsJudgment .ctx (.classDecl A::Γ) ()
 
------------------------------------
--- Implicits
------------------------------------
-| implicitArrI :
-  HsJudgment .type Γ (π, `★) ->
-  HsJudgment .type (.empty::Γ) (τ, `★) ->
-  HsValidHeadVariable π Γ.is_opent ->
-  HsJudgment .term (.type π :: Γ) ([S]t, τ) ->
-  HsJudgment .term Γ (t, π ⇒ τ) -- F a => τ
+-- -----------------------------------
+-- -- Implicits
+-- -----------------------------------
+-- | implicitArrI :
+--   HsJudgment .type Γ (π, `★) ->
+--   HsJudgment .type (.empty::Γ) (τ, `★) ->
+--   HsValidHeadVariable π Γ.is_opent ->
+--   HsJudgment .term (.type π :: Γ) ([S]t, τ) ->
+--   HsJudgment .term Γ (t, π ⇒ τ) -- F a => τ
 
-| implicitArrE :
-  HsJudgment .term Γ (t, π ⇒ τ) -> -- F a => τ
-  HsJudgment .term Γ (e, π) ->
-  τ' = τ β[e] ->
-  HsJudgment .type Γ (τ', `★) ->
-  HsJudgment .term Γ (t, τ')
+-- | implicitArrE :
+--   HsJudgment .term Γ (t, π ⇒ τ) -> -- F a => τ
+--   HsJudgment .term Γ (e, π) ->
+--   τ' = τ β[e] ->
+--   HsJudgment .type Γ (τ', `★) ->
+--   HsJudgment .term Γ (t, τ')
 
 /-
       A, Γ ⊢ [S]t : τ       Γ ⊢ A : □
@@ -153,18 +138,6 @@ Alternative : --- BOO!!
              Δ, Γ ⊢ t : ∀ A. τ
 
 -/
-| implicitAllI :
-  HsJudgment .term (.kind A :: Γ) ([S]t, τ) ->
-  HsJudgment .kind Γ (A, `□) ->
-  HsJudgment .term Γ (t, `∀{A} τ)
-
-| implicitAllE :
-  HsJudgment .type Γ (`∀{A} τ, `★) ->
-  HsJudgment .kind Γ (A, `□) ->
-  HsJudgment .term Γ (t, `∀{A} τ) ->
-  HsJudgment .type Γ (e, A) ->
-  τ' = τ β[e] ->
-  HsJudgment .term Γ (t, τ')
 
 --------------------------------------
 -- Types and Kinds
@@ -186,7 +159,7 @@ Alternative : --- BOO!!
   HsJudgment .type Γ (A → B, `★)
 | farrow :
   HsJudgment .type Γ (A, `★) ->
-  HsValidHeadVariable A Γ.is_opent ->
+  HsValidHeadVariable A Γ.is_classDecl -> -- is ClassCtor
   HsJudgment .type (.empty::Γ) (B, `★) ->
   HsJudgment .type Γ (A ⇒ B, `★)
 | appk :
@@ -197,8 +170,8 @@ Alternative : --- BOO!!
   HsJudgment .type Γ (f `•k a, B)
 | varTy :
   HsJudgment .ctx Γ () ->
-  (Γ d@ x).is_datatype || (Γ d@ x).is_kind  ->
-  .some T = (Γ d@ x).get_type ->
+  (Γ d@̈ x).is_datatypeDecl || (Γ d@̈ x).is_kind || (Γ d@̈ x).is_classDecl ->
+  .some T = (Γ d@̈ x).get_type ->
   HsJudgment .kind Γ (T, `□) -> -- should be derivable?
   HsJudgment .type Γ (`#x, T)
 
@@ -207,14 +180,18 @@ Alternative : --- BOO!!
 ------------------------------------
 | var :
   HsJudgment .ctx Γ () ->
-  (Γ d@ x).is_ctor || (Γ d@ x).is_term || (Γ d@ x).is_type ->
-  .some T = (Γ d@ x).get_type ->
+  (Γ d@̈ x).is_term || (Γ d@̈ x).is_type -> -- (Γ d@̈ x).is_ctor
+  .some T = (Γ d@̈ x).get_type ->
   HsJudgment .term Γ (`#x, T)
 | lam :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .term (.type A :: Γ) (t, B) ->
   HsJudgment .type (.empty :: Γ) (B, `★) ->
-  HsJudgment .term Γ (`λ t, A → B)
+  HsJudgment .term Γ (λ̈[ A ] t, A → B)
+| lamt :
+  HsJudgment .term (.kind A :: Γ) (t, τ) ->
+  HsJudgment .kind Γ (A, `□) ->
+  HsJudgment .term Γ (Λ̈[ A ]t, `∀{A} τ)
 | app :
   HsJudgment .term Γ (t1, A → B) ->
   HsJudgment .term Γ (t2, A) ->
@@ -222,13 +199,18 @@ Alternative : --- BOO!!
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .type Γ (B', `★) ->
   HsJudgment .term Γ (t1 `• t2,  B')
+| appt :
+  HsJudgment .term Γ (t, `∀{A} τ) ->
+  HsJudgment .type Γ (e, A) ->
+  τ' = τ β[e] ->
+  HsJudgment .term Γ (t `• e , τ')
 | hslet :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .term Γ (t1,  A) ->
   B' = [S]B ->
   HsJudgment .term (.term A t1 :: Γ) (t2, B') ->
   HsJudgment .type Γ (B, `★) ->
-  HsJudgment .term Γ (.HsLet t1 t2, B)
+  HsJudgment .term Γ (.HsLet A t1 t2, B)
 | hsIte :
   HsJudgment .type Γ (A, `★) ->
   HsJudgment .type Γ (R, `★) ->
@@ -240,9 +222,9 @@ Alternative : --- BOO!!
   HsJudgment .term Γ (t, T) ->
   StableHsTypeMatch Γ A R ->
   PrefixHsTypeMatch Γ A B T ->
-  HsValidHeadVariable R Γ.is_datatype ->
+  HsValidHeadVariable R Γ.is_datatypeDecl ->
   (p = `#n) ->
-  HsValidHeadVariable p Γ.is_ctor ->
+  -- HsValidHeadVariable p Γ.is_ctor ->
   HsJudgment .term Γ (.HsIte p s i t,  T)
 
 notation:170 Γ:170 " ⊢κ " t:170 " : " A:170 => HsJudgment HsVariant.kind Γ (t, A)
@@ -250,27 +232,34 @@ notation:170 Γ:170 " ⊢τ " t:170 " : " A:170 => HsJudgment HsVariant.type Γ 
 notation:170 Γ:170 " ⊢t " t:170 " : " A:170 => HsJudgment HsVariant.term Γ (t, A)
 notation:170 "⊢s " Γ:170 => HsJudgment HsVariant.ctx Γ ()
 
-def hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgment v Γ idx -> ⊢s Γ
-| .ctx , _ , x => x
-| .kind, _ , x => match x with
-  | .ax h => h
-  | .arrowk h _ => hs_judgment_ctx_wf .kind h
-| .type , _ , x => match x with
-  | .varTy h _ _ _ => hs_judgment_ctx_wf .ctx h
-  | .appk _ _ h _ => hs_judgment_ctx_wf .kind h
-  | .allt h _ =>  hs_judgment_ctx_wf .kind h
-  | .arrow h _ => hs_judgment_ctx_wf .type h
-  | .farrow h _ _ => hs_judgment_ctx_wf .type h
-| .term , _ , x => match x with
-  | .implicitAllI _ h2 => hs_judgment_ctx_wf .kind h2
-  | .implicitAllE h1 _ _ _ _ => hs_judgment_ctx_wf .type h1
-  | .implicitArrI h1 _ _ _ => hs_judgment_ctx_wf .type h1
-  | .implicitArrE h1 _ _ _ => hs_judgment_ctx_wf .term h1
-  | .var h _ _ => h
-  | .lam h _ _ => hs_judgment_ctx_wf .type h
-  | .app h _ _ _ _ => hs_judgment_ctx_wf .term h
-  | .hslet h _ _ _ _ => hs_judgment_ctx_wf .type h
-  | .hsIte h _ _ _ _ _ _ _ _ _ _ _ _ => hs_judgment_ctx_wf .type h
+
+-- def hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgment v Γ idx -> ⊢s Γ
+-- | .ctx , _ , x => x
+-- | .kind, _ , x => match x with
+--   | .ax h => h
+--   | .arrowk h _ => hs_judgment_ctx_wf .kind h
+-- | .type , _ , x => match x with
+--   | .varTy h _ _ _ => hs_judgment_ctx_wf .ctx h
+--   | .appk _ _ h _ => hs_judgment_ctx_wf .kind h
+--   | .allt h _ =>  hs_judgment_ctx_wf .kind h
+--   | .arrow h _ => hs_judgment_ctx_wf .type h
+--   | .farrow h _ _ => hs_judgment_ctx_wf .type h
+-- | .term , _ , x => match x with
+--   | .lamt _ h2 => hs_judgment_ctx_wf .kind h2
+--   | .appt _ h1 _ => hs_judgment_ctx_wf .type h1
+--   | .implicitArrI h1 _ _ _ => hs_judgment_ctx_wf .type h1
+--   | .implicitArrE h1 _ _ _ => hs_judgment_ctx_wf .term h1
+--   | .var h _ _ => h
+--   | .lam h _ _ => hs_judgment_ctx_wf .type h
+--   | .app h _ _ _ _ => hs_judgment_ctx_wf .term h
+--   | .hslet h _ _ _ _ => hs_judgment_ctx_wf .type h
+--   | .hsIte h _ _ _ _ _ _ _ _ _ _ _ _ => hs_judgment_ctx_wf .type h
+
+theorem hs_judgment_ctx_wf : (v : HsVariant) -> {idx : HsJudgmentArgs v} -> HsJudgment v Γ idx -> ⊢s Γ := by
+intro v idx j;
+induction j
+all_goals try (constructor)
+all_goals try (assumption)
 
 
 def extract_kinding :
@@ -282,42 +271,9 @@ def extract_kinding :
 | .appk _ _ _ h => h
 | .varTy _ _ _ h => h
 
-namespace HsJudgment
- @[simp]
- def size : HsJudgment v Γ idx -> Nat
- | .wfnil => 0
- | .wfempty h => 1 + size h
- | .wftype h1 h2 => 1 + size h1 + size h2
- | .wfkind h1 h2 => 1 + size h1 + size h2
- | .wfdatatype h1 h2 => 1 + size h1 + size h2
- | .wfopent h1 h2 => 1 + size h1 + size h2
- | .wfctor h1 h2 _ => 1 + size h1 + size h2
- | .wfopenm h1 h2 => 1 + size h1 + size h2
- | .wfterm h1 h2 h3 => 1 + size h1 + size h2 + size h3
- | .implicitArrI h1 h2 _ h4 => 1 + size h1 + size h2 + size h4
- | .implicitArrE h1 h2 _ h3 => 1 + size h1 + size h2 + size h3
- | .implicitAllI h1 h2 => 1 + size h1 + size h2
- | .implicitAllE h1 h2 h3 h4 _ => 1 + size h1 + size h2 + size h3 + size h4
- | .ax h1 => 1 + size h1
- | .arrowk h1 h2 => 1 + size h1 + size h2
- | .allt h1 h2 =>  1 + size h1 + size h2
- | .arrow h1 h2 => 1 + size h1 + size h2
- | .farrow h1 _ h2 => 1 + size h1 + size h2
- | .appk h1 h2 h3 h4 => 1 + size h1 + size h2 + size h3 + size h4
- | .varTy h1 _ _ h2 => 1 + size h1 + size h2
- | .var h1 _ _ => 1 + size h1
- | .lam h1 h2 h3 =>  1 + size h1 + size h2 + size h3
- | .app h1 h2 _ h3 h4 =>   1 + size h1 + size h2 + size h3 + size h4
- | .hslet h1 h2 _ h3 h4 =>  1 + size h1 + size h2 + size h3 + size h4
- | .hsIte h1 h2 h3 h4 h5 h6 h7 h8 _ _ _ _ _ =>
-   1 + size h1 + size h2 + size h3 + size h4 + size h5 + size h6 + size h7 + size h8
-end HsJudgment
-
-instance sizeOf_HsJudgment : SizeOf (HsJudgment v Γ idx) where
-  sizeOf := HsJudgment.size
 
 @[aesop safe [constructors, cases]]
-inductive HsFrameWf : Ctx HsTerm -> Frame HsTerm -> Type
+inductive HsFrameWf : HsCtx HsTerm -> Frame HsTerm -> Prop where
 | empty :
   ⊢s Γ ->
   HsFrameWf Γ .empty

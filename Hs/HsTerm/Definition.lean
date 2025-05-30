@@ -4,14 +4,14 @@ inductive HsCtor2Variant : Type where
 | arrowk -- a -k> b
 | appk   -- a `•k b
 | app    -- a `• b
+| appt    -- a `•t b
 
 inductive HsBind2Variant : Type where
 | all   -- ∀[A] B
 | arrow -- a → b
 | farrow -- a ⇒ b
-
-inductive HsBind1Variant : Type where
 | lam   -- `λ B
+| lamt -- `Λ B
 
 -- Surface syntax terms
 inductive HsTerm : Type where
@@ -20,8 +20,7 @@ inductive HsTerm : Type where
 | HsVar : Nat -> HsTerm
 | HsCtor2 : HsCtor2Variant -> HsTerm -> HsTerm -> HsTerm
 | HsBind2 : HsBind2Variant -> HsTerm -> HsTerm -> HsTerm
-| HsBind1 : HsBind1Variant           -> HsTerm -> HsTerm
-| HsLet :                     HsTerm -> HsTerm -> HsTerm
+| HsLet :           HsTerm -> HsTerm -> HsTerm -> HsTerm
 | HsIte : HsTerm -> HsTerm -> HsTerm -> HsTerm -> HsTerm
 
 protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
@@ -31,11 +30,15 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsCtor2 .arrowk a b, p => (HsTerm.repr a p) ++ " `-k> " ++ (HsTerm.repr b p)
 | HsCtor2 .appk a b, p => (HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b p)
 | HsCtor2 .app a b, p => (HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b p)
-| HsBind1 .lam t1, p => "`λ" ++ HsTerm.repr t1 p
+| HsCtor2 .appt a b, p => (HsTerm.repr a p) ++ " `•t " ++ (HsTerm.repr b p)
+| HsBind2 .lam t1 t2, p => "`λ[" ++ HsTerm.repr t1 p ++ "]"  ++  HsTerm.repr t2 p
+| HsBind2 .lamt t1 t2, p => "`Λ[" ++ HsTerm.repr t1 p ++ "]"  ++ HsTerm.repr t2 p
 | HsBind2 .all t1 t2 , p => "`∀" ++ Std.Format.sbracket (HsTerm.repr t1 p) ++ HsTerm.repr t2 p
 | HsBind2 .arrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " → " ++ HsTerm.repr t2 p) p
 | HsBind2 .farrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " ⇒ " ++ HsTerm.repr t2 p) p
-| HsLet t2 t3 , p => "HsLet " ++ HsTerm.repr t2 p ++ "In" ++ Std.Format.line ++ HsTerm.repr t3 p
+| HsLet t1 t2 t3 , p =>
+  "HsLet (" ++ HsTerm.repr t1 p ++ ":" ++ HsTerm.repr t2 p ++ ") In"
+  ++ Std.Format.line ++ HsTerm.repr t3 p
 | HsIte t1 t2 t3 t4, p =>
   "HsIf" ++ HsTerm.repr t1 p ++ " ← " ++ HsTerm.repr t2 p ++
   "Then" ++ Std.Format.line ++ HsTerm.repr t3 p ++
@@ -48,8 +51,10 @@ notation "`★" => HsTerm.HsType
 notation "`□" => HsTerm.HsKind
 infixl:15 " `• " => HsTerm.HsCtor2 HsCtor2Variant.app
 infixl:15 " `•k " => HsTerm.HsCtor2 HsCtor2Variant.appk
+infixl:15 " `•t " => HsTerm.HsCtor2 HsCtor2Variant.appt
 notation:15  a " `-k> " b => HsTerm.HsCtor2 HsCtor2Variant.arrowk a b
-notation:15 "`λ" a => HsTerm.HsBind1 HsBind1Variant.lam a
+notation:15 "λ̈[" a "]" b => HsTerm.HsBind2 HsBind2Variant.lam a b
+notation:15 "Λ̈[" a "]" b => HsTerm.HsBind2 HsBind2Variant.lamt a b
 notation:15 "`∀{" a "}" b => HsTerm.HsBind2 HsBind2Variant.all a b
 notation:15  a " → " b => HsTerm.HsBind2 HsBind2Variant.arrow a b
 notation:15  a " ⇒ " b => HsTerm.HsBind2 HsBind2Variant.farrow a b
@@ -64,8 +69,7 @@ namespace HsTerm
  | HsVar _ => 0
  | HsCtor2 _ t1 t2 => size t1 + size t2 + 1
  | HsBind2 _ t1 t2 => size t1 + size t2 + 1
- | HsBind1 _ t1 => 1 + size t1
- | HsLet t1 t2 => size t1 + size t2 + 1
+ | HsLet t1 t2 t3 => size t1 + size t2 + size t3 + 1
  | HsIte _ t1 t2 t3 => size t1 + size t2 + size t3 + 1
 end HsTerm
 
@@ -78,6 +82,7 @@ namespace HsCtor2Variant
   | arrowk, arrowk => true
   | appk, appk => true
   | app, app => true
+  | appt, appt => true
   | _, _ => false
 end HsCtor2Variant
 
@@ -99,15 +104,10 @@ namespace HsBind2Variant
   | all, all => true
   | arrow, arrow => true
   | farrow, farrow => true
+  | lam, lam => true
+  | lamt, lamt => true
   | _, _ => false
 end HsBind2Variant
-
-namespace HsBind1Variant
-  @[simp]
-  def beq : HsBind1Variant -> HsBind1Variant -> Bool
-  | lam, lam => true
-end HsBind1Variant
-
 
 @[simp]
 instance instBEq_HsBind2Variant : BEq HsBind2Variant where
@@ -121,20 +121,6 @@ instance instLawfulBEq_HsBind2Variant : LawfulBEq HsBind2Variant where
     intro a; simp
     cases a <;> simp
 
-
-
-@[simp]
-instance instBEq_HsBind1Variant : BEq HsBind1Variant where
-  beq := HsBind1Variant.beq
-
-instance instLawfulBEq_HsBind1Variant : LawfulBEq HsBind1Variant where
-  eq_of_beq := by
-    intro a b h; simp at h
-    cases a <;> cases b <;> simp at *
-  rfl := by
-    intro a; simp
-
-
 namespace HsTerm
   @[simp]
   def beq : HsTerm -> HsTerm -> Bool
@@ -143,14 +129,12 @@ namespace HsTerm
   | HsVar x, HsVar y => x == y
   | HsIte x1 x2 x3 x4, HsIte y1 y2 y3 y4 =>
     beq x1 y1 && beq x2 y2 && beq x3 y3 && beq x4 y4
-  | HsLet x1 x2, HsLet y1 y2 =>
-    beq x1 y1 && beq x2 y2
+  | HsLet x1 x2 x3, HsLet y1 y2 y3 =>
+    beq x1 y1 && beq x2 y2 && beq x3 y3
   | HsCtor2 v1 x1 x2, HsCtor2 v2 y1 y2 =>
     v1 == v2 && beq x1 y1 && beq x2 y2
   | HsBind2 v1 x1 x2, HsBind2 v2 y1 y2 =>
     v1 == v2 && beq x1 y1 && beq x2 y2
-  | HsBind1 v1 x1, HsBind1 v2 y1 =>
-    v1 == v2 && beq x1 y1
   | _, _ => false
 
   theorem eq_of_beq : HsTerm.beq a b = true -> a = b := by
@@ -174,10 +158,8 @@ namespace HsTerm
 
   case _ => simp [*]
 
-  case _ ih _ _ => rw[ih h]
-
-  case _ ih1 ih2 _ _ =>
-    rw [ih1 h.1, ih2 h.2]
+  case _ ih1 ih2 ih3 _ _ _ =>
+    rw[ih1 h.1.1, ih2 h.1.2, ih3 h.2]
     simp
 
   case _ ih1 ih2 ih3 ih4 _ _ _ _ =>

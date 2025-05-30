@@ -9,7 +9,6 @@ namespace HsTerm
   | .HsKind => {}
   | (.HsVar x) => {x}
   | .HsCtor2 _ t1 t2 => t1.fvs ∪ t2.fvs
-  | .HsBind1 _ t => t.fvs \ {0}
   | .HsBind2 _ t1 t2 => t1.fvs ∪ (t2.fvs \ {0})
   | .HsLet t1 t2 t3 => t1.fvs ∪ t2.fvs ∪ (t3.fvs \ {0})
   | .HsIte p s i e => p.fvs ∪ s.fvs ∪ i.fvs ∪ e.fvs

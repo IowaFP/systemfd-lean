@@ -5,14 +5,15 @@ import SystemFD.Util
 
 
 inductive HsSpineVariant where
-| term | kind
+| term | kind | type
 deriving Repr
 
 namespace HsSpineVariant
   @[simp]
   def beq : HsSpineVariant -> HsSpineVariant -> Bool
-  | HsSpineVariant.term, HsSpineVariant.term => true
+  | .term, .term => true
   | .kind, .kind => true
+  | .type, .type => true
   | _, _ => false
 end HsSpineVariant
 
@@ -39,6 +40,9 @@ namespace HsTerm
   | .HsCtor2 .appk f a => do
     let (x, sp) <- neutral_form f
     .some (x, sp ++ [(.kind, a)])
+  | .HsCtor2 .appt f a => do
+    let (x, sp) <- neutral_form f
+    .some (x, sp ++ [(.type, a)])
   | _ => .none
 
   @[simp]
@@ -46,6 +50,7 @@ namespace HsTerm
   | t, [] => t
   | t, .cons (.term, h) tl => apply_spine (t `• h) tl
   | t, .cons (.kind, h) tl => apply_spine (t `•k h) tl
+  | t, .cons (.type, h) tl => apply_spine (t `•t h) tl
 
   theorem apply_spine_peel_term :
     apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `• a)
@@ -59,6 +64,13 @@ namespace HsTerm
   induction f, sp using apply_spine.induct <;> simp
   all_goals (case _ ih => rw [ih])
 
+  theorem apply_spine_peel_type :
+    apply_spine f (sp ++ [(.type, a)]) = (apply_spine f sp `•t a)
+  := by
+  induction f, sp using apply_spine.induct <;> simp
+  all_goals (case _ ih => rw [ih])
+
+
   theorem var_neutral_form : (HsVar n).neutral_form = .some (n, []) := by
   unfold HsTerm.neutral_form; rfl
 
@@ -71,6 +83,12 @@ namespace HsTerm
   f.neutral_form = .some (h, sp) ->
   (f `•k t).neutral_form = .some (h, sp ++ [(.kind, t)])
   := by intros h; simp_all
+
+  theorem neutral_form_appt {f : HsTerm}:
+  f.neutral_form = .some (h, sp) ->
+  (f `•t t).neutral_form = .some (h, sp ++ [(.type, t)])
+  := by intros h; simp_all
+
 
   theorem unique_neutral_form : (HsTerm.neutral_form t = .some (n, sp))
                             -> (HsTerm.neutral_form t = .some (n', sp')) -> (n = n' ∧ sp = sp') := by
@@ -102,7 +120,7 @@ namespace HsTerm
   theorem neutral_form_ite : (HsTerm.HsIte p s i e).neutral_form = .none := by
   unfold HsTerm.neutral_form; rfl
 
-  theorem neutral_form_letterm : (HsTerm.HsLet a1 a2).neutral_form = .none := by
+  theorem neutral_form_letterm : (HsTerm.HsLet a1 a2 a3).neutral_form = .none := by
   unfold HsTerm.neutral_form; rfl
 
   theorem apply_spine_compose :
@@ -140,6 +158,16 @@ namespace HsTerm
       subst h2; subst h3
       replace ih := ih (Eq.symm h1)
       rw [apply_spine_peel_kind, ih]
+  case _ ih =>
+    simp at h; replace h := Eq.symm h
+    rw [Option.bind_eq_some] at h; simp at h
+    cases h; case _ a h =>
+    cases h; case _ b h =>
+    cases h; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3
+      replace ih := ih (Eq.symm h1)
+      rw [apply_spine_peel_type, ih]
   case _ h1 h2 h3 h4 => simp at h
 
 
@@ -153,9 +181,8 @@ namespace HsTerm
   | HsType => HsType
   | HsCtor2 v t1 t2 => HsCtor2 v (smap lf f t1) (smap lf f t2)
   | HsBind2 v t1 t2 => HsBind2 v (smap lf f t1) (smap lf (lf f) t2)
-  | HsBind1 v t1 => HsBind1 v (smap lf (lf f) t1)
   | HsIte t1 t2 t3 t4 => .HsIte (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
-  | HsLet t2 t3 => HsLet (smap lf f t2) (smap lf (lf f) t3)
+  | HsLet t1 t2 t3 => HsLet (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
 end HsTerm
 
 @[simp]
@@ -193,10 +220,7 @@ namespace HsTerm
   theorem subst_HsBind2 : [σ]HsBind2 v t1 t2 = HsBind2 v ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
-  theorem subst_HsBind1 : [σ]HsBind1 v t1 = HsBind1 v ([^σ]t1) := by unfold Subst.apply; simp
-
-  @[simp]
-  theorem subst_letterm: [σ]HsLet t2 t3 = HsLet ([σ]t2) ([^σ]t3) := by unfold Subst.apply; simp
+  theorem subst_letterm: [σ]HsLet t1 t2 t3 = HsLet ([σ]t1) ([σ]t2) ([^σ]t3) := by unfold Subst.apply; simp
 
 
   theorem apply_id {t : HsTerm} : [I]t = t := by
@@ -228,6 +252,9 @@ namespace HsTerm
   | HsBind2 .arrow A B =>
     let (Γ, r) := to_telescope B
     (.type A::Γ, r)
+  | HsBind2 .farrow A B =>
+    let (Γ, r) := to_telescope B
+    (.type A::Γ, r)
   | `∀{A} B =>
     let (Γ, r) := to_telescope B
     (.kind A::Γ, r)
@@ -237,6 +264,7 @@ namespace HsTerm
   def from_telescope_rev : Ctx HsTerm -> HsTerm -> HsTerm
   | [], t => t
   | .cons (.type A) Γ, t => from_telescope_rev Γ (.HsBind2 .arrow A t)
+  -- | .cons (.pred A) Γ, t => from_telescope_rev Γ (.HsBind2 .farrow A t)
   | .cons (.kind A) Γ, t => from_telescope_rev Γ (`∀{A} t)
   | .cons _ Γ, t => from_telescope_rev Γ t
 
