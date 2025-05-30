@@ -6,9 +6,6 @@ import SystemFD.Algorithm
 @[simp]
 def compile_ctor2variant : HsCtor2Variant -> Ctor2Variant
 | .arrowk => .arrowk
-
-@[simp]
-def compile_ctor3variant : HsCtor3Variant -> Ctor2Variant
 | .appk => .appk
 | .appt => .appt
 | .app => .app
@@ -31,6 +28,8 @@ def hs_bind2_frame : Term -> HsBind2Variant -> Frame Term
 
 def synth_term : Ctx Term -> Term -> Option Term := sorry
 def perform_black_magic : Ctx Term -> Term -> Option Term := sorry
+
+-- surface: datatype Bool (tt, ff); #0 = ff, #1 = tt, #2 = Bool <-- defined by hs_nth
 
 -- @[simp]
 def compile : (Γ : Ctx Term) -> (τ : HsTerm) -> (t : HsTerm) -> Option Term
@@ -73,11 +72,14 @@ def compile : (Γ : Ctx Term) -> (τ : HsTerm) -> (t : HsTerm) -> Option Term
     .some (.bind2 .lamt α t')
   else .none
 
--- | Γ, .HsBind2 .farrow A B, t => do
---   let α <- compile Γ `★ A
---   let d <- synth_term Γ α
---   let t' <- compile (.term α d :: Γ) B t -- Deal with debrujin BS
---   .some (.bind2 .lam α t')
+| Γ, .HsBind2 .farrow A B, t => do
+  let α <- compile Γ `★ A
+  let t' <- compile (.type α :: Γ) B t
+  .some (.bind2 .lam α t')
+
+-- guard blah in
+-- guard blah in \ . \ .
+--   ... : u ~ v
 
 
 | Γ, τ, .HsLet A t1 t2 => do
@@ -92,6 +94,21 @@ def compile : (Γ : Ctx Term) -> (τ : HsTerm) -> (t : HsTerm) -> Option Term
 --   let i' <- compile Γ sorry i
 --   let t' <- compile Γ τ t
 --   .some (.ite p' s' i' t')
+
+--
+-- f : Eq a => B -> A
+-- b : B
+
+-- f (annotate B b)
+-- goal type is A
+
+-- (annoate T f) a1 a2 a3
+
+-- (annotate eta (Eq a => B -> C)) ? a1 a2
+
+-- (==) : Eq a => a -> a -> Bool
+-- eta : Eq a => a -> a -> Bool
+-- eta = \ a. \ b. a == b
 
 -------------------
 --- Term

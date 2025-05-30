@@ -31,26 +31,26 @@ instance instLawfulBEq_HsSpineVariant : LawfulBEq HsSpineVariant where
 
 
 namespace HsTerm
-  @[simp]
-  def neutral_form : HsTerm -> Option (Nat × List (HsSpineVariant × (HsTerm × HsTerm)))
-  | .HsVar x => .some (x, [])
-  | .HsCtor3 .app f a τ => do
-    let (x, sp) <- neutral_form f
-    .some (x, sp ++ [(HsSpineVariant.term, (a, τ))])
-  | .HsCtor3 .appk f a τ => do
-    let (x, sp) <- neutral_form f
-    .some (x, sp ++ [(.kind, (a, τ))])
-  | .HsCtor3 .appt f a τ => do
-    let (x, sp) <- neutral_form f
-    .some (x, sp ++ [(.type, (a, τ))])
-  | _ => .none
+  -- @[simp]
+  -- def neutral_form : HsTerm -> Option (Nat × List (HsSpineVariant × (HsTerm × HsTerm)))
+  -- | .HsVar x => .some (x, [])
+  -- | .HsCtor2 .app f a => do
+  --   let (x, sp) <- neutral_form f
+  --   .some (x, sp ++ [(HsSpineVariant.term, (a, τ))])
+  -- | .HsCtor3 .appk f a τ => do
+  --   let (x, sp) <- neutral_form f
+  --   .some (x, sp ++ [(.kind, (a, τ))])
+  -- | .HsCtor3 .appt f a τ => do
+  --   let (x, sp) <- neutral_form f
+  --   .some (x, sp ++ [(.type, (a, τ))])
+  -- | _ => .none
 
-  @[simp]
-  def apply_spine : HsTerm -> List (HsSpineVariant × (HsTerm × HsTerm)) -> HsTerm
-  | t, [] => t
-  | t, .cons (.term, (h , τ)) tl => apply_spine (.HsCtor3 .app t h τ) tl
-  | t, .cons (.kind, (h , τ)) tl => apply_spine (.HsCtor3 .appk t h τ) tl
-  | t, .cons (.type, h , τ) tl => apply_spine (.HsCtor3 .appt t h τ) tl
+  -- @[simp]
+  -- def apply_spine : HsTerm -> List (HsSpineVariant × (HsTerm × HsTerm)) -> HsTerm
+  -- | t, [] => t
+  -- | t, .cons (.term, (h , τ)) tl => apply_spine (.HsCtor3 .app t h τ) tl
+  -- | t, .cons (.kind, (h , τ)) tl => apply_spine (.HsCtor3 .appk t h τ) tl
+  -- | t, .cons (.type, h , τ) tl => apply_spine (.HsCtor3 .appt t h τ) tl
 
   -- theorem apply_spine_peel_term :
   --   apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `• a)
@@ -177,10 +177,11 @@ namespace HsTerm
     match f x with
     | .re y => HsVar y
     | .su t => t
+  | HsName x => HsName x
   | HsKind => HsKind
   | HsType => HsType
+  | HsAnnotate t1 t2 => HsAnnotate (smap lf f t1) (smap lf f t2)
   | HsCtor2 v t1 t2 => HsCtor2 v (smap lf f t1) (smap lf f t2)
-  | HsCtor3 v t1 t2 t3 => HsCtor3 v (smap lf f t1) (smap lf f t2) (smap lf f t3)
   | HsBind2 v t1 t2 => HsBind2 v (smap lf f t1) (smap lf (lf f) t2)
   | HsIte t1 t2 t3 t4 => .HsIte (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
   | HsLet t1 t2 t3 => HsLet (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
@@ -212,14 +213,16 @@ namespace HsTerm
   theorem subst_const : [σ]HsType = HsType := by unfold Subst.apply; simp
 
   @[simp]
+  theorem subst_HsName : [σ]HsName x = HsName x := by unfold Subst.apply; simp
+
+  @[simp]
   theorem subst_HsIte : [σ]HsIte t1 t2 t3 t4 = HsIte ([σ]t1) ([σ]t2) ([σ]t3) ([σ]t4) := by unfold Subst.apply; simp
 
   @[simp]
-  theorem subst_HsCtor2 : [σ]HsCtor2 v t1 t2 = HsCtor2 v ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
+  theorem subst_HsAnnotate : [σ]HsAnnotate t1 t2 = HsAnnotate ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
-  theorem subst_HsCtor3 : [σ]HsCtor3 v t1 t2 t3 = HsCtor3 v ([σ]t1) ([σ]t2) ([σ]t3) := by unfold Subst.apply; simp
-
+  theorem subst_HsCtor2 : [σ]HsCtor2 v t1 t2 = HsCtor2 v ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
   theorem subst_HsBind2 : [σ]HsBind2 v t1 t2 = HsBind2 v ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp
@@ -277,17 +280,17 @@ namespace HsTerm
   def from_telescope (Γ : Ctx HsTerm) (t : HsTerm) : HsTerm :=
     from_telescope_rev Γ.reverse t
 
-  theorem telescope_neutral_form_lemma {t : HsTerm} :
-    t.neutral_form = .some (x, xs) ->
-    t.to_telescope = ([], t) := by
-    induction t;
-    any_goals (solve | simp_all)
+  -- theorem telescope_neutral_form_lemma {t : HsTerm} :
+  --   t.neutral_form = .some (x, xs) ->
+  --   t.to_telescope = ([], t) := by
+  --   induction t;
+  --   any_goals (solve | simp_all)
 
-  theorem unique_telescope {t : HsTerm} :
-    t.to_telescope = (x, xs) ->
-    t.to_telescope = (x', xs') ->
-    x = x' ∧ xs = xs' :=  by
-    intros h1 h2; rw [h1] at h2; simp at h2; assumption;
+  -- theorem unique_telescope {t : HsTerm} :
+  --   t.to_telescope = (x, xs) ->
+  --   t.to_telescope = (x', xs') ->
+  --   x = x' ∧ xs = xs' :=  by
+  --   intros h1 h2; rw [h1] at h2; simp at h2; assumption;
 
 end HsTerm
 
