@@ -55,7 +55,7 @@ namespace HsFrame
     | .term _ _ => true
     | _ => false
 
-  @[aesop safe]
+  -- @[aesop safe]
   def is_datatypeDecl (f : HsFrame T) : Bool :=
     match f with
     | .datatypeDecl _ => true
@@ -72,7 +72,7 @@ namespace HsFrame
     | .type _ => true
     | _ => false
 
-  @[aesop safe]
+  -- @[aesop safe]
   def is_kind (f : HsFrame T) : Bool :=
     match f with
     | .kind _ => true
@@ -94,6 +94,7 @@ namespace HsFrame
   def is_lam_bound : HsFrame T -> Bool
   | .type _ => true
   | _ => false
+
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_type_apply {σ : Subst T} : is_type f = is_type (apply f σ) := by

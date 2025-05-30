@@ -109,6 +109,10 @@ namespace Frame
   | .type _ => true
   | _ => false
 
+
+  def is_term_var : Frame T -> Bool := λ x => x.is_type || x.is_term || x.is_ctor
+
+
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_type_apply {σ : Subst T} : is_type f = is_type (apply f σ) := by
   unfold apply; unfold is_type; cases f <;> simp

@@ -2,6 +2,8 @@ import SystemFD.Ctx
 
 inductive HsCtor2Variant : Type where
 | arrowk -- a -k> b
+
+inductive HsCtor3Variant : Type where
 | appk   -- a `•k b
 | app    -- a `• b
 | appt    -- a `•t b
@@ -19,6 +21,7 @@ inductive HsTerm : Type where
 | HsKind : HsTerm -- "□"
 | HsVar : Nat -> HsTerm
 | HsCtor2 : HsCtor2Variant -> HsTerm -> HsTerm -> HsTerm
+| HsCtor3 : HsCtor3Variant -> HsTerm -> HsTerm -> HsTerm -> HsTerm
 | HsBind2 : HsBind2Variant -> HsTerm -> HsTerm -> HsTerm
 | HsLet :           HsTerm -> HsTerm -> HsTerm -> HsTerm
 | HsIte : HsTerm -> HsTerm -> HsTerm -> HsTerm -> HsTerm
@@ -28,9 +31,11 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsKind, _ => "`□"
 | HsVar n , _ => "`#" ++ Nat.repr n
 | HsCtor2 .arrowk a b, p => (HsTerm.repr a p) ++ " `-k> " ++ (HsTerm.repr b p)
-| HsCtor2 .appk a b, p => (HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b p)
-| HsCtor2 .app a b, p => (HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b p)
-| HsCtor2 .appt a b, p => (HsTerm.repr a p) ++ " `•t " ++ (HsTerm.repr b p)
+
+| HsCtor3 .appk a b _, p => (HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b p)
+| HsCtor3 .app a b _, p => (HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b p)
+| HsCtor3 .appt a b _, p => (HsTerm.repr a p) ++ " `•t " ++ (HsTerm.repr b p)
+
 | HsBind2 .lam t1 t2, p => "`λ[" ++ HsTerm.repr t1 p ++ "]"  ++  HsTerm.repr t2 p
 | HsBind2 .lamt t1 t2, p => "`Λ[" ++ HsTerm.repr t1 p ++ "]"  ++ HsTerm.repr t2 p
 | HsBind2 .all t1 t2 , p => "`∀" ++ Std.Format.sbracket (HsTerm.repr t1 p) ++ HsTerm.repr t2 p
@@ -68,6 +73,7 @@ namespace HsTerm
  | HsKind => 0
  | HsVar _ => 0
  | HsCtor2 _ t1 t2 => size t1 + size t2 + 1
+ | HsCtor3 _ t1 t2 t3 => size t1 + size t2 + size t3 + 1
  | HsBind2 _ t1 t2 => size t1 + size t2 + 1
  | HsLet t1 t2 t3 => size t1 + size t2 + size t3 + 1
  | HsIte _ t1 t2 t3 => size t1 + size t2 + size t3 + 1
@@ -80,10 +86,6 @@ namespace HsCtor2Variant
   @[simp]
   def beq : HsCtor2Variant -> HsCtor2Variant -> Bool
   | arrowk, arrowk => true
-  | appk, appk => true
-  | app, app => true
-  | appt, appt => true
-  | _, _ => false
 end HsCtor2Variant
 
 @[simp]
@@ -96,7 +98,29 @@ instance instLawfulBEq_HsCtor2Variant : LawfulBEq HsCtor2Variant where
     cases a <;> cases b <;> simp at *
   rfl := by
     intro a; simp
+
+
+namespace HsCtor3Variant
+  @[simp]
+  def beq : HsCtor3Variant -> HsCtor3Variant -> Bool
+  | appk, appk => true
+  | app, app => true
+  | appt, appt => true
+  | _, _ => false
+end HsCtor3Variant
+
+@[simp]
+instance instBEq_HsCtor3Variant : BEq HsCtor3Variant where
+  beq := HsCtor3Variant.beq
+
+instance instLawfulBEq_HsCtor3Variant : LawfulBEq HsCtor3Variant where
+  eq_of_beq := by
+    intro a b h; simp at h
+    cases a <;> cases b <;> simp at *
+  rfl := by
+    intro a; simp
     cases a <;> simp
+
 
 namespace HsBind2Variant
   @[simp]
@@ -133,6 +157,8 @@ namespace HsTerm
     beq x1 y1 && beq x2 y2 && beq x3 y3
   | HsCtor2 v1 x1 x2, HsCtor2 v2 y1 y2 =>
     v1 == v2 && beq x1 y1 && beq x2 y2
+  | HsCtor3 v1 x1 x2 x3, HsCtor3 v2 y1 y2 y3 =>
+    v1 == v2 && beq x1 y1 && beq x2 y2 && beq x3 y3
   | HsBind2 v1 x1 x2, HsBind2 v2 y1 y2 =>
     v1 == v2 && beq x1 y1 && beq x2 y2
   | _, _ => false
@@ -144,9 +170,19 @@ namespace HsTerm
     cases b
     case HsCtor2 v2 y1 y2 =>
       have lem := @LawfulBEq.eq_of_beq HsCtor2Variant _ _ v1 v2
-      simp at *; replace lem := lem h.1.1
-      rw [lem, ih1 h.1.2, ih2 h.2]; simp
+      simp at *;
+      rw [ih1 h.1, ih2 h.2]; simp
     all_goals (simp at *)
+
+  case HsCtor3 v1 x1 x2 x3 ih1 ih2 ih3 =>
+    cases b
+    case HsCtor3 v2 y1 y2 y3 =>
+      have lem := @LawfulBEq.eq_of_beq HsCtor3Variant _ _ v1 v2
+      simp at *; replace lem := lem h.1.1.1
+      rw[lem, ih1 h.1.1.2, ih2 h.1.2, ih3 h.2]
+      simp at *;
+    all_goals (simp at *)
+
   case HsBind2 v1 x1 x2 ih1 ih2 =>
     cases b
     case HsBind2 v2 y1 y2 =>

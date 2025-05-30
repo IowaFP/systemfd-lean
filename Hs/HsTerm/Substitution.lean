@@ -32,143 +32,143 @@ instance instLawfulBEq_HsSpineVariant : LawfulBEq HsSpineVariant where
 
 namespace HsTerm
   @[simp]
-  def neutral_form : HsTerm -> Option (Nat × List (HsSpineVariant × HsTerm))
+  def neutral_form : HsTerm -> Option (Nat × List (HsSpineVariant × (HsTerm × HsTerm)))
   | .HsVar x => .some (x, [])
-  | .HsCtor2 .app f a => do
+  | .HsCtor3 .app f a τ => do
     let (x, sp) <- neutral_form f
-    .some (x, sp ++ [(HsSpineVariant.term, a)])
-  | .HsCtor2 .appk f a => do
+    .some (x, sp ++ [(HsSpineVariant.term, (a, τ))])
+  | .HsCtor3 .appk f a τ => do
     let (x, sp) <- neutral_form f
-    .some (x, sp ++ [(.kind, a)])
-  | .HsCtor2 .appt f a => do
+    .some (x, sp ++ [(.kind, (a, τ))])
+  | .HsCtor3 .appt f a τ => do
     let (x, sp) <- neutral_form f
-    .some (x, sp ++ [(.type, a)])
+    .some (x, sp ++ [(.type, (a, τ))])
   | _ => .none
 
   @[simp]
-  def apply_spine : HsTerm -> List (HsSpineVariant × HsTerm) -> HsTerm
+  def apply_spine : HsTerm -> List (HsSpineVariant × (HsTerm × HsTerm)) -> HsTerm
   | t, [] => t
-  | t, .cons (.term, h) tl => apply_spine (t `• h) tl
-  | t, .cons (.kind, h) tl => apply_spine (t `•k h) tl
-  | t, .cons (.type, h) tl => apply_spine (t `•t h) tl
+  | t, .cons (.term, (h , τ)) tl => apply_spine (.HsCtor3 .app t h τ) tl
+  | t, .cons (.kind, (h , τ)) tl => apply_spine (.HsCtor3 .appk t h τ) tl
+  | t, .cons (.type, h , τ) tl => apply_spine (.HsCtor3 .appt t h τ) tl
 
-  theorem apply_spine_peel_term :
-    apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `• a)
-  := by
-  induction f, sp using apply_spine.induct <;> simp
-  all_goals (case _ ih => rw [ih])
+  -- theorem apply_spine_peel_term :
+  --   apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `• a)
+  -- := by
+  -- induction f, sp using apply_spine.induct <;> simp
+  -- all_goals (case _ ih => rw [ih])
 
-  theorem apply_spine_peel_kind :
-    apply_spine f (sp ++ [(.kind, a)]) = (apply_spine f sp `•k a)
-  := by
-  induction f, sp using apply_spine.induct <;> simp
-  all_goals (case _ ih => rw [ih])
+  -- theorem apply_spine_peel_kind :
+  --   apply_spine f (sp ++ [(.kind, a)]) = (apply_spine f sp `•k a)
+  -- := by
+  -- induction f, sp using apply_spine.induct <;> simp
+  -- all_goals (case _ ih => rw [ih])
 
-  theorem apply_spine_peel_type :
-    apply_spine f (sp ++ [(.type, a)]) = (apply_spine f sp `•t a)
-  := by
-  induction f, sp using apply_spine.induct <;> simp
-  all_goals (case _ ih => rw [ih])
-
-
-  theorem var_neutral_form : (HsVar n).neutral_form = .some (n, []) := by
-  unfold HsTerm.neutral_form; rfl
-
-  theorem neutral_form_app {f : HsTerm} :
-  f.neutral_form = .some (h, sp) ->
-  (f `• t).neutral_form = .some (h, sp ++ [(.term, t)]) := by
-  intros h; simp_all
-
-  theorem neutral_form_appk {f : HsTerm}:
-  f.neutral_form = .some (h, sp) ->
-  (f `•k t).neutral_form = .some (h, sp ++ [(.kind, t)])
-  := by intros h; simp_all
-
-  theorem neutral_form_appt {f : HsTerm}:
-  f.neutral_form = .some (h, sp) ->
-  (f `•t t).neutral_form = .some (h, sp ++ [(.type, t)])
-  := by intros h; simp_all
+  -- theorem apply_spine_peel_type :
+  --   apply_spine f (sp ++ [(.type, a)]) = (apply_spine f sp `•t a)
+  -- := by
+  -- induction f, sp using apply_spine.induct <;> simp
+  -- all_goals (case _ ih => rw [ih])
 
 
-  theorem unique_neutral_form : (HsTerm.neutral_form t = .some (n, sp))
-                            -> (HsTerm.neutral_form t = .some (n', sp')) -> (n = n' ∧ sp = sp') := by
-  intros tnf tnf';
-  induction t using HsTerm.neutral_form.induct;
-  any_goals (solve | simp_all)
+  -- theorem var_neutral_form : (HsVar n).neutral_form = .some (n, []) := by
+  -- unfold HsTerm.neutral_form; rfl
 
-  theorem neutral_form_app_rev {f : HsTerm}:
-  (f `• t).neutral_form = .some (h, sp ++ [(.term, t)] ) ->
-  f.neutral_form = .some (h, sp) := by
-  intros h; simp_all;
-  case _ n =>
-  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
-  simp at h; have h2 := h.2.1; have h3 := h.2.2;
-  subst h2; subst h3; simp_all;
+  -- theorem neutral_form_app {f : HsTerm} :
+  -- f.neutral_form = .some (h, sp) ->
+  -- (f `• t).neutral_form = .some (h, sp ++ [(.term, t)]) := by
+  -- intros h; simp_all
 
-  theorem neutral_form_appk_rev_exists {f : HsTerm} :
-  (f `•k t).neutral_form = .some (h, sp) ->
-  ∃ sp', f.neutral_form = .some (h, sp') ∧ sp = sp' ++ [(.kind , t)] := by
-  intros h; simp_all;
-  case _ n =>
-  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
-  simp at h; have h2 := h.2.1; have h3 := h.2.2;
-  subst h2; subst h3; simp_all;
+  -- theorem neutral_form_appk {f : HsTerm}:
+  -- f.neutral_form = .some (h, sp) ->
+  -- (f `•k t).neutral_form = .some (h, sp ++ [(.kind, t)])
+  -- := by intros h; simp_all
 
-  theorem neutral_form_bind2 : (HsTerm.HsBind2 a1 a2 a3).neutral_form = .none := by
-  unfold HsTerm.neutral_form; rfl
+  -- theorem neutral_form_appt {f : HsTerm}:
+  -- f.neutral_form = .some (h, sp) ->
+  -- (f `•t t).neutral_form = .some (h, sp ++ [(.type, t)])
+  -- := by intros h; simp_all
 
-  theorem neutral_form_ite : (HsTerm.HsIte p s i e).neutral_form = .none := by
-  unfold HsTerm.neutral_form; rfl
 
-  theorem neutral_form_letterm : (HsTerm.HsLet a1 a2 a3).neutral_form = .none := by
-  unfold HsTerm.neutral_form; rfl
+  -- theorem unique_neutral_form : (HsTerm.neutral_form t = .some (n, sp))
+  --                           -> (HsTerm.neutral_form t = .some (n', sp')) -> (n = n' ∧ sp = sp') := by
+  -- intros tnf tnf';
+  -- induction t using HsTerm.neutral_form.induct;
+  -- any_goals (solve | simp_all)
 
-  theorem apply_spine_compose :
-    HsTerm.apply_spine t (t1 ++ t2) = HsTerm.apply_spine (HsTerm.apply_spine t t1) t2
-  := by
-  induction t, t1 using HsTerm.apply_spine.induct generalizing t2
-  case _ => simp
-  all_goals (case _ ih => simp; rw [ih])
+  -- theorem neutral_form_app_rev {f : HsTerm}:
+  -- (f `• t).neutral_form = .some (h, sp ++ [(.term, t)] ) ->
+  -- f.neutral_form = .some (h, sp) := by
+  -- intros h; simp_all;
+  -- case _ n =>
+  -- rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  -- simp at h; have h2 := h.2.1; have h3 := h.2.2;
+  -- subst h2; subst h3; simp_all;
 
-  theorem neutral_form_law :
-    .some (x, sp) = HsTerm.neutral_form t ->
-    HsTerm.apply_spine `#x sp = t
-  := by
-  intro h; induction t using neutral_form.induct generalizing x sp
-  case _ =>
-    simp at h; cases h; case _ h1 h2 =>
-      subst h1; subst h2; simp
-  case _ ih =>
-    simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
-    cases h; case _ a h =>
-    cases h; case _ b h =>
-    cases h; case _ h1 h2 =>
-    cases h2; case _ h2 h3 =>
-      subst h2; subst h3
-      replace ih := ih (Eq.symm h1)
-      rw [apply_spine_peel_term, ih]
-  case _ ih =>
-    simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
-    cases h; case _ a h =>
-    cases h; case _ b h =>
-    cases h; case _ h1 h2 =>
-    cases h2; case _ h2 h3 =>
-      subst h2; subst h3
-      replace ih := ih (Eq.symm h1)
-      rw [apply_spine_peel_kind, ih]
-  case _ ih =>
-    simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
-    cases h; case _ a h =>
-    cases h; case _ b h =>
-    cases h; case _ h1 h2 =>
-    cases h2; case _ h2 h3 =>
-      subst h2; subst h3
-      replace ih := ih (Eq.symm h1)
-      rw [apply_spine_peel_type, ih]
-  case _ h1 h2 h3 h4 => simp at h
+  -- theorem neutral_form_appk_rev_exists {f : HsTerm} :
+  -- (f `•k t).neutral_form = .some (h, sp) ->
+  -- ∃ sp', f.neutral_form = .some (h, sp') ∧ sp = sp' ++ [(.kind , t)] := by
+  -- intros h; simp_all;
+  -- case _ n =>
+  -- rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  -- simp at h; have h2 := h.2.1; have h3 := h.2.2;
+  -- subst h2; subst h3; simp_all;
+
+  -- theorem neutral_form_bind2 : (HsTerm.HsBind2 a1 a2 a3).neutral_form = .none := by
+  -- unfold HsTerm.neutral_form; rfl
+
+  -- theorem neutral_form_ite : (HsTerm.HsIte p s i e).neutral_form = .none := by
+  -- unfold HsTerm.neutral_form; rfl
+
+  -- theorem neutral_form_letterm : (HsTerm.HsLet a1 a2 a3).neutral_form = .none := by
+  -- unfold HsTerm.neutral_form; rfl
+
+  -- theorem apply_spine_compose :
+  --   HsTerm.apply_spine t (t1 ++ t2) = HsTerm.apply_spine (HsTerm.apply_spine t t1) t2
+  -- := by
+  -- induction t, t1 using HsTerm.apply_spine.induct generalizing t2
+  -- case _ => simp
+  -- all_goals (case _ ih => simp; rw [ih])
+
+  -- theorem neutral_form_law :
+  --   .some (x, sp) = HsTerm.neutral_form t ->
+  --   HsTerm.apply_spine `#x sp = t
+  -- := by
+  -- intro h; induction t using neutral_form.induct generalizing x sp
+  -- case _ =>
+  --   simp at h; cases h; case _ h1 h2 =>
+  --     subst h1; subst h2; simp
+  -- case _ ih =>
+  --   simp at h; replace h := Eq.symm h
+  --   rw [Option.bind_eq_some] at h; simp at h
+  --   cases h; case _ a h =>
+  --   cases h; case _ b h =>
+  --   cases h; case _ h1 h2 =>
+  --   cases h2; case _ h2 h3 =>
+  --     subst h2; subst h3
+  --     replace ih := ih (Eq.symm h1)
+  --     rw [apply_spine_peel_term, ih]
+  -- case _ ih =>
+  --   simp at h; replace h := Eq.symm h
+  --   rw [Option.bind_eq_some] at h; simp at h
+  --   cases h; case _ a h =>
+  --   cases h; case _ b h =>
+  --   cases h; case _ h1 h2 =>
+  --   cases h2; case _ h2 h3 =>
+  --     subst h2; subst h3
+  --     replace ih := ih (Eq.symm h1)
+  --     rw [apply_spine_peel_kind, ih]
+  -- case _ ih =>
+  --   simp at h; replace h := Eq.symm h
+  --   rw [Option.bind_eq_some] at h; simp at h
+  --   cases h; case _ a h =>
+  --   cases h; case _ b h =>
+  --   cases h; case _ h1 h2 =>
+  --   cases h2; case _ h2 h3 =>
+  --     subst h2; subst h3
+  --     replace ih := ih (Eq.symm h1)
+  --     rw [apply_spine_peel_type, ih]
+  -- case _ h1 h2 h3 h4 => simp at h
 
 
   @[simp]
@@ -180,6 +180,7 @@ namespace HsTerm
   | HsKind => HsKind
   | HsType => HsType
   | HsCtor2 v t1 t2 => HsCtor2 v (smap lf f t1) (smap lf f t2)
+  | HsCtor3 v t1 t2 t3 => HsCtor3 v (smap lf f t1) (smap lf f t2) (smap lf f t3)
   | HsBind2 v t1 t2 => HsBind2 v (smap lf f t1) (smap lf (lf f) t2)
   | HsIte t1 t2 t3 t4 => .HsIte (smap lf f t1) (smap lf f t2) (smap lf f t3) (smap lf f t4)
   | HsLet t1 t2 t3 => HsLet (smap lf f t1) (smap lf f t2) (smap lf (lf f) t3)
@@ -215,6 +216,10 @@ namespace HsTerm
 
   @[simp]
   theorem subst_HsCtor2 : [σ]HsCtor2 v t1 t2 = HsCtor2 v ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
+
+  @[simp]
+  theorem subst_HsCtor3 : [σ]HsCtor3 v t1 t2 t3 = HsCtor3 v ([σ]t1) ([σ]t2) ([σ]t3) := by unfold Subst.apply; simp
+
 
   @[simp]
   theorem subst_HsBind2 : [σ]HsBind2 v t1 t2 = HsBind2 v ([σ]t1) ([^σ]t2) := by unfold Subst.apply; simp
