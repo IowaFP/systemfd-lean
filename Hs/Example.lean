@@ -5,8 +5,8 @@ import SystemFD.Algorithm
 def idHsType : HsTerm := `∀{`★} `#0 → `#1
 def idHsTerm : HsTerm := Λ̈[`★] λ̈[`#0] `#0
 
-def idType := compile [] `★ idHsType
-def idTerm := compile [] idHsType idHsTerm
+def idType := compile [] ★ idHsType
+def idTerm := compile [] idType idHsTerm
 
 -- #guard idType == .some (∀[★] #0 -t> #1)
 -- #guard idTerm == .some (Λ[★]`λ[#0] #0)

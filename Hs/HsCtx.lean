@@ -26,22 +26,23 @@ inductive HsFrame T where
 | term : T -> T -> HsFrame T
 
 namespace HsFrame
---   def apply : HsFrame T -> Subst T -> HsFrame T
---   | empty, _ => empty
---   | kind t, σ => kind ([σ]t)
---   | type t, σ => type ([σ]t)
---   | datatypeDecl t, σ => datatypeDecl ([σ]t)
---   | classDecl t, σ => classDecl ([σ]t)
---   | inst v t, σ => inst ([σ]v) ([σ]t)
---   | term ty t, σ => term ([σ]ty) ([σ]t)
+  -- def apply : HsFrame T -> Subst T -> HsFrame T
+  -- | empty, _ => empty
+  -- | kind t, σ => kind ([σ]t)
+  -- | type t, σ => type ([σ]t)
+  -- | datatypeDecl t ctors, σ => datatypeDecl ([σ]t) (List.map ([σ]·) ctors)
+  -- | classDecl t scs oms fds, σ =>
+  --   classDecl ([σ]t) (List.map ([σ]·) scs) (List.map ([σ]·) oms) (List.map ([σ]·) fds)
+  -- | inst v t, σ => inst ([σ]v) ([σ]t)
+  -- | term ty t, σ => term ([σ]ty) ([σ]t)
 
---   def get_type : HsFrame T -> Option T
---   | .kind t => .some t
---   | .type t => .some t
---   | datatypeDecl t => .some t
---   | .classDecl t => .some t
---   | .term T _ => .some T
---   | _ => .none
+  def get_type : HsFrame T -> Option T
+  | .kind t => .some t
+  | .type t => .some t
+  | .datatypeDecl t _ => .some t
+  | .classDecl t _ _ _ => .some t
+  | .term T _ => .some T
+  | _ => .none
 
 --   omit [Repr T] [Inhabited T] in
 --   @[simp]

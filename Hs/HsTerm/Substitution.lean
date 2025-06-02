@@ -1,5 +1,5 @@
 import SystemFD.Substitution
-import SystemFD.Ctx
+import Hs.HsCtx
 import Hs.HsTerm.Definition
 import SystemFD.Util
 
@@ -31,26 +31,26 @@ instance instLawfulBEq_HsSpineVariant : LawfulBEq HsSpineVariant where
 
 
 namespace HsTerm
-  -- @[simp]
-  -- def neutral_form : HsTerm -> Option (Nat × List (HsSpineVariant × (HsTerm × HsTerm)))
-  -- | .HsVar x => .some (x, [])
-  -- | .HsCtor2 .app f a => do
-  --   let (x, sp) <- neutral_form f
-  --   .some (x, sp ++ [(HsSpineVariant.term, (a, τ))])
-  -- | .HsCtor3 .appk f a τ => do
-  --   let (x, sp) <- neutral_form f
-  --   .some (x, sp ++ [(.kind, (a, τ))])
-  -- | .HsCtor3 .appt f a τ => do
-  --   let (x, sp) <- neutral_form f
-  --   .some (x, sp ++ [(.type, (a, τ))])
-  -- | _ => .none
+  @[simp]
+  def neutral_form : HsTerm -> Option (HsTerm × List (HsSpineVariant × HsTerm))
+  | .HsAnnotate τ x => .some (.HsAnnotate τ x, [])
+  | .HsCtor2 .app f a => do
+    let (x, sp) <- neutral_form f
+    .some (x, sp ++ [(HsSpineVariant.term, a)])
+  | .HsCtor2 .appk f a => do
+    let (x, sp) <- neutral_form f
+    .some (x, sp ++ [(.kind, a)])
+  | .HsCtor2 .appt f a => do
+    let (x, sp) <- neutral_form f
+    .some (x, sp ++ [(.type, a)])
+  | _ => .none
 
-  -- @[simp]
-  -- def apply_spine : HsTerm -> List (HsSpineVariant × (HsTerm × HsTerm)) -> HsTerm
-  -- | t, [] => t
-  -- | t, .cons (.term, (h , τ)) tl => apply_spine (.HsCtor3 .app t h τ) tl
-  -- | t, .cons (.kind, (h , τ)) tl => apply_spine (.HsCtor3 .appk t h τ) tl
-  -- | t, .cons (.type, h , τ) tl => apply_spine (.HsCtor3 .appt t h τ) tl
+  @[simp]
+  def apply_spine : HsTerm -> List (HsSpineVariant × HsTerm) -> HsTerm
+  | t, [] => t
+  | t, .cons (.term, h) tl => apply_spine (.HsCtor2 .app t h) tl
+  | t, .cons (.kind, h) tl => apply_spine (.HsCtor2 .appk t h) tl
+  | t, .cons (.type, h) tl => apply_spine (.HsCtor2 .appt t h) tl
 
   -- theorem apply_spine_peel_term :
   --   apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `• a)
@@ -180,6 +180,7 @@ namespace HsTerm
   | HsName x => HsName x
   | HsKind => HsKind
   | HsType => HsType
+  | HsHole t1 => HsHole (smap lf f t1)
   | HsAnnotate t1 t2 => HsAnnotate (smap lf f t1) (smap lf f t2)
   | HsCtor2 v t1 t2 => HsCtor2 v (smap lf f t1) (smap lf f t2)
   | HsBind2 v t1 t2 => HsBind2 v (smap lf f t1) (smap lf (lf f) t2)
@@ -222,6 +223,9 @@ namespace HsTerm
   theorem subst_HsAnnotate : [σ]HsAnnotate t1 t2 = HsAnnotate ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
+  theorem subst_HsHole : [σ]HsHole t1 = HsHole ([σ]t1) := by unfold Subst.apply; simp
+
+  @[simp]
   theorem subst_HsCtor2 : [σ]HsCtor2 v t1 t2 = HsCtor2 v ([σ]t1) ([σ]t2) := by unfold Subst.apply; simp
 
   @[simp]
@@ -256,7 +260,7 @@ namespace HsTerm
   solve_compose HsTerm, apply_stable, s, σ, τ
 
   @[simp]
-  def to_telescope : HsTerm -> Ctx HsTerm × HsTerm
+  def to_telescope : HsTerm -> (HsCtx HsTerm × HsTerm)
   | HsBind2 .arrow A B =>
     let (Γ, r) := to_telescope B
     (.type A::Γ, r)
@@ -268,17 +272,17 @@ namespace HsTerm
     (.kind A::Γ, r)
   | t => ([], t)
 
-  @[simp]
-  def from_telescope_rev : Ctx HsTerm -> HsTerm -> HsTerm
-  | [], t => t
-  | .cons (.type A) Γ, t => from_telescope_rev Γ (.HsBind2 .arrow A t)
-  -- | .cons (.pred A) Γ, t => from_telescope_rev Γ (.HsBind2 .farrow A t)
-  | .cons (.kind A) Γ, t => from_telescope_rev Γ (`∀{A} t)
-  | .cons _ Γ, t => from_telescope_rev Γ t
+  -- @[simp]
+  -- def from_telescope_rev : Ctx HsTerm -> HsTerm -> HsTerm
+  -- | [], t => t
+  -- | .cons (.type A) Γ, t => from_telescope_rev Γ (.HsBind2 .arrow A t)
+  -- -- | .cons (.pred A) Γ, t => from_telescope_rev Γ (.HsBind2 .farrow A t)
+  -- | .cons (.kind A) Γ, t => from_telescope_rev Γ (`∀{A} t)
+  -- | .cons _ Γ, t => from_telescope_rev Γ t
 
-  @[simp]
-  def from_telescope (Γ : Ctx HsTerm) (t : HsTerm) : HsTerm :=
-    from_telescope_rev Γ.reverse t
+  -- @[simp]
+  -- def from_telescope (Γ : Ctx HsTerm) (t : HsTerm) : HsTerm :=
+  --   from_telescope_rev Γ.reverse t
 
   -- theorem telescope_neutral_form_lemma {t : HsTerm} :
   --   t.neutral_form = .some (x, xs) ->

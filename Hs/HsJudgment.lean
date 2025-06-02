@@ -272,7 +272,7 @@ def extract_kinding :
 | .varTy _ _ _ h => h
 
 
-@[aesop safe [constructors, cases]]
+-- @[aesop safe [constructors, cases]]
 inductive HsFrameWf : HsCtx HsTerm -> Frame HsTerm -> Prop where
 | empty :
   ⊢s Γ ->

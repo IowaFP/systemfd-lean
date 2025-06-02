@@ -1,4 +1,3 @@
-import SystemFD.Ctx
 
 inductive HsCtor2Variant : Type where
 | arrowk -- a -k> b
@@ -19,9 +18,9 @@ inductive HsTerm : Type where
 | HsKind : HsTerm -- "□"
 | HsVar : Nat -> HsTerm
 | HsName : String -> HsTerm
+| HsHole : HsTerm -> HsTerm
 | HsAnnotate : HsTerm -> HsTerm -> HsTerm
 | HsCtor2 : HsCtor2Variant -> HsTerm -> HsTerm -> HsTerm
--- | HsCtor3 : HsCtor3Variant -> HsTerm -> HsTerm -> HsTerm -> HsTerm
 | HsBind2 : HsBind2Variant -> HsTerm -> HsTerm -> HsTerm
 | HsLet :           HsTerm -> HsTerm -> HsTerm -> HsTerm
 | HsIte : HsTerm -> HsTerm -> HsTerm -> HsTerm -> HsTerm
@@ -31,6 +30,7 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsKind, _ => "`□"
 | HsVar n , _ => "`#" ++ Nat.repr n
 | HsName n , _ => n
+| HsHole n , p => "_@" ++ Repr.addAppParen (HsTerm.repr n p) p
 | HsAnnotate A t, p => "(" ++ (HsTerm.repr t p) ++ " : " ++ (HsTerm.repr A p) ++ ")"
 | HsCtor2 .arrowk a b, p => (HsTerm.repr a p) ++ " `-k> " ++ (HsTerm.repr b p)
 
@@ -75,6 +75,7 @@ namespace HsTerm
  | HsKind => 0
  | HsVar _ => 0
  | HsName _ => 0
+ | HsHole t1 => size t1 + 1
  | HsAnnotate t1 t2 => size t1 + size t2 + 1
  | HsCtor2 _ t1 t2 => size t1 + size t2 + 1
  | HsBind2 _ t1 t2 => size t1 + size t2 + 1
@@ -137,6 +138,7 @@ namespace HsTerm
   | HsType, HsType => true
   | HsVar x, HsVar y => x == y
   | HsName x, HsName y => x == y
+  | HsHole x, HsHole y => beq x y
   | HsAnnotate x1 x2, HsAnnotate y1 y2 => beq x1 y1 && beq x2 y2
   | HsIte x1 x2 x3 x4, HsIte y1 y2 y3 y4 =>
     beq x1 y1 && beq x2 y2 && beq x3 y3 && beq x4 y4
@@ -151,7 +153,16 @@ namespace HsTerm
   theorem eq_of_beq : HsTerm.beq a b = true -> a = b := by
   intro h
   induction a generalizing b
-  case HsName => sorry
+  case HsName =>
+    cases b
+    case HsName =>
+      simp at *; assumption
+    all_goals (simp at *)
+  case HsHole ih =>
+    cases b
+    case HsHole =>
+      simp at *; rw[ih h]
+    all_goals (simp at *)
   case HsAnnotate ih1 ih2 =>
     cases b
     case HsAnnotate =>

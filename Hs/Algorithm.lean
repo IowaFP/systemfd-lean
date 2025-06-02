@@ -26,56 +26,79 @@ def hs_bind2_frame : Term -> HsBind2Variant -> Frame Term
 | t, .lamt => .kind t
 | _ , _ =>  .empty
 
-def synth_term : Ctx Term -> Term -> Option Term := sorry
-def perform_black_magic : Ctx Term -> Term -> Option Term := sorry
+
+@[simp]
+def compile_spine_variant : HsSpineVariant -> SpineVariant
+| .term => .term
+| .type => .type
+| .kind => .kind
+
+
+def synth_term : Ctx Term -> Term -> Option Term := λ _ _ => .some `0
+def synth_coercion : Ctx Term -> Term -> Term -> Option Term := λ _ _ _ => .some `0
 
 -- surface: datatype Bool (tt, ff); #0 = ff, #1 = tt, #2 = Bool <-- defined by hs_nth
 
 -- @[simp]
-def compile : (Γ : Ctx Term) -> (τ : HsTerm) -> (t : HsTerm) -> Option Term
+def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 -- TODO: Type directed compilation
 -- def compile : (Γ : Ctx Term) -> Term -> HsTerm -> Option Term
 -------------------
 --- Kind
 -------------------
-| _ , `□, `★ => .some ★
+| _ , □, `★ => .some ★
 
-| Γ, `□ , .HsCtor2 .arrowk t1 t2 => do
-  let t1' <- compile Γ `□ t1
-  let t2' <- compile Γ `□ t2
+| Γ, □ , .HsCtor2 .arrowk t1 t2 => do
+  let t1' <- compile Γ □ t1
+  let t2' <- compile Γ □ t2
   .some (.ctor2 .arrowk t1' t2')
 
-| Γ, `★ , .HsBind2 .arrow A B => do
-  let A' <- compile Γ `□ A
-  let B' <- compile Γ `□ B
+| Γ, ★ , .HsBind2 .arrow A B => do
+  let A' <- compile Γ □ A
+  let B' <- compile (.empty :: Γ) □ B
   .some (.bind2 .arrow A' B')
 
-| Γ, `★ , .HsBind2 .all A B => do
-  let A' <- compile Γ `□ A
-  let B' <- compile (.kind A' :: Γ) `★ B
+| Γ, ★ , .HsBind2 .farrow A B => do
+  let A' <- compile Γ □ A
+  let B' <- compile (.empty :: Γ) □ B
+  .some (.bind2 .arrow A' B')
+
+| Γ, ★ , .HsBind2 .all A B => do
+  let A' <- compile Γ □ A
+  let B' <- compile (.kind A' :: Γ) ★ B
   .some (.bind2 .all A' B')
 
+-- | Γ, κ , .HsCtor2 .appk A (.HsAnnotate k B) => do
+--   let k' <- compile Γ □ k
+--   let A' <- compile Γ (k' -k> κ) A
+--   let B' <- compile Γ k' B
+--   .some (.ctor2 .appk A' B')
 
-| Γ, .HsBind2 .arrow A B, .HsBind2 .lam A' t => do
-  if A == A'
+| Γ, τ, .HsHole a => do
+  let a' <- compile Γ ★ a
+  let t <- synth_term Γ a'
+  if τ == a'
+  then .some t
+  else do
+    let η <- synth_coercion Γ a' τ
+    .some (t ▹ η )
+
+
+| Γ, .bind2 .arrow A B, .HsBind2 .lam A' t => do
+  let α' <- compile  Γ ★ A'
+  if A == α'
   then do
-    let α <- compile Γ `★ A
-    let t' <- compile (.type α :: Γ) B t
-    .some (.bind2 .lam α t')
+    let t' <- compile (.type A :: Γ) B t
+    .some (.bind2 .lam A t')
   else .none
 
-| Γ, .HsBind2 .all A B, .HsBind2 .lamt A' t => do
-  if A == A'
+| Γ, .bind2 .all A B, .HsBind2 .lamt A' t => do
+  let α' <- compile Γ ★ A'
+  if A == α'
   then do
-    let α <- compile Γ `□ A
-    let t' <- compile (.kind α :: Γ) B t
-    .some (.bind2 .lamt α t')
+    let t' <- compile (.kind A :: Γ) B t
+    .some (.bind2 .lamt A t')
   else .none
-
-| Γ, .HsBind2 .farrow A B, t => do
-  let α <- compile Γ `★ A
-  let t' <- compile (.type α :: Γ) B t
-  .some (.bind2 .lam α t')
 
 -- guard blah in
 -- guard blah in \ . \ .
@@ -83,17 +106,20 @@ def compile : (Γ : Ctx Term) -> (τ : HsTerm) -> (t : HsTerm) -> Option Term
 
 
 | Γ, τ, .HsLet A t1 t2 => do
-  let α <- compile Γ `★ A
-  let t1' <- compile Γ A t2
+  let α <- compile Γ ★ A
+  let t1' <- compile Γ α t1
   let t2' <- compile (.term α t1' :: Γ) τ t2 -- Deal with dB BS
   .some (.letterm α t1' t2')
 
--- | Γ, τ, .HsIte p s i t => do
---   let p' <- compile Γ sorry p
---   let s' <- compile Γ sorry s
---   let i' <- compile Γ sorry i
---   let t' <- compile Γ τ t
---   .some (.ite p' s' i' t')
+| Γ, τ, .HsIte (.HsAnnotate pτ p) (.HsAnnotate sτ s) (.HsAnnotate iτ i) t => do
+  let pτ' <- compile Γ ★ pτ
+  let p' <- compile Γ pτ' p
+  let sτ' <- compile Γ ★ sτ
+  let s' <- compile Γ sτ' s
+  let iτ' <- compile Γ ★ iτ
+  let i' <- compile Γ iτ' i
+  let t' <- compile Γ τ t
+  .some (.ite p' s' i' t')
 
 --
 -- f : Eq a => B -> A
@@ -110,18 +136,68 @@ def compile : (Γ : Ctx Term) -> (τ : HsTerm) -> (t : HsTerm) -> Option Term
 -- eta : Eq a => a -> a -> Bool
 -- eta = \ a. \ b. a == b
 
--------------------
---- Term
--------------------
-| Γ, τ, `#x => .some #x
-  -- is this a type variable or a term variable?
-  -- if (Γ d@ x).is_term_var
-  -- then do
-  --   let τ' <- compile Γ `★ τ
-  --   -- let η <- perform_black_magic Γ τ' -- How do i even know how to perform_black_magic here?
-  --   .some (#x) -- ▹ η)
-  -- else .some #x
+-- | Γ, τ, .HsCtor2 .app f (.HsAnnotate τa a) => do
+--   let f' <- compile Γ (τa → τ) f
+--   let a' <- compile Γ τa a
+--   .some (.ctor2 .app f' a')
 
-| _ , _, _  => .none
 
+-- | Γ, τ, .HsCtor2 .appt f (.HsAnnotate τa a) => do
+--   let f' <- compile Γ (τa → τ) f
+--   let a' <- compile Γ τa a
+--   .some (.ctor2 .app f' a')
+
+| Γ, τ, t => do
+  let (head, args) <- t.neutral_form
+  match head with
+  | .HsAnnotate τ' h => do
+    let τ' <- compile Γ ★ τ'
+    -- τ' is of the form ∀ αs, C a ⇒ τ -> τ''
+    let (τs, τ'') := τ'.to_telescope
+    let h' <- compile Γ τ' h
+
+      -- τs.length ≥ args.length
+      -- actually τs.length = typeargs + args
+    let τs' <- List.mapM (Frame.get_type ·) τs
+
+
+    let args' <- List.mapM -- (HsSpineVariant × HsTerm) HsTerm
+        (λ a =>
+           match a with
+           | (.kind k, (.type, argτ)) => do
+             let argτ' <- compile Γ k argτ
+             .some (.type, argτ')
+           | (.type τ, (.term, arg)) => do
+             let arg' <- compile Γ τ arg
+             .some (.term, arg')
+           | _ => .none)
+        (List.zip τs args)
+
+    .some (h'.apply_spine args')
+  | .HsVar h => do
+    let τ' <- (Γ d@ h).get_type
+    let (τs, τ'') := τ'.to_telescope
+    -- let h' <- compile Γ τ' h
+
+      -- τs.length ≥ args.length
+      -- actually τs.length = typeargs + args
+    let τs' <- List.mapM (Frame.get_type ·) τs
+
+
+    let args' <- List.mapM -- (HsSpineVariant × HsTerm) HsTerm
+        (λ a =>
+           match a with
+           | (.kind k, (.type, argτ)) => do
+             let argτ' <- compile Γ k argτ
+             .some (.type, argτ')
+           | (.type τ, (.term, arg)) => do
+             let arg' <- compile Γ τ arg
+             .some (.term, arg')
+           | _ => .none)
+        (List.zip τs args)
+
+    .some ((#h).apply_spine args')
+
+
+  | _ => .none
 decreasing_by repeat sorry
