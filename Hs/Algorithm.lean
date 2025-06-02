@@ -34,6 +34,25 @@ def compile_spine_variant : HsSpineVariant -> SpineVariant
 | .kind => .kind
 
 
+-- Splits #0 `@k t1 `@k t2 --> (0, [t1, t2])
+def split_kind_app : HsTerm -> Option (Nat × List HsTerm)
+| .HsCtor2 .appk f a => do
+  let (f', args) <- split_kind_app f
+  .some (f', (a :: args))
+| `#x => .some (x, [])
+| _ => .none
+
+-- k1 `-k> k2 `-k> k3 -→ [k1, k2, k3]
+def split_kind_arrow : List Term -> Term -> Option (List Term × Term)
+| Γ, .ctor2 .arrowk f a => split_kind_arrow (f :: Γ) a
+| Γ, #x => .some (Γ, #x)
+| _, _ => .none
+
+
+def mk_kind_app : Nat -> List Term -> Term := λ h sp =>
+  List.foldl (λ acc a => acc `@k a) (#h) sp
+
+
 def synth_term : Ctx Term -> Term -> Option Term := λ _ _ => .some `0
 def synth_coercion : Ctx Term -> Term -> Term -> Option Term := λ _ _ _ => .some `0
 
@@ -52,6 +71,17 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
   let t1' <- compile Γ □ t1
   let t2' <- compile Γ □ t2
   .some (.ctor2 .arrowk t1' t2')
+
+| Γ, κ, .HsCtor2 .appk f a => do
+  let (h, sp) <- split_kind_app (.HsCtor2 .appk f a)
+  let τ <- (Γ d@ h).get_type
+  let (κs, κ') <- split_kind_arrow [] τ
+  let args' <- List.mapM
+    (λ a => compile Γ a.1 a.2)
+    (List.zip κs sp)
+
+  .some (mk_kind_app h args')
+
 
 | Γ, ★ , .HsBind2 .arrow A B => do
   let A' <- compile Γ □ A
@@ -93,7 +123,7 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
   else .none
 
 | Γ, .bind2 .all A B, .HsBind2 .lamt A' t => do
-  let α' <- compile Γ ★ A'
+  let α' <- compile Γ □ A'
   if A == α'
   then do
     let t' <- compile (.kind A :: Γ) B t
@@ -121,6 +151,8 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
   let t' <- compile Γ τ t
   .some (.ite p' s' i' t')
 
+| _, _, `#h => .some (#h)
+
 --
 -- f : Eq a => B -> A
 -- b : B
@@ -147,21 +179,28 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 --   let a' <- compile Γ τa a
 --   .some (.ctor2 .app f' a')
 
-| Γ, τ, t => do
+| Γ, exp_τ, t => do
   let (head, args) <- t.neutral_form
-  match head with
-  | .HsAnnotate τ' h => do
-    let τ' <- compile Γ ★ τ'
-    -- τ' is of the form ∀ αs, C a ⇒ τ -> τ''
-    let (τs, τ'') := τ'.to_telescope
-    let h' <- compile Γ τ' h
+  -- Compile Head
+  let (h', τs, τ'') <-
+    match head with
+    | .HsAnnotate τh h => do
+      let τh' <- compile Γ ★ τh
+    -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
+      let (τs, τ'') := τh'.to_telescope
+      let h' <- compile Γ τh' h
+      .some (h', τs, τ'')
 
-      -- τs.length ≥ args.length
-      -- actually τs.length = typeargs + args
-    let τs' <- List.mapM (Frame.get_type ·) τs
+    | .HsVar h => do
+      let τ' <- (Γ d@ h).get_type
+      -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
+      let (τs, τ'') := τ'.to_telescope
+      .some (#h, τs, τ'')
+    | _ => .none
 
 
-    let args' <- List.mapM -- (HsSpineVariant × HsTerm) HsTerm
+  -- Compile Args
+  let args' <- List.mapM -- (HsSpineVariant × HsTerm) HsTerm
         (λ a =>
            match a with
            | (.kind k, (.type, argτ)) => do
@@ -173,31 +212,14 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
            | _ => .none)
         (List.zip τs args)
 
-    .some (h'.apply_spine args')
-  | .HsVar h => do
-    let τ' <- (Γ d@ h).get_type
-    let (τs, τ'') := τ'.to_telescope
-    -- let h' <- compile Γ τ' h
+  let t' := h'.apply_spine args'
 
-      -- τs.length ≥ args.length
-      -- actually τs.length = typeargs + args
-    let τs' <- List.mapM (Frame.get_type ·) τs
+  if τ'' == exp_τ
+  then .some t'
+  else do
+    let η <- synth_coercion Γ τ'' exp_τ
+    .some (t' ▹ η)
 
-
-    let args' <- List.mapM -- (HsSpineVariant × HsTerm) HsTerm
-        (λ a =>
-           match a with
-           | (.kind k, (.type, argτ)) => do
-             let argτ' <- compile Γ k argτ
-             .some (.type, argτ')
-           | (.type τ, (.term, arg)) => do
-             let arg' <- compile Γ τ arg
-             .some (.term, arg')
-           | _ => .none)
-        (List.zip τs args)
-
-    .some ((#h).apply_spine args')
-
-
-  | _ => .none
 decreasing_by repeat sorry
+-- all_goals(simp at *)
+-- case _ => sorry
