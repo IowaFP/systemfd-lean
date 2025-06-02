@@ -52,6 +52,16 @@ namespace HsTerm
   | t, .cons (.kind, h) tl => apply_spine (.HsCtor2 .appk t h) tl
   | t, .cons (.type, h) tl => apply_spine (.HsCtor2 .appt t h) tl
 
+
+  -- Splits #0 `@k t1 `@k t2 --> (0, [t1, t2])
+  @[simp]
+  def split_kind_app : HsTerm -> Option (Nat × List HsTerm)
+  | .HsCtor2 .appk f a => do
+    let (f', args) <- split_kind_app f
+    .some (f', (a :: args))
+  | `#x => .some (x, [])
+  | _ => .none
+
   -- theorem apply_spine_peel_term :
   --   apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `• a)
   -- := by

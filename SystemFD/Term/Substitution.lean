@@ -50,6 +50,18 @@ namespace Term
   | t, .cons (.type, h) tl => apply_spine (t `@t h) tl
   | t, .cons (.kind, h) tl => apply_spine (t `@k h) tl
 
+
+  -- k1 `-k> k2 `-k> k3 -→ [k1, k2, k3]
+  @[simp]
+  def split_kind_arrow : List Term -> Term -> Option (List Term × Term)
+  | Γ, .ctor2 .arrowk f a => split_kind_arrow (f :: Γ) a
+  | Γ, ★ => .some (Γ, ★)
+  | _, _ => .none
+
+  @[simp]
+  def mk_kind_app : Nat -> List Term -> Term := λ h sp =>
+    List.foldl (λ acc a => acc `@k a) (#h) sp
+
   theorem apply_spine_peel_term :
     apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `@ a)
   := by

@@ -34,24 +34,6 @@ def compile_spine_variant : HsSpineVariant -> SpineVariant
 | .kind => .kind
 
 
--- Splits #0 `@k t1 `@k t2 --> (0, [t1, t2])
-def split_kind_app : HsTerm -> Option (Nat × List HsTerm)
-| .HsCtor2 .appk f a => do
-  let (f', args) <- split_kind_app f
-  .some (f', (a :: args))
-| `#x => .some (x, [])
-| _ => .none
-
--- k1 `-k> k2 `-k> k3 -→ [k1, k2, k3]
-def split_kind_arrow : List Term -> Term -> Option (List Term × Term)
-| Γ, .ctor2 .arrowk f a => split_kind_arrow (f :: Γ) a
-| Γ, #x => .some (Γ, #x)
-| _, _ => .none
-
-
-def mk_kind_app : Nat -> List Term -> Term := λ h sp =>
-  List.foldl (λ acc a => acc `@k a) (#h) sp
-
 
 def synth_term : Ctx Term -> Term -> Option Term := λ _ _ => .some `0
 def synth_coercion : Ctx Term -> Term -> Term -> Option Term := λ _ _ _ => .some `0
@@ -73,14 +55,14 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
   .some (.ctor2 .arrowk t1' t2')
 
 | Γ, κ, .HsCtor2 .appk f a => do
-  let (h, sp) <- split_kind_app (.HsCtor2 .appk f a)
+  let (h, sp) <- HsTerm.split_kind_app (.HsCtor2 .appk f a)
   let τ <- (Γ d@ h).get_type
-  let (κs, κ') <- split_kind_arrow [] τ
+  let (κs, κ') <- Term.split_kind_arrow [] τ
   let args' <- List.mapM
     (λ a => compile Γ a.1 a.2)
     (List.zip κs sp)
 
-  .some (mk_kind_app h args')
+  .some (Term.mk_kind_app h args')
 
 
 | Γ, ★ , .HsBind2 .arrow A B => do
