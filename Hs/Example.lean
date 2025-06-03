@@ -53,7 +53,7 @@ def NumCtx : HsCtx HsTerm :=
 def OrdCFrame : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> `★)
     [`#3 `•k `#0]
-    [ `∀{`★} (`#1 `•k `#0) ⇒ `#1 → `#2 → `#7    -- TODO: make type class predicate implicit?
+    [ `∀{`★} (`#2 `•k `#0) ⇒ (`#1 → `#2 → `#12) -- `∀{`★} (`#1 `•k `#0) ⇒ `#1 → `#2 → `#8    -- TODO: make type class predicate implicit?
     ]
     .nil
 
