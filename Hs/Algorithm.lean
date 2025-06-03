@@ -57,7 +57,7 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 | Γ, κ, .HsCtor2 .appk f a => do
   let (h, sp) <- HsTerm.split_kind_app (.HsCtor2 .appk f a)
   let τ <- (Γ d@ h).get_type
-  let (κs, κ') <- Term.split_kind_arrow [] τ
+  let (κs, κ') <- Term.split_kind_arrow τ
   let args' <- List.mapM
     (λ a => compile Γ a.1 a.2)
     (List.zip κs sp)
@@ -66,13 +66,13 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 
 
 | Γ, ★ , .HsBind2 .arrow A B => do
-  let A' <- compile Γ □ A
-  let B' <- compile (.empty :: Γ) □ B
+  let A' <- compile Γ ★ A
+  let B' <- compile (.empty :: Γ) ★ B
   .some (.bind2 .arrow A' B')
 
 | Γ, ★ , .HsBind2 .farrow A B => do
   let A' <- compile Γ □ A
-  let B' <- compile (.empty :: Γ) □ B
+  let B' <- compile (.empty :: Γ) ★ B
   .some (.bind2 .arrow A' B')
 
 | Γ, ★ , .HsBind2 .all A B => do

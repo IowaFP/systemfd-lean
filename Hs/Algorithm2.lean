@@ -1,29 +1,52 @@
 import Hs.Algorithm
 
+def new_binders_aux : Nat -> List Nat -> List Nat
+| 0, acc => acc
+| n + 1, acc => new_binders_aux n (n :: acc)
+
+
+def new_binders : Nat -> List Nat := λ n => new_binders_aux n []
+
+#eval new_binders 3
+
+theorem new_binders_lemma : (new_binders n).length == n := by sorry
+
+def mk_eqs : List (Term × Nat × Term) -> List Term := List.map (λ x => #x.2.1 ~[x.1]~ x.2.2)
+
+
 
 -- Henry Ford Encode a type:
 -- Takes a type of the form
--- ∀ τs. C τs -> D τs
+-- ∀ αs. C αs => τs -> D αs
 -- and converts it to
--- ∀ σs τs. (σs ~ τs) -> C τs -> D σs
+-- ∀ βs αs. (βs ~ αs) ⇒ C αs ⇒ τs -> D βs
+-- ASSUMES all type binders are upfront.
+-- It doesn't matter if αs have type variables, they would
+-- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
+def hf_encode : Ctx Term -> Term -> Option Term := λ Γ x => do
+  -- let (c_τs, res_ty) := x.to_telescope
+  -- let (d, d_τs) <- res_ty.neutral_form
 
-def hf_encode : HsTerm -> Option HsTerm := λ x => do
-  let (τs, res_ty) := x.to_telescope
+  -- let d_τs_kis := List.map (λ _ => `★) d_τs
+  --   -- TODO: get the right kinds of d_τs but I don't know how to find the kind yet
+  -- let βs := new_binders d_τs.length
 
-  let (d, d_τs) <- res_ty.neutral_form
+  -- let eqs := mk_eqs (List.zip βs d_τs)
 
+  -- let βs' := List.map (HsFrame.kind ·) βs
+  -- let βs'' := (List.map (λ x => (HsSpineVariant.kind, (HsTerm.HsVar x))) βs)
 
-  -- separate τs from C τs as telescope returns all binders
-  let (qty_vars, Cτs) := List.partition
-      (λ x => match x with
-              | .kind _ => true
-              | _ => false)
-      τs
+  -- let res_ty' := d.apply_spine σs''
 
+  -- -- separate τs from C τs as telescope returns all binders
+  -- let (qty_vars, Cτs) := List.partition (·.is_kind) c_τs
 
-
+  -- let c_τs' := List.map (λ x => (x.1, [S' σs.length] x.2)) c_τs
+  -- let x' := res_ty'.apply_spine (σs'' ++ c_τs'))
+  -- .some x'
   .none
 
+def mk_inst_type : Ctx Term -> List Nat -> Term -> List Term -> Term := λ Γ βs C ics => `0
 
 
 -- compiling declarations
@@ -40,11 +63,16 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   let Γ' <- compile_ctx Γ
   let τ' <- compile Γ' ★ τ
   .some (.type τ' :: Γ')
+| .cons (.pred τ) Γ => do
+  let Γ' <- compile_ctx Γ
+  let τ' <- compile Γ' ★ τ
+  .some (.type τ' :: Γ')
 | .cons (.term A t) Γ => do
   let Γ' <- compile_ctx Γ
   let A' <- compile Γ' ★ A
   let t' <- compile Γ' A' t
   .some (.term A' t' :: Γ')
+
 | .cons (.datatypeDecl k ctors) Γ => do
   let Γ' <- compile_ctx Γ
   let k' <- compile Γ' □ k
@@ -54,19 +82,45 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
       .some ((.ctor τ') ::  Γ)
     )
     (.datatype k' :: Γ') ctors
-| .cons (.classDecl k _ oms _) Γ => do
+
+| .cons (.classDecl C scs oms fds) Γ => do
   let Γ' <- compile_ctx Γ
-  let k' <- compile Γ' □ k
-  let oms' <- List.mapM (compile Γ' ★ ·) oms
-  let oms'' := List.map (λ x => Frame.openm x) oms'
-  -- TODO: Compile scs and fds
+  let C' <- compile Γ' □ C
+
   -- It amounts to producing the sc functions
-  .some (/- scs' ++ fds ++ -/ oms'' ++ .opent k' :: Γ')
-| .cons (.inst k ics mths) Γ => do -- TODO: instance constraints should be part of the instance type
+  let scs' : Ctx Term := []
+  let (args_k, res_k) <- Term.split_kind_arrow C'
+
+  let ty_vars := List.map (HsFrame.kind ·) args_k
+
+
+
+  let class_arity := ty_vars.length
+
+  let oms' <- List.foldlM
+    (λ Γ τ => do
+      let τ' <- compile Γ ★ τ
+      .some ((.openm τ') :: Γ))
+      (.opent C' :: Γ') oms
+
+
+
+
+
+
+  -- and fd functions
+  let fds' : Ctx Term := []
+
+  .some (fds' ++ scs' ++ oms')
+
+| .cons (.inst C ics mths) Γ => do -- TODO: instance constraints should be part of the instance type?
   let Γ'  <- compile_ctx Γ
-  let k' <- hf_encode k
-  let k'' <- compile Γ' ★ k'
-  let (_ , res_τ) := k''.to_telescope
+  let C' <- compile Γ' □ C
+  let ics' <- List.mapM (λ ic => compile Γ' ★ ic) ics
+  let inst_type := mk_inst_type Γ' [] C' ics'
+  let C'' <- hf_encode Γ' C'
+  -- let k'' <- compile Γ' □ k'
+  let (_ , res_τ) := C''.to_telescope
   let (h, _) <- res_τ.neutral_form
 
-  .some (/-.inst (#h) sorry ::-/ .insttype k'' :: Γ')
+  .some (/-.inst (#h) sorry ::-/ .insttype C' :: Γ')

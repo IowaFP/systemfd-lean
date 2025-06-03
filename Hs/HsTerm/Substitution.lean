@@ -276,35 +276,35 @@ namespace HsTerm
     (.type A::Γ, r)
   | HsBind2 .farrow A B =>
     let (Γ, r) := to_telescope B
-    (.type A::Γ, r)
+    (.pred A::Γ, r)
   | `∀{A} B =>
     let (Γ, r) := to_telescope B
     (.kind A::Γ, r)
   | t => ([], t)
 
-  -- @[simp]
-  -- def from_telescope_rev : Ctx HsTerm -> HsTerm -> HsTerm
-  -- | [], t => t
-  -- | .cons (.type A) Γ, t => from_telescope_rev Γ (.HsBind2 .arrow A t)
-  -- -- | .cons (.pred A) Γ, t => from_telescope_rev Γ (.HsBind2 .farrow A t)
-  -- | .cons (.kind A) Γ, t => from_telescope_rev Γ (`∀{A} t)
-  -- | .cons _ Γ, t => from_telescope_rev Γ t
+  @[simp]
+  def from_telescope_rev : HsCtx HsTerm -> HsTerm -> HsTerm
+  | [], t => t
+  | .cons (.type A) Γ, t => from_telescope_rev Γ (.HsBind2 .arrow A t)
+  | .cons (.pred A) Γ, t => from_telescope_rev Γ (.HsBind2 .farrow A t)
+  | .cons (.kind A) Γ, t => from_telescope_rev Γ (`∀{A} t)
+  | .cons _ Γ, t => from_telescope_rev Γ t
 
-  -- @[simp]
-  -- def from_telescope (Γ : Ctx HsTerm) (t : HsTerm) : HsTerm :=
-  --   from_telescope_rev Γ.reverse t
+  @[simp]
+  def from_telescope (Γ : HsCtx HsTerm) (t : HsTerm) : HsTerm :=
+    from_telescope_rev Γ.reverse t
 
-  -- theorem telescope_neutral_form_lemma {t : HsTerm} :
-  --   t.neutral_form = .some (x, xs) ->
-  --   t.to_telescope = ([], t) := by
-  --   induction t;
-  --   any_goals (solve | simp_all)
+  theorem telescope_neutral_form_lemma {t : HsTerm} :
+    t.neutral_form = .some (x, xs) ->
+    t.to_telescope = ([], t) := by
+    induction t;
+    any_goals (solve | simp_all)
 
-  -- theorem unique_telescope {t : HsTerm} :
-  --   t.to_telescope = (x, xs) ->
-  --   t.to_telescope = (x', xs') ->
-  --   x = x' ∧ xs = xs' :=  by
-  --   intros h1 h2; rw [h1] at h2; simp at h2; assumption;
+  theorem unique_telescope {t : HsTerm} :
+    t.to_telescope = (x, xs) ->
+    t.to_telescope = (x', xs') ->
+    x = x' ∧ xs = xs' :=  by
+    intros h1 h2; rw [h1] at h2; simp at h2; assumption;
 
 end HsTerm
 

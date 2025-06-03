@@ -24,7 +24,6 @@ def BoolCtx : HsCtx HsTerm :=
                      , `#1        -- , (`∀{`★} `#0 → `#3 `•k `#1)  -- Just :: ∀ a. a -> Maybe a
                      ]
   ]
-
 #eval! compile_ctx BoolCtx
 
 def MbCtx : HsCtx HsTerm :=
@@ -32,21 +31,30 @@ def MbCtx : HsCtx HsTerm :=
                                , (`∀{`★} `#0 → `#3 `•k `#1)  -- Just :: ∀ a. a -> Maybe a
                                ]
   ]
-
-#eval! compile [.datatype (★ -k> ★)] ★ (`∀{`★} (`#1 `•k `#0))
-#eval! compile [.kind ★, .datatype (★ -k> ★)] ★ (`#1 `•k `#0)
-#eval HsTerm.split_kind_app (`#1 `•k `#0)
-#eval ([.kind ★, .datatype (★ -k> ★)] d@ 1).get_type
-#eval Term.split_kind_arrow [] (★ -k> ★)
-
-  -- let (h, sp) <- split_kind_app (.HsCtor2 .appk f a)
-  -- let τ <- (Γ d@ h).get_type
-  -- let (κs, κ') <- split_kind_arrow [] τ
-  -- let args' <- List.mapM
-  --   (λ a => compile Γ a.1 a.2)
-  --   (List.zip κs sp)
-
-  -- .some (mk_kind_app h args')
-
-
 #eval! compile_ctx MbCtx
+
+
+-- class Eq a where
+--   == : a -> a -> Bool
+--   =/= : a -> a -> Bool
+
+def NumCFrame : HsFrame HsTerm :=
+  HsFrame.classDecl (`★ `-k> `★)
+         .nil
+         [ `∀{`★} (`#1 `•k `#0) ⇒ `#1 → `#2 → `#7    -- TODO: make type class predicate implicit?
+         , `∀{`★} (`#2 `•k `#0) ⇒ `#1 → `#2 → `#8 ]
+         .nil
+
+def NumCtx : HsCtx HsTerm :=
+  NumCFrame :: BoolCtx
+
+#eval! compile_ctx NumCtx
+
+def OrdCFrame : HsFrame HsTerm :=
+  HsFrame.classDecl (`★ `-k> `★)
+    [`#3 `•k `#0]
+    [ `∀{`★} (`#1 `•k `#0) ⇒ `#1 → `#2 → `#7    -- TODO: make type class predicate implicit?
+    ]
+    .nil
+
+#eval! compile_ctx (OrdCFrame :: NumCtx)

@@ -8,6 +8,7 @@ inductive HsFrame T where
 | empty : HsFrame T
 | kind : T -> HsFrame T
 | type : T -> HsFrame T
+| pred : T -> HsFrame T -- Predicate is just like a type but allows ⇒ introduction
 | datatypeDecl :
   T -> -- kind of the datatype
   List T -> -- types of the n constructors
@@ -19,26 +20,41 @@ inductive HsFrame T where
   List (List Nat × Nat) -> -- the list of functional dependencies
   HsFrame T
 | inst :
-  T -> -- the class that we are instantiating
+  T -> -- the class that we are instantiating eg. Num Int, ReaderT r m a
   List T -> -- instance constraints
   List T -> -- the expression bodies for the open methods
   HsFrame T
 | term : T -> T -> HsFrame T
 
+namespace Subst
+
+  def list_lift : Subst T -> List T -> List T := λ σ xs =>
+  (List.foldl (λ (σ', xs') x =>  (^σ', ([σ']x :: xs'))) (σ, xs) xs).2
+
+  def lift_k : Nat -> Subst T -> Subst T
+  | 0, σ => σ
+  | n + 1, σ => lift_k n ^σ
+
+end Subst
+
+
 namespace HsFrame
-  -- def apply : HsFrame T -> Subst T -> HsFrame T
-  -- | empty, _ => empty
-  -- | kind t, σ => kind ([σ]t)
-  -- | type t, σ => type ([σ]t)
-  -- | datatypeDecl t ctors, σ => datatypeDecl ([σ]t) (List.map ([σ]·) ctors)
-  -- | classDecl t scs oms fds, σ =>
-  --   classDecl ([σ]t) (List.map ([σ]·) scs) (List.map ([σ]·) oms) (List.map ([σ]·) fds)
-  -- | inst v t, σ => inst ([σ]v) ([σ]t)
-  -- | term ty t, σ => term ([σ]ty) ([σ]t)
+  def apply : HsFrame T -> Subst T -> HsFrame T
+  | empty, _ => empty
+  | kind t, σ => kind ([σ]t)
+  | type t, σ => type ([σ]t)
+  | pred t, σ => pred ([σ]t)
+  | datatypeDecl t ctors, σ =>
+    datatypeDecl ([σ]t) (Subst.list_lift σ ctors)
+  | classDecl t scs oms fds, σ =>
+    classDecl ([σ]t) (List.map ([σ]·) scs) (Subst.list_lift σ oms) fds -- TODO FIXME
+  | inst v ics oms, σ => inst ([σ]v) (Subst.list_lift σ ics) (Subst.list_lift σ oms)
+  | term ty t, σ => term ([σ]ty) ([σ]t)
 
   def get_type : HsFrame T -> Option T
   | .kind t => .some t
   | .type t => .some t
+  | .pred t => .some t
   | .datatypeDecl t _ => .some t
   | .classDecl t _ _ _ => .some t
   | .term T _ => .some T
@@ -57,22 +73,21 @@ namespace HsFrame
   --   match f with
   --   | .empty => true
   --   | _ => false
-
-  -- def is_classDecl (f : HsFrame T) : Bool :=
-  --   match f with
-  --   | .classDecl _ => true
-  --   | _ => false
+  @[simp]
+  def is_classDecl (f : HsFrame T) : Bool :=
+    match f with
+    | .classDecl _ _ _ _ => true
+    | _ => false
 
   -- def is_term (f : HsFrame T) : Bool :=
   --   match f with
   --   | .term _ _ => true
   --   | _ => false
 
-  -- -- @[aesop safe]
-  -- def is_datatypeDecl (f : HsFrame T) : Bool :=
-  --   match f with
-  --   | datatypeDecl _ => true
-  --   | _ => false
+  def is_datatypeDecl (f : HsFrame T) : Bool :=
+    match f with
+    | datatypeDecl _ _ => true
+    | _ => false
 
   -- def is_inst (f : HsFrame T) : Bool :=
   --   match f with
@@ -80,16 +95,21 @@ namespace HsFrame
   --   | _ => false
 
 
-  -- def is_type (f : HsFrame T) : Bool :=
-  --   match f with
-  --   | .type _ => true
-  --   | _ => false
+  def is_type (f : HsFrame T) : Bool :=
+    match f with
+    | .type _ => true
+    | _ => false
 
-  -- -- @[aesop safe]
-  -- def is_kind (f : HsFrame T) : Bool :=
-  --   match f with
-  --   | .kind _ => true
-  --   | _ => false
+
+  def is_pred (f : HsFrame T) : Bool :=
+    match f with
+    | .pred _ => true
+    | _ => false
+
+  def is_kind (f : HsFrame T) : Bool :=
+    match f with
+    | .kind _ => true
+    | _ => false
 
   -- def is_stable : HsFrame T -> Bool
   -- | .type _ => false
@@ -215,35 +235,45 @@ def HsCtx (T : Type) := List (HsFrame T)
 --   hAppend := List.append
 
 
--- @[simp]
--- def hs_nth : HsCtx T -> Nat -> HsFrame T
--- | [], _ => .empty
--- | .cons f _, 0 => f
--- | .cons _ t, n + 1 => hs_nth t n
+@[simp]
+def hs_nth : HsCtx T -> Nat -> HsFrame T
+| [], _ => .empty
+| .cons f _, 0 => f
+| .cons _ t, n + 1 => hs_nth t n
 
--- @[simp]
--- def hs_dnth : HsCtx T -> Nat -> HsFrame T
--- | [], _ => .empty
--- | .cons f _, 0 => HsFrame.apply f S
--- | .cons _ t, n + 1 => HsFrame.apply (hs_dnth t n) S
+@[simp]
+def hs_dnth : HsCtx T -> Nat -> HsFrame T
+| [], _ => .empty
+| .cons f _, 0 => HsFrame.apply f S
+-- | .cons (.type _) n + 1 => .some t
+-- | .datatypeDecl t _ => .some t
+-- | .classDecl t _ _ _ => .some t
+-- | .term T _ => .some T
 
--- infix:1000 "@̈" => hs_nth
--- infix:1000 "d@̈" => hs_dnth
 
--- namespace HsCtx
---   @[simp]
---   def is_type (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_type
---   @[simp]
---   def is_datatypeDecl (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_datatypeDecl
---   @[simp]
---   def is_classDecl (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_classDecl
+| .cons _ t, n + 1 => HsFrame.apply (hs_dnth t n) S
+
+infix:1000 "@̈" => hs_nth
+infix:1000 "d@̈" => hs_dnth
+
+namespace HsCtx
+  @[simp]
+  def is_type (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_type
+  @[simp]
+  def is_pred (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_type
+  @[simp]
+  def is_kind (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_kind
+  @[simp]
+  def is_datatypeDecl (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_datatypeDecl
+  @[simp]
+  def is_classDecl (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_classDecl
 --   @[simp]
 --   def is_stable (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_stable
 --   @[simp]
 --   def is_stable_red (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_stable_red
 --   @[simp]
 --   def is_lam_bound (Γ : HsCtx T) (n : Nat) : Bool := (Γ d@̈ n).is_lam_bound
--- end HsCtx
+end HsCtx
 
 -- omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T]
 -- theorem hs_kind_indexing_exists {Γ : HsCtx T} :

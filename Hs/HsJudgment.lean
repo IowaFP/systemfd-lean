@@ -7,7 +7,7 @@ import SystemFD.Substitution
 set_option maxHeartbeats 500000
 
 -- @[aesop safe]
-def HsValidHeadVariable (t : HsTerm) (test : Nat -> Bool) : Prop :=
+def HsValidHeadVariable (t : HsTerm) (test : HsTerm -> Bool) : Prop :=
   ∃ x, .some x = HsTerm.neutral_form t ∧ test x.fst
 
 -- @[aesop safe [constructors, cases]]
