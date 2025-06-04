@@ -1,25 +1,55 @@
 import Hs.Algorithm
 
+@[simp]
+def shift_helper_aux : Nat -> List Nat -> List Nat
+| 0, acc => acc
+| n + 1, acc => shift_helper_aux n (n :: acc)
+
+@[simp]
+def shift_helper : Nat -> List Nat := λ n => shift_helper_aux n []
+
+@[simp]
 def new_binders_aux : Nat -> List Term -> List Term
 | 0, acc => acc
 | n + 1, acc => new_binders_aux n (#n :: acc)
 
-
+@[simp]
 def new_binders : Nat -> List Term := λ n => new_binders_aux n []
+@[simp]
 def re_index_base := new_binders
 
 #eval new_binders 3
 
 theorem new_binders_lemma : (new_binders n).length == n := by sorry
 
-def mk_eqs : List (Term × Nat × Term) -> List Term := List.map (λ x => #x.2.1 ~[x.1]~ x.2.2)
+@[simp]
+def mk_eqs : List (Term × Term × Term) -> List Term := List.map (λ x => x.2.1 ~[x.1]~ x.2.2)
 
+@[simp]
+def mk_type_telescope : Ctx Term -> List Term -> Ctx Term := λ Γ ts =>
+  List.foldl (λ Γ t_data =>
+    let t := t_data.2
+    let shift := t_data.1
+    (.type ([S' shift] t) :: Γ)
+  ) Γ (List.zip (shift_helper ts.length) ts)
+
+@[simp]
+def mk_kind_telescope : Ctx Term -> List Term -> Ctx Term := λ Γ ts =>
+  List.foldl (λ Γ t_data =>
+    let t := t_data.2
+    let shift := t_data.1
+    (.kind ([S' shift] t) :: Γ)
+  ) Γ (List.zip (shift_helper ts.length) ts)
+
+@[simp]
 def mk_kind_apps : Term -> List Term -> Term := λ h args =>
   List.foldl (λ acc a => acc `@k a) h args
 
+@[simp]
 def mk_ty_apps : Term -> List Term -> Term := λ h args =>
   List.foldl (λ acc a => acc `@t a) h args
 
+@[simp]
 def mk_apps : Term -> List Term -> Term := λ h args =>
   List.foldl (λ acc a => acc `@ a) h args
 
@@ -32,28 +62,31 @@ def mk_apps : Term -> List Term -> Term := λ h args =>
 -- ASSUMES all type binders are upfront.
 -- It doesn't matter if αs have type variables, they would
 -- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
-def hf_encode : Ctx Term -> Term -> Option Term := λ Γ x => do
-  -- let (c_τs, res_ty) := x.to_telescope
-  -- let (d, d_τs) <- res_ty.neutral_form
+def hf_encode : Ctx Term -> Term -> Option Term := λ Γ ty => do
+  let (Γ_local, res_ty) := ty.to_telescope
+  let (d, d_τs) <- res_ty.neutral_form
 
-  -- let d_τs_kis := List.map (λ _ => `★) d_τs
-  --   -- TODO: get the right kinds of d_τs but I don't know how to find the kind yet
-  -- let βs := new_binders d_τs.length
+  let d_τs_kis <- List.mapM (λ x => infer_type (Γ_local ++ Γ) x.2) d_τs
 
-  -- let eqs := mk_eqs (List.zip βs d_τs)
 
-  -- let βs' := List.map (HsFrame.kind ·) βs
-  -- let βs'' := (List.map (λ x => (HsSpineVariant.kind, (HsTerm.HsVar x))) βs)
+  let βs := new_binders d_τs.length
 
-  -- let res_ty' := d.apply_spine σs''
+  let (Γ_cτs, Γ_ty) := Γ_local.partition (λ x => x.is_type)
 
-  -- -- separate τs from C τs as telescope returns all binders
-  -- let (qty_vars, Cτs) := List.partition (·.is_kind) c_τs
+  let eqs := mk_eqs (List.zip d_τs_kis (List.zip βs (List.map (λ x => [P' Γ_cτs.length][S' βs.length] x.snd) d_τs)))
 
-  -- let c_τs' := List.map (λ x => (x.1, [S' σs.length] x.2)) c_τs
-  -- let x' := res_ty'.apply_spine (σs'' ++ c_τs'))
-  -- .some x'
-  .none
+
+  let ty' := [S' (eqs.length + Γ_local.length)] mk_ty_apps ([S' βs.length]#d) βs
+
+  let Γ_cτs' := Γ_cτs.map (λ x => x.apply (S' (βs.length + eqs.length)))
+
+  let Γ' := Γ_cτs' ++ mk_type_telescope (mk_kind_telescope Γ_ty d_τs_kis) eqs
+
+  -- let ty' := ty'.from_telescope_rev Γ_cτs'
+
+  let ty' := ty'.from_telescope_rev Γ'
+
+  .some ty'
 
 def mk_inst_type : Ctx Term -> List Nat -> Term -> List Term -> Term := λ Γ βs C ics => `0
 
@@ -92,7 +125,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     )
     (.datatype k' :: Γ') ctors
 
-| .cons (.classDecl C scs oms fds) Γ => do
+| .cons (.classDecl C scs fds oms) Γ => do
   let Γ' <- compile_ctx Γ
   let C' <- compile Γ' □ C
 
@@ -109,8 +142,6 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   let ty_vars_ctx : Ctx Term := List.map (Frame.kind ·) args_k
   let ty_vars := new_binders args_k.length
 
-  -- let class_ty := ([S' ty_vars_ctx.length] #0).from_telescope ty_varsctx -- indexed at Γ'
-
 
   let Γ' <- List.foldlM ( λ Γ sc_data => do -- TODO Fix Counting
 
@@ -121,7 +152,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     let sc' <- compile Γ ★ sc
 
     let sc_fun : Term := .bind2 .arrow class_type sc'
-    let sc_fun := sc_fun.from_telescope ty_vars_ctx
+    let sc_fun := sc_fun.from_telescope_rev ty_vars_ctx
 
     .some (.openm sc_fun :: Γ)
     ) Γ' (List.zip (re_index_base scs.length) scs)
@@ -130,7 +161,39 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   -- let class_arity := ty_vars_ctx.length
 
   -- Step 3. Add fundeps
+  let Γ' <- List.foldlM (λ Γ fd_data => do
 
+    let cls_con := fd_data.1
+    let fd := fd_data.2
+
+    let determiners := fd.1
+
+    let det1 := fd.2
+
+    let det2 := args_k.length + 1
+
+    if det1 < ty_vars_ctx.length && (List.all determiners (λ x => x < ty_vars_ctx.length))
+    then do
+      let ki <- (ty_vars_ctx d@ det1).get_type
+
+      let cls_ty1 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars
+
+
+      let ty_vars' := ty_vars.replace #det1 #det2
+      -- TODO: What if the fundep is partial? also vary the irrelevant type vars
+      let cls_ty2 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars'
+
+
+      let t := cls_ty1 -t> [S](cls_ty2 -t> [S](#det1 ~[ki]~ #det2))
+      let t_fun := t.from_telescope_rev (ty_vars_ctx ++ [.kind ki])
+
+      .some (.openm t_fun :: Γ)
+
+
+
+    else .none
+
+  ) Γ' ((List.zip (re_index_base fds.length) fds))
 
 
   -- Step 4. Add methods
@@ -140,18 +203,28 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
       .some ((.openm τ') :: Γ))
       Γ' oms
 
-  -- and fd functions
-  let fds' : Ctx Term := []
   .some Γ'
 
-| .cons (.inst C ics mths) Γ => do -- TODO: instance constraints should be part of the instance type?
+| .cons (.inst ity mths) Γ => do
   let Γ'  <- compile_ctx Γ
-  let C' <- compile Γ' □ C
-  let ics' <- List.mapM (λ ic => compile Γ' ★ ic) ics
-  let inst_type := mk_inst_type Γ' [] C' ics'
-  let C'' <- hf_encode Γ' C'
-  -- let k'' <- compile Γ' □ k'
-  let (_ , res_τ) := C''.to_telescope
-  let (h, _) <- res_τ.neutral_form
 
-  .some (/-.inst (#h) sorry ::-/ .insttype C' :: Γ')
+
+  -- Step1: Compile instance type
+  let ity' <- compile Γ' ★ ity
+  let ity' <- hf_encode Γ' ity'
+
+  let Γ' := .insttype ity' :: Γ'
+
+
+  -- let k'' <- compile Γ' □ k'
+  -- let (_ , res_τ) := C''.to_telescope
+  -- let (h, _) <- res_τ.neutral_form
+
+
+  -- Step2 : Check fundeps validity
+
+
+  -- Step3 : compile openmethods
+
+
+  .some Γ'

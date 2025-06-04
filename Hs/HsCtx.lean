@@ -14,14 +14,13 @@ inductive HsFrame T where
   List T -> -- types of the n constructors
   HsFrame T
 | classDecl :
-  T -> -- kind of the class
+  T -> -- kind of the class eg. ReaderT r m a : (★ → (★ → ★) → ★)
   List T -> -- superclasses
-  List T -> -- types of the n open methods
   List (List Nat × Nat) -> -- the list of functional dependencies
+  List T -> -- types of the n open methods
   HsFrame T
 | inst :
-  T -> -- the class that we are instantiating eg. Num Int, ReaderT r m a
-  List T -> -- instance constraints
+  T -> -- the class that we are instantiating eg. Num Int
   List T -> -- the expression bodies for the open methods
   HsFrame T
 | term : T -> T -> HsFrame T
@@ -46,9 +45,9 @@ namespace HsFrame
   | pred t, σ => pred ([σ]t)
   | datatypeDecl t ctors, σ =>
     datatypeDecl ([σ]t) (Subst.list_lift σ ctors)
-  | classDecl t scs oms fds, σ =>
-    classDecl ([σ]t) (List.map ([σ]·) scs) (Subst.list_lift σ oms) fds -- TODO FIXME
-  | inst v ics oms, σ => inst ([σ]v) (Subst.list_lift σ ics) (Subst.list_lift σ oms)
+  | classDecl t scs fds oms, σ =>
+    classDecl ([σ]t) (List.map ([σ]·) scs) fds (Subst.list_lift σ oms) -- TODO FIXME
+  | inst v oms, σ => inst ([σ]v) (Subst.list_lift σ oms)
   | term ty t, σ => term ([σ]ty) ([σ]t)
 
   def get_type : HsFrame T -> Option T
