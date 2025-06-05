@@ -67,6 +67,8 @@ notation:15  a " → " b => HsTerm.HsBind2 HsBind2Variant.arrow a b
 notation:15  a " ⇒ " b => HsTerm.HsBind2 HsBind2Variant.farrow a b
 prefix:max "`#" => HsTerm.HsVar
 notation:15 "HsIf " p " ← " s " then " i " else " e => HsTerm.HsIte p s i e
+prefix:max "__@" => HsTerm.HsHole
+
 
 namespace HsTerm
  @[simp]

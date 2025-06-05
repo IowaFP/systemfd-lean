@@ -14,13 +14,13 @@ inductive HsFrame T where
   List T -> -- types of the n constructors
   HsFrame T
 | classDecl :
-  T -> -- kind of the class eg. ReaderT r m a : (★ → (★ → ★) → ★)
+  T -> -- kind of the class eg. `ReaderT r m a : (★ → (★ → ★) → ★)`
   List T -> -- superclasses
   List (List Nat × Nat) -> -- the list of functional dependencies
   List T -> -- types of the n open methods
   HsFrame T
 | inst :
-  T -> -- the class that we are instantiating eg. Num Int
+  T -> -- the class that we are instantiating eg. `Num Int`
   List T -> -- the expression bodies for the open methods
   HsFrame T
 | term : T -> T -> HsFrame T

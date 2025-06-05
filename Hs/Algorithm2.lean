@@ -9,18 +9,18 @@ def shift_helper_aux : Nat -> List Nat -> List Nat
 def shift_helper : Nat -> List Nat := λ n => shift_helper_aux n []
 
 @[simp]
-def new_binders_aux : Nat -> List Term -> List Term
+def fresh_vars_aux : Nat -> List Term -> List Term
 | 0, acc => acc
-| n + 1, acc => new_binders_aux n (#n :: acc)
+| n + 1, acc => fresh_vars_aux n (#n :: acc)
 
 @[simp]
-def new_binders : Nat -> List Term := λ n => new_binders_aux n []
+def fresh_vars : Nat -> List Term := λ n => fresh_vars_aux n []
 @[simp]
-def re_index_base := new_binders
+def re_index_base := fresh_vars
 
-#eval new_binders 3
+#eval fresh_vars 3
 
-theorem new_binders_lemma : (new_binders n).length == n := by sorry
+theorem fresh_vars_lemma : (fresh_vars n).length == n := by sorry
 
 @[simp]
 def mk_eqs : List (Term × Term × Term) -> List Term := List.map (λ x => x.2.1 ~[x.1]~ x.2.2)
@@ -53,23 +53,32 @@ def mk_ty_apps : Term -> List Term -> Term := λ h args =>
 def mk_apps : Term -> List Term -> Term := λ h args =>
   List.foldl (λ acc a => acc `@ a) h args
 
+@[simp]
+def mk_lams : Term -> Ctx Term -> Option Term
+| t, [] => t
+| t, .cons (.kind x) xs => do
+  let t' <- (mk_lams t xs)
+  .some (Λ[x] t')
+| t, .cons (.type x) xs => do
+  let t' <- (mk_lams t xs)
+  .some (`λ[x] t')
+| _, _ => .none
 
 -- Henry Ford Encode a type:
 -- Takes a type of the form
 -- ∀ αs. C αs => τs -> D αs
 -- and converts it to
 -- ∀ βs αs. (βs ~ αs) ⇒ C αs ⇒ τs -> D βs
--- ASSUMES all type binders are upfront.
+-- ASSUMES all type binders are in front.
 -- It doesn't matter if αs have type variables, they would
 -- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
-def hf_encode : Ctx Term -> Term -> Option Term := λ Γ ty => do
-  let (Γ_local, res_ty) := ty.to_telescope
-  let (d, d_τs) <- res_ty.neutral_form
+def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> Option Term :=
+λ Γ data => do
+  let (Γ_local, d, d_τs) := data
 
   let d_τs_kis <- List.mapM (λ x => infer_type (Γ_local ++ Γ) x.2) d_τs
 
-
-  let βs := new_binders d_τs.length
+  let βs := fresh_vars d_τs.length
 
   let (Γ_cτs, Γ_ty) := Γ_local.partition (λ x => x.is_type)
 
@@ -82,13 +91,57 @@ def hf_encode : Ctx Term -> Term -> Option Term := λ Γ ty => do
 
   let Γ' := Γ_cτs' ++ mk_type_telescope (mk_kind_telescope Γ_ty d_τs_kis) eqs
 
-  -- let ty' := ty'.from_telescope_rev Γ_cτs'
-
   let ty' := ty'.from_telescope_rev Γ'
 
   .some ty'
 
-def mk_inst_type : Ctx Term -> List Nat -> Term -> List Term -> Term := λ Γ βs C ics => `0
+def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
+  let (Γ_local, res_ty) := ty.to_telescope
+  let (d, d_τs) <- res_ty.neutral_form
+  let ty' <- hf_encode Γ (Γ_local, d, d_τs)
+  .some (d, ty')
+
+
+#eval (shift_helper 10).take 5
+
+
+def get_openm_ids : Ctx Term -> Nat -> Option (List Nat) := λ Γ_g cls_idx =>
+  if (Γ_g.is_opent cls_idx)
+  then
+    let ids := ((shift_helper Γ_g.length).take cls_idx).reverse
+    .some ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
+  else .none
+
+
+-- @[simp]
+-- def class_width : Ctx Term -> Nat -> Option (Nat × Nat × Nat) := λ Γ_g cls_idx =>
+--   if (Γ_g.is_opent cls_idx)
+--   then
+--     let ids := ((shift_helper Γ_g.length).take cls_idx).reverse
+--     let scs := (ids.takeWhile (Γ_g.is_openm ·)).reverse
+
+--     .some (0, 0, 0) -- scs, fds, oms
+--   else .none
+
+
+-- @[simp]
+-- def get_class_data : Ctx Term -> Nat -> Option ClsData := λ Γ_g cls_idx => do
+--   let (sc_w, fd_w, om_w) <- class_width Γ_g cls_idx
+
+--   let scs <- List.mapM (λ n => do
+--     let τ <- (Γ_g d@ (cls_idx - (n + 1))).get_type
+--     .some ((cls_idx - n), τ)) (shift_helper sc_w)
+
+--   let fds <- List.mapM (λ n => do
+--     let τ <- (Γ_g d@ (cls_idx - (n + sc_w + 1))).get_type
+--     .some ((cls_idx - (n + sc_w)), τ)) (shift_helper fd_w)
+
+--   let omτs <- List.mapM (λ n => do
+--     let τ <- (Γ_g d@ (cls_idx - (n + sc_w + fd_w + 1))).get_type
+--     .some ((cls_idx - (n + sc_w + fd_w)), τ)) (shift_helper om_w)
+
+
+--   .some (ClsData.mk scs fds omτs)
 
 
 -- compiling declarations
@@ -140,7 +193,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   let (args_k, _) <- Term.split_kind_arrow C'
 
   let ty_vars_ctx : Ctx Term := List.map (Frame.kind ·) args_k
-  let ty_vars := new_binders args_k.length
+  let ty_vars := fresh_vars args_k.length
 
 
   let Γ' <- List.foldlM ( λ Γ sc_data => do -- TODO Fix Counting
@@ -211,20 +264,63 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
   -- Step1: Compile instance type
   let ity' <- compile Γ' ★ ity
-  let ity' <- hf_encode Γ' ity'
+  let (cls_idx , ity') <- mk_inst_type Γ' ity'
 
   let Γ' := .insttype ity' :: Γ'
 
+  let cls_idx := cls_idx + 1
 
-  -- let k'' <- compile Γ' □ k'
-  -- let (_ , res_τ) := C''.to_telescope
-  -- let (h, _) <- res_τ.neutral_form
+  let openm_ids <- get_openm_ids Γ' cls_idx
 
 
   -- Step2 : Check fundeps validity
+  let fds_scs_ids := openm_ids.drop openm_ids.length
 
 
-  -- Step3 : compile openmethods
+  -- Step3 : compile open method
+  let mths' <- List.foldlM (λ Γ x => do
+    let (mth, idx) := x
+    let omτ <- (Γ' d@ (idx + 1)).get_type
+
+    let (Γ_l, ret_ty) := omτ.to_telescope -- TODO maybe only peel off implicits?
+
+    -- split Γ_l into three parts
+    -- ty_args, implicit args, explicit args
+    let (_, ty_args, i_args, _) <- List.foldlM (λ acc f =>
+       let (Γ', x, y, z) := acc
+        match f with
+        | .kind _ => (f :: Γ',  x + 1, y, z)
+        | .type τ => match τ.neutral_form with
+           | .none => (f :: Γ',  x, y, z + 1)
+           | .some (h, _) =>
+             if Ctx.is_opent Γ' (x + y + z + h)
+             then (f :: Γ', x, y + 1, z)
+             else (f :: Γ', x, y, z + 1)
+        | _ => .none
+       ) (Γ', 0, 0, 0) Γ_l
+
+    let mth' <- match mth with
+    | .HsAnnotate τ mth => do
+      let τ' <- compile Γ' ★ τ
+      let mth' <- compile Γ' τ' mth
+      let mth' := [S' (ty_args + i_args)] mth'
+      let τ' := [S' (ty_args + i_args)] τ'
+      let ret_ty := ret_ty.from_telescope (Γ_l.drop (ty_args + i_args))
+
+      let η <- synth_coercion Γ τ' ret_ty
+      let mth' := mth' ▹ η
+
+      let ty_vars := fresh_vars ty_args
+      let i_vars := List.map ([S' ty_args] ·) (fresh_vars i_args)
 
 
-  .some Γ'
+      let mth' <- mk_lams (Term.guard `0 #0 (`λ[`0] ([S]mth'))) (Γ_l.take (ty_args + i_args + 1))
+
+      .some ((Frame.inst #(idx + 1) mth') :: Γ)
+
+    | .HsVar n => .none
+    | _ => .none
+
+    )  Γ' (List.zip mths openm_ids)
+
+  .some mths'

@@ -32,6 +32,8 @@ import Hs.Examples.Classes
 
 def EqBoolInst : HsFrame HsTerm := .inst
   (`#2 `•k `#5)
-  .nil
+  [ .HsAnnotate (`#5 → `#6 → `#7) (λ̈[`#5] λ̈[`#6] `#6)
+  , .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#5)
+  ]
 
 #eval! compile_ctx (EqBoolInst :: EqCtx)
