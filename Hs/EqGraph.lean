@@ -5,6 +5,8 @@ structure EqGraph (T : Type) where
 
 namespace EqGraph
 
+  def empty_graph : EqGraph T := { nodes := [], edges := [] }
+
   variable {T : Type} [BEq T]
 
   def node_data (g : EqGraph T) (i : Nat) : Option T := g.nodes[i]?
@@ -156,6 +158,24 @@ namespace EqGraph
     rw [mark_visited_decrements_node_count h1.1 h1.2 xdef]
     simp
 
+  def find_node_with_label (g : EqGraph T) (label : T) : Option Nat := g.nodes.idxOf? label
+
+  def find_path_by_label (g : EqGraph T) (visited : Nat -> Bool) (s : T) (t : T) : Option (List T) := do
+    let source <- find_node_with_label g s
+    find_path g visited source t
+
+  def add_node (g : EqGraph T) (l : T) : EqGraph T :=
+    { nodes := l :: g.nodes, edges := g.edges }
+
+  def add_edge (g : EqGraph T) (l s t : T) : EqGraph T :=
+    let (g, s') := match find_node_with_label g s with
+      | .some n => (g, n)
+      | .none => (add_node g s, g.nodes.length)
+    let (g, t') := match find_node_with_label g t with
+      | .some n => (g, n)
+      | .none => (add_node g t, g.nodes.length)
+    { nodes := g.nodes, edges := (s', t', l) :: g.edges }
+
   namespace Test
     def test_graph_loop : EqGraph String := {
       nodes := ["a", "b", "c", "d", "e"],
@@ -165,7 +185,9 @@ namespace EqGraph
     }
 
     #eval find_path test_graph_loop (λ _ => false) 1 "a"
+    #eval find_path_by_label test_graph_loop (λ _ => false) "b" "a"
     #eval find_path test_graph_loop (λ _ => false) 0 "e"
+    #eval find_path_by_label test_graph_loop (λ _ => false) "a" "e"
   end Test
 
 end EqGraph
