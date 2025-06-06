@@ -165,7 +165,7 @@ namespace EqGraph
     find_path g visited source t
 
   def add_node (g : EqGraph T) (l : T) : EqGraph T :=
-    { nodes := l :: g.nodes, edges := g.edges }
+    { nodes := g.nodes ++ [l], edges := g.edges } -- TODO do we care about efficieny?
 
   def add_edge (g : EqGraph T) (l s t : T) : EqGraph T :=
     let (g, s') := match find_node_with_label g s with
@@ -180,9 +180,12 @@ namespace EqGraph
     def test_graph_loop : EqGraph String := {
       nodes := ["a", "b", "c", "d", "e"],
       edges := [
-        (0, 1, "a->b"), (1, 2, "b->c"), (2, 3, "c->d"), (3, 4, "d->e"), (4, 0, "e->a"),
+        (0, 1, "a->b"), (1, 2, "b->c"), (2, 3, "c->d"), (3, 4, "d->e"), (4, 0, "e->a")
       ]
     }
+
+    #eval (EqGraph.add_edge empty_graph "e01" "n0" "n1").add_edge "e12" "n1" "n2"
+
 
     #eval find_path test_graph_loop (λ _ => false) 1 "a"
     #eval find_path_by_label test_graph_loop (λ _ => false) "b" "a"

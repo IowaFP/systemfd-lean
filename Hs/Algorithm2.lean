@@ -1,4 +1,5 @@
 import Hs.Algorithm
+import SystemFD.Algorithm
 
 @[simp]
 def shift_helper_aux : Nat -> List Nat -> List Nat
@@ -20,7 +21,10 @@ def re_index_base := fresh_vars
 
 #eval fresh_vars 3
 
-theorem fresh_vars_lemma : (fresh_vars n).length == n := by sorry
+theorem fresh_vars_aux_lemm : (fresh_vars_aux n l).length = l.length + n := by
+sorry
+theorem fresh_vars_lemma : (fresh_vars n).length == n := by
+sorry
 
 @[simp]
 def mk_eqs : List (Term × Term × Term) -> List Term := List.map (λ x => x.2.1 ~[x.1]~ x.2.2)
@@ -90,6 +94,16 @@ def mk_lams_rev : Term -> Ctx Term -> Option Term
 | t, .cons (.type x) xs =>
   mk_lams_rev (`λ[x] t) xs
 | _, _ => .none
+
+def instantiate_type : Term -> Term -> Option Term
+| (.bind2 .all _ t), s =>
+  .some ([Subst.Action.su s :: I] t)
+| _, _ => .none
+
+def instantiate_types : Term -> List Term -> Option Term :=
+  List.foldlM (λ acc s => instantiate_type acc s)
+
+
 
 -- Henry Ford Encode a type:
 -- Takes a type of the form
@@ -267,16 +281,17 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   let Γ' := .insttype ity' :: Γ'
 
   let cls_idx := cls_idx + 1
+  -- let instty_idx := 0
 
   let openm_ids <- get_openm_ids Γ' cls_idx
 
 
   -- Step2 : Check fundeps validity
-  let fds_scs_ids := openm_ids.drop openm_ids.length
+  -- let fds_scs_ids := openm_ids.drop openm_ids.length
 
 
   -- Step3 : compile open method
-  let mths' <- List.foldlM (λ Γ x => do
+  let mths' <- List.foldlM (λ Γ x => do -- TODO FIX why is Γ not being used anymore...?
     let (mth, idx) := x
     let omτ <- (Γ' d@ (cls_idx - 1)).get_type
 
@@ -291,29 +306,46 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
         | .type τ => match τ.neutral_form with
            | .none => (f :: Γ',  x, y, z + 1)
            | .some (h, _) =>
-             if Ctx.is_opent Γ' (x + y + z + h)
+             if Ctx.is_opent Γ' h
              then (f :: Γ', x, y + 1, z)
              else (f :: Γ', x, y, z + 1)
         | _ => .none
        ) (Γ', 0, 0, 0) Γ_l
 
-    let mth' <- match mth with
+    let mth' <- match mth with -- TODO: Fix by returning Γ' and not mth'
     | .HsAnnotate τ mth => do
       let τ' <- compile Γ' ★ τ
       let mth' <- compile Γ' τ' mth
-      let mth' := [S' (ty_args + i_args)] mth'
+
       let τ' := [S' (ty_args + i_args)] τ'
       let ret_ty := ret_ty.from_telescope (Γ_l.drop (ty_args + i_args))
 
-      let η <- synth_coercion Γ τ' ret_ty
-      let mth' := mth' ▹ η
+      let new_vars := (fresh_vars (ty_args + i_args)).reverse  -- [#1, #0]
+      let (ty_vars, i_vars) := new_vars.splitAt ty_args -- [#1], [#0]
 
-      let new_vars := (fresh_vars (ty_args + i_args)).reverse
-      let (ty_vars, i_vars) := new_vars.splitAt ty_args
+      let g_pat := (mk_ty_apps #(idx - 1 + new_vars.length) ty_vars)
 
-      let guard_pat := [S' new_vars.length](mk_ty_apps #(idx) ty_vars)
+      let Γ_local := Γ_l.take (ty_args + i_args)
 
-      let mth' <- mk_lams (Term.guard (guard_pat) #0 (`λ[`0] ([S]mth'))) (Γ_l.take (ty_args + i_args + 1))
+      let instty <- ((Γ_local ++ Γ) d@ (idx - 1 + Γ_local.length)).get_type
+      let instty <- instantiate_types instty ty_vars
+
+      let (tele, _ ) := instty.to_telescope
+      let inst_ty_coercions := tele.filter (λ x =>
+          match x with
+          | .type τ => Option.isSome (is_eq τ)
+          | _ => false)
+
+
+      let η <- synth_coercion_dummy (inst_ty_coercions ++ Γ_local ++ Γ')
+                     ([S' (inst_ty_coercions.length + 1) ]τ')
+                     ([S' (inst_ty_coercions.length + 1) ]ret_ty)
+
+      let mth' := [S' (inst_ty_coercions.length + ty_args + i_args)] mth'
+      let mth' <- mk_lams (mth' ▹ η)
+                          inst_ty_coercions
+
+      let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_local
 
       .some ((Frame.inst #(cls_idx - 1) mth') :: Γ)
 
@@ -323,3 +355,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     )  Γ' (List.zip mths openm_ids)
 
   .some mths'
+
+#eval instantiate_type (∀[★] ((#0 ~[★]~ #4) -t> #7 `@k #1)) #100
+#eval [0,1].splitAt 1
+#eval [0,1,2,3].take 3

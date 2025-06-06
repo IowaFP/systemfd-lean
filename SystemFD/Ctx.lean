@@ -1,6 +1,6 @@
 
 import SystemFD.Substitution
-import Aesop
+-- import Aesop
 
 variable {T : Type} [Repr T] [Inhabited T] [SubstitutionType T] [SubstitutionTypeLaws T]
 
@@ -58,7 +58,7 @@ namespace Frame
     | .ctor _ => true
     | _ => false
 
-  @[aesop safe]
+  -- @[aesop safe]
   def is_datatype (f : Frame T) : Bool :=
     match f with
     | .datatype _ => true
@@ -84,7 +84,7 @@ namespace Frame
     | .type _ => true
     | _ => false
 
-  @[aesop safe]
+  -- @[aesop safe]
   def is_kind (f : Frame T) : Bool :=
     match f with
     | .kind _ => true
@@ -213,7 +213,7 @@ namespace Frame
   theorem is_opent_stable {f : Frame T} : is_opent (apply f σ) = is_opent f := by
   cases f <;> unfold is_opent <;> unfold apply <;> simp
 
-  @[aesop safe]
+  -- @[aesop safe]
   def get_type : Frame T -> Option T
   | empty => .none
   | kind t => .some t
@@ -289,7 +289,7 @@ instance instLawfulBEq_Frame {T : Type} [BEq T] [LawfulBEq T] : LawfulBEq (Frame
 def Ctx (T : Type) := List (Frame T)
 
 namespace Ctx
-  @[aesop safe]
+  -- @[aesop safe]
   def apply : Ctx T -> Subst T -> Ctx T
   | [], _ => []
   | .cons hd tl, σ => .cons (hd.apply σ) (apply tl σ)

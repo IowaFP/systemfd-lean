@@ -47,20 +47,40 @@ def deconstruct_coercion_type (Γ : Ctx Term) (t : Term) : Term -> Term -> List 
   | .none => []
 | lhs, rhs => [(t, lhs, rhs)]
 
-def construct_coercion_graph : Ctx Term -> EqGraph Term
-| [] => EqGraph.empty_graph
-| .cons (.type t) tl
-| .cons (.openm t) tl =>
-  let rest := construct_coercion_graph tl
-  let (args, ret) := t.to_telescope
-  let sp := compute_argument_instantiation tl args
-  match ret.apply_spine sp with
-  | lhs ~[_]~ rhs =>
-    let v := Term.apply_spine #(List.length tl + 1) sp
-    let edges := deconstruct_coercion_type tl v lhs rhs
-    List.foldl (λ g (l, s, t) => g.add_edge l s t) rest edges
-  | _ => rest
-| .cons _ tl => construct_coercion_graph tl
+def construct_coercion_graph_aux : Nat -> Ctx Term -> EqGraph Term
+-- | [] => EqGraph.empty_graph
+-- | .cons (.type t) tl
+-- | .cons (.openm t) tl =>
+--   let rest := construct_coercion_graph_aux (d + 1) tl
+--   let (args, ret) := t.to_telescope
+--   let sp := compute_argument_instantiation tl args
+--   match ret.apply_spine sp with
+--   | lhs ~[_]~ rhs =>
+--     let v := Term.apply_spine #d sp
+--     let edges := deconstruct_coercion_type tl v lhs rhs
+--     List.foldl (λ g (l, s, t) => (g.add_edge l s t).add_edge (sym! l) t s) rest edges
+--   | _ => rest
+-- | .cons _ tl => construct_coercion_graph_aux (d + 1) tl
+| 0 , _ => EqGraph.empty_graph
+| n + 1, Γ =>
+  match Γ d@ n with
+  | .type t
+  | .openm t =>
+    let rest := construct_coercion_graph_aux n Γ
+    let (args, ret) := t.to_telescope
+    let sp := compute_argument_instantiation Γ args
+    match ret.apply_spine sp with
+    | lhs ~[_]~ rhs =>
+      let v := Term.apply_spine #(n) sp
+      let edges := deconstruct_coercion_type Γ v lhs rhs
+      List.foldl (λ g (l, s, t) => (g.add_edge l s t).add_edge (sym! l) t s) rest edges
+    | _ => rest
+  | _ => construct_coercion_graph_aux n Γ
+
+def construct_coercion_graph := λ Γ => construct_coercion_graph_aux Γ.length Γ
+
+#eval construct_coercion_graph ([.type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
+
 
 def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 | A1 `@k B1, A2 `@k B2 => do
@@ -77,9 +97,24 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
   else .none
 | lhs, rhs => do
   let K <- infer_kind Γ lhs
+  if lhs == rhs then return refl! K lhs
   let graph := construct_coercion_graph Γ
   let path <- graph.find_path_by_label (λ _ => false) lhs rhs
-  return List.foldl (· `; ·) (refl! K lhs) path
+  List.foldlM (· `; ·) (refl! K lhs) path
+
+#eval wf_ctx [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★]
+
+#eval construct_coercion_graph ([.empty, .type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
+
+
+#eval synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6)
+
+#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #4 #1 == .some ((refl! ★ #4) `; sym! #0)
+#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4 == .some ((refl! ★ #1) `; #0)
+
+
+def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b => do
+  .some (a ~[★]~ b)
 
 -- Problem 1: filling in a hole
 -- There is a goal that is an instance, say `C a b c`
