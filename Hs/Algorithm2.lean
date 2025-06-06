@@ -46,12 +46,29 @@ def mk_kind_apps : Term -> List Term -> Term := λ h args =>
   List.foldl (λ acc a => acc `@k a) h args
 
 @[simp]
+def mk_kind_apps_rev : Term -> List Term -> Term
+| t, [] => t
+| t, .cons a args => mk_kind_apps_rev (t `@k a) args
+
+@[simp]
 def mk_ty_apps : Term -> List Term -> Term := λ h args =>
   List.foldl (λ acc a => acc `@t a) h args
 
 @[simp]
+def mk_ty_apps_rev : Term -> List Term -> Term
+| t, [] => t
+| t, .cons a args => mk_ty_apps_rev (t `@ a) args
+
+
+@[simp]
 def mk_apps : Term -> List Term -> Term := λ h args =>
   List.foldl (λ acc a => acc `@ a) h args
+
+@[simp]
+def mk_apps_rev : Term -> List Term -> Term
+| t, [] => t
+| t, .cons a args => mk_apps_rev (t `@ a) args
+
 
 @[simp]
 def mk_lams : Term -> Ctx Term -> Option Term
@@ -62,6 +79,16 @@ def mk_lams : Term -> Ctx Term -> Option Term
 | t, .cons (.type x) xs => do
   let t' <- (mk_lams t xs)
   .some (`λ[x] t')
+| _, _ => .none
+
+
+@[simp]
+def mk_lams_rev : Term -> Ctx Term -> Option Term
+| t, [] => t
+| t, .cons (.kind x) xs =>
+  mk_lams_rev (Λ[x] t) xs
+| t, .cons (.type x) xs =>
+  mk_lams_rev (`λ[x] t) xs
 | _, _ => .none
 
 -- Henry Ford Encode a type:
@@ -105,43 +132,14 @@ def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
 #eval (shift_helper 10).take 5
 
 
+/- Caution: The ids themselves are meaningless (sort of),
+  just depend on the size of the list. thats the width of the class-/
 def get_openm_ids : Ctx Term -> Nat -> Option (List Nat) := λ Γ_g cls_idx =>
   if (Γ_g.is_opent cls_idx)
   then
     let ids := ((shift_helper Γ_g.length).take cls_idx).reverse
     .some ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
   else .none
-
-
--- @[simp]
--- def class_width : Ctx Term -> Nat -> Option (Nat × Nat × Nat) := λ Γ_g cls_idx =>
---   if (Γ_g.is_opent cls_idx)
---   then
---     let ids := ((shift_helper Γ_g.length).take cls_idx).reverse
---     let scs := (ids.takeWhile (Γ_g.is_openm ·)).reverse
-
---     .some (0, 0, 0) -- scs, fds, oms
---   else .none
-
-
--- @[simp]
--- def get_class_data : Ctx Term -> Nat -> Option ClsData := λ Γ_g cls_idx => do
---   let (sc_w, fd_w, om_w) <- class_width Γ_g cls_idx
-
---   let scs <- List.mapM (λ n => do
---     let τ <- (Γ_g d@ (cls_idx - (n + 1))).get_type
---     .some ((cls_idx - n), τ)) (shift_helper sc_w)
-
---   let fds <- List.mapM (λ n => do
---     let τ <- (Γ_g d@ (cls_idx - (n + sc_w + 1))).get_type
---     .some ((cls_idx - (n + sc_w)), τ)) (shift_helper fd_w)
-
---   let omτs <- List.mapM (λ n => do
---     let τ <- (Γ_g d@ (cls_idx - (n + sc_w + fd_w + 1))).get_type
---     .some ((cls_idx - (n + sc_w + fd_w)), τ)) (shift_helper om_w)
-
-
---   .some (ClsData.mk scs fds omτs)
 
 
 -- compiling declarations
@@ -280,7 +278,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   -- Step3 : compile open method
   let mths' <- List.foldlM (λ Γ x => do
     let (mth, idx) := x
-    let omτ <- (Γ' d@ (idx + 1)).get_type
+    let omτ <- (Γ' d@ (cls_idx - 1)).get_type
 
     let (Γ_l, ret_ty) := omτ.to_telescope -- TODO maybe only peel off implicits?
 
@@ -310,13 +308,14 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
       let η <- synth_coercion Γ τ' ret_ty
       let mth' := mth' ▹ η
 
-      let ty_vars := fresh_vars ty_args
-      let i_vars := List.map ([S' ty_args] ·) (fresh_vars i_args)
+      let new_vars := (fresh_vars (ty_args + i_args)).reverse
+      let (ty_vars, i_vars) := new_vars.splitAt ty_args
 
+      let guard_pat := [S' new_vars.length](mk_ty_apps #(idx) ty_vars)
 
-      let mth' <- mk_lams (Term.guard `0 #0 (`λ[`0] ([S]mth'))) (Γ_l.take (ty_args + i_args + 1))
+      let mth' <- mk_lams (Term.guard (guard_pat) #0 (`λ[`0] ([S]mth'))) (Γ_l.take (ty_args + i_args + 1))
 
-      .some ((Frame.inst #(idx + 1) mth') :: Γ)
+      .some ((Frame.inst #(cls_idx - 1) mth') :: Γ)
 
     | .HsVar n => .none
     | _ => .none

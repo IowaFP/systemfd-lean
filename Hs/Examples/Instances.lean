@@ -36,4 +36,4 @@ def EqBoolInst : HsFrame HsTerm := .inst
   , .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#5)
   ]
 
-#eval! compile_ctx (EqBoolInst :: EqCtx)
+#eval! compile_ctx ((HsFrame.term `#7 `#6) ::  EqBoolInst :: EqCtx)
