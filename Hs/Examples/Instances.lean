@@ -32,10 +32,11 @@ import Hs.Examples.Classes
 
 def EqBoolInst : HsFrame HsTerm := .inst
   (`#2 `•k `#5)
-  [ .HsAnnotate (`#5 → `#6 → `#7) (λ̈[`#5] λ̈[`#6] `#6)
-  , .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#5)
+  [ .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#7)
+  , .HsAnnotate (`#7 → `#8 → `#9) (λ̈[`#7] λ̈[`#8] `#7)
   ]
 
-#eval! do let ctx <- compile_ctx EqCtx
-          .some (to_implicit_telescope ctx (∀[★] (#3 `@k #0) -t> `0 -t> `0))
-#eval! compile_ctx ((HsFrame.term `#7 `#6) ::  EqBoolInst :: EqCtx)
+#eval! compile_ctx (EqBoolInst :: EqCtx)
+#eval! do let ctx <- compile_ctx (EqBoolInst :: EqCtx)
+          wf_ctx ctx
+          -- valid_insttype ctx (∀[★] (#0 ~[★]~ #6) -t> (#4 `@k #1))

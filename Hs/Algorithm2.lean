@@ -126,7 +126,7 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
   let eqs := mk_eqs (List.zip d_τs_kis (List.zip βs (List.map (λ x => [P' Γ_cτs.length][S' βs.length] x.snd) d_τs)))
 
 
-  let ty' := [S' (eqs.length + Γ_local.length)] mk_ty_apps ([S' βs.length]#d) βs
+  let ty' := [S' (eqs.length + Γ_local.length)] mk_kind_apps ([S' βs.length]#d) βs
 
   let Γ_cτs' := Γ_cτs.map (λ x => x.apply (S' (βs.length + eqs.length)))
 
@@ -301,7 +301,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
   let Γ' := .insttype ity' :: Γ'
 
-  let cls_idx := cls_idx + 1
+  let cls_idx := cls_idx + 1 -- account for insttype
   -- let instty_idx := 0
 
   let openm_ids <- get_openm_ids Γ' cls_idx
@@ -320,7 +320,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
     -- split Γ_l into three parts
     -- ty_args, implicit args, explicit args
-    let (ty_args, i_args) := List.partition (λ x => x.is_kind) Γ_l
+    let (ty_args, _) := List.partition (λ x => x.is_kind) Γ_l
     let Γ' <- match mth with
     | .HsAnnotate τ mth => do
       let τ' <- compile Γ ★ τ
@@ -329,9 +329,9 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
       let τ' := [S' Γ_l.length] τ'
 
       let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
-      let (ty_vars, i_vars) := new_vars.splitAt ty_args.length -- [#1], [#0]
+      let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
 
-      let g_pat := (mk_ty_apps #(idx - 1 + new_vars.length) ty_vars)
+      let g_pat := (mk_ty_apps #(idx - 1 + Γ_l.length) ty_vars)
 
       let instty <- ((Γ_l ++ Γ) d@ (idx - 1 + Γ_l.length)).get_type
       let instty <- instantiate_types instty ty_vars
@@ -344,10 +344,10 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
 
       let η <- synth_coercion (inst_ty_coercions ++ Γ_l ++ Γ)
-                     ([S' (inst_ty_coercions.length + 1) ]τ')
-                     ([S' (inst_ty_coercions.length) ]ret_ty)
+                     ([S' (inst_ty_coercions.length)]τ')
+                     ([S' (inst_ty_coercions.length)]ret_ty)
 
-      let mth' := [S' (inst_ty_coercions.length + Γ_l.length + 1)] mth' -- why + 1 here?
+      let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
       let mth' <- mk_lams (mth' ▹ η)
                           inst_ty_coercions
 
@@ -364,6 +364,6 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
   .some Γ'
 
-#eval instantiate_type (∀[★] ((#0 ~[★]~ #4) -t> #7 `@k #1)) #100
-#eval [0,1].splitAt 1
-#eval [0,1,2,3].take 3
+-- #eval instantiate_type (∀[★] ((#0 ~[★]~ #4) -t> #7 `@k #1)) #100
+-- #eval [0,1].splitAt 1
+-- #eval [0,1,2,3].take 3
