@@ -156,6 +156,27 @@ def get_openm_ids : Ctx Term -> Nat -> Option (List Nat) := λ Γ_g cls_idx =>
   else .none
 
 
+
+@[simp]
+def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term × Term
+| Γ, ∀[A] B =>
+    let (Γ', r) := to_implicit_telescope_aux (.kind A :: Δ) Γ B
+    (.kind A::Γ', r)
+| Γ, .bind2 .arrow A B =>
+    match A.neutral_form with
+    | .some (h, _) =>
+      if Δ.is_opent h
+      then let (Γ', r) := to_implicit_telescope_aux (.type A :: Δ) Γ B
+         (.type A::Γ', r)
+      else (Γ, .bind2 .arrow A B)
+    | .none =>
+      let (Γ, r) := to_implicit_telescope_aux (.type A :: Δ) Γ B
+      (.type A::Γ, r)
+| Γ, t => (Γ, t)
+
+
+def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_implicit_telescope_aux Δ []
+
 -- compiling declarations
 def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 | [] => .some []
@@ -291,43 +312,28 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
 
   -- Step3 : compile open method
-  let mths' <- List.foldlM (λ Γ x => do -- TODO FIX why is Γ not being used anymore...?
+  let Γ' <- List.foldlM (λ Γ x => do
     let (mth, idx) := x
-    let omτ <- (Γ' d@ (cls_idx - 1)).get_type
+    let omτ <- (Γ d@ (cls_idx - 1)).get_type
 
-    let (Γ_l, ret_ty) := omτ.to_telescope -- TODO maybe only peel off implicits?
+    let (Γ_l, ret_ty) := to_implicit_telescope Γ omτ
 
     -- split Γ_l into three parts
     -- ty_args, implicit args, explicit args
-    let (_, ty_args, i_args, _) <- List.foldlM (λ acc f =>
-       let (Γ', x, y, z) := acc
-        match f with
-        | .kind _ => (f :: Γ',  x + 1, y, z)
-        | .type τ => match τ.neutral_form with
-           | .none => (f :: Γ',  x, y, z + 1)
-           | .some (h, _) =>
-             if Ctx.is_opent Γ' h
-             then (f :: Γ', x, y + 1, z)
-             else (f :: Γ', x, y, z + 1)
-        | _ => .none
-       ) (Γ', 0, 0, 0) Γ_l
-
-    let mth' <- match mth with -- TODO: Fix by returning Γ' and not mth'
+    let (ty_args, i_args) := List.partition (λ x => x.is_kind) Γ_l
+    let Γ' <- match mth with
     | .HsAnnotate τ mth => do
-      let τ' <- compile Γ' ★ τ
-      let mth' <- compile Γ' τ' mth
+      let τ' <- compile Γ ★ τ
+      let mth' <- compile Γ τ' mth
 
-      let τ' := [S' (ty_args + i_args)] τ'
-      let ret_ty := ret_ty.from_telescope (Γ_l.drop (ty_args + i_args))
+      let τ' := [S' Γ_l.length] τ'
 
-      let new_vars := (fresh_vars (ty_args + i_args)).reverse  -- [#1, #0]
-      let (ty_vars, i_vars) := new_vars.splitAt ty_args -- [#1], [#0]
+      let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
+      let (ty_vars, i_vars) := new_vars.splitAt ty_args.length -- [#1], [#0]
 
       let g_pat := (mk_ty_apps #(idx - 1 + new_vars.length) ty_vars)
 
-      let Γ_local := Γ_l.take (ty_args + i_args)
-
-      let instty <- ((Γ_local ++ Γ) d@ (idx - 1 + Γ_local.length)).get_type
+      let instty <- ((Γ_l ++ Γ) d@ (idx - 1 + Γ_l.length)).get_type
       let instty <- instantiate_types instty ty_vars
 
       let (tele, _ ) := instty.to_telescope
@@ -337,24 +343,26 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
           | _ => false)
 
 
-      let η <- synth_coercion_dummy (inst_ty_coercions ++ Γ_local ++ Γ')
+      let η <- synth_coercion (inst_ty_coercions ++ Γ_l ++ Γ)
                      ([S' (inst_ty_coercions.length + 1) ]τ')
-                     ([S' (inst_ty_coercions.length + 1) ]ret_ty)
+                     ([S' (inst_ty_coercions.length) ]ret_ty)
 
-      let mth' := [S' (inst_ty_coercions.length + ty_args + i_args)] mth'
+      let mth' := [S' (inst_ty_coercions.length + Γ_l.length + 1)] mth' -- why + 1 here?
       let mth' <- mk_lams (mth' ▹ η)
                           inst_ty_coercions
 
-      let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_local
+      let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_l
 
       .some ((Frame.inst #(cls_idx - 1) mth') :: Γ)
 
-    | .HsVar n => .none
+    | .HsVar n => do
+      let τ' <- (Γ' d@ n).get_type
+      .none
     | _ => .none
 
     )  Γ' (List.zip mths openm_ids)
 
-  .some mths'
+  .some Γ'
 
 #eval instantiate_type (∀[★] ((#0 ~[★]~ #4) -t> #7 `@k #1)) #100
 #eval [0,1].splitAt 1

@@ -36,4 +36,6 @@ def EqBoolInst : HsFrame HsTerm := .inst
   , .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#5)
   ]
 
+#eval! do let ctx <- compile_ctx EqCtx
+          .some (to_implicit_telescope ctx (∀[★] (#3 `@k #0) -t> `0 -t> `0))
 #eval! compile_ctx ((HsFrame.term `#7 `#6) ::  EqBoolInst :: EqCtx)

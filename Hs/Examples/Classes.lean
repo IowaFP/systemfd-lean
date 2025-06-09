@@ -25,3 +25,6 @@ def EqCFrame : HsFrame HsTerm :=
 
 def EqCtx : HsCtx HsTerm :=
   EqCFrame :: BoolCtx
+
+#eval! do let c <- compile_ctx EqCtx
+          wf_ctx c
