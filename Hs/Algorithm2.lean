@@ -221,24 +221,23 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
 
   -- Step 2. Add SC constraints
-  -- It amounts to producing the sc functions
-  -- let scs' : Ctx Term := []
+  -- It amounts to producing the sc openm
   let (args_k, _) <- Term.split_kind_arrow C'
 
   let ty_vars_ctx : Ctx Term := List.map (Frame.kind ·) args_k
   let ty_vars := fresh_vars args_k.length
 
 
-  let Γ' <- List.foldlM ( λ Γ sc_data => do -- TODO Fix Counting
+  let Γ' <- List.foldlM ( λ Γ sc_data => do
 
     let cls_con := sc_data.1
     let sc := sc_data.2
 
-    let class_type := mk_kind_apps ([S' ty_vars.length]cls_con) ty_vars
-    let sc' <- compile Γ ★ sc
+    let class_type := mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars
+    let sc' <- compile (ty_vars_ctx ++ Γ) ★ sc
 
-    let sc_fun : Term := .bind2 .arrow class_type sc'
-    let sc_fun := sc_fun.from_telescope_rev ty_vars_ctx
+    let sc_fun : Term :=  class_type -t> ([S]sc') -- +1 becuase -t> is binder
+    let sc_fun := sc_fun.from_telescope ty_vars_ctx
 
     .some (.openm sc_fun :: Γ)
     ) Γ' (List.zip (re_index_base scs.length) scs)
@@ -256,18 +255,18 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
     let det1 := fd.2
 
-    let det2 := args_k.length + 1
+    let det2 := args_k.length
 
     if det1 < ty_vars_ctx.length && (List.all determiners (λ x => x < ty_vars_ctx.length))
     then do
       let ki <- (ty_vars_ctx d@ det1).get_type
 
-      let cls_ty1 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars
+      let cls_ty1 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars.reverse
 
 
       let ty_vars' := ty_vars.replace #det1 #det2
       -- TODO: What if the fundep is partial? also vary the irrelevant type vars
-      let cls_ty2 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars'
+      let cls_ty2 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars'.reverse
 
 
       let t := cls_ty1 -t> [S](cls_ty2 -t> [S](#det1 ~[ki]~ #det2))

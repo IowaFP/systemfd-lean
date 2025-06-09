@@ -30,27 +30,29 @@ import Hs.Examples.Classes
 
 def OrdCFrame : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> `★)
-    [`#3 `•k `#0]
+    [`#4 `•k `#0]
     .nil
-    [ `∀{`★} (`#2 `•k `#0) ⇒ (`#1 → `#2 → `#12) -- TODO: make type class predicate implicit?
+    [ `∀{`★} (`#2 `•k `#0) ⇒ (`#1 → `#2 → `#11) -- TODO: make type class predicate implicit?
     ]
 
 def MonadFrame : HsFrame HsTerm :=
   HsFrame.classDecl ((`★ `-k> `★) `-k> `★)
   .nil
   .nil
-  [`∀{(`★ `-k> `★)} `∀{`★} `∀{`★} (`#3 `•k `#2) ⇒ ((`#4 `•k `#3) → (`#4 → `#4) → (`#6 `•k `#4))
-    -- ∀ m a b. Monad m. m a → (a → b) → m b
-  , `∀{(`★ `-k> `★)} `∀{`★} (`#3 `•k `#1) ⇒ (`#1 → (`#3 `•k `#2)) -- ∀ m a. Monad m ⇒ a → m a
-
+  [-- ∀ m a b. Monad m. m a → (a → b) → m b
+    `∀{(`★ `-k> `★)} `∀{`★} `∀{`★} (`#3 `•k `#2) ⇒ ((`#3 `•k `#2) → (`#3 → `#3) → (`#5 `•k `#3))
+   -- ∀ m a. Monad m ⇒ a → m a
+    , `∀{(`★ `-k> `★)} `∀{`★} (`#3 `•k `#1) ⇒ (`#1 → `#3 `•k `#2)
   ]
 
--- class StateMonad s m
+-- class StateMonad s m | m -> s
 def StateMonadFrame : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> (`★ `-k> `★) `-k> `★)
-    [`#6 `•k `#1] -- ∀ s m. StateMonad s m -> Monad m
-    [ ([0] , 1) ] -- m ~> s
+    [`#5 `•k `#1] -- ∀ s m. StateMonad s m -> Monad m
+    [ ([0] , 1) ] -- m ~> s  ∀ s1 m s2. StateMonad s1 m -> StateMonad s2 m
     .nil -- oms
 
 #eval "StateMonad, monad, Ord, Eq, Bool"
 #eval! compile_ctx (StateMonadFrame :: MonadFrame :: OrdCFrame :: EqCtx)
+#eval! do let ctx <- compile_ctx (StateMonadFrame :: MonadFrame :: OrdCFrame :: EqCtx)
+          wf_ctx ctx
