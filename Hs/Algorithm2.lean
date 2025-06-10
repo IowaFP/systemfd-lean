@@ -191,10 +191,6 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   let Γ' <- compile_ctx Γ
   let τ' <- compile Γ' ★ τ
   .some (.type τ' :: Γ')
-| .cons (.pred τ) Γ => do
-  let Γ' <- compile_ctx Γ
-  let τ' <- compile Γ' ★ τ
-  .some (.type τ' :: Γ')
 | .cons (.term A t) Γ => do
   let Γ' <- compile_ctx Γ
   let A' <- compile Γ' ★ A
@@ -236,7 +232,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     let class_type := mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars
     let sc' <- compile (ty_vars_ctx ++ Γ) ★ sc
 
-    let sc_fun : Term :=  class_type -t> ([S]sc') -- +1 becuase -t> is binder
+    let sc_fun : Term :=  class_type -t> ([S]sc') -- [S] becuase -t> is binder
     let sc_fun := sc_fun.from_telescope ty_vars_ctx
 
     .some (.openm sc_fun :: Γ)
@@ -293,73 +289,100 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 | .cons (.inst ity mths) Γ => do
   let Γ'  <- compile_ctx Γ
 
-
   -- Step1: Compile instance type
   let ity' <- compile Γ' ★ ity
   let (cls_idx , ity') <- mk_inst_type Γ' ity'
 
   let Γ' := .insttype ity' :: Γ'
 
-  let cls_idx := cls_idx + 1 -- account for insttype
+  let cls_idx := cls_idx + 1 -- account for insttype at head
   -- let instty_idx := 0
 
   let openm_ids <- get_openm_ids Γ' cls_idx
-
+  -- open_ids are class omτs ++ sc omτ ++ fundeps omτ
 
   -- Step2 : Check fundeps validity
-  -- let fds_scs_ids := openm_ids.drop openm_ids.length
+  let (fd_ids, openm_ids) := openm_ids.partition (λ x =>
+      let f := ctx d@ x
+      if f.is_openm then
+        match f.get_type with
+        | .some τ =>
+          let (_, ret_ty) := Term.to_telescope τ;
+          Option.isSome (is_eq ret_ty)
+        | .none => false
+      else false )
+
+  -- -- Step 4: Compile superclass insts
+  let (sc_ids, openm_ids) := openm_ids.partition (λ x =>
+       let f := ctx d@ x
+       if f.is_openm then
+         match f.get_type with
+         | .some τ =>
+           let (tele, ret_ty) := Term.to_telescope τ;
+           match ret_ty.neutral_form with
+           | .none => true
+           | .some (h, _) => (tele ++ ctx).is_opent h
+         | .none => false
+       else false)
+
+  -- let Γ' <- List.foldlM (λ Γ sc_id => do
+  --   let scτ <- (Γ d@ sc_id).get_type
+
+  --   .some Γ
+  -- ) Γ' .nil
 
 
+  let Γ' <- if  mths.length == openm_ids.length -- insist on all methods being implemented
+  then
   -- Step3 : compile open method
-  let Γ' <- List.foldlM (λ Γ x => do
-    let (mth, idx) := x
-    let omτ <- (Γ d@ (cls_idx - 1)).get_type
+    List.foldlM (λ Γ x => do
+      let (mth, idx) := x
+      let omτ <- (Γ d@ (cls_idx - (1 + sc_ids.length + fd_ids.length))).get_type
 
-    let (Γ_l, ret_ty) := to_implicit_telescope Γ omτ
+      let (Γ_l, ret_ty) := to_implicit_telescope Γ omτ
 
-    -- split Γ_l into three parts
-    -- ty_args, implicit args, explicit args
-    let (ty_args, _) := List.partition (λ x => x.is_kind) Γ_l
-    let Γ' <- match mth with
-    | .HsAnnotate τ mth => do
-      let τ' <- compile Γ ★ τ
-      let mth' <- compile Γ τ' mth
+    -- split Γ_l into two parts
+    -- ty_args, implicit args
+      let (ty_args, _) := List.partition (λ x => x.is_kind) Γ_l
+      let Γ' <- match mth with
+      | .HsAnnotate τ mth => do
+        let τ' <- compile Γ ★ τ
+        let mth' <- compile Γ τ' mth
 
-      let τ' := [S' Γ_l.length] τ'
+        let τ' := [S' Γ_l.length] τ'
 
-      let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
-      let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
+        let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
+        let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
 
-      let g_pat := (mk_ty_apps #(idx - 1 + Γ_l.length) ty_vars)
+        let g_pat := (mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
 
-      let instty <- ((Γ_l ++ Γ) d@ (idx - 1 + Γ_l.length)).get_type
-      let instty <- instantiate_types instty ty_vars
+        let instty <- ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
+        let instty <- instantiate_types instty ty_vars
 
-      let (tele, _ ) := instty.to_telescope
-      let inst_ty_coercions := tele.filter (λ x =>
+        let (tele, _ ) := instty.to_telescope
+        let inst_ty_coercions := tele.filter (λ x =>
           match x with
           | .type τ => Option.isSome (is_eq τ)
           | _ => false)
 
 
-      let η <- synth_coercion (inst_ty_coercions ++ Γ_l ++ Γ)
+        let η <- synth_coercion (inst_ty_coercions ++ Γ_l ++ Γ)
                      ([S' (inst_ty_coercions.length)]τ')
                      ([S' (inst_ty_coercions.length)]ret_ty)
 
-      let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
-      let mth' <- mk_lams (mth' ▹ η)
+        let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
+        let mth' <- mk_lams (mth' ▹ η)
                           inst_ty_coercions
 
-      let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_l
+        let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_l
 
-      .some ((Frame.inst #(cls_idx - 1) mth') :: Γ)
+        .some ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
 
-    | .HsVar n => do
-      let τ' <- (Γ' d@ n).get_type
-      .none
-    | _ => .none
+      | .HsVar _ => .none
+      | _ => .none
 
-    )  Γ' (List.zip mths openm_ids)
+    )  Γ' (List.zip mths (shift_helper openm_ids.length))
+  else .none
 
   .some Γ'
 

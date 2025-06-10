@@ -274,9 +274,9 @@ namespace HsTerm
   | HsBind2 .arrow A B =>
     let (Γ, r) := to_telescope B
     (.type A::Γ, r)
-  | HsBind2 .farrow A B =>
-    let (Γ, r) := to_telescope B
-    (.pred A::Γ, r)
+  -- | HsBind2 .farrow A B =>
+  --   let (Γ, r) := to_telescope B
+  --   (.pred A::Γ, r)
   | `∀{A} B =>
     let (Γ, r) := to_telescope B
     (.kind A::Γ, r)
@@ -286,7 +286,7 @@ namespace HsTerm
   def from_telescope_rev : HsCtx HsTerm -> HsTerm -> HsTerm
   | [], t => t
   | .cons (.type A) Γ, t => from_telescope_rev Γ (.HsBind2 .arrow A t)
-  | .cons (.pred A) Γ, t => from_telescope_rev Γ (.HsBind2 .farrow A t)
+  -- | .cons (.pred A) Γ, t => from_telescope_rev Γ (.HsBind2 .farrow A t)
   | .cons (.kind A) Γ, t => from_telescope_rev Γ (`∀{A} t)
   | .cons _ Γ, t => from_telescope_rev Γ t
 

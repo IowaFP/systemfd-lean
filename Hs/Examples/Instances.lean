@@ -39,4 +39,3 @@ def EqBoolInst : HsFrame HsTerm := .inst
 #eval! compile_ctx (EqBoolInst :: EqCtx)
 #eval! do let ctx <- compile_ctx (EqBoolInst :: EqCtx)
           wf_ctx ctx
-          -- valid_insttype ctx (∀[★] (#0 ~[★]~ #6) -t> (#4 `@k #1))

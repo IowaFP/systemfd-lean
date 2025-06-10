@@ -8,7 +8,6 @@ inductive HsFrame T where
 | empty : HsFrame T
 | kind : T -> HsFrame T
 | type : T -> HsFrame T
-| pred : T -> HsFrame T -- Predicate is just like a type but allows ⇒ introduction
 | datatypeDecl :
   T -> -- kind of the datatype
   List T -> -- types of the n constructors
@@ -24,6 +23,35 @@ inductive HsFrame T where
   List T -> -- the expression bodies for the open methods
   HsFrame T
 | term : T -> T -> HsFrame T
+
+protected def HsFrame.repr [r : Repr T]: (a : HsFrame T) -> (p : Nat) -> Std.Format
+| .empty, _ =>
+  "empty"
+| .kind t, p =>
+  "kind " ++ r.reprPrec t p
+| .type t, p =>
+  "type " ++ r.reprPrec t p
+| .term A t, p =>
+  "term " ++ r.reprPrec t p ++ " : " ++ r.reprPrec A p
+| .datatypeDecl t ts, p =>
+  Std.Format.nest 10 <| "datatype " ++ r.reprPrec t p ++ Std.Format.line ++ List.repr ts p
+| .classDecl t scs fds oms, p =>
+  Std.Format.nest 10 <| "classDecl " ++ r.reprPrec t p
+      ++ (if scs.isEmpty then Std.Format.nil
+         else Std.Format.line ++ " | " ++ List.repr scs p)
+      ++ (if fds.isEmpty then Std.Format.nil
+         else Std.Format.line ++ " | "
+              ++ List.foldl (λ acc t =>
+                     acc ++ (Std.Format.text ", ") ++ (t.1.repr p)
+                     ++ (Std.Format.text " -> ") ++ t.2.repr) Std.Format.nil fds)
+      ++ (if oms.isEmpty then Std.Format.nil
+         else Std.Format.line ++ List.repr oms p)
+| .inst n ts, p =>
+  Std.Format.nest 10 <| "instDecl" ++ r.reprPrec n p ++ Std.Format.line
+     ++ List.repr ts p
+
+instance HsFrame_repr : Repr (HsFrame T) where
+  reprPrec a p := HsFrame.repr a p
 
 namespace Subst
 
@@ -42,7 +70,6 @@ namespace HsFrame
   | empty, _ => empty
   | kind t, σ => kind ([σ]t)
   | type t, σ => type ([σ]t)
-  | pred t, σ => pred ([σ]t)
   | datatypeDecl t ctors, σ =>
     datatypeDecl ([σ]t) (Subst.list_lift σ ctors)
   | classDecl t scs fds oms, σ =>
@@ -53,7 +80,6 @@ namespace HsFrame
   def get_type : HsFrame T -> Option T
   | .kind t => .some t
   | .type t => .some t
-  | .pred t => .some t
   | .datatypeDecl t _ => .some t
   | .classDecl t _ _ _ => .some t
   | .term T _ => .some T
@@ -99,11 +125,6 @@ namespace HsFrame
     | .type _ => true
     | _ => false
 
-
-  def is_pred (f : HsFrame T) : Bool :=
-    match f with
-    | .pred _ => true
-    | _ => false
 
   def is_kind (f : HsFrame T) : Bool :=
     match f with

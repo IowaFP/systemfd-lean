@@ -38,8 +38,8 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsCtor2 .app a b, p => (HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b p)
 | HsCtor2 .appt a b, p => (HsTerm.repr a p) ++ " `•t " ++ (HsTerm.repr b p)
 
-| HsBind2 .lam t1 t2, p => "`λ[" ++ HsTerm.repr t1 p ++ "]"  ++  HsTerm.repr t2 p
-| HsBind2 .lamt t1 t2, p => "`Λ[" ++ HsTerm.repr t1 p ++ "]"  ++ HsTerm.repr t2 p
+| HsBind2 .lam t1 t2, p => "`λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++  HsTerm.repr t2 p
+| HsBind2 .lamt t1 t2, p => "`Λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++ HsTerm.repr t2 p
 | HsBind2 .all t1 t2 , p => "`∀" ++ Std.Format.sbracket (HsTerm.repr t1 p) ++ HsTerm.repr t2 p
 | HsBind2 .arrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " → " ++ HsTerm.repr t2 p) p
 | HsBind2 .farrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " ⇒ " ++ HsTerm.repr t2 p) p
