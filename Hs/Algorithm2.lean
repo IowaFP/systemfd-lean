@@ -2,14 +2,6 @@ import Hs.Algorithm
 import SystemFD.Algorithm
 
 @[simp]
-def shift_helper_aux : Nat -> List Nat -> List Nat
-| 0, acc => acc
-| n + 1, acc => shift_helper_aux n (n :: acc)
-
-@[simp]
-def shift_helper : Nat -> List Nat := λ n => shift_helper_aux n []
-
-@[simp]
 def fresh_vars_aux : Nat -> List Term -> List Term
 | 0, acc => acc
 | n + 1, acc => fresh_vars_aux n (#n :: acc)
@@ -95,14 +87,6 @@ def mk_lams_rev : Term -> Ctx Term -> Option Term
   mk_lams_rev (`λ[x] t) xs
 | _, _ => .none
 
-def instantiate_type : Term -> Term -> Option Term
-| (.bind2 .all _ t), s =>
-  .some ([Subst.Action.su s :: I] t)
-| _, _ => .none
-
-def instantiate_types : Term -> List Term -> Option Term :=
-  List.foldlM (λ acc s => instantiate_type acc s)
-
 
 
 -- Henry Ford Encode a type:
@@ -113,6 +97,7 @@ def instantiate_types : Term -> List Term -> Option Term :=
 -- ASSUMES all type binders are in front.
 -- It doesn't matter if αs have type variables, they would
 -- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
+@[simp]
 def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> Option Term :=
 λ Γ data => do
   let (Γ_local, d, d_τs) := data
@@ -136,6 +121,7 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
 
   .some ty'
 
+@[simp]
 def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
   let (Γ_local, res_ty) := ty.to_telescope
   let (d, d_τs) <- res_ty.neutral_form
@@ -148,6 +134,7 @@ def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
 
 /- Caution: The ids themselves are meaningless (sort of),
   just depend on the size of the list. thats the width of the class-/
+@[simp]
 def get_openm_ids : Ctx Term -> Nat -> Option (List Nat) := λ Γ_g cls_idx =>
   if (Γ_g.is_opent cls_idx)
   then
@@ -174,7 +161,7 @@ def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term �
       (.type A::Γ, r)
 | Γ, t => (Γ, t)
 
-
+@[simp]
 def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_implicit_telescope_aux Δ []
 
 -- compiling declarations

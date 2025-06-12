@@ -34,8 +34,6 @@ def compile_spine_variant : HsSpineVariant -> SpineVariant
 | .type => .type
 | .kind => .kind
 
-
-
 -- surface: datatype Bool (tt, ff); #0 = ff, #1 = tt, #2 = Bool <-- defined by hs_nth
 
 -- @[simp]
@@ -86,7 +84,7 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 
 | Γ, τ, .HsHole a => do
   let a' <- compile Γ ★ a
-  let t <- synth_term Γ a'
+  let t <- synth_term_dummy Γ a'
   if τ == a'
   then .some t
   else do
@@ -131,7 +129,13 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
   let t' <- compile Γ τ t
   .some (.ite p' s' i' t')
 
-| _, _, `#h => .some (#h)
+| Γ, exp_τ, `#h => do
+  let τ <- (Γ d@ h).get_type
+  if τ == exp_τ
+  then .some #h
+  else do
+    let η <- synth_coercion Γ τ exp_τ
+    .some (#h ▹ η)
 
 --
 -- f : Eq a => B -> A
@@ -162,42 +166,43 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 | Γ, exp_τ, t => do
   let (head, args) <- t.neutral_form
   -- Compile Head
-  let (h', τs, τ'') <-
+  let (h', τh') <-
     match head with
     | .HsAnnotate τh h => do
       let τh' <- compile Γ ★ τh
     -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
-      let (τs, τ'') := τh'.to_telescope
       let h' <- compile Γ τh' h
-      .some (h', τs, τ'')
+      .some (h', τh')
 
     | .HsVar h => do
-      let τ' <- (Γ d@ h).get_type
+      let τh' <- (Γ d@ h).get_type
       -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
-      let (τs, τ'') := τ'.to_telescope
-      .some (#h, τs, τ'')
+      .some (#h, τh')
     | _ => .none
+  let (τs, res_τh') := τh'.to_telescope
 
+  if args.length > τs.length then .none
 
-  -- Compile Args
-  let args' <- List.mapM -- (HsSpineVariant × HsTerm) HsTerm
-        (λ a =>
-           match a with
-           | (.kind k, (.type, argτ)) => do
-             let argτ' <- compile Γ k argτ
-             .some (.type, argτ')
-           | (.type τ, (.term, arg)) => do
-             let arg' <- compile Γ τ arg
-             .some (.term, arg')
-           | _ => .none)
-        (List.zip τs args)
+  -- Compile Args and actual type
+  let (actual_τ, t') <- (List.zip τs args).foldlM (λ acc x => do
+      let (accτ, acc) : Term × Term := acc
+      let (τ, arg) : Frame Term × (HsSpineVariant × HsTerm):= x
+      match τ, arg with
+      | .kind k, (HsSpineVariant.type, arg) => do -- accτ better of of the form ∀[a] b
+        let arg' <- compile Γ k arg
+        let accτ <- instantiate_type accτ arg'
+        .some (accτ, acc `@t arg')
+      | .type k, (HsSpineVariant.term, arg) => do -- accτ better of of the form a -> b
+        let arg' <- compile Γ k arg
+        let accτ <- instantiate_type accτ arg'
+        .some (accτ, acc `@ arg')
+      | _, _ => .none
+    ) (τh', h')
 
-  let t' := h'.apply_spine args'
-
-  if τ'' == exp_τ
+  if exp_τ == actual_τ
   then .some t'
   else do
-    let η <- synth_coercion Γ τ'' exp_τ
+    let η <- synth_coercion Γ actual_τ exp_τ
     .some (t' ▹ η)
 
 decreasing_by repeat sorry

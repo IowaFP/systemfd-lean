@@ -35,6 +35,20 @@ import Hs.EqGraph
 def compute_argument_instantiation (Γ : Ctx Term) : Ctx Term -> List (SpineVariant × Term)
 | args => []
 
+
+@[simp]
+def instantiate_type : Term -> Term -> Option Term
+| (.bind2 .all _ t), s
+| (.bind2 .arrow _ t), s
+| (.bind2 .arrowc _ t), s =>
+  .some (t β[s])
+| _, _ => .none
+
+@[simp]
+def instantiate_types : Term -> List Term -> Option Term :=
+  List.foldlM (λ acc s => instantiate_type acc s)
+
+
 -- TODO: add coercions built from ∀[K] A ~[★]~ ∀[K] B
 def deconstruct_coercion_type (Γ : Ctx Term) (t : Term) : Term -> Term -> List (Term × Term × Term)
 | A1 `@k B1, A2 `@k B2 =>
@@ -118,10 +132,53 @@ def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b 
 def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
 
 
-def synth_term (Γ : Ctx Term) : Term -> Option Term := λ t =>
-match is_eq t with
+@[simp]
+def shift_helper_aux : Nat -> List Nat -> List Nat
+| 0, acc => acc
+| n + 1, acc => shift_helper_aux n (n :: acc)
+
+@[simp]
+def shift_helper : Nat -> List Nat := λ n => shift_helper_aux n []
+
+-- Synthesizes term of a given type, if one exists
+def synth_term (Γ : Ctx Term) : Term -> Option Term := λ τ =>
+match is_eq τ with
 | some (_, t1, t2) => synth_coercion Γ t1 t2
-| .none => t
+| .none => do
+
+  -- solve for a very simple case where instance is readily available
+  let (hτ, τs) <- τ.neutral_form
+  let τs' <- List.mapM (λ x =>
+      match x with
+      | (.kind, τ) => .some τ
+      | _ => .none
+      ) τs
+  -- find all instances of open type hτ
+  let candidate_instances <- List.foldlM (λ Γ x =>
+    match Γ d@ x with
+    | Frame.insttype iτ => do
+     -- iτ is of the form ∀τs. C τs → iτh τs
+     let (iτ' : Term) <- instantiate_types iτ τs'
+     let ((Γ_eqs, res_τ) : Ctx Term × Term) <- Term.to_telescope iτ'
+     if ([S' Γ_eqs.length] τ) == res_τ
+     then do
+        List.foldlM (λ (Γ : Ctx Term) (x : Frame Term) =>
+          match x with
+          | Frame.type x =>
+            match is_eq x with
+            | .some (_, t1, t2) => do
+              let η <- synth_coercion Γ t1 t2
+              .some (.term x η :: Γ)
+            | _ => .none
+          | _ => .none
+          ) Γ Γ_eqs
+
+     else .none
+
+    | _ => .some Γ
+   ) Γ (shift_helper Γ.length)
+
+  .some τ
 
 
 -- Problem 1: filling in a hole

@@ -218,6 +218,10 @@ end HsFrame
 
 def HsCtx (T : Type) := List (HsFrame T)
 
+instance instHsCtx_Append : Append (HsCtx T) where
+    append := λ a b => List.append a b -- ideally we may want to shift the indices in a?
+
+
 -- namespace HsCtx
 --   @[aesop safe]
 --   def apply : HsCtx T -> Subst T -> HsCtx T
