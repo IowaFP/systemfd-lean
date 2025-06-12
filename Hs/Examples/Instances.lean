@@ -1,5 +1,5 @@
 import Hs.HsTerm
-import Hs.Algorithm
+-- import Hs.Algorithm
 import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term

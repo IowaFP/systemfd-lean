@@ -36,9 +36,6 @@ def compile_spine_variant : HsSpineVariant -> SpineVariant
 
 
 
-def synth_term : Ctx Term -> Term -> Option Term := λ _ _ => .some `0
--- def synth_coercion : Ctx Term -> Term -> Term -> Option Term := λ _ _ _ => .some `0
-
 -- surface: datatype Bool (tt, ff); #0 = ff, #1 = tt, #2 = Bool <-- defined by hs_nth
 
 -- @[simp]

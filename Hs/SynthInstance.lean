@@ -115,6 +115,14 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 
 def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b => do
   .some (a ~[★]~ b)
+def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
+
+
+def synth_term (Γ : Ctx Term) : Term -> Option Term := λ t =>
+match is_eq t with
+| some (_, t1, t2) => synth_coercion Γ t1 t2
+| .none => t
+
 
 -- Problem 1: filling in a hole
 -- There is a goal that is an instance, say `C a b c`

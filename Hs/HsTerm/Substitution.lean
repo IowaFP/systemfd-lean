@@ -34,9 +34,10 @@ namespace HsTerm
   @[simp]
   def neutral_form : HsTerm -> Option (HsTerm × List (HsSpineVariant × HsTerm))
   | .HsAnnotate τ x => .some (.HsAnnotate τ x, [])
+  | .HsVar x => .some (HsVar x, [])
   | .HsCtor2 .app f a => do
     let (x, sp) <- neutral_form f
-    .some (x, sp ++ [(HsSpineVariant.term, a)])
+    .some (x, sp ++ [(.term, a)])
   | .HsCtor2 .appk f a => do
     let (x, sp) <- neutral_form f
     .some (x, sp ++ [(.kind, a)])

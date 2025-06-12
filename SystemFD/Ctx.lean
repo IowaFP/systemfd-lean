@@ -271,8 +271,11 @@ namespace Frame
     | opent t => "opent " ++ reprT.reprPrec t p
     | openm t => "openm " ++ reprT.reprPrec t p
     | insttype t => "insttype " ++ reprT.reprPrec t p
-    | inst x t => "inst " ++ reprT.reprPrec x p ++ " := " ++ reprT.reprPrec t p
-    | term A t => "term " ++ reprT.reprPrec A p ++ " : " ++ reprT.reprPrec t p
+    | inst x t =>
+      Std.Format.nest 5 <| "inst " ++ reprT.reprPrec x p ++ " := "
+      ++ Std.Format.line ++ reprT.reprPrec t p
+    | term A t =>
+      Std.Format.nest 5 <| "term " ++ Std.Format.line ++ reprT.reprPrec A p ++ " : " ++ reprT.reprPrec t p
 end Frame
 
 instance instRepr_Ctx [Repr T] : Repr (Frame T) where

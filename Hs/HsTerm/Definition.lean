@@ -32,7 +32,7 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsName n , _ => n
 | HsHole n , p => "_@" ++ Repr.addAppParen (HsTerm.repr n p) p
 | HsAnnotate A t, p => "(" ++ (HsTerm.repr t p) ++ " : " ++ (HsTerm.repr A p) ++ ")"
-| HsCtor2 .arrowk a b, p => (HsTerm.repr a p) ++ " `-k> " ++ (HsTerm.repr b p)
+| HsCtor2 .arrowk a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `-k> " ++ (HsTerm.repr b p)) p
 
 | HsCtor2 .appk a b, p => (HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b p)
 | HsCtor2 .app a b, p => (HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b p)

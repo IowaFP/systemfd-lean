@@ -1,21 +1,21 @@
 import Hs.HsTerm
-import Hs.Algorithm
+-- import Hs.Algorithm
 import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
 
-def idHsType : HsTerm := `∀{`★} `#0 → `#1
-def idHsTerm : HsTerm := Λ̈[`★] λ̈[`#0] `#0
+-- def idHsType : HsTerm := `∀{`★} `#0 → `#1
+-- def idHsTerm : HsTerm := Λ̈[`★] λ̈[`#0] `#0
 
-unsafe def idType := compile [] ★ idHsType
-unsafe def idTerm := do { let ty <- idType; compile [] ty idHsTerm}
+-- unsafe def idType := compile [] ★ idHsType
+-- unsafe def idTerm := do { let ty <- idType; compile [] ty idHsTerm }
 
 -- #guard idType == .some (∀[★] #0 -t> #1)
 -- #guard idTerm == .some (Λ[★]`λ[#0] #0)
 -- #guard idType == do { let t <- idTerm; infer_type [] t }
 
-#eval! idType
-#eval! idTerm
+-- #eval! idType
+-- #eval! idTerm
 
 
 

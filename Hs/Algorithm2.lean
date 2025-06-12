@@ -207,6 +207,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     )
     (.datatype k' :: Γ') ctors
 
+-- Compiling Classes
 | .cons (.classDecl C scs fds oms) Γ => do
   let Γ' <- compile_ctx Γ
   let C' <- compile Γ' □ C
@@ -217,7 +218,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
 
   -- Step 2. Add SC constraints
-  -- It amounts to producing the sc openm
+  -- Produce the sc openm
   let (args_k, _) <- Term.split_kind_arrow C'
 
   let ty_vars_ctx : Ctx Term := List.map (Frame.kind ·) args_k
@@ -226,10 +227,13 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
   let Γ' <- List.foldlM ( λ Γ sc_data => do
 
-    let cls_con := sc_data.1
-    let sc := sc_data.2
+    let cls_con := sc_data.1 -- the current class constructor
+
+    let sc := sc_data.2 -- Superclass type
+    let (sc_tycon, ty_args) <- sc.neutral_form -- Split it into ctor and ty_args
 
     let class_type := mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars
+
     let sc' <- compile (ty_vars_ctx ++ Γ) ★ sc
 
     let sc_fun : Term :=  class_type -t> ([S]sc') -- [S] becuase -t> is binder
@@ -286,6 +290,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
   .some Γ'
 
+-- Compile Instances
 | .cons (.inst ity mths) Γ => do
   let Γ'  <- compile_ctx Γ
 
@@ -301,9 +306,9 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   let openm_ids <- get_openm_ids Γ' cls_idx
   -- open_ids are class omτs ++ sc omτ ++ fundeps omτ
 
-  -- Step2 : Check fundeps validity
+
   let (fd_ids, openm_ids) := openm_ids.partition (λ x =>
-      let f := ctx d@ x
+      let f := Γ' d@ x
       if f.is_openm then
         match f.get_type with
         | .some τ =>
@@ -312,29 +317,54 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
         | .none => false
       else false )
 
-  -- -- Step 4: Compile superclass insts
+
   let (sc_ids, openm_ids) := openm_ids.partition (λ x =>
-       let f := ctx d@ x
+       let f := Γ' d@ x
        if f.is_openm then
          match f.get_type with
          | .some τ =>
            let (tele, ret_ty) := Term.to_telescope τ;
            match ret_ty.neutral_form with
            | .none => true
-           | .some (h, _) => (tele ++ ctx).is_opent h
+           | .some (h, _) => (tele ++ Γ').is_opent h
          | .none => false
        else false)
 
-  -- let Γ' <- List.foldlM (λ Γ sc_id => do
-  --   let scτ <- (Γ d@ sc_id).get_type
+  -- Step2 : Check fundeps validity
+  let Γ' <- List.foldlM (λ Γ fd_id => do
 
-  --   .some Γ
-  -- ) Γ' .nil
+    -- let omτ <- (Γ d@ (cls_idx - 1)).get_type
+    -- let (Γ_l, ret_ty) := omτ.to_telescope
+
+    .some Γ
+  ) Γ' (shift_helper fd_ids.length)
 
 
+  -- Step 4: Compile superclass insts
+  let Γ' <- List.foldlM (λ Γ sc_id => do
+
+    let omτ <- (Γ d@ (cls_idx - (1 + fd_ids.length))).get_type
+    let (Γ_l, ret_ty) := omτ.to_telescope
+
+    let (ty_args_ctx, _) := List.partition (λ x => Frame.is_kind x) Γ_l
+    let new_vars := fresh_vars Γ_l.length
+    let ty_vars : List Term := new_vars.reverse.take (ty_args_ctx.length)
+
+    let g_pat := mk_ty_apps #(sc_id + fd_ids.length + Γ_l.length) ty_vars
+
+    let t' <- synth_term_dummy (Γ_l ++ Γ) ret_ty
+    let sc_fun <- mk_lams (Term.guard g_pat #0 t') Γ_l
+    let new_Γ := .inst #(cls_idx - (1 + fd_ids.length)) sc_fun :: Γ
+    .some new_Γ
+
+  ) Γ' (shift_helper sc_ids.length)
+
+  let cls_idx := cls_idx + sc_ids.length
+
+  -- Step3 : compile open method
   let Γ' <- if  mths.length == openm_ids.length -- insist on all methods being implemented
   then
-  -- Step3 : compile open method
+
     List.foldlM (λ Γ x => do
       let (mth, idx) := x
       let omτ <- (Γ d@ (cls_idx - (1 + sc_ids.length + fd_ids.length))).get_type
@@ -376,7 +406,9 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
         let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_l
 
-        .some ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
+        let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
+        let cls_idx := cls_idx + 1
+        .some new_Γ
 
       | .HsVar _ => .none
       | _ => .none

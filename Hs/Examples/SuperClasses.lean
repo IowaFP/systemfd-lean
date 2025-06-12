@@ -45,11 +45,11 @@ def OrdC : HsFrame HsTerm :=
 def OrdBool : HsFrame HsTerm :=
   HsFrame.inst
   (`#2 `•k `#11)
-  [ .HsAnnotate (`#12 → `#13 → `#14) (λ̈[`#12] λ̈[`#13] `#13)
+  [ .HsAnnotate (`#13 → `#14 → `#15) (λ̈[`#13] λ̈[`#14] `#14)
 
   ]
 
-def supCtx := -- OrdBool ::
+def supCtx := OrdBool ::
               OrdC ::
               EqBoolI ::
               EqCtx
@@ -60,85 +60,8 @@ def supCtx := -- OrdBool ::
 #eval! do let ctx <- compile_ctx supCtx
           wf_ctx ctx
 
-
-#eval! do let ctx <- compile_ctx (EqBoolI :: EqCtx)
-          let ctx := Frame.opent (★ -k> ★) :: ctx
-
-          let args_k : List Term := .cons ★ []
-
-          let ty_vars_ctx : Ctx Term := List.map (Frame.kind ·) args_k
-          let ty_vars := fresh_vars args_k.length
-
-
-          let cls_con : Term := #0 -- sc_data.1
-          let sc := `#7 `•k `#0 -- sc_data.2
-
-          let class_type := mk_kind_apps_rev ([S' ty_vars.length] cls_con) ty_vars
-          -- .some class_type
-          let sc' <- compile (ty_vars_ctx ++ ctx) ★ sc
-          .some sc'
-          -- let sc_fun : Term :=  class_type -t> ([S]sc') -- [S] becuase -t> is binder
-          -- let sc_fun := sc_fun.from_telescope ty_vars_ctx
-
-          -- .some (.openm sc_fun :: Γ)
-
-
-
-          -- .some ctx
-
-          -- let openm_ids <- get_openm_ids ctx 5
-          -- let (sc_ids, openm_ids) := openm_ids.partition (λ x =>
-          --     match (ctx d@ x).get_type with
-          --     | .some τ =>
-          --       let (tele, ret_ty) := Term.to_telescope τ;
-          --       match ret_ty.neutral_form with
-          --       | .none => true
-          --       | .some (h, _) => (tele ++ ctx).is_opent h
-          --     | .none => false)
-
-          -- let (fd_ids, openm_ids) := openm_ids.partition (λ x =>
-          --     match (ctx d@ x).get_type with
-          --     | .some τ =>
-          --       let (_, ret_ty) := Term.to_telescope τ;
-          --       Option.isSome (is_eq ret_ty)
-          --     | .none => false)
-          -- .some (fd_ids, sc_ids, openm_ids)
-
-          -- let omτ <- (ctx d@ (3 - 1 + sc_ids.length + fd_ids.length)).get_type
-          -- -- .some omτ
-          -- let τ : HsTerm := (`#6 → `#7 → `#8)
-          -- let τ' <- compile ctx ★ τ
-          -- let mth := λ̈[`#6] λ̈[`#7] `#7
-          -- let mth' <- compile ctx τ' mth
-          -- let (Γ_l, ret_ty) := to_implicit_telescope ctx omτ
-
-          -- let (ty_args, _) := Γ_l.partition (λ x => Frame.is_kind x)
-
-          -- let τ' := [S' Γ_l.length] τ'
-          -- let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
-          -- let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
-
-          -- let g_pat := (mk_ty_apps #(3 - 1 + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars.reverse)
-          -- -- .some g_pat
-          -- let instty <- ((Γ_l ++ ctx) d@ (0 + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
-          -- let instty <- instantiate_types instty ty_vars
-          -- -- .some instty
-          -- let (tele, _ ) := instty.to_telescope
-          -- -- .some tele
-          -- let inst_ty_coercions := tele.filter (λ (x : Frame Term) =>
-          --        match x with
-          --        | .type τ => Option.isSome (is_eq τ)
-          --        | _ => false)
-
-          -- -- .some inst_ty_coercions
-          -- let η <- synth_coercion (inst_ty_coercions ++ Γ_l ++ ctx)
-          --            ([S' (inst_ty_coercions.length)]τ')
-          --            ([S' (inst_ty_coercions.length)]ret_ty)
-
-          -- let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
-          -- let mth' <- mk_lams (mth' ▹ η)
-          --                 inst_ty_coercions
-
-          -- let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_l
-
-          -- .some (Frame.inst #(3 - (1 + sc_ids.length + fd_ids.length)) mth' :: ctx)
+-- (==) (HsHole) True True
+def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) `• `#13 `• `#12
+#eval! do let ctx <- compile_ctx supCtx
+          let ex1' <- compile ctx #14 ex1
+          .some ex1'
