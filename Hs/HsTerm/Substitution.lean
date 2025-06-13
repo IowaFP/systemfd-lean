@@ -32,7 +32,7 @@ instance instLawfulBEq_HsSpineVariant : LawfulBEq HsSpineVariant where
 
 namespace HsTerm
   @[simp]
-  def neutral_form : HsTerm -> Option (HsTerm × List (HsSpineVariant × HsTerm))
+  def neutral_form : HsTerm -> Option (HsTerm × List (HsSpineVariant × HsTerm)) -- TODO make more efficient?
   | .HsAnnotate τ x => .some (.HsAnnotate τ x, [])
   | .HsVar x => .some (HsVar x, [])
   | .HsCtor2 .app f a => do

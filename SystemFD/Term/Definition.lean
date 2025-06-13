@@ -104,10 +104,10 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .zero => "0"
 
   | .ctor1 .sym t => "(sym! " ++ Term.repr t p ++ ")"
-  | .ctor2 .fst t1 t2 => "(fst! " ++ Term.repr t1 p ++ ";" ++ Term.repr t2 p ++ ")"
-  | .ctor2 .snd t1 t2 => "(snd! " ++ Term.repr t1 p ++ ";" ++ Term.repr t2 p ++ ")"
+  | .ctor2 .fst t1 t2 => "(fst! " ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p ++ ")"
+  | .ctor2 .snd t1 t2 => "(snd! " ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p ++ ")"
 
-  | .ctor2 .refl t1 t2 => "(refl! " ++ Term.repr t1 p ++ "; " ++ Term.repr t2 p ++ ")"
+  | .ctor2 .refl t1 t2 => "(refl! " ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p ++ ")"
   | .ctor2 .arrowk t1 t2 => Term.repr t1 p ++ Std.Format.line ++" → " ++ Term.repr t2 p
   | .ctor2 .appk t1 t2 => Std.Format.paren (Term.repr t1 p ++ " `@k " ++ Term.repr t2 p)
   | .ctor2 .appc t1 t2 => Std.Format.paren (Term.repr t1 p ++ " `@c " ++ Term.repr t2 p)

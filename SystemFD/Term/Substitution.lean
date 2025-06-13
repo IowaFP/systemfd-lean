@@ -307,6 +307,14 @@ namespace Term
   | t => ([], t)
 
   @[simp]
+  def to_telescope_head : Term -> Option (Frame Term × Term)
+  | bind2 .arrow A B =>
+    .some (.type A, B)
+  | ∀[A] B => .some (.kind A, B)
+  | ∀c[A] B => .some (.kind A, B)
+  | _ => .none
+
+  @[simp]
   def from_telescope_rev : Ctx Term -> Term -> Term
   | [], t => t
   | .cons (.type A) Γ, t => from_telescope_rev Γ (.bind2 .arrow A t)

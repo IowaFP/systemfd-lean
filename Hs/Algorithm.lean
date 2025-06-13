@@ -84,7 +84,7 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 
 | Γ, τ, .HsHole a => do
   let a' <- compile Γ ★ a
-  let t <- synth_term_dummy Γ a'
+  let t <- synth_term Γ a'
   if τ == a'
   then .some t
   else do
@@ -182,29 +182,49 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
   let (τs, res_τh') := τh'.to_telescope
 
   if args.length > τs.length then .none
-
+  else
   -- Compile Args and actual type
-  let (actual_τ, t') <- (List.zip τs args).foldlM (λ acc x => do
-      let (accτ, acc) : Term × Term := acc
-      let (τ, arg) : Frame Term × (HsSpineVariant × HsTerm):= x
-      match τ, arg with
-      | .kind k, (HsSpineVariant.type, arg) => do -- accτ better of of the form ∀[a] b
-        let arg' <- compile Γ k arg
-        let accτ <- instantiate_type accτ arg'
-        .some (accτ, acc `@t arg')
-      | .type k, (HsSpineVariant.term, arg) => do -- accτ better of of the form a -> b
-        let arg' <- compile Γ k arg
-        let accτ <- instantiate_type accτ arg'
-        .some (accτ, acc `@ arg')
-      | _, _ => .none
-    ) (τh', h')
+    let (actual_τ, t') <- args.foldlM (λ acc arg => do
+        let (accτ, acc) : Term × Term := acc
+        let (τ, res_τ) <- accτ.to_telescope_head
+        match τ, arg with
+        | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
+          let arg' <- compile Γ k arg
+          .some (res_τ β[arg'], acc `@t arg')
+        | .type k, (.term, arg) => do -- accτ better of of the form a -> b
+          let arg' <- compile Γ k arg
+          .some (res_τ β[arg'], acc `@ arg')
+        | _, _ => .none)
+        (τh', h')
 
-  if exp_τ == actual_τ
-  then .some t'
-  else do
-    let η <- synth_coercion Γ actual_τ exp_τ
-    .some (t' ▹ η)
+    if exp_τ == actual_τ
+    then .some t'
+    else do
+      let η <- synth_coercion Γ actual_τ exp_τ
+      .some (t' ▹ η)
 
 decreasing_by repeat sorry
 -- all_goals(simp at *)
 -- case _ => sorry
+
+
+namespace Test
+  def Γ : Ctx Term := [
+    .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
+    .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
+    .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
+    .opent (★ -k> ★),
+    .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
+    .opent (★ -k> ★),
+    .datatype ★ ]
+
+    #guard wf_ctx Γ == .some ()
+
+    #eval (Γ d@ 0)
+    #eval! compile Γ (∀[★](#6 `@k #0) -t> #1 -t> #2 -t> #10) `#0
+    #eval! compile Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6)
+    #eval! compile Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6))
+    #eval! compile Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6)))
+
+
+end Test
