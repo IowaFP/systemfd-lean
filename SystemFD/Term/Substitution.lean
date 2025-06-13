@@ -329,6 +329,101 @@ namespace Term
     x = x' ∧ xs = xs' :=  by
     intros h1 h2; rw [h1] at h2; simp at h2; assumption;
 
+
+   @[simp]
+   def shift_helper_aux : Nat -> List Nat -> List Nat
+   | 0, acc => acc
+   | n + 1, acc => shift_helper_aux n (n :: acc)
+
+   @[simp]
+   def shift_helper : Nat -> List Nat := λ n => shift_helper_aux n []
+
+   @[simp]
+   def mk_eqs : List (Term × Term × Term) -> List Term := List.map (λ x => x.2.1 ~[x.1]~ x.2.2)
+
+   @[simp]
+   def mk_type_telescope : Ctx Term -> List Term -> Ctx Term := λ Γ ts =>
+     List.foldl (λ Γ t_data =>
+       let t := t_data.2
+       let shift := t_data.1
+       (.type ([S' shift] t) :: Γ)
+     ) Γ (List.zip (shift_helper ts.length) ts)
+
+   @[simp]
+   def mk_kind_telescope : Ctx Term -> List Term -> Ctx Term := λ Γ ts =>
+     List.foldl (λ Γ t_data =>
+       let t := t_data.2
+       let shift := t_data.1
+       (.kind ([S' shift] t) :: Γ)
+     ) Γ (List.zip (shift_helper ts.length) ts)
+
+   @[simp]
+   def mk_kind_apps : Term -> List Term -> Term := λ h args =>
+     List.foldl (λ acc a => acc `@k a) h args
+
+   @[simp]
+   def mk_kind_apps_rev : Term -> List Term -> Term
+   | t, [] => t
+   | t, .cons a args => mk_kind_apps_rev (t `@k a) args
+
+   @[simp]
+   def mk_ty_apps : Term -> List Term -> Term := λ h args =>
+     List.foldl (λ acc a => acc `@t a) h args
+
+   @[simp]
+   def mk_ty_apps_rev : Term -> List Term -> Term
+   | t, [] => t
+   | t, .cons a args => mk_ty_apps_rev (t `@ a) args
+
+
+   @[simp]
+   def mk_apps : Term -> List Term -> Term := λ h args =>
+     List.foldl (λ acc a => acc `@ a) h args
+
+   @[simp]
+   def mk_apps_rev : Term -> List Term -> Term
+   | t, [] => t
+   | t, .cons a args => mk_apps_rev (t `@ a) args
+
+
+   @[simp]
+   def mk_lams : Term -> Ctx Term -> Option Term
+   | t, [] => t
+   | t, .cons (.kind x) xs => do
+     let t' <- (mk_lams t xs)
+     .some (Λ[x] t')
+   | t, .cons (.type x) xs => do
+     let t' <- (mk_lams t xs)
+     .some (`λ[x] t')
+   | _, _ => .none
+
+
+   @[simp]
+   def mk_lams_rev : Term -> Ctx Term -> Option Term
+   | t, [] => .some t
+   | t, .cons (.kind x) xs =>
+     mk_lams_rev (Λ[x] t) xs
+   | t, .cons (.type x) xs =>
+     mk_lams_rev (`λ[x] t) xs
+   | _, _ => .none
+
+
+  @[simp] -- TODO replace uses with from_telescope?
+  def mk_ty_arrow : Term -> Ctx Term -> Option Term
+  | t, [] => .some t
+  | t, .cons (.type x) xs => do
+    let t' <- mk_ty_arrow  t xs
+    .some (x -t> t')
+  | _, _ => .none
+
+  @[simp] -- TODO replace uses with from_telescope?
+  def mk_ty_arrow_rev : Term -> Ctx Term -> Option Term
+  | t, [] => .some t
+  | t, .cons (.type x) xs => do
+    mk_ty_arrow  (x -t> t) xs
+  | _, _ => .none
+
+
 end Term
 
 instance substTypeLaws_Term : SubstitutionTypeLaws Term where

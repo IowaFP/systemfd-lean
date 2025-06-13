@@ -93,7 +93,7 @@ def construct_coercion_graph_aux : Nat -> Ctx Term -> EqGraph Term
 
 def construct_coercion_graph := λ Γ => construct_coercion_graph_aux Γ.length Γ
 
-#eval construct_coercion_graph ([.type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
+-- #eval construct_coercion_graph ([.type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
 
 
 def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
@@ -116,12 +116,12 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
   let path <- graph.find_path_by_label (λ _ => false) lhs rhs
   List.foldlM (· `; ·) (refl! K lhs) path
 
-#eval wf_ctx [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★]
+-- #eval wf_ctx [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★]
 
-#eval construct_coercion_graph ([.empty, .type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
+-- #eval construct_coercion_graph ([.empty, .type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
 
 
-#eval synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6)
+-- #eval synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6)
 
 #guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #4 #1 == .some ((refl! ★ #4) `; sym! #0)
 #guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4 == .some ((refl! ★ #1) `; #0)
@@ -131,29 +131,20 @@ def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b 
   .some (a ~[★]~ b)
 def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
 
-
-@[simp]
-def shift_helper_aux : Nat -> List Nat -> List Nat
-| 0, acc => acc
-| n + 1, acc => shift_helper_aux n (n :: acc)
-
-@[simp]
-def shift_helper : Nat -> List Nat := λ n => shift_helper_aux n []
-
 -- Synthesizes term of a given type, if one exists
 def synth_term (Γ : Ctx Term) : Term -> Option Term := λ τ =>
 match is_eq τ with
 | some (_, t1, t2) => synth_coercion Γ t1 t2
 | .none => do
 
-  -- solve for a very simple case where instance is readily available
+  -- solve for a very simple case where instance is readily available in the context
   let (hτ, τs) <- τ.neutral_form
   let τs' <- List.mapM (λ x =>
       match x with
       | (.kind, τ) => .some τ
       | _ => .none
       ) τs
-  -- find all instances of open type hτ
+  -- find all instances with open type hτ
   let candidate_instances <- List.foldlM (λ Γ x =>
     match Γ d@ x with
     | Frame.insttype iτ => do
@@ -176,10 +167,41 @@ match is_eq τ with
      else .none
 
     | _ => .some Γ
-   ) Γ (shift_helper Γ.length)
+   ) Γ (Term.shift_helper Γ.length)
 
   .some τ
 
+def ctx1 : Ctx Term := [
+ .type (#3 `@k #0),  -- Telescope of open method
+ .kind ★,            --
+ .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
+ .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
+ .opent (★ -k> ★),
+ .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
+ .opent (★ -k> ★),
+ .datatype ★ ]
+#guard wf_ctx ctx1 == .some ()
+
+def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do
+  let candiates : List Term := List.foldl (λ acc idx =>
+    match Γ d@ idx with
+    | .insttype τ =>
+      match instantiate_types τ iτs with
+      | .none => acc
+      | some τ' => if τ' == ret_ty then (((#idx).mk_ty_apps iτs) :: acc) else acc
+    | _ => acc
+  )  [] (Term.shift_helper Γ.length)
+  candiates[0]?
+
+
+#eval do -- let τ <- (ctx1 d@ 5).get_type
+         -- instantiate_types τ [#1]
+         synth_superclass_inst ctx1 [#1] (#1 ~[★]~ #7 -t> #7 `@k #8)
+         -- synth_term ctx1 (#1 ~[★]~ #7 -t> #7 `@k #8) -- should return #6 `@t #8
+         -- -- let (tele, ret_τ) := τ.to_telescope
+         -- -- .some ([P' tele.length] ret_τ)
+         -- let τ <- (ctx1 d@ 5).get_type
+         -- instantiate_types τ [#1]
 
 -- Problem 1: filling in a hole
 -- There is a goal that is an instance, say `C a b c`

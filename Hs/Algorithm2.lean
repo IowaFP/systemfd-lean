@@ -18,77 +18,6 @@ sorry
 theorem fresh_vars_lemma : (fresh_vars n).length == n := by
 sorry
 
-@[simp]
-def mk_eqs : List (Term × Term × Term) -> List Term := List.map (λ x => x.2.1 ~[x.1]~ x.2.2)
-
-@[simp]
-def mk_type_telescope : Ctx Term -> List Term -> Ctx Term := λ Γ ts =>
-  List.foldl (λ Γ t_data =>
-    let t := t_data.2
-    let shift := t_data.1
-    (.type ([S' shift] t) :: Γ)
-  ) Γ (List.zip (shift_helper ts.length) ts)
-
-@[simp]
-def mk_kind_telescope : Ctx Term -> List Term -> Ctx Term := λ Γ ts =>
-  List.foldl (λ Γ t_data =>
-    let t := t_data.2
-    let shift := t_data.1
-    (.kind ([S' shift] t) :: Γ)
-  ) Γ (List.zip (shift_helper ts.length) ts)
-
-@[simp]
-def mk_kind_apps : Term -> List Term -> Term := λ h args =>
-  List.foldl (λ acc a => acc `@k a) h args
-
-@[simp]
-def mk_kind_apps_rev : Term -> List Term -> Term
-| t, [] => t
-| t, .cons a args => mk_kind_apps_rev (t `@k a) args
-
-@[simp]
-def mk_ty_apps : Term -> List Term -> Term := λ h args =>
-  List.foldl (λ acc a => acc `@t a) h args
-
-@[simp]
-def mk_ty_apps_rev : Term -> List Term -> Term
-| t, [] => t
-| t, .cons a args => mk_ty_apps_rev (t `@ a) args
-
-
-@[simp]
-def mk_apps : Term -> List Term -> Term := λ h args =>
-  List.foldl (λ acc a => acc `@ a) h args
-
-@[simp]
-def mk_apps_rev : Term -> List Term -> Term
-| t, [] => t
-| t, .cons a args => mk_apps_rev (t `@ a) args
-
-
-@[simp]
-def mk_lams : Term -> Ctx Term -> Option Term
-| t, [] => t
-| t, .cons (.kind x) xs => do
-  let t' <- (mk_lams t xs)
-  .some (Λ[x] t')
-| t, .cons (.type x) xs => do
-  let t' <- (mk_lams t xs)
-  .some (`λ[x] t')
-| _, _ => .none
-
-
-@[simp]
-def mk_lams_rev : Term -> Ctx Term -> Option Term
-| t, [] => t
-| t, .cons (.kind x) xs =>
-  mk_lams_rev (Λ[x] t) xs
-| t, .cons (.type x) xs =>
-  mk_lams_rev (`λ[x] t) xs
-| _, _ => .none
-
-
-
 -- Henry Ford Encode a type:
 -- Takes a type of the form
 -- ∀ αs. C αs => τs -> D αs
@@ -108,14 +37,14 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
 
   let (Γ_cτs, Γ_ty) := Γ_local.partition (λ x => x.is_type)
 
-  let eqs := mk_eqs (List.zip d_τs_kis (List.zip βs (List.map (λ x => [P' Γ_cτs.length][S' βs.length] x.snd) d_τs)))
+  let eqs := Term.mk_eqs (List.zip d_τs_kis (List.zip βs (List.map (λ x => [P' Γ_cτs.length][S' βs.length] x.snd) d_τs)))
 
 
-  let ty' := [S' (eqs.length + Γ_local.length)] mk_kind_apps ([S' βs.length]#d) βs
+  let ty' := [S' (eqs.length + Γ_local.length)] Term.mk_kind_apps ([S' βs.length]#d) βs
 
   let Γ_cτs' := Γ_cτs.map (λ x => x.apply (S' (βs.length + eqs.length)))
 
-  let Γ' := Γ_cτs' ++ mk_type_telescope (mk_kind_telescope Γ_ty d_τs_kis) eqs
+  let Γ' := Γ_cτs' ++ Term.mk_type_telescope (Term.mk_kind_telescope Γ_ty d_τs_kis) eqs
 
   let ty' := ty'.from_telescope_rev Γ'
 
@@ -129,7 +58,7 @@ def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
   .some (d, ty')
 
 
-#eval (shift_helper 10).take 5
+#eval (Term.shift_helper 10).take 5
 
 
 /- Caution: The ids themselves are meaningless (sort of),
@@ -138,7 +67,7 @@ def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
 def get_openm_ids : Ctx Term -> Nat -> Option (List Nat) := λ Γ_g cls_idx =>
   if (Γ_g.is_opent cls_idx)
   then
-    let ids := ((shift_helper Γ_g.length).take cls_idx).reverse
+    let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
     .some ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
   else .none
 
@@ -219,7 +148,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     let sc := sc_data.2 -- Superclass type
     let (sc_tycon, ty_args) <- sc.neutral_form -- Split it into ctor and ty_args
 
-    let class_type := mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars
+    let class_type := Term.mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars
 
     let sc' <- compile (ty_vars_ctx ++ Γ) ★ sc
 
@@ -248,12 +177,12 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     then do
       let ki <- (ty_vars_ctx d@ det1).get_type
 
-      let cls_ty1 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars.reverse
+      let cls_ty1 := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars.reverse
 
 
       let ty_vars' := ty_vars.replace #det1 #det2
       -- TODO: What if the fundep is partial? also vary the irrelevant type vars
-      let cls_ty2 := mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars'.reverse
+      let cls_ty2 := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars'.reverse
 
 
       let t := cls_ty1 -t> [S](cls_ty2 -t> [S](#det1 ~[ki]~ #det2))
@@ -324,7 +253,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     -- let (Γ_l, ret_ty) := omτ.to_telescope
 
     .some Γ
-  ) Γ' (shift_helper fd_ids.length)
+  ) Γ' (Term.shift_helper fd_ids.length)
 
 
   -- Step 4: Compile superclass insts
@@ -337,14 +266,17 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     let new_vars := fresh_vars Γ_l.length
     let ty_vars : List Term := new_vars.reverse.take (ty_args_ctx.length)
 
-    let g_pat := mk_ty_apps #(sc_id + fd_ids.length + Γ_l.length) ty_vars
+    let g_pat := Term.mk_ty_apps #(sc_id + fd_ids.length + Γ_l.length) ty_vars
+    let g_pat_ty <- ((Γ_l ++ Γ) d@ (sc_id + fd_ids.length + Γ_l.length)).get_type
+    let g_pat_ty <- instantiate_types g_pat_ty ty_vars
+    let (eqs, _) := g_pat_ty.to_telescope
 
-    let t' <- synth_term_dummy (Γ_l ++ Γ) ret_ty
-    let sc_fun <- mk_lams (Term.guard g_pat #0 t') Γ_l
+    let t' <- synth_superclass_inst (Γ_l  ++ Γ) ty_vars (([S' eqs.length] ret_ty).from_telescope eqs)
+    let sc_fun <- Term.mk_lams (Term.guard g_pat #0 t') Γ_l
     let new_Γ := .inst #(cls_idx - (1 + fd_ids.length)) sc_fun :: Γ
     .some new_Γ
 
-  ) Γ' (shift_helper sc_ids.length)
+  ) Γ' (Term.shift_helper sc_ids.length)
 
   let cls_idx := cls_idx + sc_ids.length
 
@@ -371,7 +303,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
         let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
         let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
 
-        let g_pat := (mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
+        let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
 
         let instty <- ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
         let instty <- instantiate_types instty ty_vars
@@ -388,10 +320,10 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
                      ([S' (inst_ty_coercions.length)]ret_ty)
 
         let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
-        let mth' <- mk_lams (mth' ▹ η)
+        let mth' <- Term.mk_lams (mth' ▹ η)
                           inst_ty_coercions
 
-        let mth' <- mk_lams (Term.guard g_pat #0 mth') Γ_l
+        let mth' <- Term.mk_lams (Term.guard g_pat #0 mth') Γ_l
 
         let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
         let cls_idx := cls_idx + 1
@@ -400,7 +332,7 @@ def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
       | .HsVar _ => .none
       | _ => .none
 
-    )  Γ' (List.zip mths (shift_helper openm_ids.length))
+    )  Γ' (List.zip mths (Term.shift_helper openm_ids.length))
   else .none
 
   .some Γ'
