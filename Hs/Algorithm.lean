@@ -38,6 +38,40 @@ def compile_spine_variant : HsSpineVariant -> SpineVariant
 
 -- surface: datatype Bool (tt, ff); #0 = ff, #1 = tt, #2 = Bool <-- defined by hs_nth
 
+def helper1
+  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term)
+  (Γ : Ctx Term)
+  (head : HsTerm)
+  : Option (Term × Term)
+:=
+  match head with
+  | .HsAnnotate τh h => do
+    let τh' <- compile Γ ★ τh
+  -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
+    let h' <- compile Γ τh' h
+    .some (h', τh')
+  | .HsVar h => do
+    let τh' <- (Γ d@ h).get_type
+    -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
+    .some (#h, τh')
+  | _ => .none
+
+def helper2
+  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term)
+  (Γ : Ctx Term)
+  : Term × Term -> HsSpineVariant × HsTerm -> Option (Term × Term)
+:= λ acc arg => do
+  let (accτ, acc) : Term × Term := acc
+  let (τ, res_τ) <- accτ.to_telescope_head
+  match τ, arg with
+  | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
+    let arg' <- compile Γ k arg
+    .some (res_τ β[arg'], acc `@t arg')
+  | .type k, (.term, arg) => do -- accτ better of of the form a -> b
+    let arg' <- compile Γ k arg
+    .some (res_τ β[arg'], acc `@ arg')
+  | _, _ => .none
+
 -- @[simp]
 unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 -- TODO: Type directed compilation
@@ -157,42 +191,20 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Te
 | Γ, exp_τ, t => do
   let (head, args) <- t.neutral_form
   -- Compile Head
-  let (h', τh') <-
-    match head with
-    | .HsAnnotate τh h => do
-      let τh' <- compile Γ ★ τh
-    -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
-      let h' <- compile Γ τh' h
-      .some (h', τh')
-
-    | .HsVar h => do
-      let τh' <- (Γ d@ h).get_type
-      -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
-      .some (#h, τh')
-    | _ => .none
+  let (h', τh') <- helper1 compile Γ head
   let (τs, res_τh') := τh'.to_telescope
 
   if args.length > τs.length then .none
   else
   -- Compile Args and actual type
-    let (actual_τ, t') <- args.foldlM (λ acc arg => do
-        let (accτ, acc) : Term × Term := acc
-        let (τ, res_τ) <- accτ.to_telescope_head
-        match τ, arg with
-        | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
-          let arg' <- compile Γ k arg
-          .some (res_τ β[arg'], acc `@t arg')
-        | .type k, (.term, arg) => do -- accτ better of of the form a -> b
-          let arg' <- compile Γ k arg
-          .some (res_τ β[arg'], acc `@ arg')
-        | _, _ => .none)
-        (τh', h')
-
+    let (actual_τ, t') <- args.foldlM (helper2 compile Γ) (τh', h')
     if exp_τ == actual_τ
     then .some t'
     else do
       let η <- synth_coercion_dummy Γ actual_τ exp_τ
       .some (t' ▹ η)
+
+
 -- | _, _, _ => .none
 -- decreasing_by repeat sorry
 -- all_goals(simp at *)
