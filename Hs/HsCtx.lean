@@ -32,7 +32,7 @@ protected def HsFrame.repr [r : Repr T]: (a : HsFrame T) -> (p : Nat) -> Std.For
 | .type t, p =>
   "type " ++ r.reprPrec t p
 | .term A t, p =>
-  "term " ++ r.reprPrec t p ++ " : " ++ r.reprPrec A p
+  Std.Format.nest 5 <| "term " ++ r.reprPrec t p ++ Std.Format.line ++ " : " ++ r.reprPrec A p
 | .datatypeDecl t ts, p =>
   Std.Format.nest 10 <| "datatype " ++ r.reprPrec t p ++ Std.Format.line ++ List.repr ts p
 | .classDecl t scs fds oms, p =>

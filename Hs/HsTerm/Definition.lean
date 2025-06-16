@@ -30,26 +30,26 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsKind, _ => "`□"
 | HsVar n , _ => "`#" ++ Nat.repr n
 | HsName n , _ => n
-| HsHole n , p => "__@" ++ Repr.addAppParen (HsTerm.repr n p) max_prec
-| HsAnnotate A t, p => Repr.addAppParen ((HsTerm.repr t p) ++ " : " ++ (HsTerm.repr A p)) max_prec
+| HsHole n , p => "__@" ++ Std.Format.paren (HsTerm.repr n p)
+| HsAnnotate A t, p => Std.Format.paren ((HsTerm.repr t max_prec) ++ " : " ++ (HsTerm.repr A p))
 | HsCtor2 .arrowk a b, p => Repr.addAppParen ((HsTerm.repr a max_prec) ++ " `-k> " ++ (HsTerm.repr b p)) p
 
-| HsCtor2 .appk a b, p => (HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b p)
-| HsCtor2 .app a b, p => (HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b p)
-| HsCtor2 .appt a b, p => (HsTerm.repr a p) ++ " `•t " ++ (HsTerm.repr b p)
+| HsCtor2 .appk a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b max_prec)) p
+| HsCtor2 .app a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b max_prec)) p
+| HsCtor2 .appt a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `•t " ++ (HsTerm.repr b max_prec)) p
 
 | HsBind2 .lam t1 t2, p => "`λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++  HsTerm.repr t2 p
 | HsBind2 .lamt t1 t2, p => "`Λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++ HsTerm.repr t2 p
 | HsBind2 .all t1 t2 , p => "`∀" ++ Std.Format.sbracket (HsTerm.repr t1 p) ++ HsTerm.repr t2 p
-| HsBind2 .arrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " → " ++ HsTerm.repr t2 p) max_prec
-| HsBind2 .farrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " ⇒ " ++ HsTerm.repr t2 p) max_prec
+| HsBind2 .arrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 max_prec) ++ " → " ++ HsTerm.repr t2 p) p
+| HsBind2 .farrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 max_prec) ++ " ⇒ " ++ HsTerm.repr t2 p) p
 | HsLet t1 t2 t3 , p =>
   "HsLet (" ++ HsTerm.repr t1 p ++ ":" ++ HsTerm.repr t2 p ++ ") In"
   ++ Std.Format.line ++ HsTerm.repr t3 p
-| HsIte t1 t2 t3 t4, p =>
-  "HsIf" ++ HsTerm.repr t1 p ++ " ← " ++ HsTerm.repr t2 p ++
-  "Then" ++ Std.Format.line ++ HsTerm.repr t3 p ++
-  "Else" ++ Std.Format.line ++ HsTerm.repr t4 p
+| HsIte t1 t2 t3 t4, p => Std.Format.nest 4 <|
+  " HsIf " ++ HsTerm.repr t1 p ++ " ← " ++ HsTerm.repr t2 p ++ Std.Format.line ++
+  " Then " ++ HsTerm.repr t3 p ++ Std.Format.line ++
+  " Else " ++ Std.Format.line ++ HsTerm.repr t4 p
 
 instance HsTerm_repr : Repr HsTerm where
   reprPrec a p := HsTerm.repr a p
@@ -66,7 +66,7 @@ notation:15 "`∀{" a "}" b => HsTerm.HsBind2 HsBind2Variant.all a b
 notation:15  a " → " b => HsTerm.HsBind2 HsBind2Variant.arrow a b
 notation:15  a " ⇒ " b => HsTerm.HsBind2 HsBind2Variant.farrow a b
 prefix:max "`#" => HsTerm.HsVar
-notation:15 "HsIf " p " ← " s " then " i " else " e => HsTerm.HsIte p s i e
+notation:15 "HsIf " p " ← " s " Then " i " Else " e => HsTerm.HsIte p s i e
 prefix:max "__@" => HsTerm.HsHole
 
 

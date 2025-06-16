@@ -108,36 +108,36 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor2 .snd t1 t2 => "(snd! " ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p ++ ")"
 
   | .ctor2 .refl t1 t2 => "(refl! " ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p ++ ")"
-  | .ctor2 .arrowk t1 t2 => Repr.addAppParen (Term.repr t1 p) max_prec ++ " → " ++ Term.repr t2 p
+  | .ctor2 .arrowk t1 t2 => Repr.addAppParen (Term.repr t1 max_prec ++ " -k> " ++ Term.repr t2 p) p
   | .ctor2 .appk t1 t2 => Term.repr t1 p ++ " `@k " ++ Term.repr t2 p
   | .ctor2 .appc t1 t2 => Term.repr t1 p ++ " `@c " ++ Term.repr t2 p
-  | .ctor2 .appt t1 t2 => Std.Format.paren (Term.repr t1 p) ++ Std.Format.sbracket (Term.repr t2 p)
+  | .ctor2 .appt t1 t2 => Term.repr t1 max_prec ++ Std.Format.sbracket (Term.repr t2 p)
   | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@c[ " ++ Term.repr t2 p ++ " ]"
-  | .ctor2 .app t1 t2 => Std.Format.paren (Term.repr t1 p ++ " ⬝ " ++ Std.Format.line ++ Term.repr t2 p)
+  | .ctor2 .app t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " ⬝ " ++ Std.Format.line ++ Term.repr t2 p) p
   | .ctor2 .cast t1 t2 =>
-    Std.Format.paren (Repr.addAppParen (Term.repr t1 p) max_prec ++ " ▹ "
-    ++ Std.Format.line ++ Repr.addAppParen (Term.repr t2 p) max_prec)
-  | .ctor2 .seq t1 t2 => Term.repr t1 p ++ " `; "  ++ Std.Format.line ++ Term.repr t2 p
-  | .ctor2 .choice t1 t2 => Term.repr t1 p ++ " ⊕ " ++ Term.repr t2 p
+    Std.Format.paren (Term.repr t1 max_prec ++ " ▹ "
+    ++ Std.Format.line ++ Term.repr t2 max_prec)
+  | .ctor2 .seq t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " `; "  ++ Std.Format.line ++ Term.repr t2 p) p
+  | .ctor2 .choice t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " ⊕ " ++ Term.repr t2 p) p
 
-  | .bind2 .all t1 t2 => "∀" ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p
-  | .bind2 .arrow t1 t2 => Repr.addAppParen (Term.repr t1 p) max_prec ++ " → " ++ Term.repr t2 p
-  | .bind2 .arrowc t1 t2 => Repr.addAppParen (Term.repr t1 p) max_prec ++ " → " ++ Term.repr t2 p
+  | .bind2 .all t1 t2 => Repr.addAppParen ("∀" ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p) p
+  | .bind2 .arrow t1 t2 => Repr.addAppParen (Term.repr t1 max_prec ++ " -t> " ++ Term.repr t2 p) p
+  | .bind2 .arrowc t1 t2 => Repr.addAppParen (Term.repr t1 max_prec ++ " -c> " ++ Term.repr t2 p) p
   | .bind2 .allc t1 t2 => "∀c" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
-  | .bind2 .lamt t1 t2 => "Λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
-  | .bind2 .lam t1 t2 => "`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p
+  | .bind2 .lamt t1 t2 => Repr.addAppParen ("Λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p) p
+  | .bind2 .lam t1 t2 => Repr.addAppParen ("`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p) p
 
   | .eq t1 t2 t3 =>  Std.Format.paren (Term.repr t2 p ++ " ~[" ++ Term.repr t1 p ++ "]~ " ++ Term.repr t3 p)
-  | .ite pat s b c => Std.Format.paren (
-         Std.Format.nest 4 <| "match " ++ Term.repr s p ++ " with " ++
-          Repr.addAppParen (Term.repr pat p) max_prec
-          ++ Std.Format.line ++ " | " ++ Term.repr b p
-          ++ Std.Format.line ++ " | " ++ Term.repr c p)
+  | .ite pat s b c =>
+     Std.Format.nest 4 <| "match " ++ Term.repr s p ++ " with " ++ Term.repr pat p
+       ++ Std.Format.line ++ " | " ++ Term.repr b p
+       ++ Std.Format.line ++ " | " ++ Term.repr c p
   | .guard pat s c =>
-           Std.Format.nest 4 <| "guard " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ",  " ++ Std.Format.line
-           ++ Term.repr c p
-  | .letterm t t1 t2 => "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
-                     ++ Term.repr t2 p
+     Std.Format.nest 4 <| "guard " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ",  " ++ Std.Format.line
+          ++ Term.repr c p
+  | .letterm t t1 t2 =>
+     Std.Format.nest 4 <| "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
+          ++ Term.repr t2 p
 
 
 instance Term_repr : Repr Term where
