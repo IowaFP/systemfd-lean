@@ -64,8 +64,8 @@ def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) -- `• `
 
 def ex1' : Term := (#10 `@t #14 `@ (#8 `@t #14 `@ refl! ★ #14)) `@ #13 `@ #12
 
-#eval! do let ctx <- compile_ctx supCtx
-          synth_term ctx (#11 `@k #14)
+-- #eval! do let ctx <- compile_ctx supCtx
+--           synth_term ctx (#11 `@k #14)
 
 #eval! do let Γ <- compile_ctx supCtx
           -- let τ <- (Γ d@ 10).get_type
@@ -75,5 +75,5 @@ def ex1' : Term := (#10 `@t #14 `@ (#8 `@t #14 `@ refl! ★ #14)) `@ #13 `@ #12
 
           -- compile Γ ((#11 `@k #14) -t> #15 -t> #16 -t> #17) (`#10 `•t `#14)
           -- compile Γ (#11 `@k #14) (.HsHole (`#11 `•k `#14))
-          compile Γ (#14 -t> #15 -t> #16) (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)))
+          compile Γ #14 (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13)
           -- compile Γ (#14 -t> #15 -t> #16) (.HsAnnotate (`#14 → `#15 → `#16) ex1)

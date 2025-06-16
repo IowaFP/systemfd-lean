@@ -30,9 +30,9 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsKind, _ => "`□"
 | HsVar n , _ => "`#" ++ Nat.repr n
 | HsName n , _ => n
-| HsHole n , p => "_@" ++ Repr.addAppParen (HsTerm.repr n p) p
-| HsAnnotate A t, p => "(" ++ (HsTerm.repr t p) ++ " : " ++ (HsTerm.repr A p) ++ ")"
-| HsCtor2 .arrowk a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `-k> " ++ (HsTerm.repr b p)) p
+| HsHole n , p => "__@" ++ Repr.addAppParen (HsTerm.repr n p) max_prec
+| HsAnnotate A t, p => Repr.addAppParen ((HsTerm.repr t p) ++ " : " ++ (HsTerm.repr A p)) max_prec
+| HsCtor2 .arrowk a b, p => Repr.addAppParen ((HsTerm.repr a max_prec) ++ " `-k> " ++ (HsTerm.repr b p)) p
 
 | HsCtor2 .appk a b, p => (HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b p)
 | HsCtor2 .app a b, p => (HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b p)
@@ -41,8 +41,8 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsBind2 .lam t1 t2, p => "`λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++  HsTerm.repr t2 p
 | HsBind2 .lamt t1 t2, p => "`Λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++ HsTerm.repr t2 p
 | HsBind2 .all t1 t2 , p => "`∀" ++ Std.Format.sbracket (HsTerm.repr t1 p) ++ HsTerm.repr t2 p
-| HsBind2 .arrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " → " ++ HsTerm.repr t2 p) p
-| HsBind2 .farrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " ⇒ " ++ HsTerm.repr t2 p) p
+| HsBind2 .arrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " → " ++ HsTerm.repr t2 p) max_prec
+| HsBind2 .farrow t1 t2 , p => Repr.addAppParen ((HsTerm.repr t1 p) ++ " ⇒ " ++ HsTerm.repr t2 p) max_prec
 | HsLet t1 t2 t3 , p =>
   "HsLet (" ++ HsTerm.repr t1 p ++ ":" ++ HsTerm.repr t2 p ++ ") In"
   ++ Std.Format.line ++ HsTerm.repr t3 p

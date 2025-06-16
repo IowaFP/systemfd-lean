@@ -45,7 +45,7 @@ def OrdEqBoolCtx : Ctx Term := [
   , .datatype ★   -- Bool : ★
 ]
 
-#eval OrdEqBoolCtx
+-- #eval OrdEqBoolCtx
 #eval wf_ctx OrdEqBoolCtx
 
 -- leq : ∀ a. Ord a → a → a → Bool

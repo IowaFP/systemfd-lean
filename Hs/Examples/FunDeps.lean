@@ -48,12 +48,14 @@ def MonadFrame : HsFrame HsTerm :=
 -- class StateMonad s m | m -> s
 def StateMonadFrame : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> (`★ `-k> `★) `-k> `★)
-    [`#5 `•k `#1] -- ∀ s m. StateMonad s m -> Monad m
+    [`#8 `•k `#1] -- ∀ s m. StateMonad s m -> Monad m
     [ ([0] , 1) ] -- m ~> s  ∀ s1 m s2. StateMonad s1 m -> StateMonad s2 m
     .nil -- oms
 
 #eval "StateMonad, monad, Ord, Eq, Bool"
 #eval StateMonadFrame :: MonadFrame :: OrdCFrame :: EqCtx
-#eval! compile_ctx (StateMonadFrame :: MonadFrame :: OrdCFrame :: EqCtx)
+#eval! compile_ctx ( StateMonadFrame ::
+                     MonadFrame ::
+                     OrdCFrame :: EqCtx)
 #eval! do let ctx <- compile_ctx (StateMonadFrame :: MonadFrame :: OrdCFrame :: EqCtx)
           wf_ctx ctx
