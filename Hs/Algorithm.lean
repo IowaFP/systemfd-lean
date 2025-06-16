@@ -4,6 +4,8 @@ import SystemFD.Term
 import SystemFD.Algorithm
 import Hs.SynthInstance
 
+set_option profiler true
+
 @[simp]
 def compile_ctor2variant : HsCtor2Variant -> Ctor2Variant
 | .arrowk => .arrowk
@@ -37,7 +39,7 @@ def compile_spine_variant : HsSpineVariant -> SpineVariant
 -- surface: datatype Bool (tt, ff); #0 = ff, #1 = tt, #2 = Bool <-- defined by hs_nth
 
 -- @[simp]
-def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
+unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 -- TODO: Type directed compilation
 -- def compile : (Γ : Ctx Term) -> Term -> HsTerm -> Option Term
 -------------------
@@ -134,7 +136,7 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
   if τ == exp_τ
   then .some #h
   else do
-    let η <- synth_coercion Γ τ exp_τ
+    let η <- synth_coercion_dummy Γ τ exp_τ
     .some (#h ▹ η)
 
 --
@@ -151,17 +153,6 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
 -- (==) : Eq a => a -> a -> Bool
 -- eta : Eq a => a -> a -> Bool
 -- eta = \ a. \ b. a == b
-
--- | Γ, τ, .HsCtor2 .app f (.HsAnnotate τa a) => do
---   let f' <- compile Γ (τa → τ) f
---   let a' <- compile Γ τa a
---   .some (.ctor2 .app f' a')
-
-
--- | Γ, τ, .HsCtor2 .appt f (.HsAnnotate τa a) => do
---   let f' <- compile Γ (τa → τ) f
---   let a' <- compile Γ τa a
---   .some (.ctor2 .app f' a')
 
 | Γ, exp_τ, t => do
   let (head, args) <- t.neutral_form
@@ -200,10 +191,10 @@ def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Term
     if exp_τ == actual_τ
     then .some t'
     else do
-      let η <- synth_coercion Γ actual_τ exp_τ
+      let η <- synth_coercion_dummy Γ actual_τ exp_τ
       .some (t' ▹ η)
-
-decreasing_by repeat sorry
+-- | _, _, _ => .none
+-- decreasing_by repeat sorry
 -- all_goals(simp at *)
 -- case _ => sorry
 

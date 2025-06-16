@@ -116,12 +116,13 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
   let path <- graph.find_path_by_label (λ _ => false) lhs rhs
   List.foldlM (· `; ·) (refl! K lhs) path
 
--- #eval wf_ctx [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★]
+-- #guard wf_ctx [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] == .some ()
 
 -- #eval construct_coercion_graph ([.empty, .type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
 
 
--- #eval synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6)
+#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6) == .some ((refl! ★ #4) `; (sym! #0) -c> (refl! ★ #5) `; (sym! #1) -c> (refl! ★ #3) `; #2)
+
 
 #guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #4 #1 == .some ((refl! ★ #4) `; sym! #0)
 #guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4 == .some ((refl! ★ #1) `; #0)
@@ -199,8 +200,9 @@ def ctx1 : Ctx Term := [
  .datatype ★ ]
 #guard wf_ctx ctx1 == .some ()
 
+-- TODO ANI: Can this be merged with synth_term?
 def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do
-  let candiates : List Term := List.foldl (λ acc idx =>
+  let cand_insts : List Term := List.foldl (λ acc idx =>
     match Γ d@ idx with
     | .insttype τ =>
       match instantiate_types τ iτs with
@@ -208,7 +210,9 @@ def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := 
       | some τ' => if τ' == ret_ty then (((#idx).mk_ty_apps iτs) :: acc) else acc
     | _ => acc
   )  [] (Term.shift_helper Γ.length)
-  if candiates.length == 1 then candiates[0]? else .none
+  if cand_insts.length == 1 then cand_insts[0]?
+  else if cand_insts.length >= 1 then .some (cand_insts.foldl (λ x y => x ⊕ y) `0) -- is this right?
+  else .none
 
 
 #guard synth_superclass_inst ctx1 [#1] (#1 ~[★]~ #7 -t> #7 `@k #8) == (#5 `@t #1)
