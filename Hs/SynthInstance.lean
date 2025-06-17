@@ -170,7 +170,8 @@ match is_eq τ with
             :: acc)
 
      else .some acc
-
+    | Frame.type iτ => -- if we have an instance in our assumptions
+      if iτ == τ then .some (#idx :: acc) else .some acc
     | _ => .some acc
    ) [] (Term.shift_helper Γ.length)
 
@@ -188,6 +189,7 @@ def ctx0 : Ctx Term := [
 
 #guard synth_term ctx0 (#4 `@k #5) == (#3 `@t #5 `@ (refl! ★ #5))
 #guard synth_term ctx0 (#2 `@k #5) == (#0 `@t #5 `@ (refl! ★ #5))
+#guard synth_term [.type (#2 `@k #3), .type (#1 `@k #0), .kind ★, .opent (★ -t> ★), .datatype ★] (#3 `@k #2) == .some #1
 
 def ctx1 : Ctx Term := [
  .type (#3 `@k #0),  -- Telescope of open method
@@ -259,4 +261,4 @@ def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := 
   --     might need to repeat this to compute a fixed point
   -- recurse on instance assumptions
 
-def synth_instance (Γ : Ctx Term) (T : (Nat × List (SpineVariant × Term))) : Option Term := sorry
+-- def synth_instance (Γ : Ctx Term) (T : (Nat × List (SpineVariant × Term))) : Option Term := sorry

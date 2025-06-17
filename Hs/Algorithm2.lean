@@ -263,8 +263,6 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   ) Γ' (Term.shift_helper fd_ids.length)
 
 
-
-
   -- Step 4: Compile superclass insts
   let Γ' <- List.foldlM (λ Γ sc_id => do
 
@@ -302,78 +300,47 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     -- split Γ_l into two parts
     -- ty_args, implicit args
       let (ty_args, _) := List.partition (λ x => x.is_kind) Γ_l
-      let Γ' <- match mth with
-      | .HsAnnotate τ mth => do
+      let (τ', mth') <- match mth with
+      | .HsAnnotate τ mth  => do
         let τ' <- compile Γ ★ τ
         let mth' <- compile Γ τ' mth
-
-        let τ' := [S' Γ_l.length] τ'
-
-        let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
-        let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
-
-        let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
-
-        let instty <- ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
-        let instty <- instantiate_types instty ty_vars
-
-        let (tele, _ ) := instty.to_telescope
-        let inst_ty_coercions := tele.filter (λ x =>
-          match x with
-          | .type τ => Option.isSome (is_eq τ)
-          | _ => false)
-
-
-        let η <- synth_coercion_dummy (inst_ty_coercions ++ Γ_l ++ Γ)
-                     ([S' (inst_ty_coercions.length)]τ')
-                     ([S' (inst_ty_coercions.length)]ret_ty)
-
-        let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
-        let mth' <- Term.mk_lams (mth' ▹ η)
-                          inst_ty_coercions
-
-        let mth' <- Term.mk_lams (Term.guard g_pat #0 mth') Γ_l
-
-        let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
-        let cls_idx := cls_idx + 1
-        .some new_Γ
-
-      | .HsVar h =>
-        let τ' <- (Γ d@ h).get_type
+        .some (τ', mth')
+      | .HsVar n => do
+        let τ' <- (Γ d@ n).get_type
         let mth' <- compile Γ τ' mth
-
-        let τ' := [S' Γ_l.length] τ'
-
-        let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
-        let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
-
-        let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
-
-        let instty <- ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
-        let instty <- instantiate_types instty ty_vars
-
-        let (tele, _ ) := instty.to_telescope
-        let inst_ty_coercions := tele.filter (λ x =>
-          match x with
-          | .type τ => Option.isSome (is_eq τ)
-          | _ => false)
+        .some (τ', mth')
+      | _ => .none
 
 
-        let η <- synth_coercion_dummy (inst_ty_coercions ++ Γ_l ++ Γ)
+      let τ' := [S' Γ_l.length] τ'
+      let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
+      let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
+
+      let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
+
+      let instty <- ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
+      let instty <- instantiate_types instty ty_vars
+
+      let (tele, _ ) := instty.to_telescope
+      let inst_ty_coercions := tele.filter (λ x =>
+        match x with
+        | .type τ => Option.isSome (is_eq τ)
+        | _ => false)
+
+
+      let η <- synth_coercion_dummy (inst_ty_coercions ++ Γ_l ++ Γ)
                      ([S' (inst_ty_coercions.length)]τ')
                      ([S' (inst_ty_coercions.length)]ret_ty)
 
-        let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
-        let mth' <- Term.mk_lams (mth' ▹ η)
+      let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
+      let mth' <- Term.mk_lams (mth' ▹ η)
                           inst_ty_coercions
 
-        let mth' <- Term.mk_lams (Term.guard g_pat #0 mth') Γ_l
+      let mth' <- Term.mk_lams (Term.guard g_pat #0 mth') Γ_l
 
-        let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
-        let cls_idx := cls_idx + 1
-        .some new_Γ
-
-      | _ => .none
+      let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
+      let cls_idx := cls_idx + 1
+      .some new_Γ
 
     )  Γ' (List.zip mths (Term.shift_helper openm_ids.length))
   else .none

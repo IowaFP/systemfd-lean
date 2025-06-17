@@ -124,7 +124,7 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> Option Te
   if τ == a'
   then .some t
   else do
-    let η <- synth_coercion Γ a' τ
+    let η <- synth_coercion_dummy Γ a' τ
     .some (t ▹ η )
 
 
