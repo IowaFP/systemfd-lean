@@ -140,11 +140,13 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
 
 | Γ, τ, .HsHole a => do
   let a' <- compile Γ ★ a
-  let t <- .toDsM ("synth_term hole" ++ repr a') (synth_term Γ a')
+  let t <- .toDsM ("synth_term hole" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr a')
+           (synth_term Γ a')
   if τ == a'
   then .ok t
   else do
-    let η <- .toDsM ("synth_coercion hole" ++ repr (a' ~[★]~ τ)) (synth_coercion Γ a' τ)
+    let η <- .toDsM ("synth_coercion hole" ++  Std.Format.line ++ repr Γ ++ repr (a' ~[★]~ τ))
+             (synth_coercion Γ a' τ)
     .ok (t ▹ η )
 
 
@@ -191,8 +193,9 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   if τ == exp_τ
   then .ok #h
   else do
-    let η <- .toDsM ("synth_coercion variable" ++ Std.Format.line
-                    ++ repr Γ ++ Std.Format.line ++ repr (τ ~[★]~ exp_τ)) (synth_coercion Γ τ exp_τ)
+    let η <- .toDsM ("synth_coercion variable" ++ Std.Format.line ++ repr Γ
+                    ++ Std.Format.line ++ repr (τ ~[★]~ exp_τ)
+                    ++ Std.Format.line ++ repr h) (synth_coercion Γ τ exp_τ)
     .ok (#h ▹ η)
 
 --

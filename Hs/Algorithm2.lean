@@ -23,48 +23,73 @@ def re_index_base := fresh_vars
 
 -- Henry Ford Encode a type:
 -- Takes a type of the form
--- ∀ αs. C αs => τs -> D αs
+-- ∀ αs. τs -> D αs
 -- and converts it to
--- ∀ βs αs. (βs ~ αs) ⇒ C αs ⇒ τs -> D βs
--- ASSUMES all type binders are in front.
+-- ∀ αs. τs -> ∀ βs (βs ~ αs) -> D βs
+-- ASSUMES all type binders are in front in the original type
 -- It doesn't matter if αs have type variables, they would
 -- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
 @[simp]
 def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> DsM Term :=
 λ Γ data => do
-  let (Γ_local, d, d_τs) := data
+  let (Γ_local, d, d_αs) := data
 
-  let d_τs_kis <- List.mapM (λ x =>
+  let d_αs_kis <- List.mapM (λ x =>
       .toDsM ("hf encode infer_kind"
             ++ Std.Format.line ++ repr (Γ_local ++ Γ) ++ Std.Format.line ++ repr x)
-      (infer_kind (Γ_local ++ Γ) x.2)) d_τs
+      (infer_kind (Γ_local ++ Γ) x.2)) d_αs
 
-  let βs := fresh_vars d_τs.length
+  let βs := fresh_vars d_αs.length
 
-  let (Γ_cτs, Γ_ty) := Γ_local.partition (λ x => x.is_type)
+  -- let (Γ_cτs, Γ_ty) := Γ_local.partition (λ x => x.is_type)
 
-  let eqs := Term.mk_eqs (List.zip d_τs_kis (List.zip βs (List.map (λ x => [P' Γ_cτs.length][S' βs.length] x.snd) d_τs)))
+  let eqs := Term.mk_eqs (List.zip d_αs_kis (List.zip βs (List.map (λ x => [S' βs.length] x.snd) d_αs)))
 
 
-  let ty' := [S' (eqs.length + Γ_local.length)] Term.mk_kind_apps ([S' βs.length]#d) βs
+  let ty' := [S' eqs.length] Term.mk_kind_apps ([S' βs.length]#d) βs
 
-  let Γ_cτs' := Γ_cτs.map (λ x => x.apply (S' (βs.length + eqs.length)))
+  -- let Γ_cτs' := Γ_cτs.map (λ x => x.apply (S' (βs.length + eqs.length)))
 
-  let Γ' := Γ_cτs' ++ Term.mk_type_telescope (Term.mk_kind_telescope Γ_ty d_τs_kis) eqs
+  let Γ' := Term.mk_type_telescope (Term.mk_kind_telescope Γ_local d_αs_kis) eqs
 
   let ty' := ty'.from_telescope_rev Γ'
 
   .ok ty'
 
+
+
+
 @[simp]
-def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term) := λ Γ ty => do
+def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term × List Term) := λ Γ ty => do
   let (Γ_local, res_ty) := ty.to_telescope
+  let Γ_assms := Γ_local.filter (λ x =>
+                  match x with
+                  | .type _ => true
+                  | _ => false )
   let (d, d_τs) <- .toDsM ("mk_inst_type neutral_form" ++ Std.Format.line ++repr res_ty) res_ty.neutral_form
   let ty' <- hf_encode Γ (Γ_local.reverse, d, d_τs)
-  .ok (d - Γ_local.length, ty')
+  match is_all ty with
+  | .some _ => .ok (d - Γ_local.length, ty', d_τs.map (λ x => x.2))
+  | .none => .ok (d - Γ_local.length, ty', d_τs.map (λ x => [P' Γ_local.length]x.2))
 
 
 #eval (Term.shift_helper 10).take 5
+
+namespace Test
+  -- def Γ : Ctx Term := [
+  --   .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
+  --   .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
+  --   .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
+  --   .opent (★ -k> ★),
+  --   .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
+  --   .opent (★ -k> ★),
+  --   .datatype ★ ]
+
+    #guard wf_ctx Γ == .some ()
+    #eval DsM.run (mk_inst_type Γ (#5 `@k #6))
+    #eval DsM.run (mk_inst_type Γ (∀[★] #4 `@k #0 -t> #7 `@k #1))
+
+end Test
 
 
 /- Caution: The ids themselves are meaningless (sort of),
@@ -217,12 +242,14 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   let Γ'  <- compile_ctx Γ
 
   -- Step1: Compile instance type
+  -- ity is of the form C τs ⇒ D τs
   let ity' <- compile Γ' ★ ity
-  let (cls_idx , ity') <- mk_inst_type Γ' ity'
+  let (cls_idx , ity', d_τs) <- mk_inst_type Γ' ity'
 
   let Γ' := .insttype ity' :: Γ'
 
   let cls_idx := cls_idx + 1 -- account for insttype at head
+  let d_τs := d_τs.map (λ x => [S]x)
   -- let instty_idx := 0
 
   let openm_ids <- get_openm_ids Γ' cls_idx
@@ -292,6 +319,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   ) Γ' (Term.shift_helper sc_ids.length)
 
   let cls_idx := cls_idx + sc_ids.length
+  let d_τs := d_τs.map (λ x => [S' sc_ids.length] x)
 
   -- Step3 : compile open method
   let Γ' <- if  mths.length == openm_ids.length -- insist on all methods being implemented
@@ -303,22 +331,29 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let (Γ_l, ret_ty) := to_implicit_telescope Γ omτ
 
+      -- If the insttype has some assumptions we can use, add them in the local context
+      let insttype <- .toDsM ("get inst type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr (cls_idx-1))
+                             (Γ d@ (idx + sc_ids.length + fd_ids.length)).get_type
     -- split Γ_l into two parts
     -- ty_args, implicit args
       let (ty_args, _) := List.partition (λ x => x.is_kind) Γ_l
+      let insttype' <- .toDsM ("instantiate insttype") (instantiate_types insttype d_τs)
+      let (Γ_inst, _) := insttype'.to_telescope
+      let Γ_inst := Γ_inst.reverse
+
       let (τ', mth') <- match mth with
       | .HsAnnotate τ mth  => do
-        let τ' <- compile Γ ★ τ
-        let mth' <- compile Γ τ' mth
+        let τ' <- compile (Γ_inst ++ Γ) ★ ([S' Γ_inst.length] τ)
+        let mth' <- compile (Γ_inst ++ Γ) τ' ([S' Γ_inst.length] mth)
         .ok (τ', mth')
       | .HsVar n => do
-        let τ' <- .toDsMq (Γ d@ n).get_type
-        let mth' <- compile Γ τ' mth
+        let τ' <- .toDsMq ((Γ_inst ++ Γ) d@ (Γ_inst.length + n)).get_type
+        let mth' <- compile (Γ_inst ++ Γ) τ' ([S' Γ_inst.length] mth)
         .ok (τ', mth')
       | _ => .error ("unsupported method decl: " ++ repr mth)
 
 
-      let τ' := [S' Γ_l.length] τ'
+      let τ' := [S' d_τs.length] τ' -- accounted for above?
       let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
       let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
 
@@ -337,7 +372,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let Aτ := [S' (inst_ty_coercions.length)]τ'
       let Bτ := ([S' (inst_ty_coercions.length)]ret_ty)
       let η <- .toDsM ("synth_coercion mth" ++ Std.Format.line ++ repr ctx_l
-                                ++ Std.Format.line ++ repr Aτ ++ Std.Format.line ++ repr Bτ)
+                         ++ Std.Format.line  ++ "Eq: " ++ repr (Aτ ~[★]~ Bτ))
                       (synth_coercion ctx_l Aτ Bτ)
 
 
@@ -361,17 +396,3 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 -- #eval instantiate_type (∀[★] ((#0 ~[★]~ #4) -t> #7 `@k #1)) #100
 -- #eval [0,1].splitAt 1
 -- #eval [0,1,2,3].take 3
-namespace Test
-  -- def Γ : Ctx Term := [
-  --   .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
-  --   .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
-  --   .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
-  --   .opent (★ -k> ★),
-  --   .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
-  --   .opent (★ -k> ★),
-  --   .datatype ★ ]
-
-    #guard wf_ctx Γ == .some ()
-    -- #eval DsM.run (hf_encode Γ )
-
-end Test

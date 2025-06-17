@@ -89,25 +89,6 @@ def Γ : HsCtx HsTerm := [
   notT,
   BoolF ]
 
-
--- #eval "MaybeEq, Maybe, EqBool, Eq, Bool"
--- #eval Γ
--- #eval! DsM.run (compile_ctx Γ)
--- #eval! DsM.run (do let Γ' <- compile_ctx Γ
---                    let τ <- compile Γ' ★ eqMaybeTy
---                    compile Γ' τ eqMaybeT)
-
--- #eval! DsM.run (do let Γ' <- compile_ctx Γ
---                    let τ <- compile Γ' ★ eqMaybeTy
---                    let t' <- compile Γ' τ eqMaybeT
---                    .toDsM "infer_type failed" (infer_type Γ' t'))
-
-/-
--- instance Eq a => Eq (Maybe a) where
---  ==  :
---  =/= :
--/
-
 def Γ1 : HsCtx HsTerm := [
   eqMaybeF,
   MbF,
@@ -117,14 +98,27 @@ def Γ1 : HsCtx HsTerm := [
   notT,
   BoolF ]
 
-#eval! DsM.run (compile_ctx Γ1)
+-- #eval! DsM.run (compile_ctx Γ1)
 
 
 def EqMaybeI : HsFrame HsTerm :=
   .inst (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
-  [ `#1
+  [ .HsAnnotate ((`#5 `•k `#0) → (`#6 `•k `#1) → `#18) (`#2 `•t `#0 `• (.HsHole (`#11 `•k `#0)))
   , `#2
   ]
+
+#eval! DsM.run
+ (do let Γ' <- compile_ctx Γ1
+     let ty <- compile Γ' ★ (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
+     -- .toDsMq (infer_type Γ' τ)
+     let (cls_idx, instty, d_τs) <- mk_inst_type Γ' ty
+
+     let Γ' := .insttype instty :: Γ'
+     .ok d_τs
+
+     -- .toDsM "wf_ctx failed" (wf_ctx Γ')
+ )
+
 
 def Γ2 : HsCtx HsTerm := [
   EqMaybeI,
@@ -135,16 +129,6 @@ def Γ2 : HsCtx HsTerm := [
   eqBoolT,
   notT,
   BoolF ]
-
-#eval! DsM.run
- (do let Γ' <- compile_ctx Γ1
-     let ty <- compile Γ' ★ (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
-     -- .toDsMq (infer_type Γ' τ)
-     mk_inst_type Γ' ty
-     -- .toDsM "wf_ctx failed" (wf_ctx Γ')
- )
-
-
 
 #eval! DsM.run (compile_ctx Γ2)
 
