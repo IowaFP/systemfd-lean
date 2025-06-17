@@ -291,6 +291,9 @@ instance instLawfulBEq_Frame {T : Type} [BEq T] [LawfulBEq T] : LawfulBEq (Frame
 
 def Ctx (T : Type) := List (Frame T)
 
+instance inst_ReprCtx [Repr T] : Repr (Ctx T) where
+  reprPrec t p := List.repr t p
+
 namespace Ctx
   -- @[aesop safe]
   def apply : Ctx T -> Subst T -> Ctx T

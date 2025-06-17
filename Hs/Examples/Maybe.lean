@@ -50,17 +50,6 @@ def EqBoolI : HsFrame HsTerm :=
   ]
 
 /-
--- instance Eq a => Eq (Maybe a) where
---  ==  :
---  =/= :
--/
-def EqMaybeI : HsFrame HsTerm :=
-  .inst (`#9 `•k `#0 ⇒ `#10 `•k `#1)
-  [ `#1
-  , `#2
-  ]
-
-/-
 eqMaybe : ∀ a Eq a => Maybe a → Maybe a → Bool
 eqMaybe = Λ (a:★) λ (d : Eq a) λ m1 λ m2 ->
   case m1 of
@@ -93,8 +82,6 @@ def eqMaybeT := Λ̈[`★] λ̈[`#9 `•k `#0]
 def eqMaybeF : HsFrame HsTerm := .term eqMaybeTy eqMaybeT
 
 def Γ : HsCtx HsTerm := [
-  -- EqMaybeI,
-  -- eqMaybeF,
   MbF,
   EqBoolI,
   EqCF,
@@ -105,18 +92,30 @@ def Γ : HsCtx HsTerm := [
 
 -- #eval "MaybeEq, Maybe, EqBool, Eq, Bool"
 -- #eval Γ
-#eval! compile_ctx Γ
-#eval! do let Γ' <- compile_ctx Γ
-          let τ <- compile Γ' ★ eqMaybeTy
-          compile Γ' τ eqMaybeT
+-- #eval! DsM.run (compile_ctx Γ)
+-- #eval! DsM.run (do let Γ' <- compile_ctx Γ
+--                    let τ <- compile Γ' ★ eqMaybeTy
+--                    compile Γ' τ eqMaybeT)
 
-#eval! do let Γ' <- compile_ctx Γ
-          let τ <- compile Γ' ★ eqMaybeTy
-          let t' <- compile Γ' τ eqMaybeT
-          infer_type Γ' t'
+-- #eval! DsM.run (do let Γ' <- compile_ctx Γ
+--                    let τ <- compile Γ' ★ eqMaybeTy
+--                    let t' <- compile Γ' τ eqMaybeT
+--                    .toDsM "infer_type failed" (infer_type Γ' t'))
+
+/-
+-- instance Eq a => Eq (Maybe a) where
+--  ==  :
+--  =/= :
+-/
+def EqMaybeI : HsFrame HsTerm :=
+  .inst (`#9 `•k `#0 ⇒ `#10 `•k `#1)
+  [ `#1
+  , `#2
+  ]
+
 
 def Γ1 : HsCtx HsTerm := [
-  -- EqMaybeI,
+  EqMaybeI,
   eqMaybeF,
   MbF,
   EqBoolI,
@@ -126,7 +125,9 @@ def Γ1 : HsCtx HsTerm := [
   BoolF ]
 
 
-#eval! compile_ctx Γ1
+#eval! DsM.run (compile_ctx Γ1)
+#eval! do let Γ' <- compile_ctx Γ1
+          .toDsM "wf_ctx failed" (wf_ctx Γ')
 
 -- #eval! do let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
 --           let t <- compile Γ #4 (`#0 `• `#3 `• `#3)

@@ -2,6 +2,8 @@ import Hs.Algorithm
 import SystemFD.Algorithm
 
 set_option profiler true
+
+
 @[simp]
 def fresh_vars_aux : Nat -> List Term -> List Term
 | 0, acc => acc
@@ -28,11 +30,12 @@ def re_index_base := fresh_vars
 -- It doesn't matter if αs have type variables, they would
 -- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
 @[simp]
-def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> Option Term :=
+def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> DsM Term :=
 λ Γ data => do
   let (Γ_local, d, d_τs) := data
 
-  let d_τs_kis <- List.mapM (λ x => infer_type (Γ_local ++ Γ) x.2) d_τs
+  let d_τs_kis <- List.mapM (λ x => .toDsM ("hf encode infer_type" ++ repr x)
+                  (infer_type (Γ_local ++ Γ) x.2)) d_τs
 
   let βs := fresh_vars d_τs.length
 
@@ -49,14 +52,14 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
 
   let ty' := ty'.from_telescope_rev Γ'
 
-  .some ty'
+  .ok ty'
 
 @[simp]
-def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
+def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term) := λ Γ ty => do
   let (Γ_local, res_ty) := ty.to_telescope
-  let (d, d_τs) <- res_ty.neutral_form
+  let (d, d_τs) <- .toDsMq res_ty.neutral_form
   let ty' <- hf_encode Γ (Γ_local, d, d_τs)
-  .some (d, ty')
+  .ok (d, ty')
 
 
 #eval (Term.shift_helper 10).take 5
@@ -65,12 +68,12 @@ def mk_inst_type : Ctx Term -> Term -> Option (Nat × Term) := λ Γ ty => do
 /- Caution: The ids themselves are meaningless (sort of),
   just depend on the size of the list. thats the width of the class-/
 @[simp]
-def get_openm_ids : Ctx Term -> Nat -> Option (List Nat) := λ Γ_g cls_idx =>
+def get_openm_ids : Ctx Term -> Nat -> DsM (List Nat) := λ Γ_g cls_idx =>
   if (Γ_g.is_opent cls_idx)
   then
     let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
-    .some ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
-  else .none
+    .ok ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
+  else .error ("get_open_ids" ++ (repr Γ_g) ++ repr cls_idx)
 
 
 
@@ -95,24 +98,24 @@ def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term �
 def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_implicit_telescope_aux Δ []
 
 -- compiling declarations
-unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
-| [] => .some []
+unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
+| [] => .ok []
 | .cons .empty Γ => do
   let Γ' <- compile_ctx Γ
-  .some (.empty :: Γ')
+  .ok (.empty :: Γ')
 | .cons (.kind k) Γ => do
   let Γ' <- compile_ctx Γ
   let k' <- compile Γ' □ k
-  .some (.kind k' :: Γ')
+  .ok (.kind k' :: Γ')
 | .cons (.type τ) Γ => do
   let Γ' <- compile_ctx Γ
   let τ' <- compile Γ' ★ τ
-  .some (.type τ' :: Γ')
+  .ok (.type τ' :: Γ')
 | .cons (.term A t) Γ => do
   let Γ' <- compile_ctx Γ
   let A' <- compile Γ' ★ A
   let t' <- compile Γ' A' t
-  .some (.term A' t' :: Γ')
+  .ok (.term A' t' :: Γ')
 
 | .cons (.datatypeDecl k ctors) Γ => do
   let Γ' <- compile_ctx Γ
@@ -120,7 +123,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   List.foldlM
     (λ Γ τ => do
       let τ' <- compile Γ ★ τ
-      .some ((.ctor τ') ::  Γ)
+      .ok ((.ctor τ') ::  Γ)
     )
     (.datatype k' :: Γ') ctors
 
@@ -136,7 +139,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
   -- Step 2. Add SC constraints
   -- Produce the sc openm
-  let (args_k, _) <- Term.split_kind_arrow C'
+  let (args_k, _) <- .toDsMq C'.split_kind_arrow
 
   let ty_vars_ctx : Ctx Term := List.map (Frame.kind ·) args_k
   let ty_vars := fresh_vars args_k.length
@@ -147,7 +150,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     let cls_con := sc_data.1 -- the current class constructor
 
     let sc := sc_data.2 -- Superclass type
-    let (sc_tycon, ty_args) <- sc.neutral_form -- Split it into ctor and ty_args
+    let (sc_tycon, ty_args) <- .toDsMq sc.neutral_form -- Split it into ctor and ty_args
 
     let class_type := Term.mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars
 
@@ -156,7 +159,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     let sc_fun : Term :=  class_type -t> ([S]sc') -- [S] becuase -t> is binder
     let sc_fun := sc_fun.from_telescope ty_vars_ctx
 
-    .some (.openm sc_fun :: Γ)
+    .ok (.openm sc_fun :: Γ)
     ) Γ' (List.zip (re_index_base scs.length) scs)
 
 
@@ -176,7 +179,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
     if det1 < ty_vars_ctx.length && (List.all determiners (λ x => x < ty_vars_ctx.length))
     then do
-      let ki <- (ty_vars_ctx d@ det1).get_type
+      let ki <- .toDsMq (ty_vars_ctx d@ det1).get_type
 
       let cls_ty1 := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars.reverse
 
@@ -189,11 +192,11 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
       let t := cls_ty1 -t> [S](cls_ty2 -t> [S](#det1 ~[ki]~ #det2))
       let t_fun := t.from_telescope_rev (ty_vars_ctx ++ [.kind ki])
 
-      .some (.openm t_fun :: Γ)
+      .ok (.openm t_fun :: Γ)
 
 
 
-    else .none
+    else .error ("fundeps: " ++ repr Γ ++ repr fd_data)
 
   ) Γ' ((List.zip (re_index_base fds.length) fds))
 
@@ -202,10 +205,10 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
   let Γ' <- List.foldlM
     (λ Γ τ => do
       let τ' <- compile Γ ★ τ
-      .some ((.openm τ') :: Γ))
+      .ok ((.openm τ') :: Γ))
       Γ' oms
 
-  .some Γ'
+  .ok Γ'
 
 -- Compile Instances
 | .cons (.inst ity mths) Γ => do
@@ -258,15 +261,15 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
     -- let sc_fun := ret_ty
     -- let Γ_new := .inst #(cls_idx - 1) sc_fun :: Γ
-    -- .some Γ_new
-    .some Γ
+    -- .ok Γ_new
+    .ok Γ
   ) Γ' (Term.shift_helper fd_ids.length)
 
 
   -- Step 4: Compile superclass insts
   let Γ' <- List.foldlM (λ Γ sc_id => do
 
-    let omτ <- (Γ d@ (cls_idx - (1 + fd_ids.length))).get_type
+    let omτ <- .toDsMq (Γ d@ (cls_idx - (1 + fd_ids.length))).get_type
     let (Γ_l, ret_ty) := omτ.to_telescope
 
     let (ty_args_ctx, _) := List.partition (λ x => Frame.is_kind x) Γ_l
@@ -274,14 +277,15 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
     let ty_vars : List Term := new_vars.reverse.take (ty_args_ctx.length)
 
     let g_pat := Term.mk_ty_apps #(sc_id + fd_ids.length + Γ_l.length) ty_vars
-    let g_pat_ty <- ((Γ_l ++ Γ) d@ (sc_id + fd_ids.length + Γ_l.length)).get_type
-    let g_pat_ty <- instantiate_types g_pat_ty ty_vars
+    let g_pat_ty <- .toDsMq ((Γ_l ++ Γ) d@ (sc_id + fd_ids.length + Γ_l.length)).get_type
+    let g_pat_ty <- .toDsMq (instantiate_types g_pat_ty ty_vars)
     let (eqs, _) := g_pat_ty.to_telescope
 
-    let t' <- synth_superclass_inst (Γ_l  ++ Γ) ty_vars (([S' eqs.length] ret_ty).from_telescope eqs)
-    let sc_fun <- Term.mk_lams (Term.guard g_pat #0 t') Γ_l
+    let t' <- .toDsM ("synth_sc_inst")
+              (synth_superclass_inst (Γ_l  ++ Γ) ty_vars (([S' eqs.length] ret_ty).from_telescope eqs))
+    let sc_fun <- .toDsM "sc insts mk_lams" (Term.mk_lams (Term.guard g_pat #0 t') Γ_l)
     let new_Γ := .inst #(cls_idx - (1 + fd_ids.length)) sc_fun :: Γ
-    .some new_Γ
+    .ok new_Γ
 
   ) Γ' (Term.shift_helper sc_ids.length)
 
@@ -293,7 +297,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
     List.foldlM (λ Γ x => do
       let (mth, idx) := x
-      let omτ <- (Γ d@ (cls_idx - (1 + sc_ids.length + fd_ids.length))).get_type
+      let omτ <- .toDsMq (Γ d@ (cls_idx - (1 + sc_ids.length + fd_ids.length))).get_type
 
       let (Γ_l, ret_ty) := to_implicit_telescope Γ omτ
 
@@ -304,12 +308,12 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
       | .HsAnnotate τ mth  => do
         let τ' <- compile Γ ★ τ
         let mth' <- compile Γ τ' mth
-        .some (τ', mth')
+        .ok (τ', mth')
       | .HsVar n => do
-        let τ' <- (Γ d@ n).get_type
+        let τ' <- .toDsMq (Γ d@ n).get_type
         let mth' <- compile Γ τ' mth
-        .some (τ', mth')
-      | _ => .none
+        .ok (τ', mth')
+      | _ => .error ("unsupported method decl: " ++ repr mth)
 
 
       let τ' := [S' Γ_l.length] τ'
@@ -318,8 +322,8 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
 
       let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
 
-      let instty <- ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
-      let instty <- instantiate_types instty ty_vars
+      let instty <- .toDsMq ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
+      let instty <- .toDsM ("instantiate" ++ repr instty ++ repr ty_vars) (instantiate_types instty ty_vars)
 
       let (tele, _ ) := instty.to_telescope
       let inst_ty_coercions := tele.filter (λ x =>
@@ -327,25 +331,29 @@ unsafe def compile_ctx : HsCtx HsTerm -> Option (Ctx Term)
         | .type τ => Option.isSome (is_eq τ)
         | _ => false)
 
+      let ctx_l := (inst_ty_coercions ++ Γ_l ++ Γ)
+      let Aτ := [S' (inst_ty_coercions.length)]τ'
+      let Bτ := ([S' (inst_ty_coercions.length)]ret_ty)
+      let η <- .toDsM ("synth_coercion" ++ repr ctx_l ++ Std.Format.line ++ repr Aτ ++ Std.Format.line ++ repr Bτ)
+                      (synth_coercion ctx_l Aτ Bτ)
 
-      let η <- synth_coercion_dummy (inst_ty_coercions ++ Γ_l ++ Γ)
-                     ([S' (inst_ty_coercions.length)]τ')
-                     ([S' (inst_ty_coercions.length)]ret_ty)
+
 
       let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
-      let mth' <- Term.mk_lams (mth' ▹ η)
-                          inst_ty_coercions
+      let mth' <- .toDsM ("Term.mk_lams" ++ repr (mth' ▹ η) ++ Std.Format.line ++ repr inst_ty_coercions)
+                          (Term.mk_lams (mth' ▹ η) inst_ty_coercions)
 
-      let mth' <- Term.mk_lams (Term.guard g_pat #0 mth') Γ_l
+      let mth' <- .toDsM ("Term.mk_lams" ++ repr (Term.guard g_pat #0 mth') ++ Std.Format.line ++ repr Γ_l)
+                         (Term.mk_lams (Term.guard g_pat #0 mth') Γ_l)
 
       let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
-      let cls_idx := cls_idx + 1
-      .some new_Γ
+      -- let cls_idx := cls_idx + 1
+      .ok new_Γ
 
     )  Γ' (List.zip mths (Term.shift_helper openm_ids.length))
-  else .none
+  else .error ("Not all methods implemented don't match" ++ repr mths ++ Std.Format.line ++ repr openm_ids)
 
-  .some Γ'
+  .ok Γ'
 
 -- #eval instantiate_type (∀[★] ((#0 ~[★]~ #4) -t> #7 `@k #1)) #100
 -- #eval [0,1].splitAt 1
