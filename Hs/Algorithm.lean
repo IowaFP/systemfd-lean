@@ -47,12 +47,12 @@ def bind : DsM a -> (a -> DsM b) -> DsM b := Except.bind
 
 def toDsM (pfix : Std.Format) : Option a -> DsM a
 | .some a => ok a
-| .none => error ("option failure: " ++ pfix)
+| .none => error (pfix ++ Std.Format.line)
 
 def toDsMq : Option a -> DsM a := toDsM ""
 
 def run [Repr a] : DsM a -> Std.Format
-| .error e => "Error :" ++ e
+| .error e => "Error:" ++ Std.Format.line ++ e
 | .ok t => repr t
 
 end DsM
@@ -108,7 +108,7 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
 
 | Γ, κ, .HsCtor2 .appk f a => do
   let (h, sp) <- .toDsMq (HsTerm.split_kind_app (.HsCtor2 .appk f a))
-  let τ <- .toDsMq ((Γ d@ h).get_type)
+  let τ <- .toDsM ("GetType" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h) ((Γ d@ h).get_type)
   let (κs, κ') <- .toDsMq (Term.split_kind_arrow τ)
   let args' <- List.mapM
     (λ a => compile Γ a.1 a.2)
@@ -123,7 +123,7 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   .ok (.bind2 .arrow A' B')
 
 | Γ, ★ , .HsBind2 .farrow A B => do
-  let A' <- compile Γ □ A
+  let A' <- compile Γ ★ A
   let B' <- compile (.empty :: Γ) ★ B
   .ok (.bind2 .arrow A' B')
 
@@ -140,11 +140,11 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
 
 | Γ, τ, .HsHole a => do
   let a' <- compile Γ ★ a
-  let t <- .toDsM ("synth_term" ++ repr a') (synth_term Γ a')
+  let t <- .toDsM ("synth_term hole" ++ repr a') (synth_term Γ a')
   if τ == a'
   then .ok t
   else do
-    let η <- .toDsM ("synth_coercion" ++ repr (a' ~[★]~ τ)) (synth_coercion Γ a' τ)
+    let η <- .toDsM ("synth_coercion hole" ++ repr (a' ~[★]~ τ)) (synth_coercion Γ a' τ)
     .ok (t ▹ η )
 
 
@@ -186,11 +186,13 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   .ok (.ite p' s' i' t')
 
 | Γ, exp_τ, `#h => do
-  let τ <- .toDsMq ((Γ d@ h).get_type)
+  let τ <- .toDsM ("get_type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h)
+           ((Γ d@ h).get_type)
   if τ == exp_τ
   then .ok #h
   else do
-    let η <- .toDsM ("synth_coercion" ++ repr Γ ++ Std.Format.line ++ repr (τ ~[★]~ exp_τ)) (synth_coercion Γ τ exp_τ)
+    let η <- .toDsM ("synth_coercion variable" ++ Std.Format.line
+                    ++ repr Γ ++ Std.Format.line ++ repr (τ ~[★]~ exp_τ)) (synth_coercion Γ τ exp_τ)
     .ok (#h ▹ η)
 
 --
@@ -209,7 +211,7 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
 -- eta = \ a. \ b. a == b
 
 | Γ, exp_τ, t => do
-  let (head, args) <- .toDsMq t.neutral_form
+  let (head, args) <- .toDsM ("no neutral form" ++ repr t) t.neutral_form
   -- Compile Head
   let (h', τh') <- helper1 compile Γ head
   let (τs, res_τh') := τh'.to_telescope
@@ -221,7 +223,7 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
     if exp_τ == actual_τ
     then .ok t'
     else do
-      let η <- .toDsM ("compile length mismatch" ++ repr Γ ++ repr (actual_τ ~[★]~ exp_τ))
+      let η <- .toDsM ("synth_coercion spine" ++ repr Γ ++ Std.Format.line ++ repr (actual_τ ~[★]~ exp_τ))
                       (synth_coercion Γ actual_τ exp_τ)
       .ok (t' ▹ η)
 
@@ -249,5 +251,4 @@ namespace Test
     #eval! DsM.run (compile Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6))
     #eval! DsM.run (compile Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6)))
     #eval! DsM.run (compile Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6))))
-
 end Test

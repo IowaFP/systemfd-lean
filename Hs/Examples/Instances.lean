@@ -36,6 +36,7 @@ def EqBoolInst : HsFrame HsTerm := .inst
   , .HsAnnotate (`#7 → `#8 → `#9) (λ̈[`#7] λ̈[`#8] `#7)
   ]
 
-#eval! compile_ctx (EqBoolInst :: EqCtx)
-#eval! do let ctx <- compile_ctx (EqBoolInst :: EqCtx)
-          wf_ctx ctx
+#eval! DsM.run (compile_ctx (EqBoolInst :: EqCtx))
+#eval! DsM.run (
+  do let ctx <- compile_ctx (EqBoolInst :: EqCtx)
+     .toDsMq (wf_ctx ctx))

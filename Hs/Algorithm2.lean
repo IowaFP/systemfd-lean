@@ -34,8 +34,10 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
 λ Γ data => do
   let (Γ_local, d, d_τs) := data
 
-  let d_τs_kis <- List.mapM (λ x => .toDsM ("hf encode infer_type" ++ repr x)
-                  (infer_type (Γ_local ++ Γ) x.2)) d_τs
+  let d_τs_kis <- List.mapM (λ x =>
+      .toDsM ("hf encode infer_kind"
+            ++ Std.Format.line ++ repr (Γ_local ++ Γ) ++ Std.Format.line ++ repr x)
+      (infer_kind (Γ_local ++ Γ) x.2)) d_τs
 
   let βs := fresh_vars d_τs.length
 
@@ -57,9 +59,9 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
 @[simp]
 def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term) := λ Γ ty => do
   let (Γ_local, res_ty) := ty.to_telescope
-  let (d, d_τs) <- .toDsMq res_ty.neutral_form
-  let ty' <- hf_encode Γ (Γ_local, d, d_τs)
-  .ok (d, ty')
+  let (d, d_τs) <- .toDsM ("mk_inst_type neutral_form" ++ Std.Format.line ++repr res_ty) res_ty.neutral_form
+  let ty' <- hf_encode Γ (Γ_local.reverse, d, d_τs)
+  .ok (d - Γ_local.length, ty')
 
 
 #eval (Term.shift_helper 10).take 5
@@ -73,7 +75,7 @@ def get_openm_ids : Ctx Term -> Nat -> DsM (List Nat) := λ Γ_g cls_idx =>
   then
     let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
     .ok ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
-  else .error ("get_open_ids" ++ (repr Γ_g) ++ repr cls_idx)
+  else .error ("get_open_ids" ++ Std.Format.line ++ repr Γ_g ++ Std.Format.line ++ repr cls_idx)
 
 
 
@@ -331,10 +333,11 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
         | .type τ => Option.isSome (is_eq τ)
         | _ => false)
 
-      let ctx_l := (inst_ty_coercions ++ Γ_l ++ Γ)
+      let ctx_l := (inst_ty_coercions ++ Γ_l.reverse ++ Γ)
       let Aτ := [S' (inst_ty_coercions.length)]τ'
       let Bτ := ([S' (inst_ty_coercions.length)]ret_ty)
-      let η <- .toDsM ("synth_coercion" ++ repr ctx_l ++ Std.Format.line ++ repr Aτ ++ Std.Format.line ++ repr Bτ)
+      let η <- .toDsM ("synth_coercion mth" ++ Std.Format.line ++ repr ctx_l
+                                ++ Std.Format.line ++ repr Aτ ++ Std.Format.line ++ repr Bτ)
                       (synth_coercion ctx_l Aτ Bτ)
 
 
@@ -351,10 +354,24 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       .ok new_Γ
 
     )  Γ' (List.zip mths (Term.shift_helper openm_ids.length))
-  else .error ("Not all methods implemented don't match" ++ repr mths ++ Std.Format.line ++ repr openm_ids)
+  else .error ("Not all methods implemented" ++ repr mths ++ Std.Format.line ++ repr openm_ids)
 
   .ok Γ'
 
 -- #eval instantiate_type (∀[★] ((#0 ~[★]~ #4) -t> #7 `@k #1)) #100
 -- #eval [0,1].splitAt 1
 -- #eval [0,1,2,3].take 3
+namespace Test
+  -- def Γ : Ctx Term := [
+  --   .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
+  --   .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
+  --   .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
+  --   .opent (★ -k> ★),
+  --   .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
+  --   .opent (★ -k> ★),
+  --   .datatype ★ ]
+
+    #guard wf_ctx Γ == .some ()
+    -- #eval DsM.run (hf_encode Γ )
+
+end Test

@@ -56,9 +56,10 @@ def supCtx := OrdBool ::
 
 #eval println! "OrdBool, Ord, EqBool, Bool"
 #eval supCtx
-#eval! compile_ctx supCtx
-#eval! do let ctx <- compile_ctx supCtx
-          wf_ctx ctx
+#eval! DsM.run (compile_ctx supCtx)
+#eval! DsM.run (
+  do let ctx <- compile_ctx supCtx
+     .toDsMq (wf_ctx ctx))
 
 def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) -- `• `#13 `• `#12
 
@@ -67,13 +68,14 @@ def ex1' : Term := (#10 `@t #14 `@ (#8 `@t #14 `@ refl! ★ #14)) `@ #13 `@ #12
 -- #eval! do let ctx <- compile_ctx supCtx
 --           synth_term ctx (#11 `@k #14)
 
-#eval! do let Γ <- compile_ctx supCtx
+#eval! DsM.run (
+  do let Γ <- compile_ctx supCtx
           -- let τ <- (Γ d@ 10).get_type
           -- instantiate_type τ #14
 
           -- compile Γ (∀[★](#12 `@k #0) -t> #1 -t> #2 -t> #18) `#10
 
           -- compile Γ ((#11 `@k #14) -t> #15 -t> #16 -t> #17) (`#10 `•t `#14)
-          -- compile Γ (#11 `@k #14) (.HsHole (`#11 `•k `#14))
-          compile Γ #14 (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13)
+        -- compile Γ (#11 `@k #14) (.HsHole (`#11 `•k `#14))
+     compile Γ #14 (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13))
           -- compile Γ (#14 -t> #15 -t> #16) (.HsAnnotate (`#14 → `#15 → `#16) ex1)
