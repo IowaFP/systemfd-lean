@@ -340,14 +340,13 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let instty <- .toDsMq (Γ d@ (idx + sc_ids.length + fd_ids.length)).get_type
 
-      let (Γ_inst, D_βs) := instty.to_telescope
+      let (Γ_inst, _) := instty.to_telescope
       let (Γ_tyvars, Γ_rest) := Γ_inst.partition (λ x => x.is_kind)
       let (Γ_eqs, Γ_assms) := Γ_rest.partition (λ x =>
         match x with
         | .type x => (Option.isSome (is_eq x))
         | _ => false
         )
-      -- let (Γ_tyvars_βs, Γ_eqs) := Γ_rest.partition (λ x => x.is_kind)
 
       let new_vars := (fresh_vars Γ_inst.length).reverse
 
@@ -356,12 +355,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let (ty_vars_βs, ty_vars_αs) := ty_vars.splitAt β_count
 
-      let D_βs := [P' (ty_vars_αs.length + vars_eq.length + vars_assms.length)]D_βs
-
-      let Γ_local := (Γ_tyvars.take β_count) ++ [.type D_βs]
-                     ++ (Γ_tyvars.drop β_count ++ Γ_eqs ++ Γ_assms).map (λ f => f.apply S)
-
-      let Γ_local := Γ_local.reverse
+      let Γ_local := Γ_inst.reverse
 
       /-  insttype is of the form ∀βs ∀αs. (βs ~ αs) -> C αs -> D βs
                    where C and D are opent's
@@ -385,11 +379,11 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let omτ := [S' (Γ_local.length)] omτ
       let inst_omτ <- .toDsM ("instantate omτ"
                              ++ Std.Format.line ++ repr omτ
-                             ++ Std.Format.line ++ repr (ty_vars_βs.map ([S] ·))
+                             ++ Std.Format.line ++ repr ty_vars_βs
                              )
-                             (instantiate_types omτ (ty_vars_βs.map ([S] ·)))
+                             (instantiate_types omτ ty_vars_βs)
       let (omτ_assms, omτ_ret_ty) := to_implicit_telescope (Γ_local ++ Γ) inst_omτ
-
+      -- TODO: make sure all omτ_assms (sans current instance constraints) are satisfied with the assumptions we have
 
 
       let (mth_τ', mth') <- match mth with
@@ -408,11 +402,10 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1) ty_vars_βs)
 
-      let ty_vars_βs := ty_vars_βs.map ([S]·)
 
       let ctx_l := (Γ_local ++ Γ)
       let Aτ := mth_τ'
-      let Bτ := omτ_ret_ty
+      let Bτ := [P]omτ_ret_ty -- we take away the first omτ_assms as its the implicitly introduced class constraint
       let η <- .toDsM ("synth_coercion mth"
                         ++ Std.Format.line ++ "insttype: " ++ repr instty
                         ++ Std.Format.line ++ "omτ_assms: " ++ repr omτ_assms
@@ -420,7 +413,6 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                         ++ Std.Format.line ++ "Γ_inst_assms: " ++ repr Γ_assms ++ repr vars_assms
                         ++ Std.Format.line ++ "Γ_inst_eqs" ++ repr Γ_eqs ++ repr vars_eq
                         ++ Std.Format.line ++ "Γ_inst_αs: " ++ repr (Γ_tyvars.drop β_count)  ++ repr ty_vars_αs
-                        ++ Std.Format.line ++ "D_βs: " ++ repr D_βs
                         ++ Std.Format.line ++ "Γ_inst_βs: " ++ repr (Γ_tyvars.take β_count) ++ repr ty_vars_βs
                         ++ Std.Format.line ++ "Γ: " ++ repr Γ
 
@@ -439,17 +431,19 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let mth' := mth' ▹ η
 
-      let Γ_assms' := (Γ_assms.map (λ f => f.apply S)).reverse
-      let mth' <- .toDsM ("Term.mk_lams Γ_assms" ++ repr mth' ++ Std.Format.line ++ repr Γ_assms')
-                         (Term.mk_lams mth' Γ_assms')
+      -- let Γ_assms' := (Γ_assms.map (λ f => f.apply S)).reverse
+      let mth' <- .toDsM ("Term.mk_lams Γ_assms" ++ repr mth' ++ Std.Format.line ++ repr Γ_assms)
+                         (Term.mk_lams mth' Γ_assms)
 
-      let Γ_eqs' := (Γ_eqs.map (λ f => f.apply S)).reverse
-      let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs')
-                         (Term.mk_lams mth' Γ_eqs')
+      -- let Γ_eqs' := (Γ_eqs.map (λ f => f.apply S)).reverse
+      let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs)
+                         (Term.mk_lams mth' Γ_eqs)
 
       let mth' := Term.guard g_pat #0 mth'
-      let mth' <- .toDsM ("Term.mk_lams" ++ repr mth' ++ Std.Format.line ++ repr (.type D_βs :: Γ_tyvars.take β_count).reverse)
-                         (Term.mk_lams mth' (.type D_βs :: Γ_tyvars.take β_count).reverse)
+      let cls_ty := (#(cls_idx + ty_vars_βs.length + idx)).mk_kind_apps (ty_vars_βs.map ([P] ·))
+      let mth' <- .toDsM ("Term.mk_lams" ++ repr mth'
+                         ++ Std.Format.line ++ repr (.type cls_ty :: Γ_tyvars.take β_count).reverse)
+                         (Term.mk_lams mth' (.type cls_ty :: Γ_tyvars.take β_count).reverse)
 
       let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
 
