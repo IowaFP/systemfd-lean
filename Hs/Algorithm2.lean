@@ -232,10 +232,20 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
   -- Step 4. Add methods
   let Γ' <- List.foldlM
-    (λ Γ τ => do
+    (λ Γ om_data => do
+      let (cls_con, τ) := om_data
       let τ' <- compile Γ ★ τ
+      let (Γ_l, ret_ty) := τ'.to_telescope
+      let (Γ_tyvars, Γ_rest) := Γ_l.partition (λ x => x.is_kind)
+      let class_ty := Term.mk_kind_apps ([S' (scs.length + fds.length + ty_vars.length)] cls_con) ty_vars.reverse
+      let Γ_rest := Γ_rest.map (λ f => f.apply S)
+      let Γ_l := Γ_tyvars ++ (.type class_ty :: Γ_rest)
+      let ret_ty := [S] ret_ty
+
+      let τ' := ret_ty.from_telescope Γ_l
+
       .ok ((.openm τ') :: Γ))
-      Γ' oms
+      Γ' (List.zip (re_index_base oms.length) oms)
 
   .ok Γ'
 
@@ -429,8 +439,9 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let mth' := mth' ▹ η
 
-      let mth' <- .toDsM ("Term.mk_lams Γ_assms" ++ repr mth' ++ Std.Format.line ++ repr Γ_assms)
-                         (Term.mk_lams mth' Γ_assms.reverse)
+      let Γ_assms' := (Γ_assms.map (λ f => f.apply S)).reverse
+      let mth' <- .toDsM ("Term.mk_lams Γ_assms" ++ repr mth' ++ Std.Format.line ++ repr Γ_assms')
+                         (Term.mk_lams mth' Γ_assms')
 
       let Γ_eqs' := (Γ_eqs.map (λ f => f.apply S)).reverse
       let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs')

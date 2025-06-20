@@ -49,8 +49,8 @@ def OrdBool : HsFrame HsTerm :=
 
   ]
 
-def supCtx := OrdBool ::
-              OrdC ::
+def supCtx := -- OrdBool ::
+              -- OrdC ::
               EqBoolI ::
               EqCtx
 
