@@ -39,8 +39,8 @@ def EqCF : HsFrame HsTerm :=
   .classDecl (`★ `-k> `★)
          .nil
          .nil
-         [ `∀{`★} (`#1 `•k `#0) ⇒ `#1 → `#2 → `#9    -- TODO: make type class predicate implicit?
-         , `∀{`★} (`#2 `•k `#0) ⇒ `#1 → `#2 → `#10 ]
+         [ `∀{`★} `#0 → `#1 → `#8    -- TODO: make type class predicate implicit?
+         , `∀{`★} `#0 → `#1 → `#9 ]
 
 def EqBoolI : HsFrame HsTerm :=
   .inst (`#2 `•k `#7)
@@ -106,8 +106,11 @@ def Γ1 : HsCtx HsTerm := [
 
 def EqMaybeI : HsFrame HsTerm :=
   .inst (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
-  [ .HsAnnotate (`∀{`★}(`#5 `•k `#0) → (`#6 `•k `#1) → `#18)
-                (Λ̈[`★](`#3 `•t `#0 `• (.HsHole (`#11 `•k `#0))))
+  [
+    `#1
+
+    -- .HsAnnotate (`∀{`★}(`#5 `•k `#0) → (`#6 `•k `#1) → `#18)
+    --             (Λ̈[`★](`#3 `•t `#0 `• (.HsHole (`#11 `•k `#0))))
   , `#2
   ]
 
@@ -124,9 +127,9 @@ def Γ2 : HsCtx HsTerm := [
 
 #eval! DsM.run (compile_ctx Γ2)
 
--- #eval! DsM.run (do let Γ' <- compile_ctx Γ1
---                    .toDsMq (wf_ctx Γ')
---                 )
+#eval! DsM.run (do let Γ' <- compile_ctx Γ2
+                   .toDsMq (wf_ctx Γ')
+                )
 
 
 -- #eval! DsM.run (compile_ctx Γ2)

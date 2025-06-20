@@ -20,8 +20,8 @@ def EqCFrame : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> `★)
          .nil
          .nil
-         [ `∀{`★} (`#1 `•k `#0) ⇒ `#1 → `#2 → `#7    -- TODO: make type class predicate implicit?
-         , `∀{`★} (`#2 `•k `#0) ⇒ `#1 → `#2 → `#8 ]
+         [ `∀{`★} `#0 → `#1 → `#6    -- TODO: make type class predicate implicit?
+         , `∀{`★} `#0 → `#1 → `#7 ]
 
 def EqCtx : HsCtx HsTerm :=
   EqCFrame :: BoolCtx

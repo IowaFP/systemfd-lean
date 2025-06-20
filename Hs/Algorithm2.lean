@@ -398,12 +398,17 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       | _ => .error ("unsupported method decl: " ++ repr mth)
 
       let mth_τ' := [S' Γ_local.length] mth_τ'
+      let mth_τ' <- .toDsM "instantate mth_τ"
+                    (instantiate_types mth_τ' ty_vars_αs)
+
+      -- let (mth_τ'_assms, ret_mth_τ') := mth_τ'.to_implicit_telescope
+
       let mth' := [S' Γ_local.length ] mth'
 
       let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1) ty_vars_βs)
 
 
-      let ctx_l := (Γ_local ++ Γ)
+      let ctx_l := Γ_local ++ Γ
       let Aτ := mth_τ'
       let Bτ := [P]omτ_ret_ty -- we take away the first omτ_assms as its the implicitly introduced class constraint
       let η <- .toDsM ("synth_coercion mth"
@@ -427,9 +432,19 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                       (synth_coercion ctx_l Aτ Bτ)
 
       let mth' := Term.mk_ty_apps mth' ty_vars_αs
+
+      let omτ_assms' <- omτ_assms.tail.mapM (λ x => .toDsMq (x.get_type))
+      let (_, inst_mth_assms) <- List.foldlM (λ acc τ => do
+          let (ctx_l', ts) := acc
+          let t <- DsM.toDsM ("") (synth_term ctx_l' τ)
+          .ok ((Frame.empty :: ctx_l'), t :: ts)
+          ) (ctx_l, []) omτ_assms'
+
+      let mth' := mth'.mk_apps inst_mth_assms
+
       -- TODO : apply mth' to the omτ assumptions?
 
-      let mth' := mth' ▹ η
+      let mth' := (mth' ▹ η)
 
       -- let Γ_assms' := (Γ_assms.map (λ f => f.apply S)).reverse
       let mth' <- .toDsM ("Term.mk_lams Γ_assms" ++ repr mth' ++ Std.Format.line ++ repr Γ_assms)
@@ -439,8 +454,8 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs)
                          (Term.mk_lams mth' Γ_eqs)
 
-      let mth' := Term.guard g_pat #0 mth'
-      let cls_ty := (#(cls_idx + ty_vars_βs.length + idx)).mk_kind_apps (ty_vars_βs.map ([P] ·))
+      let mth' := Term.guard g_pat #0 ([S]mth')
+      let cls_ty := (#(cls_idx + ty_vars_βs.length + idx)).mk_kind_apps (ty_vars_βs.map ([P]· ))
       let mth' <- .toDsM ("Term.mk_lams" ++ repr mth'
                          ++ Std.Format.line ++ repr (.type cls_ty :: Γ_tyvars.take β_count).reverse)
                          (Term.mk_lams mth' (.type cls_ty :: Γ_tyvars.take β_count).reverse)
