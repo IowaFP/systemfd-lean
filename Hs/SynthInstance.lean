@@ -182,7 +182,10 @@ match is_eq τ with
     | _ => .some acc
    ) [] (Term.shift_helper Γ.length)
 
-  if candidate_instances.length == 1 then candidate_instances[0]? else .none
+  if candidate_instances.length == 0 then .none
+  else if candidate_instances.length == 1
+       then candidate_instances.head?
+       else .some (candidate_instances.foldl (· ⊕ ·) `0)
 
 
 def ctx0 : Ctx Term := [
