@@ -32,8 +32,8 @@ import Hs.EqGraph
 -- These labels are joined by coercion sequencing: `t1 ; t2 ; ... ; tn` which produces the final coercion
 
 -- TODO: Fix this, for now it assumes the argument list must be empty
-def compute_argument_instantiation (Γ : Ctx Term) : Ctx Term -> List (SpineVariant × Term)
-| args => []
+def compute_argument_instantiation (_ : Ctx Term) : Ctx Term -> List (SpineVariant × Term)
+| _ => []
 
 
 @[simp]
@@ -141,17 +141,22 @@ def synth_term (Γ : Ctx Term) : Term -> Option Term := λ τ =>
 match is_eq τ with
 | some (_, t1, t2) => synth_coercion Γ t1 t2
 | .none => do
+  let (h, τs) <- τ.neutral_form
+  let τs' <- List.mapM (λ x =>
+       match x with
+       | (.kind, τ) => .some τ
+       | _ => .none
+       ) τs
 
   -- solve for a very simple case where instance is readily available in the context
-  let (_, τs) <- τ.neutral_form
-  let τs' <- List.mapM (λ x =>
-      match x with
-      | (.kind, τ) => .some τ
-      | _ => .none
-      ) τs
-  -- find all instances with open type hτ
+  -- try to find one instance with open type hτ
   let candidate_instances : List Term <- List.foldlM (λ acc idx =>
     match Γ d@ idx with
+    | Frame.type iτ => do -- if we have an instance in our assumptions
+      let (h', iτs') <- iτ.neutral_form
+      if (h == h') then (if iτs' == τs then .some (#idx :: acc) else .some acc)
+      else .some acc
+
     | Frame.insttype iτ => do
      -- iτ is of the form ∀τs. C τs → iτh τs
      let (iτ' : Term) <- instantiate_types iτ τs'
@@ -174,8 +179,6 @@ match is_eq τ with
             :: acc)
 
      else .some acc
-    | Frame.type iτ => -- if we have an instance in our assumptions
-      if iτ == τ then .some (#idx :: acc) else .some acc
     | _ => .some acc
    ) [] (Term.shift_helper Γ.length)
 
@@ -191,8 +194,8 @@ def ctx0 : Ctx Term := [
  .datatype ★ ]
 #guard wf_ctx ctx0 == .some ()
 
-#guard synth_term ctx0 (#4 `@k #5) == (#3 `@t #5 `@ (refl! ★ #5))
-#guard synth_term ctx0 (#2 `@k #5) == (#0 `@t #5 `@ (refl! ★ #5))
+#guard synth_term ctx0 (#4 `@k #5) == .some (#3 `@t #5 `@ (refl! ★ #5))
+#guard synth_term ctx0 (#2 `@k #5) == .some (#0 `@t #5 `@ (refl! ★ #5))
 #guard synth_term [.type (#2 `@k #3), .type (#1 `@k #0), .kind ★, .opent (★ -t> ★), .datatype ★] (#3 `@k #2) == .some #1
 
 def ctx1 : Ctx Term := [
@@ -205,6 +208,9 @@ def ctx1 : Ctx Term := [
  .opent (★ -k> ★),
  .datatype ★ ]
 #guard wf_ctx ctx1 == .some ()
+
+#guard synth_term ctx1 (#4 `@k #1) == .some #0
+#eval synth_term [.type (#13 `@k #1)] (#14 `@k #2)
 
 -- TODO ANI: Can this be merged with synth_term?
 def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do

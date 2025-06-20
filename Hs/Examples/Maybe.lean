@@ -107,11 +107,10 @@ def Γ1 : HsCtx HsTerm := [
 def EqMaybeI : HsFrame HsTerm :=
   .inst (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
   [
-    `#1
-
-    -- .HsAnnotate (`∀{`★}(`#5 `•k `#0) → (`#6 `•k `#1) → `#18)
-    --             (Λ̈[`★](`#3 `•t `#0 `• (.HsHole (`#11 `•k `#0))))
-  , `#2
+    `#1 -- TODO: do it relative to binders introduced by the instance sig?
+    -- Λu λa λb not (eqMaybe[u] __@(Eq u) a b)
+  , .HsAnnotate (`∀{`★}(`#12 `•k `#0) ⇒ (`#7 `•k `#1) → (`#8 `•k `#2) → `#20)
+               (Λ̈[`★] λ̈[`#12 `•k `#0] λ̈[`#7 `•k `#1]λ̈[`#8 `•k `#2] `#17 `• (`#6 `•t `#3 `• `#2  `• `#1 `• `#0))
   ]
 
 
@@ -127,26 +126,28 @@ def Γ2 : HsCtx HsTerm := [
 
 #eval! DsM.run (compile_ctx Γ2)
 
-#eval! DsM.run (do let Γ' <- compile_ctx Γ2
-                   .toDsMq (wf_ctx Γ')
-                )
+#eval! DsM.run (do
+  let Γ' <- compile_ctx Γ2
+  .toDsMq (wf_ctx Γ'))
 
 
--- #eval! DsM.run (compile_ctx Γ2)
+-- #eval! @DsM.run Term _ (do
+--   let Γ <- compile_ctx [eqBoolT, notT, BoolF]
+--   let t : HsTerm := (`#0 `• `#3 `• `#3)
+--   let t' <- compile Γ #4 t
+--   .toDsMq (eval_ctx_loop Γ t')) -- `#2
 
+-- #eval! @DsM.run Term _ ( do
+--   let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
+--   let t <- compile Γ #4 (`#0 `• `#3 `• `#2)
+--   .toDsMq (eval_ctx_loop Γ t)) -- `#3
 
--- #eval! do let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
---           let t <- compile Γ #4 (`#0 `• `#3 `• `#3)
---           .some (eval_ctx_loop Γ t) -- `#3
+-- #eval! @DsM.run Term _ ( do
+--   let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
+--   let t <- compile Γ #4 (`#1 `• `#3)
+--   .toDsMq (eval_ctx_loop Γ t)) -- `#2
 
--- #eval! do let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
---           let t <- compile Γ #4 (`#0 `• `#3 `• `#2)
---           .some (eval_ctx_loop Γ t) -- `#2
-
--- #eval! do let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
---           let t <- compile Γ #4 (`#1 `• `#3)
---           .some (eval_ctx_loop Γ t) -- `#2
-
--- #eval! do let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
---           let t <- compile Γ #4 (`#1 `• `#2)
---           .some (eval_ctx_loop Γ t) -- `#3
+-- #eval! @DsM.run Term _ ( do
+--  let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
+--  let t <- compile Γ #4 (`#1 `• `#2)
+--  .toDsMq (eval_ctx_loop Γ t)) -- `#3

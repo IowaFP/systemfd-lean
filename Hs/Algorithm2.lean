@@ -401,15 +401,40 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let mth_τ' <- .toDsM "instantate mth_τ"
                     (instantiate_types mth_τ' ty_vars_αs)
 
-      -- let (mth_τ'_assms, ret_mth_τ') := mth_τ'.to_implicit_telescope
+      let (Γ_mthτ'_θ, ret_mth_τ') := to_implicit_telescope (Γ_local ++ Γ) mth_τ'
 
-      let mth' := [S' Γ_local.length ] mth'
-
-      let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1) ty_vars_βs)
+      let mth' := [S' Γ_local.length] mth'
 
 
       let ctx_l := Γ_local ++ Γ
-      let Aτ := mth_τ'
+
+      -- TODO: omτ may give us more assumptions to be added into the context
+      -- let omτ_assms' <- omτ_assms.tail.mapM (λ x => .toDsMq (x.get_type))
+      -- let (_, inst_mth_assms) <- List.foldlM (λ acc τ => do
+      --     let (ctx_l', ts) := acc
+      --     let t <- DsM.toDsM ("") (synth_term ctx_l' τ)
+      --     .ok ((Frame.empty :: ctx_l'), t :: ts)
+      --     ) (ctx_l, []) omτ_assms'
+
+      let mthτ'_θ <- Γ_mthτ'_θ.mapM (λ x => .toDsMq x.get_type)
+      let (inst_mth_assms) <- List.foldlM (λ ts (idx, θτ) => do
+          let θτ := [P' idx]θτ -- need all the implicit pred evidences relative to ctx_l
+          let t <- .toDsM ("mth_θ synth_term"
+                    ++ Std.Format.line ++ "θτ: " ++ repr θτ
+                    ++ Std.Format.line ++ "ctx Γ: " ++ repr ctx_l
+                    ++ Std.Format.line ++ "ts: " ++ repr ts
+                   )
+                   (synth_term ctx_l θτ)
+          .ok (t :: ts)
+          ) [] (List.zip (Term.shift_helper mthτ'_θ.length) mthτ'_θ)
+
+      let mth' := Term.mk_ty_apps mth' ty_vars_αs
+
+      let mth' := mth'.mk_apps inst_mth_assms
+
+      -- TODO : apply mth' to the omτ assumptions?
+
+      let Aτ := [P' Γ_mthτ'_θ.length]ret_mth_τ' -- rebase to ctx_l
       let Bτ := [P]omτ_ret_ty -- we take away the first omτ_assms as its the implicitly introduced class constraint
       let η <- .toDsM ("synth_coercion mth"
                         ++ Std.Format.line ++ "insttype: " ++ repr instty
@@ -423,26 +448,12 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
                         ++ Std.Format.line ++ "ctx Γ: " ++ repr ctx_l
                         ++ Std.Format.line  ++ "Eq: " ++ repr (Aτ ~[★]~ Bτ)
-                        ++ Std.Format.line  ++ "g_pat: " ++ repr g_pat
                         ++ Std.Format.line ++ "mth_τ': " ++ repr mth_τ'
                         ++ Std.Format.line ++ "omτ: " ++ repr omτ ++ " inst: " ++ repr inst_omτ
                         ++ Std.Format.line ++ "mth': " ++ repr mth'
                         ++ Std.Format.line ++ "cls_idx: " ++ repr cls_idx
                       )
                       (synth_coercion ctx_l Aτ Bτ)
-
-      let mth' := Term.mk_ty_apps mth' ty_vars_αs
-
-      let omτ_assms' <- omτ_assms.tail.mapM (λ x => .toDsMq (x.get_type))
-      let (_, inst_mth_assms) <- List.foldlM (λ acc τ => do
-          let (ctx_l', ts) := acc
-          let t <- DsM.toDsM ("") (synth_term ctx_l' τ)
-          .ok ((Frame.empty :: ctx_l'), t :: ts)
-          ) (ctx_l, []) omτ_assms'
-
-      let mth' := mth'.mk_apps inst_mth_assms
-
-      -- TODO : apply mth' to the omτ assumptions?
 
       let mth' := (mth' ▹ η)
 
@@ -454,6 +465,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs)
                          (Term.mk_lams mth' Γ_eqs)
 
+      let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1) ty_vars_βs)
       let mth' := Term.guard g_pat #0 ([S]mth')
       let cls_ty := (#(cls_idx + ty_vars_βs.length + idx)).mk_kind_apps (ty_vars_βs.map ([P]· ))
       let mth' <- .toDsM ("Term.mk_lams" ++ repr mth'
