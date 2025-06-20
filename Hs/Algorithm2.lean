@@ -342,6 +342,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let (Γ_inst, _) := instty.to_telescope
       let (Γ_tyvars, Γ_rest) := Γ_inst.partition (λ x => x.is_kind)
+      let (Γ_tyvars_βs, Γ_tyvars_αs) := Γ_tyvars.splitAt β_count
       let (Γ_eqs, Γ_assms) := Γ_rest.partition (λ x =>
         match x with
         | .type x => (Option.isSome (is_eq x))
@@ -455,7 +456,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                       )
                       (synth_coercion ctx_l Aτ Bτ)
 
-      let mth' := (mth' ▹ η)
+      let mth' := mth' ▹ η
 
       -- let Γ_assms' := (Γ_assms.map (λ f => f.apply S)).reverse
       let mth' <- .toDsM ("Term.mk_lams Γ_assms" ++ repr mth' ++ Std.Format.line ++ repr Γ_assms)
@@ -463,14 +464,23 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       -- let Γ_eqs' := (Γ_eqs.map (λ f => f.apply S)).reverse
       let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs)
-                         (Term.mk_lams mth' Γ_eqs)
+                         (Term.mk_lams mth' Γ_eqs.reverse)
 
-      let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1) ty_vars_βs)
-      let mth' := Term.guard g_pat #0 ([S]mth')
-      let cls_ty := (#(cls_idx + ty_vars_βs.length + idx)).mk_kind_apps (ty_vars_βs.map ([P]· ))
+      let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs)
+                         (Term.mk_lams mth' Γ_tyvars_αs.reverse)
+
+      let mth' := [S] mth' -- account for instance constraint
+
+      let g_pat := Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1)
+                           (ty_vars_βs.map ([P' (Γ_assms.length + ty_vars_αs.length)] ·))
+
+      let mth' := Term.guard g_pat #0 mth'
+
+      let cls_ty := (#(cls_idx + ty_vars_βs.length + idx)).mk_kind_apps
+                           (ty_vars_βs.map ([P' (Γ_assms.length + ty_vars_αs.length + Γ_eqs.length)]· ))
       let mth' <- .toDsM ("Term.mk_lams" ++ repr mth'
-                         ++ Std.Format.line ++ repr (.type cls_ty :: Γ_tyvars.take β_count).reverse)
-                         (Term.mk_lams mth' (.type cls_ty :: Γ_tyvars.take β_count).reverse)
+                         ++ Std.Format.line ++ repr (.type cls_ty :: Γ_tyvars_βs).reverse)
+                         (Term.mk_lams mth' (.type cls_ty :: Γ_tyvars_βs).reverse)
 
       let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
 

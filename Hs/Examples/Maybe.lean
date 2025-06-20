@@ -98,12 +98,6 @@ def Γ1 : HsCtx HsTerm := [
   notT,
   BoolF ]
 
--- #eval! DsM.run (compile_ctx Γ1)
--- #eval! DsM.run (do let Γ' <- compile_ctx Γ1
---                    .toDsMq (wf_ctx Γ')
---                 )
-
-
 def EqMaybeI : HsFrame HsTerm :=
   .inst (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
   [
