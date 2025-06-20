@@ -153,17 +153,21 @@ match is_eq τ with
   let candidate_instances : List Term <- List.foldlM (λ acc idx =>
     match Γ d@ idx with
     | Frame.type iτ => do -- if we have an instance in our assumptions
-      let (h', iτs') <- iτ.neutral_form
-      if (h == h') then (if iτs' == τs then .some (#idx :: acc) else .some acc)
-      else .some acc
+      match iτ.neutral_form with
+      | .none => .some acc
+      | .some (h', iτs') =>
+        if (h == h') then (if iτs' == τs then .some (#idx :: acc) else .some acc)
+        else .some acc
 
     | Frame.insttype iτ => do
      -- iτ is of the form ∀τs. C τs → iτh τs
-     let (iτ' : Term) <- instantiate_types iτ τs'
-     let ((Γ_eqs, res_τ) : Ctx Term × Term) <- Term.to_telescope iτ'
-     if ([S' Γ_eqs.length] τ) == res_τ
-     then do
-          let (ηs, _) <- List.foldlM (λ (acc : List Term × Ctx Term) (f : Frame Term) =>
+     match instantiate_types iτ τs' with
+     | .none => .some acc
+     | .some iτ' =>
+       let ((Γ_eqs, res_τ) : Ctx Term × Term) <- Term.to_telescope iτ'
+       if ([S' Γ_eqs.length] τ) == res_τ
+       then do
+          let mb_ηs : Option (List Term × Ctx Term) := List.foldlM (λ (acc : List Term × Ctx Term) (f : Frame Term) =>
             let (ηs, Γ) := acc
             match f with
             | Frame.type x =>
@@ -174,11 +178,12 @@ match is_eq τ with
               | _ => .none
             | _ => .none
           ) ([], Γ) Γ_eqs.reverse
-          .some (
-            ((#idx).mk_ty_apps τs').mk_apps_rev ηs
-            :: acc)
+          match mb_ηs with
+          | .some (ηs, _) =>
+            .some (((#idx).mk_ty_apps τs').mk_apps_rev ηs :: acc)
+          | .none => .some acc
 
-     else .some acc
+       else .some acc
     | _ => .some acc
    ) [] (Term.shift_helper Γ.length)
 
@@ -231,6 +236,45 @@ def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := 
 
 
 #guard synth_superclass_inst ctx1 [#1] (#1 ~[★]~ #7 -t> #7 `@k #8) == (#5 `@t #1)
+
+namespace SynthInstTest
+
+def ctx : Ctx Term := [
+ .type (#13 `@k #1),
+ .type (#1 ~[★]~ #6 `@k #0),
+ .kind ★,
+ .kind ★,
+ .insttype (∀[★]∀[★](#1 ~[★]~ #5 `@k #0) -t> #12 `@k #1 -t> #13 `@k #3) ,
+ .term #13 #11,
+ .ctor (∀[★]#0 -t> #3 `@k #1),
+ .ctor (∀[★]#1 `@k #0),
+ .datatype (★ -k> ★),
+ .inst #2 (
+      Λ[★]`λ[#5 `@k #0]
+      .guard (#3 `@t #1) #0 (
+          `λ[(#1 ~[★]~ #11)]
+          ((`λ[#12] (`λ[#13] (#11 `@ ((#10 `@ #0) `@ #1)))) ▹
+           (((refl! ★ #12) `;  (sym! #0)) -c> (((refl! ★ #13) `;  (sym! #1)) -c> (refl! ★ #14)))))),
+ .inst #2 (
+      Λ[★]`λ[#4 `@k #0]
+      .guard (#2 `@t #1) #0 (
+          `λ[(#1 ~[★]~ #10)]
+          (#7 ▹  (((refl! ★ #11) `;  (sym! #0)) -c> (((refl! ★ #12) `;  (sym! #1)) -c> (refl! ★ #13)))))),
+ .insttype (∀[★](#0 ~[★]~ #8) -t> #4 `@k #1),
+ .openm (∀[★]#2 `@k #0 -t> #1 -t> #2 -t> #10),
+ .openm (∀[★]#1 `@k #0 -t> #1 -t> #2 -t> #9),
+ .opent (★ -k> ★),
+ .term #2 #3,
+ .term #2 #0,
+ .ctor #1,
+ .ctor #0,
+ .datatype ★
+ ]
+
+#eval synth_term ctx (#14 `@k #2)
+
+end SynthInstTest
+
 
 -- Problem 1: filling in a hole
 -- There is a goal that is an instance, say `C a b c`
