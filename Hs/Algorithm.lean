@@ -219,7 +219,10 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   let (h', τh') <- helper1 compile Γ head
   let (τs, res_τh') := τh'.to_telescope
 
-  if args.length > τs.length then .error ("compile length mismatch" ++ (repr args) ++ (repr τs))
+  if args.length > τs.length
+  then .error ("compile length mismatch"
+                ++ Std.Format.line ++ (repr exp_τ)
+                ++ Std.Format.line ++ (repr t))
   else
   -- Compile Args and actual type
     let (actual_τ, t') <- args.foldlM (helper2 compile Γ) (τh', h')

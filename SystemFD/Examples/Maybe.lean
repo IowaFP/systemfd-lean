@@ -12,10 +12,10 @@ def MaybeBoolCtx : Ctx Term := [
            eqMaybe ▹ sym (<t ~ Bool> → <t ~ Bool> → <Bool>)
     -/
     .inst #8 (Λ[★] `λ[#10 `@k #0] -- Λt. λ(i : Eq t)
-                   .guard (#3 `@t #1) #0    --     EqMaybe[t] ← i
-                    (Λ[★] `λ[#2 ~[★]~ (#7 `@k #0)] `λ[#13 `@k #1]  -- Λ u. λ (tmu : t ~ Maybe u). λ (eqU : Eq u)
-                                                   -- eqMaybeU[u] eqU ▹ (t ~ Maybe u) → (t ~ Maybe u) → <Bool>
-                                              (#5 `@t #2 `@ #0) ▹ sym! (#1 -c> #2  -c> refl! ★ #19))
+                .guard (#3 `@t #1) #0    --     EqMaybe[t] ← i
+                (Λ[★] `λ[#2 ~[★]~ (#7 `@k #0)] `λ[#13 `@k #1] -- Λ u. λ (tmu : t ~ Maybe u). λ (eqU : Eq u)
+                      -- eqMaybeU[u] eqU ▹ (t ~ Maybe u) → (t ~ Maybe u) → <Bool>
+                       (#5 `@t #2 `@ #0) ▹ sym! (#1 -c> #2  -c> refl! ★ #19))
 
 
                    )

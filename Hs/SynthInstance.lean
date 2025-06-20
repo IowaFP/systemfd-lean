@@ -121,11 +121,15 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 -- #eval construct_coercion_graph ([.empty, .type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
 
 
-#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6) == .some ((refl! ★ #4) `; (sym! #0) -c> (refl! ★ #5) `; (sym! #1) -c> (refl! ★ #3) `; #2)
+#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★]
+                      (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6)
+       == .some ((refl! ★ #4) `; (sym! #0) -c> (refl! ★ #5) `; (sym! #1) -c> (refl! ★ #3) `; #2)
 
 
-#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #4 #1 == .some ((refl! ★ #4) `; sym! #0)
-#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4 == .some ((refl! ★ #1) `; #0)
+#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #4 #1
+       == .some ((refl! ★ #4) `; sym! #0)
+#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4
+       == .some ((refl! ★ #1) `; #0)
 
 
 def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b => do

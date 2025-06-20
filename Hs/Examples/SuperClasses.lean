@@ -3,28 +3,28 @@ import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
 
-import Hs.Examples.Datatypes
-import Hs.Examples.Classes
+-- import Hs.Examples.Datatypes
+-- import Hs.Examples.Classes
 
--- def BoolCtx : HsCtx HsTerm :=
---   [ .datatypeDecl `★ [ `#0     -- Nothing :: ∀ a. Maybe a
---                      , `#1        -- , (`∀{`★} `#0 → `#3 `•k `#1)  -- Just :: ∀ a. a -> Maybe a
---                      ]
---   ]
+def BoolCtx : HsCtx HsTerm :=
+  [ .datatypeDecl `★ [ `#0     -- Nothing :: ∀ a. Maybe a
+                     , `#1        -- , (`∀{`★} `#0 → `#3 `•k `#1)  -- Just :: ∀ a. a -> Maybe a
+                     ]
+  ]
 
 -- class Eq a where
 --   == : a -> a -> Bool
 --   =/= : a -> a -> Bool
 
--- def EqCFrame : HsFrame HsTerm :=
---   HsFrame.classDecl (`★ `-k> `★)
---          .nil
---          .nil
---          [ `∀{`★} (`#1 `•k `#0) ⇒ `#1 → `#2 → `#7    -- TODO: make type class predicate implicit?
---          , `∀{`★} (`#2 `•k `#0) ⇒ `#1 → `#2 → `#8 ]
+def EqCFrame : HsFrame HsTerm :=
+  HsFrame.classDecl (`★ `-k> `★)
+         .nil
+         .nil
+         [ `∀{`★} `#0 → `#1 → `#6    -- TODO: make type class predicate implicit?
+         , `∀{`★} `#0 → `#1 → `#7 ]
 
--- def EqCtx : HsCtx HsTerm :=
---   EqCFrame :: BoolCtx
+def EqCtx : HsCtx HsTerm :=
+  EqCFrame :: BoolCtx
 
 
 def EqBoolI : HsFrame HsTerm := .inst
@@ -38,7 +38,7 @@ def OrdC : HsFrame HsTerm :=
     [ `#7 `•k `#0
     ]
     .nil
-    [ `∀{`★} (`#2 `•k `#0) ⇒ (`#1 → `#2 → `#14)
+    [ `∀{`★} (`#0 → `#1 → `#13)
     ]
 
 
@@ -60,22 +60,21 @@ def supCtx := OrdBool ::
 #eval! DsM.run (
   do let ctx <- compile_ctx supCtx
      .toDsMq (wf_ctx ctx))
+-- def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) -- `• `#13 `• `#12
 
-def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) -- `• `#13 `• `#12
+-- def ex1' : Term := (#10 `@t #14 `@ (#8 `@t #14 `@ refl! ★ #14)) `@ #13 `@ #12
 
-def ex1' : Term := (#10 `@t #14 `@ (#8 `@t #14 `@ refl! ★ #14)) `@ #13 `@ #12
+-- -- #eval! do let ctx <- compile_ctx supCtx
+-- --           synth_term ctx (#11 `@k #14)
 
--- #eval! do let ctx <- compile_ctx supCtx
---           synth_term ctx (#11 `@k #14)
+-- #eval! DsM.run (
+--   do let Γ <- compile_ctx supCtx
+--           -- let τ <- (Γ d@ 10).get_type
+--           -- instantiate_type τ #14
 
-#eval! DsM.run (
-  do let Γ <- compile_ctx supCtx
-          -- let τ <- (Γ d@ 10).get_type
-          -- instantiate_type τ #14
+--           -- compile Γ (∀[★](#12 `@k #0) -t> #1 -t> #2 -t> #18) `#10
 
-          -- compile Γ (∀[★](#12 `@k #0) -t> #1 -t> #2 -t> #18) `#10
-
-          -- compile Γ ((#11 `@k #14) -t> #15 -t> #16 -t> #17) (`#10 `•t `#14)
-        -- compile Γ (#11 `@k #14) (.HsHole (`#11 `•k `#14))
-     compile Γ #14 (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13))
-          -- compile Γ (#14 -t> #15 -t> #16) (.HsAnnotate (`#14 → `#15 → `#16) ex1)
+--           -- compile Γ ((#11 `@k #14) -t> #15 -t> #16 -t> #17) (`#10 `•t `#14)
+--         -- compile Γ (#11 `@k #14) (.HsHole (`#11 `•k `#14))
+--      compile Γ #14 (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13))
+--           -- compile Γ (#14 -t> #15 -t> #16) (.HsAnnotate (`#14 → `#15 → `#16) ex1)

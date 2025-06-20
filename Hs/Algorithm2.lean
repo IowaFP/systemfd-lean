@@ -23,55 +23,57 @@ def re_index_base := fresh_vars
 
 -- Henry Ford Encode a type:
 -- Takes a type of the form
--- ∀ αs. τs -> D αs
+-- ∀ αs. assms -> D τs
 -- and converts it to
--- ∀ αs. τs -> ∀ βs (βs ~ αs) -> D βs
+-- ∀βs. ∀αs. (βs ~ αs) -> assms -> D βs
 -- ASSUMES all type binders are in front in the original type
 -- It doesn't matter if αs have type variables, they would
 -- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
 @[simp]
-def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> DsM Term :=
+def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> DsM (Term × Nat) :=
 λ Γ data => do
-  let (Γ_local, d, d_αs) := data
+  let (Γ_local, d, d_τs) := data
 
   let d_αs_kis <- List.mapM (λ x =>
       .toDsM ("hf encode infer_kind"
             ++ Std.Format.line ++ repr (Γ_local ++ Γ) ++ Std.Format.line ++ repr x)
-      (infer_kind (Γ_local ++ Γ) x.2)) d_αs
+      (infer_kind (Γ_local ++ Γ) x.2)) d_τs
 
-  let βs := fresh_vars d_αs.length
+  let (Γ_αs, Γ_assms) := Γ_local.partition (λ x => x.is_kind)
 
-  -- let (Γ_cτs, Γ_ty) := Γ_local.partition (λ x => x.is_type)
+  let βs := fresh_vars d_τs.length
+  let βs := βs.map ([S' Γ_αs.length]·)
 
-  let eqs := Term.mk_eqs (List.zip d_αs_kis (List.zip βs (List.map (λ x => [S' βs.length] x.snd) d_αs)))
+  let d_αs' := d_τs.map (λ x => [λ n => .re (if n ≤ Γ_local.length
+                                        then n - Γ_assms.length
+                                        else n + βs.length - Γ_assms.length)] x.2)
 
+  let eqs := Term.mk_eqs (List.zip d_αs_kis (List.zip βs d_αs'))
 
-  let ty' := [S' eqs.length] Term.mk_kind_apps ([S' βs.length]#d) βs
+  let Γ_assms := Γ_assms.map (λ f => f.apply (λ n =>
+              .re (if n ≤ Γ_local.length
+                   then n + βs.length
+                   else n + 2*βs.length)))
 
-  -- let Γ_cτs' := Γ_cτs.map (λ x => x.apply (S' (βs.length + eqs.length)))
+  let ty' := [S' eqs.length] Term.mk_kind_apps ([S' βs.length]#d) (βs.map (λ x => [S' Γ_assms.length] x))
 
-  let Γ' := Term.mk_type_telescope (Term.mk_kind_telescope Γ_local d_αs_kis) eqs
+  let ty' := ty'.from_telescope_rev Γ_assms
 
-  let ty' := ty'.from_telescope_rev Γ'
+  let ty' := ty'.from_telescope_rev (Term.mk_type_telescope [] eqs)
 
-  .ok ty'
+  let ty' := ty'.from_telescope_rev Γ_αs
 
+  let ty' := ty'.from_telescope_rev (Term.mk_kind_telescope [] d_αs_kis)
 
+  .ok (ty', d_τs.length)
 
 
 @[simp]
-def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term × List Term) := λ Γ ty => do
+def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term × Nat) := λ Γ ty => do
   let (Γ_local, res_ty) := ty.to_telescope
-  let Γ_assms := Γ_local.filter (λ x =>
-                  match x with
-                  | .type _ => true
-                  | _ => false )
-  let (d, d_τs) <- .toDsM ("mk_inst_type neutral_form" ++ Std.Format.line ++repr res_ty) res_ty.neutral_form
-  let ty' <- hf_encode Γ (Γ_local.reverse, d, d_τs)
-  match is_all ty with
-  | .some _ => .ok (d - Γ_local.length, ty', d_τs.map (λ x => x.2))
-  | .none => .ok (d - Γ_local.length, ty', d_τs.map (λ x => [P' Γ_local.length]x.2))
-
+  let (d, d_τs) <- .toDsM ("mk_inst_type neutral_form" ++ Std.Format.line ++ repr res_ty) res_ty.neutral_form
+  let (ty', n) <- hf_encode Γ (Γ_local.reverse, d, d_τs)
+  .ok (d - Γ_local.length, ty', n)
 
 #eval (Term.shift_helper 10).take 5
 
@@ -244,12 +246,11 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   -- Step1: Compile instance type
   -- ity is of the form C τs ⇒ D τs
   let ity' <- compile Γ' ★ ity
-  let (cls_idx , ity', d_τs) <- mk_inst_type Γ' ity'
+  let (cls_idx , ity', β_count) <- mk_inst_type Γ' ity'
 
   let Γ' := .insttype ity' :: Γ'
 
   let cls_idx := cls_idx + 1 -- account for insttype at head
-  let d_τs := d_τs.map (λ x => [S]x)
   -- let instty_idx := 0
 
   let openm_ids <- get_openm_ids Γ' cls_idx
@@ -319,7 +320,6 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   ) Γ' (Term.shift_helper sc_ids.length)
 
   let cls_idx := cls_idx + sc_ids.length
-  let d_τs := d_τs.map (λ x => [S' sc_ids.length] x)
 
   -- Step3 : compile open method
   let Γ' <- if  mths.length == openm_ids.length -- insist on all methods being implemented
@@ -327,65 +327,121 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
     List.foldlM (λ Γ x => do
       let (mth, idx) := x
+
+      let instty <- .toDsMq (Γ d@ (idx + sc_ids.length + fd_ids.length)).get_type
+
+      let (Γ_inst, D_βs) := instty.to_telescope
+      let (Γ_tyvars, Γ_rest) := Γ_inst.partition (λ x => x.is_kind)
+      let (Γ_eqs, Γ_assms) := Γ_rest.partition (λ x =>
+        match x with
+        | .type x => (Option.isSome (is_eq x))
+        | _ => false
+        )
+      -- let (Γ_tyvars_βs, Γ_eqs) := Γ_rest.partition (λ x => x.is_kind)
+
+      let new_vars := (fresh_vars Γ_inst.length).reverse
+
+      let (ty_vars, rest_new_vars) := new_vars.splitAt Γ_tyvars.length
+      let (vars_eq, vars_assms) := rest_new_vars.splitAt Γ_eqs.length
+
+      let (ty_vars_βs, ty_vars_αs) := ty_vars.splitAt β_count
+
+      let D_βs := [P' (ty_vars_αs.length + vars_eq.length + vars_assms.length)]D_βs
+
+      let Γ_local := (Γ_tyvars.take β_count) ++ [.type D_βs]
+                     ++ (Γ_tyvars.drop β_count ++ Γ_eqs ++ Γ_assms).map (λ f => f.apply S)
+
+      let Γ_local := Γ_local.reverse
+
+      /-  insttype is of the form ∀βs ∀αs. (βs ~ αs) -> C αs -> D βs
+                   where C and D are opent's
+          the openm type is of the form ∀βs A βs -> τs -> ret_τ
+                   where A is an opent
+          the inst binding type is of the form ∀δs B δs -> τs' -> ret_τ'
+
+          the generated instance looks like
+                  Λβs. λD βs
+                    Guard #inst [βs] <- #0
+                      Λαs. λ(βs ~ αs) λ C αs
+                           mth[βs] γs ▹ η
+
+                  where γ : B βs
+                        η : ((τs' -> ret_τ)[δs ↦ βs]) ~ τs -> ret_τ
+                  and γ and η are synthesized
+      -/
+
+
       let omτ <- .toDsMq (Γ d@ (cls_idx - (1 + sc_ids.length + fd_ids.length))).get_type
+      let omτ := [S' (Γ_local.length)] omτ
+      let inst_omτ <- .toDsM ("instantate omτ"
+                             ++ Std.Format.line ++ repr omτ
+                             ++ Std.Format.line ++ repr (ty_vars_βs.map ([S] ·))
+                             )
+                             (instantiate_types omτ (ty_vars_βs.map ([S] ·)))
+      let (omτ_assms, omτ_ret_ty) := to_implicit_telescope (Γ_local ++ Γ) inst_omτ
 
-      let (Γ_l, ret_ty) := to_implicit_telescope Γ omτ
 
-      -- If the insttype has some assumptions we can use, add them in the local context
-      let insttype <- .toDsM ("get inst type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr (cls_idx-1))
-                             (Γ d@ (idx + sc_ids.length + fd_ids.length)).get_type
-    -- split Γ_l into two parts
-    -- ty_args, implicit args
-      let (ty_args, _) := List.partition (λ x => x.is_kind) Γ_l
-      let insttype' <- .toDsM ("instantiate insttype") (instantiate_types insttype d_τs)
-      let (Γ_inst, _) := insttype'.to_telescope
-      let Γ_inst := Γ_inst.reverse
 
-      let (τ', mth') <- match mth with
+      let (mth_τ', mth') <- match mth with
       | .HsAnnotate τ mth  => do
-        let τ' <- compile (Γ_inst ++ Γ) ★ ([S' Γ_inst.length] τ)
-        let mth' <- compile (Γ_inst ++ Γ) τ' ([S' Γ_inst.length] mth)
+        let τ' <- compile Γ ★ τ
+        let mth' <- compile Γ τ' mth
         .ok (τ', mth')
       | .HsVar n => do
-        let τ' <- .toDsMq ((Γ_inst ++ Γ) d@ (Γ_inst.length + n)).get_type
-        let mth' <- compile (Γ_inst ++ Γ) τ' ([S' Γ_inst.length] mth)
+        let τ' <- .toDsMq (Γ d@ n).get_type
+        let mth' <- compile Γ τ' mth
         .ok (τ', mth')
       | _ => .error ("unsupported method decl: " ++ repr mth)
 
+      let mth_τ' := [S' Γ_local.length] mth_τ'
+      let mth' := [S' Γ_local.length ] mth'
 
-      let τ' := [S' d_τs.length] τ' -- accounted for above?
-      let new_vars := (fresh_vars Γ_l.length).reverse  -- [#1, #0]
-      let (ty_vars, _) := new_vars.splitAt ty_args.length -- [#1], [#0]
+      let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1) ty_vars_βs)
 
-      let g_pat := (Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + Γ_l.length) ty_vars)
+      let ty_vars_βs := ty_vars_βs.map ([S]·)
 
-      let instty <- .toDsMq ((Γ_l ++ Γ) d@ (idx + sc_ids.length + fd_ids.length + Γ_l.length)).get_type
-      let instty <- .toDsM ("instantiate" ++ repr instty ++ repr ty_vars) (instantiate_types instty ty_vars)
+      let ctx_l := (Γ_local ++ Γ)
+      let Aτ := mth_τ'
+      let Bτ := omτ_ret_ty
+      let η <- .toDsM ("synth_coercion mth"
+                        ++ Std.Format.line ++ "insttype: " ++ repr instty
+                        ++ Std.Format.line ++ "omτ_assms: " ++ repr omτ_assms
 
-      let (tele, _ ) := instty.to_telescope
-      let inst_ty_coercions := tele.filter (λ x =>
-        match x with
-        | .type τ => Option.isSome (is_eq τ)
-        | _ => false)
+                        ++ Std.Format.line ++ "Γ_inst_assms: " ++ repr Γ_assms ++ repr vars_assms
+                        ++ Std.Format.line ++ "Γ_inst_eqs" ++ repr Γ_eqs ++ repr vars_eq
+                        ++ Std.Format.line ++ "Γ_inst_αs: " ++ repr (Γ_tyvars.drop β_count)  ++ repr ty_vars_αs
+                        ++ Std.Format.line ++ "D_βs: " ++ repr D_βs
+                        ++ Std.Format.line ++ "Γ_inst_βs: " ++ repr (Γ_tyvars.take β_count) ++ repr ty_vars_βs
+                        ++ Std.Format.line ++ "Γ: " ++ repr Γ
 
-      let ctx_l := (inst_ty_coercions ++ Γ_l.reverse ++ Γ)
-      let Aτ := [S' (inst_ty_coercions.length)]τ'
-      let Bτ := ([S' (inst_ty_coercions.length)]ret_ty)
-      let η <- .toDsM ("synth_coercion mth" ++ Std.Format.line ++ repr ctx_l
-                         ++ Std.Format.line  ++ "Eq: " ++ repr (Aτ ~[★]~ Bτ))
+                        ++ Std.Format.line ++ "ctx Γ: " ++ repr ctx_l
+                        ++ Std.Format.line  ++ "Eq: " ++ repr (Aτ ~[★]~ Bτ)
+                        ++ Std.Format.line  ++ "g_pat: " ++ repr g_pat
+                        ++ Std.Format.line ++ "mth_τ': " ++ repr mth_τ'
+                        ++ Std.Format.line ++ "omτ: " ++ repr omτ ++ " inst: " ++ repr inst_omτ
+                        ++ Std.Format.line ++ "mth': " ++ repr mth'
+                        ++ Std.Format.line ++ "cls_idx: " ++ repr cls_idx
+                      )
                       (synth_coercion ctx_l Aτ Bτ)
 
+      let mth' := Term.mk_ty_apps mth' ty_vars_αs
+      -- TODO : apply mth' to the omτ assumptions?
 
+      let mth' := mth' ▹ η
 
-      let mth' := [S' (inst_ty_coercions.length + Γ_l.length)] mth'
-      let mth' <- .toDsM ("Term.mk_lams" ++ repr (mth' ▹ η) ++ Std.Format.line ++ repr inst_ty_coercions)
-                          (Term.mk_lams (mth' ▹ η) inst_ty_coercions)
+      let mth' <- .toDsM ("Term.mk_lams Γ_assms" ++ repr mth' ++ Std.Format.line ++ repr Γ_assms)
+                         (Term.mk_lams mth' Γ_assms.reverse)
 
-      let mth' <- .toDsM ("Term.mk_lams" ++ repr (Term.guard g_pat #0 mth') ++ Std.Format.line ++ repr Γ_l)
-                         (Term.mk_lams (Term.guard g_pat #0 mth') Γ_l)
+      let Γ_eqs' := (Γ_eqs.map (λ f => f.apply S)).reverse
+      let mth' <- .toDsM ("Term.mk_lams Γ_eqs" ++ repr mth' ++ Std.Format.line ++ repr Γ_eqs')
+                         (Term.mk_lams mth' Γ_eqs')
+
+      let mth' := Term.guard g_pat #0 mth'
+      let mth' <- .toDsM ("Term.mk_lams" ++ repr mth' ++ Std.Format.line ++ repr (.type D_βs :: Γ_tyvars.take β_count).reverse)
+                         (Term.mk_lams mth' (.type D_βs :: Γ_tyvars.take β_count).reverse)
 
       let new_Γ := ((Frame.inst #(cls_idx - (1 + sc_ids.length + fd_ids.length)) mth') :: Γ)
-      -- let cls_idx := cls_idx + 1
+
       .ok new_Γ
 
     )  Γ' (List.zip mths (Term.shift_helper openm_ids.length))

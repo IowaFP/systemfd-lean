@@ -99,25 +99,17 @@ def Γ1 : HsCtx HsTerm := [
   BoolF ]
 
 -- #eval! DsM.run (compile_ctx Γ1)
+-- #eval! DsM.run (do let Γ' <- compile_ctx Γ1
+--                    .toDsMq (wf_ctx Γ')
+--                 )
 
 
 def EqMaybeI : HsFrame HsTerm :=
   .inst (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
-  [ .HsAnnotate ((`#5 `•k `#0) → (`#6 `•k `#1) → `#18) (`#2 `•t `#0 `• (.HsHole (`#11 `•k `#0)))
+  [ .HsAnnotate (`∀{`★}(`#5 `•k `#0) → (`#6 `•k `#1) → `#18)
+                (Λ̈[`★](`#3 `•t `#0 `• (.HsHole (`#11 `•k `#0))))
   , `#2
   ]
-
-#eval! DsM.run
- (do let Γ' <- compile_ctx Γ1
-     let ty <- compile Γ' ★ (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
-     -- .toDsMq (infer_type Γ' τ)
-     let (cls_idx, instty, d_τs) <- mk_inst_type Γ' ty
-
-     let Γ' := .insttype instty :: Γ'
-     .ok d_τs
-
-     -- .toDsM "wf_ctx failed" (wf_ctx Γ')
- )
 
 
 def Γ2 : HsCtx HsTerm := [
@@ -131,6 +123,13 @@ def Γ2 : HsCtx HsTerm := [
   BoolF ]
 
 #eval! DsM.run (compile_ctx Γ2)
+
+-- #eval! DsM.run (do let Γ' <- compile_ctx Γ1
+--                    .toDsMq (wf_ctx Γ')
+--                 )
+
+
+-- #eval! DsM.run (compile_ctx Γ2)
 
 
 -- #eval! do let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
