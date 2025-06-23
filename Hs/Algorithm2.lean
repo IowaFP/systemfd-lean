@@ -181,12 +181,12 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
     let sc := sc_data.2 -- Superclass type
     let (sc_tycon, ty_args) <- .toDsMq sc.neutral_form -- Split it into ctor and ty_args
 
-    let class_type := Term.mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars
+    let class_type := Term.mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars.reverse
 
     let sc' <- compile (ty_vars_ctx ++ Γ) ★ sc
 
     let sc_fun : Term :=  class_type -t> ([S]sc') -- [S] becuase -t> is binder
-    let sc_fun := sc_fun.from_telescope ty_vars_ctx
+    let sc_fun := sc_fun.from_telescope_rev ty_vars_ctx
 
     .ok (.openm sc_fun :: Γ)
     ) Γ' (List.zip (re_index_base scs.length) scs)
@@ -233,11 +233,12 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   -- Step 4. Add methods
   let Γ' <- List.foldlM
     (λ Γ om_data => do
-      let (cls_con, τ) := om_data
+      let (idx, τ) := om_data
       let τ' <- compile Γ ★ τ
       let (Γ_l, ret_ty) := τ'.to_telescope
       let (Γ_tyvars, Γ_rest) := Γ_l.partition (λ x => x.is_kind)
-      let class_ty := Term.mk_kind_apps ([S' (scs.length + fds.length + ty_vars.length)] cls_con) ty_vars.reverse
+      let class_ty := Term.mk_kind_apps (#(scs.length + fds.length + Γ_tyvars.length + idx))
+                       (ty_vars.reverse.map ([S' (Γ_tyvars.length - ty_vars.length)] ·))
       let Γ_rest := Γ_rest.map (λ f => f.apply S)
       let Γ_l := Γ_tyvars ++ (.type class_ty :: Γ_rest)
       let ret_ty := [S] ret_ty
@@ -245,7 +246,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let τ' := ret_ty.from_telescope Γ_l
 
       .ok ((.openm τ') :: Γ))
-      Γ' (List.zip (re_index_base oms.length) oms)
+      Γ' (List.zip (Term.shift_helper oms.length) oms)
 
   .ok Γ'
 

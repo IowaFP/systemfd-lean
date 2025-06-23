@@ -28,34 +28,45 @@ import Hs.Examples.Classes
 --   EqCFrame :: BoolCtx
 
 
-def OrdCFrame : HsFrame HsTerm :=
-  HsFrame.classDecl (`★ `-k> `★)
-    [`#4 `•k `#0]
-    .nil
-    [ `∀{`★} (`#2 `•k `#0) ⇒ (`#1 → `#2 → `#11) -- TODO: make type class predicate implicit?
-    ]
-
 def MonadFrame : HsFrame HsTerm :=
   HsFrame.classDecl ((`★ `-k> `★) `-k> `★)
   .nil
   .nil
   [-- ∀ m a b. Monad m. m a → (a → b) → m b
-    `∀{(`★ `-k> `★)} `∀{`★} `∀{`★} (`#3 `•k `#2) ⇒ ((`#3 `•k `#2) → (`#3 → `#3) → (`#5 `•k `#3))
+    `∀{(`★ `-k> `★)} `∀{`★} `∀{`★} ((`#2 `•k `#1) → (`#2 → `#2) → (`#4 `•k `#2))
    -- ∀ m a. Monad m ⇒ a → m a
-  , `∀{(`★ `-k> `★)} `∀{`★} (`#3 `•k `#1) ⇒ (`#1 → `#3 `•k `#2)
+  , `∀{(`★ `-k> `★)} `∀{`★} (`#0 → `#2 `•k `#1)
   ]
 
 -- class StateMonad s m | m -> s
 def StateMonadFrame : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> (`★ `-k> `★) `-k> `★)
-    [`#8 `•k `#1] -- ∀ s m. StateMonad s m -> Monad m
-    [ ([0] , 1) ] -- m ~> s  ∀ s1 m s2. StateMonad s1 m -> StateMonad s2 m
+    [`#5 `•k `#0] -- ∀ s m. StateMonad s m -> Monad m
+    [ ([0] , 1) ] -- m ~> s  ∀ s1 s2 m. StateMonad s1 m -> StateMonad s2 m -> (s1 ~ s2)
     .nil -- oms
 
+def Γ := StateMonadFrame ::
+         MonadFrame ::
+         EqCtx
+
 #eval "StateMonad, monad, Ord, Eq, Bool"
-#eval StateMonadFrame :: MonadFrame :: OrdCFrame :: EqCtx
-#eval! compile_ctx ( StateMonadFrame ::
-                     MonadFrame ::
-                     OrdCFrame :: EqCtx)
-#eval! do let ctx <- compile_ctx (StateMonadFrame :: MonadFrame :: OrdCFrame :: EqCtx)
-          wf_ctx ctx
+#eval Γ
+#eval! DsM.run (compile_ctx Γ)
+#eval! DsM.run (do
+  let ctx <- compile_ctx Γ
+  .toDsMq (wf_ctx ctx))
+
+
+-- #eval! wf_ctx
+-- [-- .openm (∀[★]∀[★]∀[★ -k> ★]#4 `@k #1 `@k #0 -t> #5 `@k #3 `@k #1 -t> (#3 ~[★]~ #4)),
+--  .openm (∀[★ -k> ★]∀[★]#2 `@k #0 `@k #1 -t> #6 `@k #2),
+--  .opent (★ -k> (★ -k> ★) -k> ★),
+--  .openm (∀[★ -k> ★]∀[★]#3 `@k #1 -t> #1 -t> #3 `@k #2),
+--  .openm (∀[★ -k> ★]∀[★]∀[★]#3 `@k #2 -t> #3 `@k #2 -t> (#3 -t> #3) -t> #5 `@k #3),
+--  .opent ((★ -k> ★) -k> ★),
+--  .openm (∀[★]#2 `@k #0 -t> #1 -t> #2 -t> #8),
+--  .openm (∀[★]#1 `@k #0 -t> #1 -t> #2 -t> #7),
+--  .opent (★ -k> ★),
+--  .ctor #1,
+--  .ctor #0,
+--  .datatype ★]
