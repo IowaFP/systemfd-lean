@@ -113,7 +113,6 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   let args' <- List.mapM
     (λ a => compile Γ a.1 a.2)
     (List.zip κs sp)
-
   .ok (Term.mk_kind_app h args')
 
 
@@ -232,7 +231,6 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
       let η <- .toDsM ("synth_coercion spine" ++ repr Γ ++ Std.Format.line ++ repr (actual_τ ~[★]~ exp_τ))
                       (synth_coercion Γ actual_τ exp_τ)
       .ok (t' ▹ η)
-
 
 -- | _, _, _ => .none
 -- decreasing_by repeat sorry
