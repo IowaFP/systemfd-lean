@@ -10,14 +10,15 @@ def FCls : HsFrame HsTerm := .classDecl (`★ `-k> `★ `-k> `★) -- F t u
     .nil
 
 
-def FInst : HsFrame HsTerm := .inst (`#3 `•k `#0 `•k `#1)
+def FInst : HsFrame HsTerm := .inst (`#8 `•k `#2 `•k `#2)
   .nil
 
 
 def FDCtx : HsCtx HsTerm := [
+  .term (`#4 → `#5 → `#6) (λ̈[`#4]λ̈[`#5]`#5),
   FInst,
-  .datatypeDecl `★ .nil,
-  .datatypeDecl `★ .nil,
+  .datatypeDecl `★ [`#0, `#1],
+  .datatypeDecl `★ [`#0, `#1, `#2],
   FCls
 ]
 
@@ -26,6 +27,17 @@ def FDCtx : HsCtx HsTerm := [
   let Γ' <- compile_ctx FDCtx
   .toDsMq (wf_ctx Γ'))
 
+
+
+-- ∀ α. F Bool α ⇒ α → α → α
+def τ := `∀{`★} `#12 `•k `#6 `•k `#0 ⇒ `#1 → `#2 → `#3
+def t := Λ̈[`★]λ̈[`#12 `•k `#6 `•k `#0] `#2
+
+#eval  DsM.run (do
+       let Γ' <- compile_ctx FDCtx
+       let τ' <- compile Γ' ★ τ
+       compile Γ' τ' t
+       )
 
 -- #eval  DsM.run (do
 --   let Γ <- compile_ctx [.datatypeDecl `★ .nil, .datatypeDecl `★ .nil, FCls]

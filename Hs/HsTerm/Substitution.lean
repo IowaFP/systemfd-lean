@@ -59,7 +59,7 @@ namespace HsTerm
   def split_kind_app : HsTerm -> Option (Nat × List HsTerm)
   | .HsCtor2 .appk f a => do
     let (f', args) <- split_kind_app f
-    .some (f', (a :: args))
+    .some (f', (args ++ [a]))
   | `#x => .some (x, [])
   | _ => .none
 
