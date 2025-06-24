@@ -101,7 +101,7 @@ def Γ1 : HsCtx HsTerm := [
 def EqMaybeI : HsFrame HsTerm :=
   .inst (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
   [
-    `#1 -- TODO: do it relative to binders introduced by the instance sig?
+    `#1
     -- Λu λa λb not (eqMaybe[u] __@(Eq u) a b)
   , .HsAnnotate (`∀{`★}(`#12 `•k `#0) ⇒ (`#7 `•k `#1) → (`#8 `•k `#2) → `#20)
                (Λ̈[`★] λ̈[`#12 `•k `#0] λ̈[`#7 `•k `#1]λ̈[`#8 `•k `#2] `#17 `• (`#6 `•t `#3 `• `#2  `• `#1 `• `#0))
@@ -118,23 +118,26 @@ def Γ2 : HsCtx HsTerm := [
   notT,
   BoolF ]
 
-#eval! DsM.run (compile_ctx Γ2)
+-- #eval! DsM.run (compile_ctx Γ2)
 
-#eval! DsM.run (do
-  let Γ' <- compile_ctx Γ2
-  .toDsMq (wf_ctx Γ'))
+-- #eval! DsM.run (do
+--   let Γ' <- compile_ctx Γ2
+--   .toDsMq (wf_ctx Γ'))
+
+#eval! DsM.run (compile_ctx [EqBoolI, EqCF, eqBoolT, notT, BoolF])
 
 
--- #eval! @DsM.run Term _ (do
---   let Γ <- compile_ctx [eqBoolT, notT, BoolF]
---   let t : HsTerm := (`#0 `• `#3 `• `#3)
---   let t' <- compile Γ #4 t
---   .toDsMq (eval_ctx_loop Γ t')) -- `#2
+#eval! @DsM.run Term _ (do
+  let Γ <- compile_ctx [EqBoolI, EqCF, eqBoolT, notT, BoolF]
+  let t : HsTerm := (`#4 `•t `#10 `• (.HsHole (`#5 `•k `#10)) `• `#8 `• `#8)
+  let t' <- compile Γ #10 t
+  .toDsMq (eval_ctx_loop Γ t')) -- `#8
 
--- #eval! @DsM.run Term _ ( do
---   let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
---   let t <- compile Γ #4 (`#0 `• `#3 `• `#2)
---   .toDsMq (eval_ctx_loop Γ t)) -- `#3
+#eval! @DsM.run Term _ (do
+  let Γ <- compile_ctx [EqBoolI, EqCF, eqBoolT, notT, BoolF]
+  let t : HsTerm := (`#4 `•t `#10 `• (.HsHole (`#5 `•k `#10)) `• `#8 `• `#9)
+  let t' <- compile Γ #10 t
+  .toDsMq (eval_ctx_loop Γ t')) -- `#9
 
 -- #eval! @DsM.run Term _ ( do
 --   let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
