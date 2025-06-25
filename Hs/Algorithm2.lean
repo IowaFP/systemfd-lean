@@ -362,7 +362,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
           -- build the term from inside out
         let ty_vars_inner := ty_vars_inner.modify ι (λ _ => #inst_vars.length) -- set the determinant to the correct idx
-        let instτ : Term <- .toDsMq ((Γ d@ fd_id).get_type)
+        let instτ : Term <- .toDsM "fd gettype" ((Γ d@ fd_id).get_type)
         let instτ := ([S' Γ_l.length]instτ) -- shift to be relative to Γ_l ++ Γ
 
 
@@ -428,7 +428,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   -- Step 4: Compile superclass insts
   let Γ' <- List.foldlM (λ Γ sc_id => do
 
-    let omτ <- .toDsMq (Γ d@ (cls_idx - (1 + fd_ids.length))).get_type
+    let omτ <- .toDsM "sc get_type omτ" (Γ d@ (cls_idx - (1 + fd_ids.length))).get_type
     let (Γ_l, ret_ty) := omτ.to_telescope
 
     let (ty_args_ctx, _) := List.partition (λ x => Frame.is_kind x) Γ_l
@@ -436,8 +436,8 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
     let ty_vars : List Term := new_vars.reverse.take (ty_args_ctx.length)
 
     let g_pat := Term.mk_ty_apps #(sc_id + fd_ids.length + Γ_l.length) ty_vars
-    let g_pat_ty <- .toDsMq ((Γ_l ++ Γ) d@ (sc_id + fd_ids.length + Γ_l.length)).get_type
-    let g_pat_ty <- .toDsMq (instantiate_types g_pat_ty ty_vars)
+    let g_pat_ty <- .toDsM "sc get_type g_pat_ty" ((Γ_l ++ Γ) d@ (sc_id + fd_ids.length + Γ_l.length)).get_type
+    let g_pat_ty <- .toDsM "sc inst type g_pat_ty" (instantiate_types g_pat_ty ty_vars)
     let (eqs, _) := g_pat_ty.to_telescope
 
     let t' <- .toDsM ("synth_sc_inst")
@@ -457,7 +457,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
     List.foldlM (λ Γ x => do
       let (mth, idx) := x
 
-      let instty <- .toDsMq (Γ d@ (idx + sc_ids.length + fd_ids.length)).get_type
+      let instty <- .toDsM "om instty" (Γ d@ (idx + sc_ids.length + fd_ids.length)).get_type
 
       let (Γ_inst, _) := instty.to_telescope
       let (Γ_tyvars, Γ_rest) := Γ_inst.partition (λ x => x.is_kind)
@@ -495,7 +495,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       -/
 
 
-      let omτ <- .toDsMq (Γ d@ (cls_idx - (1 + sc_ids.length + fd_ids.length))).get_type
+      let omτ <- .toDsM "omτ get_type2" (Γ d@ (cls_idx - (1 + sc_ids.length + fd_ids.length))).get_type
       let omτ := [S' (Γ_local.length)] omτ
       let inst_omτ <- .toDsM ("instantate omτ"
                              ++ Std.Format.line ++ repr omτ

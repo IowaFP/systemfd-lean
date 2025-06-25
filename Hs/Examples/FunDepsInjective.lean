@@ -4,19 +4,19 @@ import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
 
-def FCls : HsFrame HsTerm := .classDecl (`★ `-k> `★ `-k> `★) -- F t u
+def FCls : HsFrame HsTerm := .classDecl (`★ `-k> `★ `-k> `★) -- Eq t u
     .nil
-    [([1],0)] --- t ~> u
+    [([1],0), ([0], 1)] --- t ~> u, u ~> t
     .nil
 
 
-def FInst : HsFrame HsTerm := .inst (`#8 `•k `#2 `•k `#2)  .nil
+def EqInst : HsFrame HsTerm := .inst (`#9 `•k `#2 `•k `#2)  .nil
 
 
 def FDCtx : HsCtx HsTerm := [
-  -- .inst (`#11 `•k `#9 `•k `#9)  .nil,
-  .term (`#4 → `#5 → `#6) (λ̈[`#4]λ̈[`#5]`#5),
-  FInst,
+  .inst (`#13 `•k `#10 `•k `#10)  .nil, -- Eq Ter Ter
+  .term (`#5 → `#6 → `#7) (λ̈[`#5]λ̈[`#6]`#6),
+  EqInst, -- Eq Bool Bool
   .datatypeDecl `★ [`#0, `#1],
   .datatypeDecl `★ [`#0, `#1, `#2],
   FCls
@@ -30,14 +30,14 @@ def FDCtx : HsCtx HsTerm := [
 
 
 -- ∀ α. F Bool α ⇒ α → α → α
-def τ := `∀{`★} `#12 `•k `#6 `•k `#0 ⇒ `#1 → `#2 → `#3
-def t := Λ̈[`★]λ̈[`#12 `•k `#6 `•k `#0] `#2
+-- def τ := `∀{`★} `#12 `•k `#6 `•k `#0 ⇒ `#1 → `#2 → `#3
+-- def t := Λ̈[`★]λ̈[`#12 `•k `#6 `•k `#0] `#2
 
-#eval  DsM.run (do
-       let Γ' <- compile_ctx FDCtx
-       let τ' <- compile Γ' ★ τ
-       compile Γ' τ' t
-       )
+-- #eval  DsM.run (do
+--        let Γ' <- compile_ctx FDCtx
+--        let τ' <- compile Γ' ★ τ
+--        compile Γ' τ' t
+--        )
 
 -- #eval  DsM.run (do
 --   let Γ <- compile_ctx [.datatypeDecl `★ .nil, .datatypeDecl `★ .nil, FCls]
