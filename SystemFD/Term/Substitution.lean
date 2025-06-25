@@ -372,7 +372,7 @@ namespace Term
    @[simp]
    def mk_kind_apps_rev : Term -> List Term -> Term
    | t, [] => t
-   | t, .cons a args => mk_kind_apps_rev (t `@k a) args
+   | t, .cons a args => (mk_kind_apps_rev t args) `@k a
 
    @[simp]
    def mk_ty_apps : Term -> List Term -> Term := λ h args =>
@@ -381,7 +381,7 @@ namespace Term
    @[simp]
    def mk_ty_apps_rev : Term -> List Term -> Term
    | t, [] => t
-   | t, .cons a args => mk_ty_apps_rev (t `@ a) args
+   | t, .cons a args => (mk_ty_apps_rev t args) `@t a
 
 
    @[simp]
@@ -391,7 +391,7 @@ namespace Term
    @[simp]
    def mk_apps_rev : Term -> List Term -> Term
    | t, [] => t
-   | t, .cons a args => mk_apps_rev (t `@ a) args
+   | t, .cons a args => (mk_apps_rev t args) `@ a
 
 
    @[simp]

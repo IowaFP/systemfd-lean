@@ -44,6 +44,7 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
 
   let βs := fresh_vars d_τs.length
   let βs := βs.map ([S' Γ_αs.length]·)
+  let βs := βs.reverse -- the largest index to appear closest to the head (convention)
 
 
   -- all the RHS of the equality types
@@ -204,7 +205,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
   -- let class_arity := ty_vars_ctx.length
 
-  -- Step 3. Add fundeps
+  -- Step 3. Add fundeps open methods
   let Γ' <- List.foldlM (λ Γ fd_data => do
 
     let cls_con := fd_data.1
@@ -214,22 +215,27 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
     let det1 := fd.2
 
-    let det2 := args_k.length
+    let det2 := 0 -- the new determinant is always the innermost
 
     if det1 < ty_vars_ctx.length && (List.all determiners (λ x => x < ty_vars_ctx.length))
+       -- check that the fun dep is well scoped
     then do
       let ki <- .toDsMq (ty_vars_ctx d@ det1).get_type
-
-      let cls_ty1 := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars
-
-
-      let ty_vars' := ty_vars.replace #det1 #det2
-      -- TODO: What if the fundep is partial? also vary the irrelevant type vars
-      let cls_ty2 := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars'
+      let ret_ty := (#(det1 + 1) ~[ki]~ #0)
 
 
-      let t := cls_ty1 -t> [S](cls_ty2 -t> [S](#det1 ~[ki]~ #det2))
-      let t_fun := t.from_telescope_rev (ty_vars_ctx ++ [.kind ki]) -- TODO: This may be problematic
+      let ty_vars_inner := ((ty_vars.map ([S]·)).modify det1 (λ _ => #0)).reverse
+      let cls_ty_inner := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars_inner
+
+      let ret_ty := cls_ty_inner -t> [S] ret_ty
+
+      let ty_vars_outer := (ty_vars.map ([S]·)).reverse
+      let cls_ty_outer := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars_outer
+
+      let ret_ty := cls_ty_outer -t> [S] ret_ty
+      -- -- TODO: What if the fundep is partial? also vary the irrelevant type vars
+
+      let t_fun := ret_ty.from_telescope_rev (.kind ki :: ty_vars_ctx)
 
       .ok (.openm t_fun :: Γ)
 
@@ -310,8 +316,8 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                (Γ d@ (cls_idx - 1)).get_type
     let (Γ_l, ret_ty) := omτ.to_telescope
 
-    -- fd openmethod is of the form:
-    -- ∀t' ∀t ∀αs F αs t -> F αs t' -> (t ~ t')
+    -- fd openmethod is of the form: i.e. the varied tyvar is inner most ty var
+    -- ∀αs t' F αs t -> F αs t' -> (t ~ t')
     let (Γ_tyvars, Γ_insts) := Γ_l.partition (λ x => x.is_kind)
     if Γ_insts.length == 2
     then
@@ -321,41 +327,41 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
         let new_vars := (fresh_vars Γ_l.length).reverse
         let (ty_vars, inst_vars) := new_vars.splitAt Γ_tyvars.length
 
-        let ty_vars_outer := ty_vars.tail -- drop the head of the list
+        let ty_vars_outer := ty_vars.take (ty_vars.length - 1) -- drop the last elem of the list
         -- let temp := (ty_vars.take (ty_vars.length - 1)).splitAt (ty_vars.length - 1) -- drop the last elem of the list
 
         let ty_vars_inner := ty_vars.take (ty_vars.length - 1)  -- drop the last elem of the list and put it up front
-        let temp := ty_vars_inner.splitAt (ty_vars_inner.length - 1)
-        let ty_vars_inner := temp.2 ++ temp.1
+        -- let temp := ty_vars_inner.splitAt (ty_vars_inner.length - 1)
+        -- let ty_vars_inner := temp.2 ++ temp.1
         -- let target_idxA := A - 2
         -- let target_idxB := B - 2
 
-        -- let inst_1 : Frame Term <- .toDsM "inst 1 failed" (Γ_insts[0]?)
-        -- let inst_1 <- .toDsMq inst_1.get_type
+        let inst_1 : Frame Term <- .toDsM "inst 1 failed" (Γ_insts[0]?)
+        let inst_1 <- .toDsMq inst_1.get_type
 
-        -- let inst_2 : Frame Term <- .toDsM "inst 2 failed" (Γ_insts[1]?)
-        -- let inst_2 <- .toDsMq inst_2.get_type
-        -- let inst_2 := [P] inst_2 -- rebase it relative to Γ_tyvars
+        let inst_2 : Frame Term <- .toDsM "inst 2 failed" (Γ_insts[1]?)
+        let inst_2 <- .toDsMq inst_2.get_type
+        let inst_2 := [P] inst_2 -- rebase it relative to Γ_tyvars
 
-        -- let (h_1, τs_1) <- .toDsM ("inst_1 neutral form" ++ repr inst_1)
-        --                    inst_1.neutral_form
-        -- let (h_2, τs_2) <- .toDsM ("inst_2 neutral form" ++ repr inst_2)
-        --                    inst_2.neutral_form
+        let (h_1, τs_1) <- .toDsM ("inst_1 neutral form" ++ repr inst_1)
+                           inst_1.neutral_form
+        let (h_2, τs_2) <- .toDsM ("inst_2 neutral form" ++ repr inst_2)
+                           inst_2.neutral_form
 
         -- find the index that differs in τs_1 and τs_2
-        -- let idx_diff : List Nat :=
-        --     ((List.zip (Term.shift_helper τs_1.length) (List.zip τs_1 τs_2)).foldl
-        --       (λ acc x =>
-        --             if acc.isEmpty
-        --             then let (n, (t1, t2)) := x
-        --                if t1 == t2 then acc else [n]
-        --                            else acc) [])
-        -- match idx_diff[0]? with
-        -- | .none => .error ("index diff" ++ repr τs_1 ++ repr τs_2)
-        -- | .some ι =>
+        let idx_diff : List Nat :=
+            ((List.zip (Term.shift_helper τs_1.length) (List.zip τs_1 τs_2)).foldl
+              (λ acc x =>
+                    if acc.isEmpty
+                    then let (n, (t1, t2)) := x
+                       if t1 == t2 then acc else [n]
+                                   else acc) [])
+        match idx_diff[0]? with
+        | .none => .error ("index diff" ++ repr τs_1 ++ repr τs_2)
+        | .some ι =>
 
           -- build the term from inside out
-
+        let ty_vars_inner := ty_vars_inner.modify ι (λ _ => #inst_vars.length) -- set the determinant to the correct idx
         let instτ : Term <- .toDsMq ((Γ d@ fd_id).get_type)
         let instτ := ([S' Γ_l.length]instτ) -- shift to be relative to Γ_l ++ Γ
 
@@ -394,7 +400,7 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
                      ++ Std.Format.line ++ "ty_vars_outer: " ++ repr ty_vars_outer
                      ++ Std.Format.line ++ "guard_pat_outer: " ++ repr guard_pat_outer ++ " : " ++ repr inst_ty_outer
-
+                     ++ Std.Format.line ++ "τs_1 τs_2 ι " ++ repr τs_1 ++ repr τs_2 ++ repr ι
                      ) (synth_term ctx_l τ)
 
           -- let η := ([S' (Γ_instτ_inner ++ Γ_instτ_outer).length]ret_ty)
