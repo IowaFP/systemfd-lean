@@ -295,6 +295,10 @@ instance inst_ReprCtx [Repr T] : Repr (Ctx T) where
   reprPrec t p := List.repr t p
 
 namespace Ctx
+  @[simp]
+  def add : Ctx T -> Frame T -> Ctx T
+  | Γ, f => f :: Γ
+
   -- @[aesop safe]
   def apply : Ctx T -> Subst T -> Ctx T
   | [], _ => []
