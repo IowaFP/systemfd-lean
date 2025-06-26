@@ -109,9 +109,7 @@ namespace Frame
   | .type _ => true
   | _ => false
 
-
   def is_term_var : Frame T -> Bool := λ x => x.is_type || x.is_term || x.is_ctor
-
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_type_apply {σ : Subst T} : is_type f = is_type (apply f σ) := by
@@ -136,6 +134,10 @@ namespace Frame
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_insttype_apply {σ : Subst T} : is_insttype f = is_insttype (apply f σ) := by
   unfold apply; unfold is_insttype; cases f <;> simp
+
+  omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
+  theorem is_openm_apply {σ : Subst T} : is_openm f = is_openm (apply f σ) := by
+  unfold apply; unfold is_openm; cases f <;> simp
 
   omit [Repr T] [Inhabited T] [SubstitutionTypeLaws T] in
   theorem is_openm_destruct : is_openm f -> ∃ T, f = .openm T := by

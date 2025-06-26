@@ -430,3 +430,81 @@ case _ f => have f' := ctx_get_opent_kind wf f; exfalso; apply spk f'
 case _ f => apply ctx_get_var_openm wf f
 case _ f => apply ctx_get_var_insttype wf f
 case _ f => apply ctx_get_var_term wf f
+
+theorem invert_ctor1 :
+  Γ ⊢ .ctor1 v t : A ->
+  ∃ B, Γ ⊢ t : B
+:= by
+intro j; cases v
+cases j; case _ j =>
+apply Exists.intro _; apply j
+
+theorem invert_ctor2 :
+  Γ ⊢ .ctor2 v t1 t2 : A ->
+  ∃ B C, Γ ⊢ t1 : B ∧ Γ ⊢ t2 : C
+:= by
+intro j; cases v
+all_goals try solve | (
+  case _ =>
+    cases j; case _ j1 j2 =>
+    apply Exists.intro _
+    apply Exists.intro _
+    apply And.intro j1 j2
+)
+case _ =>
+  cases j; case _ j1 j2 j3 =>
+  have lem := classification_lemma j1; simp at lem
+  cases lem; case inr h =>
+    cases h; case _ h =>
+    cases h; case _ h1 h2 =>
+    cases h2; cases h1
+  case inl h =>
+  cases h; case _ j4 j5 =>
+  apply Exists.intro _
+  apply Exists.intro _
+  apply And.intro j4 j3
+case _ =>
+  cases j; case _ j1 j2 j3 j4 =>
+  apply Exists.intro _
+  apply Exists.intro _
+  apply And.intro j1 j4
+case _ =>
+  cases j; case _ j1 j2 =>
+  apply Exists.intro _
+  apply Exists.intro _
+  apply And.intro j2 j1
+case _ =>
+  cases j; case _ j1 j2 j3 =>
+  apply Exists.intro _
+  apply Exists.intro _
+  apply And.intro j1 j2
+case _ =>
+  cases j; case _ j1 j2 j3 =>
+  apply Exists.intro _
+  apply Exists.intro _
+  apply And.intro j1 j2
+
+theorem invert_bind2 :
+  Γ ⊢ .bind2 v t1 t2 : A ->
+  ∃ B C, Γ ⊢ t1 : B ∧ (bind2_frame t1 v :: Γ) ⊢ t2 : C
+:= by
+intro j; cases v
+all_goals try solve | (
+  case _ =>
+    cases j; case _ j1 j2 =>
+    apply Exists.intro _
+    apply Exists.intro _
+    apply And.intro j1 j2
+)
+case _ =>
+  cases j; case _ j1 j2 j3 =>
+  cases j2; case _ j2 j4 =>
+  apply Exists.intro _
+  apply Exists.intro _
+  apply And.intro j1 j3
+case _ =>
+  cases j; case _ j1 j2 j3 =>
+  cases j2; case _ j2 j4 =>
+  apply Exists.intro _
+  apply Exists.intro _
+  apply And.intro j1 j3
