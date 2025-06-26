@@ -221,10 +221,10 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
        -- check that the fun dep is well scoped
     then do
       let ki <- .toDsMq (ty_vars_ctx d@ det1).get_type
-      let ret_ty := (#(det1 + 1) ~[ki]~ #0)
+      let ret_ty := (#(det1 + 1) ~[ki]~ #det2)
 
 
-      let ty_vars_inner := ((ty_vars.map ([S]·)).modify det1 (λ _ => #0)).reverse
+      let ty_vars_inner := ((ty_vars.map ([S]·)).modify det1 (λ _ => #det2)).reverse
       let cls_ty_inner := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars_inner
 
       let ret_ty := cls_ty_inner -t> [S] ret_ty
@@ -233,12 +233,11 @@ unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let cls_ty_outer := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars_outer
 
       let ret_ty := cls_ty_outer -t> [S] ret_ty
-      -- -- TODO: What if the fundep is partial? also vary the irrelevant type vars
+      -- -- TODO: What if the fundep is partial? also vary the irrelevant type vars?
 
       let t_fun := ret_ty.from_telescope_rev (.kind ki :: ty_vars_ctx)
 
       .ok (.openm t_fun :: Γ)
-
 
 
     else .error ("fundeps: " ++ repr Γ ++ repr fd_data)

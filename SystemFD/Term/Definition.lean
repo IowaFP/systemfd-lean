@@ -113,7 +113,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .ctor2 .appc t1 t2 => Term.repr t1 p ++ " `@c " ++ Term.repr t2 p
   | .ctor2 .appt t1 t2 => Term.repr t1 max_prec ++ Std.Format.sbracket (Term.repr t2 p)
   | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@c[ " ++ Term.repr t2 p ++ " ]"
-  | .ctor2 .app t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " ⬝ " ++ Term.repr t2 p) p
+  | .ctor2 .app t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " `@ " ++ Term.repr t2 p) p
   | .ctor2 .cast t1 t2 =>
     Std.Format.paren (Term.repr t1 max_prec ++ " ▹ "
     ++ Std.Format.line ++ Term.repr t2 max_prec)

@@ -54,19 +54,33 @@ def supCtx := OrdBool ::
               EqBoolI ::
               EqCtx
 
-#eval println! "OrdBool, Ord, EqBool, Bool"
-#eval supCtx
-#eval! DsM.run (compile_ctx supCtx)
-#eval! DsM.run (
-  do let ctx <- compile_ctx supCtx
-     .toDsMq (wf_ctx ctx))
-def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) -- `• `#13 `• `#12
+-- #eval println! "OrdBool, Ord, EqBool, Bool"
+-- #eval supCtx
+-- #eval! DsM.run (compile_ctx supCtx)
+-- #eval! DsM.run (
+--   do let ctx <- compile_ctx supCtx
+--      .toDsMq (wf_ctx ctx))
 
+def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) -- `• `#13 `• `#12
 def ex1' : Term := (#10 `@t #14 `@ (#8 `@t #14 `@ refl! ★ #14)) `@ #13 `@ #12
 
+-- #eval! DsM.run (
+--   do let Γ <- compile_ctx supCtx
+--      let t := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13)
+--      let t' <- compile Γ #14 t
+--      .toDsMq (infer_type Γ t') -- should be #14
+--      )
+
+
+def ex2 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#5 `•k `#14))) `• `#13 `• `#12
+
+
+#eval! DsM.run (compile_ctx supCtx)
 #eval! DsM.run (
   do let Γ <- compile_ctx supCtx
-     let t := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13)
+     let t := ex2
      let t' <- compile Γ #14 t
-     .toDsMq (infer_type Γ t') -- should be #14
-     )
+     -- .ok t'
+     -- .ok (eval_ctx_loop Γ t')
+     .toDsM "meh" (infer_type Γ t') -- should be #14
+ )

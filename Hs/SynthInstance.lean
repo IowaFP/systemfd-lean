@@ -62,19 +62,6 @@ def deconstruct_coercion_type (Γ : Ctx Term) (t : Term) : Term -> Term -> List 
 | lhs, rhs => [(t, lhs, rhs)]
 
 def construct_coercion_graph_aux : Nat -> Ctx Term -> EqGraph Term
--- | [] => EqGraph.empty_graph
--- | .cons (.type t) tl
--- | .cons (.openm t) tl =>
---   let rest := construct_coercion_graph_aux (d + 1) tl
---   let (args, ret) := t.to_telescope
---   let sp := compute_argument_instantiation tl args
---   match ret.apply_spine sp with
---   | lhs ~[_]~ rhs =>
---     let v := Term.apply_spine #d sp
---     let edges := deconstruct_coercion_type tl v lhs rhs
---     List.foldl (λ g (l, s, t) => (g.add_edge l s t).add_edge (sym! l) t s) rest edges
---   | _ => rest
--- | .cons _ tl => construct_coercion_graph_aux (d + 1) tl
 | 0 , _ => EqGraph.empty_graph
 | n + 1, Γ =>
   match Γ d@ n with
@@ -132,60 +119,119 @@ def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b 
 def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
 
 -- Synthesizes term of a given type, if one exists
-def synth_term (Γ : Ctx Term) : Term -> Option Term := λ τ =>
-match is_eq τ with
-| some (_, t1, t2) => synth_coercion Γ t1 t2
-| .none => do
-  let (h, τs) <- τ.neutral_form
-  let τs' <- List.mapM (λ x =>
-       match x with
-       | (.kind, τ) => .some τ
-       | _ => .none
-       ) τs
+partial def synth_term (Γ : Ctx Term) : Term -> Option Term := λ τ =>
+match τ with
+| .eq _ A B =>  synth_coercion Γ A B
+
+| .bind2 .arrow givenτ wantedτ => do
+  let kg <- infer_kind Γ givenτ
+  let kw <- infer_kind Γ ([P]wantedτ)
+  if kg == kw then
+    let mb_η := synth_term Γ (givenτ ~[kg]~ [P]wantedτ)
+    match mb_η with
+    | .some η => .some (`λ[givenτ] #0 ▹ [S]η)
+    | .none => -- TODO what tyvars do i need to use to instantiate omτ?
+               -- ideally we need to pass it the caller function synth_term,
+               -- but for now i have fixed them
+               -- to be exactly the ones that givenτ has
+      let (gh, gτs) <- ([S]givenτ).neutral_form -- make givenτ index with respect to (givenτ :: Γ)
+      let (wh, wτs) <- wantedτ.neutral_form
+      let gτs' <- List.mapM (λ x =>
+         match x with
+         | (.kind, τ) => .some τ
+         | _ => .none
+         ) gτs
+      let wτs' <- List.mapM (λ x =>
+         match x with
+         | (.kind, τ) => .some τ
+         | _ => .none
+         ) wτs
+      if gτs' != wτs' then .none
+      -- TODO: what if the type variables are different? this may happen with fundeps
+      let candidate_instances : List Term <- List.foldlM (λ acc idx =>
+        match (.type givenτ :: Γ) d@ idx with
+        | Frame.openm iτ => do
+            -- iτ is of the form ∀αs. C αs → iτh αs
+            match instantiate_types iτ wτs' with
+            | .none => .some acc
+            | .some iτ' => -- iτ is of the form C τs -> iτh τs
+              let ((Γ_cτs, res_τ) : Ctx Term × Term) <- Term.to_telescope iτ'
+              if ([S' Γ_cτs.length] wantedτ) == res_τ --
+              then do
+                let mb_ts : Option (List Term) :=
+                  List.foldlM (λ (acc : List Term) (f : Frame Term × Nat) =>
+                    match f with
+                    | (Frame.type x, shift_idx) => do
+                        let t <- synth_term Γ (givenτ -t> [P' shift_idx]x) -- remember x is actually wrt (givenτ::Γ) so no [S]
+                        .some (t :: acc)
+                    | _ => .none
+                  ) [] (Γ_cτs.zip (Term.shift_helper Γ_cτs.length))
+
+                match mb_ts with
+                | .some ts =>
+                  .some ((`λ[givenτ] ((#idx).mk_ty_apps wτs').mk_apps (ts.map (λ t => ([S] t) `@ #0))) :: acc)
+                | .none => .some acc
+              else .some acc
+         | _ => .some acc
+         ) [] ((Term.shift_helper Γ.length).map (· + 1))
+              -- start with 1 .. Γ.length + 1 as we have givenτ at head which
+              -- will be abstracted over in the end
+
+         if candidate_instances.length == 0 then .none
+         -- else candidate_instances.head?
+         else if candidate_instances.length == 1
+              then candidate_instances.head?
+              else .some (candidate_instances.foldl (· ⊕ ·) `0)
+  else .none
+
+| τ => do
+     let (h, τs) <- τ.neutral_form
+     let τs' <- List.mapM (λ x =>
+         match x with
+         | (.kind, τ) => .some τ
+         | _ => .none
+         ) τs
 
   -- solve for a very simple case where instance is readily available in the context
   -- try to find one instance with open type hτ
-  let candidate_instances : List Term <- List.foldlM (λ acc idx =>
-    match Γ d@ idx with
-    | Frame.type iτ => do -- if we have an instance in our assumptions
-      match iτ.neutral_form with
-      | .none => .some acc
-      | .some (h', iτs') =>
-        if (h == h') then (if iτs' == τs then .some (#idx :: acc) else .some acc)
-        else .some acc
-
-    | Frame.insttype iτ => do
+     let candidate_instances : List Term <- List.foldlM (λ acc idx =>
+       match Γ d@ idx with
+       | Frame.type iτ => do -- if we have an instance in our assumptions use it
+         match iτ.neutral_form with
+         | .none => .some acc
+         | .some (h', iτs') =>
+           if (h == h') then (if iτs' == τs then .some (#idx :: acc) else .some acc)
+           else .some acc
+       | Frame.insttype iτ => do
      -- iτ is of the form ∀τs. C τs → iτh τs
-     match instantiate_types iτ τs' with
-     | .none => .some acc
-     | .some iτ' =>
-       let ((Γ_eqs, res_τ) : Ctx Term × Term) <- Term.to_telescope iτ'
-       if ([S' Γ_eqs.length] τ) == res_τ
-       then do
-          let mb_ηs : Option (List Term × Ctx Term) := List.foldlM (λ (acc : List Term × Ctx Term) (f : Frame Term) =>
-            let (ηs, Γ) := acc
-            match f with
-            | Frame.type x =>
-              match is_eq x with
-              | .some (_, t1, t2) => do
-                let η <- synth_coercion Γ t1 t2
-                .some (η::ηs, .term x η :: Γ)
-              | _ => .none
-            | _ => .none
-          ) ([], Γ) Γ_eqs.reverse
-          match mb_ηs with
-          | .some (ηs, _) =>
-            .some (((#idx).mk_ty_apps τs').mk_apps_rev ηs :: acc)
-          | .none => .some acc
+           match instantiate_types iτ τs' with
+           | .none => .some acc
+           | .some iτ' =>
+             let ((Γ_eqs, res_τ) : Ctx Term × Term) <- Term.to_telescope iτ'
+             if ([S' Γ_eqs.length] τ) == res_τ
+             then do
+               let mb_ηs : Option (List Term × Ctx Term) :=
+                 List.foldlM (λ (acc : List Term × Ctx Term) (f : Frame Term) =>
+                   let (ts, Γ) := acc
+                   match f with
+                   | Frame.type x => do
+                       let t <- synth_term Γ x
+                       .some (t::ts, .term x t :: Γ)
+                   | _ => .none
+                 ) ([], Γ) Γ_eqs.reverse
+               match mb_ηs with
+               | .some (ηs, _) =>
+                 .some (((#idx).mk_ty_apps τs').mk_apps_rev ηs :: acc)
+               | .none => .some acc
+             else .some acc
+        | _ => .some acc
+        ) [] (Term.shift_helper Γ.length)
 
-       else .some acc
-    | _ => .some acc
-   ) [] (Term.shift_helper Γ.length)
-
-  if candidate_instances.length == 0 then .none
-  else if candidate_instances.length == 1
-       then candidate_instances.head?
-       else .some (candidate_instances.foldl (· ⊕ ·) `0)
+        if candidate_instances.length == 0 then .none
+        -- else candidate_instances.head?
+        else if candidate_instances.length == 1
+             then candidate_instances.head?
+             else .some (candidate_instances.foldl (· ⊕ ·) `0)
 
 
 def ctx0 : Ctx Term := [
@@ -198,8 +244,24 @@ def ctx0 : Ctx Term := [
 #guard wf_ctx ctx0 == .some ()
 
 #guard synth_term ctx0 (#4 `@k #5) == .some (#3 `@t #5 `@ (refl! ★ #5))
-#guard synth_term ctx0 (#2 `@k #5) == .some (#0 `@t #5 `@ (refl! ★ #5))
-#guard synth_term [.type (#2 `@k #3), .type (#1 `@k #0), .kind ★, .opent (★ -t> ★), .datatype ★] (#3 `@k #2) == .some #1
+-- #eval synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6)
+#eval infer_type (ctx0) (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))) )
+
+#guard synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6) == .some (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))))
+
+#guard (do let t <- synth_term ctx0 (#2 `@k #5 -t> #5 `@k #6)
+           infer_type ctx0 t) == .some (#2 `@k #5 -t> #5 `@k #6)
+
+
+#eval infer_type (.type (#2 `@k #5) :: ctx0)
+      (#2 `@t #6)
+
+#eval infer_type (.type (#2 `@k #5) :: ctx0) ((`λ[#3 `@k #6] (#0 ▹  (refl! (★ -k> ★) #4) `@c (refl! ★ #7))) `@ #0)
+
+-- #eval do let x <- synth_term ctx0 (#2 `@k #5 -t> #5 `@k #6)
+--          infer_type ctx0 x
+-- #guard synth_term ctx0 (#2 `@k #5) == .some (#0 `@t #5 `@ (refl! ★ #5))
+-- #guard synth_term [.type (#2 `@k #3), .type (#1 `@k #0), .kind ★, .opent (★ -t> ★), .datatype ★] (#3 `@k #2) == .some #1
 
 def ctx1 : Ctx Term := [
  .type (#3 `@k #0),  -- Telescope of open method

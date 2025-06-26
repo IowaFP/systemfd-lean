@@ -131,22 +131,29 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   let B' <- compile (.kind A' :: Γ) ★ B
   .ok (.bind2 .all A' B')
 
--- | Γ, κ , .HsCtor2 .appk A (.HsAnnotate k B) => do
---   let k' <- compile Γ □ k
---   let A' <- compile Γ (k' -k> κ) A
---   let B' <- compile Γ k' B
---   .ok (.ctor2 .appk A' B')
-
 | Γ, τ, .HsHole a => do
-  let a' <- compile Γ ★ a
-  let t <- .toDsM ("synth_term hole" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr a')
+  let k <- .toDsM ("Wanted τ kind"
+           ++ Std.Format.line ++ repr Γ
+           ++ Std.Format.line ++ repr τ
+            ) (infer_kind Γ τ)
+  let a' <- compile Γ k a
+
+  let t <- .toDsM ("synth_term hole"
+           ++ Std.Format.line ++ repr Γ
+           ++ Std.Format.line ++ repr a')
            (synth_term Γ a')
+
+  -- τ is wanted
+  -- a' is what we have/given
+  -- the coercion goes form a' ---> τ
   if τ == a'
   then .ok t
   else do
-    let η <- .toDsM ("synth_coercion hole" ++  Std.Format.line ++ repr Γ ++ repr (a' ~[★]~ τ))
-             (synth_coercion Γ a' τ)
-    .ok (t ▹ η )
+    let η <- .toDsM ("synth_term coercion hole"
+             ++ Std.Format.line ++ repr Γ
+             ++ Std.Format.line ++ repr (a' -t> [S]τ))
+             (synth_term Γ (a' -t> [S]τ))
+    .ok (η `@ t)
 
 
 | Γ, .bind2 .arrow A B, .HsBind2 .lam A' t => do
@@ -155,7 +162,9 @@ unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   then do
     let t' <- compile (.type A :: Γ) B t
     .ok (.bind2 .lam A t')
-  else .error ("compile lam" ++ (repr (A -t> B)) ++ (repr (λ̈[A'] t)))
+  else .error ("compile lam"
+                ++ Std.Format.line ++ (repr (A -t> B))
+                ++ Std.Format.line ++ (repr (λ̈[A'] t)))
 
 | Γ, .bind2 .all A B, .HsBind2 .lamt A' t => do
   let α' <- compile Γ □ A'
