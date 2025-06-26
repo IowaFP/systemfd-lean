@@ -3,84 +3,180 @@ import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
 
--- import Hs.Examples.Datatypes
--- import Hs.Examples.Classes
+-- data Bool = True | False
+def BoolF : HsFrame HsTerm :=
+   .datatypeDecl `★ [ `#0     -- True
+                    , `#1     -- False
+                    ]
 
-def BoolCtx : HsCtx HsTerm :=
-  [ .datatypeDecl `★ [ `#0     -- Nothing :: ∀ a. Maybe a
-                     , `#1        -- , (`∀{`★} `#0 → `#3 `•k `#1)  -- Just :: ∀ a. a -> Maybe a
-                     ]
-  ]
+-- convention True is deeper in the context that False
+
+-- not :: Bool -> Bool
+-- not = λ x case x of {True -> False ; _ -> True}
+def notF : HsFrame HsTerm :=
+  .term (`#2 → `#3) (λ̈[`#2] .HsIte (.HsAnnotate `#3 `#2) (.HsAnnotate `#3 `#0) (.HsAnnotate `#3 `#1) `#2)
+
+/-
+eq_bool : Bool -> Bool -> Bool
+eq_bool =
+  λ x y.
+    case y of
+      False -> case x of
+                  False -> True
+                  _     -> False
+      _ -> case x of
+             True -> True
+             _ -> False
+-/
+def eqBoolF : HsFrame HsTerm :=
+  .term (`#3 → `#4 → `#5) (λ̈[`#3] λ̈[`#4] (.HsIte (.HsAnnotate `#5 `#3) (.HsAnnotate `#5 `#0)
+                                                 (.HsAnnotate `#5 (.HsIte (.HsAnnotate `#5 `#3)
+                                                                          (.HsAnnotate `#5 `#1)
+                                                                          (.HsAnnotate `#5 `#4) `#3))
+                                                 ((.HsIte (.HsAnnotate `#5 `#4) (.HsAnnotate `#5 `#1)
+                                                                          (.HsAnnotate `#5 `#4) `#3))))
+-- eq_bool True True --> True
+#guard (do
+  let Γ <- compile_ctx [eqBoolF, notF, BoolF]
+  .toDsMq (eval_ctx_loop Γ (#0 `@ #3 `@ #3))) == .ok #3
+
+-- eq_bool True False --> False
+#guard (do
+  let Γ <- compile_ctx [eqBoolF, notF, BoolF]
+  .toDsMq (eval_ctx_loop Γ (#0 `@ #3 `@ #2))) == .ok #2
+
+-- not true --> False
+#guard (do
+  let Γ <- compile_ctx [eqBoolF, notF, BoolF]
+  .toDsMq (eval_ctx_loop Γ (#1 `@ #3))) == .ok #2
+
+-- not False --> True
+#guard (do
+  let Γ <- compile_ctx [eqBoolF, notF, BoolF]
+  .toDsMq (eval_ctx_loop Γ (#1 `@ #2))) == .ok #3
+
 
 -- class Eq a where
 --   == : a -> a -> Bool
---   =/= : a -> a -> Bool
-
-def EqCFrame : HsFrame HsTerm :=
-  HsFrame.classDecl (`★ `-k> `★)
+--   /= : a -> a -> Bool
+def EqCF : HsFrame HsTerm :=
+  .classDecl (`★ `-k> `★)
          .nil
          .nil
-         [ `∀{`★} `#0 → `#1 → `#6    -- TODO: make type class predicate implicit?
-         , `∀{`★} `#0 → `#1 → `#7 ]
+         [ `∀{`★} `#0 → `#1 → `#8
+         , `∀{`★} `#0 → `#1 → `#9 ]
 
-def EqCtx : HsCtx HsTerm :=
-  EqCFrame :: BoolCtx
-
-
-def EqBoolI : HsFrame HsTerm := .inst
-  (`#2 `•k `#5)
-  [ .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#7) -- fst method
-  , .HsAnnotate (`#7 → `#8 → `#9) (λ̈[`#7] λ̈[`#8] `#7) -- second method
+-- instance Eq Bool where
+--   == = eq_bool
+--   /= = λ x y. not (eq_bool x y)
+def EqBoolI : HsFrame HsTerm :=
+  .inst (`#2 `•k `#7)
+  [ `#4
+  , .HsAnnotate (`#9 → `#10 → `#11) (λ̈[`#9]λ̈[`#10] (`#8 `• (`#7 `• `#0 `• `#1)))
+  -- TODO: why can't we refer to the previously defined om in here?
+  -- , .HsAnnotate (`#9 → `#10 → `#11) (λ̈[`#9]λ̈[`#10] (`#8 `• (`#2 `•t `#11 `• (.HsHole (`#6 `•k `#11)) `• `#0 `• `#1)))
   ]
 
+-- class Eq a => Ord a where
+--    (≤) :: a -> a -> Bool
 def OrdC : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> `★)
-    [ `#7 `•k `#0
-    ]
+    [ `#7 `•k `#0 ] -- fix this indexing?
     .nil
-    [ `∀{`★} (`#0 → `#1 → `#13)
+    [ `∀{`★} (`#0 → `#1 → `#15)
     ]
 
+/-
+leq_bool =
+  λ x y.
+    case y of
+       False -> case x of
+                  False -> True
+                  _     -> False
+        _     -> True
+-/
+def leqBoolF : HsFrame HsTerm :=
+  .term (`#13 → `#14 → `#15) (
+    λ̈[`#13]λ̈[`#14]
+      .HsIte (.HsAnnotate `#15 `#13) (.HsAnnotate `#15 `#0)
+        (.HsAnnotate (`#15) (.HsIte (.HsAnnotate `#15 `#13) (.HsAnnotate `#15 `#1) (.HsAnnotate `#15 `#14) `#13))
+        (`#14)
+  )
 
-def OrdBool : HsFrame HsTerm :=
+
+-- (leq_bool) False False --> True
+#guard (do
+  let Γ <- compile_ctx [BoolF, notF, eqBoolF, EqCF, EqBoolI, OrdC, leqBoolF].reverse
+  .toDsMq (eval_ctx_loop Γ (#0 `@ #12 `@ #12))) == .ok #13
+
+-- leq_bool True False --> False
+#guard (do
+  let Γ <- compile_ctx [BoolF, notF, eqBoolF, EqCF, EqBoolI, OrdC, leqBoolF].reverse
+  .toDsMq (eval_ctx_loop Γ (#0 `@ #13 `@ #12))) == .ok #12
+
+
+-- leq_bool False True --> True
+#guard (do
+  let Γ <- compile_ctx [BoolF, notF, eqBoolF, EqCF, EqBoolI, OrdC, leqBoolF].reverse
+  .toDsMq (eval_ctx_loop Γ (#0 `@ #12 `@ #13))) == .ok #13
+
+/-
+instance Ord Bool where
+  (≤) = leq_bool
+-/
+def OrdBoolF : HsFrame HsTerm :=
   HsFrame.inst
-  (`#2 `•k `#11)
-  [ .HsAnnotate (`#13 → `#14 → `#15) (λ̈[`#13] λ̈[`#14] `#14)
-
+  (`#3 `•k `#14)
+  [ `#2
   ]
 
-def supCtx := OrdBool ::
+def supCtx := OrdBoolF ::
+              leqBoolF ::
               OrdC ::
               EqBoolI ::
-              EqCtx
-
--- #eval println! "OrdBool, Ord, EqBool, Bool"
--- #eval supCtx
--- #eval! DsM.run (compile_ctx supCtx)
--- #eval! DsM.run (
---   do let ctx <- compile_ctx supCtx
---      .toDsMq (wf_ctx ctx))
-
-def ex1 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14))) -- `• `#13 `• `#12
-def ex1' : Term := (#10 `@t #14 `@ (#8 `@t #14 `@ refl! ★ #14)) `@ #13 `@ #12
-
--- #eval! DsM.run (
---   do let Γ <- compile_ctx supCtx
---      let t := (`#10 `•t `#14 `• (.HsHole (`#11 `•k `#14)) `• `#13 `• `#13)
---      let t' <- compile Γ #14 t
---      .toDsMq (infer_type Γ t') -- should be #14
---      )
+              EqCF ::
+              eqBoolF ::
+              notF ::
+              BoolF ::
+              .nil
 
 
-def ex2 : HsTerm := (`#10 `•t `#14 `• (.HsHole (`#5 `•k `#14))) `• `#13 `• `#12
-
-
+#eval println! "OrdBool, Ord, EqBool, Bool"
+#eval supCtx
 #eval! DsM.run (compile_ctx supCtx)
 #eval! DsM.run (
+  do let ctx <- compile_ctx supCtx
+     .toDsMq (wf_ctx ctx))
+
+
+def ex1 := (`#4 `•t `#17 `• (.HsHole (`#6 `•k `#17))) `• `#15 `• `#16
+-- (≤)[Bool] (Ord Bool) False True --> True
+#guard (
   do let Γ <- compile_ctx supCtx
-     let t := ex2
-     let t' <- compile Γ #14 t
-     -- .ok t'
-     -- .ok (eval_ctx_loop Γ t')
-     .toDsM "meh" (infer_type Γ t') -- should be #14
- )
+     let t' <- compile Γ #17 ex1
+     .toDsMq (eval_ctx_loop Γ t')
+ ) == .ok #16
+
+
+def ex2 : HsTerm := (`#11 `•t `#17 `• (.HsHole (`#6 `•k `#17))) `• `#16 `• `#16
+-- (==)[Bool] (Ord Bool) True True --> True
+#guard (
+  do let Γ <- compile_ctx supCtx
+     let t' <- compile Γ #17 ex2
+     .toDsMq (eval_ctx_loop Γ t')
+ ) == .ok #16
+
+
+
+def ex3 : HsTerm := `#10 `•t `#17 `• (.HsHole (`#6 `•k `#17)) `• `#16 `• `#16
+-- (/=)[Bool] (Ord Bool) True True --> True
+#guard (
+  do let Γ <- compile_ctx supCtx
+     let t' <- compile Γ #17 ex3
+     .toDsMq (eval_ctx_loop Γ t')
+ ) == .ok #15
+
+#eval @DsM.run Term _ (do
+  let Γ <- compile_ctx supCtx
+  (compile Γ #17 ex3)
+)

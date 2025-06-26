@@ -139,7 +139,7 @@ def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term �
 def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_implicit_telescope_aux Δ []
 
 -- compiling declarations
-unsafe def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
+partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 | [] => .ok []
 | .cons .empty Γ => do
   let Γ' <- compile_ctx Γ

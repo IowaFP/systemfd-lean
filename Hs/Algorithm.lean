@@ -57,6 +57,12 @@ def run [Repr a] : DsM a -> Std.Format
 
 end DsM
 
+instance beq_DsMTerm : BEq (DsM Term) where
+     beq x y :=
+       match (x, y) with
+       | (.ok x, .ok y) => x == y
+       | _ => False
+
 
 def helper1
   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
@@ -93,7 +99,7 @@ def helper2
   | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
 
 -- @[simp]
-unsafe def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
+partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
 -- TODO: Type directed compilation
 -- def compile : (Γ : Ctx Term) -> Term -> HsTerm -> Option Term
 -------------------
