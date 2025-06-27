@@ -81,24 +81,25 @@ def re_index_base := fresh_vars
 -- theorem fresh_vars_lemma : (fresh_vars n).length == n := by
 -- sorry
 
-
+-- Get all the open methods for a given term
 /- Caution: The ids themselves are meaningless (sort of),
   just depend on the size of the list. thats the width of the class-/
 @[simp]
-def get_openm_ids : Ctx Term -> Nat -> DsM (List Nat) := λ Γ_g cls_idx =>
-  if (Γ_g.is_opent cls_idx)
+def get_openm_ids (Γ : Ctx Term) (cls_idx : Nat) : DsM (List Nat) :=
+  if (Γ.is_opent cls_idx)
   then
-    let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
-    .ok ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
-  else .error ("get_open_ids" ++ Std.Format.line ++ repr Γ_g ++ Std.Format.line ++ repr cls_idx)
+    let ids := ((Term.shift_helper Γ.length).take cls_idx).reverse
+    .ok ((ids.takeWhile (Γ.is_openm ·)).reverse)
+  else .error ("get_open_ids" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr cls_idx)
 
+-- Get all the instances for a given opent
 @[simp]
-def get_insts : Ctx Term -> Nat -> DsM (List (Nat × Term)) := λ Γ_g cls_idx => do
-  if (Γ_g.is_opent cls_idx)
+def get_insts (Γ : Ctx Term) (cls_idx : Nat) : DsM (List (Nat × Term)) := do
+  if (Γ.is_opent cls_idx)
   then
-    let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
+    let ids := ((Term.shift_helper Γ.length).take cls_idx).reverse
     .ok (ids.foldl (λ acc i =>
-    match (Γ_g d@ i) with
+    match (Γ d@ i) with
     | .insttype iτ =>
       let (Γ_l, ret_ty) := iτ.to_telescope
       match (ret_ty.neutral_form) with
@@ -106,7 +107,55 @@ def get_insts : Ctx Term -> Nat -> DsM (List (Nat × Term)) := λ Γ_g cls_idx =
       | .some (h, _) => if h == Γ_l.length + cls_idx then ((i, iτ) :: acc) else acc
     | _ => acc
     ) [])
-  else .error ("get_inst_ids" ++ Std.Format.line ++ repr Γ_g ++ Std.Format.line ++ repr cls_idx)
+  else .error ("get_inst_ids" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr cls_idx)
+
+abbrev FunDep := (List Nat) × Nat
+
+def get_fundeps (Γ : Ctx Term) (cls_idx : Nat) : DsM (List FunDep) :=
+  if Γ.is_opent cls_idx
+  then do
+      let ids := ((Term.shift_helper Γ.length).take cls_idx).reverse
+      let fd_oms := ids.foldl (λ acc i =>
+      match (Γ d@ i) with
+      | .openm mτ =>
+        let (Γ_l, ret_ty) := mτ.to_telescope
+        if Option.isSome (is_eq ret_ty)
+        then (mτ :: acc) else acc
+      | _ => acc
+      ) []
+      -- each fd_om is of the form ∀αs. F αs -> F αs' -> α ~ α'
+      --
+      fd_oms.foldlM (λ acc τ => do
+        let (tele, _) := τ.to_telescope
+        let (tele_tyvars, tele_cls) := tele.partition (·.is_kind)
+        if tele_cls.length != 2 then .error "get_fundeps error" else
+
+        let cls1 <- .toDsMq tele_cls[0]? -- F αs
+        let cls1 : Term <- .toDsMq cls1.get_type
+        let cls2 <- .toDsMq tele_cls[1]? -- F αs'
+        let cls2 : Term <- .toDsMq cls2.get_type
+
+        -- TODO: But what if we have a partial fundep?
+        let det_idx : Option Nat :=
+          match (([S] cls1).neutral_form, cls2.neutral_form) with
+          | (Option.some (_, αs), Option.some (_, αs')) =>
+              (List.zip αs αs').findIdx (λ (x : ((SpineVariant × Term) × (SpineVariant × Term))) =>
+                match x with
+                | ((.kind, t1), (.kind, t2)) => if t1 == t2 then false else true
+                | _ => false)
+            -- .some 0
+          | _ => .none
+
+          match det_idx with
+          | Option.some determinant =>
+            -- TODO: But what if we have a partial fundep?
+            let determiners := (Term.shift_helper tele_tyvars.length).filter (λ x => x == determinant)
+            if determinant < tele_tyvars.length then .ok ((determiners, determinant) :: acc)
+            else .error ("cannot find determinant for class" ++ repr cls_idx ++ " det_idx:" ++ repr det_idx)
+          | .none => .error ("cannot find determinant for class" ++ " det_idx:" ++ repr det_idx)
+        ) []
+  else
+  .error ("get_fundeps" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr cls_idx)
 
 
 
@@ -200,7 +249,7 @@ match τ.neutral_form with
 
     )
 
-    .ok fd_terms
+    .ok (fd_terms ++ acc)
     ) []
   .ok (new_eqs)
   -- .ok []

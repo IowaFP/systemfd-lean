@@ -87,7 +87,6 @@ namespace Algorithm2.Test
 
 end Algorithm2.Test
 
-
 @[simp]
 def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term × Term
 | Γ, ∀[A] B =>
@@ -107,6 +106,86 @@ def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term �
 
 @[simp]
 def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_implicit_telescope_aux Δ []
+
+def doConsistencyCheck (Γ : Ctx Term) (fd : FunDep): Term × Term -> DsM Unit := λ x => do
+
+let (instA, instB) := x
+-- Both the telescopes are in henry ford encoded
+-- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
+let (teleA, _) := instA.to_telescope
+let (teleB, _) := instB.to_telescope
+
+let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
+let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
+
+if teleA_eqs.length != teleB_eqs.length then .error "consistency check eqs length does not match"
+if teleA_tyvars.length != teleB_tyvars.length then .error "consistency check tyvars length does not match"
+
+-- let fd := (fd.1.map (teleB_tyvars.length - ·), (teleB_tyvars.length - fd.2))
+
+let eqs := teleA_eqs.zip teleB_eqs
+let eqs : List (Nat × (Frame Term × Frame Term)) := ((Term.shift_helper eqs.length).zip eqs.reverse).foldl
+  (λ acc x =>
+  let (sidx, eq) := x
+  ((if sidx > fd.2
+    then (sidx, ((eq.1.apply (P) , (eq.2.apply (P)))))
+    else (sidx, eq))
+    :: acc)) []
+
+-- all the eqs are now indexed at Γ + teleA_tyvars
+let determiners : List (Frame Term × Frame Term) <- .toDsM "consistencyCheck determiners"
+  (fd.1.mapM (λ n => eqs.lookup n))
+-- let determiners : List (Term × Term) <- .toDsM "consistencyCheck determiners2"
+--                    (determiners.mapM (λ x => do
+--                 let x1' <- x.1.get_type
+--                 let x2' <- x.2.get_type
+--                 (x1', x2')))
+
+let determinant : (Frame Term × Frame Term) <- .toDsM "consistencyCheck determinant" (eqs.lookup fd.2)
+let determinant : Term × Term <- .toDsM "consistencyCheck determinant2"
+             (match determinant.map (·.get_type) (·.get_type) with
+               | (Option.some x, Option.some x') =>
+                 .some ([S' (eqs.length - fd.2 - 1)]x, [S' (eqs.length - fd.2 - 1)]x')
+               | _ => .none)
+
+-- assume coverage condition has been satisfied
+let should_build_η : Option Bool := determiners.foldl (λ acc x =>
+  let (eq1, eq2) := x
+  match (eq1, eq2) with
+  | (.type (_ ~[_]~ t1), .type (_ ~[_]~ t2)) =>
+    if t1 == t2  -- This check is very basic. Need to have some more intelligent check here
+    then acc.map (true && ·) else acc.map (false && ·)
+  | _ => .none
+) (.some true)
+
+-- TODO: merge with top map
+match should_build_η with
+| .none => .error "determiners eqs error"
+| .some false => .ok ()
+| _ => do
+  let determiners_ηs <- determiners.mapM (λ x => do
+    let (eq1, eq2) := x
+    match (eq1, eq2) with
+    | (.type (_ ~[k]~ t1), .type (_ ~[_]~ t2)) => -- the first components are β vars anyway
+      .ok (.type ([P' teleA_tyvars.length]t1 ~[k]~ [P' teleA_tyvars.length]t2))
+    | _ => .error "determiners ηs error"
+    )
+
+  let η := synth_coercion (determiners_ηs.reverse ++ Γ) determinant.1 determinant.2 -- Fix ★
+  match η with
+  | .some _ => .ok ()
+  | .none => .error ("instances violate functional dependency"
+             ++ Std.Format.line ++ repr instA
+             ++ Std.Format.line ++ repr instB )
+
+.ok ()
+
+
+def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term) -> DsM Unit := λ x =>
+  x.forM (λ p => fds.forM (λ fd => doConsistencyCheck Γ fd p))
+
+-- #eval ([.ok (), .ok (), .error "test" ] : List (DsM Unit)).forM (λ x => x)
+
 
 -- compiling declarations
 partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
@@ -203,7 +282,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let cls_ty_outer := Term.mk_kind_apps ([S' (scs.length + ty_vars.length + 1)] cls_con) ty_vars_outer
 
       let ret_ty := cls_ty_outer -t> [S] ret_ty
-      -- -- TODO: What if the fundep is partial? also vary the irrelevant type vars?
+      -- TODO: What if the fundep is partial? also vary the irrelevant type vars?
 
       let t_fun := ret_ty.from_telescope_rev (.kind ki :: ty_vars_ctx)
 
@@ -244,6 +323,32 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   let ity_orig' <- compile Γ' ★ ity
   let (cls_idx , ity', β_count) <- mk_inst_type Γ' ity_orig'
 
+
+  -- Step1 : Check fundeps validity
+  -- There are 2 checks that we need to perform:
+  -- 1. Consistency check
+  -- 2. Coverage check
+
+
+  -- First we need to get all the instances that belong to the class/opent that are
+  -- in the context
+  --
+  let fundeps : List FunDep <- get_fundeps Γ' cls_idx
+
+  let insts <- get_insts Γ' cls_idx
+  let instss : List (Term × Term) := insts.map (λ x => (ity', x.2))
+
+  -- TODO: Assume that the
+
+  -- 1. Consistency condition
+  -- If the determiners are the the same, then the determinants can be "unified"
+  -- Or a coercion can be produced
+  doConsistencyChecks Γ' fundeps instss
+
+  -- 2. Coverage check
+
+
+
   let Γ' := .insttype ity' :: Γ'
 
   let cls_idx := cls_idx + 1 -- account for insttype at head
@@ -276,8 +381,6 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
          | .none => false
        else false)
 
-  -- Step1 : Check fundeps validity
-
   -- Step2 : Add fundeps instances
   let Γ' <- List.foldlM (λ Γ fd_id => do
 
@@ -300,11 +403,6 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
         -- let temp := (ty_vars.take (ty_vars.length - 1)).splitAt (ty_vars.length - 1) -- drop the last elem of the list
 
         let ty_vars_inner := ty_vars.take (ty_vars.length - 1)  -- drop the last elem of the list and put it up front
-        -- let temp := ty_vars_inner.splitAt (ty_vars_inner.length - 1)
-        -- let ty_vars_inner := temp.2 ++ temp.1
-        -- let target_idxA := A - 2
-        -- let target_idxB := B - 2
-
         let inst_1 : Frame Term <- .toDsM "inst 1 failed" (Γ_insts[0]?)
         let inst_1 <- .toDsMq inst_1.get_type
 

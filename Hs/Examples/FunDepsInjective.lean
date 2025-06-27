@@ -14,12 +14,21 @@ def EqInst : HsFrame HsTerm := .inst (`#9 `•k `#2 `•k `#2)  .nil
 
 
 def FDCtx : HsCtx HsTerm := [
-  .inst (`#13 `•k `#10 `•k `#10)  .nil, -- Eq Ter Ter
+  -- Eq Tri Tri
+  .inst (`#13 `•k `#10 `•k `#10)  .nil,
+
   .term (`#5 → `#6 → `#7) (λ̈[`#5]λ̈[`#6]`#6),
-  EqInst, -- Eq Bool Bool
+  -- Eq Bool Bool
+  .inst (`#9 `•k `#2 `•k `#2)  .nil,
+  -- data Bool = True | False
   .datatypeDecl `★ [`#0, `#1],
+  -- data Tri = Yes | No | Maybe
   .datatypeDecl `★ [`#0, `#1, `#2],
-  FCls
+  -- Eq a b | a ~> b, b ~> a
+  .classDecl (`★ `-k> `★ `-k> `★) -- Eq t u
+    .nil [([1],0), ([0], 1)] --- t ~> u, u ~> t
+    .nil
+
 ]
 
 #eval DsM.run (compile_ctx FDCtx)

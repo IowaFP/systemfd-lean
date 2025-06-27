@@ -30,3 +30,5 @@ def EqCtx : HsCtx HsTerm :=
 #eval! DsM.run (compile_ctx EqCtx)
 #eval! DsM.run (do let c <- compile_ctx EqCtx
                    .toDsMq (wf_ctx c))
+-- #guard (do let c <- compile_ctx EqCtx
+--            .toDsMq (wf_ctx c)) == .ok ()
