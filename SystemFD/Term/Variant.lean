@@ -15,6 +15,36 @@ inductive FrameVariant where
 | inst
 | term
 
+namespace FrameVariant
+
+  @[simp]
+  def beq : FrameVariant -> FrameVariant -> Bool
+  | .empty, .empty => true
+  | .kind, .kind => true
+  | .type, .type => true
+  | .datatype, .datatype => true
+  | .ctor, .ctor => true
+  | .opent, .opent => true
+  | .openm, .openm => true
+  | .insttype, .insttype => true
+  | .inst, .inst => true
+  | .term, .term => true
+  | _, _ => false
+end FrameVariant
+
+@[simp]
+instance instBEq_FrameVariant : BEq FrameVariant where
+  beq := FrameVariant.beq
+
+instance instLawfulBEq_FrameVariant : LawfulBEq FrameVariant where
+  eq_of_beq := by {
+    intro a b h; simp at h
+    cases a; all_goals (
+        cases b <;> simp at *
+    )
+  }
+  rfl := by intro a; cases a <;> simp
+
 namespace Frame
   def variant : Frame T -> FrameVariant
   | .empty => .empty
@@ -88,70 +118,136 @@ inductive CtorVariant where
 | var (f : FrameVariant)
 | type
 | zero
-| sym
-| refl
-| fst
-| snd
-| arrowk
-| appk
-| appt
-| app
-| cast
-| seq
-| appc
-| apptc
-| choice
-| all
-| lamt
-| lam
-| arrow
-| allc
-| arrowc
+| ctor1 (v : Ctor1Variant)
+| ctor2 (v : Ctor2Variant)
+| bind2 (v : Bind2Variant)
 | eq
 | ite
 | guard
 | letterm
 
 namespace CtorVariant
+  def is_spine_variant : CtorVariant -> SpineVariant -> Bool
+  | .ctor2 .app, .term => true
+  | .ctor2 .appt, .type => true
+  | .ctor2 .appk, .kind => true
+  | _, _ => false
 
-def is_spine_variant : CtorVariant -> SpineVariant -> Bool
-| .app, .term => true
-| .appt, .type => true
-| .appk, .kind => true
-| _, _ => false
+  @[simp]
+  def is_ctor1 : CtorVariant -> Ctor1Variant -> Bool
+  | .ctor1 .sym, .sym => true
+  | _, _ => false
 
-@[simp]
-def is_ctor1 : CtorVariant -> Ctor1Variant -> Bool
-| .sym, .sym => true
-| _, _ => false
+  @[simp]
+  def is_ctor2 : CtorVariant -> Ctor2Variant -> Bool
+  | .ctor2 .refl, .refl
+  | .ctor2 .fst, .fst
+  | .ctor2 .snd, .snd
+  | .ctor2 .arrowk, .arrowk
+  | .ctor2 .appk, .appk
+  | .ctor2 .appt, .appt
+  | .ctor2 .app, .app
+  | .ctor2 .cast, .cast
+  | .ctor2 .seq, .seq
+  | .ctor2 .appc, .appc
+  | .ctor2 .apptc, .apptc
+  | .ctor2 .choice, .choice => true
+  | _, _ => false
 
-@[simp]
-def is_ctor2 : CtorVariant -> Ctor2Variant -> Bool
-| .refl, .refl
-| .fst, .fst
-| .snd, .snd
-| .arrowk, .arrowk
-| .appk, .appk
-| .appt, .appt
-| .app, .app
-| .cast, .cast
-| .seq, .seq
-| .appc, .appc
-| .apptc, .apptc
-| .choice, .choice => true
-| _, _ => false
+  @[simp]
+  def is_bind2 : CtorVariant -> Bind2Variant -> Bool
+  | .bind2 .all, .all
+  | .bind2 .lamt, .lamt
+  | .bind2 .lam, .lam
+  | .bind2 .arrow, .arrow
+  | .bind2 .allc, .allc
+  | .bind2 .arrowc, .arrowc => true
+  | _, _ => false
 
-@[simp]
-def is_bind2 : CtorVariant -> Bind2Variant -> Bool
-| .all, .all
-| .lamt, .lamt
-| .lam, .lam
-| .arrow, .arrow
-| .allc, .allc
-| .arrowc, .arrowc => true
-| _, _ => false
+  @[simp]
+  def beq : CtorVariant -> CtorVariant -> Bool
+  | .kind, .kind => true
+  | .var f1, .var f2 => f1 == f2
+  | .type, .type => true
+  | .zero, .zero => true
+  | .ctor1 v1, .ctor1 v2 => v1 == v2
+  | .ctor2 v1, .ctor2 v2 => v1 == v2
+  | .bind2 v1, .bind2 v2 => v1 == v2
+  | .eq, .eq => true
+  | .ite, .ite => true
+  | .guard, .guard => true
+  | .letterm, .letterm => true
+  | _, _ => false
 
 end CtorVariant
+
+@[simp]
+instance instBEq_CtorVariant : BEq CtorVariant where
+  beq := CtorVariant.beq
+
+instance instLawfulBEq_CtorVariant : LawfulBEq CtorVariant where
+  eq_of_beq := by {
+    intro a b h
+    cases a <;> cases b
+    case var.var f' f =>
+      unfold BEq.beq at h
+      unfold instBEq_CtorVariant at h
+      unfold CtorVariant.beq at h
+      have lem : f' == f := by rw [<-h]
+      replace lem := eq_of_beq lem
+      subst lem; rfl
+    case ctor2.ctor2 v' v =>
+      unfold BEq.beq at h
+      unfold instBEq_CtorVariant at h
+      unfold CtorVariant.beq at h
+      have lem : v' == v := by rw [<-h]
+      replace lem := eq_of_beq lem
+      subst lem; rfl
+    case bind2.bind2 v' v =>
+      unfold BEq.beq at h
+      unfold instBEq_CtorVariant at h
+      unfold CtorVariant.beq at h
+      have lem : v' == v := by rw [<-h]
+      replace lem := eq_of_beq lem
+      subst lem; rfl
+    all_goals (simp at h; try rfl)
+  }
+  rfl := by intro a; cases a <;> simp
+
+@[simp]
+def contains_variant (Γ : List FrameVariant) (cv : List CtorVariant) : Term -> Bool
+| .kind => List.contains cv .kind
+| .var x =>
+  match Γ[x]? with
+  | .some f => List.contains cv (.var f)
+  | .none => false
+| .type => List.contains cv .type
+| .zero => List.contains cv .zero
+| .ctor1 v t => List.any cv (·.is_ctor1 v)
+  || contains_variant Γ cv t
+| .ctor2 v t1 t2 => List.any cv (·.is_ctor2 v)
+  || contains_variant Γ cv t1
+  || contains_variant Γ cv t2
+| .bind2 v t1 t2 => List.any cv (·.is_bind2 v)
+  || contains_variant Γ cv t1
+  || contains_variant (bind2_frame_variant v :: Γ) cv t2
+| .eq t1 t2 t3 => List.contains cv .eq
+  || contains_variant Γ cv t1
+  || contains_variant Γ cv t2
+  || contains_variant Γ cv t3
+| .ite t1 t2 t3 t4 => List.contains cv .ite
+  || contains_variant Γ cv t1
+  || contains_variant Γ cv t2
+  || contains_variant Γ cv t3
+  || contains_variant Γ cv t4
+| .guard t1 t2 t3 => List.contains cv .guard
+  || contains_variant Γ cv t1
+  || contains_variant Γ cv t2
+  || contains_variant Γ cv t3
+| .letterm t1 t2 t3 => List.contains cv .letterm
+  || contains_variant Γ cv t1
+  || contains_variant Γ cv t2
+  || contains_variant (.term :: Γ) cv t3
 
 inductive ContainsVariant : List FrameVariant -> List CtorVariant -> Term -> Prop where
 | kind : .kind ∈ cv -> ContainsVariant Γ cv □
@@ -183,6 +279,124 @@ inductive ContainsVariant : List FrameVariant -> List CtorVariant -> Term -> Pro
 | letterm1 : ContainsVariant Γ cv t1 -> ContainsVariant Γ cv (.letterm t1 t2 t3)
 | letterm2 : ContainsVariant Γ cv t2 -> ContainsVariant Γ cv (.letterm t1 t2 t3)
 | letterm3 : ContainsVariant (.term :: Γ) cv t3 -> ContainsVariant Γ cv (.letterm t1 t2 t3)
+
+theorem contains_variant_reflection :
+  ContainsVariant Γ cv t <-> contains_variant Γ cv t
+:= by
+apply Iff.intro
+case mp =>
+  intro h
+  induction h
+  all_goals simp at *; simp [*]
+case mpr =>
+  intro h
+  induction Γ, t using contains_variant.induct <;> simp at h
+  case _ => apply ContainsVariant.kind h
+  case _ xh =>
+    rw [xh] at h; simp at h
+    apply ContainsVariant.var h xh
+  case _ xh => rw [xh] at h; simp at h
+  case _ => apply ContainsVariant.type h
+  case _ => apply ContainsVariant.zero h
+  case _ ih =>
+    cases h
+    case _ h => apply ContainsVariant.ctor1; simp; apply h
+    case _ h => apply ContainsVariant.ctor1_ (ih h)
+  case _ ih1 ih2 =>
+    cases h
+    case _ h =>
+      cases h
+      case _ h =>
+        apply ContainsVariant.ctor2; simp
+        apply h
+      case _ h =>
+        replace ih1 := ih1 h
+        apply ContainsVariant.ctor2_1 ih1
+    case _ h =>
+      replace ih2 := ih2 h
+      apply ContainsVariant.ctor2_2 ih2
+  case _ ih1 ih2 =>
+    cases h
+    case _ h =>
+      cases h
+      case _ h =>
+        apply ContainsVariant.bind2; simp
+        apply h
+      case _ h =>
+        replace ih1 := ih1 h
+        apply ContainsVariant.bind2_1 ih1
+    case _ h =>
+      replace ih2 := ih2 h
+      apply ContainsVariant.bind2_2 ih2
+  case _ ih1 ih2 ih3 =>
+    cases h
+    case _ h =>
+      cases h
+      case _ h =>
+        cases h
+        case _ h => apply ContainsVariant.eq h
+        case _ h =>
+          replace ih1 := ih1 h
+          apply ContainsVariant.eq1 ih1
+      case _ h =>
+        replace ih2 := ih2 h
+        apply ContainsVariant.eq2 ih2
+    case _ h =>
+      replace ih3 := ih3 h
+      apply ContainsVariant.eq3 ih3
+  case _ ih1 ih2 ih3 ih4 =>
+    cases h
+    case _ h =>
+      cases h
+      case _ h =>
+        cases h
+        case _ h =>
+          cases h
+          case _ h => apply ContainsVariant.ite h
+          case _ h =>
+            replace ih1 := ih1 h
+            apply ContainsVariant.ite1 ih1
+        case _ h =>
+          replace ih2 := ih2 h
+          apply ContainsVariant.ite2 ih2
+      case _ h =>
+        replace ih3 := ih3 h
+        apply ContainsVariant.ite3 ih3
+    case _ h =>
+      replace ih4 := ih4 h
+      apply ContainsVariant.ite4 ih4
+  case _ ih1 ih2 ih3 =>
+    cases h
+    case _ h =>
+      cases h
+      case _ h =>
+        cases h
+        case _ h => apply ContainsVariant.guard h
+        case _ h =>
+          replace ih1 := ih1 h
+          apply ContainsVariant.guard1 ih1
+      case _ h =>
+        replace ih2 := ih2 h
+        apply ContainsVariant.guard2 ih2
+    case _ h =>
+      replace ih3 := ih3 h
+      apply ContainsVariant.guard3 ih3
+  case _ ih1 ih2 ih3 =>
+    cases h
+    case _ h =>
+      cases h
+      case _ h =>
+        cases h
+        case _ h => apply ContainsVariant.letterm h
+        case _ h =>
+          replace ih1 := ih1 h
+          apply ContainsVariant.letterm1 ih1
+      case _ h =>
+        replace ih2 := ih2 h
+        apply ContainsVariant.letterm2 ih2
+    case _ h =>
+      replace ih3 := ih3 h
+      apply ContainsVariant.letterm3 ih3
 
 theorem not_contains_variant_ctor1 :
   ¬ ContainsVariant Γ cv (.ctor1 v t) -> ¬ ContainsVariant Γ cv t
@@ -285,6 +499,7 @@ macro "contains_variant_spine_sv_case!" q:Lean.Parser.Tactic.elimTarget "," ih:t
         apply And.intro q.1
         unfold CtorVariant.is_spine_variant at q
         cases x <;> simp at *
+        case _ v => cases v <;> simp at *
       case _ q =>
         apply Or.inl
         apply ContainsVariant.ctor2_2 q
@@ -315,9 +530,10 @@ case mp =>
           cases ih; case _ ih1 ih2 =>
           apply Exists.intro x
           apply And.intro ih1
-          cases x <;> simp at *
+          cases x <;> try simp at *
           all_goals (
-            unfold CtorVariant.is_spine_variant; simp
+            unfold CtorVariant.is_spine_variant
+            case _ v => cases v <;> simp at *
           )
         case _ ih => apply Or.inl; apply ih
         case _ ih =>
@@ -350,7 +566,6 @@ case mpr =>
     case _ => contains_variant_spine_sv_case! q, ih, (h `@ a)
     case _ => contains_variant_spine_sv_case! q, ih, (h `@t a)
     case _ => contains_variant_spine_sv_case! q, ih, (h `@k a)
-
 
 theorem is_openm_rename_lift {Γ Δ : List FrameVariant} (A : FrameVariant) (r : Ren) :
   (∀ x, Γ[x]? = Δ[r x]?) ->
