@@ -27,8 +27,6 @@ def FDCtx : HsCtx HsTerm := [
   let Γ' <- compile_ctx FDCtx
   .toDsMq (wf_ctx Γ'))
 
-
-
 -- ∀ α. F Bool α ⇒ α → α → α
 def τ := `∀{`★} `#12 `•k `#6 `•k `#0 ⇒ `#1 → `#2 → `#3
 def t := Λ̈[`★]λ̈[`#12 `•k `#6 `•k `#0] `#2

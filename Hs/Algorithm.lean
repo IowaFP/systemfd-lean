@@ -64,6 +64,196 @@ instance beq_DsMTerm : BEq (DsM Term) where
        | _ => False
 
 
+@[simp]
+def fresh_vars_aux : Nat -> List Term -> List Term
+| 0, acc => acc
+| n + 1, acc => fresh_vars_aux n (#n :: acc)
+
+@[simp]
+def fresh_vars : Nat -> List Term := λ n => fresh_vars_aux n []
+@[simp]
+def re_index_base := fresh_vars
+
+#eval fresh_vars 3
+
+-- theorem fresh_vars_aux_lemm : (fresh_vars_aux n l).length = l.length + n := by
+-- sorry
+-- theorem fresh_vars_lemma : (fresh_vars n).length == n := by
+-- sorry
+
+
+/- Caution: The ids themselves are meaningless (sort of),
+  just depend on the size of the list. thats the width of the class-/
+@[simp]
+def get_openm_ids : Ctx Term -> Nat -> DsM (List Nat) := λ Γ_g cls_idx =>
+  if (Γ_g.is_opent cls_idx)
+  then
+    let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
+    .ok ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
+  else .error ("get_open_ids" ++ Std.Format.line ++ repr Γ_g ++ Std.Format.line ++ repr cls_idx)
+
+@[simp]
+def get_insts : Ctx Term -> Nat -> DsM (List (Nat × Term)) := λ Γ_g cls_idx => do
+  if (Γ_g.is_opent cls_idx)
+  then
+    let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
+    .ok (ids.foldl (λ acc i =>
+    match (Γ_g d@ i) with
+    | .insttype iτ =>
+      let (Γ_l, ret_ty) := iτ.to_telescope
+      match (ret_ty.neutral_form) with
+      | .none => acc
+      | .some (h, _) => if h == Γ_l.length + cls_idx then ((i, iτ) :: acc) else acc
+    | _ => acc
+    ) [])
+  else .error ("get_inst_ids" ++ Std.Format.line ++ repr Γ_g ++ Std.Format.line ++ repr cls_idx)
+
+
+
+def try_type_improvement (Γ : Ctx Term) : Nat -> DsM (List (Term × Term)) := λ i => do
+let τ <- .toDsM "try_type_impr" (Γ d@ i).get_type
+let Γ_local_tyvars := Γ.tail.takeWhile (·.is_kind)
+let local_tyvars := (fresh_vars Γ_local_tyvars.length).reverse.map ([S]·)
+match τ.neutral_form with
+| .some (τh, τs) => do
+  if not (Γ.is_opent τh) then .ok [] else
+  -- get all the open method indices
+  let openm_ids <- get_openm_ids Γ τh
+  -- .ok ((fd_ids.zip fd_ids).map (λ x => (#x.1, #x.2)))
+  let (fd_ids, _) := openm_ids.partition (λ x =>
+      let f := Γ d@ x
+      if f.is_openm then
+        match f.get_type with
+        | .some τ =>
+          let (_, ret_ty) := Term.to_telescope τ;
+          Option.isSome (is_eq ret_ty)
+        | .none => false
+      else false )
+  -- .ok ((fd_ids.zip fd_ids).map (λ x => (#x.1, #x.2)))
+
+  -- find all the available instances of the opentype
+  let insts <- get_insts Γ τh
+  -- .ok ((inst_ids.zip inst_ids).map (λ x => (#x.1, #x.2)))
+  -- Extract the type instances
+
+  -- TODO: assuming that I do not have any quantified types.
+  -- That would require some more work
+
+  let new_eqs : List (Term × Term) <- insts.foldlM (λ acc x => do
+    let (idx, iτ) := x
+    let τs := τs.map (·.2)
+    -- find the types that this instance type is applied to
+    let (Γ_iτ, ret_τ) := iτ.to_telescope
+    let (Γ_tyvars, Γ_assms) := Γ_iτ.partition (λ x => x.is_kind)
+
+    -- let (_, ret_τ_τs) <- .toDsM "ret_τ neutral form try_type_improvement" ret_τ.neutral_form
+    if Γ_tyvars.length != Γ_assms.length then .error ("quantified instances are not supported for fundeps (yet)")
+
+    let inst_τs : (List Term) := ((Term.shift_helper Γ_assms.length).zip Γ_assms).foldl
+      (λ (acc : List Term) (x : Nat × Frame Term) =>
+      match x with
+      | (si, .type x) =>
+        match (is_eq x) with
+        -- all (A ~ B) in inst types have first tyvar as β bound, second tyvar the actual type instance
+        | .some (_, _, B) => ([P' (si + Γ_tyvars.length)]B) :: acc -- reindex it wrt input Γ
+        | _ => acc
+      | _ => []) []
+
+
+    -- instantiate the fd function with the inst_τs
+    let fd_terms <- fd_ids.mapM (λ fd_id => do
+      let t := Term.mk_ty_apps #fd_id inst_τs
+      let fd_τ <- .toDsM "fd_τ get_type" (Γ d@ fd_id).get_type
+      let τ <- .toDsM "fd_τ instantiate types" (instantiate_types fd_τ inst_τs)
+      .ok (τ, t)
+      )
+
+    -- instantiate the fd_terms with the free vars in the context (Γ_tyvars)
+
+    let fd_terms <- fd_terms.mapM (λ x => do
+       let t := Term.mk_ty_apps x.2 local_tyvars
+       let fd_τ <- .toDsM "fd_τ instantiate types 2" (instantiate_types x.1 local_tyvars)
+       .ok (fd_τ, t)
+    )
+
+    -- synthesize all the arguments to the fd_open method to get all the equalities
+    let fd_terms <- fd_terms.mapM (λ x => do
+      let τ := x.1
+      let t := x.2
+      let (Γ_tele, ret_ty) := τ.to_telescope
+
+      ((Term.shift_helper Γ_tele.length).zip Γ_tele).foldlM (λ acc x => do
+        let (τ, t) := acc
+        match x with
+        | (idx, .type argτ) =>
+          let argτ := [P' idx] argτ -- make τ wrt input Γ
+          let arg <- .toDsM ("synth_term failed in fd_terms"
+                  ++ Std.Format.line ++ repr argτ
+                  ++ Std.Format.line ++ repr Γ
+                  ++ Std.Format.line ++ repr acc
+                  ) (synth_term Γ argτ)
+          let τ' <- .toDsM "instantiate types failed in fd_terms" (instantiate_type τ argτ)
+          let t' := t `@ arg
+          .ok (τ', t')
+        | _ => .error ("urk! fd_term not instantiated completely")
+      ) (τ, t)
+
+    )
+
+    .ok fd_terms
+    ) []
+  .ok (new_eqs)
+  -- .ok []
+
+-- No type improvements possible
+| _ => .ok []
+
+
+namespace Algorithm.Test
+
+-- Test for improvements
+  def Γ1 : Ctx Term := [
+  .type (#12 `@k #6 `@k #0),
+  .kind ★,
+  .term (#4 -t> #5 -t> #6) (`λ[#4] `λ[#5] #5),
+  .inst #8
+    (Λ[★]Λ[★]Λ[★]`λ[#12 `@k #2 `@k #1]
+      `λ[#13 `@k #3 `@k #1]
+      .guard (#5 `@t #4 `@t #3) #1 (
+          `λ[(#4 ~[★]~ #8)]
+          `λ[(#4 ~[★]~ #9)]
+          .guard (#7 `@t #6 `@t #4) #2 (
+              `λ[(#6 ~[★]~ #10)]
+              `λ[(#5 ~[★]~ #11)]
+              (refl! ★ #7) `;
+              #2 `;
+              (sym! #0)))),
+ .insttype (∀[★]∀[★](#1 ~[★]~ #4) -t> (#1 ~[★]~ #5) -t> #12 `@k #3 `@k #2),
+ .ctor #1,
+ .ctor #0,
+ .datatype ★,
+ .ctor #2,
+ .ctor #1,
+ .ctor #0,
+ .datatype ★,
+ .openm (∀[★]∀[★]∀[★]#3 `@k #2 `@k #1 -t> #4 `@k #3 `@k #1 -t> (#3 ~[★]~ #2)),
+ .opent (★ -k> ★ -k> ★)]
+
+ #guard wf_ctx Γ1 == .some ()
+
+ #eval DsM.run (try_type_improvement Γ1 0)
+
+--  #guard (try_type_improvement Γ1 (#12 `@k #6 `@k #0)) == .ok ([(#6 ~[★]~ #0, #11 `@t #6 `@t #0 )])
+ #eval infer_type Γ1 (#12 `@t #7 `@t #1 `@t #7 `@ #0)
+
+end Algorithm.Test
+
+
+
+
+
+
+
 def helper1
   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
   (Γ : Ctx Term)
@@ -72,7 +262,7 @@ def helper1
 :=
   match head with
   | .HsAnnotate τh h => do
-    let τh' <-compile Γ ★ τh
+    let τh' <- compile Γ ★ τh
   -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
     let h' <- compile Γ τh' h
     DsM.ok (h', τh')
@@ -166,7 +356,21 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   let α' <- compile  Γ ★ A'
   if A == α'
   then do
-    let t' <- compile (.type A :: Γ) B t
+    -- If A is a typeclass/opent and it has some
+    -- fundeps associated with it. We can introduce
+    -- some type refinements at this point while compiling
+    -- the body of the function
+
+    let new_eqs <- try_type_improvement (.type A :: Γ) 0
+    let st := [S' new_eqs.length] t
+    -- The eqs are wrt Γ so shift them to be wrt type A :: Γ
+    let Γ_eqs := ((Term.shift_helper new_eqs.length).zip new_eqs).reverse.map (λ x =>
+        let (shift_idx, A, t) := x
+        .term ([S' (shift_idx)]A) ([S' (shift_idx)]t))
+
+    let t' <- compile (Γ_eqs ++ .type A :: Γ) ([S' Γ_eqs.length]B) st
+    let t' <- .toDsM "mk_lets failed" (t'.mk_lets Γ_eqs)
+
     .ok (.bind2 .lam A t')
   else .error ("compile lam"
                 ++ Std.Format.line ++ (repr (A -t> B))
@@ -212,21 +416,6 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
                     ++ Std.Format.line ++ repr h) (synth_coercion Γ τ exp_τ)
     .ok (#h ▹ η)
 
---
--- f : Eq a => B -> A
--- b : B
-
--- f (annotate B b)
--- goal type is A
-
--- (annoate T f) a1 a2 a3
-
--- (annotate eta (Eq a => B -> C)) ? a1 a2
-
--- (==) : Eq a => a -> a -> Bool
--- eta : Eq a => a -> a -> Bool
--- eta = \ a. \ b. a == b
-
 | Γ, exp_τ, t => do
   let (head, args) <- .toDsM ("no neutral form" ++ repr t) t.neutral_form
   -- Compile Head
@@ -253,7 +442,7 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
 -- case _ => sorry
 
 
-namespace Test
+namespace Algorithm.Test
   def Γ : Ctx Term := [
     .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
     .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
@@ -265,9 +454,10 @@ namespace Test
 
     #guard wf_ctx Γ == .some ()
 
-    #eval (Γ d@ 0)
-    #eval! DsM.run (compile Γ (∀[★](#6 `@k #0) -t> #1 -t> #2 -t> #10) `#0)
-    #eval! DsM.run (compile Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6))
-    #eval! DsM.run (compile Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6)))
-    #eval! DsM.run (compile Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6))))
-end Test
+    #guard (compile Γ (∀[★](#6 `@k #0) -t> #1 -t> #2 -t> #10) `#0) == .ok #0
+    #guard (compile Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6)) == .ok (#0 `@t #6)
+    #guard (compile Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6))) == .ok (#4 `@t #6 `@ (refl! ★ #6))
+    #guard (compile Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6)))) ==
+                  .ok (#0 `@t #6 `@ (#4 `@t #6 `@ (refl! ★ #6)))
+
+end Algorithm.Test

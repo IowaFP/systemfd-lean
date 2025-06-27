@@ -393,7 +393,6 @@ namespace Term
    | t, [] => t
    | t, .cons a args => (mk_apps_rev t args) `@ a
 
-
    @[simp]
    def mk_lams : Term -> Ctx Term -> Option Term
    | t, [] => t
@@ -430,6 +429,22 @@ namespace Term
   | t, .cons (.type x) xs => do
     mk_ty_arrow  (x -t> t) xs
   | _, _ => .none
+
+
+   @[simp]
+   def mk_lets : Term -> Ctx Term -> Option Term
+   | t, [] => t
+   | t, .cons (.term A x) xs => do
+     let t' <- (mk_lets t xs)
+     .some (.letterm A x t')
+   | _, _ => .none
+
+   @[simp]
+   def mk_lets_rev : Term -> Ctx Term -> Option Term
+   | t, [] => .some t
+   | t, .cons (.term A x) xs =>
+     mk_lets_rev (.letterm A x t) xs
+   | _, _ => .none
 
 
 end Term

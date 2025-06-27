@@ -66,22 +66,20 @@ def construct_coercion_graph_aux : Nat -> Ctx Term -> EqGraph Term
 | n + 1, Γ =>
   match Γ d@ n with
   | .type t
-  | .openm t =>
+  | .openm t
+  | .term t _ =>
     let rest := construct_coercion_graph_aux n Γ
     let (args, ret) := t.to_telescope
     let sp := compute_argument_instantiation Γ args
     match ret.apply_spine sp with
     | lhs ~[_]~ rhs =>
-      let v := Term.apply_spine #(n) sp
+      let v := Term.apply_spine #n sp
       let edges := deconstruct_coercion_type Γ v lhs rhs
       List.foldl (λ g (l, s, t) => (g.add_edge l s t).add_edge (sym! l) t s) rest edges
     | _ => rest
   | _ => construct_coercion_graph_aux n Γ
 
 def construct_coercion_graph := λ Γ => construct_coercion_graph_aux Γ.length Γ
-
--- #eval construct_coercion_graph ([.type (#3 ~[★]~ #0),  .kind ★,  .ctor #1,  .ctor #0, .datatype ★])
-
 
 def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 | A1 `@k B1, A2 `@k B2 => do
@@ -113,6 +111,9 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 #guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4
        == .some ((refl! ★ #1) `; #0)
 
+#guard synth_coercion [.term (#0 ~[★]~ #3) #0, .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4
+       == .some ((refl! ★ #1) `; #0)
+
 
 def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b => do
   .some (a ~[★]~ b)
@@ -121,7 +122,7 @@ def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
 -- Synthesizes term of a given type, if one exists
 partial def synth_term (Γ : Ctx Term) : Term -> Option Term := λ τ =>
 match τ with
-| .eq _ A B =>  synth_coercion Γ A B
+| .eq _ A B => synth_coercion Γ A B
 
 | .bind2 .arrow givenτ wantedτ => do
   let kg <- infer_kind Γ givenτ
@@ -210,17 +211,17 @@ match τ with
              let ((Γ_eqs, res_τ) : Ctx Term × Term) <- Term.to_telescope iτ'
              if ([S' Γ_eqs.length] τ) == res_τ
              then do
-               let mb_ηs : Option (List Term × Ctx Term) :=
-                 List.foldlM (λ (acc : List Term × Ctx Term) (f : Frame Term) =>
-                   let (ts, Γ) := acc
+               let mb_ηs : Option (List Term) :=
+                 ((Term.shift_helper Γ_eqs.length).zip Γ_eqs).foldlM
+                   (λ (ts : List Term) (f : Nat × Frame Term) =>
                    match f with
-                   | Frame.type x => do
-                       let t <- synth_term Γ x
-                       .some (t::ts, .term x t :: Γ)
+                   | (idx, Frame.type x) => do
+                       let t <- synth_term Γ ([P' idx]x)
+                       .some (t::ts)
                    | _ => .none
-                 ) ([], Γ) Γ_eqs.reverse
+                 ) []
                match mb_ηs with
-               | .some (ηs, _) =>
+               | .some ηs =>
                  .some (((#idx).mk_ty_apps τs').mk_apps_rev ηs :: acc)
                | .none => .some acc
              else .some acc
@@ -234,6 +235,61 @@ match τ with
              else .some (candidate_instances.foldl (· ⊕ ·) `0)
 
 
+-- TODO ANI: Can this be merged with synth_term?
+def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do
+  let cand_insts : List Term := List.foldl (λ acc idx =>
+    match Γ d@ idx with
+    | .insttype τ =>
+      match instantiate_types τ iτs with
+      | .none => acc
+      | some τ' => if τ' == ret_ty then (((#idx).mk_ty_apps iτs) :: acc) else acc
+    | _ => acc
+  )  [] (Term.shift_helper Γ.length)
+  if cand_insts.length == 1 then cand_insts[0]?
+  else if cand_insts.length >= 1 then .some (cand_insts.foldl (λ x y => x ⊕ y) `0) -- is this right?
+  else .none
+
+namespace SynthInstance.Test
+
+def Γ : Ctx Term :=
+  [ .term (#7 ~[★]~ #1) (#12 `@t #7 `@t #7 `@t #1 `@ (#4 `@t #7 `@t #7) `@ (refl! ★ #7) `@ (refl! ★ #7) `@ #0),
+    .type (#12 `@k #6 `@k #0),
+    .kind ★,
+    .term (#4 -t> #5 -t> #6) (`λ[#4] `λ[#5] #5),
+    .inst #8
+      (Λ[★]Λ[★]Λ[★]`λ[#12 `@k #2 `@k #1]
+      `λ[#13 `@k #3 `@k #1]
+      .guard (#5 `@t #4 `@t #3) #1 (
+          `λ[(#4 ~[★]~ #8)]
+          `λ[(#4 ~[★]~ #9)]
+          .guard (#7 `@t #6 `@t #4) #2 (
+              `λ[(#6 ~[★]~ #10)]
+              `λ[(#5 ~[★]~ #11)]
+              (refl! ★ #7) `;
+              #2 `;
+              (sym! #0)))),
+  .insttype (∀[★]∀[★](#1 ~[★]~ #4) -t> (#1 ~[★]~ #5) -t> #12 `@k #3 `@k #2),
+  .ctor #1,
+  .ctor #0,
+  .datatype ★,
+  .ctor #2,
+  .ctor #1,
+  .ctor #0,
+  .datatype ★,
+  .openm (∀[★]∀[★]∀[★]#3 `@k #2 `@k #1 -t> #4 `@k #3 `@k #1 -t> (#3 ~[★]~ #2)),
+  .opent (★ -k> ★ -k> ★) ]
+
+#eval synth_coercion Γ (#8 -t> #9 -t> #10) (#2 -t> #3 -t> #4)
+
+#eval synth_term Γ (#8 -t> #9 -t> #10 ~[★]~ #2 -t> #3 -t> #4)
+#eval synth_term Γ (#8 ~[★]~ #2)
+
+
+#eval synth_term Γ (#8 -t> #9 ~[★]~ #2 -t> #3)
+
+#eval synth_coercion Γ (#8 -t> #9) (#2 -t> #3)
+
+
 def ctx0 : Ctx Term := [
  .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
  .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
@@ -245,7 +301,8 @@ def ctx0 : Ctx Term := [
 
 #guard synth_term ctx0 (#4 `@k #5) == .some (#3 `@t #5 `@ (refl! ★ #5))
 -- #eval synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6)
-#eval infer_type (ctx0) (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))) )
+
+#eval infer_type ctx0 (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))) )
 
 #guard synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6) == .some (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))))
 
@@ -277,22 +334,10 @@ def ctx1 : Ctx Term := [
 #guard synth_term ctx1 (#4 `@k #1) == .some #0
 #eval synth_term [.type (#13 `@k #1)] (#14 `@k #2)
 
--- TODO ANI: Can this be merged with synth_term?
-def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do
-  let cand_insts : List Term := List.foldl (λ acc idx =>
-    match Γ d@ idx with
-    | .insttype τ =>
-      match instantiate_types τ iτs with
-      | .none => acc
-      | some τ' => if τ' == ret_ty then (((#idx).mk_ty_apps iτs) :: acc) else acc
-    | _ => acc
-  )  [] (Term.shift_helper Γ.length)
-  if cand_insts.length == 1 then cand_insts[0]?
-  else if cand_insts.length >= 1 then .some (cand_insts.foldl (λ x y => x ⊕ y) `0) -- is this right?
-  else .none
-
-
 #guard synth_superclass_inst ctx1 [#1] (#1 ~[★]~ #7 -t> #7 `@k #8) == (#5 `@t #1)
+
+end SynthInstance.Test
+
 
 namespace SynthInstTest
 
@@ -329,6 +374,38 @@ def ctx : Ctx Term := [
  ]
 
 #eval synth_term ctx (#14 `@k #2)
+
+-- Test for improvements
+  def Γ1 : Ctx Term := [
+  .type (#12 `@k #6 `@k #0),
+  .kind ★,
+  .term (#4 -t> #5 -t> #6) (`λ[#4] `λ[#5] #5),
+  .inst #8
+    (Λ[★]Λ[★]Λ[★]`λ[#12 `@k #2 `@k #1]
+      `λ[#13 `@k #3 `@k #1]
+      .guard (#5 `@t #4 `@t #3) #1 (
+          `λ[(#4 ~[★]~ #8)]
+          `λ[(#4 ~[★]~ #9)]
+          .guard (#7 `@t #6 `@t #4) #2 (
+              `λ[(#6 ~[★]~ #10)]
+              `λ[(#5 ~[★]~ #11)]
+              (refl! ★ #7) `;
+              #2 `;
+              (sym! #0)))),
+ .insttype (∀[★]∀[★](#1 ~[★]~ #4) -t> (#1 ~[★]~ #5) -t> #12 `@k #3 `@k #2),
+ .ctor #1,
+ .ctor #0,
+ .datatype ★,
+ .ctor #2,
+ .ctor #1,
+ .ctor #0,
+ .datatype ★,
+ .openm (∀[★]∀[★]∀[★]#3 `@k #2 `@k #1 -t> #4 `@k #3 `@k #1 -t> (#3 ~[★]~ #2)),
+ .opent (★ -k> ★ -k> ★)]
+
+#guard synth_term Γ1 (#13 `@k #7 `@k #1) == .some #0
+
+#guard synth_term Γ1 (#13 `@k #7 `@k #7) == .some ((#4 `@t #7 `@t #7 `@ (refl! ★ #7)) `@ (refl! ★ #7))
 
 end SynthInstTest
 

@@ -3,24 +3,6 @@ import SystemFD.Algorithm
 
 set_option profiler true
 
-
-@[simp]
-def fresh_vars_aux : Nat -> List Term -> List Term
-| 0, acc => acc
-| n + 1, acc => fresh_vars_aux n (#n :: acc)
-
-@[simp]
-def fresh_vars : Nat -> List Term := λ n => fresh_vars_aux n []
-@[simp]
-def re_index_base := fresh_vars
-
-#eval fresh_vars 3
-
--- theorem fresh_vars_aux_lemm : (fresh_vars_aux n l).length = l.length + n := by
--- sorry
--- theorem fresh_vars_lemma : (fresh_vars n).length == n := by
--- sorry
-
 -- Henry Ford Encode a type:
 -- Takes a type of the form
 -- ∀ αs. assms -> D τs
@@ -81,15 +63,15 @@ def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term × Nat) := λ Γ ty => d
 
 #eval (Term.shift_helper 10).take 5
 
-namespace Test
-  -- def Γ : Ctx Term := [
-  --   .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
-  --   .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
-  --   .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
-  --   .opent (★ -k> ★),
-  --   .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
-  --   .opent (★ -k> ★),
-  --   .datatype ★ ]
+namespace Algorithm2.Test
+  def Γ : Ctx Term := [
+    .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
+    .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
+    .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
+    .opent (★ -k> ★),
+    .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
+    .opent (★ -k> ★),
+    .datatype ★ ]
 
   #guard wf_ctx Γ == .some ()
   #eval (#5 `@k #6)
@@ -103,19 +85,7 @@ namespace Test
   #eval #2 `@k #0 `@k #1
   #eval DsM.run (mk_inst_type Γ0 (#2 `@k #0 `@k #1))
 
-end Test
-
-
-/- Caution: The ids themselves are meaningless (sort of),
-  just depend on the size of the list. thats the width of the class-/
-@[simp]
-def get_openm_ids : Ctx Term -> Nat -> DsM (List Nat) := λ Γ_g cls_idx =>
-  if (Γ_g.is_opent cls_idx)
-  then
-    let ids := ((Term.shift_helper Γ_g.length).take cls_idx).reverse
-    .ok ((ids.takeWhile (Γ_g.is_openm ·)).reverse)
-  else .error ("get_open_ids" ++ Std.Format.line ++ repr Γ_g ++ Std.Format.line ++ repr cls_idx)
-
+end Algorithm2.Test
 
 
 @[simp]
