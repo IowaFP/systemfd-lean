@@ -28,8 +28,12 @@ inductive Hssdi : (v : HssdiVariant) -> Ctx Term -> HssdiArgs v -> Prop where
 | cons_inst :
   Hssdi .prf Γ t ->
   Hssdi .wf (.inst A t :: Γ) ()
-| var : Hssdi .prf Γ #x
-| type : Hssdi .prf Γ ★
+| var :
+  Hssdi .wf Γ () ->
+  Hssdi .prf Γ #x
+| type :
+  Hssdi .wf Γ () ->
+  Hssdi .prf Γ ★
 | ctor1 :
   Hssdi .prf Γ t ->
   Hssdi .prf Γ (.ctor1 v t)
@@ -48,10 +52,11 @@ inductive Hssdi : (v : HssdiVariant) -> Ctx Term -> HssdiArgs v -> Prop where
   Hssdi .prf Γ f ->
   Hssdi .prf Γ a ->
   Hssdi .prf Γ (f `@ a)
-| choice :
-  t1 ≠ `0 ∨ t2 ≠ `0 ->
-  (t1 ≠ `0 -> Hssdi .prf Γ t1) ->
-  (t2 ≠ `0 -> Hssdi .prf Γ t2) ->
+| choice1 :
+  Hssdi .prf Γ t1 ->
+  Hssdi .prf Γ (t1 ⊕ t2)
+| choice2 :
+  Hssdi .prf Γ t2 ->
   Hssdi .prf Γ (t1 ⊕ t2)
 | bind2 :
   -- Hssdi .prf Γ A ->
@@ -76,6 +81,39 @@ inductive Hssdi : (v : HssdiVariant) -> Ctx Term -> HssdiArgs v -> Prop where
   Hssdi .prf Γ t ->
   Hssdi .prf Γ b ->
   Hssdi .prf Γ (.letterm A t b)
+
+theorem hssdi_not_zero : ¬ Hssdi .prf Γ `0 := by
+intro h; cases h
+
+@[simp]
+abbrev HssdiPreservationLemmaType (Γ : Ctx Term) : (v : HssdiVariant) -> HssdiArgs v -> Prop
+| .prf => λ t => ∀ t', Red Γ t t' -> Hssdi .prf Γ t'
+| .wf => λ () => True
+
+theorem hssdi_preservation_lemma : Hssdi v Γ ix -> HssdiPreservationLemmaType Γ v ix := by
+intro j
+induction j <;> simp at *
+case app j1 j2 j3 ih1 ih2 h =>
+  intro t' r
+  cases r
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => simp at *
+  case _ => cases j2
+  case _ => simp at *
+  case _ c1 c2 _ _ =>
+    cases j1; case _ q1 q2 q3 q4 =>
+    cases j2; simp at *
+    case _ j2 =>
+      apply Hssdi.choice1
+      apply Hssdi.app q3 _ j2 j3; simp; apply h
+    case _ j2 =>
+      apply Hssdi.choice2
+      apply Hssdi.app q4 _ j2 j3; simp; apply h
+  case _ => simp at *
+repeat sorry
 
 @[simp]
 abbrev HssdiSoundLemmaType (Γ : Ctx Term) : (v : HssdiVariant) -> HssdiArgs v -> Prop
@@ -109,7 +147,8 @@ case type => sorry
 case ctor1 => sorry
 case ctor2 => sorry
 case app => sorry
-case choice => sorry
+case choice1 => sorry
+case choice2 => sorry
 case bind2 => sorry
 case eq => sorry
 case ite => sorry
