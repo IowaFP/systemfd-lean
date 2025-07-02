@@ -3,8 +3,8 @@ import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
 
-import Hs.Examples.Datatypes
-import Hs.Examples.Classes
+-- import Hs.Examples.Datatypes
+-- import Hs.Examples.Classes
 
 -- def BoolCtx : HsCtx HsTerm :=
 --   [ .datatypeDecl `★ [ `#0     -- Nothing :: ∀ a. Maybe a
@@ -24,18 +24,32 @@ import Hs.Examples.Classes
 --          [ `∀{`★} `#0 → `#1 → `#6
 --          , `∀{`★} `#0 → `#1 → `#7 ]
 
--- def EqCtx : HsCtx HsTerm :=
---   EqCFrame :: BoolCtx
 
--- #eval! compile_ctx EqCtx
+-- def EqBoolInst : HsFrame HsTerm := .inst
+--   (`#2 `•k `#5)
+--   [ .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#7)
+--   , .HsAnnotate (`#7 → `#8 → `#9) (λ̈[`#7] λ̈[`#8] `#7)
+--   ]
 
-def EqBoolInst : HsFrame HsTerm := .inst
-  (`#2 `•k `#5)
-  [ .HsAnnotate (`#6 → `#7 → `#8) (λ̈[`#6] λ̈[`#7] `#7)
-  , .HsAnnotate (`#7 → `#8 → `#9) (λ̈[`#7] λ̈[`#8] `#7)
+def ΓInsts : HsCtx HsTerm := [
+  .inst (`#0 `•k `#3) .nil,
+  .classDecl (`★ `-k> `★) .nil .nil .nil,
+  .datatypeDecl `★ [`#0, `#1]
   ]
 
-#eval! DsM.run (compile_ctx (EqBoolInst :: EqCtx))
+#eval! DsM.run (compile_ctx ΓInsts)
 #eval! DsM.run (
-  do let ctx <- compile_ctx (EqBoolInst :: EqCtx)
+  do let ctx <- compile_ctx ΓInsts
      .toDsMq (wf_ctx ctx))
+
+def ΓInsts' : HsCtx HsTerm := [
+  .inst (`#1 `•k `#4) .nil, -- this should fail
+  .inst (`#0 `•k `#3) .nil,
+  .classDecl (`★ `-k> `★) .nil .nil .nil,
+  .datatypeDecl `★ [`#0, `#1]
+  ]
+
+#eval! DsM.run (compile_ctx ΓInsts')
+-- #eval! DsM.run (
+--   do let ctx <- compile_ctx ΓInsts'
+--      .toDsMq (wf_ctx ctx))

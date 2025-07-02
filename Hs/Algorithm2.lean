@@ -110,7 +110,7 @@ def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_impli
 def doConsistencyCheck (Γ : Ctx Term) (fd : FunDep): Term × Term -> DsM Unit := λ x => do
 
 let (instA, instB) := x
--- Both the telescopes are in henry ford encoded
+-- Both the telescopes are in henry forded
 -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
 let (teleA, _) := instA.to_telescope
 let (teleB, _) := instB.to_telescope
@@ -193,7 +193,34 @@ match should_build_η with
 
 
 def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term) -> DsM Unit := λ x =>
-  x.forM (λ p => fds.forM (λ fd => doConsistencyCheck Γ fd p))
+  x.forM (λ p => do
+
+    -- First do the overlapping checks
+    let (instA, instB) := p
+    -- Both the telescopes are in henry forded
+    -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
+    let (teleA, _) := instA.to_telescope
+    let (teleB, _) := instB.to_telescope
+
+    let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
+    let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
+
+    if teleA_eqs.length != teleB_eqs.length then .error "consistency check eqs length does not match"
+    if teleA_tyvars.length != teleB_tyvars.length then .error "consistency check tyvars length does not match"
+
+
+    let eqs := teleA_eqs.zip teleB_eqs
+
+    -- Make sure there is atleast one eq that is different
+    if eqs.all (λ x =>
+      let (eqA, eqB) := x
+      eqA == eqB)
+      then .error ("overlapping instances"  ++
+           Std.Format.line ++ repr instA ++
+           Std.Format.line ++ repr instB)
+
+    -- Now do the consistency checks
+    fds.forM (λ fd => doConsistencyCheck Γ fd p))
 
 -- #eval ([.ok (), .ok (), .error "test" ] : List (DsM Unit)).forM (λ x => x)
 
@@ -336,10 +363,6 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
 
   -- Step1 : Check fundeps validity
-  -- There are 2 checks that we need to perform:
-  -- 1. Consistency check
-  -- 2. Coverage check
-
 
   -- First we need to get all the instances that belong to the class/opent that are
   -- in the context
@@ -349,16 +372,13 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   let insts <- get_insts Γ' cls_idx
   let instss : List (Term × Term) := insts.map (λ x => (ity', x.2))
 
-  -- TODO: Assume that the
+  -- TODO: Assume that the quantifiers do not mess things up (.i.e no constrained instances)
+  -- 1. Coverage check
 
-  -- 1. Consistency condition
+  -- 2. Consistency condition
   -- If the determiners are the the same, then the determinants can be "unified"
   -- Or a coercion can be produced
   doConsistencyChecks Γ' fundeps instss
-
-  -- 2. Coverage check
-
-
 
   let Γ' := .insttype ity' :: Γ'
 
