@@ -124,6 +124,16 @@ if teleA_tyvars.length != teleB_tyvars.length then .error "consistency check tyv
 -- let fd := (fd.1.map (teleB_tyvars.length - ·), (teleB_tyvars.length - fd.2))
 
 let eqs := teleA_eqs.zip teleB_eqs
+
+-- Make sure there is atleast one eq that is different
+if eqs.all (λ x =>
+   let (eqA, eqB) := x
+   eqA == eqB)
+   then .error ("overlapping instances"  ++
+         Std.Format.line ++ repr instA ++
+         Std.Format.line ++ repr instB)
+
+
 let eqs : List (Nat × (Frame Term × Frame Term)) := ((Term.shift_helper eqs.length).zip eqs.reverse).foldl
   (λ acc x =>
   let (sidx, eq) := x
@@ -131,6 +141,7 @@ let eqs : List (Nat × (Frame Term × Frame Term)) := ((Term.shift_helper eqs.le
     then (sidx, ((eq.1.apply (P) , (eq.2.apply (P)))))
     else (sidx, eq))
     :: acc)) []
+
 
 -- all the eqs are now indexed at Γ + teleA_tyvars
 let determiners : List (Frame Term × Frame Term) <- .toDsM "consistencyCheck determiners"
@@ -153,7 +164,7 @@ let should_build_η : Option Bool := determiners.foldl (λ acc x =>
   let (eq1, eq2) := x
   match (eq1, eq2) with
   | (.type (_ ~[_]~ t1), .type (_ ~[_]~ t2)) =>
-    if t1 == t2  -- This check is very basic. Need to have some more intelligent check here
+    if t1 == t2  -- This check is very basic. Need to have some more intelligent check here?
     then acc.map (true && ·) else acc.map (false && ·)
   | _ => .none
 ) (.some true)
