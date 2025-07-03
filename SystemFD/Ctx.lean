@@ -265,19 +265,20 @@ namespace Frame
 
   protected def reprPrec [reprT : Repr T] (a : Frame T) (p : Nat) : Std.Format :=
     match a with
-    | empty => "empty"
-    | kind t => "kind " ++ reprT.reprPrec t p
-    | type t => "type " ++ reprT.reprPrec t p
-    | datatype t => "datatype " ++ reprT.reprPrec t p
-    | ctor t => "ctor " ++ reprT.reprPrec t p
-    | opent t => "opent " ++ reprT.reprPrec t p
-    | openm t => "openm " ++ reprT.reprPrec t p
-    | insttype t => "insttype " ++ reprT.reprPrec t p
+    | empty => ".empty"
+    | kind t => ".kind " ++ reprT.reprPrec t max_prec
+    | type t => ".type " ++ reprT.reprPrec t max_prec
+    | datatype t => ".datatype " ++ reprT.reprPrec t max_prec
+    | ctor t => ".ctor " ++ reprT.reprPrec t max_prec
+    | opent t => ".opent " ++ reprT.reprPrec t max_prec
+    | openm t => ".openm " ++ reprT.reprPrec t max_prec
+    | insttype t => ".insttype " ++ reprT.reprPrec t max_prec
     | inst x t =>
-      Std.Format.nest 5 <| "inst " ++ reprT.reprPrec x p ++ " := "
-      ++ Std.Format.line ++ reprT.reprPrec t p
+      Std.Format.nest 5 <| ".inst " ++ reprT.reprPrec x p ++ " := "
+      ++ Std.Format.line ++ reprT.reprPrec t max_prec
     | term A t =>
-      Std.Format.nest 5 <| "term " ++ Std.Format.line ++ reprT.reprPrec A p ++ " : " ++ reprT.reprPrec t p
+      Std.Format.nest 5 <| ".term "
+      ++ Std.Format.line ++ reprT.reprPrec A max_prec ++ " : " ++ reprT.reprPrec t max_prec
 end Frame
 
 instance instRepr_Ctx [Repr T] : Repr (Frame T) where

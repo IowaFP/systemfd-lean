@@ -332,7 +332,7 @@ def ctx1 : Ctx Term := [
 #guard wf_ctx ctx1 == .some ()
 
 #guard synth_term ctx1 (#4 `@k #1) == .some #0
-#eval synth_term [.type (#13 `@k #1)] (#14 `@k #2)
+#guard synth_term [.type (#13 `@k #1)] (#14 `@k #2) == .some #0
 
 #guard synth_superclass_inst ctx1 [#1] (#1 ~[★]~ #7 -t> #7 `@k #8) == (#5 `@t #1)
 
@@ -373,7 +373,7 @@ def ctx : Ctx Term := [
  .datatype ★
  ]
 
-#eval synth_term ctx (#14 `@k #2)
+#guard synth_term ctx (#14 `@k #2) == .some #0
 
 -- Test for improvements
   def Γ1 : Ctx Term := [

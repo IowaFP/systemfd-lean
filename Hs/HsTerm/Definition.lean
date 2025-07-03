@@ -34,9 +34,9 @@ protected def HsTerm.repr : (a : HsTerm) -> (p : Nat) -> Std.Format
 | HsAnnotate A t, p => Std.Format.paren ((HsTerm.repr t max_prec) ++ " : " ++ (HsTerm.repr A p))
 | HsCtor2 .arrowk a b, p => Repr.addAppParen ((HsTerm.repr a max_prec) ++ " `-k> " ++ (HsTerm.repr b p)) p
 
-| HsCtor2 .appk a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `•k " ++ (HsTerm.repr b max_prec)) p
-| HsCtor2 .app a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `• " ++ (HsTerm.repr b max_prec)) p
-| HsCtor2 .appt a b, p => Repr.addAppParen ((HsTerm.repr a p) ++ " `•t " ++ (HsTerm.repr b max_prec)) p
+| HsCtor2 .appk a b, p => Repr.addAppParen ((HsTerm.repr a max_prec) ++ " `•k " ++ (HsTerm.repr b max_prec)) p
+| HsCtor2 .app a b, p => Repr.addAppParen ((HsTerm.repr a max_prec) ++ " `• " ++ (HsTerm.repr b max_prec)) p
+| HsCtor2 .appt a b, p => Repr.addAppParen ((HsTerm.repr a max_prec) ++ " `•t " ++ (HsTerm.repr b max_prec)) p
 
 | HsBind2 .lam t1 t2, p => "`λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++  HsTerm.repr t2 p
 | HsBind2 .lamt t1 t2, p => "`Λ" ++ Std.Format.sbracket (HsTerm.repr t1 p)  ++ HsTerm.repr t2 p

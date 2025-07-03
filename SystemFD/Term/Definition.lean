@@ -109,11 +109,11 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
 
   | .ctor2 .refl t1 t2 => "(refl! " ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p ++ ")"
   | .ctor2 .arrowk t1 t2 => Repr.addAppParen (Term.repr t1 max_prec ++ " -k> " ++ Term.repr t2 p) p
-  | .ctor2 .appk t1 t2 => Term.repr t1 p ++ " `@k " ++ Term.repr t2 p
-  | .ctor2 .appc t1 t2 => Term.repr t1 p ++ " `@c " ++ Term.repr t2 p
+  | .ctor2 .appk t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " `@k " ++ Term.repr t2 max_prec) p
+  | .ctor2 .appc t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " `@c " ++ Term.repr t2 max_prec) p
   | .ctor2 .appt t1 t2 => Term.repr t1 max_prec ++ Std.Format.sbracket (Term.repr t2 p)
-  | .ctor2 .apptc t1 t2 => Term.repr t1 p ++ " `@c[ " ++ Term.repr t2 p ++ " ]"
-  | .ctor2 .app t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " `@ " ++ Term.repr t2 p) p
+  | .ctor2 .apptc t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " `@c[ " ++ Term.repr t2 p ++ " ]") p
+  | .ctor2 .app t1 t2 => Repr.addAppParen (Term.repr t1 p ++ " `@ " ++ Term.repr t2 max_prec) p
   | .ctor2 .cast t1 t2 =>
     Std.Format.paren (Term.repr t1 max_prec ++ " ▹ "
     ++ Std.Format.line ++ Term.repr t2 max_prec)
@@ -123,7 +123,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
   | .bind2 .all t1 t2 => Repr.addAppParen ("∀" ++ Std.Format.sbracket (Term.repr t1 p) ++ Term.repr t2 p) p
   | .bind2 .arrow t1 t2 => Repr.addAppParen (Term.repr t1 max_prec ++ " -t> " ++ Term.repr t2 p) p
   | .bind2 .arrowc t1 t2 => Repr.addAppParen (Term.repr t1 max_prec ++ " -c> " ++ Term.repr t2 p) p
-  | .bind2 .allc t1 t2 => "∀c" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p
+  | .bind2 .allc t1 t2 => Repr.addAppParen ("∀c" ++ Std.Format.sbracket (Term.repr t1 p) ++ (Term.repr t2 p)) p
   | .bind2 .lamt t1 t2 => Repr.addAppParen ("Λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Repr.addAppParen (Term.repr t2 p) p) p
   | .bind2 .lam t1 t2 => Repr.addAppParen ("`λ" ++ Std.Format.sbracket (Term.repr t1 p) ++ Std.Format.line ++ Term.repr t2 p) p
 
@@ -133,7 +133,7 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
        ++ Std.Format.line ++ " | " ++ Term.repr b p
        ++ Std.Format.line ++ " | " ++ Term.repr c p
   | .guard pat s c =>
-     Std.Format.nest 4 <| "guard " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ",  " ++ Std.Format.line
+     Std.Format.nest 4 <| ".guard " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ ",  " ++ Std.Format.line
           ++ Term.repr c p
   | .letterm t t1 t2 =>
      Std.Format.nest 4 <| "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line

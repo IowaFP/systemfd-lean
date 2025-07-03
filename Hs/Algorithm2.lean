@@ -64,33 +64,37 @@ def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term × Nat) := λ Γ ty => d
 #guard (Term.shift_helper 10).take 5 == [0,1,2,3,4]
 
 -- given a hf type returns a decoded type
-def un_inst_type (Γ : Ctx Term) : Term -> DsM Term := λ ty => do
+def un_inst_type : Term -> DsM Term := λ ty => do
   let (tele_ty, ret_ty) := ty.to_telescope
   let (Γ_tyvars, Γ_vars) := tele_ty.partition (·.is_kind)
 
-  let (h, sp) <- .toDsMq ret_ty.neutral_form
+  let (_, sp) <- .toDsMq ret_ty.neutral_form
 
   let (Γ_βs, Γ_αs) := Γ_tyvars.splitAt sp.length
 
   let (Γ_eqs, Γ_assms) := Γ_vars.splitAt Γ_βs.length
 
-  let Γ_assms := Γ_assms.map (·.apply (P' Γ_eqs.length)) -- reindex to Γ_βs ++ Γ_αs ++ Γ
-  let ret_ty := [P' Γ_eqs.length] ret_ty -- reindex to Γ_βs ++ Γ_αs ++ Γ
 
-  let σ : Subst Term <- .toDsM "un_inst_type eqs" (Γ_eqs.foldlM (λ acc τ =>
+  let σ : Subst Term <- .toDsM "un_inst_type eqs" (((Term.shift_helper Γ_eqs.length).zip Γ_eqs).foldlM (λ accσ τ =>
     match τ with
-    | .type (#n ~[_]~ t) => .some (Subst.betan n t ⊙ acc)
+    | (si, .type (#n ~[_]~ t)) => .some (λ v => .su (if v == (n - si) then [P' si]t else [accσ](#v)))
     | _ => .none
     ) I)
-  let ret_ty := [σ] ret_ty
 
   let ret_ty := ret_ty.from_telescope Γ_assms
-  let ret_ty := ([P' Γ_βs.length] ret_ty)
+  let ret_ty := [P' Γ_eqs.length] ret_ty
+
+  let ret_ty := [σ] ret_ty
   let ret_ty := ret_ty.from_telescope Γ_αs
+
+  let ret_ty := [P' Γ_βs.length] ret_ty
+
   -- .error ("unimplemented "
+  --   ++ Std.Format.line ++ "τ: " ++ repr ty
   --   ++ Std.Format.line ++ "Γ_βs: " ++ repr Γ_βs
   --   ++ Std.Format.line ++ "Γ_αs: " ++ repr Γ_αs
   --   ++ Std.Format.line ++ "Γ_eqs: " ++ repr Γ_eqs
+  --   ++ Std.Format.line ++ "Γ_assms: " ++ repr Γ_assms
   --   ++ Std.Format.line ++ "ret_ty: " ++ repr ret_ty)
 
   .ok ret_ty
@@ -109,19 +113,58 @@ namespace Algorithm2.Test
   #guard wf_ctx Γ == .some ()
   -- #eval (#5 `@k #6)
   #guard (mk_inst_type Γ (#5 `@k #6)) == .ok (5, ∀[★](#0 ~[★]~ #7) -t> #7 `@k #1, 1)
-  #guard (un_inst_type Γ (∀[★](#0 ~[★]~ #7) -t> #7 `@k #1)) == .ok (#5 `@k #6)
+  #guard (un_inst_type (∀[★](#0 ~[★]~ #7) -t> #7 `@k #1)) == .ok (#5 `@k #6)
 
 
 
   -- #eval (∀[★] (#4 `@k #0) -t> #7 `@k #1)
   #guard (mk_inst_type Γ (∀[★] #4 `@k #0 -t> #7 `@k #1))
              == .ok (5, ∀[★]∀[★](#1 ~[★]~ #0) -t> #6 `@k #1 -t> #9 `@k #3, 1)
-  #guard (un_inst_type Γ (∀[★]∀[★](#1 ~[★]~ #0) -t> #6 `@k #1 -t> #9 `@k #3)) == .ok (∀[★] #4 `@k #0 -t> #7 `@k #1)
+  #guard (un_inst_type (∀[★]∀[★](#1 ~[★]~ #0) -t> #6 `@k #1 -t> #9 `@k #3)) == .ok (∀[★] #4 `@k #0 -t> #7 `@k #1)
 
   def Γ0 : Ctx Term := [.datatype ★, .datatype ★, .opent (★ -k> ★ -k> ★)]
   #guard (mk_inst_type Γ0 (#2 `@k #1 `@k #0)) == .ok (2, ∀[★]∀[★](#1 ~[★]~ #3) -t> (#1 ~[★]~ #3) -t> #6 `@k #3 `@k #2, 2)
-  #guard (un_inst_type Γ0 (∀[★]∀[★](#1 ~[★]~ #3) -t> (#1 ~[★]~ #3) -t> #6 `@k #3 `@k #2)) ==
+  -- #eval DsM.run ((un_inst_type (∀[★]∀[★](#1 ~[★]~ #3) -t> (#1 ~[★]~ #3) -t> #6 `@k #3 `@k #2)))
+  #guard (un_inst_type (∀[★]∀[★](#1 ~[★]~ #3) -t> (#1 ~[★]~ #3) -t> #6 `@k #3 `@k #2)) ==
          .ok (#2 `@k #1 `@k #0)
+
+  def Γ1 : Ctx Term := [
+ .inst #8
+      (Λ[★]((Λ[★]((Λ[★]((`λ[((#13 `@k #2) `@k #1)]
+      (`λ[((#14 `@k #1) `@k #2)]
+        .guard (#6 `@t #4 `@t #3) #1
+         (`λ[(#4 ~[★]~ #9)]
+         (`λ[(#4 ~[★]~ #10)]
+         .guard (#8 `@t #4 `@t #5)  #2
+         (`λ[(#4 ~[★]~ #11)] (`λ[(#6 ~[★]~ #12)] (((refl! ★ #8) `;  #3) `;  (sym! #1)))))))))))))),
+    .inst #8
+      (Λ[★]((Λ[★]((Λ[★]((`λ[((#12 `@k #2) `@k #1)]
+        (`λ[((#13 `@k #3) `@k #1)]
+         .guard (#5 `@t #4 `@t #3) #1
+          (`λ[(#4 ~[★]~ #8)]
+          (`λ[(#4 ~[★]~ #9)]
+           .guard (#7 `@t #6 `@t #4) #2
+            (`λ[(#6 ~[★]~ #10)] (`λ[(#5 ~[★]~ #11)] (((refl! ★ #7) `;  #2) `;  (sym! #0)))))))))))))),
+ .insttype (∀[★](∀[★]((#1 ~[★]~ #4) -t> ((#1 ~[★]~ #5) -t> (#12 `@k #3 `@k #2))))),
+ .ctor #1,
+ .ctor #0,
+ .datatype ★,
+ .ctor (∀[★](#0 -t> (#3 `@k #1))),
+ .ctor (∀[★](#1 `@k #0)),
+ .datatype (★ -k> ★),
+ .openm (∀[★](∀[★](∀[★](((#4 `@k #2) `@k #1) -t> (((#5 `@k #1) `@k #2) -t> (#4 ~[★]~ #2)))))),
+ .openm (∀[★](∀[★](∀[★](((#3 `@k #2) `@k #1) -t> (((#4 `@k #3) `@k #1) -t> (#3 ~[★]~ #2)))))),
+ .opent (★ -k> (★ -k> ★)) ]
+
+
+  --  #eval DsM.run (mk_inst_type Γ1 (∀[★]∀[★]((#13 `@k #1) `@k #0) -t> #14 `@k (#11 `@k #2) `@k (#11 `@k #1)))
+  #guard (mk_inst_type Γ1 (∀[★]∀[★]((#13 `@k #1) `@k #0) -t> #14 `@k (#11 `@k #2) `@k (#11 `@k #1)))
+       == .ok (11, ∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ #12 `@k #1) -t> (#3 ~[★]~ #13 `@k #1) -t> #17 `@k #3 `@k #2 -t> #18 `@k #6 `@k #5, 2)
+
+  #eval DsM.run (un_inst_type (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ #12 `@k #1) -t> (#3 ~[★]~ #13 `@k #1) -t> #17 `@k #3 `@k #2 -t> #18 `@k #6 `@k #5))
+  #guard  un_inst_type (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ #12 `@k #1) -t> (#3 ~[★]~ #13 `@k #1) -t> #17 `@k #3 `@k #2 -t> #18 `@k #6 `@k #5) == .ok (∀[★]∀[★]((#13 `@k #1) `@k #0) -t> #14 `@k (#11 `@k #2) `@k (#11 `@k #1))
+
+
 
 end Algorithm2.Test
 
@@ -148,28 +191,28 @@ def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_impli
 def doConsistencyCheck (Γ : Ctx Term) (fd : FunDep): Term × Term -> DsM Unit := λ x => do
 
 let (instA, instB) := x
--- Both the telescopes are in henry forded
--- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
+-- -- Both the telescopes are in henry forded
+-- -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
 let (teleA, _) := instA.to_telescope
 let (teleB, _) := instB.to_telescope
 
 let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
 let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
 
-if teleA_eqs.length != teleB_eqs.length then .error "consistency check eqs length does not match"
-if teleA_tyvars.length != teleB_tyvars.length then .error "consistency check tyvars length does not match"
+-- if teleA_eqs.length != teleB_eqs.length then .error "consistency check eqs length does not match"
+-- if teleA_tyvars.length != teleB_tyvars.length then .error "consistency check tyvars length does not match"
 
--- let fd := (fd.1.map (teleB_tyvars.length - ·), (teleB_tyvars.length - fd.2))
+-- -- let fd := (fd.1.map (teleB_tyvars.length - ·), (teleB_tyvars.length - fd.2))
 
 let eqs := teleA_eqs.zip teleB_eqs
 
--- Make sure there is atleast one eq that is different
-if eqs.all (λ x =>
-   let (eqA, eqB) := x
-   eqA == eqB)
-   then .error ("overlapping instances"  ++
-         Std.Format.line ++ repr instA ++
-         Std.Format.line ++ repr instB)
+-- -- Make sure there is atleast one eq that is different
+-- if eqs.all (λ x =>
+--    let (eqA, eqB) := x
+--    eqA == eqB)
+--    then .error ("overlapping instances"  ++
+--          Std.Format.line ++ repr instA ++
+--          Std.Format.line ++ repr instB)
 
 
 let eqs : List (Nat × (Frame Term × Frame Term)) := ((Term.shift_helper eqs.length).zip eqs.reverse).foldl
@@ -235,40 +278,52 @@ def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term)
 
     -- First do the overlapping checks
     let (instA, instB) := p
-
-    let instA <- un_inst_type Γ instA
-    let instB <- un_inst_type Γ instB
-
     -- Both the insts are henry forded
     -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
+    -- so we un-henry ford them
+
+    let instA <- un_inst_type instA
+    let instB <- un_inst_type instB
+
+
     let (teleA, ret_tyA) := instA.to_telescope
     let (teleB, ret_tyB) := instB.to_telescope
 
 
 
-    let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
-    let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
+    -- let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
+    -- let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
 
-    if teleA_eqs.length != teleB_eqs.length
-    then .error ("consistency check eqs length does not match"
-         ++ Std.Format.line ++ repr instA
-         ++ Std.Format.line ++ repr instB)
+    -- if teleA_eqs.length != teleB_eqs.length
+    -- then .error ("consistency check eqs length does not match"
+    --      ++ Std.Format.line ++ repr instA
+    --      ++ Std.Format.line ++ repr instB)
 
-    if teleA_tyvars.length != teleB_tyvars.length
-    then .error ("consistency check tyvars length does not match"
-         ++ Std.Format.line ++ repr instA
-         ++ Std.Format.line ++ repr instB)
+    -- if teleA_tyvars.length != teleB_tyvars.length
+    -- then .error ("consistency check tyvars length does not match"
+    --      ++ Std.Format.line ++ repr instA
+    --      ++ Std.Format.line ++ repr instB)
 
 
-    let eqs := teleA_eqs.zip teleB_eqs
+    -- let eqs := teleA_eqs.zip teleB_eqs
+    -- if eqs.all (λ x =>
+    --   let (eqA, eqB) := x
+    --   eqA == eqB)
+    --   then .error ("overlapping instances"  ++
+    --        Std.Format.line ++ repr instA ++
+    --        Std.Format.line ++ repr instB)
 
     -- Make sure there is atleast one eq that is different
-    if eqs.all (λ x =>
-      let (eqA, eqB) := x
-      eqA == eqB)
-      then .error ("overlapping instances"  ++
+    let (_, spA) <- .toDsM "instA neutral From" ret_tyA.neutral_form
+    let (_, spB) <- .toDsM "instB neutral From" ret_tyB.neutral_form
+    if (spA.zip spB).all (λ x =>
+      let (argA, argB) := x
+      argA == argB)
+          then .error ("overlapping instances"  ++
            Std.Format.line ++ repr instA ++
            Std.Format.line ++ repr instB)
+
+
 
     -- Now do the consistency checks
     fds.forM (λ fd => doConsistencyCheck Γ fd p))
