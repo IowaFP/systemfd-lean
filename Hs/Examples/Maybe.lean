@@ -8,7 +8,7 @@ import SystemFD.Evaluator
 -- import Hs.Examples.Datatypes
 -- import Hs.Examples.Classes
 
-def BoolF : HsFrame HsTerm :=
+def BoolFDT : HsFrame HsTerm :=
    .datatypeDecl `★ [ `#0     -- True
                     , `#1     -- False
                     ]
@@ -35,14 +35,14 @@ def eqBoolT : HsFrame HsTerm :=
 --   == : a -> a -> Bool
 --   =/= : a -> a -> Bool
 
-def EqCF : HsFrame HsTerm :=
+def EqC : HsFrame HsTerm :=
   .classDecl (`★ `-k> `★)
          .nil
          .nil
          [ `∀{`★} `#0 → `#1 → `#8    -- TODO: make type class predicate implicit?
          , `∀{`★} `#0 → `#1 → `#9 ]
 
-def EqBoolI : HsFrame HsTerm :=
+def EqBoolInst : HsFrame HsTerm :=
   .inst (`#2 `•k `#7)
   [ `#4
   , .HsAnnotate (`#9 → `#10 → `#11) (λ̈[`#9]λ̈[`#10] (`#8 `• (`#7 `• `#0 `• `#1)))
@@ -83,20 +83,20 @@ def eqMaybeF : HsFrame HsTerm := .term eqMaybeTy eqMaybeT
 
 def Γ : HsCtx HsTerm := [
   MbF,
-  EqBoolI,
-  EqCF,
+  EqBoolInst,
+  EqC,
   eqBoolT,
   notT,
-  BoolF ]
+  BoolFDT ]
 
 def Γ1 : HsCtx HsTerm := [
   eqMaybeF,
   MbF,
-  EqBoolI,
-  EqCF,
+  EqBoolInst,
+  EqC,
   eqBoolT,
   notT,
-  BoolF ]
+  BoolFDT ]
 
 def EqMaybeI : HsFrame HsTerm :=
   .inst (`∀{`★} (`#10 `•k `#0) ⇒ (`#11 `•k (`#5 `•k `#1)))
@@ -112,39 +112,24 @@ def Γ2 : HsCtx HsTerm := [
   EqMaybeI,
   eqMaybeF,
   MbF,
-  EqBoolI,
-  EqCF,
+  EqBoolInst,
+  EqC,
   eqBoolT,
   notT,
-  BoolF ]
-
--- #eval! DsM.run (compile_ctx Γ2)
-
--- #eval! DsM.run (do
---   let Γ' <- compile_ctx Γ2
---   .toDsMq (wf_ctx Γ'))
-
-#eval! DsM.run (compile_ctx [EqBoolI, EqCF, eqBoolT, notT, BoolF])
+  BoolFDT ]
 
 
-#eval! @DsM.run Term _ (do
-  let Γ <- compile_ctx [EqBoolI, EqCF, eqBoolT, notT, BoolF]
+-- #eval! DsM.run (compile_ctx [EqBoolInst, EqC, eqBoolT, notT, BoolFDT])
+
+
+#guard (do
+  let Γ <- compile_ctx [EqBoolInst, EqC, eqBoolT, notT, BoolFDT]
   let t : HsTerm := (`#4 `•t `#10 `• (.HsHole (`#5 `•k `#10)) `• `#8 `• `#8)
   let t' <- compile Γ #10 t
-  .toDsMq (eval_ctx_loop Γ t')) -- `#8
+  .toDsMq (eval_ctx_loop Γ t')) == .ok #8
 
-#eval! @DsM.run Term _ (do
-  let Γ <- compile_ctx [EqBoolI, EqCF, eqBoolT, notT, BoolF]
+#guard (do
+  let Γ <- compile_ctx [EqBoolInst, EqC, eqBoolT, notT, BoolFDT]
   let t : HsTerm := (`#4 `•t `#10 `• (.HsHole (`#5 `•k `#10)) `• `#8 `• `#9)
   let t' <- compile Γ #10 t
-  .toDsMq (eval_ctx_loop Γ t')) -- `#9
-
--- #eval! @DsM.run Term _ ( do
---   let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
---   let t <- compile Γ #4 (`#1 `• `#3)
---   .toDsMq (eval_ctx_loop Γ t)) -- `#2
-
--- #eval! @DsM.run Term _ ( do
---  let Γ <- compile_ctx [eqBoolT, notT, BoolF ]
---  let t <- compile Γ #4 (`#1 `• `#2)
---  .toDsMq (eval_ctx_loop Γ t)) -- `#3
+  .toDsMq (eval_ctx_loop Γ t')) == .ok #9

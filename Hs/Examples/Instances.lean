@@ -37,10 +37,10 @@ def ΓInsts : HsCtx HsTerm := [
   .datatypeDecl `★ [`#0, `#1]
   ]
 
-#eval! DsM.run (compile_ctx ΓInsts)
-#eval! DsM.run (
+-- #eval! DsM.run (compile_ctx ΓInsts)
+#eval! (
   do let ctx <- compile_ctx ΓInsts
-     .toDsMq (wf_ctx ctx))
+     .toDsMq (wf_ctx ctx)) == .ok ()
 
 def ΓInsts' : HsCtx HsTerm := [
   .inst (`#1 `•k `#4) .nil, -- this should fail
@@ -50,6 +50,3 @@ def ΓInsts' : HsCtx HsTerm := [
   ]
 
 #eval! DsM.run (compile_ctx ΓInsts')
--- #eval! DsM.run (
---   do let ctx <- compile_ctx ΓInsts'
---      .toDsMq (wf_ctx ctx))

@@ -57,7 +57,7 @@ def run [Repr a] : DsM a -> Std.Format
 
 end DsM
 
-instance beq_DsMTerm : BEq (DsM Term) where
+instance beq_DsMa [BEq a] : BEq (DsM a) where
      beq x y :=
        match (x, y) with
        | (.ok x, .ok y) => x == y

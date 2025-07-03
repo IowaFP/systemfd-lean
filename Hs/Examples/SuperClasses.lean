@@ -141,12 +141,11 @@ def supCtx := OrdBoolF ::
               .nil
 
 
-#eval println! "OrdBool, Ord, EqBool, Bool"
-#eval supCtx
-#eval! DsM.run (compile_ctx supCtx)
-#eval! DsM.run (
-  do let ctx <- compile_ctx supCtx
-     .toDsMq (wf_ctx ctx))
+-- #eval println! "OrdBool, Ord, EqBool, Bool"
+-- #eval supCtx
+-- #eval! DsM.run (compile_ctx supCtx)
+#guard (do let ctx <- compile_ctx supCtx
+           .toDsMq (wf_ctx ctx)) == .ok ()
 
 
 def ex1 := (`#4 `•t `#17 `• (.HsHole (`#6 `•k `#17))) `• `#15 `• `#16
@@ -176,7 +175,7 @@ def ex3 : HsTerm := `#10 `•t `#17 `• (.HsHole (`#6 `•k `#17)) `• `#16 `�
      .toDsMq (eval_ctx_loop Γ t')
  ) == .ok #15
 
-#eval @DsM.run Term _ (do
-  let Γ <- compile_ctx supCtx
-  (compile Γ #17 ex3)
-)
+-- #eval @DsM.run Term _ (do
+--   let Γ <- compile_ctx supCtx
+--   (compile Γ #17 ex3)
+-- )

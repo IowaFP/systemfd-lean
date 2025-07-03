@@ -34,29 +34,10 @@ def MbCtx : HsCtx HsTerm :=
 
 def dtctx : HsCtx HsTerm := MbCtx ++ BoolCtx
 
-#eval "Maybe Datatype"
+-- #eval "Maybe Datatype"
 
-#eval! DsM.run (compile_ctx dtctx)
+-- #eval! DsM.run (compile_ctx dtctx)
 
-#eval! DsM.run
+#guard (
   do let Γ <- compile_ctx dtctx
-     .toDsMq (wf_ctx Γ)
-
-#eval! DsM.run
-  (do let Γ <- compile_ctx dtctx
-      let τ <- compile Γ ★ idHsType
-          -- compile Γ τ idHsTerm
-
-          -- compile Γ τ (.HsAnnotate idHsType idHsTerm)
-          -- let t <- compile Γ (#5) (((.HsAnnotate (`#5 → `#6) (λ̈[`#5] `#0))) `• `#4)
-          -- infer_type Γ t
-          -- compile Γ (#5 -t> #6) (((.HsAnnotate idHsType idHsTerm)) `•t `#5)
-          -- compile Γ #5 `#4
-          -- compile Γ #5 (((.HsAnnotate idHsType idHsTerm)) `•t `#5 `• `#4)
-          -- instantiate_type (#5 -t> #6) #4
-      let (h, args) <- .toDsMq (((.HsAnnotate idHsType idHsTerm)) `•t `#5 `• `#4).neutral_form
-            -- .some (h, args)
-      let h' <- compile Γ τ h
-      let (tele, ret_ty) := τ.to_telescope
-      .ok (tele, ret_ty, args))
-          -- .some h'
+     .toDsMq (wf_ctx Γ)) == .ok ()

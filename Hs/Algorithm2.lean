@@ -12,7 +12,7 @@ set_option profiler true
 -- It doesn't matter if αs have type variables, they would
 -- just introduce a tyvar_new ~ tyvar_old rather than tyvar_new ~ Int
 @[simp]
-def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> DsM (Term × Nat) :=
+def encode_hf : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> DsM (Term × Nat) :=
 λ Γ data => do
   let (Γ_l, d, d_τs) := data
 
@@ -58,10 +58,43 @@ def hf_encode : Ctx Term -> (Ctx Term × Nat × List (SpineVariant × Term)) -> 
 def mk_inst_type : Ctx Term -> Term -> DsM (Nat × Term × Nat) := λ Γ ty => do
   let (Γ_local, res_ty) := ty.to_telescope
   let (d, d_τs) <- .toDsM ("mk_inst_type neutral_form" ++ Std.Format.line ++ repr res_ty) res_ty.neutral_form
-  let (ty', n) <- hf_encode Γ (Γ_local, d, d_τs)
+  let (ty', n) <- encode_hf Γ (Γ_local, d, d_τs)
   .ok (d - Γ_local.length, ty', n)
 
-#eval (Term.shift_helper 10).take 5
+#guard (Term.shift_helper 10).take 5 == [0,1,2,3,4]
+
+-- given a hf type returns a decoded type
+def un_inst_type (Γ : Ctx Term) : Term -> DsM Term := λ ty => do
+  let (tele_ty, ret_ty) := ty.to_telescope
+  let (Γ_tyvars, Γ_vars) := tele_ty.partition (·.is_kind)
+
+  let (h, sp) <- .toDsMq ret_ty.neutral_form
+
+  let (Γ_βs, Γ_αs) := Γ_tyvars.splitAt sp.length
+
+  let (Γ_eqs, Γ_assms) := Γ_vars.splitAt Γ_βs.length
+
+  let Γ_assms := Γ_assms.map (·.apply (P' Γ_eqs.length)) -- reindex to Γ_βs ++ Γ_αs ++ Γ
+  let ret_ty := [P' Γ_eqs.length] ret_ty -- reindex to Γ_βs ++ Γ_αs ++ Γ
+
+  let σ : Subst Term <- .toDsM "un_inst_type eqs" (Γ_eqs.foldlM (λ acc τ =>
+    match τ with
+    | .type (#n ~[_]~ t) => .some (Subst.betan n t ⊙ acc)
+    | _ => .none
+    ) I)
+  let ret_ty := [σ] ret_ty
+
+  let ret_ty := ret_ty.from_telescope Γ_assms
+  let ret_ty := ([P' Γ_βs.length] ret_ty)
+  let ret_ty := ret_ty.from_telescope Γ_αs
+  -- .error ("unimplemented "
+  --   ++ Std.Format.line ++ "Γ_βs: " ++ repr Γ_βs
+  --   ++ Std.Format.line ++ "Γ_αs: " ++ repr Γ_αs
+  --   ++ Std.Format.line ++ "Γ_eqs: " ++ repr Γ_eqs
+  --   ++ Std.Format.line ++ "ret_ty: " ++ repr ret_ty)
+
+  .ok ret_ty
+
 
 namespace Algorithm2.Test
   def Γ : Ctx Term := [
@@ -74,16 +107,21 @@ namespace Algorithm2.Test
     .datatype ★ ]
 
   #guard wf_ctx Γ == .some ()
-  #eval (#5 `@k #6)
-  #eval DsM.run (mk_inst_type Γ (#5 `@k #6))
+  -- #eval (#5 `@k #6)
+  #guard (mk_inst_type Γ (#5 `@k #6)) == .ok (5, ∀[★](#0 ~[★]~ #7) -t> #7 `@k #1, 1)
+  #guard (un_inst_type Γ (∀[★](#0 ~[★]~ #7) -t> #7 `@k #1)) == .ok (#5 `@k #6)
 
-  #eval (∀[★] #4 `@k #0 -t> #7 `@k #1)
-  #eval DsM.run (mk_inst_type Γ (∀[★] #4 `@k #0 -t> #7 `@k #1))
 
+
+  -- #eval (∀[★] (#4 `@k #0) -t> #7 `@k #1)
+  #guard (mk_inst_type Γ (∀[★] #4 `@k #0 -t> #7 `@k #1))
+             == .ok (5, ∀[★]∀[★](#1 ~[★]~ #0) -t> #6 `@k #1 -t> #9 `@k #3, 1)
+  #guard (un_inst_type Γ (∀[★]∀[★](#1 ~[★]~ #0) -t> #6 `@k #1 -t> #9 `@k #3)) == .ok (∀[★] #4 `@k #0 -t> #7 `@k #1)
 
   def Γ0 : Ctx Term := [.datatype ★, .datatype ★, .opent (★ -k> ★ -k> ★)]
-  #eval #2 `@k #0 `@k #1
-  #eval DsM.run (mk_inst_type Γ0 (#2 `@k #0 `@k #1))
+  #guard (mk_inst_type Γ0 (#2 `@k #1 `@k #0)) == .ok (2, ∀[★]∀[★](#1 ~[★]~ #3) -t> (#1 ~[★]~ #3) -t> #6 `@k #3 `@k #2, 2)
+  #guard (un_inst_type Γ0 (∀[★]∀[★](#1 ~[★]~ #3) -t> (#1 ~[★]~ #3) -t> #6 `@k #3 `@k #2)) ==
+         .ok (#2 `@k #1 `@k #0)
 
 end Algorithm2.Test
 
@@ -197,16 +235,29 @@ def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term)
 
     -- First do the overlapping checks
     let (instA, instB) := p
-    -- Both the telescopes are in henry forded
+
+    let instA <- un_inst_type Γ instA
+    let instB <- un_inst_type Γ instB
+
+    -- Both the insts are henry forded
     -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
-    let (teleA, _) := instA.to_telescope
-    let (teleB, _) := instB.to_telescope
+    let (teleA, ret_tyA) := instA.to_telescope
+    let (teleB, ret_tyB) := instB.to_telescope
+
+
 
     let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
     let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
 
-    if teleA_eqs.length != teleB_eqs.length then .error "consistency check eqs length does not match"
-    if teleA_tyvars.length != teleB_tyvars.length then .error "consistency check tyvars length does not match"
+    if teleA_eqs.length != teleB_eqs.length
+    then .error ("consistency check eqs length does not match"
+         ++ Std.Format.line ++ repr instA
+         ++ Std.Format.line ++ repr instB)
+
+    if teleA_tyvars.length != teleB_tyvars.length
+    then .error ("consistency check tyvars length does not match"
+         ++ Std.Format.line ++ repr instA
+         ++ Std.Format.line ++ repr instB)
 
 
     let eqs := teleA_eqs.zip teleB_eqs
