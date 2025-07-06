@@ -259,7 +259,14 @@ match τ with
          match iτ.neutral_form with
          | .none => .some acc
          | .some (h', iτs') =>
-           if (h == h') then (if iτs' == τs then .some (#idx :: acc) else .some acc)
+           if (h == h')
+           then
+             if iτs' == τs then .some (#idx :: acc)
+             else do
+               let mb_η := synth_coercion Γ iτ τ
+               match mb_η with
+               | .some η => .some ((#idx ▹ η) :: acc)
+               | .none => .some acc
            else .some acc
        | Frame.insttype iτ => do
      -- iτ is of the form ∀τs. C τs → iτh τs
@@ -426,7 +433,7 @@ def ctx2 : Ctx Term := [
 
 #guard wf_ctx ctx2 == .some ()
 -- #eval construct_coercion_graph ctx2
--- #eval synth_coercion ctx2 #4 #9
+#eval synth_coercion ctx2 #4 #9
 
 
 def ctx3 : Ctx Term := [
@@ -445,21 +452,21 @@ def ctx3 : Ctx Term := [
 #guard synth_coercion ctx3 #1 #3 == .some ((refl! ★ #1) `;  (snd! ★ ((sym! #0) `;  #2)))
 
 def ctx4 : Ctx Term := [
- .type (#26 `@k #3 `@k #2),
- .type (#10 ~[★]~ (#22 `@k #1)),
- .type (#11 ~[★]~ (#21 `@k #1)),
- .kind (★),
- .kind (★),
- .type (#21 `@k #3 `@k #2),
- .type (#6 ~[★]~ (#17 `@k #1)),
- .type (#6 ~[★]~ (#16 `@k #1)),
- .kind (★),
- .kind (★),
- .type (#16 `@k #3 `@k #1),
- .type (#15 `@k #2 `@k #1),
- .kind (★),
- .kind (★),
- .kind (★),
+ .type (#26 `@k #3 `@k #2),      -- Eq a'' b''
+ .type (#10 ~[★]~ (#22 `@k #1)), -- c ~ Maybe b''
+ .type (#11 ~[★]~ (#21 `@k #1)), -- a ~ Maybe a''
+ .kind (★),                 -- b''
+ .kind (★),                 -- a''
+ .type (#21 `@k #3 `@k #2), -- Eq a' b'
+ .type (#6 ~[★]~ (#17 `@k #1)), -- b ~ Maybe b'
+ .type (#6 ~[★]~ (#16 `@k #1)), -- a ~ Maybe a'
+ .kind (★), -- b'
+ .kind (★), -- a'
+ .type (#16 `@k #3 `@k #1), -- Eq a c
+ .type (#15 `@k #2 `@k #1), -- Eq a b
+ .kind (★), -- c
+ .kind (★), -- b
+ .kind (★), -- a
  .insttype (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ (#12 `@k #1)) -t> (#3 ~[★]~ (#13 `@k #1)) -t> ((#17 `@k #3) `@k #2) -t> #18 `@k #6 `@k #5),
  .inst #8
       (Λ[★]Λ[★]Λ[★]`λ[#13 `@k #2 `@k #1]
@@ -498,7 +505,13 @@ def ctx4 : Ctx Term := [
 
 #guard wf_ctx ctx4 == .some ()
 -- #eval construct_coercion_graph ctx4
--- #eval synth_coercion ctx4 #13 #12
+#eval synth_coercion ctx4 #4 #9 -- a' ~ a''
+#eval do let η <- synth_coercion ctx4 #4 #9
+         let ctx4 := (Frame.term (#4 ~[★]~ #9) η) :: ctx4
+         let η <- synth_term ctx4 (#28 `@k #5 `@k #9)
+         let ctx4 := (Frame.term (#28 `@k #5 `@k #9) η) :: ctx4
+         synth_coercion ctx4 #14 #15
+
 
 end SynthInstance.Test
 
