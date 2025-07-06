@@ -583,8 +583,56 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                              (instantiate_types ([S' Γ_instτ_outer.length]instτ) inner_pat_tyvars)
         let (Γ_instτ_inner, _) := inst_ty_inner.to_telescope
 
+        -- ANI: I suspect there is an easier way to do it given that
+        -- we have committed to do improvements everytime there is
+        -- a lambda abstraction. I should be able to just call the compile function here?
+        -- ANI Counter: Maybe not, as the compile function currently does not produce guards.
+        -- and probably shouldn't to keep the term compilation complexity simple
+        let (Γ_instτ_outer_tyvars, Γ_instτ_outer_assms) :=
+            Γ_instτ_outer.partition (λ x => x.is_kind)
+
+        let (Γ_instτ_outer_assms, Γ_instτ_outer_eqs) :=
+            Γ_instτ_outer_assms.partition (λ x =>
+              match x.get_type with
+              | .none => false
+              | .some τ => not (Option.isSome (is_eq τ)))
+
+        let (outer_imprs, _) <- Γ_instτ_outer_assms.foldlM (λ acc x => do
+          let (imprs_l, Γ_l) := acc
+          let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
+          let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
+            let (n, (τ , t)) := x
+            .term ([S' n] τ) ([S' n] t))
+          .ok (imprs ++ imprs_l, x :: Γ)
+        ) (([] : Ctx Term) , Γ_instτ_outer_eqs.reverse ++ Γ_instτ_outer_tyvars.reverse ++ Γ_l.reverse ++ Γ)
+
+
+
+        let (Γ_instτ_inner_tyvars, Γ_instτ_inner_assms) :=
+            Γ_instτ_outer.partition (λ x => x.is_kind)
+
+        let (Γ_instτ_inner_assms, Γ_instτ_inner_eqs) :=
+            Γ_instτ_inner_assms.partition (λ x =>
+              match x.get_type with
+              | .none => false
+              | .some τ => not (Option.isSome (is_eq τ)))
+
+        let (inner_imprs, _) <- Γ_instτ_inner_assms.foldlM (λ acc x => do
+          let (imprs_l, Γ_l) := acc
+          let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
+          let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
+            let (n, (τ , t)) := x
+            .term ([S' n] τ) ([S' n] t))
+          .ok (imprs ++ imprs_l, x :: Γ)
+        ) (([] : Ctx Term) ,
+          Γ_instτ_inner_eqs.reverse ++ Γ_instτ_inner_tyvars.reverse
+          ++ Γ_instτ_outer.reverse ++ Γ_l.reverse ++ Γ)
+
+
+
         let Γ_instτ_inner := Γ_instτ_inner.reverse
         let Γ_instτ_outer := Γ_instτ_outer.reverse
+
         let Γ_l := Γ_l.reverse
 
         let ctx_l := (Γ_instτ_inner ++ Γ_instτ_outer ++ Γ_l ++ Γ)
@@ -605,6 +653,18 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                      ++ Std.Format.line ++ "ty_vars_outer: " ++ repr ty_vars_outer
                      ++ Std.Format.line ++ "guard_pat_outer: " ++ repr guard_pat_outer ++ " : " ++ repr inst_ty_outer
                      ++ Std.Format.line ++ "τs_1 τs_2 ι " ++ repr τs_1 ++ repr τs_2 ++ repr ι
+
+                     ++ Std.Format.line ++ "outer_imprs: " ++ repr outer_imprs
+                     ++ Std.Format.line ++ "outer_imprs_tyvars: " ++ repr Γ_instτ_outer_tyvars
+                     ++ Std.Format.line ++ "outer_imprs_eqs: " ++ repr Γ_instτ_outer_eqs
+                     ++ Std.Format.line ++ "outer_imprs_assms: " ++ repr Γ_instτ_outer_assms
+
+
+                     ++ Std.Format.line ++ "inner_imprs: " ++ repr inner_imprs
+                     ++ Std.Format.line ++ "inner_imprs_tyvars: " ++ repr Γ_instτ_inner_tyvars
+                     ++ Std.Format.line ++ "inner_imprs_eqs: " ++ repr Γ_instτ_inner_eqs
+                     ++ Std.Format.line ++ "inner_imprs_assms: " ++ repr Γ_instτ_inner_assms
+
                      ) (synth_term ctx_l τ)
 
           -- let η := ([S' (Γ_instτ_inner ++ Γ_instτ_outer).length]ret_ty)

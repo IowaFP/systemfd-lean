@@ -196,7 +196,12 @@ match τ.neutral_form with
     let (Γ_tyvars, Γ_assms) := Γ_iτ.partition (λ x => x.is_kind)
 
     -- let (_, ret_τ_τs) <- .toDsM "ret_τ neutral form try_type_improvement" ret_τ.neutral_form
-    if Γ_tyvars.length != Γ_assms.length then .error ("quantified instances are not supported for fundeps (yet)")
+    if Γ_tyvars.length != Γ_assms.length
+    then .error ("quantified instances are not supported for fundeps (yet)"
+         ++ Std.Format.line ++ "Γ_assms: " ++ repr Γ_assms
+         ++ Std.Format.line ++ "Γ_tyvars: " ++ repr Γ_tyvars
+         ++ Std.Format.line ++ "Γ: " ++ repr Γ
+         )
 
     let inst_τs : (List Term) := ((Term.shift_helper Γ_assms.length).zip Γ_assms).foldl
       (λ (acc : List Term) (x : Nat × Frame Term) =>

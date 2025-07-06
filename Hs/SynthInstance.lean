@@ -1,6 +1,7 @@
 
 import SystemFD
 import Hs.EqGraph
+import Batteries.Data.List
 
 
 -- Problem 2: producing a coercion
@@ -59,14 +60,13 @@ def deconstruct_coercion_type (Γ : Ctx Term) (t : Term) : Term -> Term -> List 
     let c2 := deconstruct_coercion_type Γ (snd! K t) B1 B2
     c1 ++ c2
   | .none => []
-| lhs, rhs => [(t, lhs, rhs)]
+| lhs, rhs => [(t, lhs, rhs), (sym! t, rhs, lhs)]
 
 def construct_coercion_graph_aux : Nat -> Ctx Term -> EqGraph Term
 | 0 , _ => EqGraph.empty_graph
 | n + 1, Γ =>
   match Γ d@ n with
   | .type t
-  | .openm t
   | .term t _ =>
     let rest := construct_coercion_graph_aux n Γ
     let (args, ret) := t.to_telescope
@@ -75,11 +75,68 @@ def construct_coercion_graph_aux : Nat -> Ctx Term -> EqGraph Term
     | lhs ~[_]~ rhs =>
       let v := Term.apply_spine #n sp
       let edges := deconstruct_coercion_type Γ v lhs rhs
-      List.foldl (λ g (l, s, t) => (g.add_edge l s t).add_edge (sym! l) t s) rest edges
+      List.foldl (λ g (l, s, t) => g.add_edge l s t) rest edges
     | _ => rest
   | _ => construct_coercion_graph_aux n Γ
 
-def construct_coercion_graph := λ Γ => construct_coercion_graph_aux Γ.length Γ
+def construct_coercion_graph (Γ : Ctx Term) := construct_coercion_graph_aux Γ.length Γ
+
+
+def discover_eqs (Γ : Ctx Term) (t : Term) : Term -> Term -> List (Term × Term × Term)
+| A1 `@k B1, A2 `@k B2 =>
+  let K := infer_kind Γ B1
+  match K with
+  | .some K =>
+    let c1 := discover_eqs Γ (fst! K t) A1 A2
+    let c2 := discover_eqs Γ (snd! K t) B1 B2
+    c1 ++ c2
+  | .none => []
+| lhs, rhs => [(t, lhs, rhs)]
+
+def find_transitive_eqs (g :  EqGraph Term) : List (Nat × Nat × Term) :=
+  let es := List.product g.edges g.edges
+  let new_edges := es.foldl (λ acc (e1, e2) =>
+      let (na1, na2, ηa) := e1
+      let (nb1, nb2, ηb) := e2
+      if na1 != nb2 && nb1 == na2
+      then if
+        (g.edges.filter (λ (x : Nat × Nat × Term) =>
+          let (ea, eb, _) := x
+          ea == na1 && eb == nb2)).isEmpty
+        then (na1, nb2, (ηa `; ηb)) :: acc
+        else acc
+      else acc
+      ) []
+  new_edges
+
+
+def mk_eq_graph (Γ : Ctx Term) := (Term.shift_helper Γ.length).foldl (λ acc n =>
+  match Γ d@ n with
+  | .type t
+  | .ctor t
+  | .term t _ =>
+    let (args, ret) := t.to_telescope
+    let sp := compute_argument_instantiation Γ args
+    match ret.apply_spine sp with
+    | lhs ~[_]~ rhs =>
+      let v := Term.apply_spine #n sp
+      let edges := deconstruct_coercion_type Γ v lhs rhs
+      let acc := List.foldl (λ g (l, s, t) => (g.add_edge l s t)) acc edges
+      let more_edges := find_transitive_eqs acc
+
+      let new_eqs := more_edges.map (λ e =>
+        let (sn, tn, η) := e
+        match (acc.nodes[sn]?, acc.nodes[tn]?) with
+        | (.some τ1, .some τ2) => discover_eqs Γ η τ1 τ2
+        | _ => []
+      )
+
+      new_eqs.flatten.foldl (λ g (l, s, t) => g.add_edge l s t) acc
+    | _ => acc
+  | _ => acc
+  ) EqGraph.empty_graph
+
+
 
 def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 | A1 `@k B1, A2 `@k B2 => do
@@ -97,7 +154,8 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 | lhs, rhs => do
   let K <- infer_kind Γ lhs
   if lhs == rhs then return refl! K lhs
-  let graph := construct_coercion_graph Γ
+  let graph := mk_eq_graph Γ
+  -- let graph := construct_coercion_graph Γ
   let path <- graph.find_path_by_label (λ _ => false) lhs rhs
   List.foldlM (· `; ·) (refl! K lhs) path
 
@@ -242,7 +300,14 @@ def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := 
     | .insttype τ =>
       match instantiate_types τ iτs with
       | .none => acc
-      | some τ' => if τ' == ret_ty then (((#idx).mk_ty_apps iτs) :: acc) else acc
+      | some τ' =>
+        if τ' == ret_ty
+        then (((#idx).mk_ty_apps iτs) :: acc)
+        else
+          let η := synth_coercion Γ τ' ret_ty
+          match η with
+          | .some η => (((#idx).mk_ty_apps iτs) ▹ η) :: acc
+          | .none => acc
     | _ => acc
   )  [] (Term.shift_helper Γ.length)
   if cand_insts.length == 1 then cand_insts[0]?
@@ -279,15 +344,17 @@ def Γ : Ctx Term :=
   .openm (∀[★]∀[★]∀[★]#3 `@k #2 `@k #1 -t> #4 `@k #3 `@k #1 -t> (#3 ~[★]~ #2)),
   .opent (★ -k> ★ -k> ★) ]
 
-#eval synth_coercion Γ (#8 -t> #9 -t> #10) (#2 -t> #3 -t> #4)
+-- #eval mk_eq_graph Γ
+-- #eval construct_coercion_graph Γ
 
-#eval synth_term Γ (#8 -t> #9 -t> #10 ~[★]~ #2 -t> #3 -t> #4)
-#eval synth_term Γ (#8 ~[★]~ #2)
+#guard synth_coercion Γ (#8 -t> #9 -t> #10) (#2 -t> #3 -t> #4) == .some (((refl! ★ #8) `;  #0) -c> (((refl! ★ #9) `;  #1) -c> ((refl! ★ #10) `;  #2)))
 
+#guard synth_term Γ ((#8 -t> #9 -t> #10) ~[★]~ (#2 -t> #3 -t> #4)) == .some (((refl! ★ #8) `;  #0) -c> (((refl! ★ #9) `;  #1) -c> ((refl! ★ #10) `;  #2)))
 
-#eval synth_term Γ (#8 -t> #9 ~[★]~ #2 -t> #3)
+-- #eval synth_term Γ (#8 ~[★]~ #2) -- == .some ((refl!  ★ #8) `;  #0)
+#guard synth_term Γ (#8 ~[★]~ #2) == .some ((refl!  ★ #8) `;  #0)
 
-#eval synth_coercion Γ (#8 -t> #9) (#2 -t> #3)
+#guard synth_coercion Γ (#8 -t> #9) (#2 -t> #3) == .some (((refl! ★ #8) `;  #0) -c> ((refl! ★ #9) `;  #1))
 
 
 def ctx0 : Ctx Term := [
@@ -302,7 +369,7 @@ def ctx0 : Ctx Term := [
 #guard synth_term ctx0 (#4 `@k #5) == .some (#3 `@t #5 `@ (refl! ★ #5))
 -- #eval synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6)
 
-#eval infer_type ctx0 (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))) )
+#guard infer_type ctx0 (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))) ) == .some ((#2 `@k #5) -t> (#3 `@k #6))
 
 #guard synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6) == .some (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))))
 
@@ -310,10 +377,10 @@ def ctx0 : Ctx Term := [
            infer_type ctx0 t) == .some (#2 `@k #5 -t> #5 `@k #6)
 
 
-#eval infer_type (.type (#2 `@k #5) :: ctx0)
-      (#2 `@t #6)
+#guard infer_type (.type (#2 `@k #5) :: ctx0) (#2 `@t #6) == .some ((#3 `@k #6) -t> (#6 `@k #7))
 
-#eval infer_type (.type (#2 `@k #5) :: ctx0) ((`λ[#3 `@k #6] (#0 ▹  (refl! (★ -k> ★) #4) `@c (refl! ★ #7))) `@ #0)
+#guard infer_type (.type (#2 `@k #5) :: ctx0) ((`λ[#3 `@k #6] (#0 ▹  (refl! (★ -k> ★) #4) `@c (refl! ★ #7))) `@ #0) ==
+       .some (#3 `@k #6)
 
 -- #eval do let x <- synth_term ctx0 (#2 `@k #5 -t> #5 `@k #6)
 --          infer_type ctx0 x
@@ -335,6 +402,103 @@ def ctx1 : Ctx Term := [
 #guard synth_term [.type (#13 `@k #1)] (#14 `@k #2) == .some #0
 
 #guard synth_superclass_inst ctx1 [#1] (#1 ~[★]~ #7 -t> #7 `@k #8) == (#5 `@t #1)
+
+
+def ctx2 : Ctx Term := [
+ .type (#15 `@k #3 `@k #2),
+ .type (#10 ~[★]~ (#13 `@k #1)), -- c ~ Maybe b''
+ .type (#11 ~[★]~ (#12 `@k #1)), -- a ~ Maybe a''
+ .kind (★), -- b''
+ .kind (★), -- a''
+ .type (#10 `@k #3 `@k #2),
+ .type (#6 ~[★]~ (#8 `@k #1)), -- b ~ Maybe b'
+ .type (#6 ~[★]~ (#7 `@k #1)), -- a ~ Maybe a'
+ .kind (★), -- b'
+ .kind (★), -- a'
+ .type (#5 `@k #3 `@k #1),
+ .type (#4 `@k #2 `@k #1),
+ .kind (★), -- c
+ .kind (★), -- b
+ .kind (★), -- a
+ .datatype (★ -k> ★), -- Maybe
+ .opent (★ -k> ★ -k> ★) -- F
+]
+
+#guard wf_ctx ctx2 == .some ()
+-- #eval construct_coercion_graph ctx2
+-- #eval synth_coercion ctx2 #4 #9
+
+
+def ctx3 : Ctx Term := [
+ .type (#3 ~[★]~ (#4 `@k #0)), -- a ~ Maybe a''
+ .kind ★, -- a''
+ .type (#1 ~[★]~ (#2 `@k #0)), -- a ~ Maybe a'
+ .kind ★, -- a'
+ .kind ★, -- a
+ .datatype (★ -k> ★), -- Maybe
+]
+
+#guard wf_ctx ctx3 == .some ()
+-- #eval construct_coercion_graph ctx3
+-- #eval mk_eq_graph ctx3
+
+#guard synth_coercion ctx3 #1 #3 == .some ((refl! ★ #1) `;  (snd! ★ ((sym! #0) `;  #2)))
+
+def ctx4 : Ctx Term := [
+ .type (#26 `@k #3 `@k #2),
+ .type (#10 ~[★]~ (#22 `@k #1)),
+ .type (#11 ~[★]~ (#21 `@k #1)),
+ .kind (★),
+ .kind (★),
+ .type (#21 `@k #3 `@k #2),
+ .type (#6 ~[★]~ (#17 `@k #1)),
+ .type (#6 ~[★]~ (#16 `@k #1)),
+ .kind (★),
+ .kind (★),
+ .type (#16 `@k #3 `@k #1),
+ .type (#15 `@k #2 `@k #1),
+ .kind (★),
+ .kind (★),
+ .kind (★),
+ .insttype (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ (#12 `@k #1)) -t> (#3 ~[★]~ (#13 `@k #1)) -t> ((#17 `@k #3) `@k #2) -t> #18 `@k #6 `@k #5),
+ .inst #8
+      (Λ[★]Λ[★]Λ[★]`λ[#13 `@k #2 `@k #1]
+       `λ[#14 `@k #1 `@k #2]
+       .guard (#6 `@t #4 `@t #3) #1
+           (`λ[#4 ~[★]~ #9]
+           `λ[#4 ~[★]~ #10]
+           .guard (#8 `@t #4 `@t #5) #2 (
+               `λ[#4 ~[★]~ #11]
+               `λ[#6 ~[★]~ #12]
+               (refl! ★ #8) `;
+               #3 `;
+               (sym! #1)))),
+ .inst #8
+      (Λ[★]Λ[★]Λ[★]`λ[#12 `@k #2 `@k #1]
+       `λ[#13 `@k #3 `@k #1]
+       .guard (#5 `@t #4 `@t #3) #1 (
+           `λ[#4 ~[★]~ #8]
+           `λ[#4 ~[★]~ #9]
+           .guard (#7 `@t #6 `@t #4) #2 (
+               `λ[#6 ~[★]~ #10]
+               `λ[#5 ~[★]~ #11]
+               (refl! ★ #7) `;
+               #2 `;
+               (sym! #0)))),
+ .insttype (∀[★]∀[★](#1 ~[★]~ #4) -t> (#1 ~[★]~ #5) -t> #12 `@k #3 `@k #2),
+ .ctor (#1),
+ .ctor (#0),
+ .datatype (★),
+ .ctor (∀[★]#0 -t> #3 `@k #1),
+ .ctor (∀[★]#1 `@k #0),
+ .datatype (★ -k> ★),
+ .openm (∀[★]∀[★]∀[★]((#4 `@k #2) `@k #1) -t> ((#5 `@k #1) `@k #2) -t> #4 ~[★]~ #2),
+ .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
+ .opent (★ -k> ★ -k> ★)]
+
+#guard wf_ctx ctx4 == .some ()
+-- #eval construct_coercion_graph ctx4
+-- #eval synth_coercion ctx4 #13 #12
 
 end SynthInstance.Test
 

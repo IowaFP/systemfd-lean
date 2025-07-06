@@ -26,6 +26,6 @@ def FDCtx : HsCtx HsTerm := [
 ]
 
 #eval DsM.run (compile_ctx FDCtx)
-#eval DsM.run (do
-  let Γ' <- compile_ctx FDCtx
-  compile Γ' ★ (`∀{`★}`∀{`★} (`#13 `•k `#1 `•k `#0) → `#14 `•k (`#11 `•k `#2) `•k (`#11 `•k `#1)) )
+-- #eval DsM.run (do
+--   let Γ' <- compile_ctx FDCtx
+--   compile Γ' ★ (`∀{`★}`∀{`★} (`#13 `•k `#1 `•k `#0) → `#14 `•k (`#11 `•k `#2) `•k (`#11 `•k `#1)) )
