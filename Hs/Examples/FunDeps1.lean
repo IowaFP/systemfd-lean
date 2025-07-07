@@ -19,7 +19,7 @@ def FDCtx : HsCtx HsTerm := [
   .classDecl (`★ `-k> `★ `-k> `★) .nil [([1],0)] .nil
   ]
 
--- #eval DsM.run (compile_ctx FDCtx)
+#eval DsM.run (compile_ctx FDCtx)
 #guard (do
   let Γ' <- compile_ctx FDCtx
   .toDsMq (wf_ctx Γ')) == .ok ()

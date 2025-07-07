@@ -176,6 +176,9 @@ namespace EqGraph
       | .none => (add_node g t, g.nodes.length)
     { nodes := g.nodes, edges := (s', t', l) :: g.edges }
 
+instance beq_EqGraph [BEq T] : BEq (EqGraph T) where
+  beq g1 g2 := g1.nodes == g2.nodes && g1.edges == g2.edges
+
   namespace Test
     def test_graph_loop : EqGraph String := {
       nodes := ["a", "b", "c", "d", "e"],
@@ -184,13 +187,17 @@ namespace EqGraph
       ]
     }
 
-    #eval (EqGraph.add_edge empty_graph "e01" "n0" "n1").add_edge "e12" "n1" "n2"
+    #guard ((EqGraph.add_edge empty_graph "e01" "n0" "n1").add_edge "e12" "n1" "n2")
+          == { nodes := ["n0", "n1", "n2"], edges := [(1, 2, "e12"), (0, 1, "e01")] }
 
-
-    #eval find_path test_graph_loop (λ _ => false) 1 "a"
-    #eval find_path_by_label test_graph_loop (λ _ => false) "b" "a"
-    #eval find_path test_graph_loop (λ _ => false) 0 "e"
-    #eval find_path_by_label test_graph_loop (λ _ => false) "a" "e"
+    #guard find_path test_graph_loop (λ _ => false) 1 "a"
+           == .some ["b->c", "c->d", "d->e", "e->a"]
+    #guard find_path_by_label test_graph_loop (λ _ => false) "b" "a"
+           == .some ["b->c", "c->d", "d->e", "e->a"]
+    #guard find_path test_graph_loop (λ _ => false) 0 "e"
+           == .some ["a->b", "b->c", "c->d", "d->e"]
+    #guard find_path_by_label test_graph_loop (λ _ => false) "a" "e"
+           == .some ["a->b", "b->c", "c->d", "d->e"]
   end Test
 
 end EqGraph
