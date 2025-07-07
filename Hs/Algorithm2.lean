@@ -100,6 +100,77 @@ def un_inst_type : Term -> DsM Term := λ ty => do
   .ok ret_ty
 
 
+
+
+partial def synth_term_coercion (Γ : Ctx Term) (cls_idx : Nat) :
+  Ctx Term -> Ctx Term -> Ctx Term -> Term -> DsM Term
+| Γ_l, Γ_outer, Γ_inner, (.eq k A B) => do
+  -- the thing that i want to find coercion to equate will be in Γ_l
+  -- this style is not too restrictive, as open methods for fundeps have a predetermined
+  -- fixed shape
+  -- ∀βs ∀u ∀v. F βs u -> F βs v -> u ~ v
+
+  -- find the functional dependencies associated with this class
+  let Γ_g := (Γ_inner ++ Γ_outer ++ Γ_l ++ Γ)
+  let fd_ids <- get_fundep_ids Γ_g cls_idx
+  let fun_deps <- get_fundeps Γ_g cls_idx
+
+  let candidates : List Term <- (fd_ids.zip fun_deps).foldlM (λ acc i =>
+    let (i, fundep) := i
+    match (Γ_g d@ i) with
+    | .openm τ =>
+      let (Γ_τ, ret_ty) := τ.to_telescope
+      let (Γ_τ_tyvars, Γ_assms) := Γ_τ.partition (·.is_kind)
+
+      .ok acc
+    | _ => .ok acc
+  ) []
+
+
+  .error ("synth_term_coercion"
+  ++ Std.Format.line ++ "τ: " ++ repr (Term.eq k A B)
+  ++ Std.Format.line ++ "ctx Γ: " ++ repr Γ_g
+  ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_inner
+  ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_outer
+  ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
+  ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
+  ++ Std.Format.line ++ "fd_ids: " ++ repr fd_ids
+  ++ Std.Format.line ++ "fds: " ++ repr fun_deps
+  )
+
+
+| Γ_l, Γ_outer, Γ_inner, τ =>
+  let Γ_g := (Γ_inner ++ Γ_outer ++ Γ_l ++ Γ)
+  .toDsM ("synth_term"
+  ++ Std.Format.line ++ "τ: " ++ repr τ
+  ++ Std.Format.line ++ "ctx Γ: " ++ repr Γ_g
+  -- ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_instτ_inner
+  -- ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_instτ_outer
+  ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
+  ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
+  -- ++ Std.Format.line ++ "β_count: " ++ repr β_count
+  -- ++ Std.Format.line ++ "vars: " ++ repr ty_vars ++ repr inst_vars
+
+  -- ++ Std.Format.line ++ "ty_vars_inner: " ++ repr ty_vars_inner
+  -- ++ Std.Format.line ++ "guard_pat_inner: " ++ repr guard_pat_inner ++ " : " ++ repr inst_ty_inner
+
+  -- ++ Std.Format.line ++ "ty_vars_outer: " ++ repr ty_vars_outer
+  -- ++ Std.Format.line ++ "guard_pat_outer: " ++ repr guard_pat_outer ++ " : " ++ repr inst_ty_outer
+  -- ++ Std.Format.line ++ "τs_1 τs_2 ι " ++ repr τs_1 ++ repr τs_2 ++ repr ι
+
+  -- ++ Std.Format.line ++ "outer_imprs: " ++ repr outer_imprs
+  -- ++ Std.Format.line ++ "outer_imprs_tyvars: " ++ repr Γ_instτ_outer_tyvars
+  -- ++ Std.Format.line ++ "outer_imprs_eqs: " ++ repr Γ_instτ_outer_eqs
+  -- ++ Std.Format.line ++ "outer_imprs_assms: " ++ repr Γ_instτ_outer_assms
+
+
+  -- ++ Std.Format.line ++ "inner_imprs: " ++ repr inner_imprs
+  -- ++ Std.Format.line ++ "inner_imprs_tyvars: " ++ repr Γ_instτ_inner_tyvars
+  -- ++ Std.Format.line ++ "inner_imprs_eqs: " ++ repr Γ_instτ_inner_eqs
+  -- ++ Std.Format.line ++ "inner_imprs_assms: " ++ repr Γ_instτ_inner_assms
+  ) (synth_term (Γ_inner ++ Γ_outer ++ Γ_l ++ Γ) τ)
+
+
 namespace Algorithm2.Test
   def Γ : Ctx Term := [
     .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
@@ -161,12 +232,59 @@ namespace Algorithm2.Test
   #guard (mk_inst_type Γ1 (∀[★]∀[★]((#13 `@k #1) `@k #0) -t> #14 `@k (#11 `@k #2) `@k (#11 `@k #1)))
        == .ok (11, ∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ #12 `@k #1) -t> (#3 ~[★]~ #13 `@k #1) -t> #17 `@k #3 `@k #2 -t> #18 `@k #6 `@k #5, 2)
 
-  #eval DsM.run (un_inst_type (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ #12 `@k #1) -t> (#3 ~[★]~ #13 `@k #1) -t> #17 `@k #3 `@k #2 -t> #18 `@k #6 `@k #5))
+  -- #eval DsM.run (un_inst_type (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ #12 `@k #1) -t> (#3 ~[★]~ #13 `@k #1) -t> #17 `@k #3 `@k #2 -t> #18 `@k #6 `@k #5))
   #guard  un_inst_type (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ #12 `@k #1) -t> (#3 ~[★]~ #13 `@k #1) -t> #17 `@k #3 `@k #2 -t> #18 `@k #6 `@k #5) == .ok (∀[★]∀[★]((#13 `@k #1) `@k #0) -t> #14 `@k (#11 `@k #2) `@k (#11 `@k #1))
 
 
 
+def ctx4 : Ctx Term := [
+
+ .type (#18 `@k #3 `@k #2),      -- Eq a'' b''
+ .type (#10 ~[★]~ (#14 `@k #1)), -- c ~ Maybe b''
+ .type (#11 ~[★]~ (#13 `@k #1)), -- a ~ Maybe a''
+ .kind (★),                 -- b''
+ .kind (★),                 -- a''
+
+ .type (#13 `@k #3 `@k #2),    -- Eq a' b'
+ .type (#6 ~[★]~ (#9 `@k #1)), -- b ~ Maybe b'
+ .type (#6 ~[★]~ (#8 `@k #1)), -- a ~ Maybe a'
+ .kind (★), -- b'
+ .kind (★), -- a'
+
+ .type (#8 `@k #3 `@k #1), -- Eq a c
+ .type (#7 `@k #2 `@k #1), -- Eq a b
+ .kind (★), -- c
+ .kind (★), -- b
+ .kind (★), -- a
+
+ .datatype ★,
+ .datatype (★ -k> ★),
+ .openm (∀[★]∀[★]∀[★]((#4 `@k #2) `@k #1) -t> ((#5 `@k #1) `@k #2) -t> #4 ~[★]~ #2),
+ .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
+ .opent (★ -k> ★ -k> ★)]
+
+
+#eval DsM.run (synth_term_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12))
+
+
+#guard wf_ctx ctx4 == .some ()
+-- #eval construct_coercion_graph ctx4
+-- #eval synth_coercion ctx4 #4 #9 -- a' ~ a''
+-- #eval do let η <- synth_coercion ctx4 #4 #9
+--          let ctx4 := (Frame.term (#4 ~[★]~ #9) η) :: ctx4
+--          let η <- synth_term ctx4 (#28 `@k #5 `@k #9)
+--          let ctx4 := (Frame.term (#28 `@k #5 `@k #9) η) :: ctx4
+--          synth_coercion ctx4 #14 #15
+
+
+-- #eval do let η <- synth_coercion ctx4 #4 #9
+--          let ctx4 := (Frame.term (#4 ~[★]~ #9) η) :: ctx4
+--          let η <- synth_term ctx4 (#28 `@k #5 `@k #9)
+--          .some ((Frame.term (#28 `@k #5 `@k #9) η) :: ctx4)
+
 end Algorithm2.Test
+
+
 
 @[simp]
 def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term × Term
@@ -597,15 +715,14 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
               | .none => false
               | .some τ => not (Option.isSome (is_eq τ)))
 
-        let (outer_imprs, _) <- Γ_instτ_outer_assms.foldlM (λ acc x => do
-          let (imprs_l, Γ_l) := acc
-          let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
-          let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
-            let (n, (τ , t)) := x
-            .term ([S' n] τ) ([S' n] t))
-          .ok (imprs ++ imprs_l, x :: Γ)
-        ) (([] : Ctx Term) , Γ_instτ_outer_eqs.reverse ++ Γ_instτ_outer_tyvars.reverse ++ Γ_l.reverse ++ Γ)
-
+        -- let (outer_imprs, _) <- Γ_instτ_outer_assms.foldlM (λ acc x => do
+        --   let (imprs_l, Γ_l) := acc
+        --   let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
+        --   let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
+        --     let (n, (τ , t)) := x
+        --     .term ([S' n] τ) ([S' n] t))
+        --   .ok (imprs ++ imprs_l, x :: Γ)
+        -- ) (([] : Ctx Term) , Γ_instτ_outer_eqs.reverse ++ Γ_instτ_outer_tyvars.reverse ++ Γ_l.reverse ++ Γ)
 
 
         let (Γ_instτ_inner_tyvars, Γ_instτ_inner_assms) :=
@@ -617,18 +734,18 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
               | .none => false
               | .some τ => not (Option.isSome (is_eq τ)))
 
-        let (inner_imprs, _) <- Γ_instτ_inner_assms.foldlM (λ acc x => do
-          let (imprs_l, Γ_l) := acc
-          let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
-          let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
-            let (n, (τ , t)) := x
-            .term ([S' n] τ) ([S' n] t))
-          .ok (imprs ++ imprs_l, x :: Γ)
-        ) (([] : Ctx Term) ,
-          Γ_instτ_inner_eqs.reverse ++ Γ_instτ_inner_tyvars.reverse
-          ++ Γ_instτ_outer.reverse ++ Γ_l.reverse ++ Γ)
+        -- let (inner_imprs, _) <- Γ_instτ_inner_assms.foldlM (λ acc x => do
+        --   let (imprs_l, Γ_l) := acc
+        --   let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
+        --   let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
+        --     let (n, (τ , t)) := x
+        --     .term ([S' n] τ) ([S' n] t))
+        --   .ok (imprs ++ imprs_l, x :: Γ)
+        -- ) (([] : Ctx Term) ,
+        --   Γ_instτ_inner_eqs.reverse ++ Γ_instτ_inner_tyvars.reverse
+        --   ++ Γ_instτ_outer.reverse ++ Γ_l.reverse ++ Γ)
 
-
+        -- .error (repr outer_imprs ++ repr inner_imprs)
 
         let Γ_instτ_inner := Γ_instτ_inner.reverse
         let Γ_instτ_outer := Γ_instτ_outer.reverse
@@ -637,35 +754,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
         let ctx_l := (Γ_instτ_inner ++ Γ_instτ_outer ++ Γ_l ++ Γ)
         let τ := [S' (Γ_instτ_inner.length + Γ_instτ_outer.length)]ret_ty
-        let η <- .toDsM ("fd synth_term"
-                     ++ Std.Format.line ++ "τ: " ++ repr τ
-                     ++ Std.Format.line ++ "ctx Γ: " ++ repr ctx_l
-                     ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_instτ_inner
-                     ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_instτ_outer
-                     ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
-                     ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
-                     ++ Std.Format.line ++ "β_count: " ++ repr β_count
-                     ++ Std.Format.line ++ "vars: " ++ repr ty_vars ++ repr inst_vars
-
-                     ++ Std.Format.line ++ "ty_vars_inner: " ++ repr ty_vars_inner
-                     ++ Std.Format.line ++ "guard_pat_inner: " ++ repr guard_pat_inner ++ " : " ++ repr inst_ty_inner
-
-                     ++ Std.Format.line ++ "ty_vars_outer: " ++ repr ty_vars_outer
-                     ++ Std.Format.line ++ "guard_pat_outer: " ++ repr guard_pat_outer ++ " : " ++ repr inst_ty_outer
-                     ++ Std.Format.line ++ "τs_1 τs_2 ι " ++ repr τs_1 ++ repr τs_2 ++ repr ι
-
-                     ++ Std.Format.line ++ "outer_imprs: " ++ repr outer_imprs
-                     ++ Std.Format.line ++ "outer_imprs_tyvars: " ++ repr Γ_instτ_outer_tyvars
-                     ++ Std.Format.line ++ "outer_imprs_eqs: " ++ repr Γ_instτ_outer_eqs
-                     ++ Std.Format.line ++ "outer_imprs_assms: " ++ repr Γ_instτ_outer_assms
-
-
-                     ++ Std.Format.line ++ "inner_imprs: " ++ repr inner_imprs
-                     ++ Std.Format.line ++ "inner_imprs_tyvars: " ++ repr Γ_instτ_inner_tyvars
-                     ++ Std.Format.line ++ "inner_imprs_eqs: " ++ repr Γ_instτ_inner_eqs
-                     ++ Std.Format.line ++ "inner_imprs_assms: " ++ repr Γ_instτ_inner_assms
-
-                     ) (synth_term ctx_l τ)
+        let η <- (synth_term_coercion Γ 0 Γ_l Γ_instτ_outer Γ_instτ_inner τ)
 
           -- let η := ([S' (Γ_instτ_inner ++ Γ_instτ_outer).length]ret_ty)
 

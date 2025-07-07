@@ -62,25 +62,6 @@ def deconstruct_coercion_type (Γ : Ctx Term) (t : Term) : Term -> Term -> List 
   | .none => []
 | lhs, rhs => [(t, lhs, rhs), (sym! t, rhs, lhs)]
 
-def construct_coercion_graph_aux : Nat -> Ctx Term -> EqGraph Term
-| 0 , _ => EqGraph.empty_graph
-| n + 1, Γ =>
-  match Γ d@ n with
-  | .type t
-  | .term t _ =>
-    let rest := construct_coercion_graph_aux n Γ
-    let (args, ret) := t.to_telescope
-    let sp := compute_argument_instantiation Γ args
-    match ret.apply_spine sp with
-    | lhs ~[_]~ rhs =>
-      let v := Term.apply_spine #n sp
-      let edges := deconstruct_coercion_type Γ v lhs rhs
-      List.foldl (λ g (l, s, t) => g.add_edge l s t) rest edges
-    | _ => rest
-  | _ => construct_coercion_graph_aux n Γ
-
-def construct_coercion_graph (Γ : Ctx Term) := construct_coercion_graph_aux Γ.length Γ
-
 
 def discover_eqs (Γ : Ctx Term) (t : Term) : Term -> Term -> List (Term × Term × Term)
 | A1 `@k B1, A2 `@k B2 =>
@@ -110,7 +91,7 @@ def find_transitive_eqs (g :  EqGraph Term) : List (Nat × Nat × Term) :=
   new_edges
 
 
-def mk_eq_graph (Γ : Ctx Term) := (Term.shift_helper Γ.length).foldl (λ acc n =>
+def construct_coercion_graph (Γ : Ctx Term) := (Term.shift_helper Γ.length).foldl (λ acc n =>
   match Γ d@ n with
   | .type t
   | .ctor t
@@ -137,7 +118,6 @@ def mk_eq_graph (Γ : Ctx Term) := (Term.shift_helper Γ.length).foldl (λ acc n
   ) EqGraph.empty_graph
 
 
-
 def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 | A1 `@k B1, A2 `@k B2 => do
   let ac <- synth_coercion Γ A1 A2
@@ -154,8 +134,7 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 | lhs, rhs => do
   let K <- infer_kind Γ lhs
   if lhs == rhs then return refl! K lhs
-  let graph := mk_eq_graph Γ
-  -- let graph := construct_coercion_graph Γ
+  let graph := construct_coercion_graph Γ
   let path <- graph.find_path_by_label (λ _ => false) lhs rhs
   List.foldlM (· `; ·) (refl! K lhs) path
 
@@ -177,11 +156,10 @@ def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b 
   .some (a ~[★]~ b)
 def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
 
--- Synthesizes term of a given type, if one exists
-partial def synth_term (Γ : Ctx Term) : Term -> Option Term := λ τ =>
+-- Synthesizes term of a given type, if one exists, and can be found
+partial def synth_term (Γ : Ctx Term): Term -> Option Term := λ τ =>
 match τ with
 | .eq _ A B => synth_coercion Γ A B
-
 | .bind2 .arrow givenτ wantedτ => do
   let kg <- infer_kind Γ givenτ
   let kw <- infer_kind Γ ([P]wantedτ)
@@ -221,7 +199,8 @@ match τ with
                   List.foldlM (λ (acc : List Term) (f : Frame Term × Nat) =>
                     match f with
                     | (Frame.type x, shift_idx) => do
-                        let t <- synth_term Γ (givenτ -t> [P' shift_idx]x) -- remember x is actually wrt (givenτ::Γ) so no [S]
+                        let t <- synth_term Γ (givenτ -t> [P' shift_idx]x)
+                            -- remember x is actually wrt (givenτ::Γ) so no [S]
                         .some (t :: acc)
                     | _ => .none
                   ) [] (Γ_cτs.zip (Term.shift_helper Γ_cτs.length))
@@ -450,67 +429,6 @@ def ctx3 : Ctx Term := [
 -- #eval mk_eq_graph ctx3
 
 #guard synth_coercion ctx3 #1 #3 == .some ((refl! ★ #1) `;  (snd! ★ ((sym! #0) `;  #2)))
-
-def ctx4 : Ctx Term := [
- .type (#26 `@k #3 `@k #2),      -- Eq a'' b''
- .type (#10 ~[★]~ (#22 `@k #1)), -- c ~ Maybe b''
- .type (#11 ~[★]~ (#21 `@k #1)), -- a ~ Maybe a''
- .kind (★),                 -- b''
- .kind (★),                 -- a''
- .type (#21 `@k #3 `@k #2), -- Eq a' b'
- .type (#6 ~[★]~ (#17 `@k #1)), -- b ~ Maybe b'
- .type (#6 ~[★]~ (#16 `@k #1)), -- a ~ Maybe a'
- .kind (★), -- b'
- .kind (★), -- a'
- .type (#16 `@k #3 `@k #1), -- Eq a c
- .type (#15 `@k #2 `@k #1), -- Eq a b
- .kind (★), -- c
- .kind (★), -- b
- .kind (★), -- a
- .insttype (∀[★]∀[★]∀[★]∀[★](#3 ~[★]~ (#12 `@k #1)) -t> (#3 ~[★]~ (#13 `@k #1)) -t> ((#17 `@k #3) `@k #2) -t> #18 `@k #6 `@k #5),
- .inst #8
-      (Λ[★]Λ[★]Λ[★]`λ[#13 `@k #2 `@k #1]
-       `λ[#14 `@k #1 `@k #2]
-       .guard (#6 `@t #4 `@t #3) #1
-           (`λ[#4 ~[★]~ #9]
-           `λ[#4 ~[★]~ #10]
-           .guard (#8 `@t #4 `@t #5) #2 (
-               `λ[#4 ~[★]~ #11]
-               `λ[#6 ~[★]~ #12]
-               (refl! ★ #8) `;
-               #3 `;
-               (sym! #1)))),
- .inst #8
-      (Λ[★]Λ[★]Λ[★]`λ[#12 `@k #2 `@k #1]
-       `λ[#13 `@k #3 `@k #1]
-       .guard (#5 `@t #4 `@t #3) #1 (
-           `λ[#4 ~[★]~ #8]
-           `λ[#4 ~[★]~ #9]
-           .guard (#7 `@t #6 `@t #4) #2 (
-               `λ[#6 ~[★]~ #10]
-               `λ[#5 ~[★]~ #11]
-               (refl! ★ #7) `;
-               #2 `;
-               (sym! #0)))),
- .insttype (∀[★]∀[★](#1 ~[★]~ #4) -t> (#1 ~[★]~ #5) -t> #12 `@k #3 `@k #2),
- .ctor (#1),
- .ctor (#0),
- .datatype (★),
- .ctor (∀[★]#0 -t> #3 `@k #1),
- .ctor (∀[★]#1 `@k #0),
- .datatype (★ -k> ★),
- .openm (∀[★]∀[★]∀[★]((#4 `@k #2) `@k #1) -t> ((#5 `@k #1) `@k #2) -t> #4 ~[★]~ #2),
- .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
- .opent (★ -k> ★ -k> ★)]
-
-#guard wf_ctx ctx4 == .some ()
--- #eval construct_coercion_graph ctx4
-#eval synth_coercion ctx4 #4 #9 -- a' ~ a''
-#eval do let η <- synth_coercion ctx4 #4 #9
-         let ctx4 := (Frame.term (#4 ~[★]~ #9) η) :: ctx4
-         let η <- synth_term ctx4 (#28 `@k #5 `@k #9)
-         let ctx4 := (Frame.term (#28 `@k #5 `@k #9) η) :: ctx4
-         synth_coercion ctx4 #14 #15
 
 
 end SynthInstance.Test

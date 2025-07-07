@@ -111,6 +111,35 @@ def get_insts (Γ : Ctx Term) (cls_idx : Nat) : DsM (List (Nat × Term)) := do
 
 abbrev FunDep := (List Nat) × Nat
 
+def get_fundep_ids (Γ : Ctx Term) (cls_idx : Nat) : DsM (List Nat) :=
+  if Γ.is_opent cls_idx
+  then do
+    let ids := ((Term.shift_helper Γ.length).take cls_idx).reverse
+    let fd_ids := ids.foldl (λ acc i =>
+      match (Γ d@ i) with
+      | .openm mτ =>
+        let (Γ_l, ret_ty) := mτ.to_telescope
+        let (Γ_tyvars, Γ_assms) := Γ_l.partition (·.is_kind)
+        if Γ_assms.length == 2
+        then
+          match Γ_assms with
+          | .cons (.type τ1) (.cons (.type τ2) .nil) =>
+            let τ1nf := τ1.neutral_form
+            let τ2nf := τ2.neutral_form
+            match (τ1nf, τ2nf) with
+            | (.some (h1, _), .some (h2, _)) =>
+              if h1 + 1 == h2 && h1 == cls_idx + Γ_tyvars.length
+                && Option.isSome (is_eq ret_ty)
+              then (i :: acc) else acc
+            | _ => acc
+          | _ => acc
+        else acc
+      | _ => acc
+      ) []
+    .ok fd_ids
+  else .ok []
+
+
 def get_fundeps (Γ : Ctx Term) (cls_idx : Nat) : DsM (List FunDep) :=
   if Γ.is_opent cls_idx
   then do
@@ -149,7 +178,7 @@ def get_fundeps (Γ : Ctx Term) (cls_idx : Nat) : DsM (List FunDep) :=
           match det_idx with
           | Option.some determinant =>
             -- TODO: But what if we have a partial fundep?
-            let determiners := (Term.shift_helper tele_tyvars.length).filter (λ x => x == determinant)
+            let determiners := (Term.shift_helper (tele_tyvars.length - 1)).filter (λ x => x != determinant)
             if determinant < tele_tyvars.length then .ok ((determiners, determinant) :: acc)
             else .error ("cannot find determinant for class" ++ repr cls_idx ++ " det_idx:" ++ repr det_idx)
           | .none => .error ("cannot find determinant for class" ++ " det_idx:" ++ repr det_idx)
@@ -296,7 +325,7 @@ namespace Algorithm.Test
  #guard wf_ctx Γ1 == .some ()
 
  #eval DsM.run (try_type_improvement Γ1 0)
-
+ #eval get_fundeps Γ1 13
 --  #guard (try_type_improvement Γ1 (#12 `@k #6 `@k #0)) == .ok ([(#6 ~[★]~ #0, #11 `@t #6 `@t #0 )])
  #eval infer_type Γ1 (#12 `@t #7 `@t #1 `@t #7 `@ #0)
 
