@@ -102,83 +102,199 @@ def un_inst_type : Term -> DsM Term := λ ty => do
 
 
 
-partial def synth_term_coercion (Γ : Ctx Term) (cls_idx : Nat) :
+partial def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
   Ctx Term -> Ctx Term -> Ctx Term -> Term -> DsM Term
-| Γ_l, Γ_outer, Γ_inner, (.eq k A B) => do
-  -- the thing that i want to find coercion to equate will be in Γ_l
-  -- this style is not too restrictive, as open methods for fundeps have a predetermined
-  -- fixed shape
-  -- ∀βs ∀u ∀v. F βs u -> F βs v -> u ~ v
+| Γ_l, Γ_outer, Γ_inner, τ => do
+  -- the two things that i want to find the coercion to equate will be in Γ_l
+  -- Open methods for fundeps have a predetermined shape
+  -- ∀βs ∀v. F βs -> F βs v -> u ~ v
+  -- where u is one of the indices in βs
 
-  -- find the functional dependencies associated with this class
-  let Γ_g := (Γ_inner ++ Γ_outer ++ Γ_l ++ Γ)
+
+  -- find the functional dependencies associated with the subject class
+  let Γ_g := Γ_inner ++ Γ_outer ++ Γ_l ++ Γ
   let fd_ids <- get_fundep_ids Γ_g cls_idx
-  let fun_deps <- get_fundeps Γ_g cls_idx
+  let fun_deps <- get_fundeps "synth_instance_coercion" Γ_g cls_idx
 
   let fd_ids := fd_ids.reverse
   let fun_deps := fun_deps.reverse
 
-  let candidates : List Term <- (fd_ids.zip fun_deps).foldlM (λ acc i =>
+
+  let (Γ_outer_tyvars, Γ_outer_assms) :=
+      Γ_outer.partition (λ x => x.is_kind)
+
+   let (Γ_outer_assms, Γ_outer_eqs) :=
+      Γ_outer_assms.partition (λ x =>
+      match x.get_type with
+      | .none => false
+      | .some τ => not (Option.isSome (is_eq τ)))
+
+   let (Γ_inner_tyvars, Γ_instτ_inner_assms) :=
+       Γ_inner.partition (λ x => x.is_kind)
+
+   let (Γ_inner_assms, Γ_inner_eqs) :=
+       Γ_instτ_inner_assms.partition (λ x =>
+       match x.get_type with
+       | .none => false
+       | .some τ => not (Option.isSome (is_eq τ)))
+
+  -- rebase outer_assms and inner_assms to be relative to Γ_g
+  let Γ_inner_assms := (Γ_inner_assms.zip (Term.shift_helper Γ_inner_assms.length)).map (λ x =>
+      x.1.apply (S' (x.2 + 1)))
+  let Γ_outer_assms := (Γ_outer_assms.zip (Term.shift_helper Γ_outer_assms.length)).map (λ x =>
+      x.1.apply (S' (x.2 + 1 + Γ_inner.length)))
+
+   -- Step 1. See if any of the determiners of the assumptions can be equated.
+  let ηs_determiners : List (Term × Term) <- (Γ_inner_assms.product Γ_outer_assms).foldlM (λ acc x => do
+    let (pred1, pred2) : Frame Term × Frame Term := x
+    match (pred1, pred2) with
+    | (.type τ1, .type τ2) =>
+      match (τ1.neutral_form, τ2.neutral_form) with
+      | (.some (τh1, τs1), .some (τh2, τs2)) =>
+        if τh1 == τh2
+        then do
+          let fundeps <- get_fundeps "ηs_determiners" Γ_g τh1
+          let determiners_coupled := (Term.shift_helper τs1.length).zip (τs1.reverse.zip τs2.reverse)
+          -- for each fundep try to find the coercion that equates the determiners
+          let ηs_tys := fundeps.map (λ (xs, _) => xs.map (λ x => determiners_coupled.lookup x))
+          let ηs_l : List (Term × Term) := (ηs_tys.flatten.map (λ x =>
+              match x with
+              | .some ((SpineVariant.kind, τ1), (SpineVariant.kind, τ2)) => do
+                let ki <- infer_kind Γ_g τ1
+                let η <- synth_coercion Γ_g τ1 τ2
+                .some (τ1 ~[ki]~ τ2, η)
+              | _ => .none)).reduceOption
+          return (ηs_l ++ acc)
+        else return acc
+
+      | _ => return acc
+    | _ => return acc
+   ) []
+
+  let Γ_ηs := (ηs_determiners.zip (Term.shift_helper ηs_determiners.length)).map (λ ((τ, t), si) =>
+           Frame.term ([S' si]τ) ([S' si]t))
+
+
+  -- rebase outer_assms and inner_assms to be relative to Γ_g + Γ_ηs
+  let Γ_inner_assms := Γ_inner_assms.map (λ x => x.apply (S' Γ_ηs.length))
+  let Γ_outer_assms := Γ_outer_assms.map (λ x => x.apply (S' Γ_ηs.length))
+
+
+  -- Step 2. Use pairwise improvement on local assumptions by taking into
+  --         consideration the new equalities between determiners
+  let Γ_assms_pairs := (Γ_outer_assms.product Γ_inner_assms).filter (λ x =>
+    match x with
+    | (.type x, .type y) =>
+      match (x.neutral_form, y.neutral_form) with
+      | (.some (τ1h, τs1), .some (τ2h, τs2)) => τ1h == τ2h && τ1h == cls_idx + Γ_ηs.length
+      | _ => false
+    | _ => false
+  )
+
+      -- outer vars relative to Γ_ηs
+  let outer_vars := (fresh_vars Γ_outer.length).map
+               ([S' (Γ_ηs.length + Γ_inner.length)]·)
+
+  let inner_vars := (fresh_vars Γ_inner.length).map
+               ([S' Γ_ηs.length]·)
+
+  let (outer_tyvars, outer_vars) := outer_vars.reverse.splitAt Γ_outer_tyvars.length
+  let (outer_vars_eqs, outer_vars_assms) := outer_vars.splitAt Γ_outer_eqs.length
+
+      -- let inner_tyvars := (fresh_vars Γ_inner_tyvars.length).map
+      --          ([S' (Γ_ηs.length + Γ_inner_eqs.length + Γ_inner_assms.length)]·)
+
+  let (inner_tyvars, inner_vars) := inner_vars.reverse.splitAt Γ_inner_tyvars.length
+  let (inner_vars_eqs, inner_vars_assms) := inner_vars.splitAt Γ_inner_eqs.length
+
+  let pairwise_ηs : List (Term × Term) <- (fd_ids.zip fun_deps).foldlM (λ acc i =>
     let (i, fundep) := i
     match (Γ_g d@ i) with
     | .openm τ => do
-      let (Γ_τ, ret_ty) := τ.to_telescope
-      let (Γ_τ_tyvars, Γ_assms) := Γ_τ.partition (·.is_kind)
+      let τ := [S' Γ_ηs.length] τ  -- make it relative to Γ_ηs + Γ_g
 
-      let t := #i `@t #4 `@t A `@t B
+      -- try to build a pairwise improvement by
+      -- applying the fundep to the outer type variabes and the determinant of the
+      -- inner type variable
+      let t := (#(i + Γ_ηs.length)).mk_ty_apps outer_tyvars
+      let τ <- .toDsM "pairwise impr instantiate" (instantiate_types τ outer_tyvars)
 
-      let τ' <- .toDsM "synth_term_coercion inst types"
-                (instantiate_types τ [#4, A, B])
+      let inner_determinant := inner_tyvars.reverse[fundep.2]?
+      match inner_determinant with
+      | .some det =>
+        let t := t `@t det
+        let τ <- .toDsM "pairwise impr instantiate det" (instantiate_type τ det)
 
-      let t := t `@ #0 `@ #5
+        let (tele_τ, ret_ty) := τ.to_telescope
+        let tele_τ := (tele_τ.zip (Term.shift_helper tele_τ.length)).map (λ (f, sid) => f.apply (P' sid))
+        let args_outer := ((outer_vars_assms.zip Γ_outer_assms).zip tele_τ).mapM (λ ((v, τ), τ') => do
+          let τ <- τ.get_type
+          let τ' <- τ'.get_type
+          if τ == τ' then v
+          else do let η <- synth_coercion (Γ_ηs ++ Γ_g) τ τ'
+                  .some (v ▹ η))
+        let args_inner :=
+          ((inner_vars_assms.zip Γ_inner_assms).zip
+                  (tele_τ.drop outer_vars_assms.length)).mapM (λ ((v, τ), τ') => do
+          let τ <- τ.get_type
+          let τ' <- τ'.get_type
+          if τ == τ' then v
+          else do let η <- synth_coercion (Γ_ηs ++ Γ_g) τ τ'
+                  .some (v ▹ η))
 
-      let τ' <- .toDsM "synth_term_coercion inst types"
-                (instantiate_types τ' [#0])
+        match (args_outer, args_inner) with
+        | (Option.some args_outer, Option.some args_inner) =>
+          let args := args_outer ++ args_inner
+          let t := t.mk_apps args
+          let τ := [P' 2]ret_ty
+          return ((τ, t) :: acc)
 
-      .error ("synth_term_coercion"
-        ++ Std.Format.line ++ "eq: " ++ repr (Term.eq k A B)
-        ++ Std.Format.line ++ "τ: " ++ repr τ
-        ++ Std.Format.line ++ "t: " ++ repr t
-        ++ Std.Format.line ++ "instτ: " ++ repr τ'
-        ++ Std.Format.line ++ "ctx Γ: " ++ repr Γ_g
-        ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_inner
-        ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_outer
-        ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
-        ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
-        ++ Std.Format.line ++ "fd_ids: " ++ repr fd_ids
-        ++ Std.Format.line ++ "fds: " ++ repr fun_deps)
-    -- come up with determiners of the fundep to be equal
-    -- bind it in the ctx and then try to use the fundep open method
-    -- to make the determinant equal
+          -- .error ("pairwise impr"
+          -- ++ Std.Format.line ++ "τ: " ++ repr τ
+          -- ++ Std.Format.line ++ "t: " ++ repr t
+          -- ++ Std.Format.line ++ "args_outer: " ++ repr args_outer ++ repr (tele_τ.take outer_vars_assms.length)
+          -- ++ Std.Format.line ++ "args_inner: " ++ repr args_inner ++ repr (tele_τ.drop outer_vars_assms.length)
+          -- ++ Std.Format.line ++ "outer_tyvars: " ++ repr outer_tyvars ++ repr Γ_outer_tyvars
+          -- ++ Std.Format.line ++ "outer_vars_assms: " ++ repr outer_vars_assms ++ repr Γ_outer_assms
+          -- ++ Std.Format.line ++ "inner_tyvars: " ++ repr inner_tyvars ++ repr Γ_inner_tyvars
+          -- ++ Std.Format.line ++ "inner_vars_assms: " ++ repr inner_vars_assms ++ repr Γ_inner_assms
 
+          -- ++ Std.Format.line ++ "tele_τ: " ++ repr tele_τ
+          -- ++ Std.Format.line ++ "Γ_pairs: " ++ repr Γ_assms_pairs
+          -- ++ Std.Format.line ++ "Γ_ηs: " ++ repr Γ_ηs
+          -- ++ Std.Format.line ++ "Γ_g: " ++ repr Γ_g
+          -- ++ Std.Format.line ++ "fundep_id: " ++ repr i
+          -- ++ Std.Format.line ++ "fundep: " ++ repr fundep)
+        | _ => return acc
 
-      -- .ok acc
-    | _ => .ok acc
-  ) []
+      | .none => return acc
+    | _ => return acc) []
 
+  let Γ_pairwise_ηs : Ctx Term :=
+      (pairwise_ηs.zip (Term.shift_helper pairwise_ηs.length)).map (λ ((τ, t), si) =>
+        .term ([S' si]τ) ([S' si]t))
 
-  .error ("synth_term_coercion"
-  ++ Std.Format.line ++ "τ: " ++ repr (Term.eq k A B)
-  ++ Std.Format.line ++ "ctx Γ: " ++ repr Γ_g
-  ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_inner
-  ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_outer
-  ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
-  ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
+  let τ := [S' (Γ_ηs.length + Γ_pairwise_ηs.length)]τ
+  let η <- .toDsM ("synth_inst_coercion"
+  ++ Std.Format.line ++ "τ: " ++ repr τ
+
+  ++ Std.Format.line ++ "Γ_pairwise_ηs" ++ repr Γ_pairwise_ηs
+  ++ Std.Format.line ++ "Γ_ηs" ++ repr Γ_ηs
+--  ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_inner
+--  ++ Std.Format.line ++ "Γ_inner_tyvars: " ++ repr Γ_inner_tyvars
+--  ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_outer
+--  ++ Std.Format.line ++ "Γ_outer_tyvars: " ++ repr Γ_outer_tyvars
+--  ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
+
+  ++ Std.Format.line ++ "Γ_g: " ++ repr Γ_g
+  -- ++ Std.Format.line ++ "Γ: " ++ repr Γ
   ++ Std.Format.line ++ "fd_ids: " ++ repr fd_ids
   ++ Std.Format.line ++ "fds: " ++ repr fun_deps
-  )
-
-
-| Γ_l, Γ_outer, Γ_inner, τ =>
-  let Γ_g := (Γ_inner ++ Γ_outer ++ Γ_l ++ Γ)
-  .toDsM ("synth_term"
-  ++ Std.Format.line ++ "τ: " ++ repr τ
-  ++ Std.Format.line ++ "ctx Γ: " ++ repr Γ_g
-  ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_inner
-  ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_outer
-  ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
-  ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
-  ) (synth_term (Γ_inner ++ Γ_outer ++ Γ_l ++ Γ) τ)
+  ) (synth_term (Γ_pairwise_ηs ++ Γ_ηs ++ Γ_g) τ)
+  let η := η.mk_lets_rev (Γ_pairwise_ηs ++ Γ_ηs)
+  match η with
+  | .some η => return η
+  | .none => .error ("instance coercion failed")
 
 
 namespace Algorithm2.Test
@@ -249,9 +365,6 @@ namespace Algorithm2.Test
 
 def ctx4 : Ctx Term := [
 
- -- .type (#4 ~[★]~ #9),
- -- .type (#4 ~[★]~ #9),
-
  .type (#18 `@k #3 `@k #2),      -- Eq a'' b''
  .type (#10 ~[★]~ (#14 `@k #1)), -- c ~ Maybe b''
  .type (#11 ~[★]~ (#13 `@k #1)), -- a ~ Maybe a''
@@ -279,7 +392,7 @@ def ctx4 : Ctx Term := [
 #guard (wf_ctx ctx4) == .some ()
 -- #eval (synth_term ctx4 (#14 ~[★]~ #15))
 
-#eval DsM.run (synth_term_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8))
+#eval DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8))
 
 
 #guard wf_ctx ctx4 == .some ()
@@ -457,7 +570,6 @@ def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term)
            Std.Format.line ++ repr instB)
 
 
-
     -- Now do the consistency checks
     fds.forM (λ fd => doConsistencyCheck Γ fd p))
 
@@ -606,7 +718,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   -- First we need to get all the instances that belong to the class/opent that are
   -- in the context
   --
-  let fundeps : List FunDep <- get_fundeps Γ' cls_idx
+  let fundeps : List FunDep <- get_fundeps "compile instances" Γ' cls_idx
 
   let insts <- get_insts Γ' cls_idx
   let instss : List (Term × Term) := insts.map (λ x => (ity', x.2))
@@ -650,6 +762,12 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
            | .some (h, _) => (tele ++ Γ').is_opent h
          | .none => false
        else false)
+
+  -- .error (repr cls_idx
+  --        ++ repr fd_ids
+  --        ++ repr sc_ids
+  --        ++ repr openm_ids
+  --        ++ repr Γ')
 
   -- Step2 : Add fundeps instances
   let Γ' <- List.foldlM (λ Γ fd_id => do
@@ -720,56 +838,18 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
         -- we have committed to do improvements everytime there is
         -- a lambda abstraction. I should be able to just call the compile function here?
         -- ANI Counter: Maybe not, as the compile function currently does not produce guards.
-        -- and probably shouldn't to keep the term compilation complexity simple
-        let (Γ_instτ_outer_tyvars, Γ_instτ_outer_assms) :=
-            Γ_instτ_outer.partition (λ x => x.is_kind)
+        -- and probably shouldn't to keep the term compilation complexity low
 
-        let (Γ_instτ_outer_assms, Γ_instτ_outer_eqs) :=
-            Γ_instτ_outer_assms.partition (λ x =>
-              match x.get_type with
-              | .none => false
-              | .some τ => not (Option.isSome (is_eq τ)))
-
-        -- let (outer_imprs, _) <- Γ_instτ_outer_assms.foldlM (λ acc x => do
-        --   let (imprs_l, Γ_l) := acc
-        --   let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
-        --   let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
-        --     let (n, (τ , t)) := x
-        --     .term ([S' n] τ) ([S' n] t))
-        --   .ok (imprs ++ imprs_l, x :: Γ)
-        -- ) (([] : Ctx Term) , Γ_instτ_outer_eqs.reverse ++ Γ_instτ_outer_tyvars.reverse ++ Γ_l.reverse ++ Γ)
-
-
-        let (Γ_instτ_inner_tyvars, Γ_instτ_inner_assms) :=
-            Γ_instτ_outer.partition (λ x => x.is_kind)
-
-        let (Γ_instτ_inner_assms, Γ_instτ_inner_eqs) :=
-            Γ_instτ_inner_assms.partition (λ x =>
-              match x.get_type with
-              | .none => false
-              | .some τ => not (Option.isSome (is_eq τ)))
-
-        -- let (inner_imprs, _) <- Γ_instτ_inner_assms.foldlM (λ acc x => do
-        --   let (imprs_l, Γ_l) := acc
-        --   let imprs <- try_type_improvement (x.apply (S' imprs_l.length) :: (imprs_l.reverse ++ Γ_l.reverse)) 0
-        --   let imprs : Ctx Term := ((Term.shift_helper imprs.length).zip imprs.reverse).map (λ x =>
-        --     let (n, (τ , t)) := x
-        --     .term ([S' n] τ) ([S' n] t))
-        --   .ok (imprs ++ imprs_l, x :: Γ)
-        -- ) (([] : Ctx Term) ,
-        --   Γ_instτ_inner_eqs.reverse ++ Γ_instτ_inner_tyvars.reverse
-        --   ++ Γ_instτ_outer.reverse ++ Γ_l.reverse ++ Γ)
-
-        -- .error (repr outer_imprs ++ repr inner_imprs)
 
         let Γ_instτ_inner := Γ_instτ_inner.reverse
         let Γ_instτ_outer := Γ_instτ_outer.reverse
 
         let Γ_l := Γ_l.reverse
 
-        let ctx_l := (Γ_instτ_inner ++ Γ_instτ_outer ++ Γ_l ++ Γ)
         let τ := [S' (Γ_instτ_inner.length + Γ_instτ_outer.length)]ret_ty
-        let η <- (synth_term_coercion Γ 0 Γ_l Γ_instτ_outer Γ_instτ_inner τ)
+
+        let η <- synth_instance_coercion Γ (cls_idx + fd_id + Γ_l.length + Γ_instτ_outer.length + Γ_instτ_outer.length)
+                 Γ_l Γ_instτ_outer Γ_instτ_inner τ
 
           -- let η := ([S' (Γ_instτ_inner ++ Γ_instτ_outer).length]ret_ty)
 

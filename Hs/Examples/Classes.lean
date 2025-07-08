@@ -27,6 +27,6 @@ def EqCtx : HsCtx HsTerm :=
   EqCFrame :: BoolCtx
 
 
-#eval! DsM.run (compile_ctx EqCtx)
-#eval! DsM.run (do let c <- compile_ctx EqCtx
-                   .toDsMq (wf_ctx c))
+#eval DsM.run (compile_ctx EqCtx)
+#guard (do let c <- compile_ctx EqCtx
+           .toDsMq (wf_ctx c)) == .ok ()

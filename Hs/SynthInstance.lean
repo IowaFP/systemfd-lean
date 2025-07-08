@@ -542,7 +542,7 @@ def ctx4 : Ctx Term := [
 -- #eval synth_term (ctx4.drop 1) (#4 ~[★]~ #9) -- fails to produce coercion
 #eval synth_coercion ctx4 (#18 `@k #5) (#18 `@k #10)
 
-#eval synth_coercion ctx4 #14 #15
+#eval synth_term ctx4 (#15 ~[★]~ #14)
 
 
 
