@@ -140,7 +140,7 @@ def get_fundep_ids (Γ : Ctx Term) (cls_idx : Nat) : DsM (List Nat) :=
   else .ok []
 
 
-def get_fundeps (Γ : Ctx Term) (cls_idx : Nat) : DsM (List FunDep) :=
+def get_fundeps (pfix : Std.Format) (Γ : Ctx Term) (cls_idx : Nat) : DsM (List FunDep) :=
   if Γ.is_opent cls_idx
   then do
       let ids := ((Term.shift_helper Γ.length).take cls_idx).reverse
@@ -157,7 +157,7 @@ def get_fundeps (Γ : Ctx Term) (cls_idx : Nat) : DsM (List FunDep) :=
       fd_oms.foldlM (λ acc τ => do
         let (tele, _) := τ.to_telescope
         let (tele_tyvars, tele_cls) := tele.partition (·.is_kind)
-        if tele_cls.length != 2 then .error "get_fundeps error" else
+        if tele_cls.length != 2 then .error (pfix ++ " get_fundeps error") else
 
         let cls1 <- .toDsMq tele_cls[0]? -- F αs
         let cls1 : Term <- .toDsMq cls1.get_type
@@ -184,7 +184,7 @@ def get_fundeps (Γ : Ctx Term) (cls_idx : Nat) : DsM (List FunDep) :=
           | .none => .error ("cannot find determinant for class" ++ " det_idx:" ++ repr det_idx)
         ) []
   else
-  .error ("get_fundeps" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr cls_idx)
+  .error (pfix ++ " get_fundeps not class id" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr cls_idx)
 
 
 
@@ -325,7 +325,7 @@ namespace Algorithm.Test
  #guard wf_ctx Γ1 == .some ()
 
  #eval DsM.run (try_type_improvement Γ1 0)
- #eval get_fundeps Γ1 13
+ #eval get_fundeps "Algorithm.test" Γ1 13
 --  #guard (try_type_improvement Γ1 (#12 `@k #6 `@k #0)) == .ok ([(#6 ~[★]~ #0, #11 `@t #6 `@t #0 )])
  #eval infer_type Γ1 (#12 `@t #7 `@t #1 `@t #7 `@ #0)
 

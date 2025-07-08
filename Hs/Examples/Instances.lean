@@ -38,7 +38,7 @@ def ΓInsts : HsCtx HsTerm := [
   ]
 
 -- #eval! DsM.run (compile_ctx ΓInsts)
-#eval! (
+#guard (
   do let ctx <- compile_ctx ΓInsts
      .toDsMq (wf_ctx ctx)) == .ok ()
 
