@@ -72,7 +72,7 @@ def discover_eqs (Γ : Ctx Term) (t : Term) : Term -> Term -> List (Term × Term
     let c2 := discover_eqs Γ (snd! K t) B1 B2
     c1 ++ c2
   | .none => []
-| lhs, rhs => [(t, lhs, rhs)]
+| lhs, rhs => if rhs != lhs then [(t, lhs, rhs)] else []
 
 def find_transitive_eqs (g :  EqGraph Term) : List (Nat × Nat × Term) :=
   let es := List.product g.edges g.edges
@@ -501,6 +501,54 @@ def ctx : Ctx Term := [
 #guard synth_term Γ1 (#13 `@k #7 `@k #1) == .some #0
 
 #guard synth_term Γ1 (#13 `@k #7 `@k #7) == .some ((#4 `@t #7 `@t #7 `@ (refl! ★ #7)) `@ (refl! ★ #7))
+
+
+
+
+
+def ctx4 : Ctx Term := [
+
+ .type (#4 ~[★]~ #9),
+ .type (#4 ~[★]~ #9),
+
+ .type (#18 `@k #3 `@k #2),      -- Eq a'' b''
+ .type (#10 ~[★]~ (#14 `@k #1)), -- c ~ Maybe b''
+ .type (#11 ~[★]~ (#13 `@k #1)), -- a ~ Maybe a''
+ .kind (★),                 -- b''
+ .kind (★),                 -- a''
+
+ .type (#13 `@k #3 `@k #2),    -- Eq a' b'
+ .type (#6 ~[★]~ (#9 `@k #1)), -- b ~ Maybe b'
+ .type (#6 ~[★]~ (#8 `@k #1)), -- a ~ Maybe a'
+ .kind (★), -- b'
+ .kind (★), -- a'
+
+ .type (#8 `@k #3 `@k #1), -- Eq a c
+ .type (#7 `@k #2 `@k #1), -- Eq a b
+ .kind (★), -- c
+ .kind (★), -- b
+ .kind (★), -- a
+
+ .datatype ★,
+ .datatype (★ -k> ★),
+ .openm (∀[★]∀[★]∀[★]((#4 `@k #2) `@k #1) -t> ((#5 `@k #1) `@k #2) -t> #4 ~[★]~ #2),
+ .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
+ .opent (★ -k> ★ -k> ★)]
+
+#guard (wf_ctx ctx4) == .some ()
+#eval construct_coercion_graph ctx4
+
+#eval synth_term (ctx4.drop 2) (#4 ~[★]~ #9)
+-- #eval synth_term (ctx4.drop 1) (#4 ~[★]~ #9) -- fails to produce coercion
+#eval synth_coercion ctx4 (#18 `@k #5) (#18 `@k #10)
+
+#eval synth_coercion ctx4 #14 #15
+
+
+
+
+
+
 
 end SynthInstTest
 

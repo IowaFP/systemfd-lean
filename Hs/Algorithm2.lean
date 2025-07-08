@@ -115,14 +115,44 @@ partial def synth_term_coercion (Γ : Ctx Term) (cls_idx : Nat) :
   let fd_ids <- get_fundep_ids Γ_g cls_idx
   let fun_deps <- get_fundeps Γ_g cls_idx
 
+  let fd_ids := fd_ids.reverse
+  let fun_deps := fun_deps.reverse
+
   let candidates : List Term <- (fd_ids.zip fun_deps).foldlM (λ acc i =>
     let (i, fundep) := i
     match (Γ_g d@ i) with
-    | .openm τ =>
+    | .openm τ => do
       let (Γ_τ, ret_ty) := τ.to_telescope
       let (Γ_τ_tyvars, Γ_assms) := Γ_τ.partition (·.is_kind)
 
-      .ok acc
+      let t := #i `@t #4 `@t A `@t B
+
+      let τ' <- .toDsM "synth_term_coercion inst types"
+                (instantiate_types τ [#4, A, B])
+
+      let t := t `@ #0 `@ #5
+
+      let τ' <- .toDsM "synth_term_coercion inst types"
+                (instantiate_types τ' [#0])
+
+      .error ("synth_term_coercion"
+        ++ Std.Format.line ++ "eq: " ++ repr (Term.eq k A B)
+        ++ Std.Format.line ++ "τ: " ++ repr τ
+        ++ Std.Format.line ++ "t: " ++ repr t
+        ++ Std.Format.line ++ "instτ: " ++ repr τ'
+        ++ Std.Format.line ++ "ctx Γ: " ++ repr Γ_g
+        ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_inner
+        ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_outer
+        ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
+        ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
+        ++ Std.Format.line ++ "fd_ids: " ++ repr fd_ids
+        ++ Std.Format.line ++ "fds: " ++ repr fun_deps)
+    -- come up with determiners of the fundep to be equal
+    -- bind it in the ctx and then try to use the fundep open method
+    -- to make the determinant equal
+
+
+      -- .ok acc
     | _ => .ok acc
   ) []
 
@@ -144,30 +174,10 @@ partial def synth_term_coercion (Γ : Ctx Term) (cls_idx : Nat) :
   .toDsM ("synth_term"
   ++ Std.Format.line ++ "τ: " ++ repr τ
   ++ Std.Format.line ++ "ctx Γ: " ++ repr Γ_g
-  -- ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_instτ_inner
-  -- ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_instτ_outer
+  ++ Std.Format.line ++ "Γ_inner: " ++ repr Γ_inner
+  ++ Std.Format.line ++ "Γ_outer: " ++ repr Γ_outer
   ++ Std.Format.line ++ "Γ_l: " ++ repr Γ_l
   ++ Std.Format.line ++ "Γ: " ++ repr Γ_l
-  -- ++ Std.Format.line ++ "β_count: " ++ repr β_count
-  -- ++ Std.Format.line ++ "vars: " ++ repr ty_vars ++ repr inst_vars
-
-  -- ++ Std.Format.line ++ "ty_vars_inner: " ++ repr ty_vars_inner
-  -- ++ Std.Format.line ++ "guard_pat_inner: " ++ repr guard_pat_inner ++ " : " ++ repr inst_ty_inner
-
-  -- ++ Std.Format.line ++ "ty_vars_outer: " ++ repr ty_vars_outer
-  -- ++ Std.Format.line ++ "guard_pat_outer: " ++ repr guard_pat_outer ++ " : " ++ repr inst_ty_outer
-  -- ++ Std.Format.line ++ "τs_1 τs_2 ι " ++ repr τs_1 ++ repr τs_2 ++ repr ι
-
-  -- ++ Std.Format.line ++ "outer_imprs: " ++ repr outer_imprs
-  -- ++ Std.Format.line ++ "outer_imprs_tyvars: " ++ repr Γ_instτ_outer_tyvars
-  -- ++ Std.Format.line ++ "outer_imprs_eqs: " ++ repr Γ_instτ_outer_eqs
-  -- ++ Std.Format.line ++ "outer_imprs_assms: " ++ repr Γ_instτ_outer_assms
-
-
-  -- ++ Std.Format.line ++ "inner_imprs: " ++ repr inner_imprs
-  -- ++ Std.Format.line ++ "inner_imprs_tyvars: " ++ repr Γ_instτ_inner_tyvars
-  -- ++ Std.Format.line ++ "inner_imprs_eqs: " ++ repr Γ_instτ_inner_eqs
-  -- ++ Std.Format.line ++ "inner_imprs_assms: " ++ repr Γ_instτ_inner_assms
   ) (synth_term (Γ_inner ++ Γ_outer ++ Γ_l ++ Γ) τ)
 
 
@@ -239,6 +249,9 @@ namespace Algorithm2.Test
 
 def ctx4 : Ctx Term := [
 
+ -- .type (#4 ~[★]~ #9),
+ -- .type (#4 ~[★]~ #9),
+
  .type (#18 `@k #3 `@k #2),      -- Eq a'' b''
  .type (#10 ~[★]~ (#14 `@k #1)), -- c ~ Maybe b''
  .type (#11 ~[★]~ (#13 `@k #1)), -- a ~ Maybe a''
@@ -263,8 +276,10 @@ def ctx4 : Ctx Term := [
  .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
  .opent (★ -k> ★ -k> ★)]
 
+#guard (wf_ctx ctx4) == .some ()
+-- #eval (synth_term ctx4 (#14 ~[★]~ #15))
 
-#eval DsM.run (synth_term_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12))
+#eval DsM.run (synth_term_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8))
 
 
 #guard wf_ctx ctx4 == .some ()
