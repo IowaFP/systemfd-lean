@@ -4,7 +4,7 @@ import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
 
-def FDCtx : HsCtx HsTerm := [
+def FDCtx' : HsCtx HsTerm := [
   -- ∀ a b Eq a b => Eq (Maybe a) (Maybe b)
   .inst (`∀{`★}`∀{`★} (`#13 `•k `#1 `•k `#0) ⇒ `#14 `•k (`#11 `•k `#2) `•k (`#11 `•k `#1))  .nil,
 
@@ -21,7 +21,7 @@ def FDCtx : HsCtx HsTerm := [
     .nil
 ]
 
-#eval DsM.run (compile_ctx FDCtx)
+#eval DsM.run (compile_ctx FDCtx')
 #guard (do
-  let Γ' <- compile_ctx FDCtx
+  let Γ' <- compile_ctx FDCtx'
   .toDsMq (wf_ctx Γ')) == .ok ()

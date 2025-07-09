@@ -463,62 +463,64 @@ def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_impli
 def doConsistencyCheck (Γ : Ctx Term) (fd : FunDep): Term × Term -> DsM Unit := λ x => do
   -- TODO: Work with un_inst_type rather than inst_type
   let (instA, instB) := x
-  -- -- Both the telescopes are henry forded
-  -- -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
-  let (teleA, _) := instA.to_telescope
-  let (teleB, _) := instB.to_telescope
+  let instA <- un_inst_type instA
+  let instB <- un_inst_type instB
 
-  let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
-  let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
+  let (teleA, retA) := instA.to_telescope
+  let (teleB, retB) := instB.to_telescope
 
-  let eqs := teleA_eqs.zip teleB_eqs
+  let (teleA_tyvars, teleA_assms) := teleA.partition (·.is_kind)
+  let (teleB_tyvars, teleB_assms) := teleB.partition (·.is_kind)
 
+  -- make the return types index wrt tyvars + Γ
+  let retA := [P' teleA_assms.length] retA
+  let retB := [P' teleB_assms.length] retB
 
-  let eqs : List (Nat × (Frame Term × Frame Term)) := ((Term.shift_helper eqs.length).zip eqs.reverse).foldl
-    (λ acc x =>
-    let (sidx, eq) := x
-    ((if sidx > fd.2
-      then (sidx, ((eq.1.apply (P) , (eq.2.apply (P)))))
-      else (sidx, eq))
-      :: acc)) []
+  let (_, a_τs) <- .toDsM "consistency check instA nf" retA.neutral_form
+  let (_, b_τs) <- .toDsM "consistency check instB nf" retB.neutral_form
 
+  let a_τs_b := (Term.shift_helper a_τs.length).zip (a_τs.zip b_τs)
 
   -- all the eqs are now indexed at Γ + teleA_tyvars
-  let determiners : List (Frame Term × Frame Term) <- .toDsM "consistencyCheck determiners"
-    (fd.1.mapM (λ n => eqs.lookup n))
-  -- let determiners : List (Term × Term) <- .toDsM "consistencyCheck determiners2"
-  --                    (determiners.mapM (λ x => do
-  --                 let x1' <- x.1.get_type
-  --                 let x2' <- x.2.get_type
-  --                 (x1', x2')))
+  let determiners : List ((SpineVariant × Term) × (SpineVariant × Term)) <-
+       .toDsM "consistencyCheck determiners"
+         (fd.1.mapM (λ n => a_τs_b.lookup n))
 
-  let determinant : (Frame Term × Frame Term) <- .toDsM "consistencyCheck determinant" (eqs.lookup fd.2)
+  let determinant : ((SpineVariant × Term) × (SpineVariant × Term)) <-
+    .toDsM "consistencyCheck determinant" (a_τs_b.lookup fd.2)
   let determinant : Term × Term <- .toDsM "consistencyCheck determinant2"
-               (match determinant.map (·.get_type) (·.get_type) with
-                 | (Option.some x, Option.some x') =>
-                   .some ([S' (eqs.length - fd.2 - 1)]x, [S' (eqs.length - fd.2 - 1)]x')
+       (match determinant with
+                 | ((.kind, x), (.kind, x')) =>
+                   .some (x, x')
                  | _ => .none)
 
   -- assume coverage condition has been satisfied
-  let should_build_η : Option Unit := determiners.foldl (λ acc x =>
-    let (eq1, eq2) := x
-    match (eq1, eq2) with
-    | (.type (_ ~[_]~ t1), .type (_ ~[_]~ t2)) =>
+  -- build an η of determiners if atleast one of the
+  -- determiners is different and they are not typevariables
+  let should_build_η : Bool := determiners.all (λ x =>
+    let (t1, t2) := x
        -- This check is very basic. Need to have some more intelligent check here?
-      if t1 == t2 then .some () else .none
-    | _ => .none
-  ) (.some ())
+    [S' teleB_tyvars.length]t1.2 == [S' teleA_tyvars.length]t2.2
+  )
 
-  -- TODO: merge with top map
-  match should_build_η with
-  | .none => .error "determiners eqs error" -- one of the instance type is borked
-  | _ => do
+  -- -- TODO: merge with top map
+  if should_build_η
+  then
+  -- .error ("determiners eqs error"
+  --                   ++ Std.Format.line ++ "instA " ++ repr instA
+  --                   ++ Std.Format.line ++ "teleA " ++ repr teleA_assms
+  --                   ++ Std.Format.line ++ "retA " ++ repr retA
+  --                   ++ Std.Format.line ++ "instB " ++ repr instB
+  --                   ++ Std.Format.line ++ "teleB" ++ repr teleB_assms
+  --                   ++ Std.Format.line ++ "retB" ++ repr retB
+  --                   ++ Std.Format.line ++ repr a_τs_b
+  --                   ++ Std.Format.line ++ repr should_build_η
+  --                   ++ Std.Format.line ++ repr determiners
+  --                   ++ Std.Format.line ++ repr fd
+  --                   ) -- one of the instance type is borked
     let determiners_ηs <- determiners.mapM (λ x => do
-      let (eq1, eq2) := x
-      match (eq1, eq2) with
-      | (.type (_ ~[k]~ t1), .type (_ ~[_]~ t2)) => -- the first components are β vars anyway
-        .ok (.type ([P' teleA_tyvars.length]t1 ~[k]~ [P' teleA_tyvars.length]t2))
-      | _ => .error "determiners ηs error"
+      let (t1, t2) := x
+      .ok (.type (t1.2 ~[★]~ t2.2))
       )
 
     let η := synth_coercion (determiners_ηs.reverse ++ Γ) determinant.1 determinant.2
