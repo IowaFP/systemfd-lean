@@ -13,9 +13,9 @@ inductive HsFrame T where
   List T -> -- types of the n constructors
   HsFrame T
 | classDecl :
-  T -> -- kind of the class eg. `ReaderT r m a : (★ → (★ → ★) → ★)`
-  List T -> -- superclasses
-  List (List Nat × Nat) -> -- the list of functional dependencies
+  T -> -- kind of the class eg. `ReaderT : ★ → (★ → ★) → ★ → ★`
+  List T -> -- superclasses eg. (Monad m)
+  List (List Nat × Nat) -> -- the list of functional dependencies. eg. ( m ~> r )
   List T -> -- types of the n open methods
   HsFrame T
 | inst :

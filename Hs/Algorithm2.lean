@@ -2,6 +2,7 @@ import Hs.Algorithm
 import SystemFD.Algorithm
 
 set_option profiler true
+set_option linter.unusedVariables false
 
 -- Henry Ford Encode a type:
 -- Takes a type of the form
@@ -171,9 +172,15 @@ partial def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
     | _ => return acc
    ) []
 
+
+  ηs_determiners.forM (λ x => do let τ' <- .toDsM "infer failed" (infer_type Γ_g x.2)
+                                 if x.1 == τ' then .ok () else .error "η failed"
+                                 )
+
   let Γ_ηs := (ηs_determiners.zip (Term.shift_helper ηs_determiners.length)).map (λ ((τ, t), si) =>
            Frame.term ([S' si]τ) ([S' si]t))
 
+  .toDsM "wf_ctx failed Γ_ηs" (wf_ctx (Γ_ηs ++ Γ_g))
 
   -- rebase outer_assms and inner_assms to be relative to Γ_g + Γ_ηs
   let Γ_inner_assms := Γ_inner_assms.map (λ x => x.apply (S' Γ_ηs.length))
@@ -270,12 +277,18 @@ partial def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
       | .none => return acc
     | _ => return acc) []
 
+  pairwise_ηs.forM (λ x => do let τ' <- .toDsM "infer failed" (infer_type (Γ_ηs ++ Γ_g) x.2)
+                                 if x.1 == τ' then .ok () else .error "pairwise η failed"
+                                 )
+
   let Γ_pairwise_ηs : Ctx Term :=
       (pairwise_ηs.zip (Term.shift_helper pairwise_ηs.length)).map (λ ((τ, t), si) =>
         .term ([S' si]τ) ([S' si]t))
 
+  .toDsM "wf_ctx failed Γ_pairwise" (wf_ctx (Γ_pairwise_ηs ++ Γ_ηs ++ Γ_g))
+
   let τ := [S' (Γ_ηs.length + Γ_pairwise_ηs.length)]τ
-  let η <- .toDsM ("synth_inst_coercion"
+  let t <- .toDsM ("synth_inst_coercion"
   ++ Std.Format.line ++ "τ: " ++ repr τ
 
   ++ Std.Format.line ++ "Γ_pairwise_ηs" ++ repr Γ_pairwise_ηs
@@ -291,9 +304,16 @@ partial def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
   ++ Std.Format.line ++ "fd_ids: " ++ repr fd_ids
   ++ Std.Format.line ++ "fds: " ++ repr fun_deps
   ) (synth_term (Γ_pairwise_ηs ++ Γ_ηs ++ Γ_g) τ)
-  let η := η.mk_lets_rev (Γ_pairwise_ηs ++ Γ_ηs)
+  let η := t.mk_lets_rev (Γ_pairwise_ηs ++ Γ_ηs)
+
   match η with
-  | .some η => return η
+  | .some η => do
+    .toDsM ("infer_type η"
+      ++ Std.Format.line ++ repr η
+      ++ Std.Format.line ++ repr Γ_g
+      )
+      (do let _ <- infer_type Γ_g η)
+    return η
   | .none => .error ("instance coercion failed")
 
 
@@ -311,7 +331,6 @@ namespace Algorithm2.Test
   -- #eval (#5 `@k #6)
   #guard (mk_inst_type Γ (#5 `@k #6)) == .ok (5, ∀[★](#0 ~[★]~ #7) -t> #7 `@k #1, 1)
   #guard (un_inst_type (∀[★](#0 ~[★]~ #7) -t> #7 `@k #1)) == .ok (#5 `@k #6)
-
 
 
   -- #eval (∀[★] (#4 `@k #0) -t> #7 `@k #1)
@@ -389,29 +408,41 @@ def ctx4 : Ctx Term := [
  .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
  .opent (★ -k> ★ -k> ★)]
 
-#guard (wf_ctx ctx4) == .some ()
--- #eval (synth_term ctx4 (#14 ~[★]~ #15))
+
+def η : Term :=
+  .letterm (#4 ~[★]~ #9) ((refl! ★ #4) `;
+    (snd! ★ (sym! #2) `;
+    #7)) (
+  .letterm (#9 ~[★]~ #4) (#19 `@t #10 `@t #9 `@t #4 `@ #6 `@ (#1 ▹
+         (((refl! (★ -k> (★ -k> ★)) #20) `@c ((refl! ★ #5) `;  #0)) `@c (refl! ★ #4))))
+        (refl! ★ #15) `;
+        #8 `;
+        (refl! ★ #18) `@c #0 `;
+        (sym! #3))
+
+ #guard wf_ctx (ctx4) == .some ()
+ #eval infer_type ctx4 (((((sym! #2)))))
+ #eval infer_type ctx4 ((((snd! ★ (sym! #2)))))
+ #eval infer_type ctx4 ((((snd! ★ (sym! #2) `;  #7))))
+ #eval infer_type ctx4 ((((refl! ★ #4) `; (snd! ★ (sym! #2) `;  #7))))
+-- #guard wf_ctx (.term (#4 ~[★]~ #9) (((refl! ★ #4) `; (snd! ★ (sym! #2) `;  #7))) :: ctx4) == .some ()
+
 
 #eval DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8))
 
+#eval DsM.run (do let η <- synth_instance_coercion (ctx4.drop 15) 19
+                       ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8)
+                  .toDsMq (infer_type ctx4 η)
+              )
 
-#guard wf_ctx ctx4 == .some ()
--- #eval construct_coercion_graph ctx4
--- #eval synth_coercion ctx4 #4 #9 -- a' ~ a''
--- #eval do let η <- synth_coercion ctx4 #4 #9
---          let ctx4 := (Frame.term (#4 ~[★]~ #9) η) :: ctx4
---          let η <- synth_term ctx4 (#28 `@k #5 `@k #9)
---          let ctx4 := (Frame.term (#28 `@k #5 `@k #9) η) :: ctx4
---          synth_coercion ctx4 #14 #15
+#eval DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12))
 
-
--- #eval do let η <- synth_coercion ctx4 #4 #9
---          let ctx4 := (Frame.term (#4 ~[★]~ #9) η) :: ctx4
---          let η <- synth_term ctx4 (#28 `@k #5 `@k #9)
---          .some ((Frame.term (#28 `@k #5 `@k #9) η) :: ctx4)
+#eval DsM.run (do let η <- synth_instance_coercion (ctx4.drop 15) 19
+                       ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12)
+                  .toDsMq (infer_type ctx4 η)
+              )
 
 end Algorithm2.Test
-
 
 
 @[simp]

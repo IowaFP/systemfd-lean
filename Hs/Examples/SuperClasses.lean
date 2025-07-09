@@ -9,7 +9,7 @@ def BoolF : HsFrame HsTerm :=
                     , `#1     -- False
                     ]
 
--- convention True is deeper in the context that False
+-- convention True is deeper in the context than False
 
 -- not :: Bool -> Bool
 -- not = λ x case x of {True -> False ; _ -> True}

@@ -158,8 +158,8 @@ protected def Term.repr (a : Term) (p : Nat): Std.Format :=
      Std.Format.nest 4 <| ".guard " ++ Term.repr pat p ++ " ← " ++ Term.repr s p ++ " "
                      ++ Std.Format.line ++ Term.repr c p
   | .letterm t t1 t2 =>
-     Std.Format.nest 4 <| "let!" ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; " ++ Std.Format.line
-          ++ Term.repr t2 p
+     Std.Format.nest 4 <| "let! " ++ Term.repr t1 p ++ " : " ++ Term.repr t p ++  " ;; "
+          ++ Std.Format.line ++ Term.repr t2 p
 
 
 instance Term_repr : Repr Term where

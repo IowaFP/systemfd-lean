@@ -60,6 +60,21 @@ def deconstruct_coercion_type (Γ : Ctx Term) (t : Term) : Term -> Term -> List 
     let c2 := deconstruct_coercion_type Γ (snd! K t) B1 B2
     c1 ++ c2
   | .none => []
+| #lhs, #rhs =>
+  let klhs := infer_kind Γ #lhs
+  let new_edges : List (Term × Term × Term) := ((Term.shift_helper Γ.length).zip Γ).flatMap (λ (i, f) =>
+    match f with
+    | .datatype k
+    | .kind k =>
+      match k.split_kind_arrow with
+      | .some (.cons k' ks, ret_k) =>
+        if k' == klhs then
+          [((refl! k #i) `@c t , #i `@k #lhs, #i `@k #rhs)]
+        else []
+      | _ => []
+    | _ => [])
+
+  (t, #lhs, #rhs) :: (sym! t, #rhs, #lhs) :: new_edges.flatMap (λ (t, l, r) => [(t, l, r), (sym! t, r, l)])
 | lhs, rhs => [(t, lhs, rhs), (sym! t, rhs, lhs)]
 
 
@@ -111,7 +126,6 @@ def construct_coercion_graph (Γ : Ctx Term) := (Term.shift_helper Γ.length).fo
         | (.some τ1, .some τ2) => discover_eqs Γ η τ1 τ2
         | _ => []
       )
-
       new_eqs.flatten.foldl (λ g (l, s, t) => g.add_edge l s t) acc
     | _ => acc
   | _ => acc
@@ -425,10 +439,40 @@ def ctx3 : Ctx Term := [
 ]
 
 #guard wf_ctx ctx3 == .some ()
--- #eval construct_coercion_graph ctx3
--- #eval mk_eq_graph ctx3
-
 #guard synth_coercion ctx3 #1 #3 == .some ((refl! ★ #1) `;  (snd! ★ ((sym! #0) `;  #2)))
+#guard infer_type ctx3 ((refl! ★ #1) `;  (snd! ★ ((sym! #0) `;  #2))) == .some (#1 ~[★]~ #3)
+
+
+def ctx4 : Ctx Term := [
+  .type (#2 ~[★]~ #3), -- b ~ b'
+  .type (#3 ~[★]~ (#5 `@k #1)), -- v ~ Maybe b'
+  .type (#3 ~[★]~ (#4 `@k #1)), -- u ~ Maybe b
+  .kind ★, -- b'
+  .kind ★, -- b
+  .kind ★, -- v
+  .kind ★, -- u
+  .datatype (★ -k> ★)
+  ]
+#guard wf_ctx ctx4 == .some ()
+#eval construct_coercion_graph ctx4
+
+#eval synth_coercion ctx4 (#7 `@k #3) (#7 `@k #4) -- Maybe b' ~ Maybe b
+#guard synth_coercion ctx4 (#7 `@k #3) (#7 `@k #4) == .some ((refl! (★ -k> ★) #7) `@c ((refl! ★ #3) `;  #0))
+#guard infer_type ctx4 ((refl! (★ -k> ★) #7) `@c ((refl! ★ #3) `;  #0)) ==
+       .some ((#7 `@k #3) ~[★]~ (#7 `@k #4))
+
+-- #eval synth_coercion ctx4 #6 (#7 `@k #4) -- u ~ Maybe b
+
+#eval synth_coercion ctx4 #6 (#7 `@k #3) -- u ~ Maybe b'
+
+#eval infer_type ctx4 ((((refl! ★ #6) `;  (#2 `;  ((sym! ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #1)))) `;
+  (#1 `;  ((refl! (★ -k> ★) #7) `@c #0))) `; (sym! ((refl! (★ -k> ★) #7) `@c #0)))
+
+ -- v ~ u
+#guard synth_coercion ctx4 #5 #6 == .some ((refl! ★ #5) `;  ((#1 `;  ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #2)))
+#guard infer_type ctx4 ((refl! ★ #5) `;  ((#1 `;  ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #2))) == .some (#5 ~[★]~ #6)
+
+#eval synth_coercion ctx4 #6 #5 -- u ~ v
 
 
 end SynthInstance.Test
@@ -469,6 +513,7 @@ def ctx : Ctx Term := [
  ]
 
 #guard synth_term ctx (#14 `@k #2) == .some #0
+#guard infer_type ctx #0 == .some (#14 `@k #2)
 
 -- Test for improvements
   def Γ1 : Ctx Term := [
@@ -499,9 +544,10 @@ def ctx : Ctx Term := [
  .opent (★ -k> ★ -k> ★)]
 
 #guard synth_term Γ1 (#13 `@k #7 `@k #1) == .some #0
+#guard infer_type Γ1 #0 == .some (#13 `@k #7 `@k #1)
 
 #guard synth_term Γ1 (#13 `@k #7 `@k #7) == .some ((#4 `@t #7 `@t #7 `@ (refl! ★ #7)) `@ (refl! ★ #7))
-
+#guard infer_type Γ1 ((#4 `@t #7 `@t #7 `@ (refl! ★ #7)) `@ (refl! ★ #7)) == .some (#13 `@k #7 `@k #7)
 
 
 
@@ -536,17 +582,13 @@ def ctx4 : Ctx Term := [
  .opent (★ -k> ★ -k> ★)]
 
 #guard (wf_ctx ctx4) == .some ()
-#eval construct_coercion_graph ctx4
+-- #eval construct_coercion_graph ctx4
 
-#eval synth_term (ctx4.drop 2) (#4 ~[★]~ #9)
+-- #eval synth_term (ctx4.drop 2) (#4 ~[★]~ #9)
 -- #eval synth_term (ctx4.drop 1) (#4 ~[★]~ #9) -- fails to produce coercion
-#eval synth_coercion ctx4 (#18 `@k #5) (#18 `@k #10)
+-- #eval synth_coercion ctx4 (#18 `@k #5) (#18 `@k #10)
 
 #eval synth_term ctx4 (#15 ~[★]~ #14)
-
-
-
-
 
 
 

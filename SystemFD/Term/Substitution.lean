@@ -62,6 +62,11 @@ namespace Term
   def split_kind_arrow : Term -> Option (List Term × Term) := split_kind_arrow_aux []
 
   @[simp]
+  def mk_kind_arrow ( base : Term) : List Term -> Term
+  | [] => base
+  | .cons k ks => k -k> (mk_kind_arrow base ks)
+
+  @[simp]
   def mk_kind_app : Nat -> List Term -> Term := λ h sp =>
     List.foldl (λ acc a => acc `@k a) (#h) sp
 

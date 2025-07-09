@@ -402,3 +402,18 @@ def wf_ctx : Ctx Term -> Option Unit
     if T == T' then .some () else .none
   | _ => .none
 | .cons (.inst _ _) _ => .none
+
+
+namespace SystemFD.Algorithm.Test
+
+def Γ : Ctx Term := [
+  .term #2 #1,
+  .ctor #1,
+  .ctor #0,
+  .datatype ★
+]
+
+#guard wf_ctx Γ == .some ()
+#eval infer_type Γ (.letterm #3 #0 (.letterm #4 #1 #0))
+
+end SystemFD.Algorithm.Test
