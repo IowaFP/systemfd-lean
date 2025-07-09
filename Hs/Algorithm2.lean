@@ -1,7 +1,6 @@
 import Hs.Algorithm
 import SystemFD.Algorithm
 
-set_option profiler true
 set_option linter.unusedVariables false
 
 -- Henry Ford Encode a type:

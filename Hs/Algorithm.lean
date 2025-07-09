@@ -4,8 +4,6 @@ import SystemFD.Term
 import SystemFD.Algorithm
 import Hs.SynthInstance
 
-set_option profiler true
-
 @[simp]
 def compile_ctor2variant : HsCtor2Variant -> Ctor2Variant
 | .arrowk => .arrowk
@@ -184,7 +182,7 @@ def get_fundeps (pfix : Std.Format) (Γ : Ctx Term) (cls_idx : Nat) : DsM (List 
 
 
 
-def try_type_improvement (Γ : Ctx Term) : Nat -> DsM (List (Term × Term)) := λ i => do
+partial def try_type_improvement (Γ : Ctx Term) : Nat -> DsM (List (Term × Term)) := λ i => do
 let τ <- .toDsM "try_type_impr" (Γ d@ i).get_type
 let Γ_local_tyvars := Γ.tail.takeWhile (·.is_kind)
 let local_tyvars := (fresh_vars Γ_local_tyvars.length).reverse.map ([S]·)
@@ -333,7 +331,7 @@ end Algorithm.Test
 
 
 
-def helper1
+partial def helper1
   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
   (Γ : Ctx Term)
   (head : HsTerm)
@@ -351,7 +349,7 @@ def helper1
     .ok (#h, τh')
   | t => DsM.error ("helper1 unsupported head" ++ repr t)
 
-def helper2
+partial def helper2
   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
   (Γ : Ctx Term)
   : Term × Term -> HsSpineVariant × HsTerm -> DsM (Term × Term)
