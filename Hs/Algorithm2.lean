@@ -825,10 +825,10 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                              (instantiate_types ([S' Γ_instτ_outer.length]instτ) inner_pat_tyvars)
         let (Γ_instτ_inner, _) := inst_ty_inner.to_telescope
 
-        -- ANI: I suspect there is an easier way to do it given that
+        -- TOCO: I suspect there is an easier way to do it given that
         -- we have committed to do improvements everytime there is
         -- a lambda abstraction. I should be able to just call the compile function here?
-        -- ANI Counter: Maybe not, as the compile function currently does not produce guards.
+        -- Counter: Maybe not, as the compile function currently does not produce guards.
         -- and probably shouldn't to keep the term compilation complexity low
 
 

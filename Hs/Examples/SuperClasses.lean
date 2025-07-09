@@ -73,8 +73,6 @@ def EqBoolI : HsFrame HsTerm :=
   .inst (`#2 `•k `#7)
   [ `#4
   , .HsAnnotate (`#9 → `#10 → `#11) (λ̈[`#9]λ̈[`#10] (`#8 `• (`#7 `• `#0 `• `#1)))
-  -- TODO: why can't we refer to the previously defined om in here?
-  -- , .HsAnnotate (`#9 → `#10 → `#11) (λ̈[`#9]λ̈[`#10] (`#8 `• (`#2 `•t `#11 `• (.HsHole (`#6 `•k `#11)) `• `#0 `• `#1)))
   ]
 
 -- class Eq a => Ord a where

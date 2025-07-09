@@ -293,7 +293,7 @@ match τ with
              else .some (candidate_instances.foldl (· ⊕ ·) `0)
 
 
--- TODO ANI: Can this be merged with synth_term?
+-- TODO: Can this be merged with synth_term?
 def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do
   let cand_insts : List Term := List.foldl (λ acc idx =>
     match Γ d@ idx with
