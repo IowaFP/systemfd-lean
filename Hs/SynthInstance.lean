@@ -4,37 +4,7 @@ import Hs.EqGraph
 import Batteries.Data.List
 
 
--- Problem 2: producing a coercion
--- There is a term with a type `u : U` but the goal type is `V`
--- We need to try and find a coercion term `t : U ~ V` so that we can produce `u ▹ t : V`
--- The approach is two fold: refine the goal based off the structure of the coercion we need
---    and construct a graph of all possible coercions to search for a path from one type to another
-
--- For example, if we need `t : U1 -> U2 ~ V1 -> V2`, then we should immediately use the arrow coercion rule:
--- `?1 -c> ?2` with `?1 : U1 ~ V1` and `?2 : U2 ~ V2`
--- We also do this for the refl case
-
--- We use some semantic information to add instantiations of coercions (particularly for functional dependencies)
--- For example, if we know `u -> v` (u determines v) then we know that we ought to have three universally quantified
--- variables: `u`, `v1`, and `v2` with the equation `v1 ~ v2`
--- So, if we know that `F Int Bool` and `F Int b` then we "heuristically" produce the equation `Bool ~ b`
--- I say heuristically because you could imagine searching the context and producing all possible instantiations
-
--- For most situations when we are constructing instances it should be enough to just look at the available coercions
--- without having to do instantiations in the context.
-
--- The graph is constructed in the following way:
--- A coercion `t : U ~ V` becomes two edges `U -> V` with label `t` and `V -> U` with label `sym t`
--- A coercion `t : A B ~ C D` becomes two edges `A -> C` with label `t.1` and `B -> D` with label `t.2` (and of course the sym counterparts)
--- A coercion `t : ∀ K, A ~ B` searches for all instantiations of `K` and adds coercions recursively from there.
-
--- The instantiations are the worst issue here as it could theoretically explode.
--- A depth-first search is then run on the graph and the labels of the graph are returned.
--- These labels are joined by coercion sequencing: `t1 ; t2 ; ... ; tn` which produces the final coercion
-
--- TODO: Fix this, for now it assumes the argument list must be empty
-def compute_argument_instantiation (_ : Ctx Term) : Ctx Term -> List (SpineVariant × Term)
-| _ => []
+set_option linter.unusedVariables false
 
 
 @[simp]
@@ -111,12 +81,9 @@ def construct_coercion_graph (Γ : Ctx Term) := (Term.shift_helper Γ.length).fo
   | .type t
   | .ctor t
   | .term t _ =>
-    let (args, ret) := t.to_telescope
-    let sp := compute_argument_instantiation Γ args
-    match ret.apply_spine sp with
+    match t with
     | lhs ~[_]~ rhs =>
-      let v := Term.apply_spine #n sp
-      let edges := deconstruct_coercion_type Γ v lhs rhs
+      let edges := deconstruct_coercion_type Γ #n lhs rhs
       let acc := List.foldl (λ g (l, s, t) => (g.add_edge l s t)) acc edges
       let more_edges := find_transitive_eqs acc
 
@@ -426,8 +393,8 @@ def ctx2 : Ctx Term := [
 
 #guard wf_ctx ctx2 == .some ()
 -- #eval construct_coercion_graph ctx2
-#eval synth_coercion ctx2 #4 #9
-
+#guard (synth_coercion ctx2 #4 #9) == .some ((refl! ★ #4) `;  (snd! ★ ((sym! #2) `;  #7)))
+#guard (infer_type ctx2 ((refl! ★ #4) `;  (snd! ★ ((sym! #2) `;  #7)))) == .some (#4 ~[★]~ #9)
 
 def ctx3 : Ctx Term := [
  .type (#3 ~[★]~ (#4 `@k #0)), -- a ~ Maybe a''
@@ -454,26 +421,27 @@ def ctx4 : Ctx Term := [
   .datatype (★ -k> ★)
   ]
 #guard wf_ctx ctx4 == .some ()
-#eval construct_coercion_graph ctx4
+-- #eval construct_coercion_graph ctx4
 
-#eval synth_coercion ctx4 (#7 `@k #3) (#7 `@k #4) -- Maybe b' ~ Maybe b
+-- #eval synth_coercion ctx4 (#7 `@k #3) (#7 `@k #4) -- Maybe b' ~ Maybe b
 #guard synth_coercion ctx4 (#7 `@k #3) (#7 `@k #4) == .some ((refl! (★ -k> ★) #7) `@c ((refl! ★ #3) `;  #0))
 #guard infer_type ctx4 ((refl! (★ -k> ★) #7) `@c ((refl! ★ #3) `;  #0)) ==
        .some ((#7 `@k #3) ~[★]~ (#7 `@k #4))
 
 -- #eval synth_coercion ctx4 #6 (#7 `@k #4) -- u ~ Maybe b
 
-#eval synth_coercion ctx4 #6 (#7 `@k #3) -- u ~ Maybe b'
+-- #eval synth_coercion ctx4 #6 (#7 `@k #3) -- u ~ Maybe b'
 
-#eval infer_type ctx4 ((((refl! ★ #6) `;  (#2 `;  ((sym! ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #1)))) `;
-  (#1 `;  ((refl! (★ -k> ★) #7) `@c #0))) `; (sym! ((refl! (★ -k> ★) #7) `@c #0)))
+#guard infer_type ctx4 ((((refl! ★ #6) `;  (#2 `;  ((sym! ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #1)))) `;
+  (#1 `;  ((refl! (★ -k> ★) #7) `@c #0))) `; (sym! ((refl! (★ -k> ★) #7) `@c #0))) == .some (#6 ~[★]~ (#7 `@k #3))
 
  -- v ~ u
 #guard synth_coercion ctx4 #5 #6 == .some ((refl! ★ #5) `;  ((#1 `;  ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #2)))
 #guard infer_type ctx4 ((refl! ★ #5) `;  ((#1 `;  ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #2))) == .some (#5 ~[★]~ #6)
 
-#eval synth_coercion ctx4 #6 #5 -- u ~ v
-
+#guard synth_coercion ctx4 #6 #5 == .some ((refl! ★ #6) `;  (#2 `;  ((sym! ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #1))))
+#guard infer_type ctx4 ((refl! ★ #6) `;  (#2 `;  ((sym! ((refl! (★ -k> ★) #7) `@c #0)) `;  (sym! #1)))) ==
+       .some (#6 ~[★]~ #5)
 
 end SynthInstance.Test
 
@@ -584,13 +552,7 @@ def ctx4 : Ctx Term := [
 #guard (wf_ctx ctx4) == .some ()
 -- #eval construct_coercion_graph ctx4
 
--- #eval synth_term (ctx4.drop 2) (#4 ~[★]~ #9)
--- #eval synth_term (ctx4.drop 1) (#4 ~[★]~ #9) -- fails to produce coercion
--- #eval synth_coercion ctx4 (#18 `@k #5) (#18 `@k #10)
-
-#eval synth_term ctx4 (#15 ~[★]~ #14)
-
-
+-- #eval synth_term ctx4 (#15 ~[★]~ #14)
 
 end SynthInstTest
 
@@ -636,5 +598,3 @@ end SynthInstTest
   --     this ought to force all the "existentially quantified variables"
   --     might need to repeat this to compute a fixed point
   -- recurse on instance assumptions
-
--- def synth_instance (Γ : Ctx Term) (T : (Nat × List (SpineVariant × Term))) : Option Term := sorry

@@ -76,10 +76,6 @@ def re_index_base := fresh_vars
 
 #eval fresh_vars 3
 
--- theorem fresh_vars_aux_lemm : (fresh_vars_aux n l).length = l.length + n := by
--- sorry
--- theorem fresh_vars_lemma : (fresh_vars n).length == n := by
--- sorry
 
 -- Get all the open methods for a given term
 /- Caution: The ids themselves are meaningless (sort of),
@@ -518,11 +514,6 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
       let η <- .toDsM ("synth_coercion spine" ++ repr Γ ++ Std.Format.line ++ repr (actual_τ ~[★]~ exp_τ))
                       (synth_coercion Γ actual_τ exp_τ)
       .ok (t' ▹ η)
-
--- | _, _, _ => .none
--- decreasing_by repeat sorry
--- all_goals(simp at *)
--- case _ => sorry
 
 
 namespace Algorithm.Test
