@@ -1,5 +1,4 @@
 import Hs.HsTerm
--- import Hs.Algorithm
 import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
@@ -7,16 +6,8 @@ import SystemFD.Term
 def idHsType : HsTerm := `∀{`★} `#0 → `#1
 def idHsTerm : HsTerm := Λ̈[`★] λ̈[`#0] `#0
 
-unsafe def idType := compile [] ★ idHsType
-unsafe def idTerm := do { let ty <- idType; compile [] ty idHsTerm }
-
--- #guard idType == .some (∀[★] #0 -t> #1)
--- #guard idTerm == .some (Λ[★]`λ[#0] #0)
--- #guard idType == do { let t <- idTerm; infer_type [] t }
-
--- #eval! idType
--- #eval! idTerm
-
+def idType := compile [] ★ idHsType
+def idTerm := do { let ty <- idType; compile [] ty idHsTerm }
 
 
 def BoolCtx : HsCtx HsTerm :=
@@ -24,7 +15,6 @@ def BoolCtx : HsCtx HsTerm :=
                      , `#1        -- , (`∀{`★} `#0 → `#3 `•k `#1)  -- Just :: ∀ a. a -> Maybe a
                      ]
   ]
--- #eval! compile_ctx BoolCtx
 
 def MbCtx : HsCtx HsTerm :=
   [ .datatypeDecl (`★ `-k> `★) [ (`∀{`★} (`#1 `•k `#0))      -- Nothing :: ∀ a. Maybe a
@@ -33,10 +23,6 @@ def MbCtx : HsCtx HsTerm :=
   ]
 
 def dtctx : HsCtx HsTerm := MbCtx ++ BoolCtx
-
--- #eval "Maybe Datatype"
-
--- #eval! DsM.run (compile_ctx dtctx)
 
 #guard (
   do let Γ <- compile_ctx dtctx

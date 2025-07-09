@@ -420,27 +420,22 @@ def η : Term :=
         (refl! ★ #18) `@c #0 `;
         (sym! #3))
 
- #guard wf_ctx (ctx4) == .some ()
- #eval infer_type ctx4 (((((sym! #2)))))
- #eval infer_type ctx4 ((((snd! ★ (sym! #2)))))
- #eval infer_type ctx4 ((((snd! ★ (sym! #2) `;  #7))))
- #eval infer_type ctx4 ((((refl! ★ #4) `; (snd! ★ (sym! #2) `;  #7))))
+#guard wf_ctx (ctx4) == .some ()
 -- #guard wf_ctx (.term (#4 ~[★]~ #9) (((refl! ★ #4) `; (snd! ★ (sym! #2) `;  #7))) :: ctx4) == .some ()
 
 
 #eval DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8))
 
-#eval DsM.run (do let η <- synth_instance_coercion (ctx4.drop 15) 19
+#guard (do let η <- synth_instance_coercion (ctx4.drop 15) 19
                        ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8)
-                  .toDsMq (infer_type ctx4 η)
-              )
+           .toDsMq (infer_type ctx4 η)
+              ) == .ok (#3 ~[★]~ #8)
 
 #eval DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12))
 
-#eval DsM.run (do let η <- synth_instance_coercion (ctx4.drop 15) 19
-                       ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12)
-                  .toDsMq (infer_type ctx4 η)
-              )
+#guard (do let η <- synth_instance_coercion (ctx4.drop 15) 19
+                ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12)
+           .toDsMq (infer_type ctx4 η)) == .ok (#13  ~[★]~ #12)
 
 end Algorithm2.Test
 
@@ -466,89 +461,78 @@ def to_implicit_telescope_aux (Δ : Ctx Term) : (Ctx Term) -> Term -> Ctx Term �
 def to_implicit_telescope (Δ : Ctx Term) : Term -> Ctx Term × Term := to_implicit_telescope_aux Δ []
 
 def doConsistencyCheck (Γ : Ctx Term) (fd : FunDep): Term × Term -> DsM Unit := λ x => do
+  -- TODO: Work with un_inst_type rather than inst_type
+  let (instA, instB) := x
+  -- -- Both the telescopes are henry forded
+  -- -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
+  let (teleA, _) := instA.to_telescope
+  let (teleB, _) := instB.to_telescope
 
-let (instA, instB) := x
--- -- Both the telescopes are in henry forded
--- -- ∀κs. (β1 ~ x) -> (β2 ~ y) -> F β1 β2
-let (teleA, _) := instA.to_telescope
-let (teleB, _) := instB.to_telescope
+  let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
+  let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
 
-let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
-let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
-
--- if teleA_eqs.length != teleB_eqs.length then .error "consistency check eqs length does not match"
--- if teleA_tyvars.length != teleB_tyvars.length then .error "consistency check tyvars length does not match"
-
--- -- let fd := (fd.1.map (teleB_tyvars.length - ·), (teleB_tyvars.length - fd.2))
-
-let eqs := teleA_eqs.zip teleB_eqs
-
--- -- Make sure there is atleast one eq that is different
--- if eqs.all (λ x =>
---    let (eqA, eqB) := x
---    eqA == eqB)
---    then .error ("overlapping instances"  ++
---          Std.Format.line ++ repr instA ++
---          Std.Format.line ++ repr instB)
+  let eqs := teleA_eqs.zip teleB_eqs
 
 
-let eqs : List (Nat × (Frame Term × Frame Term)) := ((Term.shift_helper eqs.length).zip eqs.reverse).foldl
-  (λ acc x =>
-  let (sidx, eq) := x
-  ((if sidx > fd.2
-    then (sidx, ((eq.1.apply (P) , (eq.2.apply (P)))))
-    else (sidx, eq))
-    :: acc)) []
+  let eqs : List (Nat × (Frame Term × Frame Term)) := ((Term.shift_helper eqs.length).zip eqs.reverse).foldl
+    (λ acc x =>
+    let (sidx, eq) := x
+    ((if sidx > fd.2
+      then (sidx, ((eq.1.apply (P) , (eq.2.apply (P)))))
+      else (sidx, eq))
+      :: acc)) []
 
 
--- all the eqs are now indexed at Γ + teleA_tyvars
-let determiners : List (Frame Term × Frame Term) <- .toDsM "consistencyCheck determiners"
-  (fd.1.mapM (λ n => eqs.lookup n))
--- let determiners : List (Term × Term) <- .toDsM "consistencyCheck determiners2"
---                    (determiners.mapM (λ x => do
---                 let x1' <- x.1.get_type
---                 let x2' <- x.2.get_type
---                 (x1', x2')))
+  -- all the eqs are now indexed at Γ + teleA_tyvars
+  let determiners : List (Frame Term × Frame Term) <- .toDsM "consistencyCheck determiners"
+    (fd.1.mapM (λ n => eqs.lookup n))
+  -- let determiners : List (Term × Term) <- .toDsM "consistencyCheck determiners2"
+  --                    (determiners.mapM (λ x => do
+  --                 let x1' <- x.1.get_type
+  --                 let x2' <- x.2.get_type
+  --                 (x1', x2')))
 
-let determinant : (Frame Term × Frame Term) <- .toDsM "consistencyCheck determinant" (eqs.lookup fd.2)
-let determinant : Term × Term <- .toDsM "consistencyCheck determinant2"
-             (match determinant.map (·.get_type) (·.get_type) with
-               | (Option.some x, Option.some x') =>
-                 .some ([S' (eqs.length - fd.2 - 1)]x, [S' (eqs.length - fd.2 - 1)]x')
-               | _ => .none)
+  let determinant : (Frame Term × Frame Term) <- .toDsM "consistencyCheck determinant" (eqs.lookup fd.2)
+  let determinant : Term × Term <- .toDsM "consistencyCheck determinant2"
+               (match determinant.map (·.get_type) (·.get_type) with
+                 | (Option.some x, Option.some x') =>
+                   .some ([S' (eqs.length - fd.2 - 1)]x, [S' (eqs.length - fd.2 - 1)]x')
+                 | _ => .none)
 
--- assume coverage condition has been satisfied
-let should_build_η : Option Bool := determiners.foldl (λ acc x =>
-  let (eq1, eq2) := x
-  match (eq1, eq2) with
-  | (.type (_ ~[_]~ t1), .type (_ ~[_]~ t2)) =>
-    if t1 == t2  -- This check is very basic. Need to have some more intelligent check here?
-    then acc.map (true && ·) else acc.map (false && ·)
-  | _ => .none
-) (.some true)
-
--- TODO: merge with top map
-match should_build_η with
-| .none => .error "determiners eqs error"
-| .some false => .ok ()
-| _ => do
-  let determiners_ηs <- determiners.mapM (λ x => do
+  -- assume coverage condition has been satisfied
+  let should_build_η : Option Unit := determiners.foldl (λ acc x =>
     let (eq1, eq2) := x
     match (eq1, eq2) with
-    | (.type (_ ~[k]~ t1), .type (_ ~[_]~ t2)) => -- the first components are β vars anyway
-      .ok (.type ([P' teleA_tyvars.length]t1 ~[k]~ [P' teleA_tyvars.length]t2))
-    | _ => .error "determiners ηs error"
-    )
+    | (.type (_ ~[_]~ t1), .type (_ ~[_]~ t2)) =>
+       -- This check is very basic. Need to have some more intelligent check here?
+      if t1 == t2 then .some () else .none
+    | _ => .none
+  ) (.some ())
 
-  let η := synth_coercion (determiners_ηs.reverse ++ Γ) determinant.1 determinant.2 -- Fix ★
-  match η with
-  | .some _ => .ok ()
-  | .none => .error ("instances violate functional dependency"
-             ++ Std.Format.line ++ repr instA
-             ++ Std.Format.line ++ repr instB )
+  -- TODO: merge with top map
+  match should_build_η with
+  | .none => .error "determiners eqs error" -- one of the instance type is borked
+  | _ => do
+    let determiners_ηs <- determiners.mapM (λ x => do
+      let (eq1, eq2) := x
+      match (eq1, eq2) with
+      | (.type (_ ~[k]~ t1), .type (_ ~[_]~ t2)) => -- the first components are β vars anyway
+        .ok (.type ([P' teleA_tyvars.length]t1 ~[k]~ [P' teleA_tyvars.length]t2))
+      | _ => .error "determiners ηs error"
+      )
 
-.ok ()
+    let η := synth_coercion (determiners_ηs.reverse ++ Γ) determinant.1 determinant.2
 
+    match η with
+    | .some _ => .ok ()
+    | .none => do
+             let instA' <- un_inst_type instA
+             let instB' <- un_inst_type instB
+             .error ("instances violate functional dependency"
+               ++ Std.Format.line ++ repr instA'
+               ++ Std.Format.line ++ repr instB')
+
+def doCoverageChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term) -> DsM Unit := λ x => .ok ()
 
 def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term) -> DsM Unit := λ x =>
   x.forM (λ p => do
@@ -566,30 +550,6 @@ def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term)
     let (teleA, ret_tyA) := instA.to_telescope
     let (teleB, ret_tyB) := instB.to_telescope
 
-
-
-    -- let (teleA_tyvars, teleA_eqs) := teleA.partition (·.is_kind)
-    -- let (teleB_tyvars, teleB_eqs) := teleB.partition (·.is_kind)
-
-    -- if teleA_eqs.length != teleB_eqs.length
-    -- then .error ("consistency check eqs length does not match"
-    --      ++ Std.Format.line ++ repr instA
-    --      ++ Std.Format.line ++ repr instB)
-
-    -- if teleA_tyvars.length != teleB_tyvars.length
-    -- then .error ("consistency check tyvars length does not match"
-    --      ++ Std.Format.line ++ repr instA
-    --      ++ Std.Format.line ++ repr instB)
-
-
-    -- let eqs := teleA_eqs.zip teleB_eqs
-    -- if eqs.all (λ x =>
-    --   let (eqA, eqB) := x
-    --   eqA == eqB)
-    --   then .error ("overlapping instances"  ++
-    --        Std.Format.line ++ repr instA ++
-    --        Std.Format.line ++ repr instB)
-
     -- Make sure there is atleast one eq that is different
     let (_, spA) <- .toDsM "instA neutral From" ret_tyA.neutral_form
     let (_, spB) <- .toDsM "instB neutral From" ret_tyB.neutral_form
@@ -603,8 +563,6 @@ def doConsistencyChecks (Γ : Ctx Term) (fds: List FunDep) : List (Term × Term)
 
     -- Now do the consistency checks
     fds.forM (λ fd => doConsistencyCheck Γ fd p))
-
--- #eval ([.ok (), .ok (), .error "test" ] : List (DsM Unit)).forM (λ x => x)
 
 
 -- compiling declarations
@@ -756,7 +714,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
   -- TODO: Assume that the quantifiers do not mess things up (.i.e no constrained instances)
   -- 1. Coverage check
-
+  doCoverageChecks Γ' fundeps instss
   -- 2. Consistency condition
   -- If the determiners are the the same, then the determinants can be "unified"
   -- Or a coercion can be produced

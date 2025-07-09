@@ -1,12 +1,11 @@
 import Hs.HsTerm
-import Hs.Algorithm
 import Hs.Algorithm2
 import SystemFD.Algorithm
 import SystemFD.Term
 
 def FDCtx : HsCtx HsTerm := [
   -- F Tri Bool
-  .inst (`#10 `•k `#4 `•k `#8) .nil,
+  .inst (`#10 `•k `#4 `•k `#8) .nil, -- Fails with fundep violated
   -- F Tri Tri
   .inst (`#8 `•k `#2 `•k `#2) .nil,
   -- Bool
