@@ -1087,7 +1087,6 @@ match τ.neutral_form with
       )
 
     -- instantiate the fd_terms with the free vars in the context (Γ_tyvars)
-
     let fd_terms <- fd_terms.mapM (λ x => do
        let t := Term.mk_ty_apps x.2 local_tyvars
        let fd_τ <- .toDsM "fd_τ instantiate types 2" (instantiate_types x.1 local_tyvars)
@@ -1106,9 +1105,14 @@ match τ.neutral_form with
         | (idx, .type argτ) =>
           let argτ := [P' idx] argτ -- make τ wrt input Γ
           let arg <- .toDsM ("synth_term failed in fd_terms"
-                  ++ Std.Format.line ++ repr argτ
-                  ++ Std.Format.line ++ repr Γ
-                  ++ Std.Format.line ++ repr acc
+                  ++ Std.Format.line ++ "argτ: " ++ repr argτ
+                  ++ Std.Format.line ++ "rn argτ: " ++ repr ([P' idx]argτ)
+                  ++ Std.Format.line ++ "iτ: " ++ repr iτ
+                  ++ Std.Format.line ++ "Γ: " ++ repr Γ
+                  ++ Std.Format.line ++ "t: " ++ repr t
+                  ++ Std.Format.line ++ "τ: " ++ repr τ
+                  ++ Std.Format.line ++ "tyvars: " ++ repr local_tyvars
+                  ++ Std.Format.line ++ "acc: " ++ repr acc
                   ) (synth_term Γ argτ)
           let τ' <- .toDsM "instantiate types failed in fd_terms" (instantiate_type τ argτ)
           let t' := t `@ arg

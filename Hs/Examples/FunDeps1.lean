@@ -5,10 +5,10 @@ import SystemFD.Algorithm
 import SystemFD.Term
 
 def FDCtx : HsCtx HsTerm := [
-  -- f : ∀ α. F Bool α ⇒ α → α → α = g
-  .term (`∀{`★} `#12 `•k `#6 `•k `#0 ⇒ `#1 → `#2 → `#3) (Λ̈[`★]λ̈[`#12 `•k `#6 `•k `#0] `#2),
-  -- g : Bool → Bool → Bool = λ x y. True
-  .term (`#4 → `#5 → `#6) (λ̈[`#4]λ̈[`#5]`#5),
+  -- f : ∀ α. F Bool α ⇒ α → α = not
+  .term (`∀{`★} `#12 `•k `#6 `•k `#0 ⇒ `#1 → `#2) (Λ̈[`★]λ̈[`#12 `•k `#6 `•k `#0] `#2),
+  -- not : Bool → Bool = λ x. If true Then false Else True
+  .term (`#4 → `#5) (λ̈[`#4] .HsIte (.HsAnnotate `#5 `#4) (.HsAnnotate `#5 `#0) (.HsAnnotate `#5 `#3) `#4),
   -- F Bool Bool
   .inst (`#8 `•k `#2 `•k `#2)  .nil,
    -- data Bool = True | False
@@ -16,7 +16,8 @@ def FDCtx : HsCtx HsTerm := [
   -- data Tri = Yes | No | Perhaps
   .datatypeDecl `★ [`#0, `#1, `#2],
   -- class F t u | t ~> u
-  .classDecl (`★ `-k> `★ `-k> `★) .nil [([1],0)] .nil
+  .classDecl (`★ `-k> `★ `-k> `★) .nil [([1],0)] .nil,
+  -- datatype Int
   ]
 
 #eval DsM.run (compile_ctx FDCtx)

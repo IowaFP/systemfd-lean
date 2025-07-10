@@ -79,7 +79,7 @@ def EqBoolI : HsFrame HsTerm :=
 --    (≤) :: a -> a -> Bool
 def OrdC : HsFrame HsTerm :=
   HsFrame.classDecl (`★ `-k> `★)
-    [ `#7 `•k `#0 ] -- fix this indexing?
+    [ `#7 `•k `#0 ]
     .nil
     [ `∀{`★} (`#0 → `#1 → `#15)
     ]
