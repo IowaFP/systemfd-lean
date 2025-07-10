@@ -1,6 +1,6 @@
 
 import SystemFD.Substitution
-import Aesop
+-- import Aesop
 
 variable {T : Type} [Repr T] [Inhabited T] [SubstitutionType T] [SubstitutionTypeLaws T]
 
