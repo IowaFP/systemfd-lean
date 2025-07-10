@@ -48,10 +48,10 @@ partial def compile_head
     let h' <- compile Γ τh' h
     DsM.ok (h', τh')
   | .HsVar h => do
-    let τh' <- DsM.toDsM ("helper1 head" ++ repr head) (Γ d@ h).get_type
+    let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
     -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
     .ok (#h, τh')
-  | t => DsM.error ("helper1 unsupported head" ++ repr t)
+  | t => DsM.error ("compile_head unsupported head" ++ repr t)
 
 partial def compile_args
   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
@@ -68,6 +68,22 @@ partial def compile_args
     let arg' <- compile Γ k arg
     .ok (res_τ β[arg'], acc `@ arg')
   | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
+
+partial def checkArgsLength (args : List (HsSpineVariant × HsTerm)) (τs : Ctx Term) : DsM Unit := do
+  if args.length > τs.length
+  then .error ("compile length mismatch"
+                ++ Std.Format.line ++ (repr args)
+                ++ Std.Format.line ++ (repr τs))
+  else .ok ()
+
+
+partial def mb_coerce (Γ : Ctx Term) (t : Term) (exp_τ : Term) (actual_τ : Term) : DsM Term :=
+if exp_τ == actual_τ
+then .ok t
+else do
+   let η <- .toDsM ("mb_coerce" ++ repr Γ ++ Std.Format.line ++ repr (actual_τ ~[★]~ exp_τ))
+                      (synth_coercion Γ actual_τ exp_τ)
+   .ok (t ▹ η)
 
 -- @[simp]
 partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
@@ -182,54 +198,39 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   let t' <- compile Γ τ t
   .ok (.ite p' s' i' t')
 
--- | Γ, exp_τ, `#h => do
---   let τ <- .toDsM ("get_type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h)
---            ((Γ d@ h).get_type)
---   if τ == exp_τ
---   then .ok #h
---   else do
---     let η <- .toDsM ("synth_coercion variable" ++ Std.Format.line ++ repr Γ
---                     ++ Std.Format.line ++ repr (τ ~[★]~ exp_τ)
---                     ++ Std.Format.line ++ repr h) (synth_coercion Γ τ exp_τ)
---     .ok (#h ▹ η)
-
 | Γ, exp_τ, t => do
   let (head, args) <- .toDsM ("no neutral form" ++ repr t) t.neutral_form
+
   -- Compile Head
   let (h', τh') <- compile_head compile Γ head
   let (τs, _) := τh'.to_telescope
 
-  if args.length > τs.length
-  then .error ("compile length mismatch"
-                ++ Std.Format.line ++ (repr exp_τ)
-                ++ Std.Format.line ++ (repr t))
-  else
+  -- make sure the length of the arguments is fine
+  checkArgsLength args τs
+
   -- Compile Args and actual type
-    let (actual_τ, t') <- args.foldlM (compile_args compile Γ) (τh', h')
-    if exp_τ == actual_τ
-    then .ok t'
-    else do
-      let η <- .toDsM ("synth_coercion spine" ++ repr Γ ++ Std.Format.line ++ repr (actual_τ ~[★]~ exp_τ))
-                      (synth_coercion Γ actual_τ exp_τ)
-      .ok (t' ▹ η)
+  let (actual_τ, t') <- List.foldlM (compile_args compile Γ) (τh', h') args
+
+  -- coerce if needed and return
+  mb_coerce Γ t' exp_τ actual_τ
 
 
-namespace Algorithm.Test
-  def Γ : Ctx Term := [
-    .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
-    .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
-    .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
-    .opent (★ -k> ★),
-    .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
-    .opent (★ -k> ★),
-    .datatype ★ ]
+-- namespace Algorithm.Test
+--   def Γ : Ctx Term := [
+--     .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
+--     .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
+--     .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
+--     .opent (★ -k> ★),
+--     .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
+--     .opent (★ -k> ★),
+--     .datatype ★ ]
 
-    #guard wf_ctx Γ == .some ()
+--     #guard wf_ctx Γ == .some ()
 
-    #guard (compile Γ (∀[★](#6 `@k #0) -t> #1 -t> #2 -t> #10) `#0) == .ok #0
-    #guard (compile Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6)) == .ok (#0 `@t #6)
-    #guard (compile Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6))) == .ok (#4 `@t #6 `@ (refl! ★ #6))
-    #guard (compile Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6)))) ==
-                  .ok (#0 `@t #6 `@ (#4 `@t #6 `@ (refl! ★ #6)))
+--     #guard (compile Γ (∀[★](#6 `@k #0) -t> #1 -t> #2 -t> #10) `#0) == .ok #0
+--     #guard (compile Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6)) == .ok (#0 `@t #6)
+--     #guard (compile Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6))) == .ok (#4 `@t #6 `@ (refl! ★ #6))
+--     #guard (compile Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6)))) ==
+--                   .ok (#0 `@t #6 `@ (#4 `@t #6 `@ (refl! ★ #6)))
 
-end Algorithm.Test
+-- end Algorithm.Test
