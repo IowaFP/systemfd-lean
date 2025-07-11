@@ -1030,19 +1030,9 @@ let local_tyvars := (fresh_vars Γ_local_tyvars.length).reverse.map ([S]·)
 match τ.neutral_form with
 | .some (τh, τs) => do
   if not (Γ.is_opent τh) then .ok [] else
-  -- get all the open method indices
-  let openm_ids <- get_openm_ids Γ τh
+  -- get all the fundep open method indices
   -- .ok ((fd_ids.zip fd_ids).map (λ x => (#x.1, #x.2)))
-  let (fd_ids, _) := openm_ids.partition (λ x =>
-      let f := Γ d@ x
-      if f.is_openm then
-        match f.get_type with
-        | .some τ =>
-          let (_, ret_ty) := Term.to_telescope τ;
-          Option.isSome (is_eq ret_ty)
-        | .none => false
-      else false )
-  -- .ok ((fd_ids.zip fd_ids).map (λ x => (#x.1, #x.2)))
+  let fd_ids <- get_fundep_ids Γ τh
 
   -- find all the available instances of the opentype
   let insts <- get_insts Γ τh
@@ -1077,7 +1067,7 @@ match τ.neutral_form with
         | _ => acc
       | _ => []) []
 
-
+    let inst_τs := inst_τs.reverse
     -- instantiate the fd function with the inst_τs
     let fd_terms <- fd_ids.mapM (λ fd_id => do
       let t := Term.mk_ty_apps #fd_id inst_τs
@@ -1086,6 +1076,7 @@ match τ.neutral_form with
       .ok (τ, t)
       )
 
+    -- .error (repr fd_terms)
     -- instantiate the fd_terms with the free vars in the context (Γ_tyvars)
     let fd_terms <- fd_terms.mapM (λ x => do
        let t := Term.mk_ty_apps x.2 local_tyvars
@@ -1111,7 +1102,8 @@ match τ.neutral_form with
                   ++ Std.Format.line ++ "Γ: " ++ repr Γ
                   ++ Std.Format.line ++ "t: " ++ repr t
                   ++ Std.Format.line ++ "τ: " ++ repr τ
-                  ++ Std.Format.line ++ "tyvars: " ++ repr local_tyvars
+                  ++ Std.Format.line ++ "inst_τs: " ++ repr insts ++ repr inst_τs
+                  ++ Std.Format.line ++ "tyvars: " ++ repr Γ_local_tyvars ++ repr local_tyvars
                   ++ Std.Format.line ++ "acc: " ++ repr acc
                   ) (synth_term Γ argτ)
           let τ' <- .toDsM "instantiate types failed in fd_terms" (instantiate_type τ argτ)
@@ -1163,9 +1155,42 @@ namespace TypeImpr.Test
 
  #guard wf_ctx Γ1 == .some ()
 
- #eval DsM.run (try_type_improvement Γ1 0)
- #eval get_fundeps "type impr test" Γ1 13
+ -- #eval DsM.run (try_type_improvement Γ1 0)
+ #guard try_type_improvement Γ1 0 == .ok
+       [(#7 ~[★]~ #1,
+         (#12 `@t #7 `@t #7 `@t #1) `@ (((#4 `@t #7 `@t #7) `@ (refl! ★ #7)) `@ (refl! ★ #7)) `@ #0)]
+
+--  #eval get_fundeps "type impr test" Γ1 13
 --  #guard (try_type_improvement Γ1 (#12 `@k #6 `@k #0)) == .ok ([(#6 ~[★]~ #0, #11 `@t #6 `@t #0 )])
  #eval infer_type Γ1 (#12 `@t #7 `@t #1 `@t #7 `@ #0)
+
+
+def Γ2 : Ctx Term := [.type (#12 `@k #13 `@k #0),
+ .kind (★),
+ .term (#4 -t> #5) (`λ[#4] .ite #4 #0  #3 #4),
+ .inst #8
+      (Λ[★]Λ[★]Λ[★]`λ[#12 `@k #2 `@k #1]
+       `λ[#13 `@k #3 `@k #1]
+       .guard (#5 `@t #4 `@t #3) #1 (
+           `λ[#4 ~[★]~ #15]
+           `λ[#4 ~[★]~ #9]
+           .guard (#7 `@t #6 `@t #4) #2 (
+               `λ[#6 ~[★]~ #17]
+               `λ[#5 ~[★]~ #11]
+               (refl! ★ #7) `;
+               #2 `;
+               (sym! #0)))),
+ .insttype (∀[★]∀[★](#1 ~[★]~ #11) -t> (#1 ~[★]~ #5) -t> #12 `@k #3 `@k #2),
+ .ctor (#1),
+ .ctor (#0),
+ .datatype (★),
+ .ctor (#2),
+ .ctor (#1),
+ .ctor (#0),
+ .datatype (★),
+ .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
+ .opent (★ -k> ★ -k> ★),
+ .datatype (★)]
+ #eval DsM.run (try_type_improvement Γ2 0)
 
 end TypeImpr.Test
