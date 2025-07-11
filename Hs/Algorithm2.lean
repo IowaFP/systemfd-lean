@@ -775,3 +775,4 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   else .error ("Not all methods implemented" ++ repr mths ++ Std.Format.line ++ repr openm_ids)
 
   .ok Γ'
+| t => .error ("unimplemented " ++ repr t)

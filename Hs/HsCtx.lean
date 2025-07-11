@@ -23,6 +23,8 @@ inductive HsFrame T where
   List T -> -- the expression bodies for the open methods
   HsFrame T
 | term : T -> T -> HsFrame T
+| tyfam : T -> HsFrame T -- `type family F :: ★ → ★`
+| tyfaminst : T -> T -> HsFrame T -- type instance F Int = Bool
 
 protected def HsFrame.repr [r : Repr T]: (a : HsFrame T) -> (p : Nat) -> Std.Format
 | .empty, _ =>
@@ -49,6 +51,10 @@ protected def HsFrame.repr [r : Repr T]: (a : HsFrame T) -> (p : Nat) -> Std.For
 | .inst n ts, p =>
   Std.Format.nest 10 <| "instDecl" ++ r.reprPrec n p ++ Std.Format.line
      ++ List.repr ts p
+| .tyfam t, p =>
+  Std.Format.nest 10 <| "type family " ++ r.reprPrec t p
+| .tyfaminst t1 t2, p =>
+  Std.Format.nest 10 <| "type instance " ++ r.reprPrec t1 p ++ " = " ++ r.reprPrec t2 p
 
 instance HsFrame_repr : Repr (HsFrame T) where
   reprPrec a p := HsFrame.repr a p
@@ -76,13 +82,16 @@ namespace HsFrame
     classDecl ([σ]t) (List.map ([σ]·) scs) fds (Subst.list_lift σ oms) -- TODO FIXME
   | inst v oms, σ => inst ([σ]v) (Subst.list_lift σ oms)
   | term ty t, σ => term ([σ]ty) ([σ]t)
+  | tyfam t, σ => tyfam ([σ]t)
+  | tyfaminst t1 t2, σ => tyfaminst ([σ]t1) ([σ]t2)
 
   def get_type : HsFrame T -> Option T
   | .kind t => .some t
   | .type t => .some t
   | .datatypeDecl t _ => .some t
   | .classDecl t _ _ _ => .some t
-  | .term T _ => .some T
+  | .term t _ => .some t
+  | .tyfam t => .some t
   | _ => .none
 
   @[simp]
@@ -118,9 +127,17 @@ namespace HsFrame
     | .kind _ => true
     | _ => false
 
+  def is_tyfam (f : HsFrame T) : Bool :=
+    match f with
+    | .tyfam _ => true
+    | _ => false
+
 end HsFrame
 
 def HsCtx (T : Type) := List (HsFrame T)
 
 instance instHsCtx_Append : Append (HsCtx T) where
     append := λ a b => List.append a b -- ideally we may want to shift the indices in a?
+
+instance instHsCtxt_repr [Repr T]: Repr (HsCtx T) where
+  reprPrec a p := List.repr a p
