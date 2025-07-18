@@ -364,6 +364,8 @@ namespace Ctx
   @[simp]
   def is_datatype (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_datatype
   @[simp]
+  def is_kind (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_kind
+  @[simp]
   def is_insttype (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_insttype
   @[simp]
   def is_opent (Γ : Ctx T) (n : Nat) : Bool := (Γ d@ n).is_opent

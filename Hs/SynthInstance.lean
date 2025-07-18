@@ -2,7 +2,7 @@
 import SystemFD
 import Hs.EqGraph
 import Batteries.Data.List
-
+import Hs.Monad
 
 set_option linter.unusedVariables false
 
@@ -600,31 +600,6 @@ end SynthInstTest
   -- recurse on instance assumptions
 
 -- surface: datatype Bool (tt, ff); #0 = ff, #1 = tt, #2 = Bool <-- defined by hs_nth
-abbrev DsM a := Except Std.Format a
-
-namespace DsM
-
-def ok : a -> DsM a := λ x => Except.ok x
-def error : Std.Format -> DsM a := λ x => Except.error x
-def bind : DsM a -> (a -> DsM b) -> DsM b := Except.bind
-
-def toDsM (pfix : Std.Format) : Option a -> DsM a
-| .some a => ok a
-| .none => error (pfix ++ Std.Format.line)
-
-def toDsMq : Option a -> DsM a := toDsM ""
-
-def run [Repr a] : DsM a -> Std.Format
-| .error e => "Error:" ++ Std.Format.line ++ e
-| .ok t => repr t
-
-end DsM
-
-instance beq_DsMa [BEq a] : BEq (DsM a) where
-     beq x y :=
-       match (x, y) with
-       | (.ok x, .ok y) => x == y
-       | _ => False
 
 
 @[simp]

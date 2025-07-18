@@ -1,5 +1,6 @@
 import SystemFD.Term.Definition
 import SystemFD.Term.Substitution
+import SystemFD.Ctx
 
 namespace Term
 
@@ -66,5 +67,20 @@ namespace Term
   case _ i =>
     generalize zdef : σ i = z at *
     cases z <;> simp at *
+
+
+  def isKind : Term -> Bool
+  | ★ => true
+  | k1 -k> k2 => isKind k1 && isKind k2
+  | _ => false
+
+
+  def isType (Γ : Ctx Term) : Term -> Bool
+  | #x => Γ.is_datatype x || Γ.is_type x
+  | (τ1 -t> τ2) => isType Γ τ1 && isType (.type τ1 :: Γ) τ2
+  | τ1 `@k τ2 => isType Γ τ1 && isType  Γ τ2
+  | _ => false
+
+  def isTerm (Γ : Ctx Term) : Term -> Bool := λ t => not (isKind t || isType Γ t)
 
 end Term

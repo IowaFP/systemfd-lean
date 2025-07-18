@@ -78,7 +78,7 @@ namespace HsTerm
  | HsVar _ => 0
  | HsName _ => 0
  | HsHole t1 => size t1 + 1
- | HsAnnotate t1 t2 => size t1 + size t2 + 1
+ | HsAnnotate _ t2 => size t2 + 1
  | HsCtor2 _ t1 t2 => size t1 + size t2 + 1
  | HsBind2 _ t1 t2 => size t1 + size t2 + 1
  | HsLet t1 t2 t3 => size t1 + size t2 + size t3 + 1

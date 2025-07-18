@@ -69,11 +69,12 @@ partial def compile_args
     .ok (res_τ β[arg'], acc `@ arg')
   | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
 
-partial def checkArgsLength (args : List (HsSpineVariant × HsTerm)) (τs : Ctx Term) : DsM Unit := do
+partial def checkArgsLength (Γ : Ctx Term) (args : List (HsSpineVariant × HsTerm)) (τs : Ctx Term) : DsM Unit := do
   if args.length > τs.length
   then .error ("compile length mismatch"
-                ++ Std.Format.line ++ (repr args)
-                ++ Std.Format.line ++ (repr τs))
+                ++ Std.Format.line ++ repr args
+                ++ Std.Format.line ++ repr τs
+                ++ Std.Format.line ++ repr Γ)
   else .ok ()
 
 
@@ -85,51 +86,109 @@ else do
                       (synth_coercion Γ actual_τ exp_τ)
    .ok (t ▹ η)
 
--- @[simp]
-partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
--- TODO: Type directed compilation
--- def compile : (Γ : Ctx Term) -> Term -> HsTerm -> Option Term
--------------------
---- Kind
--------------------
-| _ , □, `★ => .ok ★
-
-| Γ, □ , .HsCtor2 .arrowk t1 t2 => do
-  let t1' <- compile Γ □ t1
-  let t2' <- compile Γ □ t2
-  .ok (.ctor2 .arrowk t1' t2')
-
-| Γ, _, .HsCtor2 .appk f a => do
-  let (h, sp) <- .toDsMq (HsTerm.split_kind_app (.HsCtor2 .appk f a))
-  let τ <- .toDsM ("GetType" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h) ((Γ d@ h).get_type)
-  let (κs, _) <- .toDsMq (Term.split_kind_arrow τ)
-  let args' <- List.mapM
-    (λ a => compile Γ a.1 a.2)
-    (List.zip κs sp)
-  .ok (Term.mk_kind_app h args')
 
 
-| Γ, ★ , .HsBind2 .arrow A B => do
-  let A' <- compile Γ ★ A
-  let B' <- compile (.empty :: Γ) ★ B
+@[simp]
+def split_ty_qtys : Term -> (Ctx Term × Term)
+| .bind2 .all k A =>
+  let (Γ, r) := split_ty_qtys A
+  (.kind k :: Γ, r)
+| t => ([], t)
+
+@[simp]
+def split_ty_preds (Γ : Ctx Term) : Term -> (Ctx Term × Term)
+| .bind2 .arrow p A =>
+  let pnf := p.neutral_form
+  match pnf with
+  | .none => ([], p -t> A)
+  | .some (ph, _) =>
+    if Γ.is_opent ph then
+      let (Γ, r) := split_ty_preds (.type p :: Γ) A
+      (.type p :: Γ, r)
+    else ([], p -t> A)
+| t => ([], t)
+
+@[simp]
+def split_tys : Term -> (Ctx Term × Term)
+| .bind2 .arrow A B =>
+  let (Γ, r) := split_tys B
+  (.type A :: Γ, r)
+| t => ([], t)
+
+
+@[simp]
+def to_telescope_hm (Γ : Ctx Term) (t : Term) : (Ctx Term × Ctx Term × Ctx Term × Term) :=
+  let (qvars, t) := split_ty_qtys t
+  let (preds, t) := split_ty_preds (qvars ++ Γ) t
+  let (tys, t) := split_tys t
+  (qvars, preds, tys, t)
+
+
+
+def compile_kind (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
+  | □, `★ => .ok ★
+  | □, (k1 `-k> k2) => do
+    let k1' <- compile_kind Γ □ k1
+    let k2' <- compile_kind Γ □ k2
+    return k1' -k> k2'
+  | τ , t => .error ("comile kind failed" ++ repr τ ++ repr t)
+
+
+def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
+  | ★ , .HsBind2 .arrow A B => do
+  let A' <- compile_type Γ ★ A
+  let B' <- compile_type (.empty :: Γ) ★ B
   .ok (.bind2 .arrow A' B')
 
-| Γ, ★ , .HsBind2 .farrow A B => do
-  let A' <- compile Γ ★ A
-  let B' <- compile (.empty :: Γ) ★ B
+  | ★ , .HsBind2 .farrow A B => do
+  let A' <- compile_type Γ ★ A
+  let B' <- compile_type (.empty :: Γ) ★ B
   .ok (.bind2 .arrow A' B')
 
-| Γ, ★ , .HsBind2 .all A B => do
-  let A' <- compile Γ □ A
-  let B' <- compile (.kind A' :: Γ) ★ B
+  | ★ , .HsBind2 .all A B => do
+  let A' <- compile_kind Γ □ A
+  let B' <- compile_type (.kind A' :: Γ) ★ B
   .ok (.bind2 .all A' B')
 
-| Γ, τ, .HsHole a => do
+  | exp_κ, τ => do
+    let tnf := τ.neutral_form
+    match thfp : tnf with
+    | .none => .error ("compile_type neutral form" ++ repr τ)
+    | .some (h, sp) =>
+      match h with
+      | `#h =>
+        let τ <- .toDsM ("compile_type get type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h)
+              ((Γ d@ h).get_type)
+        let (κs, actual_κ) <- .toDsMq (Term.split_kind_arrow τ)
+        if keq : exp_κ == actual_κ && sp.all (λ x => x.1 == .kind) && κs.length == sp.length
+        then
+          let zz := List.attach (List.zip (List.attach κs) (List.attach sp))
+          let args' <- zz.mapM
+                    (λ arg =>
+                      compile_type Γ arg.val.1 (arg.val.2.val.2))
+          .ok (Term.mk_kind_app h args')
+        else .error ("compile_type ill kinded" ++ repr τ)
+      | _ => .error ("compile_type head" ++ repr h ++ repr sp)
+termination_by _ t => t.size
+decreasing_by (
+any_goals (simp; omega)
+case _ =>
+  simp at keq; cases keq;
+  case _ j1 j2 =>
+    let argv := arg.val
+    have lem := HsTerm.application_spine_size τ thfp argv.2.val.2;
+    simp at lem;
+    apply lem argv.2.val.1 argv.2.property;
+)
+
+partial def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
+
+| τ, .HsHole a => do
   let k <- .toDsM ("Wanted τ kind"
            ++ Std.Format.line ++ repr Γ
            ++ Std.Format.line ++ repr τ
             ) (infer_kind Γ τ)
-  let a' <- compile Γ k a
+  let a' <- compile_type Γ k a
 
   let t <- .toDsM ("synth_term hole"
            ++ Std.Format.line ++ repr Γ
@@ -149,8 +208,8 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
     .ok (η `@ t)
 
 
-| Γ, .bind2 .arrow A B, .HsBind2 .lam A' t => do
-  let α' <- compile  Γ ★ A'
+| .bind2 .arrow A B, .HsBind2 .lam A' t => do
+  let α' <- compile_type  Γ ★ A'
   if A == α'
   then do
     -- If A is a typeclass/opent and it has some
@@ -160,45 +219,47 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
 
     let new_eqs <- try_type_improvement (.type A :: Γ) 0
     let st := [S' new_eqs.length] t
+    let sB := [S' new_eqs.length]B
+
     -- The eqs are wrt Γ so shift them to be wrt type A :: Γ
     let Γ_eqs := ((Term.shift_helper new_eqs.length).zip new_eqs).reverse.map (λ x =>
         let (shift_idx, A, t) := x
         .term ([S' (shift_idx)]A) ([S' (shift_idx)]t))
 
-    let t' <- compile (Γ_eqs ++ .type A :: Γ) ([S' Γ_eqs.length]B) st
+    let t' <- compile (Γ_eqs ++ .type A :: Γ) sB st
     let t' <- .toDsM "mk_lets failed" (t'.mk_lets Γ_eqs)
+    -- TODO: instead of mk_lets maybe eagerly inline them?
 
-    .ok (.bind2 .lam A t')
+    .ok (`λ[A] t')
   else .error ("compile lam"
                 ++ Std.Format.line ++ (repr (A -t> B))
                 ++ Std.Format.line ++ (repr (λ̈[A'] t)))
 
-| Γ, .bind2 .all A B, .HsBind2 .lamt A' t => do
-  let α' <- compile Γ □ A'
+| .bind2 .all A B, .HsBind2 .lamt A' t => do
+  let α' <- compile_kind Γ □ A'
   if A == α'
   then do
     let t' <- compile (.kind A :: Γ) B t
-    .ok (.bind2 .lamt A t')
+    .ok (Λ[A] t')
   else .error ("compile lamt" ++ (repr (∀[A] B)) ++ (repr (Λ̈[A'] t)))
 
-
-| Γ, τ, .HsLet A t1 t2 => do
-  let α <- compile Γ ★ A
+| τ, .HsLet A t1 t2 => do
+  let α <- compile_type Γ ★ A
   let t1' <- compile Γ α t1
   let t2' <- compile (.term α t1' :: Γ) τ t2 -- Deal with dB BS
   .ok (.letterm α t1' t2')
 
-| Γ, τ, .HsIte (.HsAnnotate pτ p) (.HsAnnotate sτ s) (.HsAnnotate iτ i) t => do
-  let pτ' <- compile Γ ★ pτ
+| τ, .HsIte (.HsAnnotate pτ p) (.HsAnnotate sτ s) (.HsAnnotate iτ i) t => do
+  let pτ' <- compile_type Γ ★ pτ
   let p' <- compile Γ pτ' p
-  let sτ' <- compile Γ ★ sτ
+  let sτ' <- compile_type Γ ★ sτ
   let s' <- compile Γ sτ' s
-  let iτ' <- compile Γ ★ iτ
+  let iτ' <- compile_type Γ ★ iτ
   let i' <- compile Γ iτ' i
   let t' <- compile Γ τ t
   .ok (.ite p' s' i' t')
 
-| Γ, exp_τ, t => do
+| exp_τ, t => do
   let (head, args) <- .toDsM ("no neutral form" ++ repr t) t.neutral_form
 
   -- Compile Head
@@ -206,7 +267,7 @@ partial def compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term
   let (τs, _) := τh'.to_telescope
 
   -- make sure the length of the arguments is fine
-  checkArgsLength args τs
+  checkArgsLength Γ args τs
 
   -- Compile Args and actual type
   let (actual_τ, t') <- List.foldlM (compile_args compile Γ) (τh', h') args

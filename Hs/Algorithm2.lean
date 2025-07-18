@@ -302,24 +302,24 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   .ok (.empty :: Γ')
 | .cons (.kind k) Γ => do
   let Γ' <- compile_ctx Γ
-  let k' <- compile Γ' □ k
+  let k' <- compile_kind Γ' □ k
   .ok (.kind k' :: Γ')
 | .cons (.type τ) Γ => do
   let Γ' <- compile_ctx Γ
-  let τ' <- compile Γ' ★ τ
+  let τ' <- compile_type Γ' ★ τ
   .ok (.type τ' :: Γ')
 | .cons (.term A t) Γ => do
   let Γ' <- compile_ctx Γ
-  let A' <- compile Γ' ★ A
+  let A' <- compile_type Γ' ★ A
   let t' <- compile Γ' A' t
   .ok (.term A' t' :: Γ')
 
 | .cons (.datatypeDecl k ctors) Γ => do
   let Γ' <- compile_ctx Γ
-  let k' <- compile Γ' □ k
+  let k' <- compile_kind Γ' □ k
   List.foldlM
     (λ Γ τ => do
-      let τ' <- compile Γ ★ τ
+      let τ' <- compile_type Γ ★ τ
       .ok ((.ctor τ') ::  Γ)
     )
     (.datatype k' :: Γ') ctors
@@ -327,7 +327,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 -- Compiling Classes
 | .cons (.classDecl C scs fds oms) Γ => do
   let Γ' <- compile_ctx Γ
-  let C' <- compile Γ' □ C
+  let C' <- compile_kind Γ' □ C
 
 
   -- Step 1. Add the open type
@@ -350,7 +350,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
     let class_type := Term.mk_kind_apps_rev ([S' ty_vars.length]cls_con) ty_vars.reverse
 
-    let sc' <- compile (ty_vars_ctx ++ Γ) ★ sc
+    let sc' <- compile_type (ty_vars_ctx ++ Γ) ★ sc
 
     let sc_fun : Term :=  class_type -t> ([S]sc') -- [S] becuase -t> is binder
     let sc_fun := sc_fun.from_telescope_rev ty_vars_ctx
@@ -405,7 +405,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   let Γ' <- List.foldlM
     (λ Γ om_data => do
       let (idx, τ) := om_data
-      let τ' <- compile Γ ★ τ
+      let τ' <- compile_type Γ ★ τ
       let (Γ_l, ret_ty) := τ'.to_telescope
       let (Γ_tyvars, Γ_rest) := Γ_l.partition (λ x => x.is_kind)
       let class_ty := Term.mk_kind_apps (#(scs.length + fds.length + Γ_tyvars.length + idx))
@@ -427,7 +427,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
   -- Step1: Compile instance type
   -- ity is of the form C τs ⇒ D τs
-  let ity_orig' <- compile Γ' ★ ity
+  let ity_orig' <- compile_type Γ' ★ ity
   let (cls_idx , ity', β_count) <- mk_inst_type Γ' ity_orig'
 
 
@@ -674,7 +674,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let (mth_τ', mth') <- match mth with
       | .HsAnnotate τ mth  => do
-        let τ' <- compile Γ ★ τ
+        let τ' <- compile_type Γ ★ τ
         let mth' <- compile Γ τ' mth
         .ok (τ', mth')
       | .HsVar n => do
@@ -775,4 +775,15 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   else .error ("Not all methods implemented" ++ repr mths ++ Std.Format.line ++ repr openm_ids)
 
   .ok Γ'
-| t => .error ("unimplemented " ++ repr t)
+| .cons (.tyfam k) Γ => do
+  let Γ' <- compile_ctx Γ
+
+  let k' <- compile_kind Γ' □ k
+
+  .error ("unimplemented " ++ repr k
+  ++ Std.Format.line ++ repr Γ')
+
+| .cons (.tyfaminst τ retτ) Γ => do
+  let Γ' <- compile_ctx Γ
+  .error ("unimplemented " ++ repr τ
+  ++ Std.Format.line ++ repr Γ')

@@ -152,7 +152,7 @@ def EqMaybeI : HsFrame HsTerm :=
 
 
 def Γ2 : HsCtx HsTerm := [
-  EqMaybeI,
+  -- EqMaybeI,
   eqMaybeF,
   MbF,
   EqBoolInst,
@@ -163,6 +163,7 @@ def Γ2 : HsCtx HsTerm := [
 
 
 #eval DsM.run (compile_ctx Γ2)
+
 #guard (do let Γ2 <- compile_ctx Γ2
            .toDsMq (wf_ctx Γ2)
        ) == .ok ()

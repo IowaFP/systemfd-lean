@@ -451,7 +451,6 @@ namespace Term
      mk_lets_rev (.letterm A x t) xs
    | _, _ => .none
 
-
 end Term
 
 instance substTypeLaws_Term : SubstitutionTypeLaws Term where
