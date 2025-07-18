@@ -63,7 +63,6 @@ end DsM
 
 namespace Except
 
--- @[simp, grind]
 theorem bind_eq_ok (ε : Type) (α β : Type) (f : α -> Except ε β) (b : β) (x : Except ε α):
   Except.bind x f = .ok b ↔ ∃ (a : α), (x = .ok a) ∧ f a = .ok b := by
 cases x <;> simp at *

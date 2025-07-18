@@ -116,11 +116,10 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
   .ok (.bind2 .all A' B')
 
   | exp_κ, τ => do
-    let tnf := τ.neutral_form
-    match thfp : tnf with
+    match thfp : τ.neutral_form with
     | .none => .error ("compile_type neutral form" ++ repr τ)
     | .some (h, sp) =>
-      match h with
+      match hp : h with
       | `#h =>
         let τ <- .toDsM ("compile_type get type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h)
               ((Γ d@ h).get_type)
