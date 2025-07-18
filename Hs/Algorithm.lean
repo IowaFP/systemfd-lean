@@ -35,41 +35,7 @@ def compile_spine_variant : HsSpineVariant -> SpineVariant
 | .kind => .kind
 
 
-partial def compile_head
-  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
-  (Γ : Ctx Term)
-  (head : HsTerm)
-  : DsM (Term × Term)
-:=
-  match head with
-  | .HsAnnotate τh h => do
-    let τh' <- compile Γ ★ τh
-  -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
-    let h' <- compile Γ τh' h
-    DsM.ok (h', τh')
-  | .HsVar h => do
-    let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
-    -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
-    .ok (#h, τh')
-  | t => DsM.error ("compile_head unsupported head" ++ repr t)
-
-partial def compile_args
-  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
-  (Γ : Ctx Term)
-  : Term × Term -> HsSpineVariant × HsTerm -> DsM (Term × Term)
-:= λ acc arg => do
-  let (accτ, acc) : Term × Term := acc
-  let (τ, res_τ) <- .toDsM ("helper2 " ++ repr accτ) accτ.to_telescope_head
-  match τ, arg with
-  | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
-    let arg' <- compile Γ k arg
-    .ok (res_τ β[arg'], acc `@t arg')
-  | .type k, (.term, arg) => do -- accτ better of of the form a -> b
-    let arg' <- compile Γ k arg
-    .ok (res_τ β[arg'], acc `@ arg')
-  | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
-
-partial def checkArgsLength (Γ : Ctx Term) (args : List (HsSpineVariant × HsTerm)) (τs : Ctx Term) : DsM Unit := do
+def checkArgsLength (Γ : Ctx Term) (args : List (HsSpineVariant × HsTerm)) (τs : Ctx Term) : DsM Unit := do
   if args.length > τs.length
   then .error ("compile length mismatch"
                 ++ Std.Format.line ++ repr args
@@ -123,8 +89,7 @@ def to_telescope_hm (Γ : Ctx Term) (t : Term) : (Ctx Term × Ctx Term × Ctx Te
   let (tys, t) := split_tys t
   (qvars, preds, tys, t)
 
-
-
+@[simp]
 def compile_kind (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
   | □, `★ => .ok ★
   | □, (k1 `-k> k2) => do
@@ -133,7 +98,7 @@ def compile_kind (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
     return k1' -k> k2'
   | τ , t => .error ("comile kind failed" ++ repr τ ++ repr t)
 
-
+@[simp]
 def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
   | ★ , .HsBind2 .arrow A B => do
   let A' <- compile_type Γ ★ A
@@ -180,6 +145,41 @@ case _ =>
     simp at lem;
     apply lem argv.2.val.1 argv.2.property;
 )
+
+def compile_head
+  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
+  (Γ : Ctx Term)
+  (head : HsTerm)
+  : DsM (Term × Term)
+:=
+  match head with
+  | .HsAnnotate τh h => do
+    let τh' <- compile_type Γ ★ τh
+  -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
+    let h' <- compile Γ τh' h
+    DsM.ok (h', τh')
+  | .HsVar h => do
+    let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
+    -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
+    .ok (#h, τh')
+  | t => DsM.error ("compile_head unsupported head" ++ repr t)
+
+def compile_args
+  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
+  (Γ : Ctx Term)
+  : Term × Term -> HsSpineVariant × HsTerm -> DsM (Term × Term)
+:= λ acc arg => do
+  let (accτ, acc) : Term × Term := acc
+  let (τ, res_τ) <- .toDsM ("helper2 " ++ repr accτ) accτ.to_telescope_head
+  match τ, arg with
+  | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
+    let arg' <- compile Γ k arg
+    .ok (res_τ β[arg'], acc `@t arg')
+  | .type k, (.term, arg) => do -- accτ better of of the form a -> b
+    let arg' <- compile Γ k arg
+    .ok (res_τ β[arg'], acc `@ arg')
+  | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
+
 
 partial def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 
