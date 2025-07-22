@@ -138,14 +138,15 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 -- def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
 
 -- Synthesizes term of a given type, if one exists, and can be found
-def synth_term (Γ : Ctx Term): Term -> Option Term := λ τ =>
+def synth_term (corns : Nat) (Γ : Ctx Term): Term -> Option Term := λ τ =>
+if corns > 0 then
 match τ with
 | .eq _ A B => synth_coercion Γ A B
 | .bind2 .arrow givenτ wantedτ => do
   let kg <- infer_kind Γ givenτ
   let kw <- infer_kind Γ ([P]wantedτ)
   if kg == kw then
-    let mb_η := synth_term Γ (givenτ ~[kg]~ [P]wantedτ)
+    let mb_η := synth_term (corns - 1) Γ (givenτ ~[kg]~ [P]wantedτ)
     match mb_η with
     | .some η => .some (`λ[givenτ] #0 ▹ [S]η)
     | .none => -- TODO what tyvars do i need to use to instantiate omτ?
@@ -180,7 +181,7 @@ match τ with
                   List.foldlM (λ (acc : List Term) (f : Frame Term × Nat) =>
                     match f with
                     | (Frame.type x, shift_idx) => do
-                        let t <- synth_term Γ (givenτ -t> [P' shift_idx]x)
+                        let t <- synth_term (corns - 1) Γ (givenτ -t> [P' shift_idx]x)
                             -- remember x is actually wrt (givenτ::Γ) so no [S]
                         .some (t :: acc)
                     | _ => .none
@@ -241,7 +242,7 @@ match τ with
                    (λ (ts : List Term) (f : Nat × Frame Term) =>
                    match f with
                    | (idx, Frame.type x) => do
-                       let t <- synth_term Γ ([P' idx]x)
+                       let t <- synth_term (corns - 1) Γ ([P' idx]x)
                        .some (t::ts)
                    | _ => .none
                  ) []
@@ -258,12 +259,7 @@ match τ with
         else if candidate_instances.length == 1
              then candidate_instances.head?
              else .some (candidate_instances.foldl (· ⊕ ·) `0)
-termination_by h => h.size
-decreasing_by  (
-case _ => sorry
-case _ => sorry
-case _ => sorry
-)
+else .none
 
 -- TODO: Can this be merged with synth_term?
 def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do
@@ -321,10 +317,10 @@ def Γ : Ctx Term :=
 
 #guard synth_coercion Γ (#8 -t> #9 -t> #10) (#2 -t> #3 -t> #4) == .some (((refl! ★ #8) `;  #0) -c> (((refl! ★ #9) `;  #1) -c> ((refl! ★ #10) `;  #2)))
 
-#guard synth_term Γ ((#8 -t> #9 -t> #10) ~[★]~ (#2 -t> #3 -t> #4)) == .some (((refl! ★ #8) `;  #0) -c> (((refl! ★ #9) `;  #1) -c> ((refl! ★ #10) `;  #2)))
+#guard synth_term (Γ.length) Γ ((#8 -t> #9 -t> #10) ~[★]~ (#2 -t> #3 -t> #4)) == .some (((refl! ★ #8) `;  #0) -c> (((refl! ★ #9) `;  #1) -c> ((refl! ★ #10) `;  #2)))
 
 -- #eval synth_term Γ (#8 ~[★]~ #2) -- == .some ((refl!  ★ #8) `;  #0)
-#guard synth_term Γ (#8 ~[★]~ #2) == .some ((refl!  ★ #8) `;  #0)
+#guard synth_term Γ.length Γ (#8 ~[★]~ #2) == .some ((refl!  ★ #8) `;  #0)
 
 #guard synth_coercion Γ (#8 -t> #9) (#2 -t> #3) == .some (((refl! ★ #8) `;  #0) -c> ((refl! ★ #9) `;  #1))
 
@@ -338,14 +334,14 @@ def ctx0 : Ctx Term := [
  .datatype ★ ]
 #guard wf_ctx ctx0 == .some ()
 
-#guard synth_term ctx0 (#4 `@k #5) == .some (#3 `@t #5 `@ (refl! ★ #5))
+#guard synth_term ctx0.length ctx0 (#4 `@k #5) == .some (#3 `@t #5 `@ (refl! ★ #5))
 -- #eval synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6)
 
 #guard infer_type ctx0 (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))) ) == .some ((#2 `@k #5) -t> (#3 `@k #6))
 
-#guard synth_term ctx0 (#2 `@k #5 -t> #3 `@k #6) == .some (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))))
+#guard synth_term ctx0.length ctx0 (#2 `@k #5 -t> #3 `@k #6) == .some (`λ[#2 `@k #5] (#0 ▹ (refl! (★ -k> ★) #3 `@c (refl! ★ #6))))
 
-#guard (do let t <- synth_term ctx0 (#2 `@k #5 -t> #5 `@k #6)
+#guard (do let t <- synth_term ctx0.length ctx0 (#2 `@k #5 -t> #5 `@k #6)
            infer_type ctx0 t) == .some (#2 `@k #5 -t> #5 `@k #6)
 
 
@@ -370,8 +366,8 @@ def ctx1 : Ctx Term := [
  .datatype ★ ]
 #guard wf_ctx ctx1 == .some ()
 
-#guard synth_term ctx1 (#4 `@k #1) == .some #0
-#guard synth_term [.type (#13 `@k #1)] (#14 `@k #2) == .some #0
+#guard synth_term ctx1.length ctx1 (#4 `@k #1) == .some #0
+#guard synth_term ctx1.length [.type (#13 `@k #1)] (#14 `@k #2) == .some #0
 
 #guard synth_superclass_inst ctx1 [#1] (#1 ~[★]~ #7 -t> #7 `@k #8) == (#5 `@t #1)
 
@@ -485,7 +481,7 @@ def ctx : Ctx Term := [
  .datatype ★
  ]
 
-#guard synth_term ctx (#14 `@k #2) == .some #0
+#guard synth_term ctx.length ctx (#14 `@k #2) == .some #0
 #guard infer_type ctx #0 == .some (#14 `@k #2)
 
 -- Test for improvements
@@ -516,10 +512,10 @@ def ctx : Ctx Term := [
  .openm (∀[★]∀[★]∀[★]#3 `@k #2 `@k #1 -t> #4 `@k #3 `@k #1 -t> (#3 ~[★]~ #2)),
  .opent (★ -k> ★ -k> ★)]
 
-#guard synth_term Γ1 (#13 `@k #7 `@k #1) == .some #0
+#guard synth_term Γ1.length Γ1 (#13 `@k #7 `@k #1) == .some #0
 #guard infer_type Γ1 #0 == .some (#13 `@k #7 `@k #1)
 
-#guard synth_term Γ1 (#13 `@k #7 `@k #7) == .some ((#4 `@t #7 `@t #7 `@ (refl! ★ #7)) `@ (refl! ★ #7))
+#guard synth_term Γ1.length Γ1 (#13 `@k #7 `@k #7) == .some ((#4 `@t #7 `@t #7 `@ (refl! ★ #7)) `@ (refl! ★ #7))
 #guard infer_type Γ1 ((#4 `@t #7 `@t #7 `@ (refl! ★ #7)) `@ (refl! ★ #7)) == .some (#13 `@k #7 `@k #7)
 
 
@@ -912,6 +908,7 @@ def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
   .toDsM "wf_ctx failed Γ_pairwise" (wf_ctx (Γ_pairwise_ηs ++ Γ_ηs ++ Γ_g))
 
   let τ := [S' (Γ_ηs.length + Γ_pairwise_ηs.length)]τ
+  let Γ := Γ_pairwise_ηs ++ Γ_ηs ++ Γ_g
   let t <- .toDsM ("synth_inst_coercion"
   ++ Std.Format.line ++ "τ: " ++ repr τ
 
@@ -927,7 +924,7 @@ def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
   -- ++ Std.Format.line ++ "Γ: " ++ repr Γ
   ++ Std.Format.line ++ "fd_ids: " ++ repr fd_ids
   ++ Std.Format.line ++ "fds: " ++ repr fun_deps
-  ) (synth_term (Γ_pairwise_ηs ++ Γ_ηs ++ Γ_g) τ)
+  ) (synth_term Γ.length Γ τ)
   let η := t.mk_lets_rev (Γ_pairwise_ηs ++ Γ_ηs)
 
   match η with
@@ -1085,7 +1082,7 @@ match τ.neutral_form with
                   ++ Std.Format.line ++ "inst_τs: " ++ repr insts ++ repr inst_τs
                   ++ Std.Format.line ++ "tyvars: " ++ repr Γ_local_tyvars ++ repr local_tyvars
                   ++ Std.Format.line ++ "acc: " ++ repr acc
-                  ) (synth_term Γ argτ)
+                  ) (synth_term Γ.length Γ argτ)
           let τ' <- .toDsM "instantiate types failed in fd_terms" (instantiate_type τ argτ)
           let t' := t `@ arg
           .ok (τ', t')

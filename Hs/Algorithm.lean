@@ -188,7 +188,7 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
   let t <- .toDsM ("synth_term hole"
            ++ Std.Format.line ++ repr Γ
            ++ Std.Format.line ++ repr a')
-           (synth_term Γ a')
+           (synth_term Γ.length Γ a')
 
   -- τ is wanted
   -- a' is what we have/given
@@ -199,7 +199,7 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
     let η <- .toDsM ("synth_term coercion hole"
              ++ Std.Format.line ++ repr Γ
              ++ Std.Format.line ++ repr (a' -t> [S]τ))
-             (synth_term Γ (a' -t> [S]τ))
+             (synth_term Γ.length Γ (a' -t> [S]τ))
     .ok (η `@ t)
 
 
