@@ -472,7 +472,7 @@ instance substTypeLaws_Term : SubstitutionTypeLaws Term where
   induction t generalizing r <;> simp [*]
   case _ x => unfold Ren.to; simp
 
-  theorem right_shifting_size_no_change {s : Term} : s.size = ([S' k]s).size := by
+  theorem right_shifting_size_no_change (s : Term) : s.size = ([S' k]s).size := by
   have lem := @size_of_subst_rename s (fun n => n + k);
   unfold S'; rw [<-lem]; rfl
 

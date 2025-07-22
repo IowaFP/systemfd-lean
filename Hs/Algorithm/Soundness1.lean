@@ -28,6 +28,24 @@ case _ k1 k2 ih1 ih2 =>
   replace ih2 := ih2 e2 h2;
   constructor; assumption; assumption
 
+theorem dsm_get_type_sound : DsM.toDsM s (Γ d@ h).get_type = .ok τ -> Γ ⊢ #h : τ := by
+intro j
+unfold DsM.toDsM at j
+let gt := (Γ d@ h).get_type
+generalize fh : Γ d@ h = f at *;
+cases f;
+all_goals (simp at j; unfold Frame.get_type at j; simp at j)
+· cases j; sorry
+· sorry
+· sorry
+· sorry
+· sorry
+· sorry
+· sorry
+· sorry
+
+
+
 theorem compile_type_sound (k : Term) (τ : HsTerm) :
   ⊢ Γ ->
   Term.IsKind k ->
@@ -98,6 +116,8 @@ case _ k τ sp h tnfp tnf _ _ _ ih =>
       cases j; case _ w3 j =>
       cases j; case _ t3 j =>
       cases j;
+      have lem := dsm_get_type_sound t1;
+      -- we are stuck here. as we do not know the shape of w1
       sorry
     · sorry
 

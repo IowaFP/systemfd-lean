@@ -119,12 +119,12 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
     match thfp : τ.neutral_form with
     | .none => .error ("compile_type neutral form" ++ repr τ)
     | .some (h, sp) =>
-      match hp : h with
+      match h with
       | `#h =>
         let τ <- .toDsM ("compile_type get type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h)
               ((Γ d@ h).get_type)
         let (κs, actual_κ) <- .toDsMq (Term.split_kind_arrow τ)
-        if keq : exp_κ == actual_κ && sp.all (λ x => x.1 == .kind) && κs.length == sp.length
+        if exp_κ == actual_κ && sp.all (λ x => x.1 == .kind) && κs.length == sp.length
         then
           let zz := List.attach (List.zip (List.attach κs) (List.attach sp))
           let args' <- zz.mapM
@@ -136,13 +136,10 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
 termination_by _ t => t.size
 decreasing_by (
 any_goals (simp; omega)
-case _ =>
-  simp at keq; cases keq;
-  case _ j1 j2 =>
-    let argv := arg.val
-    have lem := HsTerm.application_spine_size τ thfp argv.2.val.2;
-    simp at lem;
-    apply lem argv.2.val.1 argv.2.property;
+· let argv := arg.val
+  have lem := HsTerm.application_spine_size τ thfp argv.2.val.2;
+  simp at lem;
+  apply lem argv.2.val.1 argv.2.property;
 )
 
 def compile_head
@@ -180,8 +177,7 @@ def compile_args
   | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
 
 
-partial def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
-
+def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 | τ, .HsHole a => do
   let k <- .toDsM ("Wanted τ kind"
            ++ Std.Format.line ++ repr Γ
@@ -273,6 +269,23 @@ partial def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 
   -- coerce if needed and return
   mb_coerce Γ t' exp_τ actual_τ
+termination_by h => h.size
+decreasing_by (
+case _ =>
+  have lem := @right_shifting_size_no_change new_eqs.length B
+  rw[<-lem]
+  simp; omega
+case _ => simp; omega
+case _ => -- Hole
+  sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+)
 
 
 -- namespace Algorithm.Test

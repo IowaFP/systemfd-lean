@@ -133,12 +133,12 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
        == .some ((refl! ★ #1) `; #0)
 
 
-def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b => do
-  .some (a ~[★]~ b)
-def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
+-- def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b => do
+--   .some (a ~[★]~ b)
+-- def synth_term_dummy (_: Ctx Term) : Term -> Option Term := λ a => .some a
 
 -- Synthesizes term of a given type, if one exists, and can be found
-partial def synth_term (Γ : Ctx Term): Term -> Option Term := λ τ =>
+def synth_term (Γ : Ctx Term): Term -> Option Term := λ τ =>
 match τ with
 | .eq _ A B => synth_coercion Γ A B
 | .bind2 .arrow givenτ wantedτ => do
@@ -258,7 +258,12 @@ match τ with
         else if candidate_instances.length == 1
              then candidate_instances.head?
              else .some (candidate_instances.foldl (· ⊕ ·) `0)
-
+termination_by h => h.size
+decreasing_by  (
+case _ => sorry
+case _ => sorry
+case _ => sorry
+)
 
 -- TODO: Can this be merged with synth_term?
 def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := λ iτs ret_ty => do
@@ -722,7 +727,7 @@ def get_fundeps (pfix : Std.Format) (Γ : Ctx Term) (cls_idx : Nat) : DsM (List 
 
 
 
-partial def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
+def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
   Ctx Term -> Ctx Term -> Ctx Term -> Term -> DsM Term
 | Γ_l, Γ_outer, Γ_inner, τ => do
   -- the two things that i want to find the coercion to equate will be in Γ_l
@@ -980,14 +985,14 @@ def η : Term :=
 #guard wf_ctx (ctx4) == .some ()
 
 
-#eval DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8))
+#eval! DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8))
 
 #guard (do let η <- synth_instance_coercion (ctx4.drop 15) 19
                        ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#3 ~[★]~ #8)
            .toDsMq (infer_type ctx4 η)
               ) == .ok (#3 ~[★]~ #8)
 
-#eval DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12))
+#eval! DsM.run (synth_instance_coercion (ctx4.drop 15) 19 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12))
 
 #guard (do let η <- synth_instance_coercion (ctx4.drop 15) 19
                 ((ctx4.drop 10).take 5) ((ctx4.drop 5).take 5) (ctx4.take 5) (#13 ~[★]~ #12)
@@ -998,7 +1003,7 @@ end SynthInst.Test
 
 
 
-partial def try_type_improvement (Γ : Ctx Term) : Nat -> DsM (List (Term × Term)) := λ i => do
+def try_type_improvement (Γ : Ctx Term) : Nat -> DsM (List (Term × Term)) := λ i => do
 let τ <- .toDsM "try_type_impr" (Γ d@ i).get_type
 let Γ_local_tyvars := Γ.tail.takeWhile (·.is_kind)
 let local_tyvars := (fresh_vars Γ_local_tyvars.length).reverse.map ([S]·)
@@ -1166,6 +1171,6 @@ def Γ2 : Ctx Term := [.type (#12 `@k #13 `@k #0),
  .openm (∀[★]∀[★]∀[★]((#3 `@k #2) `@k #1) -t> ((#4 `@k #3) `@k #1) -t> #3 ~[★]~ #2),
  .opent (★ -k> ★ -k> ★),
  .datatype (★)]
- #eval DsM.run (try_type_improvement Γ2 0)
+#eval! DsM.run (try_type_improvement Γ2 0)
 
 end TypeImpr.Test
