@@ -428,7 +428,7 @@ case _ f A B a j1 j2 ih1 ih2 =>
     replace ih1 := ih1 lem2
     cases lem2; case _ q1 q2 =>
       replace ih2 := ih2 q1
-      apply Term.IsType.app ih1 ih2
+      apply Term.IsType.app f a ih1 ih2
   case _ lem =>
     cases lem; case _ K lem =>
     cases lem.2; cases lem.1
@@ -509,3 +509,6 @@ case _ j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
 theorem type_shape : Γ ⊢ t : A -> A.IsKind -> t.IsType := by
 intro j1 j2
 apply type_shape_lemma j1 j2
+
+
+theorem kind_of_type_well_formed : ⊢ Γ -> Term.IsType τ -> Γ ⊢ τ : k -> Γ ⊢ k : □ := by sorry

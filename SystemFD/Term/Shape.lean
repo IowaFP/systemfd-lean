@@ -10,10 +10,10 @@ namespace Term
 
   inductive IsType : Term -> Prop where
   | var : IsType #x
-  | all : IsKind A -> IsType B -> IsType (∀[A] B)
-  | arrow : IsType A -> IsType B -> IsType (A -t> B)
-  | app : IsType A -> IsType B -> IsType (f `@k a)
-  | eq : IsKind K -> IsType A -> IsType B -> IsType (A ~[K]~ B)
+  | all : ∀ A B, IsKind A -> IsType B -> IsType (∀[A] B)
+  | arrow : ∀ A B, IsType A -> IsType B -> IsType (A -t> B)
+  | app : ∀ A B, IsType A -> IsType B -> IsType (f `@k a)
+  | eq : ∀ A B K, IsKind K -> IsType A -> IsType B -> IsType (A ~[K]~ B)
 
   theorem is_kind_disjoint_is_type : IsKind t -> ¬ IsType t := by
   intro h1 h2
@@ -77,8 +77,10 @@ namespace Term
 
   def isType (Γ : Ctx Term) : Term -> Bool
   | #x => Γ.is_datatype x || Γ.is_type x
-  | (τ1 -t> τ2) => isType Γ τ1 && isType (.type τ1 :: Γ) τ2
+  | (τ1 -t> τ2) => isType Γ τ1 && isType (.empty :: Γ) τ2
+  | (∀[k]τ) => isKind k && isType (.kind k :: Γ) τ
   | τ1 `@k τ2 => isType Γ τ1 && isType  Γ τ2
+  | τ1 ~[k]~ τ2 => isType Γ τ1 && isType  Γ τ2 && isKind k
   | _ => false
 
   def isTerm (Γ : Ctx Term) : Term -> Bool := λ t => not (isKind t || isType Γ t)
@@ -102,11 +104,22 @@ namespace Term
       replace ih1 := ih1 j.1
       replace ih2 := ih2 j.2
       constructor; assumption; assumption
+    case _ ih =>
+      simp at j
+      replace ih := ih j.2
+      have lem := is_kind_shape_sound j.1
+      constructor; assumption; assumption
     case _ ih1 ih2 =>
       simp at j;
       replace ih1 := ih1 j.1
       replace ih2 := ih2 j.2
       constructor; assumption; assumption
+    case _ ih1 ih2 =>
+      simp at j
+      replace ih1 := ih1 j.1.1
+      replace ih2 := ih2 j.1.2
+      have lem := is_kind_shape_sound j.2
+      constructor; assumption; assumption; assumption
     case _ ih1 ih2 =>
       simp at j
 end Term
