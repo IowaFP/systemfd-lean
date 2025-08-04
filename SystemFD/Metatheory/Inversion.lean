@@ -5,8 +5,9 @@ import SystemFD.Metatheory.Weaken
 import SystemFD.Metatheory.Uniqueness
 import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Classification
+import SystemFD.Metatheory.Shape
 
-set_option maxHeartbeats 500000
+-- set_option maxHeartbeats 500000
 
 theorem invert_eq_kind : Γ ⊢ (A ~[K]~ B) : w -> w = ★ := by
 intros eqJ; cases eqJ; simp_all;
@@ -508,3 +509,35 @@ case _ =>
   apply Exists.intro _
   apply Exists.intro _
   apply And.intro j1 j3
+
+
+
+@[simp]
+abbrev KindOfTypeLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
+| .prf => λ (τ, k) => Term.isType Γ τ -> Γ ⊢ τ : k -> Γ ⊢ k : □
+| .wf => λ () => True
+
+
+theorem kind_of_type_well_formed : ⊢ Γ ->
+ Judgment v Γ a -> KindOfTypeLemmaType Γ v a
+:= by
+intro wf j1
+induction j1 <;> simp at *
+all_goals(
+intro j2 j3
+have lem := Term.is_type_shape_sound j2; cases lem
+)
+case _ =>
+  unfold Term.isType at j2; simp at j2
+  cases j2
+  sorry
+  sorry
+case _ => constructor; assumption
+case _ => constructor; assumption
+case _ =>
+  cases j3; case _ h0 ih _ h1 h2 _ h3 h4  =>
+  have u := uniqueness_of_kinds h2 h3 h0; cases u
+  unfold Term.isType at j2; simp at j2
+  replace ih := ih wf j2.1 h4
+  cases ih; assumption
+case _ => constructor; assumption

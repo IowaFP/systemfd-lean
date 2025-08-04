@@ -10,10 +10,10 @@ namespace Term
 
   inductive IsType : Term -> Prop where
   | var : IsType #x
-  | all : ∀ A B, IsKind A -> IsType B -> IsType (∀[A] B)
-  | arrow : ∀ A B, IsType A -> IsType B -> IsType (A -t> B)
-  | app : ∀ A B, IsType A -> IsType B -> IsType (f `@k a)
-  | eq : ∀ A B K, IsKind K -> IsType A -> IsType B -> IsType (A ~[K]~ B)
+  | all : IsKind A -> IsType B -> IsType (∀[A] B)
+  | arrow : IsType A -> IsType B -> IsType (A -t> B)
+  | app : IsType f -> IsType a -> IsType (f `@k a)
+  | eq : IsKind K -> IsType A -> IsType B -> IsType (A ~[K]~ B)
 
   theorem is_kind_disjoint_is_type : IsKind t -> ¬ IsType t := by
   intro h1 h2

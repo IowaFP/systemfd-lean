@@ -7,7 +7,7 @@ import Hs.Translator.HsTerm
 import Hs.SynthInstance
 
 import SystemFD.Term
-import SystemFD.Metatheory.Shape
+import SystemFD.Metatheory.Inversion
 
 import Batteries.Lean.Except
 
@@ -145,8 +145,8 @@ case _ j =>
    rw[jlhs] at jrhsk; cases jrhsk
    constructor
    · have lem1 := infer_kind_sound jlhsk wf;
-     have lem2 := Term.is_type_shape_sound wfrhs
-     have lem3 := kind_of_type_well_formed wf lem2 lem1
+     have lem3 := kind_of_type_well_formed wf lem1; simp at lem3;
+     replace lem3 := lem3 wflhs lem1;
      assumption
    · apply infer_kind_sound jlhs wf
  · rw[Option.bind_eq_some] at j; cases j; case _ j =>
@@ -198,21 +198,6 @@ all_goals (unfold synth_term at j)
   case _ => cases j; sorry
   case _ =>
     sorry
-    -- unfold Term.isType at wfτ; simp at wfτ;
-    -- cases wfτ; case _ wfτ _ =>
-    -- cases wfτ; cases jk;
-    -- case _ j1 _ j2 j3 j4 j5 j6 j7 j8 =>
-    -- have lemA := infer_kind_sound j1 wf
-    -- have lemB := infer_kind_sound j2 wf
-    -- have lemA' := Term.is_type_shape_sound j4
-    -- have lemB' := Term.is_type_shape_sound j5
-    -- have u := uniqueness_of_kinds lemA' j7 lemA; cases u
-    -- have u := uniqueness_of_kinds lemB' j8 lemB; cases u
-    -- apply synth_coercion_type_sound; assumption; assumption; assumption; assumption; assumption; assumption
-    -- · simp at j;
-    --   cases j;
-    -- sorry
-
 case _ h =>
   unfold synth_term at j; simp at j; exfalso; simp_all;
   cases j; case _ j =>
@@ -225,7 +210,6 @@ case _ h =>
   cases j; case _ j1 j2 =>
   sorry
 case _ => simp_all -- contradiction case we are out of corns
-
 
 
 theorem compile_type_sound (k : Term) (τ : HsTerm) :
