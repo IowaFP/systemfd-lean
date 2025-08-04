@@ -160,9 +160,12 @@ namespace EqGraph
 
   def find_node_with_label (g : EqGraph T) (label : T) : Option Nat := g.nodes.idxOf? label
 
-  def find_path_by_label (g : EqGraph T) (visited : Nat -> Bool) (s : T) (t : T) : Option (List T) := do
+  def find_path_by_label_aux (g : EqGraph T) (visited : Nat -> Bool) (s : T) (t : T) : Option (List T) := do
     let source <- find_node_with_label g s
     find_path g visited source t
+
+  def find_path_by_label (g : EqGraph T) (s : T) (t : T) : Option (List T) :=
+    find_path_by_label_aux g (λ _ => false) s t
 
   def add_node (g : EqGraph T) (l : T) : EqGraph T :=
     { nodes := g.nodes ++ [l], edges := g.edges } -- TODO do we care about efficieny?
@@ -179,7 +182,7 @@ namespace EqGraph
 instance beq_EqGraph [BEq T] : BEq (EqGraph T) where
   beq g1 g2 := g1.nodes == g2.nodes && g1.edges == g2.edges
 
-  namespace Test
+  namespace EqGraph.Test
     def test_graph_loop : EqGraph String := {
       nodes := ["a", "b", "c", "d", "e"],
       edges := [
@@ -192,12 +195,12 @@ instance beq_EqGraph [BEq T] : BEq (EqGraph T) where
 
     #guard find_path test_graph_loop (λ _ => false) 1 "a"
            == .some ["b->c", "c->d", "d->e", "e->a"]
-    #guard find_path_by_label test_graph_loop (λ _ => false) "b" "a"
+    #guard find_path_by_label test_graph_loop "b" "a"
            == .some ["b->c", "c->d", "d->e", "e->a"]
     #guard find_path test_graph_loop (λ _ => false) 0 "e"
            == .some ["a->b", "b->c", "c->d", "d->e"]
-    #guard find_path_by_label test_graph_loop (λ _ => false) "a" "e"
+    #guard find_path_by_label test_graph_loop "a" "e"
            == .some ["a->b", "b->c", "c->d", "d->e"]
-  end Test
+  end EqGraph.Test
 
 end EqGraph

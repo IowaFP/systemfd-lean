@@ -101,27 +101,40 @@ def construct_coercion_graph (Γ : Ctx Term) := (Term.shift_helper Γ.length).fo
 
 def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 | A1 `@k B1, A2 `@k B2 => do
-  let ac <- synth_coercion Γ A1 A2
-  let bc <- synth_coercion Γ B1 B2
-  return ac `@c bc
+  let kA1 <- infer_kind Γ A1
+  let kA2 <- infer_kind Γ A2
+  let kB1 <- infer_kind Γ B1
+  let kB2 <- infer_kind Γ B2
+  if kA1 == kA2 && kB1 == kB2
+  then do let ac <- synth_coercion Γ A1 A2
+          let bc <- synth_coercion Γ B1 B2
+          return ac `@c bc
+  else .none
 | A1 -t> B1, A2 -t> B2 => do
-  let ac <- synth_coercion Γ A1 A2
-  let bc <- synth_coercion (.empty::Γ) B1 B2
-  return ac -c> bc
+  let kA1 <- infer_kind Γ A1
+  let kA2 <- infer_kind Γ A2
+  let kB1 <- infer_kind (.empty::Γ) B1
+  let kB2 <- infer_kind (.empty::Γ) B2
+  if kA1 == kA2 && kB1 == kB2
+  then do let ac <- synth_coercion Γ A1 A2
+          let bc <- synth_coercion (.empty::Γ) B1 B2
+          return ac -c> bc
+  else .none
 | ∀[K1] A1, ∀[K2] A2 => do
-  let ac <- synth_coercion (.kind K1 :: Γ) A1 A2
-  if K1 == K2 then .some (∀c[K1] ac)
+  let _ <- wf_kind K1
+  let _ <- wf_kind K2
+  let kA1 <- infer_kind (.kind K1 :: Γ) A1
+  let kA2 <- infer_kind (.kind K1 :: Γ) A2
+  if K1 == K2
+  then do let ac <- synth_coercion (.kind K1 :: Γ) A1 A2
+          return (∀c[K1] ac)
   else .none
 | lhs, rhs => do
   let K <- infer_kind Γ lhs
   if lhs == rhs then return refl! K lhs
   let graph := construct_coercion_graph Γ
-  let path <- graph.find_path_by_label (λ _ => false) lhs rhs
+  let path <- graph.find_path_by_label lhs rhs
   List.foldlM (· `; ·) (refl! K lhs) path
-
-#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★]
-                      (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6)
-       == .some ((refl! ★ #4) `; (sym! #0) -c> (refl! ★ #5) `; (sym! #1) -c> (refl! ★ #3) `; #2)
 
 
 #guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★] #4 #1
@@ -132,6 +145,10 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 #guard synth_coercion [.term (#0 ~[★]~ #3) #0, .kind ★, .ctor #1,  .ctor #0, .datatype ★] #1 #4
        == .some ((refl! ★ #1) `; #0)
 
+#guard synth_coercion [.type (#0 ~[★]~ #3), .kind ★, .ctor #1,  .ctor #0, .datatype ★]
+                      (#4 -t> #5 -t> #3) (#1 -t> #2 -t> #6)
+       == .some ((refl! ★ #4) `; (sym! #0) -c> (refl! ★ #5) `; (sym! #1) -c> (refl! ★ #3) `; #2)
+
 
 -- def synth_coercion_dummy (_ : Ctx Term) : Term -> Term -> Option Term := λ a b => do
 --   .some (a ~[★]~ b)
@@ -141,7 +158,12 @@ def synth_coercion (Γ : Ctx Term) : Term -> Term -> Option Term
 def synth_term (corns : Nat) (Γ : Ctx Term): Term -> Option Term := λ τ =>
 if corns > 0 then
 match τ with
-| .eq _ A B => synth_coercion Γ A B
+| .eq _ A B => do
+  let Ak <- infer_kind Γ A
+  let Bk <- infer_kind Γ B
+  if Ak == Bk
+  then synth_coercion Γ A B
+  else .none
 | .bind2 .arrow givenτ wantedτ => do
   let kg <- infer_kind Γ givenτ
   let kw <- infer_kind Γ ([P]wantedτ)

@@ -55,13 +55,19 @@ all_goals (
   unfold synth_coercion at j; simp at j; rw[Option.bind_eq_some] at j
   cases j
 )
-case _ ih1 ih2 _ j =>
+case _ ih1 ih2 _ j => -- A1 `@k B1 ~ A2 `@k B2
   cases j; case _ j =>
-  rw[Option.bind_eq_some] at j;
+  rw[Option.bind_eq_some] at j; cases j; case _ j =>
+  rw[Option.bind_eq_some] at j; cases j; case _ j =>  cases j; case _ j =>
+  rw[Option.bind_eq_some] at j; cases j; case _ j =>  cases j; case _ j =>
   cases j; case _ j =>
-  cases j; case _ j =>
+  simp at j; cases j; case _ j =>
+  rw[Option.bind_eq_some] at j; cases j; case _ j =>  cases j; case _ j =>
+  rw[Option.bind_eq_some] at j; cases j; case _ j =>  cases j; case _ j =>
   cases j;
-  case _ w1 j1 w2 j2 =>
+  case _ kA1 jA1 kA2 jA2 kB1 jB1 kB2 jB2 jes w1 j1 w2 j2 =>
+  have j3 := Term.eq_of_beq jes.1
+  have j4 := Term.eq_of_beq jes.2
   unfold infer_kind at jAk; simp at jAk;
   rw[Option.bind_eq_some] at jAk; cases jAk; case _ jAk =>
   rw[Option.bind_eq_some] at jAk; cases jAk; case _ jAk =>
@@ -88,30 +94,47 @@ case _ ih1 ih2 _ j =>
   have lem := is_arrowk_some arr2K;
   cases lem; unfold is_arrowk at arr2K; simp at arr2K;
   have lemA2 := infer_kind_sound A2k wf;
-  have eq_lem : kk = kk2 := by
-    sorry
-  cases eq_lem
-  have eq_kk1 := Term.eq_of_beq eA1
-  have eq_kk2 := Term.eq_of_beq eB1
-  cases eq_kk1; cases eq_kk2;
-  replace ih1 := ih1 wf A1k A2k j1
-  replace ih2 := ih2 wf B1k B2k j2
+  cases j3; cases j4; clear jes;
+  replace eB1 := Term.eq_of_beq eB1;
+  replace eA1 := Term.eq_of_beq eA1;
+  cases eB1; cases eA1;
+  simp_all;
   apply Judgment.appc; assumption; assumption
 
+· sorry -- A1 -t> B1 ~ A2 -t> B2
 · sorry
-· sorry
-· sorry
+case _ j =>
+ cases j; case _ j =>
+ simp at j; split at j
+ · cases j; case _ j =>
+   replace j := Term.eq_of_beq j; cases j
+   case _ k jlhs _ _ _ =>
+   rw[jlhs] at jBk; cases jBk
+   constructor
+   · sorry
+   · apply infer_kind_sound jlhs wf
+ · rw[Option.bind_eq_some] at j; cases j; case _ j =>
+   cases j; case _ j1 j2 => sorry -- needs coercion_graph_kind_soundness etc.
 
 
 theorem synth_term_type_sound : ⊢ Γ ->
+  Γ ⊢ τ : k ->
   synth_term n Γ τ = .some t -> Γ ⊢ t : τ := by
-intro wf j
+intro wf jk j
 induction n, τ using synth_term.induct generalizing Γ t
 all_goals (unfold synth_term at j)
 · simp at j;
   cases j;
   case _ j =>
-  sorry
+  rw[Option.bind_eq_some] at j; cases j; case _ j =>
+  cases j; case _ j =>
+  rw[Option.bind_eq_some] at j; cases j; case _ j =>
+  cases j; case _ j =>
+  simp at j; cases j;
+  case _ e _ =>
+  replace e := Term.eq_of_beq e; cases e;
+  case _ =>
+  apply synth_coercion_type_sound; assumption; sorry; sorry; sorry
 · sorry
 · sorry
 case _ h =>

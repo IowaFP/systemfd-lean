@@ -213,7 +213,7 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
     -- the body of the function
 
     let new_eqs <- try_type_improvement (.type A :: Γ) 0
-    let st := [S' new_eqs.length] t
+    let st := [S' new_eqs.length]t
     let sB := [S' new_eqs.length]B
 
     -- The eqs are wrt Γ so shift them to be wrt type A :: Γ
@@ -269,20 +269,13 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 
   -- coerce if needed and return
   mb_coerce Γ t' exp_τ actual_τ
-termination_by h => h.size
+termination_by τ t => t.size
 decreasing_by (
+all_goals try (simp; omega)
 case _ =>
-  have lem := @right_shifting_size_no_change new_eqs.length B
-  rw[<-lem]
-  simp; omega
-case _ => simp; omega
-case _ => -- Hole
-  sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+  simp_all;
+  have lem := @hs_term_right_shifting_size_no_change new_eqs.length t
+  rw[<-lem]; simp; omega
 case _ => sorry
 case _ => sorry
 )
