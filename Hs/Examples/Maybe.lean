@@ -1,6 +1,5 @@
 import Hs.HsTerm
-import Hs.Algorithm
-import Hs.Algorithm2
+import Hs.Translator.HsCtx
 import SystemFD.Algorithm
 import SystemFD.Term
 import SystemFD.Evaluator

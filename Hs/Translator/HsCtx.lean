@@ -1,5 +1,7 @@
 
 import SystemFD.Algorithm
+import Hs.Translator.HsTerm
+import Hs.SynthInstance
 
 set_option linter.unusedVariables false
 
@@ -710,7 +712,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
                     ++ Std.Format.line ++ "ctx Γ: " ++ repr ctx_l
                     ++ Std.Format.line ++ "ts: " ++ repr ts
                    )
-                   (synth_term ctx_l θτ)
+                   (synth_term ctx_l.length ctx_l θτ)
           .ok (t :: ts)
           ) [] (List.zip (Term.shift_helper mthτ'_θ.length) mthτ'_θ)
 

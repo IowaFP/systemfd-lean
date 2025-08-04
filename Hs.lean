@@ -1,4 +1,4 @@
 import Hs.HsTerm
-import Hs.Algorithm2
+import Hs.Translator
 
 import Hs.Examples
