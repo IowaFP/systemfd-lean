@@ -83,4 +83,30 @@ namespace Term
 
   def isTerm (Γ : Ctx Term) : Term -> Bool := λ t => not (isKind t || isType Γ t)
 
+
+  theorem is_kind_shape_sound : isKind t -> IsKind t := by
+    intro j; induction t using isKind.induct <;> unfold isKind at j
+    case _ => constructor
+    case _ ih1 ih2 =>
+      simp at j;
+      replace ih1 := ih1 j.1
+      replace ih2 := ih2 j.2
+      constructor; assumption; assumption
+    case _ => simp at j
+
+  theorem is_type_shape_sound : isType Γ t -> IsType t := by
+    intro j; induction Γ, t using isType.induct <;> unfold isType at j
+    case _ => constructor
+    case _ ih1 ih2 =>
+      simp at j;
+      replace ih1 := ih1 j.1
+      replace ih2 := ih2 j.2
+      constructor; assumption; assumption
+    case _ ih1 ih2 =>
+      simp at j;
+      replace ih1 := ih1 j.1
+      replace ih2 := ih2 j.2
+      constructor; assumption; assumption
+    case _ ih1 ih2 =>
+      simp at j
 end Term
