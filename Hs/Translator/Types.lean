@@ -1,4 +1,7 @@
 import Hs.Translator.Kinds
+
+set_option linter.unusedVariables false
+
 @[simp]
 def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
   | ★ , .HsBind2 .arrow A B => do

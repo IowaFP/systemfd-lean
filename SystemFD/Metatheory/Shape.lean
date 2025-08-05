@@ -402,7 +402,7 @@ apply kind_shape_lemma j1 j2
 @[simp]
 abbrev TypeShapeLemmaVarType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
 | .prf => λ (t, T) => ∀ x, t = #x -> T.isKind -> Term.IsType Γ t
-| .wf => λ () => True
+| .wf => λ () => ∀ x T, (Γ d@ x).get_type = .some T -> T.isKind -> True
 
 
 theorem type_shape_lemma_var : Judgment v Γ a -> TypeShapeLemmaVarType Γ v a := by

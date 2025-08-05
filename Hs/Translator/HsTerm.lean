@@ -17,7 +17,7 @@ def compile_head
   (head : HsTerm)
   : DsM (Term × Term)
 :=
-  match hh : head with
+  match head with
   | .HsAnnotate τh h => do
     let τh' <- compile_type Γ ★ τh
   -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
@@ -53,6 +53,10 @@ def checkArgsLength (Γ : Ctx Term) (args : List (HsSpineVariant × HsTerm)) (τ
                 ++ Std.Format.line ++ repr τs
                 ++ Std.Format.line ++ repr Γ)
   else .ok ()
+
+theorem check_args_length_lemma : checkArgsLength Γ args τs = .ok () -> args.length ≤ τs.length := by
+unfold checkArgsLength; simp
+
 
 def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 | τ, .HsHole a => do
@@ -137,20 +141,63 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
     -- have lem1 : head.size < t.size := sorry
     -- have lem2 : ∀ a ∈ args, a.2.size < t.size := sorry
     -- Compile Head
-    match dhp : compile_head compile Γ head with
-    | .ok (h', τh') => do
-      let (τs, _) := τh'.to_telescope
+
+    let (h' , τh') <- match cmph : head with
+    | .HsAnnotate τh h => do
+      let τh' <- compile_type Γ ★ τh
+      -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
+      let h' <- compile Γ τh' h
+      DsM.ok (h', τh')
+    | .HsVar h => do
+      let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
+      -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
+      .ok (#h, τh')
+    | t => DsM.error ("compile_head unsupported head" ++ repr t)
+
+    -- match dhp : compile_head compile Γ head with
+    -- | .ok (h', τh') => do
+    let (τs, ret_ty) := τh'.to_telescope
 
       -- make sure the length of the arguments is fine
-      checkArgsLength Γ args τs
+    match argsh : checkArgsLength Γ args τs with
+    | .ok () =>
+        have args_τs_length : args.length ≤ τs.length := check_args_length_lemma argsh
+        let arg_τs := List.attach (List.zip args τs)
+        let args' <- arg_τs.mapM (λ a => do
+            let prf := a.property
+            match a.val with
+            | ((HsSpineVariant.type, arg), (.kind τ)) => do
+              let arg' <- compile_type Γ τ arg
+              return (SpineVariant.type, arg')
+            | ((HsSpineVariant.term, arg), (.type τ)) => do
+              let arg' <- compile_type Γ τ arg
+              return (SpineVariant.term, arg')
+            | _ => .error ("unsupported arg compile" ++ repr a.val)
+            )
+
+        -- have args_length_lemma : args'.length = arg_τs.length := by
+        --   sorry
+
+        let t' <- List.foldlM (λ acc a => do
+            match a with
+            | (.type, arg) => return (acc `@t arg)
+            | (.term, arg) => return (acc `@ arg)
+            | _ => .error "spine app failed"
+            ) h' args'
+
+        let remaining_τs := List.drop args.length τs
+        let actual_τ <- .toDsM ("mk_arrow failed") (Term.mk_arrow ret_ty remaining_τs)
+
+        mb_coerce Γ t' exp_τ ([P' args.length]actual_τ)
+    | .error e => .error e
 
       -- Compile Args and actual type
-      match argsh : List.foldlM (compile_args compile Γ) (τh', h') args with
-      | .ok (actual_τ, t') =>
-      -- coerce if needed and return
-        mb_coerce Γ t' exp_τ actual_τ
-      | .error e => .error e
-    | .error e => .error e
+      -- match argsh : List.foldlM (compile_args compile Γ) (τh', h') (List.attach args) with
+      -- | .ok (actual_τ, t') =>
+      -- -- coerce if needed and return
+
+      -- | .error e => .error e
+      -- | .error e => .error e
   | .none => .error ("no neutral form" ++ repr tm)
 termination_by τ t => t.size
 decreasing_by (
@@ -161,12 +208,9 @@ case _ =>
   rw[<-lemA]; simp; omega
 case _ =>
   simp;
-  sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+  cases cmph;
+  have lem : (HsTerm.HsAnnotate τh h).size ≤ tm.size := @HsTerm.application_spine_head_size (.HsAnnotate τh h) args tm tnfp
+  simp at lem; omega
 )
 
 

@@ -421,18 +421,23 @@ namespace Term
 
 
   @[simp] -- TODO replace uses with from_telescope?
-  def mk_ty_arrow : Term -> Ctx Term -> Option Term
+  def mk_arrow : Term -> Ctx Term -> Option Term
   | t, [] => .some t
+  | t, .cons (.kind x) xs => do
+    let t' <- mk_arrow t xs
+    .some (∀[x] t')
   | t, .cons (.type x) xs => do
-    let t' <- mk_ty_arrow  t xs
+    let t' <- mk_arrow  t xs
     .some (x -t> t')
   | _, _ => .none
 
   @[simp] -- TODO replace uses with from_telescope?
-  def mk_ty_arrow_rev : Term -> Ctx Term -> Option Term
+  def mk_arrow_rev : Term -> Ctx Term -> Option Term
   | t, [] => .some t
   | t, .cons (.type x) xs => do
-    mk_ty_arrow  (x -t> t) xs
+    mk_arrow_rev (x -t> t) xs
+  | t, .cons (.kind x) xs => do
+    mk_arrow_rev (∀[x] t) xs
   | _, _ => .none
 
 
