@@ -11,6 +11,43 @@ import SystemFD.Metatheory.Inversion
 
 import Batteries.Lean.Except
 
+theorem compile_type_shape_soundness : ⊢ Γ ->
+ HsTerm.IsType τ ->
+ Term.isKind k' ->
+ compile_type Γ k τ = .ok τ' ->
+ Term.IsType Γ τ' := by
+intro wf j1 j2 j3
+induction Γ, k, τ using compile_type.induct generalizing τ' <;> simp at *
+all_goals try (
+case _ ih1 ih2 =>
+  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+  cases j3; case _ j3 =>
+  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+  cases j3; case _ j3 =>
+  cases j3; cases j1; case _ h1 _ h2 h3 h4 =>
+  replace ih1 := ih1 wf h3 h1
+  replace ih2 := ih2 (Judgment.wfempty wf) h4 h2
+  constructor; assumption; assumption)
+case _ Γ k τ ih =>
+  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+  cases j3; case _ j3 =>
+  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+  cases j3; case _ j3 =>
+  cases j3; cases j1; case _ k' h1 τ' h2 h3 h4 =>
+  have lem' : Except.ok k' = DsM.ok k' := by simp
+  rw[lem'] at h1;
+  have lem := @compile_kind_sound Γ □ k' k wf h3 h1
+  have wf' : ⊢ (.kind k' :: Γ) := by constructor; assumption; assumption
+  replace ih := @ih k' τ' wf' h4 h2
+  have lem := kind_shape lem rfl
+  constructor; assumption; assumption
+
+case _ tnf _ _ _ => simp_all; rw[tnf] at j3; simp at j3
+case _ =>
+ simp_all; case _ tnf _ _ _ _ =>
+ sorry
+case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
+
 
 theorem synth_coercion_type_sound : ⊢ Γ ->
   Term.isType Γ A ->

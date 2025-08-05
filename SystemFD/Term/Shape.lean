@@ -8,21 +8,21 @@ namespace Term
   | type : IsKind ★
   | arrow : IsKind A -> IsKind B -> IsKind (A -k> B)
 
-  inductive IsType : Term -> Prop where
-  | var : IsType #x
-  | all : IsKind A -> IsType B -> IsType (∀[A] B)
-  | arrow : IsType A -> IsType B -> IsType (A -t> B)
-  | app : IsType f -> IsType a -> IsType (f `@k a)
-  | eq : IsKind K -> IsType A -> IsType B -> IsType (A ~[K]~ B)
+  inductive IsType : Ctx Term  -> Term -> Prop where
+  | var : Γ.is_datatype x || Γ.is_kind x -> IsType Γ #x
+  | all : IsKind A -> IsType (.kind A :: Γ) B -> IsType Γ (∀[A] B)
+  | arrow : IsType Γ A -> IsType (.empty :: Γ) B -> IsType Γ (A -t> B)
+  | app : IsType Γ f -> IsType Γ a -> IsType Γ (f `@k a)
+  | eq : IsKind K -> IsType Γ A -> IsType Γ B -> IsType Γ (A ~[K]~ B)
 
-  theorem is_kind_disjoint_is_type : IsKind t -> ¬ IsType t := by
+  theorem is_kind_disjoint_is_type : IsKind t -> ¬ IsType Γ t := by
   intro h1 h2
   induction h1
   all_goals (cases h2)
 
   theorem zero_not_is_kind : ¬ IsKind `0 := by intro h; cases h
 
-  theorem zero_not_is_type : ¬ IsType `0 := by intro h; cases h
+  theorem zero_not_is_type : ¬ IsType Γ `0 := by intro h; cases h
 
   theorem is_kind_from_subst : IsKind ([σ]t) -> IsKind t ∨ (∃ i, ∃ v, σ i = .su v ∧ IsKind v) := by
   intro h; induction t generalizing σ
@@ -76,7 +76,7 @@ namespace Term
 
 
   def isType (Γ : Ctx Term) : Term -> Bool
-  | #x => Γ.is_datatype x || Γ.is_type x
+  | #x => Γ.is_datatype x || Γ.is_kind x
   | (τ1 -t> τ2) => isType Γ τ1 && isType (.empty :: Γ) τ2
   | (∀[k]τ) => isKind k && isType (.kind k :: Γ) τ
   | τ1 `@k τ2 => isType Γ τ1 && isType  Γ τ2
@@ -96,9 +96,9 @@ namespace Term
       constructor; assumption; assumption
     case _ => simp at j
 
-  theorem is_type_shape_sound : isType Γ t -> IsType t := by
+  theorem is_type_shape_sound : isType Γ t -> IsType Γ t := by
     intro j; induction Γ, t using isType.induct <;> unfold isType at j
-    case _ => constructor
+    case _ => constructor; assumption
     case _ ih1 ih2 =>
       simp at j;
       replace ih1 := ih1 j.1

@@ -17,7 +17,7 @@ def compile_head
   (head : HsTerm)
   : DsM (Term × Term)
 :=
-  match head with
+  match hh : head with
   | .HsAnnotate τh h => do
     let τh' <- compile_type Γ ★ τh
   -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
@@ -158,7 +158,6 @@ any_goals (simp; omega)
 case _ =>
   simp_all;
   have lemA := @hs_term_right_shifting_size_no_change new_eqs.length t
-  -- have lemB := @right_shifting_size_no_change new_eqs.length B
   rw[<-lemA]; simp; omega
 case _ =>
   simp;

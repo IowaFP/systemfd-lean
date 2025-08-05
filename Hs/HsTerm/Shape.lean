@@ -8,6 +8,13 @@ namespace HsTerm
   | type : IsKind `★
   | arrow : IsKind A -> IsKind B -> IsKind (A `-k> B)
 
+  -- inductive IsType : HsCtx HsTerm -> HsTerm -> Prop where
+  -- | var : IsType Γ `#x
+  -- | all : IsKind A -> IsType (.kind A :: Γ) B -> IsType Γ (`∀{A} B)
+  -- | arrow : IsType Γ A -> IsType (.empty :: Γ) B -> IsType Γ (A → B)
+  -- | farrow : IsType Γ A -> IsType (.empty :: Γ) B -> IsType Γ (A ⇒ B)
+  -- | app : IsType Γ A -> IsType Γ B -> IsType Γ (f `•k a)
+
   inductive IsType : HsTerm -> Prop where
   | var : IsType `#x
   | all : IsKind A -> IsType B -> IsType (`∀{A} B)

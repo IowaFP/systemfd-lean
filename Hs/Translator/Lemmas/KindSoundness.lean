@@ -5,6 +5,46 @@ import SystemFD.Judgment
 
 import Hs.Translator.Kinds
 
+theorem compile_kind_shape_sound (k : HsTerm) :
+  ⊢ Γ ->
+  HsTerm.IsKind k ->
+  compile_kind Γ c k = .ok k' ->
+  Term.IsKind k' := by
+intro wf j1 j2
+induction c, k using compile_kind.induct generalizing k' <;> simp at *
+cases j2; constructor
+case _ k1 k2 ih1 ih2 =>
+  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
+  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
+  cases j2; case _ j2 =>
+  cases j2; case _ j2 =>
+  cases j2; case _ h1 _ h2 =>
+  cases j1; case _ h3 h4 =>
+  replace ih1 := ih1 h3 h1
+  replace ih2 := ih2 h4 h2
+  constructor; assumption; assumption
+
+
+theorem compile_kind_size (k : HsTerm) :
+  ⊢ Γ ->
+  HsTerm.IsKind k ->
+  compile_kind Γ c k = .ok k' ->
+  k.size = k'.size := by
+intro wf  j1 j2
+induction c, k using compile_kind.induct generalizing k' <;> simp at *
+cases j2; simp
+case _ k1 k2 ih1 ih2 =>
+  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
+  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
+  cases j2; case _ j2 =>
+  cases j2; case _ j2 =>
+  cases j2; case _ h1 _ h2 =>
+  cases j1; case _ h3 h4 =>
+  replace ih1 := ih1 h3 h1
+  replace ih2 := ih2 h4 h2
+  simp; rw[ih1, ih2]
+
+
 theorem compile_kind_sound (k : HsTerm) :
   ⊢ Γ ->
   HsTerm.IsKind k ->
