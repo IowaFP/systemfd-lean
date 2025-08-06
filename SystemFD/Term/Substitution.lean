@@ -66,6 +66,15 @@ namespace Term
   | [] => base
   | .cons k ks => k -k> (mk_kind_arrow base ks)
 
+  theorem kind_arrow_lemma : split_kind_arrow κ = .some (κs, ret_κ) ->
+      mk_kind_arrow ret_κ κs = κ := by
+  intros h
+  induction κs generalizing κ ret_κ <;> simp at *
+  induction κ <;> simp at *
+  cases h; rfl
+  sorry
+  sorry
+
   @[simp]
   def mk_kind_app : Nat -> List Term -> Term := λ h sp =>
     List.foldl (λ acc a => acc `@k a) (#h) sp

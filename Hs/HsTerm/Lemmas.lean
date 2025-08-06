@@ -48,9 +48,24 @@ case _ cv _ _ ih1 ih2 =>
 
 theorem zip_contains : (x, y) ∈ List.zip xs ys -> x ∈ xs := by
   intro h
-  induction xs, ys using List.zipWith.induct
-  sorry
-  sorry
+  let xs' := xs.attach
+  let ys' := ys.attach
+  induction xs, ys using List.zipWith.induct generalizing x y
+  case _ x xs y ys ih =>
+    simp at h
+    have ih' := @ih x y
+    cases h;
+    case _ => simp_all
+    case _ h =>
+      simp at xs'; simp at ys'
+      replace ih' := ih' h
+      simp; apply Or.inr; assumption
+  case _ xs ys ih =>
+    simp_all
+    have ih' := ih x xs y ys
+    simp_all
+
+    sorry
 
 
 end HsTerm

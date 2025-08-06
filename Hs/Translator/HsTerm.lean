@@ -139,10 +139,6 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 | exp_τ, tm => do
   match tnfp : tm.neutral_form with
   | .some (head, args) =>
-    -- have lem1 : head.size < t.size := sorry
-    -- have lem2 : ∀ a ∈ args, a.2.size < t.size := sorry
-    -- Compile Head
-
     let (h' , τh') <- match cmph : head with
     | .HsAnnotate τh h => do
       let τh' <- compile_type Γ ★ τh
@@ -155,48 +151,31 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
       .ok (#h, τh')
     | t => DsM.error ("compile_head unsupported head" ++ repr t)
 
-    -- match dhp : compile_head compile Γ head with
-    -- | .ok (h', τh') => do
     let (τs, ret_ty) := τh'.to_telescope
 
-      -- make sure the length of the arguments is fine
-    match argsh : checkArgsLength Γ args τs with
-    | .ok () =>
-        have args_τs_length : args.length ≤ τs.length := check_args_length_lemma argsh
-        let arg_τs := List.attach (List.zip args τs)
-        let args' <- arg_τs.mapM (λ a => do
-            let prf := a.property
-            match arg_h : a.val with
-            | ((HsSpineVariant.type, arg), (.kind τ)) => do
-              let arg' <- compile_type Γ τ arg
-              return (SpineVariant.type, arg')
-            | ((HsSpineVariant.term, arg), (.type τ)) => do
-              let arg' <- compile Γ τ arg
-              return (SpineVariant.term, arg')
-            | _ => .error ("unsupported arg compile" ++ repr a.val)
-            )
+    -- make sure the length of the arguments is fine
+    checkArgsLength Γ args τs
 
-        let t' := h'.apply_spine args'
-        -- let t' <- List.foldlM (λ acc a => do
-        --     match a with
-        --     | (.type, arg) => return (acc `@t arg)
-        --     | (.term, arg) => return (acc `@ arg)
-        --     | _ => .error "spine app failed"
-        --     ) h' args'
+    let arg_τs := List.attach (List.zip args τs)
 
-        let remaining_τs := List.drop args.length τs
-        let actual_τ <- .toDsM ("mk_arrow failed") (Term.mk_arrow ret_ty remaining_τs)
+    let args' <- arg_τs.mapM (λ a => do
+        let prf := a.property
+         match arg_h : a.val with
+         | ((HsSpineVariant.type, arg), (.kind τ)) => do
+            let arg' <- compile_type Γ τ arg
+            return (SpineVariant.type, arg')
+         | ((HsSpineVariant.term, arg), (.type τ)) => do
+            let arg' <- compile Γ τ arg
+            return (SpineVariant.term, arg')
+         | _ => .error ("unsupported arg compile" ++ repr a.val))
 
-        mb_coerce Γ t' exp_τ ([P' args.length]actual_τ)
-    | .error e => .error e
+     let t' := h'.apply_spine args'
 
-      -- Compile Args and actual type
-      -- match argsh : List.foldlM (compile_args compile Γ) (τh', h') (List.attach args) with
-      -- | .ok (actual_τ, t') =>
-      -- -- coerce if needed and return
+     let remaining_τs := List.drop args.length τs
+     let actual_τ <- .toDsM ("mk_arrow failed") (Term.mk_arrow ret_ty remaining_τs)
 
-      -- | .error e => .error e
-      -- | .error e => .error e
+     mb_coerce Γ t' exp_τ ([P' args.length]actual_τ)
+
   | .none => .error ("no neutral form" ++ repr tm)
 termination_by τ t => t.size
 decreasing_by (

@@ -10,7 +10,7 @@ import SystemFD.Metatheory.Inversion
 
 import Batteries.Lean.Except
 
-theorem compile_type_shape_soundness : ⊢ Γ ->
+theorem compile_type_shape_soundness (Γ : Ctx Term) (k : Term) (τ : HsTerm) (τ' : Term): ⊢ Γ ->
  HsTerm.IsType τ ->
  Term.isKind k ->
  compile_type Γ k τ = .ok τ' ->
@@ -27,7 +27,22 @@ case _ ih1 ih2 =>
   replace ih1 := ih1 wf h3 h1
   replace ih2 := ih2 (Judgment.wfempty wf) h4 h2
   constructor; assumption; assumption)
-case _ Γ k τ ih =>
+all_goals try (
+case _ Γ A B ih1 ih2 =>
+ rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+ cases j3; case _ j3 =>
+ rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+ cases j3; case _ j3 =>
+ cases j3; cases j1; case _ k' h1 τ' h2 h3 h4 =>
+ have lem' : Except.ok k' = DsM.ok k' := by simp
+ rw[lem'] at h1
+ have wf' : ⊢ (.empty :: Γ) := by constructor; assumption
+ replace ih1 := ih1 k' wf h3 (by constructor) h1
+ replace ih2 := ih2 τ' wf' h4 (by constructor) h2
+ constructor; assumption; assumption
+)
+
+case _ Γ K A ih =>
   rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
   cases j3; case _ j3 =>
   rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
@@ -35,16 +50,46 @@ case _ Γ k τ ih =>
   cases j3; cases j1; case _ k' h1 τ' h2 h3 h4 =>
   have lem' : Except.ok k' = DsM.ok k' := by simp
   rw[lem'] at h1;
-  have lem := @compile_kind_sound Γ □ k' k wf h3 h1
+  have lem := @compile_kind_sound Γ □ k' K wf h3 h1
   have wf' : ⊢ (.kind k' :: Γ) := by constructor; assumption; assumption
-  replace ih := @ih k' τ' wf' h4 h2
+  replace ih := @ih k' τ' wf' h4 (by constructor) h2
   have lem := kind_shape lem rfl
   constructor; assumption; assumption
 
 case _ tnf _ _ _ => simp_all; rw[tnf] at j3; simp at j3
 case _ =>
- simp_all; case _ tnf _ _ _ _ =>
- sorry
+ simp_all;
+ case _ tnfp _ _ _ _ =>
+ split at j3
+ case _ => cases j3
+ case _ =>
+   split at j3
+   case _ =>
+     rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+     cases j3; case _ j3 =>
+     simp at j3;
+     split at j3
+     case _ => cases j3
+     case _ =>
+       split at j3
+       case _ =>
+        rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+        cases j3; case _ ih _ _ tnfp' _ tnfp'' _ _ κs ret_κ j4 h1 _ h2 j3 =>
+        rw[tnfp] at tnfp'; cases tnfp';rw[tnfp] at tnfp''; cases tnfp''
+        cases j3; case _ j3 =>
+        have ih' := ih ret_κ κs ret_κ
+        case _ w1 _ =>
+        induction κs
+        unfold Term.split_kind_arrow_aux at j4;  sorry
+        sorry
+        --   rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
+        --   cases j3; case _ j3 =>
+        --   cases j3
+        --   case _ ih _ _ _ _ _ _ _ _ _ j _ _ =>
+        --   simp at j; cases j; case _ j _ =>
+        --   cases j; case _ j =>
+       case _ => cases j3
+   case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
 
 
@@ -193,7 +238,8 @@ theorem synth_term_type_sound : ⊢ Γ ->
   Term.isType Γ τ ->
   Term.isKind k ->
   Γ ⊢ τ : k ->
-  synth_term n Γ τ = .some t -> Γ ⊢ t : τ := by
+  synth_term n Γ τ = .some t ->
+  Γ ⊢ t : τ := by
 intro wf wfτ wfk jk j
 induction n, τ using synth_term.induct generalizing Γ t
 all_goals (unfold synth_term at j)
@@ -309,19 +355,31 @@ case _ k τ sp h tnfp tnf _ _ _ ih =>
     rw[Except.bind_eq_ok] at j;
     cases j; case _ w1 j =>
     cases j; case _ t1 j =>
-    simp at j
-    rw[Except.bind_eq_ok] at j;
-    cases j; case _ w2 j =>
-    cases j; case _ t2 j =>
-    split at j
-    · rw[Except.bind_eq_ok] at j;
-      cases j; case _ w3 j =>
-      cases j; case _ t3 j =>
-      cases j;
-      have lem := dsm_get_type_sound wf t1;
-      -- we are stuck here. as we do not know the shape of w1
-      sorry
-    · cases j
+    simp at j; split at j;
+    case _ => cases j
+    case _ =>
+      split at j
+      · rw[Except.bind_eq_ok] at j;
+        cases j; case _ w3 j =>
+        cases j; case _ t3 j =>
+        cases j;
+        simp_all
+        cases e; case _ κs ret_k tnf j3 j4 =>
+        cases j4; case _ j4 _ =>
+        cases j4; case _ j4 j5 =>
+        have e := Term.eq_of_beq j4; cases e; clear j4
+        induction κs
+        case _ j4 =>
+          simp at j4; sorry
+        case _ => sorry
+      cases j
+    --   rw[Except.bind_eq_ok] at j;
+    --   cases j; case _ w2 j =>
+    --   cases j; case _ t2 j =>
+    --   have lem := dsm_get_type_sound wf t1;
+    --   -- we are stuck here. as we do not know the shape of w1
+    --   sorry
+    -- · cases j
 
   case _ tnf ih =>
   rw[tnf] at e; cases e;

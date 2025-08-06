@@ -41,4 +41,4 @@ def compile_kind (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
     let k1' <- compile_kind Γ □ k1
     let k2' <- compile_kind Γ □ k2
     return k1' -k> k2'
-  | τ , t => .error ("comile kind failed" ++ repr τ ++ repr t)
+  | τ , t => .error ("compile kind failed" ++ repr τ ++ repr t)
