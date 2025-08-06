@@ -1,4 +1,3 @@
-
 import Hs.HsTerm
 import Hs.Monad
 import Hs.Translator.Lemmas.KindSoundness
@@ -13,7 +12,7 @@ import Batteries.Lean.Except
 
 theorem compile_type_shape_soundness : ⊢ Γ ->
  HsTerm.IsType τ ->
- Term.isKind k' ->
+ Term.isKind k ->
  compile_type Γ k τ = .ok τ' ->
  Term.IsType Γ τ' := by
 intro wf j1 j2 j3
