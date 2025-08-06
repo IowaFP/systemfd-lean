@@ -2,6 +2,7 @@ import Hs.Translator.Types
 import SystemFD.Algorithm
 import Hs.SynthInstance
 
+@[simp]
 def mb_coerce (Γ : Ctx Term) (t : Term) (exp_τ : Term) (actual_τ : Term) : DsM Term :=
 if exp_τ == actual_τ
 then .ok t
@@ -11,41 +12,41 @@ else do
    .ok (t ▹ η)
 
 
-def compile_head
-  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
-  (Γ : Ctx Term)
-  (head : HsTerm)
-  : DsM (Term × Term)
-:=
-  match head with
-  | .HsAnnotate τh h => do
-    let τh' <- compile_type Γ ★ τh
-  -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
-    let h' <- compile Γ τh' h
-    DsM.ok (h', τh')
-  | .HsVar h => do
-    let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
-    -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
-    .ok (#h, τh')
-  | t => DsM.error ("compile_head unsupported head" ++ repr t)
+-- def compile_head
+--   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
+--   (Γ : Ctx Term)
+--   (head : HsTerm)
+--   : DsM (Term × Term)
+-- :=
+--   match head with
+--   | .HsAnnotate τh h => do
+--     let τh' <- compile_type Γ ★ τh
+--   -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
+--     let h' <- compile Γ τh' h
+--     DsM.ok (h', τh')
+--   | .HsVar h => do
+--     let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
+--     -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
+--     .ok (#h, τh')
+--   | t => DsM.error ("compile_head unsupported head" ++ repr t)
 
-def compile_args
-  (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
-  (Γ : Ctx Term)
-  : Term × Term -> HsSpineVariant × HsTerm -> DsM (Term × Term)
-:= λ acc arg => do
-  let (accτ, acc) : Term × Term := acc
-  let (τ, res_τ) <- .toDsM ("helper2 " ++ repr accτ) accτ.to_telescope_head
-  match τ, arg with
-  | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
-    let arg' <- compile Γ k arg
-    .ok (res_τ β[arg'], acc `@t arg')
-  | .type k, (.term, arg) => do -- accτ better of of the form a -> b
-    let arg' <- compile Γ k arg
-    .ok (res_τ β[arg'], acc `@ arg')
-  | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
+-- def compile_args
+--   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
+--   (Γ : Ctx Term)
+--   : Term × Term -> HsSpineVariant × HsTerm -> DsM (Term × Term)
+-- := λ acc arg => do
+--   let (accτ, acc) : Term × Term := acc
+--   let (τ, res_τ) <- .toDsM ("helper2 " ++ repr accτ) accτ.to_telescope_head
+--   match τ, arg with
+--   | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
+--     let arg' <- compile Γ k arg
+--     .ok (res_τ β[arg'], acc `@t arg')
+--   | .type k, (.term, arg) => do -- accτ better of of the form a -> b
+--     let arg' <- compile Γ k arg
+--     .ok (res_τ β[arg'], acc `@ arg')
+--   | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
 
-
+@[simp]
 def checkArgsLength (Γ : Ctx Term) (args : List (HsSpineVariant × HsTerm)) (τs : Ctx Term) : DsM Unit := do
   if args.length > τs.length
   then .error ("compile length mismatch"
@@ -57,7 +58,7 @@ def checkArgsLength (Γ : Ctx Term) (args : List (HsSpineVariant × HsTerm)) (τ
 theorem check_args_length_lemma : checkArgsLength Γ args τs = .ok () -> args.length ≤ τs.length := by
 unfold checkArgsLength; simp
 
-
+@[simp]
 def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 | τ, .HsHole a => do
   let k <- .toDsM ("Wanted τ kind"
@@ -165,25 +166,23 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
         let arg_τs := List.attach (List.zip args τs)
         let args' <- arg_τs.mapM (λ a => do
             let prf := a.property
-            match a.val with
+            match arg_h : a.val with
             | ((HsSpineVariant.type, arg), (.kind τ)) => do
               let arg' <- compile_type Γ τ arg
               return (SpineVariant.type, arg')
             | ((HsSpineVariant.term, arg), (.type τ)) => do
-              let arg' <- compile_type Γ τ arg
+              let arg' <- compile Γ τ arg
               return (SpineVariant.term, arg')
             | _ => .error ("unsupported arg compile" ++ repr a.val)
             )
 
-        -- have args_length_lemma : args'.length = arg_τs.length := by
-        --   sorry
-
-        let t' <- List.foldlM (λ acc a => do
-            match a with
-            | (.type, arg) => return (acc `@t arg)
-            | (.term, arg) => return (acc `@ arg)
-            | _ => .error "spine app failed"
-            ) h' args'
+        let t' := h'.apply_spine args'
+        -- let t' <- List.foldlM (λ acc a => do
+        --     match a with
+        --     | (.type, arg) => return (acc `@t arg)
+        --     | (.term, arg) => return (acc `@ arg)
+        --     | _ => .error "spine app failed"
+        --     ) h' args'
 
         let remaining_τs := List.drop args.length τs
         let actual_τ <- .toDsM ("mk_arrow failed") (Term.mk_arrow ret_ty remaining_τs)
@@ -206,6 +205,13 @@ case _ =>
   simp_all;
   have lemA := @hs_term_right_shifting_size_no_change new_eqs.length t
   rw[<-lemA]; simp; omega
+case _ =>
+  have lem := @HsTerm.application_spine_size (head, args) tm tnfp arg
+  simp at lem; replace lem := @lem HsSpineVariant.term
+  rw[arg_h] at prf;
+  have lem' := HsTerm.zip_contains prf
+  replace lem := lem lem'
+  assumption
 case _ =>
   simp;
   cases cmph;

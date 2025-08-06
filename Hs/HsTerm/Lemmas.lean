@@ -29,7 +29,6 @@ theorem application_spine_size (τ : HsTerm) :
         cases l; cases r; simp; omega;
   )
 
-
 theorem application_spine_head_size (t : HsTerm) :
   t.neutral_form = .some (h, sp) ->
   h.size ≤ t.size := by
@@ -45,5 +44,13 @@ case _ cv _ _ ih1 ih2 =>
     cases h2;
     have ih1' := @ih1 w.snd h1;
     omega)
+
+
+theorem zip_contains : (x, y) ∈ List.zip xs ys -> x ∈ xs := by
+  intro h
+  induction xs, ys using List.zipWith.induct
+  sorry
+  sorry
+
 
 end HsTerm
