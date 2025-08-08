@@ -72,12 +72,28 @@ namespace Term
   induction κs generalizing κ ret_κ <;> simp at *
   induction κ <;> simp at *
   cases h; rfl
+  case _ v _ _ ih1 ih2 => sorry
+  case _ k ks ih =>
+  unfold Term.split_kind_arrow_aux at h
   sorry
+
+
+  theorem mk_kind_arrow_lemma :  mk_kind_arrow ret_κ κs = κ ->
+    split_kind_arrow κ = .some (κs, ret_κ) := by
+  intro j
+  induction κs
+  simp; rw[<-j]; simp; sorry
   sorry
+
 
   @[simp]
   def mk_kind_app : Nat -> List Term -> Term := λ h sp =>
     List.foldl (λ acc a => acc `@k a) (#h) sp
+
+  @[simp]
+  def mk_kind_app_rev (acc : Term) : List Term -> Term
+  | [] => acc
+  | .cons a as => mk_kind_app_rev (acc `@ a) as
 
   theorem apply_spine_peel_term :
     apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `@ a)

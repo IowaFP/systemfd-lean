@@ -122,4 +122,19 @@ namespace Term
       constructor; assumption; assumption; assumption
     case _ ih1 ih2 =>
       simp at j
+
+theorem foldl_type_is_type {h : Term} {args : List Term} :
+  h.IsType Γ ->
+  ∀ a ∈ args, a.IsType Γ ->
+  (mk_kind_app_rev h args).IsType Γ := by
+  intro j1 a j3 j4
+  induction args generalizing a <;> simp at *
+  cases j3; case _ h =>
+    cases h;
+    sorry
+  case _ =>
+    case _ h tl ih h =>
+    sorry
+
+
 end Term

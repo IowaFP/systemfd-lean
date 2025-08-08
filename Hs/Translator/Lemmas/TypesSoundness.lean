@@ -10,6 +10,7 @@ import SystemFD.Metatheory.Inversion
 
 import Batteries.Lean.Except
 
+
 theorem compile_type_shape_soundness (Γ : Ctx Term) (k : Term) (τ : HsTerm) (τ' : Term): ⊢ Γ ->
  HsTerm.IsType τ ->
  Term.isKind k ->
