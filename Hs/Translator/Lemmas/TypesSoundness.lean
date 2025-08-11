@@ -77,12 +77,13 @@ case _ =>
         rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
         cases j3; case _ ih _ _ tnfp' _ tnfp'' _ _ κs ret_κ j4 h1 _ h2 j3 =>
         rw[tnfp] at tnfp'; cases tnfp';rw[tnfp] at tnfp''; cases tnfp''
-        cases j3; case _ sp _ _ _ _ _ _ j3 =>
+        cases j3; case _ τ sp _ _ _ _ _ _ j3 =>
         case _ w1 _ κs =>
         apply Term.mk_kind_app_rev_is_type
-        have lem := HsTerm.hs_type_neutral_form_is_type
-        constructor;
-        sorry
+        have lem := HsTerm.hs_type_neutral_form_is_type τ j1 tnfp
+        cases lem; case _ lem1 lem2 =>
+        constructor
+        constructor; sorry
         sorry
        case _ => cases j3
    case _ => cases j3

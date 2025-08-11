@@ -401,25 +401,27 @@ apply kind_shape_lemma j1 j2
 
 @[simp]
 abbrev TypeShapeLemmaVarType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
-| .prf => λ (t, T) => ∀ x, t = #x -> T.isKind -> Term.IsType Γ t
-| .wf => λ () => ∀ x T, (Γ d@ x).get_type = .some T -> T.isKind -> True
+| .prf => λ (t, T) => ∀ x, t = #x -> T.IsKind -> Term.IsType Γ t
+| .wf => λ () => ∀ x T, (Γ d@ x).get_type = .some T -> T.IsKind -> (#x).IsType Γ
 
 
 theorem type_shape_lemma_var : Judgment v Γ a -> TypeShapeLemmaVarType Γ v a := by
 intro j <;> induction j <;> simp at *; intros
-case _ Γ x τ wf gt _ ki =>
-constructor; simp
-generalize fh : Γ d@x = f at *
-cases f <;> (unfold Frame.get_type at gt; simp at gt)
-all_goals (cases gt)
-unfold Frame.is_kind; simp
-sorry
-unfold Frame.is_datatype; simp
+case _ f _ => cases f
 sorry
 sorry
 sorry
 sorry
 sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+case _ x T _ h ih =>
+  intro h2
+  have ih := ih x T (Eq.symm h) h2
+  assumption
 
 @[simp]
 abbrev TypeShapeLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
@@ -427,14 +429,18 @@ abbrev TypeShapeLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArg
 | .wf => λ () => True
 
 theorem type_shape_lemma : Judgment v Γ a -> TypeShapeLemmaType Γ v a := by
-intro j <;> induction j <;> simp at *
+intro j
+induction j <;> simp at *
 case _ ih =>
   intro h; replace ih := ih (by constructor)
   exfalso; apply Term.is_kind_disjoint_is_type h ih
 case _ => intro h; cases h
 case _ wf gt _ =>
   intro h; constructor;
-  sorry -- apply type_shape_lemma_var (Judgment.var wf gt);
+  let j := Judgment.var wf gt
+  have var_lem := type_shape_lemma_var j
+  simp at var_lem; replace var_lem := var_lem h
+  cases var_lem; assumption
 case _ => intro h; cases h
 case _ j _ ih1 ih2 =>
   intro h; have lem := kind_shape j rfl

@@ -9,7 +9,7 @@ namespace Term
   | arrow : IsKind A -> IsKind B -> IsKind (A -k> B)
 
   inductive IsType : Ctx Term  -> Term -> Prop where
-  | var : Γ.is_datatype x || Γ.is_kind x -> IsType Γ #x
+  | var : Γ.is_datatype x || Γ.is_type x || Γ.is_opent x -> IsType Γ #x
   | all : IsKind A -> IsType (.kind A :: Γ) B -> IsType Γ (∀[A] B)
   | arrow : IsType Γ A -> IsType (.empty :: Γ) B -> IsType Γ (A -t> B)
   | app : IsType Γ f -> IsType Γ a -> IsType Γ (f `@k a)
@@ -76,7 +76,7 @@ namespace Term
 
 
   def isType (Γ : Ctx Term) : Term -> Bool
-  | #x => Γ.is_datatype x || Γ.is_kind x
+  | #x => Γ.is_datatype x || Γ.is_type x || Γ.is_opent x
   | (τ1 -t> τ2) => isType Γ τ1 && isType (.empty :: Γ) τ2
   | (∀[k]τ) => isKind k && isType (.kind k :: Γ) τ
   | τ1 `@k τ2 => isType Γ τ1 && isType  Γ τ2
