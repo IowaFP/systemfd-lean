@@ -123,18 +123,29 @@ namespace Term
     case _ ih1 ih2 =>
       simp at j
 
-theorem foldl_type_is_type {h : Term} {args : List Term} :
-  h.IsType Γ ->
-  ∀ a ∈ args, a.IsType Γ ->
+theorem mk_kind_app_rev_is_type {h : Term} {args : List Term} :
+  (h.IsType Γ ∧
+  ∀ a ∈ args, a.IsType Γ) ->
   (mk_kind_app_rev h args).IsType Γ := by
-  intro j1 a j3 j4
-  induction args generalizing a <;> simp at *
-  cases j3; case _ h =>
-    cases h;
-    sorry
-  case _ =>
-    case _ h tl ih h =>
-    sorry
+  intro j1
+  cases j1; case _ j1 j2 =>
+  induction args <;> simp at *
+  case _ => assumption
+  case _ hd tl ih =>
+  cases j2; case _ j2 j3 =>
+  replace ih := ih j3
+  constructor; assumption; assumption
 
-
+theorem arrow_kind_split_is_type (k : Term) :
+  k.IsType Γ ->
+  Term.split_kind_arrow k = .some (κs, base_κ) ->
+  (base_κ.IsType Γ ∧ ∀ k ∈ κs, k.IsType Γ) := by
+ intros; induction k generalizing κs base_κ <;> simp at *
+ case _ h1 h2 =>
+   cases h2; case _ h2 h3 =>
+   cases h3
+   constructor; assumption; rw[h2]; simp
+ case _ v _ _ ih1 ih2 h1 h2 =>
+   cases v <;> simp at *
+   cases h1
 end Term

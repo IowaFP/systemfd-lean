@@ -77,18 +77,13 @@ case _ =>
         rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
         cases j3; case _ ih _ _ tnfp' _ tnfp'' _ _ κs ret_κ j4 h1 _ h2 j3 =>
         rw[tnfp] at tnfp'; cases tnfp';rw[tnfp] at tnfp''; cases tnfp''
-        cases j3; case _ j3 =>
-        have ih' := ih ret_κ κs ret_κ
-        case _ w1 _ =>
-        induction κs
-        unfold Term.split_kind_arrow_aux at j4;  sorry
+        cases j3; case _ sp _ _ _ _ _ _ j3 =>
+        case _ w1 _ κs =>
+        apply Term.mk_kind_app_rev_is_type
+        have lem := HsTerm.hs_type_neutral_form_is_type
+        constructor;
         sorry
-        --   rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
-        --   cases j3; case _ j3 =>
-        --   cases j3
-        --   case _ ih _ _ _ _ _ _ _ _ _ j _ _ =>
-        --   simp at j; cases j; case _ j _ =>
-        --   cases j; case _ j =>
+        sorry
        case _ => cases j3
    case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
@@ -374,13 +369,6 @@ case _ k τ sp h tnfp tnf _ _ _ ih =>
           simp at j4; sorry
         case _ => sorry
       cases j
-    --   rw[Except.bind_eq_ok] at j;
-    --   cases j; case _ w2 j =>
-    --   cases j; case _ t2 j =>
-    --   have lem := dsm_get_type_sound wf t1;
-    --   -- we are stuck here. as we do not know the shape of w1
-    --   sorry
-    -- · cases j
 
   case _ tnf ih =>
   rw[tnf] at e; cases e;
