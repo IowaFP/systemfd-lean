@@ -1,6 +1,7 @@
 import Hs.HsTerm
 import Hs.Monad
 import Hs.Translator.Lemmas.KindSoundness
+import Hs.Translator.Lemmas.Utils
 
 import Hs.Translator.HsTerm
 import Hs.SynthInstance
@@ -13,47 +14,35 @@ import Batteries.Lean.Except
 
 theorem compile_type_shape_soundness (Γ : Ctx Term) (k : Term) (τ : HsTerm) (τ' : Term): ⊢ Γ ->
  HsTerm.IsType τ ->
- Term.isKind k ->
+ Term.IsKind k ->
  compile_type Γ k τ = .ok τ' ->
  Term.IsType Γ τ' := by
 intro wf j1 j2 j3
 induction Γ, k, τ using compile_type.induct generalizing τ' <;> simp at *
+
 all_goals try (
 case _ ih1 ih2 =>
-  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
   cases j3; case _ j3 =>
-  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
   cases j3; case _ j3 =>
   cases j3; cases j1; case _ h1 _ h2 h3 h4 =>
-  replace ih1 := ih1 wf h3 h1
-  replace ih2 := ih2 (Judgment.wfempty wf) h4 h2
+  cases h2; case _ A' B' h2 e =>
+  cases e
+  have ih1' := ih1 A' wf h3 (by constructor) h1
+  replace ih2 := ih2 B' (Judgment.wfempty wf) h4 (by constructor) h2
   constructor; assumption; assumption)
-all_goals try (
-case _ Γ A B ih1 ih2 =>
- rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
- cases j3; case _ j3 =>
- rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
- cases j3; case _ j3 =>
- cases j3; cases j1; case _ k' h1 τ' h2 h3 h4 =>
- have lem' : Except.ok k' = DsM.ok k' := by simp
- rw[lem'] at h1
- have wf' : ⊢ (.empty :: Γ) := by constructor; assumption
- replace ih1 := ih1 k' wf h3 (by constructor) h1
- replace ih2 := ih2 τ' wf' h4 (by constructor) h2
- constructor; assumption; assumption
-)
 
 case _ Γ K A ih =>
-  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
   cases j3; case _ j3 =>
-  rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
   cases j3; case _ j3 =>
-  cases j3; cases j1; case _ k' h1 τ' h2 h3 h4 =>
-  have lem' : Except.ok k' = DsM.ok k' := by simp
+  cases j3; cases j1; case _ K' h1 A' h2 h3 h4 =>
+  cases h2; case _ h2 e =>
+  cases e
+  have lem' : Except.ok K' = DsM.ok K' := by simp
   rw[lem'] at h1;
-  have lem := @compile_kind_sound Γ □ k' K wf h3 h1
-  have wf' : ⊢ (.kind k' :: Γ) := by constructor; assumption; assumption
-  replace ih := @ih k' τ' wf' h4 (by constructor) h2
+
+  have lem := @compile_kind_sound Γ □ K' K wf h3 h1
+  have wf' : ⊢ (.kind K' :: Γ) := by constructor; assumption; assumption
+  replace ih := @ih K' A' wf' h4 (by constructor) h2
   have lem := kind_shape lem rfl
   constructor; assumption; assumption
 
@@ -77,13 +66,20 @@ case _ =>
         rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
         cases j3; case _ ih _ _ tnfp' _ tnfp'' _ _ κs ret_κ j4 h1 _ h2 j3 =>
         rw[tnfp] at tnfp'; cases tnfp';rw[tnfp] at tnfp''; cases tnfp''
+        simp at h1; cases h1; case _ h1' h1 =>
+        cases h1'; case _ h1' h1'' =>
+        replace h1' := Term.eq_of_beq h1'; cases h1'
         cases j3; case _ τ sp _ _ _ _ _ _ j3 =>
-        case _ w1 _ κs =>
+        case _ w1 _ sp_τs =>
         apply Term.mk_kind_app_rev_is_type
         have lem := HsTerm.hs_type_neutral_form_is_type τ j1 tnfp
-        cases lem; case _ lem1 lem2 =>
+        cases lem; case _ Γ _ _ _ _ _ lem1 lem2 =>
         constructor
         constructor; sorry
+        intro ki
+        have lem3 := mapM'_elems (κs.zip sp) sp_τs (λ a => compile_type Γ a.1 a.2.2);
+        rw[List.mapM'_eq_mapM] at lem3
+
         sorry
        case _ => cases j3
    case _ => cases j3

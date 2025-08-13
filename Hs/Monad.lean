@@ -52,7 +52,7 @@ instance instMonad_DsM : Monad DsM := Except.instMonad
 namespace DsM
 
 @[simp, grind]
-theorem bind_eq_ok (α β : Type) (f : α -> DsM β) (b : β) (x : DsM α):
+theorem bind_eq_ok (f : α -> DsM β) (b : β) (x : DsM α):
   DsM.bind x f = .ok b ↔ ∃ (a : α), (x = .ok a) ∧ f a = .ok b := by
 cases x <;> simp at *
 · intro; case _ j1 j2 =>
@@ -63,7 +63,8 @@ end DsM
 
 namespace Except
 
-theorem bind_eq_ok (ε : Type) (α β : Type) (f : α -> Except ε β) (b : β) (x : Except ε α):
+@[simp, grind]
+theorem bind_eq_ok (f : α -> Except ε β) (b : β) (x : Except ε α):
   Except.bind x f = .ok b ↔ ∃ (a : α), (x = .ok a) ∧ f a = .ok b := by
 cases x <;> simp at *
 · intro; case _ j1 j2 =>

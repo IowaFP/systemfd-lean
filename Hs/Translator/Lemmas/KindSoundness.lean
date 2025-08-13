@@ -14,12 +14,12 @@ intro wf j1 j2
 induction c, k using compile_kind.induct generalizing k' <;> simp at *
 cases j2; constructor
 case _ k1 k2 ih1 ih2 =>
-  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
-  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
   cases j2; case _ j2 =>
   cases j2; case _ j2 =>
   cases j2; case _ h1 _ h2 =>
   cases j1; case _ h3 h4 =>
+  cases h2; case _ h2 e =>
+  cases e
   replace ih1 := ih1 h3 h1
   replace ih2 := ih2 h4 h2
   constructor; assumption; assumption
@@ -34,12 +34,12 @@ intro wf  j1 j2
 induction c, k using compile_kind.induct generalizing k' <;> simp at *
 cases j2; simp
 case _ k1 k2 ih1 ih2 =>
-  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
-  rw[Except.bind_eq_ok] at j2; cases j2; case _ j2 =>
   cases j2; case _ j2 =>
   cases j2; case _ j2 =>
   cases j2; case _ h1 _ h2 =>
   cases j1; case _ h3 h4 =>
+  cases h2; case _ h2 e =>
+  cases e
   replace ih1 := ih1 h3 h1
   replace ih2 := ih2 h4 h2
   simp; rw[ih1, ih2]
@@ -54,10 +54,8 @@ intro wf e1 j;
 induction c, k using compile_kind.induct generalizing k' <;> simp at *
 case _ => cases j; constructor; assumption
 case _ k1 k2 ih1 ih2 =>
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w1 j =>
   cases j; case _ h1 j =>
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w2 j =>
   cases j; case _ h2 j =>
   cases j; cases e1;
@@ -65,6 +63,9 @@ case _ k1 k2 ih1 ih2 =>
   replace ih1 := ih1 e1 h1;
   replace ih2 := ih2 e2 h2;
   constructor; assumption; assumption
+
+theorem compile_star : compile_kind Γ □ `★ = DsM.ok ★ := by simp
+
 
 theorem dsm_get_type_sound : ⊢ Γ ->
   DsM.toDsM s (Γ d@ h).get_type = .ok τ -> Γ ⊢ #h : τ := by
