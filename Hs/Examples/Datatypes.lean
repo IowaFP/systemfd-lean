@@ -6,8 +6,8 @@ import SystemFD.Term
 def idHsType : HsTerm := `∀{`★} `#0 → `#1
 def idHsTerm : HsTerm := Λ̈[`★] λ̈[`#0] `#0
 
-def idType := compile [] ★ idHsType
-def idTerm := do { let ty <- idType; compile [] ty idHsTerm }
+def idType := compile_term [] ★ idHsType
+def idTerm := do { let ty <- idType; compile_term [] ty idHsTerm }
 
 
 def BoolCtx : HsCtx HsTerm :=

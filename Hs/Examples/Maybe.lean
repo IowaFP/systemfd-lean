@@ -124,13 +124,13 @@ def Γ1 : HsCtx HsTerm := [
 #guard (do
   let Γ <- compile_ctx [EqBoolInst, EqC, eqBoolT, notT, BoolFDT]
   let t : HsTerm := (`#4 `•t `#10 `• (.HsHole (`#5 `•k `#10)) `• `#8 `• `#8)
-  let t' <- compile Γ #10 t
+  let t' <- compile_term Γ #10 t
   .toDsMq (eval_ctx_loop Γ t')) == .ok #8
 
 #guard (do
   let Γ <- compile_ctx [EqBoolInst, EqC, eqBoolT, notT, BoolFDT]
   let t : HsTerm := (`#4 `•t `#10 `• (.HsHole (`#5 `•k `#10)) `• `#8 `• `#9)
-  let t' <- compile Γ #10 t
+  let t' <- compile_term Γ #10 t
   .toDsMq (eval_ctx_loop Γ t')) == .ok #9
 
 /-

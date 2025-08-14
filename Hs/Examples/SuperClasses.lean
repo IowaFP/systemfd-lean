@@ -150,7 +150,7 @@ def ex1 := (`#4 `•t `#17 `• (.HsHole (`#6 `•k `#17))) `• `#15 `• `#16
 -- (≤)[Bool] (Ord Bool) False True --> True
 #guard (
   do let Γ <- compile_ctx supCtx
-     let t' <- compile Γ #17 ex1
+     let t' <- compile_term Γ #17 ex1
      .toDsMq (eval_ctx_loop Γ t')
  ) == .ok #16
 
@@ -159,7 +159,7 @@ def ex2 : HsTerm := (`#11 `•t `#17 `• (.HsHole (`#6 `•k `#17))) `• `#16 
 -- (==)[Bool] (Ord Bool) True True --> True
 #guard (
   do let Γ <- compile_ctx supCtx
-     let t' <- compile Γ #17 ex2
+     let t' <- compile_term Γ #17 ex2
      .toDsMq (eval_ctx_loop Γ t')
  ) == .ok #16
 
@@ -169,7 +169,7 @@ def ex3 : HsTerm := `#10 `•t `#17 `• (.HsHole (`#6 `•k `#17)) `• `#16 `�
 -- (/=)[Bool] (Ord Bool) True True --> True
 #guard (
   do let Γ <- compile_ctx supCtx
-     let t' <- compile Γ #17 ex3
+     let t' <- compile_term Γ #17 ex3
      .toDsMq (eval_ctx_loop Γ t')
  ) == .ok #15
 

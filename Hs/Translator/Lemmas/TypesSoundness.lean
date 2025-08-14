@@ -48,7 +48,6 @@ case _ Γ K A ih =>
 
 case _ tnf _ _ _ => simp_all; rw[tnf] at j3; simp at j3
 case _ =>
- simp_all;
  case _ tnfp _ _ _ _ =>
  split at j3
  case _ => cases j3
@@ -69,18 +68,26 @@ case _ =>
         simp at h1; cases h1; case _ h1' h1 =>
         cases h1'; case _ h1' h1'' =>
         replace h1' := Term.eq_of_beq h1'; cases h1'
-        cases j3; case _ τ sp _ _ _ _ _ _ j3 =>
+        cases j3; case _ Γ _ τ sp _ _ _ _ _ _ _ j3 =>
         case _ w1 _ sp_τs =>
         apply Term.mk_kind_app_rev_is_type
         have lem := HsTerm.hs_type_neutral_form_is_type τ j1 tnfp
-        cases lem; case _ Γ _ _ _ _ _ lem1 lem2 =>
+        cases lem; case _ _ _ _ _ _ lem1 lem2 =>
         constructor
-        constructor; sorry
-        intro ki
-        have lem3 := mapM'_elems (κs.zip sp) sp_τs (λ a => compile_type Γ a.1 a.2.2);
-        rw[List.mapM'_eq_mapM] at lem3
+        constructor
+        case _ => sorry
+        case _ =>
 
-        sorry
+          intro ki ki_in_sp_τs
+          let f : Term × HsSpineVariant × HsTerm -> DsM Term :=
+                (λ a => if a.2.1 == HsSpineVariant.kind
+               then compile_type Γ a.1 a.2.2
+               else .error ("compile_type ill_kinded ty arg" ++ repr a))
+          have lem3 := mapM'_elems (κs.zip sp) sp_τs f;
+          rw[List.mapM'_eq_mapM] at lem3
+          -- have h2' := forget_attach h2
+          -- have lem4 := lem3 h2'
+          sorry
        case _ => cases j3
    case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;

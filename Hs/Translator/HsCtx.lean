@@ -313,7 +313,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 | .cons (.term A t) Γ => do
   let Γ' <- compile_ctx Γ
   let A' <- compile_type Γ' ★ A
-  let t' <- compile Γ' A' t
+  let t' <- compile_term Γ' A' t
   .ok (.term A' t' :: Γ')
 
 | .cons (.datatypeDecl k ctors) Γ => do
@@ -677,11 +677,11 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
       let (mth_τ', mth') <- match mth with
       | .HsAnnotate τ mth  => do
         let τ' <- compile_type Γ ★ τ
-        let mth' <- compile Γ τ' mth
+        let mth' <- compile_term Γ τ' mth
         .ok (τ', mth')
       | .HsVar n => do
         let τ' <- .toDsMq (Γ d@ n).get_type
-        let mth' <- compile Γ τ' mth
+        let mth' <- compile_term Γ τ' mth
         .ok (τ', mth')
       | _ => .error ("unsupported method decl: " ++ repr mth)
 

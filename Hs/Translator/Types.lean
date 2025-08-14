@@ -25,8 +25,9 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
     | .some (h, sp) =>
       match h with
       | `#h =>
-        let k <- .toDsM ("compile_type get type" ++ Std.Format.line ++ repr Γ ++ Std.Format.line ++ repr h)
-              ((Γ d@ h).get_type)
+        let k <- .toDsM ("compile_type get type" ++ Std.Format.line ++ repr Γ
+                        ++ Std.Format.line ++ repr h)
+                 ((Γ d@ h).get_type)
         match spk : Term.split_kind_arrow k with
         | .none => .error ("no split arrow kind" ++ repr k)
         | .some (κs, actual_κ) => do
@@ -34,8 +35,9 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
           then
             let zz := List.attach (List.zip (List.attach κs) (List.attach sp))
             let args' <- zz.mapM
-                      (λ arg =>
-                        compile_type Γ arg.val.1 (arg.val.2.val.2))
+                      (λ arg => if arg.val.2.val.1 == .kind then
+                        compile_type Γ arg.val.1 (arg.val.2.val.2)
+                        else .error ("compile_type ill kinded ty arg" ++ repr arg.val))
             .ok (Term.mk_kind_app_rev #h args'.reverse)
           else .error ("compile_type ill kinded" ++ repr τ)
       | _ => .error ("compile_type head" ++ repr h ++ repr sp)

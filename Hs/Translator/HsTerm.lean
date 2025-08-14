@@ -11,41 +11,6 @@ else do
                       (synth_coercion Γ actual_τ exp_τ)
    .ok (t ▹ η)
 
-
--- def compile_head
---   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
---   (Γ : Ctx Term)
---   (head : HsTerm)
---   : DsM (Term × Term)
--- :=
---   match head with
---   | .HsAnnotate τh h => do
---     let τh' <- compile_type Γ ★ τh
---   -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
---     let h' <- compile Γ τh' h
---     DsM.ok (h', τh')
---   | .HsVar h => do
---     let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
---     -- τ' is of the shape ∀ αs, C a ⇒ τ -> τ''
---     .ok (#h, τh')
---   | t => DsM.error ("compile_head unsupported head" ++ repr t)
-
--- def compile_args
---   (compile : (Γ : Ctx Term) -> (τ : Term) -> (t : HsTerm) -> DsM Term)
---   (Γ : Ctx Term)
---   : Term × Term -> HsSpineVariant × HsTerm -> DsM (Term × Term)
--- := λ acc arg => do
---   let (accτ, acc) : Term × Term := acc
---   let (τ, res_τ) <- .toDsM ("helper2 " ++ repr accτ) accτ.to_telescope_head
---   match τ, arg with
---   | .kind k, (.type, arg) => do -- accτ better of of the form ∀[a] b
---     let arg' <- compile Γ k arg
---     .ok (res_τ β[arg'], acc `@t arg')
---   | .type k, (.term, arg) => do -- accτ better of of the form a -> b
---     let arg' <- compile Γ k arg
---     .ok (res_τ β[arg'], acc `@ arg')
---   | _, _ => .error ("heper2" ++ repr τ ++ repr arg)
-
 @[simp]
 def checkArgsLength (Γ : Ctx Term) (args : List (HsSpineVariant × HsTerm)) (τs : Ctx Term) : DsM Unit := do
   if args.length > τs.length
@@ -59,7 +24,7 @@ theorem check_args_length_lemma : checkArgsLength Γ args τs = .ok () -> args.l
 unfold checkArgsLength; simp
 
 @[simp]
-def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
+def compile_term (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
 | τ, .HsHole a => do
   let k <- .toDsM ("Wanted τ kind"
            ++ Std.Format.line ++ repr Γ
@@ -103,7 +68,7 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
         let (shift_idx, A, t) := x
         .term ([S' (shift_idx)]A) ([S' (shift_idx)]t))
 
-    let t' <- compile (Γ_eqs ++ .type A :: Γ) sB st
+    let t' <- compile_term (Γ_eqs ++ .type A :: Γ) sB st
     let t' <- .toDsM "mk_lets failed" (t'.mk_lets Γ_eqs)
     -- TODO: instead of mk_lets maybe eagerly inline them?
 
@@ -116,24 +81,24 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
   let α' <- compile_kind Γ □ A'
   if A == α'
   then do
-    let t' <- compile (.kind A :: Γ) B t
+    let t' <- compile_term (.kind A :: Γ) B t
     .ok (Λ[A] t')
   else .error ("compile lamt" ++ (repr (∀[A] B)) ++ (repr (Λ̈[A'] t)))
 
 | τ, .HsLet A t1 t2 => do
   let α <- compile_type Γ ★ A
-  let t1' <- compile Γ α t1
-  let t2' <- compile (.term α t1' :: Γ) τ t2 -- Deal with dB BS
+  let t1' <- compile_term Γ α t1
+  let t2' <- compile_term (.term α t1' :: Γ) τ t2 -- Deal with dB BS
   .ok (.letterm α t1' t2')
 
 | τ, .HsIte (.HsAnnotate pτ p) (.HsAnnotate sτ s) (.HsAnnotate iτ i) t => do
   let pτ' <- compile_type Γ ★ pτ
-  let p' <- compile Γ pτ' p
+  let p' <- compile_term Γ pτ' p
   let sτ' <- compile_type Γ ★ sτ
-  let s' <- compile Γ sτ' s
+  let s' <- compile_term Γ sτ' s
   let iτ' <- compile_type Γ ★ iτ
-  let i' <- compile Γ iτ' i
-  let t' <- compile Γ τ t
+  let i' <- compile_term Γ iτ' i
+  let t' <- compile_term Γ τ t
   .ok (.ite p' s' i' t')
 
 | exp_τ, tm => do
@@ -143,7 +108,7 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
     | .HsAnnotate τh h => do
       let τh' <- compile_type Γ ★ τh
       -- τh' is of the form ∀ αs, C a ⇒ τ -> τ''
-      let h' <- compile Γ τh' h
+      let h' <- compile_term Γ τh' h
       DsM.ok (h', τh')
     | .HsVar h => do
       let τh' <- DsM.toDsM ("compile_head head" ++ repr head) (Γ d@ h).get_type
@@ -151,30 +116,20 @@ def compile (Γ : Ctx Term) : (τ : Term) -> (t : HsTerm) -> DsM Term
       .ok (#h, τh')
     | t => DsM.error ("compile_head unsupported head" ++ repr t)
 
-    let (τs, ret_ty) := τh'.to_telescope
+    let arg_τs := List.attach args
 
-    -- make sure the length of the arguments is fine
-    checkArgsLength Γ args τs
-
-    let arg_τs := List.attach (List.zip args τs)
-
-    let args' <- arg_τs.mapM (λ a => do
+    let (actual_τ, t') <- arg_τs.foldlM (λ acc a => do
         let prf := a.property
-         match arg_h : a.val with
-         | ((HsSpineVariant.type, arg), (.kind τ)) => do
-            let arg' <- compile_type Γ τ arg
-            return (SpineVariant.type, arg')
-         | ((HsSpineVariant.term, arg), (.type τ)) => do
-            let arg' <- compile Γ τ arg
-            return (SpineVariant.term, arg')
-         | _ => .error ("unsupported arg compile" ++ repr a.val))
+         match arg_h : a.val, acc.1 with
+         | (HsSpineVariant.type, arg) , Term.bind2 .all arg_k τ  => do
+            let τ' <- compile_type Γ arg_k arg
+            return (τ β[τ'], acc.2 `@t τ')
+         | (HsSpineVariant.term, arg), .bind2 .arrow arg_τ r_τ  => do
+            let arg' <- compile_term Γ arg_τ arg
+            return (r_τ β[arg'], acc.2 `@ arg')
+         | _, _ => .error ("unsupported arg compile" ++ repr acc ++ repr a.val)) (τh', h')
 
-     let t' := h'.apply_spine args'
-
-     let remaining_τs := List.drop args.length τs
-     let actual_τ <- .toDsM ("mk_arrow failed") (Term.mk_arrow ret_ty remaining_τs)
-
-     mb_coerce Γ t' exp_τ ([P' args.length]actual_τ)
+    mb_coerce Γ t' exp_τ actual_τ
 
   | .none => .error ("no neutral form" ++ repr tm)
 termination_by τ t => t.size
@@ -188,8 +143,7 @@ case _ =>
   have lem := @HsTerm.application_spine_size (head, args) tm tnfp arg
   simp at lem; replace lem := @lem HsSpineVariant.term
   rw[arg_h] at prf;
-  have lem' := HsTerm.zip_contains prf
-  replace lem := lem lem'
+  replace lem := lem prf
   assumption
 case _ =>
   simp;
@@ -197,24 +151,3 @@ case _ =>
   have lem : (HsTerm.HsAnnotate τh h).size ≤ tm.size := @HsTerm.application_spine_head_size (.HsAnnotate τh h) args tm tnfp
   simp at lem; omega
 )
-
-
--- namespace Algorithm.Test
---   def Γ : Ctx Term := [
---     .openm (∀[★](#5 `@k #0) -t> #1 -t> #2 -t> #9),
---     .insttype (∀[★] (#0 ~[★]~ #5) -t> (#3 `@k #6)),
---     .openm (∀[★] (#1 `@k #0) -t> (#4 `@k #1)),
---     .opent (★ -k> ★),
---     .insttype (∀[★](#0 ~[★]~ #2) -t> (#2 `@k #3)),
---     .opent (★ -k> ★),
---     .datatype ★ ]
-
---     #guard wf_ctx Γ == .some ()
-
---     #guard (compile Γ (∀[★](#6 `@k #0) -t> #1 -t> #2 -t> #10) `#0) == .ok #0
---     #guard (compile Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6)) == .ok (#0 `@t #6)
---     #guard (compile Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6))) == .ok (#4 `@t #6 `@ (refl! ★ #6))
---     #guard (compile Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6)))) ==
---                   .ok (#0 `@t #6 `@ (#4 `@t #6 `@ (refl! ★ #6)))
-
--- end Algorithm.Test
