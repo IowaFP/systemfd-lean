@@ -16,12 +16,10 @@ namespace Translator.HsTerm.Test
     #guard (compile_term Γ (∀[★](#6 `@k #0) -t> #1 -t> #2 -t> #10) `#0) == .ok #0
     #guard (compile_term Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6)) == .ok (#0 `@t #6)
 
-    #eval! DsM.run (compile_term Γ ((#5 `@k #6) -t> #7 -t> #8 -t> #9) (`#0 `•t `#6))
-
-
     #guard (compile_term Γ (#5 `@k #6) (.HsHole (`#5 `•k `#6))) == .ok (#4 `@t #6 `@ (refl! ★ #6))
 
     #guard (compile_term Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6)))) ==
                   .ok (#0 `@t #6 `@ (#4 `@t #6 `@ (refl! ★ #6)))
+    #eval! DsM.run (compile_term Γ (#6 -t> #7 -t> #8) (`#0 `•t `#6 `• (.HsHole (`#5 `•k `#6))))
 
 end Translator.HsTerm.Test

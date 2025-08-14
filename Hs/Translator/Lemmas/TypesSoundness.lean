@@ -303,10 +303,8 @@ theorem compile_type_sound (k : Term) (τ : HsTerm) :
 intro wf j1 j2 j
 induction Γ, k, τ using compile_type.induct generalizing τ' <;> simp at *
 case _ A B ih1 ih2 => -- a → b
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w1 j =>
   cases j; case _ h1 j =>
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w2 j =>
   cases j; case _ h2 j =>
   cases j; cases j2;
@@ -316,10 +314,8 @@ case _ A B ih1 ih2 => -- a → b
   replace ih2 := @ih2 w2 wf' (by constructor) e2 h2
   constructor; assumption; assumption
 case _ ih1 ih2 => -- a ⇒ b
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w1 j =>
   cases j; case _ h1 j =>
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w2 j =>
   cases j; case _ h2 j =>
   cases j; cases j2;
@@ -329,10 +325,8 @@ case _ ih1 ih2 => -- a ⇒ b
   replace ih2 := @ih2 w2 wf' (by constructor) e2 h2
   constructor; assumption; assumption
 case _ Γ A B ih => -- ∀[a] b
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w1 j =>
   cases j; case _ h1 j =>
-  rw[Except.bind_eq_ok] at j;
   cases j; case _ w2 j =>
   cases j; case _ h2 j =>
   cases j; cases j2;
@@ -363,15 +357,15 @@ case _ k τ sp h tnfp tnf _ _ _ ih =>
         cases j; case _ w3 j =>
         cases j; case _ t3 j =>
         cases j;
-        simp_all
-        cases e; case _ κs ret_k tnf j3 j4 =>
-        cases j4; case _ j4 _ =>
-        cases j4; case _ j4 j5 =>
-        have e := Term.eq_of_beq j4; cases e; clear j4
-        induction κs
-        case _ j4 =>
-          simp at j4; sorry
-        case _ => sorry
+        -- cases e; case _ κs ret_k tnf j3 j4 =>
+        -- cases j4; case _ j4 _ =>
+        -- cases j4; case _ j4 j5 =>
+        -- have e := Term.eq_of_beq j4; cases e; clear j4
+        -- induction κs
+        -- case _ j4 =>
+        --   simp at j4; sorry
+        -- case _ =>
+        sorry
       cases j
 
   case _ tnf ih =>
