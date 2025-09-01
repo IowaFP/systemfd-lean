@@ -36,6 +36,7 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
             let zz := List.attach (List.zip (List.attach κs) (List.attach sp))
             let args' <- zz.mapM
                       (λ arg => if arg.val.2.val.1 == .kind then
+                        have lem := arg.property
                         compile_type Γ arg.val.1 (arg.val.2.val.2)
                         else .error ("compile_type ill kinded ty arg" ++ repr arg.val))
             .ok (Term.mk_kind_app_rev #h args'.reverse)

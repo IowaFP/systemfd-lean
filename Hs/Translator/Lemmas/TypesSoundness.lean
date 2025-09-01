@@ -16,7 +16,7 @@ theorem compile_type_shape_soundness (Γ : Ctx Term) (k : Term) (τ : HsTerm) (�
  HsTerm.IsType τ ->
  Term.IsKind k ->
  compile_type Γ k τ = .ok τ' ->
- Term.IsType Γ τ' := by
+ Term.IsType τ' := by
 intro wf j1 j2 j3
 induction Γ, k, τ using compile_type.induct generalizing τ' <;> simp at *
 
@@ -75,19 +75,34 @@ case _ =>
         cases lem; case _ _ _ _ _ _ lem1 lem2 =>
         constructor
         constructor
-        case _ => sorry
         case _ =>
-
           intro ki ki_in_sp_τs
-          let f : Term × HsSpineVariant × HsTerm -> DsM Term :=
-                (λ a => if a.2.1 == HsSpineVariant.kind
-               then compile_type Γ a.1 a.2.2
-               else .error ("compile_type ill_kinded ty arg" ++ repr a))
-          have lem3 := mapM'_elems (κs.zip sp) sp_τs f;
+          generalize fh : (λ (arg : {q // q ∈ (κs.attach).zip (sp.attach)}) =>
+                    if
+            (match arg.val.snd.val.fst, HsSpineVariant.kind with
+              | HsSpineVariant.term, HsSpineVariant.term => true
+              | HsSpineVariant.kind, HsSpineVariant.kind => true
+              | HsSpineVariant.type, HsSpineVariant.type => true
+              | x, x_1 => false) =
+              true then
+          compile_type Γ arg.val.fst.val arg.val.snd.val.snd
+          else Except.error (Std.Format.text "compile_type ill kinded ty arg" ++ repr arg.val)) = f at *
+
+          have lem3 := mapM'_elems ((κs.attach.zip sp.attach).attach) sp_τs f;
           rw[List.mapM'_eq_mapM] at lem3
+          rw[<-fh] at lem3;
+          replace lem3 := lem3 h2
+          simp at lem3
+
+          sorry
+          -- let spp := sp.attach
+          -- let κsp := κs.attach
+          -- let v := (κsp.zip spp).attach
+          -- let ih' := λ (a : Term) (spv : List (HsSpineVariant × HsTerm)) (b : HsTerm) => ih κs a
+
           -- have h2' := forget_attach h2
           -- have lem4 := lem3 h2'
-          sorry
+
        case _ => cases j3
    case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;

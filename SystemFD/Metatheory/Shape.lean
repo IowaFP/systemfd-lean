@@ -3,6 +3,7 @@ import SystemFD.Term
 import SystemFD.Term.Definition
 import SystemFD.Judgment
 import SystemFD.Ctx
+import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Classification
 
 
@@ -400,32 +401,8 @@ intro j1 j2
 apply kind_shape_lemma j1 j2
 
 @[simp]
-abbrev TypeShapeLemmaVarType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
-| .prf => λ (t, T) => ∀ x, t = #x -> T.IsKind -> Term.IsType Γ t
-| .wf => λ () => ∀ x T, (Γ d@ x).get_type = .some T -> T.IsKind -> (#x).IsType Γ
-
-
-theorem type_shape_lemma_var : Judgment v Γ a -> TypeShapeLemmaVarType Γ v a := by
-intro j <;> induction j <;> simp at *; intros
-case _ f _ => cases f
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-case _ x T _ h ih =>
-  intro h2
-  have ih := ih x T (Eq.symm h) h2
-  assumption
-
-@[simp]
-abbrev TypeShapeLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
-| .prf => λ (t, A) => Term.IsKind A -> Term.IsType Γ t
+abbrev TypeShapeLemmaType (_ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
+| .prf => λ (t, A) => Term.IsKind A -> Term.IsType t
 | .wf => λ () => True
 
 theorem type_shape_lemma : Judgment v Γ a -> TypeShapeLemmaType Γ v a := by
@@ -437,10 +414,6 @@ case _ ih =>
 case _ => intro h; cases h
 case _ wf gt _ =>
   intro h; constructor;
-  let j := Judgment.var wf gt
-  have var_lem := type_shape_lemma_var j
-  simp at var_lem; replace var_lem := var_lem h
-  cases var_lem; assumption
 case _ => intro h; cases h
 case _ j _ ih1 ih2 =>
   intro h; have lem := kind_shape j rfl
@@ -536,6 +509,6 @@ case _ j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
   replace ih2 := ih2 lem
   exfalso; apply Term.is_kind_disjoint_is_type h ih2
 
-theorem type_shape : Γ ⊢ t : A -> A.IsKind -> t.IsType Γ := by
+theorem type_shape : Γ ⊢ t : A -> A.IsKind -> t.IsType := by
 intro j1 j2
 apply type_shape_lemma j1 j2

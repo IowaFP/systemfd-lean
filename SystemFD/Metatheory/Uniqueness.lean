@@ -33,7 +33,7 @@ case _ => cases h1
 case _ => cases h1
 
 theorem uniqueness_of_kinds :
-  t.IsType Γ -> Γ ⊢ t : A -> Γ ⊢ t : B -> A = B
+  t.IsType -> Γ ⊢ t : A -> Γ ⊢ t : B -> A = B
 := by
 intro h1 j1 j2
 induction t generalizing Γ A B

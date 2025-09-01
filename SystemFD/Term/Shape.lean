@@ -8,21 +8,21 @@ namespace Term
   | type : IsKind ★
   | arrow : IsKind A -> IsKind B -> IsKind (A -k> B)
 
-  inductive IsType : Ctx Term  -> Term -> Prop where
-  | var : Γ.is_datatype x || Γ.is_type x || Γ.is_opent x -> IsType Γ #x
-  | all : IsKind A -> IsType (.kind A :: Γ) B -> IsType Γ (∀[A] B)
-  | arrow : IsType Γ A -> IsType (.empty :: Γ) B -> IsType Γ (A -t> B)
-  | app : IsType Γ f -> IsType Γ a -> IsType Γ (f `@k a)
-  | eq : IsKind K -> IsType Γ A -> IsType Γ B -> IsType Γ (A ~[K]~ B)
+  inductive IsType : Term -> Prop where
+  | var : IsType #x
+  | all : IsKind A -> IsType B -> IsType (∀[A] B)
+  | arrow : IsType A -> IsType B -> IsType (A -t> B)
+  | app : IsType f -> IsType a -> IsType (f `@k a)
+  | eq : IsKind K -> IsType A -> IsType B -> IsType (A ~[K]~ B)
 
-  theorem is_kind_disjoint_is_type : IsKind t -> ¬ IsType Γ t := by
+  theorem is_kind_disjoint_is_type : IsKind t -> ¬ IsType t := by
   intro h1 h2
   induction h1
   all_goals (cases h2)
 
   theorem zero_not_is_kind : ¬ IsKind `0 := by intro h; cases h
 
-  theorem zero_not_is_type : ¬ IsType Γ `0 := by intro h; cases h
+  theorem zero_not_is_type : ¬ IsType `0 := by intro h; cases h
 
   theorem is_kind_from_subst : IsKind ([σ]t) -> IsKind t ∨ (∃ i, ∃ v, σ i = .su v ∧ IsKind v) := by
   intro h; induction t generalizing σ
@@ -96,9 +96,9 @@ namespace Term
       constructor; assumption; assumption
     case _ => simp at j
 
-  theorem is_type_shape_sound : isType Γ t -> IsType Γ t := by
+  theorem is_type_shape_sound : isType Γ t -> IsType t := by
     intro j; induction Γ, t using isType.induct <;> unfold isType at j
-    case _ => constructor; assumption
+    case _ => constructor
     case _ ih1 ih2 =>
       simp at j;
       replace ih1 := ih1 j.1
@@ -124,9 +124,9 @@ namespace Term
       simp at j
 
 theorem mk_kind_app_rev_is_type {h : Term} {args : List Term} :
-  (h.IsType Γ ∧
-  ∀ a ∈ args, a.IsType Γ) ->
-  (mk_kind_app_rev h args).IsType Γ := by
+  (h.IsType ∧
+  ∀ a ∈ args, a.IsType) ->
+  (mk_kind_app_rev h args).IsType := by
   intro j1
   cases j1; case _ j1 j2 =>
   induction args <;> simp at *
@@ -137,9 +137,9 @@ theorem mk_kind_app_rev_is_type {h : Term} {args : List Term} :
   constructor; assumption; assumption
 
 theorem arrow_kind_split_is_type (k : Term) :
-  k.IsType Γ ->
+  k.IsType ->
   Term.split_kind_arrow k = .some (κs, base_κ) ->
-  (base_κ.IsType Γ ∧ ∀ k ∈ κs, k.IsType Γ) := by
+  (base_κ.IsType ∧ ∀ k ∈ κs, k.IsType) := by
  intros; induction k generalizing κs base_κ <;> simp at *
  case _ h1 h2 =>
    cases h2; case _ h2 h3 =>
