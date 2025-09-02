@@ -1,26 +1,10 @@
 import Batteries.Data.List
 import Hs.Monad
 
-theorem forget_attach {κs : List α} {sp : List (β1 × β2)} {f : α -> β2 -> DsM γ} :
- List.mapM (fun arg => f arg.val.fst.val arg.val.snd.val.snd) (κs.attach.zip sp.attach).attach = Except.ok sp_τs ->
- List.mapM (fun arg => f arg.fst arg.snd.snd) (κs.zip sp) = Except.ok sp_τs
-    := by
- intro j
- induction κs generalizing sp sp_τs <;> simp at *
- assumption
- induction sp <;> (simp at *; unfold List.zip at j; unfold List.attach at j; simp at j)
- case _ => assumption
- case _ =>
-   unfold bind at *; rw[Monad.toBind] at *; unfold Except.instMonad at *; simp at *;
-   cases j; case _ a' j =>
-   exists a'
-   cases j; case _ j1 j2 =>
-   constructor
-   assumption
-   simp at j2;
-
-   sorry
-
+theorem list_empty_length (l : List α) : l.length = 0 -> l = [] := by
+intro h
+cases l <;> simp at h
+rfl
 
 
 theorem mapM'_elems (ls : List α) (ls' : List β) (f : α -> DsM β) :
@@ -64,6 +48,52 @@ case _ ih =>
       constructor;
       simp; apply Or.inr; assumption
       assumption
+
+theorem mapM'_elems_length (ls : List α) (ls' : List β) (f : α -> DsM β) :
+  List.mapM' f ls = DsM.ok ls'->
+  ls.length = ls'.length := by
+intro h
+induction ls generalizing ls'
+case _ =>
+  simp at h;
+  unfold pure at h; unfold Applicative.toPure at h; unfold Monad.toApplicative at h;
+  unfold Except.instMonad at h; simp at h; unfold Except.pure at h; simp at h; rw[h]; simp
+case _ hd tl ih =>
+  simp at h; unfold bind at h; unfold Monad.toBind at h; unfold Except.instMonad at h; simp at h;
+  cases h;
+  case _ hd' h =>
+  cases h; case _ h1 h2 =>
+  simp at h2; unfold Except.map at h2;
+  generalize tlh : List.mapM' f tl = tl' at *;
+  cases tl'
+  case _ => simp at h2
+  case _ tl' =>
+  simp at h2;
+  have ih := ih tl' (by simp); rw[<-h2]; simp; assumption
+
+theorem mapM'_elems_shape (ls : List α) (ls' : List β) (f : α -> DsM β) :
+  ls = hd1 :: ls1 ->
+  List.mapM' f ls = DsM.ok ls' ->
+  ∃ hd1' ls1', f hd1 = .ok hd1' ∧ List.mapM' f ls1 = .ok ls1' ∧ ls' = hd1' :: ls1' := by
+ intro e h
+ induction ls generalizing ls'
+ case _ => cases e
+ case _ hd tl ih =>
+ rw [e] at h;
+ simp at h; unfold bind at h; unfold Monad.toBind at h; unfold Except.instMonad at h; simp at h;
+ cases h; case _ w h =>
+ cases h; case _ h =>
+ unfold Except.map at h;
+ generalize lsh : List.mapM' f ls1 = ls1' at *
+ cases ls1' <;> simp at h
+ case _ ls1' =>
+   cases e
+   exists w; exists ls1'
+   constructor; assumption
+   constructor
+   simp
+   symm at h; assumption
+
 
 theorem mapM'_elems_idx (ls : List α) (ls' : List β) (f : α -> DsM β) :
   List.mapM' f ls = DsM.ok ls' ->
