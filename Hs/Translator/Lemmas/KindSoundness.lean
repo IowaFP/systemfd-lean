@@ -24,6 +24,30 @@ case _ k1 k2 ih1 ih2 =>
   replace ih2 := ih2 h4 h2
   constructor; assumption; assumption
 
+theorem compile_kind_shape_arr (k : HsTerm) :
+  ⊢ Γ ->
+  HsTerm.IsKind k ->
+  compile_kind Γ c k = .ok k' ->
+  k = (κ1 `-k> κ2) ->
+  ∃ κ1' κ2', k' = (κ1' -k> κ2') := by
+intro wf j1 j2 j3
+induction c, k using compile_kind.induct generalizing k' <;> simp at *
+cases j3; case _ j3a j3b =>
+cases j3a; cases j3b
+case _ ih1 ih2 =>
+cases j2; case _ j2 =>
+cases j2; case _ j2 =>
+cases j2; case _ j2 =>
+cases j2; case _ j2 =>
+cases j2; case _ k1 h1 k2 h2 =>
+cases j1; case _ j1a j1b =>
+replace ih1 := ih1 j1a h1
+replace ih2 := ih2 j1b h2
+
+sorry
+
+
+
 
 theorem compile_kind_size (k : HsTerm) :
   ⊢ Γ ->

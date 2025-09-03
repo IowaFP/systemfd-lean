@@ -105,9 +105,13 @@ case _ =>
           case _ κh κs ih1 _ =>
           induction sp <;> simp at h1
           case _ sph sps _ _ =>
-          unfold List.zip at h2;
+          generalize zzz : (κh :: κs).attach.zip (sph :: sps).attach = zz' at *;
+
+          unfold List.zip at zzz; cases zzz;
           unfold List.mapM' at h2; simp at h2;
           generalize zzh : (List.zipWith Prod.mk (κh :: κs).attach (sph :: sps).attach).attach = zz at *
+          generalize zz1h : List.zipWith Prod.mk (κh :: κs).attach (sph :: sps).attach = zz1 at *
+
           cases zz <;> simp at h2
           case _ =>
             unfold pure at h2; unfold Applicative.toPure at h2; unfold Monad.toApplicative at h2;
@@ -129,7 +133,7 @@ case _ =>
             unfold Except.map at h2b
             split at h2b <;> simp at h2b
             cases h2b; simp at lem4
-            have ih := ih  (κh :: κs) κh (by simp) .kind sph.snd (by sorry) (by sorry) τ wf
+            have ih := ih  (κh :: κs) κh (by simp) .kind sph.snd (by sorry) (by sorry) hd wf
             sorry
 
           -- have ih1' := ih1 (sph :: sps) tnfp tnfp ih
