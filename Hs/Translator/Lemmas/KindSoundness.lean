@@ -24,28 +24,35 @@ case _ k1 k2 ih1 ih2 =>
   replace ih2 := ih2 h4 h2
   constructor; assumption; assumption
 
-theorem compile_kind_shape_arr (k : HsTerm) :
-  ⊢ Γ ->
-  HsTerm.IsKind k ->
-  compile_kind Γ c k = .ok k' ->
-  k = (κ1 `-k> κ2) ->
-  ∃ κ1' κ2', k' = (κ1' -k> κ2') := by
-intro wf j1 j2 j3
-induction c, k using compile_kind.induct generalizing k' <;> simp at *
-cases j3; case _ j3a j3b =>
-cases j3a; cases j3b
-case _ ih1 ih2 =>
-cases j2; case _ j2 =>
-cases j2; case _ j2 =>
-cases j2; case _ j2 =>
-cases j2; case _ j2 =>
-cases j2; case _ k1 h1 k2 h2 =>
-cases j1; case _ j1a j1b =>
-replace ih1 := ih1 j1a h1
-replace ih2 := ih2 j1b h2
+theorem kind_shape_split_arrow_aux (k : Term) (acc : List Term):
+  Term.IsKind k ->
+  (∀ a ∈ acc, a.IsKind) ->
+  Term.split_kind_arrow_aux acc k = .some (κs, ret_κ) ->
+  ret_κ.IsKind ∧ ∀ k ∈ κs, k.IsKind := by
+intro h1 h2 h3
+induction acc, k using Term.split_kind_arrow_aux.induct generalizing κs ret_κ <;> simp at h3
+case _ Γ f a ih =>
+  cases h1; case _ h1a h2a =>
+  have lem : ∀ (a : Term), a ∈ f :: Γ → a.IsKind := by
+    intro x h
+    simp at h; cases h
+    case _ h => cases h; assumption
+    case _ h => apply h2 x h
+  have ih := @ih κs ret_κ h2a lem h3
+  assumption
+case _ =>
+  cases h1
+  cases h3.1; cases h3.2
+  constructor; constructor
+  assumption
 
-sorry
-
+theorem kind_shape_split_arrow (k : Term) :
+  k.IsKind ->
+  Term.split_kind_arrow k = some (κs, ret_κ) ->
+  ret_κ.IsKind ∧ ∀ k ∈ κs, k.IsKind := by
+ intros h1 h2; simp at h2
+ have lem := @kind_shape_split_arrow_aux κs ret_κ k [] h1 (by intros; simp at *) h2
+ assumption
 
 
 

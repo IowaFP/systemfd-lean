@@ -11,6 +11,16 @@ import SystemFD.Metatheory.Inversion
 
 import Batteries.Lean.Except
 
+theorem is_type_spine_application (Γ : Ctx Term) (τh : Term) (τs : List Term) : ⊢ Γ ->
+  τh.IsType ->
+  (∀ τ ∈ τs, Term.IsType τ) ->
+  Term.IsType (Term.mk_ty_apps_rev τ τs.reverse) := by
+intro wf h1 h2
+
+sorry
+
+
+
 
 theorem compile_type_shape_soundness (Γ : Ctx Term) (k : Term) (τ : HsTerm) (τ' : Term): ⊢ Γ ->
  HsTerm.IsType τ ->
@@ -47,109 +57,61 @@ case _ Γ K A ih =>
   constructor; assumption; assumption
 
 case _ tnf _ _ _ => simp_all; rw[tnf] at j3; simp at j3
-case _ =>
- case _ tnfp _ _ _ _ =>
+case _ sp idx _ tnfp _ _ _ _ =>
  split at j3
  case _ => cases j3
  case _ =>
-   split at j3
-   case _ =>
-     rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
-     cases j3; case _ j3 =>
-     simp at j3;
-     split at j3
-     case _ => cases j3
-     case _ =>
-       split at j3
-       case _ =>
-        rw[Except.bind_eq_ok] at j3; cases j3; case _ j3 =>
-        cases j3; case _ ih _ _ tnfp' _ tnfp'' _ _ κs ret_κ j4 h1 _ h2 j3 =>
-        rw[tnfp] at tnfp'; cases tnfp';rw[tnfp] at tnfp''; cases tnfp''
-        simp at h1; cases h1; case _ h1' h1 =>
-        cases h1'; case _ h1' h1'' =>
-        replace h1' := Term.eq_of_beq h1'; cases h1'
-        cases j3; case _ Γ _ τ sp _ _ _ _ _ _ _ j3 =>
-        case _ w1 _ sp_τs =>
-        apply Term.mk_kind_app_rev_is_type
-        have lem := HsTerm.hs_type_neutral_form_is_type τ j1 tnfp
-        cases lem; case _ _ _ _ _ _ lem1 lem2 =>
-        constructor
-        constructor
-        case _ head_κ =>
-          intro τ τs_in_sp_τs
-          generalize fh : (λ (arg : {q // q ∈ (κs.attach).zip (sp.attach)}) =>
-                    if
-            (match arg.val.snd.val.fst, HsSpineVariant.kind with
-              | HsSpineVariant.term, HsSpineVariant.term => true
-              | HsSpineVariant.kind, HsSpineVariant.kind => true
-              | HsSpineVariant.type, HsSpineVariant.type => true
-              | x, x_1 => false) =
-              true then
-          compile_type Γ arg.val.fst.val arg.val.snd.val.snd
-          else Except.error (Std.Format.text "compile_type ill kinded ty arg" ++ repr arg.val)) = f at *
+ split at j3
+ /- head is a variable -/
+ case _ =>
+  simp at j3; cases j3; case _ n tnfp idx tnfp' κ j3 =>
+  rw[tnfp] at tnfp'; cases tnfp'
+  case _ tnfp' tnfp'' _ _ _ _ _ =>
+  rw[tnfp] at tnfp'; cases tnfp'; clear tnfp''
+  cases j3; case _ j3 =>
+  split at j3
+  case _ => /- bogus case -/ simp at j3
+  case _ κs ret_κ j4 =>
+  split at j3;
+  case _ =>
+    rw[Except.bind_eq_ok] at j3; cases j3
+    case _ j5 τs j3 =>
+    simp at j5; cases j5; case _ j6 j5 =>
+    cases j6; case _ j6 j7 =>
+    have e := Term.eq_of_beq j6; cases e; clear j6
+    cases j3; case _ j3 j6 =>
+    cases j6;
+    generalize zzh : κs.attach.zip sp.attach = zz at *
+    induction κs generalizing sp <;> simp at zzh
+    case _ =>
+      cases zzh
+      simp at j3; unfold pure at j3; unfold Applicative.toPure at j3;
+      unfold Monad.toApplicative at j3; unfold Except.instMonad at j3; simp at j3;
+      unfold Except.pure at j3; simp at j3; cases j3; simp; constructor
+    case _ κhd κtl _ _ =>
+      induction sp <;> simp at zzh
+      case _ =>
+        cases zzh
+        simp at j3; unfold pure at j3; unfold Applicative.toPure at j3;
+        unfold Monad.toApplicative at j3; unfold Except.instMonad at j3; simp at j3;
+        unfold Except.pure at j3; simp at j3; cases j3; simp; constructor
+      case _ sph sptl _ _ =>
+        rw[<-zzh] at j3; rw[<-List.mapM'_eq_mapM] at j3
+        simp at j3
+        unfold bind at j3; unfold Monad.toBind at j3; unfold Except.instMonad at j3; simp at j3
+        cases j3; case _ j3 =>
+        cases j3; case _ j3a j3b =>
+        simp at j3a; simp at j3b
+        unfold Except.map at j3b; split at j3b <;> simp at j3b
+        cases j3b; simp; sorry
 
-          have lem3 := mapM'_elems ((κs.attach.zip sp.attach).attach) sp_τs f;
-          rw[List.mapM'_eq_mapM] at lem3
-          rw[<-fh] at lem3;
-          replace lem3 := lem3 h2
-          simp at lem3
-          have lem4 := mapM'_elems_length ((κs.attach.zip sp.attach).attach) sp_τs f
-          rw[<-fh] at lem4;
-          rw[<-List.mapM'_eq_mapM] at h2
-          replace lem4 := lem4 h2
-          induction κs generalizing sp
-          case _ =>
-            simp at h1; simp at lem4
-            have lem5 := list_empty_length sp_τs (Eq.symm lem4)
-            cases lem5; simp at τs_in_sp_τs
-          case _ κh κs ih1 _ =>
-          induction sp <;> simp at h1
-          case _ sph sps _ _ =>
-          generalize zzz : (κh :: κs).attach.zip (sph :: sps).attach = zz' at *;
 
-          unfold List.zip at zzz; cases zzz;
-          unfold List.mapM' at h2; simp at h2;
-          generalize zzh : (List.zipWith Prod.mk (κh :: κs).attach (sph :: sps).attach).attach = zz at *
-          generalize zz1h : List.zipWith Prod.mk (κh :: κs).attach (sph :: sps).attach = zz1 at *
 
-          cases zz <;> simp at h2
-          case _ =>
-            unfold pure at h2; unfold Applicative.toPure at h2; unfold Monad.toApplicative at h2;
-            unfold Except.instMonad at h2; unfold Except.pure at h2; simp at h2; cases h2; simp at τs_in_sp_τs
-          case _ =>
 
-            unfold bind at h2; unfold Monad.toBind at h2; unfold Except.instMonad at h2; simp at h2;
-            cases h2; case _ hd h2 =>
-            simp at h2; cases h2
-            case _ hd hd' tl h2a h2b =>
 
-            simp at h2a;
-            cases hd'; case _ hdv hdp =>
-            cases hdv; case _ hdv1 hdv2 =>
-            cases hdv2; case _ hdv2v hdv2p =>
-            simp at h2a
-            cases hdv2v; case _ hdv2v1 hdv2v2 =>
-            cases hdv2v1 <;> simp at h2a
-            unfold Except.map at h2b
-            split at h2b <;> simp at h2b
-            cases h2b; simp at lem4
-            have ih := ih  (κh :: κs) κh (by simp) .kind sph.snd (by sorry) (by sorry) hd wf
-            sorry
-
-          -- have ih1' := ih1 (sph :: sps) tnfp tnfp ih
-          -- let spp := sp.attach
-          -- let κsp := κs.attach
-          -- induction κs.zip sp;
-          -- sorry;
-          -- assumption
-
-          -- let ih' := λ (a : Term) (spv : List (HsSpineVariant × HsTerm)) (b : HsTerm) => ih κs a
-
-          -- have h2' := forget_attach h2
-          -- have lem4 := lem3 h2'
-
-       case _ => cases j3
-   case _ => cases j3
+  case _ => cases j3
+ /- head is a not a variable, bogus case -/
+ case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
 
 

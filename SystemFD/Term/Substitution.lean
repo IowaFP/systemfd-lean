@@ -386,14 +386,13 @@ namespace Term
    | t, .cons a args => (mk_kind_apps_rev t args) `@k a
 
    @[simp]
-   def mk_ty_apps : Term -> List Term -> Term := λ h args =>
+   def mk_ty_apps (h : Term) (args :  List Term): Term :=
      List.foldl (λ acc a => acc `@t a) h args
 
    @[simp]
    def mk_ty_apps_rev : Term -> List Term -> Term
    | t, [] => t
    | t, .cons a args => (mk_ty_apps_rev t args) `@t a
-
 
    @[simp]
    def mk_apps : Term -> List Term -> Term := λ h args =>
