@@ -23,7 +23,7 @@ namespace HsTerm
   | app : IsType A -> IsType B -> IsType (A `•k B)
 
 
-theorem hs_type_neutral_form_is_type (τ : HsTerm) :
+theorem hs_type_neutral_form_is_type {τ h : HsTerm}:
   τ.IsType ->
   τ.neutral_form = .some (h, sp) ->
   h.IsType ∧ ∀ k ∈ sp, k.2.IsType := by
@@ -49,5 +49,38 @@ theorem hs_type_neutral_form_is_type (τ : HsTerm) :
     cases h; case _ e1 e2 =>
     cases e1; cases e2
     assumption
+
+theorem hs_is_type_neutral_form {τ : HsTerm} :
+  τ.IsType ->
+  τ.neutral_form = .some (`#τh, τs) ->
+  (∀ τ ∈ τs, τ.fst = HsSpineVariant.kind ∧ τ.snd.IsType) := by
+intro h1 h2
+induction h1 generalizing τh τs <;> simp at h2
+case _ =>
+  cases h2; case _ h2a h2b =>
+  cases h2a; cases h2b
+  simp
+case _ =>
+  rw[Option.bind_eq_some] at h2;
+  cases h2; case _ h2 =>
+  cases h2; case _ h2 =>
+  simp at h2
+  cases h2; case _ ih _ w h1 h2a h2b =>
+  have ih' := @ih τh w.snd (by simp_all; rw[<-h2a])
+  rw[<-h2b]; simp; simp at ih'
+  intros
+  simp at *;
+  constructor
+  case _ h _ =>
+    cases h;
+    case _ h => replace ih' := ih' _ _ h; cases ih'; assumption
+    case _ h => apply h.1
+  case _ h _ =>
+    cases h;
+    case _ h => replace ih' := ih' _ _ h; cases ih'; assumption
+    case _ h => cases h; case _ h => cases h; assumption
+
+
+
 
 end HsTerm

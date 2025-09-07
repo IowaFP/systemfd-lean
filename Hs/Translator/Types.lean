@@ -39,7 +39,7 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
                         have lem := arg.property
                         compile_type Γ arg.val.1 (arg.val.2.val.2)
                         else .error ("compile_type ill kinded ty arg" ++ repr arg.val))
-            .ok (Term.mk_kind_app_rev #h args'.reverse)
+            .ok (Term.mk_kind_apps #h args')
           else .error ("compile_type ill kinded" ++ repr τ)
       | _ => .error ("compile_type head" ++ repr h ++ repr sp)
 termination_by _ t => t.size

@@ -211,7 +211,7 @@ match τ with
 
                 match mb_ts with
                 | .some ts =>
-                  .some ((`λ[givenτ] ((#idx).mk_ty_apps wτs').mk_apps (ts.map (λ t => ([S] t) `@ #0))) :: acc)
+                  .some ((`λ[givenτ] ((#idx).mk_ty_apps' wτs').mk_apps (ts.map (λ t => ([S] t) `@ #0))) :: acc)
                 | .none => .some acc
               else .some acc
          | _ => .some acc
@@ -270,7 +270,7 @@ match τ with
                  ) []
                match mb_ηs with
                | .some ηs =>
-                 .some (((#idx).mk_ty_apps τs').mk_apps_rev ηs :: acc)
+                 .some (((#idx).mk_ty_apps' τs').mk_apps ηs.reverse :: acc)
                | .none => .some acc
              else .some acc
         | _ => .some acc
@@ -292,11 +292,11 @@ def synth_superclass_inst (Γ : Ctx Term) : List Term -> Term -> Option Term := 
       | .none => acc
       | some τ' =>
         if τ' == ret_ty
-        then (((#idx).mk_ty_apps iτs) :: acc)
+        then (((#idx).mk_ty_apps' iτs) :: acc)
         else
           let η := synth_coercion Γ τ' ret_ty
           match η with
-          | .some η => (((#idx).mk_ty_apps iτs) ▹ η) :: acc
+          | .some η => (((#idx).mk_ty_apps' iτs) ▹ η) :: acc
           | .none => acc
     | _ => acc
   )  [] (Term.shift_helper Γ.length)
@@ -865,7 +865,7 @@ def synth_instance_coercion (Γ : Ctx Term) (cls_idx : Nat) :
       -- try to build a pairwise improvement by
       -- applying the fundep to the outer type variabes and the determinant of the
       -- inner type variable
-      let t := (#(i + Γ_ηs.length)).mk_ty_apps outer_tyvars
+      let t := (#(i + Γ_ηs.length)).mk_ty_apps' outer_tyvars
       let τ <- .toDsM "pairwise impr instantiate" (instantiate_types τ outer_tyvars)
 
       let inner_determinant := inner_tyvars.reverse[fundep.2]?
@@ -1069,7 +1069,7 @@ match τ.neutral_form with
     let inst_τs := inst_τs.reverse
     -- instantiate the fd function with the inst_τs
     let fd_terms <- fd_ids.mapM (λ fd_id => do
-      let t := Term.mk_ty_apps #fd_id inst_τs
+      let t := Term.mk_ty_apps' #fd_id inst_τs
       let fd_τ <- .toDsM "fd_τ get_type" (Γ d@ fd_id).get_type
       let τ <- .toDsM "fd_τ instantiate types" (instantiate_types fd_τ inst_τs)
       .ok (τ, t)
@@ -1078,7 +1078,7 @@ match τ.neutral_form with
     -- .error (repr fd_terms)
     -- instantiate the fd_terms with the free vars in the context (Γ_tyvars)
     let fd_terms <- fd_terms.mapM (λ x => do
-       let t := Term.mk_ty_apps x.2 local_tyvars
+       let t := Term.mk_ty_apps' x.2 local_tyvars
        let fd_τ <- .toDsM "fd_τ instantiate types 2" (instantiate_types x.1 local_tyvars)
        .ok (fd_τ, t)
     )

@@ -544,12 +544,12 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
         -- TODO : find a fix for general case where some variables are locally bound in the instance
         -- constraint
         let outer_pat_tyvars := ty_vars_outer
-        let guard_pat_outer := Term.mk_ty_apps #(fd_id + Γ_l.length) outer_pat_tyvars
+        let guard_pat_outer := Term.mk_ty_apps' #(fd_id + Γ_l.length) outer_pat_tyvars
         let inst_ty_outer <- .toDsM "instantate instτ outer" (instantiate_types instτ outer_pat_tyvars)
         let (Γ_instτ_outer, _) := inst_ty_outer.to_telescope
 
         let inner_pat_tyvars := ty_vars_inner.map ([S' Γ_instτ_outer.length] ·)
-        let guard_pat_inner := Term.mk_ty_apps #(fd_id + Γ_l.length + Γ_instτ_outer.length) inner_pat_tyvars
+        let guard_pat_inner := Term.mk_ty_apps' #(fd_id + Γ_l.length + Γ_instτ_outer.length) inner_pat_tyvars
         let inst_ty_inner <- .toDsM "instantiate instτ inner"
                              (instantiate_types ([S' Γ_instτ_outer.length]instτ) inner_pat_tyvars)
         let (Γ_instτ_inner, _) := inst_ty_inner.to_telescope
@@ -603,7 +603,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
     let new_vars := fresh_vars Γ_l.length
     let ty_vars : List Term := new_vars.reverse.take (ty_args_ctx.length)
 
-    let g_pat := Term.mk_ty_apps #(sc_id + fd_ids.length + Γ_l.length) ty_vars
+    let g_pat := Term.mk_ty_apps' #(sc_id + fd_ids.length + Γ_l.length) ty_vars
     let g_pat_ty <- .toDsM "sc get_type g_pat_ty" ((Γ_l ++ Γ) d@ (sc_id + fd_ids.length + Γ_l.length)).get_type
     let g_pat_ty <- .toDsM "sc inst type g_pat_ty" (instantiate_types g_pat_ty ty_vars)
     let (eqs, _) := g_pat_ty.to_telescope
@@ -716,7 +716,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
           .ok (t :: ts)
           ) [] (List.zip (Term.shift_helper mthτ'_θ.length) mthτ'_θ)
 
-      let mth' := Term.mk_ty_apps mth' ty_vars_αs
+      let mth' := Term.mk_ty_apps' mth' ty_vars_αs
 
       let mth' := mth'.mk_apps inst_mth_assms
 
@@ -758,7 +758,7 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
 
       let mth' := [S] mth' -- account for instance constraint
 
-      let g_pat := Term.mk_ty_apps #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1)
+      let g_pat := Term.mk_ty_apps' #(idx + sc_ids.length + fd_ids.length + ty_vars_βs.length + 1)
                            (ty_vars_βs.map ([P' (Γ_assms.length + ty_vars_αs.length)] ·))
 
       let mth' := Term.guard g_pat #0 mth'

@@ -46,14 +46,13 @@ case _ =>
   constructor; constructor
   assumption
 
-theorem kind_shape_split_arrow (k : Term) :
+theorem kind_shape_split_arrow {k : Term} :
   k.IsKind ->
   Term.split_kind_arrow k = some (κs, ret_κ) ->
   ret_κ.IsKind ∧ ∀ k ∈ κs, k.IsKind := by
  intros h1 h2; simp at h2
  have lem := @kind_shape_split_arrow_aux κs ret_κ k [] h1 (by intros; simp at *) h2
  assumption
-
 
 
 theorem compile_kind_size (k : HsTerm) :

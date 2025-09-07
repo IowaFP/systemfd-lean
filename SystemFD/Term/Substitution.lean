@@ -377,8 +377,11 @@ namespace Term
      ) Γ (List.zip (shift_helper ts.length) ts)
 
    @[simp]
-   def mk_kind_apps : Term -> List Term -> Term := λ h args =>
-     List.foldl (λ acc a => acc `@k a) h args
+   def mk_kind_apps' (h : Term) (args : List Term):=  List.foldr (λ a acc => acc `@k a) h args
+
+   @[simp]
+   def mk_kind_apps : Term -> List Term -> Term := λ h args => mk_kind_apps' h args.reverse
+
 
    @[simp]
    def mk_kind_apps_rev : Term -> List Term -> Term
@@ -387,21 +390,15 @@ namespace Term
 
    @[simp]
    def mk_ty_apps (h : Term) (args :  List Term): Term :=
-     List.foldl (λ acc a => acc `@t a) h args
+     List.foldr (λ a acc => acc `@t a) h args
 
-   @[simp]
-   def mk_ty_apps_rev : Term -> List Term -> Term
-   | t, [] => t
-   | t, .cons a args => (mk_ty_apps_rev t args) `@t a
+   #eval mk_ty_apps #0 [#1, #2, #3] -- Caution, the order is reversed!
+
+   def mk_ty_apps' (h : Term) (args : List Term) := h.mk_ty_apps args.reverse
 
    @[simp]
    def mk_apps : Term -> List Term -> Term := λ h args =>
-     List.foldl (λ acc a => acc `@ a) h args
-
-   @[simp]
-   def mk_apps_rev : Term -> List Term -> Term
-   | t, [] => t
-   | t, .cons a args => (mk_apps_rev t args) `@ a
+     List.foldr (λ a acc => acc `@ a) h args.reverse
 
    @[simp]
    def mk_lams : Term -> Ctx Term -> Option Term
