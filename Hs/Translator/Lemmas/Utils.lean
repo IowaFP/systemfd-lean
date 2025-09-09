@@ -49,6 +49,25 @@ case _ ih =>
       simp; apply Or.inr; assumption
       assumption
 
+
+theorem mapM'_elems_image {f : α -> DsM β} {ls : List α} {ls' : List β} :
+  List.mapM' f ls = DsM.ok ls' ->
+  ∀ a' ∈ ls', ∃ a ∈ ls, f a = DsM.ok a' := by
+intro j a aj
+induction ls using List.mapM'.induct generalizing ls' f <;> simp
+case _ => cases j; simp at aj
+case _ ih =>
+  simp at j; unfold bind at j; unfold Monad.toBind at j; unfold Except.instMonad at j; simp at j
+  cases j; case _ w j =>
+  cases j; case _ j1 j2 =>
+  unfold Except.map at j2;
+  split at j2 <;> cases j2
+  case _ =>
+    simp at aj; cases aj
+    case _ aj => cases aj; apply Or.inl; assumption
+    case _ h aj => replace ih := ih h aj; apply Or.inr; assumption
+
+
 theorem mapM'_elems_length (ls : List α) (ls' : List β) (f : α -> DsM β) :
   List.mapM' f ls = DsM.ok ls'->
   ls.length = ls'.length := by
@@ -93,20 +112,3 @@ theorem mapM'_elems_shape (ls : List α) (ls' : List β) (f : α -> DsM β) :
    constructor
    simp
    symm at h; assumption
-
-
-theorem mapM'_elems_idx (ls : List α) (ls' : List β) (f : α -> DsM β) :
-  List.mapM' f ls = DsM.ok ls' ->
-  ∀ i : Nat, ls[i]? = .some a ->
-  ls'[i]? = .some a' ->
-  f a = DsM.ok a' := by
-intro j i j1 j2
-induction ls <;> simp at *
-case _ hd tl ih =>
- unfold bind at j; rw[Monad.toBind] at j; unfold Except.instMonad at j; simp at j
- cases j; case _ a' j =>
- cases j; case _ e j =>
- unfold Except.map at j
- generalize mtlh : List.mapM' f tl = mtl at *
- induction mtl <;> simp at j
- sorry

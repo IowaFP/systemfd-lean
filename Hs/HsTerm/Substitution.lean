@@ -47,11 +47,18 @@ namespace HsTerm
   | _ => .none
 
   @[simp]
-  def apply_spine : HsTerm -> List (HsSpineVariant × HsTerm) -> HsTerm
-  | t, [] => t
-  | t, .cons (.term, h) tl => apply_spine (.HsCtor2 .app t h) tl
-  | t, .cons (.kind, h) tl => apply_spine (.HsCtor2 .appk t h) tl
-  | t, .cons (.type, h) tl => apply_spine (.HsCtor2 .appt t h) tl
+  def apply_spine (t : HsTerm) (args : List (HsSpineVariant × HsTerm)) : HsTerm
+    := List.foldr (λ a acc => match a with
+                     | (.term, h) => acc `• h
+                     | (.kind, h) => acc `•k  h
+                     | (.type, h) => acc `•t h) t args.reverse
+
+  -- @[simp]
+  -- def apply_spine : HsTerm -> List (HsSpineVariant × HsTerm) -> HsTerm
+  -- | t, [] => t
+  -- | t, .cons (.term, h) tl => apply_spine (.HsCtor2 .app t h) tl
+  -- | t, .cons (.kind, h) tl => apply_spine (.HsCtor2 .appk t h) tl
+  -- | t, .cons (.type, h) tl => apply_spine (.HsCtor2 .appt t h) tl
 
 
   -- Splits #0 `@k t1 `@k t2 --> (0, [t1, t2])
@@ -62,6 +69,81 @@ namespace HsTerm
     .some (f', (args ++ [a]))
   | `#x => .some (x, [])
   | _ => .none
+
+  @[simp]
+  def mk_kind_apps' (h : HsTerm) (args : List HsTerm):=  List.foldr (λ a acc => acc `•k a) h args
+
+  @[simp]
+  def mk_kind_apps : HsTerm -> List HsTerm -> HsTerm := λ h args => mk_kind_apps' h args.reverse
+
+
+  theorem apply_spine_peel_term :
+    apply_spine f (sp ++ [(.term, a)]) = (apply_spine f sp `• a)
+  := by
+  induction sp using List.foldr.induct <;> simp
+  all_goals (case _ ih => rw [ih])
+
+  theorem apply_spine_peel_type :
+    apply_spine f (sp ++ [(.type, a)]) = (apply_spine f sp `•t a)
+  := by
+  induction sp using List.foldr.induct <;> simp
+  all_goals (case _ ih => rw [ih])
+
+  theorem apply_spine_peel_kind :
+    apply_spine f (sp ++ [(.kind, a)]) = (apply_spine f sp `•k a)
+  := by
+  induction sp using List.foldr.induct <;> simp
+  all_goals (case _ ih => rw [ih])
+
+
+  theorem apply_spine_compose :
+    HsTerm.apply_spine t (t1 ++ t2) = HsTerm.apply_spine (HsTerm.apply_spine t t1) t2
+  := by
+  induction t1 using List.foldr.induct generalizing t2
+  case _ => simp
+  all_goals (case _ ih => simp)
+
+  theorem neutral_form_law :
+    .some (`#x, sp) = HsTerm.neutral_form t ->
+    HsTerm.apply_spine `#x sp = t
+  := by
+  intro h; induction t using neutral_form.induct generalizing x sp
+  case _ =>
+    simp at h
+  case _ =>
+    simp at h; cases h; case _ h1 h2 =>
+      subst h1; subst h2; simp
+  case _ ih =>
+    simp at h; replace h := Eq.symm h
+    rw [Option.bind_eq_some] at h; simp at h
+    cases h; case _ a h =>
+    cases h; case _ b h =>
+    cases h; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3
+      replace ih := ih (Eq.symm h1)
+      rw [apply_spine_peel_term, ih]
+  case _ ih =>
+    simp at h; replace h := Eq.symm h
+    rw [Option.bind_eq_some] at h; simp at h
+    cases h; case _ a h =>
+    cases h; case _ b h =>
+    cases h; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3
+      replace ih := ih (Eq.symm h1)
+      rw [@HsTerm.apply_spine_peel_kind, ih]
+  case _ ih =>
+    simp at h; replace h := Eq.symm h
+    rw [Option.bind_eq_some] at h; simp at h
+    cases h; case _ a h =>
+    cases h; case _ b h =>
+    cases h; case _ h1 h2 =>
+    cases h2; case _ h2 h3 =>
+      subst h2; subst h3
+      replace ih := ih (Eq.symm h1)
+      rw [apply_spine_peel_type, ih]
+  case _ h1 h2 h3 h4 => simp at h
 
 
   @[simp]
