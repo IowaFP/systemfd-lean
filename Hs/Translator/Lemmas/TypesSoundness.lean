@@ -66,6 +66,24 @@ case _ ih =>
   assumption
 
 
+theorem typing_spine_application' {Γ : Ctx Term} {n : Nat} {τs : List Term} {k : Term}:
+  Γ ⊢ #n : k ->
+  k.split_kind_arrow = .some (κs, ret_κ) ->
+  κs.length = τs.length ->
+  d = κs.zip τs ->
+  (∀ (p : i < d.length), Γ ⊢ (d[i].2) : (d[i].1) ) ->
+  Γ ⊢ ((#n).mk_kind_apps' τs) : k := by
+intro h1 h2 h3 e p;
+induction d using List.foldr.induct generalizing κs τs <;> simp at *
+case _ =>
+  cases e
+  case _ e => cases e; simp at h3; symm at h3; replace h3 := list_empty_length h3; cases h3; simp; assumption
+  case _ e => cases e; simp; assumption
+case _ ih =>
+ have ih' := @ih (List.tail κs) (List.tail τs)
+ sorry
+
+
 theorem is_type_spine_application (τh : Term) (τs : List Term) :
   τh.IsType ->
   (∀ τ ∈ τs, Term.IsType τ) ->
@@ -76,13 +94,6 @@ unfold Term.mk_kind_apps
 apply is_type_spine_application'
 assumption
 assumption
-
-theorem type_var_head_is_type_indexed {Γ : Ctx Term} {idx : Nat} {τ : HsTerm} :
-   ⊢ Γ ->
-   τ.IsType ->
-   τ.neutral_form = .some (`#idx, sp) ->
-   Γ d@ idx = (Frame.type τ') := by sorry
-
 
 theorem compile_type_shape_soundness (Γ : Ctx Term) (k : Term) (τ : HsTerm) (τ' : Term): ⊢ Γ ->
  HsTerm.IsType τ ->
@@ -126,78 +137,55 @@ case _ sp idx _ tnfp _ _ _ _ =>
  split at j3
  /- head is a variable -/
  case _ =>
-  simp at j3; cases j3; case _ n tnfp idx tnfp' κ j3 =>
-  rw[tnfp] at tnfp'; cases tnfp'
-  case _ tnfp' tnfp'' _ _ _ _ _ =>
-  rw[tnfp] at tnfp'; cases tnfp'; clear tnfp''
-  cases j3; case _ j3 =>
-  split at j3
-  case _ => /- bogus case -/ simp at j3
-  case _ κs ret_κ j4 =>
-  split at j3;
-  case _ =>
-    rw[Except.bind_eq_ok] at j3; cases j3
-    case _ j5 τs j3 =>
-    simp at j5; cases j5; case _ j6 j5 =>
-    cases j6; case _ j6 j7 =>
-    have e := Term.eq_of_beq j6; cases e; clear j6
-    cases j3; case _ exp_κ τ _ _ _ _ _ j3 j6 =>
-    cases j6;
-    rw[List.foldl_eq_foldr_reverse]
-    have lem1 := HsTerm.hs_type_neutral_form_is_type j1 tnfp
-    have lem2 := HsTerm.hs_is_type_neutral_form j1 tnfp
-    rw[<-List.mapM'_eq_mapM] at j3
-    cases lem1; case _ lem1a =>
-    have κ_wf : κ.IsKind := by sorry
-    have lem3 := kind_shape_split_arrow κ_wf j4
-    cases lem3; case _ lem3a lem3b =>
-    apply is_type_spine_application
-    case _ => constructor
-    case _ ih _ _ =>
-      intro τ' τ'_in_τs
-      have lem3 := mapM'_elems_image j3 τ' τ'_in_τs
-      cases lem3; case _ lem3 =>
-      cases lem3; case _ w w_in_sp lem3 =>
-      simp at lem3; split at lem3 <;> simp at lem3
-      case _ contra => simp at contra
-      case _ e _ =>
-        have lem2' := lem2 (w.val.snd.val.fst, w.val.snd.val.snd) w.val.snd.property
-        simp at lem2'; cases lem2'
-        apply ih κs w.val.fst w.val.fst.property (w.val.snd.val.fst) _ _ _ τ' wf _ _ lem3
-        apply w.val.snd.property
-        apply w.property
-        assumption
-        apply lem3b w.val.fst.val w.val.fst.property
-      case _ contra => simp at contra
+   simp at j3; cases j3; case _ n tnfp idx tnfp' κ j3 =>
+   rw[tnfp] at tnfp'; cases tnfp'
+   case _ tnfp' tnfp'' _ _ _ _ _ =>
+   rw[tnfp] at tnfp'; cases tnfp'; clear tnfp''; cases j3; case _ j4 j3 =>
+   simp at j3; split at j3
+   case _ wfk =>
+     split at j3
+     case _ => simp at j3
+     case _ κs ret_κ h1 =>
+     split at j3
+     case _ j4 =>
+       simp at j4
+       cases j4; case _ j4 j5 =>
+       cases j4; case _ j4 j6 =>
+       have e := Term.eq_of_beq j4; cases e; clear j4
+       rw[Except.bind_eq_ok] at j3; cases j3
+       case _ exp_κ τ _ _ _ ih τs j3 =>
+       cases j3; case _ j3 j7 =>
+       cases j7; rw[List.foldl_eq_foldr_reverse]
+       have lem1 := HsTerm.hs_type_neutral_form_is_type j1 tnfp
+       have lem2 := HsTerm.hs_is_type_neutral_form j1 tnfp
+       rw[<-List.mapM'_eq_mapM] at j3
 
+       cases lem1; case _ lem1a =>
+       have κ_wf : κ.IsKind := wf_kind_shape_sound wfk
+       have lem3 := kind_shape_split_arrow κ_wf h1
+       cases lem3; case _ lem3a lem3b =>
+       apply is_type_spine_application
+       case _ => constructor
+       case _ ih _ _ =>
+         intro τ' τ'_in_τs
+         have lem3 := mapM'_elems_image j3 τ' τ'_in_τs
+         cases lem3; case _ lem3 =>
+         cases lem3; case _ w w_in_sp lem3 =>
+         simp at lem3; split at lem3 <;> simp at lem3
+         case _ contra => simp at contra
+         case _ e _ =>
+           have lem2' := lem2 (w.val.snd.val.fst, w.val.snd.val.snd) w.val.snd.property
+           simp at lem2'; cases lem2'
+           apply ih κs w.val.fst w.val.fst.property (w.val.snd.val.fst) _ _ _ τ' wf _ _ lem3
+           apply w.val.snd.property
+           apply w.property
+           assumption
+           apply lem3b w.val.fst.val w.val.fst.property
+         case _ contra => simp at contra
 
+     case _ => simp at j3
+   case _ => simp at j3
 
-      -- induction [], κ using Term.split_kind_arrow_aux.induct generalizing κs sp <;> simp at j4
-      -- have ih' := ih κs
-      -- sorry
-      -- case _ =>
-      --   cases j4.1; cases j4.2; simp at j3; cases j3; cases τ_in_sp
-
-      -- generalize zzh : κs.attach.zip sp.attach = zz at *
-      -- induction κs generalizing sp <;> simp at zzh
-      -- case _ => cases zzh; cases j3; simp at τ'_in_sp
-      -- case _ κhd κtl _ _ =>
-      --   induction sp <;> simp at zzh
-      --   case _ => cases zzh; simp at j3; cases j3; sorry
-      --   case _ sph sptl _ _ =>
-      --     rw[<-zzh] at j3; rw[<-List.mapM'_eq_mapM] at j3
-      --     simp at j3
-      --     unfold bind at j3; unfold Monad.toBind at j3; unfold Except.instMonad at j3; simp at j3
-      --     cases j3; case _ j3 =>
-      --     cases j3; case _ j3a j3b =>
-      --     simp at j3a; simp at j3b
-      --     unfold Except.map at j3b; split at j3b <;> simp at j3b
-      --     cases j3b; sorry
-
-
-
-
-  case _ => cases j3
  /- head is a not a variable, bogus case -/
  case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
@@ -240,8 +228,8 @@ case _ Γ A B ih => -- ∀[a] b
   cases j; case _ h2 j =>
   cases j; cases j2;
   case _ e1 e2 =>
-  have lem := @compile_kind_sound Γ □ w1 A wf e1 h1
-  have wf' := Judgment.wfkind lem wf
+  have lem1 := @compile_kind_sound Γ □ w1 A wf e1 h1
+  have wf' := Judgment.wfkind lem1 wf
   replace ih := @ih w1 w2 wf' (by constructor) e2 h2
   constructor; assumption; assumption
 case _ k τ tnf tnfp _ _ _ =>
@@ -258,21 +246,22 @@ case _ k τ sp h tnfp tnf _ _ _ ih =>
     rw[Except.bind_eq_ok] at j;
     cases j; case _ w1 j =>
     cases j; case _ t1 j =>
-    simp at j; split at j;
-    case _ => cases j
-    case _ =>
-      split at j
-      · rw[Except.bind_eq_ok] at j;
-        cases j; case _ w3 j =>
-        cases j; case _ t3 j =>
-        cases j;
-        case _ j =>
-        simp at j; cases j; case _ j3 j4 =>
-        cases j3; case _ j3 j5 =>
-        have e := Term.eq_of_beq j3; cases e; clear j3
+    simp at j; split at j <;> try simp at j
+    case _ wfk =>
+    split at j <;> try simp at j
+    split at j <;> try simp at j
+    case _ κs ret_κ h1 h2 =>
+    cases j; case _ τs j =>
+    simp at h2; cases h2; case _ h2 h3 =>
+    cases h2; case _ h2 h4 =>
+    have e := Term.eq_of_beq h2; cases e; clear h2
+    cases j; case _ j e =>
+    cases e; rw[<-List.mapM'_eq_mapM] at j; rw[List.foldl_eq_foldr_reverse]
+    have lem1 := kinding_split_arrow w1 wf (wf_kind_sound wfk wf) h1
+    cases lem1; case _ lem1 lem2 =>
+    have lem3 := mapM'_elems_image j
 
-        sorry
-      cases j
+    sorry
 
   case _ tnf ih =>
   rw[tnf] at e; cases e;

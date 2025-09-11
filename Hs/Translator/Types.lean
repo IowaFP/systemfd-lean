@@ -1,4 +1,5 @@
 import Hs.Translator.Kinds
+import SystemFD.Algorithm
 
 set_option linter.unusedVariables false
 
@@ -28,6 +29,8 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
         let k <- .toDsM ("compile_type get type" ++ Std.Format.line ++ repr Γ
                         ++ Std.Format.line ++ repr h)
                  ((Γ d@ h).get_type)
+        if wf_kind k  == .some () then -- interleaving inference with compilation is
+                                       -- probably not a good idea, but necessary for proofs
         match spk : Term.split_kind_arrow k with
         | .none => .error ("no split arrow kind" ++ repr k)
         | .some (κs, actual_κ) => do
@@ -40,6 +43,7 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
                         compile_type Γ arg.val.1 (arg.val.2.val.2)
                         else .error ("compile_type ill kinded ty arg" ++ repr arg.val))
             .ok (Term.mk_kind_apps #h args')
+          else .error ("compile_type ill kinded" ++ repr τ)
           else .error ("compile_type ill kinded" ++ repr τ)
       | _ => .error ("compile_type head" ++ repr h ++ repr sp)
 termination_by _ t => t.size

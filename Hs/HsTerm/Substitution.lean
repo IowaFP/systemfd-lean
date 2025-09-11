@@ -53,13 +53,6 @@ namespace HsTerm
                      | (.kind, h) => acc `•k  h
                      | (.type, h) => acc `•t h) t args.reverse
 
-  -- @[simp]
-  -- def apply_spine : HsTerm -> List (HsSpineVariant × HsTerm) -> HsTerm
-  -- | t, [] => t
-  -- | t, .cons (.term, h) tl => apply_spine (.HsCtor2 .app t h) tl
-  -- | t, .cons (.kind, h) tl => apply_spine (.HsCtor2 .appk t h) tl
-  -- | t, .cons (.type, h) tl => apply_spine (.HsCtor2 .appt t h) tl
-
 
   -- Splits #0 `@k t1 `@k t2 --> (0, [t1, t2])
   @[simp]

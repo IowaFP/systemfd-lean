@@ -251,3 +251,27 @@ case _ T' =>
   unfold Frame.get_type at h2; simp at h2
   subst h2
   cases h1; assumption
+
+
+theorem frame_wf_type_implies_kind K :
+  Γ ⊢ Γ d@ x ->
+  .some K = (Γ d@ x).get_type ->
+  Γ.is_kind x ∨ Γ.is_datatype x ∨ Γ.is_opent x ->
+  Γ ⊢ K : □
+:= by
+intro h1 h2 h3
+unfold Ctx.is_kind at h3
+generalize fdef : Γ d@x = f at *
+cases f
+all_goals (unfold Frame.is_kind at h3; simp at h3; unfold Frame.get_type at h2; simp at h2)
+all_goals try (rw[fdef] at h3; simp at h3)
+case _ => cases h1; cases h2; assumption
+all_goals (rw[fdef] at h3; unfold Frame.is_datatype at h3; simp at h3)
+case _ => cases h2; unfold Frame.is_opent at h3; simp at h3
+all_goals (cases h2)
+case _ => cases h1; assumption
+all_goals (unfold Frame.is_opent at h3; simp at h3)
+case _ => cases h1; assumption
+
+  -- subst h2
+  -- cases h1; assumption

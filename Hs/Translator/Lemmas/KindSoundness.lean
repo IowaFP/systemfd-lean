@@ -54,6 +54,37 @@ theorem kind_shape_split_arrow {k : Term} :
  have lem := @kind_shape_split_arrow_aux κs ret_κ k [] h1 (by intros; simp at *) h2
  assumption
 
+theorem kinding_split_arrow_aux {Γ :  Ctx Term} (k : Term) (acc : List Term) :
+  ⊢ Γ ->
+  Γ ⊢ k : □ ->
+  (∀ a ∈ acc, Γ ⊢ a : □) ->
+  Term.split_kind_arrow_aux acc k = .some (κs, ret_κ) ->
+  Γ ⊢ ret_κ : □ ∧ ∀ k ∈ κs, Γ ⊢ k : □ := by
+intro wf j1 h1 h2
+induction acc, k using Term.split_kind_arrow_aux.induct <;> simp at *
+case _ ih =>
+  cases j1; case _ j1a j1b =>
+  have ih' := ih j1b j1a h1 h2
+  assumption
+case _ =>
+  cases h2.1; cases h2.2
+  constructor
+  constructor; assumption
+  intro k k_in_κs;
+  have h1' := @h1 k k_in_κs
+  assumption
+
+theorem kinding_split_arrow {Γ : Ctx Term} (k : Term) :
+  ⊢ Γ ->
+  Γ ⊢ k : □ ->
+  Term.split_kind_arrow k = .some (κs, ret_κ) ->
+  Γ ⊢ ret_κ : □ ∧ ∀ k ∈ κs, Γ ⊢ k : □ := by
+intro wf j h
+apply kinding_split_arrow_aux k [] wf j
+simp
+assumption
+
+
 
 theorem compile_kind_size (k : HsTerm) :
   ⊢ Γ ->

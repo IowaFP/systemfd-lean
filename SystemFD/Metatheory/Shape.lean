@@ -6,6 +6,7 @@ import SystemFD.Ctx
 import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Classification
 
+import SystemFD.Algorithm
 
 theorem super_kind_equal_subst : □ = [σ]t -> t = □ ∨ (∃ i, ∃ v, σ i = .su v ∧ v = □ ∧ t = #i) := by
 intro h; induction t generalizing σ <;> simp at *
@@ -399,6 +400,22 @@ case _ j1 j2 j3 ih1 ih2 ih3 ih4 =>
 theorem kind_shape : Γ ⊢ t : A -> A = □ -> Term.IsKind t := by
 intro j1 j2
 apply kind_shape_lemma j1 j2
+
+theorem wf_kind_shape_sound : wf_kind k = .some u -> Term.IsKind k := by
+intro h
+induction k using wf_kind.induct generalizing u
+case _ => constructor
+all_goals (unfold wf_kind at h; simp at h)
+case _ ih1 ih2 =>
+  rw[Option.bind_eq_some] at h; cases h; case _ h =>
+  cases h; case _ h =>
+  rw[Option.bind_eq_some] at h; cases h; case _ h =>
+  cases h; case _ h1 _ h2 _ =>
+  -- cases e
+  replace ih1 := ih1 h1
+  replace ih2 := ih2 h2
+  constructor; assumption; assumption
+
 
 @[simp]
 abbrev TypeShapeLemmaType (_ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop

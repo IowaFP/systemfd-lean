@@ -1,13 +1,13 @@
 import Batteries.Data.List
 import Hs.Monad
 
-theorem list_empty_length (l : List α) : l.length = 0 -> l = [] := by
+theorem list_empty_length {l : List α} : l.length = 0 -> l = [] := by
 intro h
 cases l <;> simp at h
 rfl
 
 
-theorem mapM'_elems (ls : List α) (ls' : List β) (f : α -> DsM β) :
+theorem mapM'_elems  {f : α -> DsM β} {ls : List α} {ls' : List β} :
   List.mapM' f ls = DsM.ok ls' ->
   ∀ a ∈ ls, ∃ a' ∈ ls', f a = DsM.ok a' := by
 intro j a aj
@@ -38,7 +38,7 @@ case _ ih =>
     generalize mtlh : List.mapM' f tl = mtl at *
     cases mtl <;> simp at j2
     case _ tl' =>
-      have ih' := ih tl' rfl h;
+      have ih' := ih rfl h;
       rw[<-j2]
       simp at ih';
       cases ih';
