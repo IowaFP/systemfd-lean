@@ -74,7 +74,7 @@ case _ =>
   have h1' := @h1 k k_in_κs
   assumption
 
-theorem kinding_split_arrow {Γ : Ctx Term} (k : Term) :
+theorem kinding_split_arrow {Γ : Ctx Term} {k : Term} :
   ⊢ Γ ->
   Γ ⊢ k : □ ->
   Term.split_kind_arrow k = .some (κs, ret_κ) ->

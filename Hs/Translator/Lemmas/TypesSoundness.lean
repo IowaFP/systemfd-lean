@@ -11,6 +11,8 @@ import SystemFD.Metatheory.Inversion
 
 import Batteries.Lean.Except
 
+-- import Aesop
+
 theorem is_type_list_reverse (τs : List Term) :
   (∀ τ ∈ τs, Term.IsType τ) -> ∀ τ ∈ τs.reverse, Term.IsType τ := by
   intro h t h2
@@ -65,23 +67,68 @@ case _ ih =>
   replace ih := ih h2b; assumption
   assumption
 
+theorem kind_split_mk_arrow_aux {Γ : List Term} {κs : List Term} {k : Term}:
+  k.split_kind_arrow_aux Γ = .some (κs, ret_κ) ->
+  ∃ κs', κs = κs' ++ Γ := by
+ intro h
+ induction Γ, k using Term.split_kind_arrow_aux.induct generalizing κs ret_κ <;> simp at h
+ case _ f a ih =>
+   have ih' := ih h
+   cases ih'; case _ w e =>
+   exists (w ++ [f])
+   rw[e]; simp
+ cases h.1; cases h.2; exists []
+
+theorem kind_split_empty_κs :
+  Term.split_kind_arrow_aux [] k = some ([], ret_κ) ->
+  k = ret_κ := by
+intro h
+induction [], k using Term.split_kind_arrow_aux.induct generalizing ret_κ <;> simp at h
+case _ =>
+ exfalso
+ have lem := kind_split_mk_arrow_aux h
+ cases lem; case _ lem => simp at lem
+assumption
 
 theorem typing_spine_application' {Γ : Ctx Term} {n : Nat} {τs : List Term} {k : Term}:
+  Γ ⊢ k : □ ->
   Γ ⊢ #n : k ->
   k.split_kind_arrow = .some (κs, ret_κ) ->
   κs.length = τs.length ->
   d = κs.zip τs ->
   (∀ (p : i < d.length), Γ ⊢ (d[i].2) : (d[i].1) ) ->
-  Γ ⊢ ((#n).mk_kind_apps' τs) : k := by
-intro h1 h2 h3 e p;
-induction d using List.foldr.induct generalizing κs τs <;> simp at *
+  Γ ⊢ ((#n).mk_kind_apps' τs) : ret_κ := by
+intro j1 j2 h1 h2 h3 j3;
+have wf := judgment_ctx_wf j1
+have lem := kinding_split_arrow wf j1 h1
+induction d using List.foldr.induct generalizing k κs τs <;> simp at *
 case _ =>
-  cases e
-  case _ e => cases e; simp at h3; symm at h3; replace h3 := list_empty_length h3; cases h3; simp; assumption
-  case _ e => cases e; simp; assumption
+  cases h3
+  case _ e =>
+    -- cases e; cases lem; case _ lem => simp at lem; sorry
+    cases e; simp at h2; symm at h2; replace h2 := list_empty_length h2; cases h2; simp;
+    have lem1 := kind_split_mk_arrow_aux h1; simp at lem;
+    cases lem1; case _ lem1 =>
+    simp at lem1; cases lem1
+    have lem1 := kind_split_empty_κs h1; subst lem1; assumption
+  case _ e =>
+    cases e; simp; simp at h2; cases h2;
+    have lem1 := kind_split_empty_κs h1; subst lem1; assumption
 case _ ih =>
- have ih' := @ih (List.tail κs) (List.tail τs)
- sorry
+ have lem1 : ∃ κshd κstl, κs = (.cons κshd κstl) := by
+   sorry
+ have lem2 : ∃ τshd τstl, τs = (.cons τshd τstl) := by
+   sorry
+ cases lem1; case _ κshd lem1 =>
+ cases lem1; case _ κstl lem1 =>
+ cases lem2; case _ τshd lem2 =>
+ cases lem2; case _ τstl lem2 =>
+ cases lem1; cases lem2
+ unfold Term.split_kind_arrow_aux at h1;
+ split at h1 <;> try simp at h1
+ case _ =>
+    simp at h2
+    sorry
 
 
 theorem is_type_spine_application (τh : Term) (τs : List Term) :
@@ -257,7 +304,7 @@ case _ k τ sp h tnfp tnf _ _ _ ih =>
     have e := Term.eq_of_beq h2; cases e; clear h2
     cases j; case _ j e =>
     cases e; rw[<-List.mapM'_eq_mapM] at j; rw[List.foldl_eq_foldr_reverse]
-    have lem1 := kinding_split_arrow w1 wf (wf_kind_sound wfk wf) h1
+    have lem1 := kinding_split_arrow wf (wf_kind_sound wfk wf) h1
     cases lem1; case _ lem1 lem2 =>
     have lem3 := mapM'_elems_image j
 
