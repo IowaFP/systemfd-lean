@@ -135,16 +135,4 @@ theorem mk_kind_app_rev_is_type {h : Term} {args : List Term} :
   replace ih := ih j3
   constructor; assumption; assumption
 
--- theorem arrow_kind_split_is_type (k : Term) :
---   k.IsType ->
---   Term.split_kind_arrow k = .some (κs, base_κ) ->
---   (base_κ.IsType ∧ ∀ k ∈ κs, k.IsType) := by
---  intros; induction k generalizing κs base_κ <;> simp at *
---  case _ h1 h2 =>
---    cases h2; case _ h2 h3 =>
---    cases h3
---    constructor; assumption; rw[h2]; simp
---  case _ v _ _ ih1 ih2 h1 h2 =>
---    cases v <;> simp at *
---    cases h1
 end Term

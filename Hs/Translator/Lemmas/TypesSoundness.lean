@@ -11,7 +11,10 @@ import SystemFD.Metatheory.Inversion
 
 import Batteries.Lean.Except
 
--- import Aesop
+import Mathlib.Data.Prod.Basic
+
+set_option maxHeartbeats 500000
+
 
 theorem is_type_list_reverse (τs : List Term) :
   (∀ τ ∈ τs, Term.IsType τ) -> ∀ τ ∈ τs.reverse, Term.IsType τ := by
@@ -67,68 +70,88 @@ case _ ih =>
   replace ih := ih h2b; assumption
   assumption
 
-theorem kind_split_mk_arrow_aux {Γ : List Term} {κs : List Term} {k : Term}:
-  k.split_kind_arrow_aux Γ = .some (κs, ret_κ) ->
-  ∃ κs', κs = κs' ++ Γ := by
- intro h
- induction Γ, k using Term.split_kind_arrow_aux.induct generalizing κs ret_κ <;> simp at h
- case _ f a ih =>
-   have ih' := ih h
-   cases ih'; case _ w e =>
-   exists (w ++ [f])
-   rw[e]; simp
- cases h.1; cases h.2; exists []
 
-theorem kind_split_empty_κs :
-  Term.split_kind_arrow_aux [] k = some ([], ret_κ) ->
-  k = ret_κ := by
-intro h
-induction [], k using Term.split_kind_arrow_aux.induct generalizing ret_κ <;> simp at h
-case _ =>
- exfalso
- have lem := kind_split_mk_arrow_aux h
- cases lem; case _ lem => simp at lem
-assumption
-
-theorem typing_spine_application' {Γ : Ctx Term} {n : Nat} {τs : List Term} {k : Term}:
+theorem typing_spine_application {Γ : Ctx Term} {h : Term} {τs : List Term} {k : Term}:
   Γ ⊢ k : □ ->
-  Γ ⊢ #n : k ->
+  Γ ⊢ h : k ->
   k.split_kind_arrow = .some (κs, ret_κ) ->
   κs.length = τs.length ->
-  d = κs.zip τs ->
-  (∀ (p : i < d.length), Γ ⊢ (d[i].2) : (d[i].1) ) ->
-  Γ ⊢ ((#n).mk_kind_apps' τs) : ret_κ := by
-intro j1 j2 h1 h2 h3 j3;
+  let ls := κs.attach.zip τs.attach
+  (∀ (i : Nat) (p : i < ls.length), Γ ⊢ (ls[i].2.val) : (ls[i].1.val)) ->
+  Γ ⊢ (h.mk_kind_apps τs) : ret_κ := by
+intro j1 j2 h1 h2 ls j3;
 have wf := judgment_ctx_wf j1
 have lem := kinding_split_arrow wf j1 h1
-induction d using List.foldr.induct generalizing k κs τs <;> simp at *
+induction τs using List.foldr.induct generalizing h k κs <;> simp at *
 case _ =>
-  cases h3
-  case _ e =>
-    -- cases e; cases lem; case _ lem => simp at lem; sorry
-    cases e; simp at h2; symm at h2; replace h2 := list_empty_length h2; cases h2; simp;
-    have lem1 := kind_split_mk_arrow_aux h1; simp at lem;
-    cases lem1; case _ lem1 =>
-    simp at lem1; cases lem1
-    have lem1 := kind_split_empty_κs h1; subst lem1; assumption
-  case _ e =>
-    cases e; simp; simp at h2; cases h2;
-    have lem1 := kind_split_empty_κs h1; subst lem1; assumption
-case _ ih =>
- have lem1 : ∃ κshd κstl, κs = (.cons κshd κstl) := by
-   sorry
- have lem2 : ∃ τshd τstl, τs = (.cons τshd τstl) := by
-   sorry
- cases lem1; case _ κshd lem1 =>
- cases lem1; case _ κstl lem1 =>
- cases lem2; case _ τshd lem2 =>
- cases lem2; case _ τstl lem2 =>
- cases lem1; cases lem2
- unfold Term.split_kind_arrow_aux at h1;
- split at h1 <;> try simp at h1
- case _ =>
-    simp at h2
+  cases h2;
+
+  simp at ls; cases ls;
+  case _ =>
+    rw[Option.bind_eq_some] at h1; cases h1; case _ w h1 =>
+    cases h1; case _ h1 e =>
+    simp at e; cases e; case _ e1 e2 =>
+    have e := @Prod.mk.eta (List Term) Term w
+    rw[<-e] at h1
+    cases e2;
+    rw[e1] at h1;
+    have lem1 := @kind_split_empty_κs k w.snd h1
+    subst lem1
+    assumption
+  case _ h _ => exfalso; apply h.1.property
+
+case _ τ τs ih =>
+  cases lem;
+  case _ lem1 lem2 =>
+  have lem3 := list_non_empty h2
+  cases lem3; case _ κ' lem3 =>
+  cases lem3; case _ κs' lem3 =>
+  cases lem3
+  simp at h2;
+
+  have ih' := @ih κs' (h `@k τ) (Term.mk_kind_arrow ret_κ κs')
+  apply ih'
+  case _ =>
+    apply kinding_mk_kind_arrow wf;
+    intro k h;
+      apply lem2 k; simp_all
+    assumption
+  case _ =>
+    rw[Option.bind_eq_some] at h1; cases h1; case _ w h1 =>
+    cases h1; case _ w1 h1 =>
+    injection h1; case _ h1 =>
+    injection h1; case _ h1a h1b =>
+    rw[<-@Prod.mk.eta (List Term) Term w] at w1
+    simp at h1a;
+    constructor;
     sorry
+    sorry
+    apply w.1.head; rw[h1a]; simp
+
+  sorry
+  assumption
+  case _ =>
+    intro i p
+    have j3' := j3 i
+    sorry
+  assumption
+  intro k h
+  apply lem2 k
+  simp; simp_all
+ -- have lem1 : ∃ κshd κstl, κs = (.cons κshd κstl) := by
+ --   sorry
+ -- have lem2 : ∃ τshd τstl, τs = (.cons τshd τstl) := by
+ --   sorry
+ -- cases lem1; case _ κshd lem1 =>
+ -- cases lem1; case _ κstl lem1 =>
+ -- cases lem2; case _ τshd lem2 =>
+ -- cases lem2; case _ τstl lem2 =>
+ -- cases lem1; cases lem2
+ -- unfold Term.split_kind_arrow_aux at h1;
+ -- split at h1 <;> try simp at h1
+ -- case _ =>
+ --    simp at h2
+
 
 
 theorem is_type_spine_application (τh : Term) (τs : List Term) :
@@ -237,7 +260,6 @@ case _ sp idx _ tnfp _ _ _ _ =>
  case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
 
-
 theorem compile_type_sound (k : Term) (τ : HsTerm) :
   ⊢ Γ ->
   Term.IsKind k ->
@@ -305,10 +327,49 @@ case _ k τ sp h tnfp tnf _ _ _ ih =>
     cases j; case _ j e =>
     cases e; rw[<-List.mapM'_eq_mapM] at j; rw[List.foldl_eq_foldr_reverse]
     have lem1 := kinding_split_arrow wf (wf_kind_sound wfk wf) h1
-    cases lem1; case _ lem1 lem2 =>
+    cases lem1; case _ Γ _ _ _ _ _ lem1 lem2 =>
     have lem3 := mapM'_elems_image j
 
+    have lem4 : Γ ⊢ #h : w1 := by
+      constructor; assumption
+      case _ =>
+        unfold DsM.toDsM at t1; split at t1 <;> simp at t1
+        cases t1; symm; assumption
+    have lem5 : Γ ⊢ w1 : □ := (wf_kind_sound wfk wf)
+    have lem6 : κs.length = τs.reverse.length := by sorry -- becuase τs sp and κs are of the same length
+
+    apply typing_spine_application
     sorry
+    sorry
+    sorry
+    sorry
+    sorry
+    sorry
+
+    case _ contra => sorry
+
+
+
+    -- lem5 lem4 h1 lem6
+    -- intro e p
+    -- have lem7 := lem3 e.val.snd.val (by sorry)
+    -- cases lem7; case _ w3 lem7 =>
+    -- cases lem7; case _ w4 lem7 =>
+    -- simp at lem7; split at lem7 <;> simp at lem7
+    -- case _ contra => simp at contra
+    -- case _ =>
+    --   apply @ih κs.attach
+    --   case _ => sorry
+    --   assumption
+    --   case _ => sorry
+    --   case _ =>
+    --     sorry
+    --   sorry
+    --   sorry
+    --   sorry
+    --   sorry
+    --   sorry
+
 
   case _ tnf ih =>
   rw[tnf] at e; cases e;

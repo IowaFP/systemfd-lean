@@ -2,9 +2,10 @@ import Batteries.Data.List
 import Hs.Monad
 
 theorem list_empty_length {l : List α} : l.length = 0 -> l = [] := by
-intro h
-cases l <;> simp at h
-rfl
+  intro h; cases l <;> simp at h; rfl
+
+theorem list_non_empty {l : List α} {n : Nat} : l.length = n + 1 -> ∃ x xs, (x :: xs) = l := by
+  intro h; induction l generalizing n <;> simp at *
 
 
 theorem mapM'_elems  {f : α -> DsM β} {ls : List α} {ls' : List β} :
@@ -112,3 +113,5 @@ theorem mapM'_elems_shape (ls : List α) (ls' : List β) (f : α -> DsM β) :
    constructor
    simp
    symm at h; assumption
+
+theorem prod_universal_property {w : α × β} : w = (w.fst, w.snd) := by simp

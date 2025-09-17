@@ -5,6 +5,8 @@ import SystemFD.Judgment
 
 import Hs.Translator.Kinds
 
+import Mathlib.Data.Prod.Basic
+
 theorem compile_kind_shape_sound (k : HsTerm) :
   ⊢ Γ ->
   HsTerm.IsKind k ->
@@ -51,8 +53,15 @@ theorem kind_shape_split_arrow {k : Term} :
   Term.split_kind_arrow k = some (κs, ret_κ) ->
   ret_κ.IsKind ∧ ∀ k ∈ κs, k.IsKind := by
  intros h1 h2; simp at h2
- have lem := @kind_shape_split_arrow_aux κs ret_κ k [] h1 (by intros; simp at *) h2
+ rw[Option.bind_eq_some] at h2;
+ cases h2; case _ w h2 =>
+ cases h2; case _ h2 e =>
+ cases e
+ have lem := @kind_shape_split_arrow_aux w.fst w.snd k [] h1 (by intros; simp at *) h2
+ cases lem; case _ lem =>
+ constructor;
  assumption
+ simp; assumption
 
 theorem kinding_split_arrow_aux {Γ :  Ctx Term} (k : Term) (acc : List Term) :
   ⊢ Γ ->
@@ -78,13 +87,26 @@ theorem kinding_split_arrow {Γ : Ctx Term} {k : Term} :
   ⊢ Γ ->
   Γ ⊢ k : □ ->
   Term.split_kind_arrow k = .some (κs, ret_κ) ->
-  Γ ⊢ ret_κ : □ ∧ ∀ k ∈ κs, Γ ⊢ k : □ := by
+  Γ ⊢ ret_κ : □ ∧ ∀ k ∈ κs.reverse, Γ ⊢ k : □ := by
 intro wf j h
 apply kinding_split_arrow_aux k [] wf j
 simp
-assumption
+unfold Term.split_kind_arrow at h; simp at h
+rw[Option.bind_eq_some] at h; cases h; case _ w h =>
+cases h; case _ h e =>
+cases e
+simp; assumption
 
 
+theorem kinding_mk_kind_arrow {Γ: Ctx Term} {ks : List Term} {ret_k : Term} :
+  ⊢ Γ ->
+  (∀ k ∈ ks, Γ ⊢ k : □) ->
+  Γ ⊢ ret_k : □ ->
+  Γ ⊢ ret_k.mk_kind_arrow ks : □ := by
+  intro wf j1 j2
+  induction ks using List.foldr.induct <;> simp at *
+  assumption
+  case _ ih =>  cases j1; constructor; assumption; apply ih; assumption
 
 theorem compile_kind_size (k : HsTerm) :
   ⊢ Γ ->
@@ -143,3 +165,95 @@ all_goals try (
   cases j; apply Judgment.var wf;
   unfold Frame.get_type; rw[fh]
 )
+
+
+theorem kind_split_mk_arrow_aux {Γ : List Term} {κs : List Term} {k : Term}:
+  k.split_kind_arrow_aux Γ = .some (κs, ret_κ) ->
+  ∃ κs', κs = κs' ++ Γ := by
+ intro h
+ induction Γ, k using Term.split_kind_arrow_aux.induct generalizing κs ret_κ <;> simp at h
+ case _ f a ih =>
+   have ih' := ih h
+   cases ih'; case _ w e =>
+   exists (w ++ [f])
+   rw[e]; simp
+ cases h.1; cases h.2; exists []
+
+theorem kind_split_empty_κs {k ret_κ : Term} :
+  Term.split_kind_arrow_aux [] k = some ([], ret_κ) ->
+  k = ret_κ := by
+intro h
+induction [], k using Term.split_kind_arrow_aux.induct generalizing ret_κ <;> simp at h
+case _ =>
+ exfalso
+ have lem := kind_split_mk_arrow_aux h
+ cases lem; case _ lem => simp at lem
+assumption
+
+theorem kind_split_arrow_base {k : Term} :
+  Term.split_kind_arrow_aux Γ k = .some (κs, ret_k) ->
+  ret_k = ★ := by
+intro h
+induction Γ, k using Term.split_kind_arrow_aux.induct <;> simp at *
+case _ ih => apply ih h
+case _ => cases h; symm; assumption
+
+
+theorem mk_arrow_kind_cons {k ret_k : Term} {ks : List Term}:
+  (k -k> ret_k.mk_kind_arrow ks) = ret_k.mk_kind_arrow (k :: ks) := by simp
+
+
+theorem kind_split_arrow_mk_arrow_law {k k' ret_k : Term} {ks : List Term} :
+  (k -k> k').split_kind_arrow = .some (k :: ks, ret_k) ->
+  ret_k.mk_kind_arrow (k :: ks) = (k -k> k') := by
+  intro h;
+  generalize p : k :: ks = ls at *
+  induction ls using List.foldr.induct generalizing k ks <;> simp at *;
+  case _ ih =>
+    symm; rw[Option.bind_eq_some] at h;
+    cases h; case _ w h =>
+    cases h <;> simp at *
+    case _ h1 e =>
+    cases e.2
+    rw[<-@Prod.mk.eta (List Term) Term w] at h1
+    rw[e.1] at h1
+    cases p;
+    constructor;
+    case _ e1 e2 =>
+      subst e1; subst e2; simp at e;
+      have lem := kind_split_arrow_base h1
+      rw[lem]; rw[lem] at ih; rw[lem] at h1
+      induction ks <;> simp at *
+      sorry
+      sorry
+    symm; assumption
+
+theorem kind_mk_arrow_split_arrow_law {ret_k k : Term} {ks : List Term}:
+  -- maybe i also need to know that ks are all IsKind
+  ret_k.mk_kind_arrow ks = k ->
+  k.split_kind_arrow = .some (ks, ret_k) := by
+intro h
+induction ks using List.foldr.induct generalizing k <;> simp at *
+case _ =>
+ rw[Option.bind_eq_some]; exists ([], k)
+ constructor
+ induction k <;> simp at *
+ case _ => sorry
+ case _ => sorry
+ case _ => sorry
+ case _ => sorry
+ case _ => sorry
+ case _ => sorry
+
+ sorry
+ sorry
+ sorry
+ sorry
+ simp; symm; assumption
+
+
+case _ a as ih =>
+  rw[Option.bind_eq_some]; exists (as.reverse ++ [a], ret_k)
+  constructor
+  sorry
+  simp

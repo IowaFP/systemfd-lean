@@ -59,13 +59,16 @@ namespace Term
   | _, _ => .none
 
   @[simp]
-  def split_kind_arrow : Term -> Option (List Term × Term) := split_kind_arrow_aux []
+  def split_kind_arrow : Term -> Option (List Term × Term) := λ k => do
+    let (κs, ret_κ) <- split_kind_arrow_aux [] k
+    return (κs.reverse, ret_κ)
 
   @[simp]
-  def mk_kind_arrow (base : Term) : List Term -> Term
-  | [] => base
-  | .cons k ks => k -k> (mk_kind_arrow base ks)
+  def mk_kind_arrow (k : Term) (ks : List Term) : Term := List.foldr (λ a acc => a -k> acc) k ks
 
+
+  #eval split_kind_arrow (★ -k> ★ -k> (★ -k> ★) -k> ★)
+  #eval mk_kind_arrow ★ [★, ★, (★ -k> ★)]
 
   @[simp]
   def mk_kind_app : Nat -> List Term -> Term := λ h sp =>
@@ -382,6 +385,7 @@ namespace Term
    @[simp]
    def mk_kind_apps : Term -> List Term -> Term := λ h args => mk_kind_apps' h args.reverse
 
+   #eval mk_kind_apps #0 [#1, #2, #3]
 
    @[simp]
    def mk_kind_apps_rev : Term -> List Term -> Term
