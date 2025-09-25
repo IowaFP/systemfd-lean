@@ -33,7 +33,7 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
                                        -- probably not a good idea, but necessary for proofs
         match spk : Term.split_kind_arrow k with
         | .none => .error ("no split arrow kind" ++ repr k)
-        | .some (κs, actual_κ) => do
+        | .some (κs, actual_κ) => do -- Bug in the translator
           if exp_κ == actual_κ && sp.all (λ x => x.1 == .kind) && κs.length == sp.length
           then
             let zz := List.attach (List.zip (List.attach κs) (List.attach sp))

@@ -113,5 +113,3 @@ theorem mapM'_elems_shape (ls : List α) (ls' : List β) (f : α -> DsM β) :
    constructor
    simp
    symm at h; assumption
-
-theorem prod_universal_property {w : α × β} : w = (w.fst, w.snd) := by simp

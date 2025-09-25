@@ -1,6 +1,7 @@
 
 import SystemFD.Substitution
 -- import Aesop
+import Hs.Utils
 
 variable {T : Type} [Repr T] [Inhabited T] [SubstitutionType T] [SubstitutionTypeLaws T]
 
@@ -72,6 +73,7 @@ end Subst
 
 
 namespace HsFrame
+  @[simp]
   def apply : HsFrame T -> Subst T -> HsFrame T
   | empty, _ => empty
   | kind t, σ => kind ([σ]t)
@@ -85,6 +87,7 @@ namespace HsFrame
   | tyfam t, σ => tyfam ([σ]t)
   | tyfaminst t1 t2, σ => tyfaminst ([σ]t1) ([σ]t2)
 
+  @[simp]
   def get_type : HsFrame T -> Option T
   | .kind t => .some t
   | .type t => .some t
@@ -93,6 +96,13 @@ namespace HsFrame
   | .term t _ => .some t
   | .tyfam t => .some t
   | _ => .none
+
+  @[simp]
+  def width : HsFrame T -> Nat
+  | datatypeDecl _ ds => 1 + ds.length
+  | classDecl _ scs fds oms => 1 + scs.length + fds.length + oms.length
+  | inst _ oms => 1 + oms.length
+  | _ => 1
 
   @[simp]
   def is_classDecl (f : HsFrame T) : Bool :=
@@ -132,6 +142,7 @@ namespace HsFrame
     | .tyfam _ => true
     | _ => false
 
+
 end HsFrame
 
 def HsCtx (T : Type) := List (HsFrame T)
@@ -141,3 +152,108 @@ instance instHsCtx_Append : Append (HsCtx T) where
 
 instance instHsCtxt_repr [Repr T]: Repr (HsCtx T) where
   reprPrec a p := List.repr a p
+
+
+inductive FrameMetadata T where
+| term : T -> T -> FrameMetadata T
+| type : T -> FrameMetadata T
+| kind : T -> FrameMetadata T
+| datacon : T -> FrameMetadata T
+| tycon : T -> FrameMetadata T
+| clscon : T -> FrameMetadata T
+| clsmth : T -> FrameMetadata T
+| empty : FrameMetadata T
+
+protected def FrameMetadata.repr [r : Repr T]: (a : FrameMetadata T) -> (p : Nat) -> Std.Format
+| .empty, _ => ".empty"
+| term ty t, _ =>
+  ".term " ++ repr ty ++ repr t
+| .type t, _ =>
+  ".type " ++ repr t
+| .kind t, _ =>
+  ".kind " ++ repr t
+| .datacon t, _ =>
+  ".datacon " ++ repr t
+| .tycon t, _ =>
+  ".tycon " ++ repr t
+| .clscon t, _ =>
+  ".clscon " ++ repr t
+| .clsmth t, _ =>
+  ".clsmth " ++ repr t
+
+namespace HsCtx
+
+instance instFrameMetadata_repr [r : Repr T] : Repr (FrameMetadata T) where
+  reprPrec a p := FrameMetadata.repr a p
+
+def nth : HsCtx T -> Nat -> FrameMetadata T
+| [], _ => .empty
+| (.cons x _), 0 => match x with
+  | .empty => .empty
+  | .kind t => .kind t
+  | .type t => .type t
+  | .datatypeDecl t ctrs =>
+    if p : ctrs.isEmpty
+    then .tycon t
+    else .datacon (ctrs[0]'(by simp at *; cases ctrs; contradiction; simp))
+  | .classDecl t _ _ _  => .clscon t
+  | .inst _ _ => .empty
+  | .term ty t => .term ty t
+  | .tyfam _ => .empty
+  | .tyfaminst _ _  => .empty
+| (.cons x xs), n + 1 => match x with
+  | .datatypeDecl _ dcs =>
+    if p : dcs.length > n
+    then .datacon (dcs[n]'(by assumption))
+    else nth xs (n - dcs.length)
+  | .classDecl _ xs1 xs2 xs3 =>
+    if p : xs3.length > n
+    then .clsmth (xs3.reverse[n]'(by rw[List.reverse_length] at p; assumption))
+    else if p : xs3.length + xs2.length > n
+    then .empty
+    else let k := xs3.length + xs2.length + xs1.length;
+      if p : k > n
+      then .clsmth (xs1[n - (xs2.length + xs3.length)]'(by unfold k at p; omega))
+      else nth xs (n - xs.length)
+  | .tyfam _ => .empty
+  | .tyfaminst _ _  => .empty
+  | .inst _ _ => .empty
+  |  _ => nth xs n
+
+def dnth : HsCtx T -> Nat -> Nat -> FrameMetadata T
+| [], _, _ => .empty
+| (.cons x _), 0, k => match x with
+  | .empty => .empty
+  | .kind t => .kind ([S' k] t)
+  | .type t => .type ([S' k] t)
+  | .datatypeDecl t dcs =>
+    if p : dcs.isEmpty
+    then .tycon ([S' k] t)
+    else .datacon ([S' k] dcs.reverse[0]'(by rw[List.reverse_length]; cases dcs; simp at *; unfold List.length; simp))
+  | .classDecl t _ _ _  => .clscon ([S' k] t)
+  | .inst _ _ => .empty
+  | .term ty t => .term ([S' k] ty) ([S' k]t)
+  | .tyfam _ => .empty
+  | .tyfaminst _ _  => .empty
+| (.cons x xs), n + 1, k => match f : x with
+  | .datatypeDecl t dcs =>
+    if p : x.width - 1 > n
+    then .datacon ([S' k] dcs.reverse[n]'(by unfold HsFrame.width at p; rw[f] at p;
+                                                   simp at p; rw[List.reverse_length] at p; omega))
+    else if p : x.width == n + 1
+         then .tycon ([S' (k + x.width)] t)
+         else dnth xs (n - x.width) (k + x.width)
+  | .classDecl _ xs1 xs2 xs3  => -- FIX ME
+    if p : xs3.length > n
+    then .clsmth (xs3.reverse[n]'(by rw[List.reverse_length] at p; assumption))
+    else if p : xs3.length + xs2.length > n
+    then .empty
+    else let k := xs3.length + xs2.length + xs1.length;
+      if p : k > n
+      then .clsmth (xs1[n - (xs2.length + xs3.length)]'(by unfold k at p; omega))
+      else dnth xs (n - xs.length) (k + xs.length)
+  |  _ => dnth xs n (k + 1)
+
+notation:1000 t "d@s" x => dnth t x 1
+
+end HsCtx

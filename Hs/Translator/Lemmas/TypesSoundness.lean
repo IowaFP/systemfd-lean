@@ -193,7 +193,7 @@ case _ Γ K A ih =>
   have lem' : Except.ok K' = DsM.ok K' := by simp
   rw[lem'] at h1;
 
-  have lem := @compile_kind_sound Γ □ K' K wf h3 h1
+  have lem := compile_kind_sound wf h3 h1
   have wf' : ⊢ (.kind K' :: Γ) := by constructor; assumption; assumption
   replace ih := @ih K' A' wf' h4 (by constructor) h2
   have lem := kind_shape lem rfl
@@ -227,7 +227,7 @@ case _ sp idx _ tnfp _ _ _ _ =>
        cases j3; case _ j3 j7 =>
        cases j7; rw[List.foldl_eq_foldr_reverse]
        have lem1 := HsTerm.hs_type_neutral_form_is_type j1 tnfp
-       have lem2 := HsTerm.hs_is_type_neutral_form j1 tnfp
+       have lem2 := HsTerm.hs_is_type_neutral_form j1 tnfp -- TODO Use Lem1 here
        rw[<-List.mapM'_eq_mapM] at j3
 
        cases lem1; case _ lem1a =>
@@ -297,7 +297,7 @@ case _ Γ A B ih => -- ∀[a] b
   cases j; case _ h2 j =>
   cases j; cases j2;
   case _ e1 e2 =>
-  have lem1 := @compile_kind_sound Γ □ w1 A wf e1 h1
+  have lem1 := compile_kind_sound wf e1 h1
   have wf' := Judgment.wfkind lem1 wf
   replace ih := @ih w1 w2 wf' (by constructor) e2 h2
   constructor; assumption; assumption
