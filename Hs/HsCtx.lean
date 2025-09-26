@@ -145,7 +145,10 @@ namespace HsFrame
 
 end HsFrame
 
-def HsCtx (T : Type) := List (HsFrame T)
+abbrev HsCtx (T : Type) := List (HsFrame T)
+
+@[simp]
+def HsCtx.length (Γ : HsCtx T) := List.foldr (λ a acc => acc + a.width) 0 Γ
 
 instance instHsCtx_Append : Append (HsCtx T) where
     append := λ a b => List.append a b -- ideally we may want to shift the indices in a?
@@ -186,6 +189,7 @@ namespace HsCtx
 instance instFrameMetadata_repr [r : Repr T] : Repr (FrameMetadata T) where
   reprPrec a p := FrameMetadata.repr a p
 
+-- Should Go away. Don't need it
 def nth : HsCtx T -> Nat -> FrameMetadata T
 | [], _ => .empty
 | (.cons x _), 0 => match x with
@@ -235,14 +239,17 @@ def dnth : HsCtx T -> Nat -> Nat -> FrameMetadata T
   | .term ty t => .term ([S' k] ty) ([S' k]t)
   | .tyfam _ => .empty
   | .tyfaminst _ _  => .empty
-| (.cons x xs), n + 1, k => match f : x with
+| (.cons x xs), n + 1, k => let idx := n + 1;
+  match f : x with
   | .datatypeDecl t dcs =>
-    if p : x.width - 1 > n
-    then .datacon ([S' k] dcs.reverse[n]'(by unfold HsFrame.width at p; rw[f] at p;
-                                                   simp at p; rw[List.reverse_length] at p; omega))
-    else if p : x.width == n + 1
-         then .tycon ([S' (k + x.width)] t)
-         else dnth xs (n - x.width) (k + x.width)
+    if dcs.length == idx
+    -- We index the tycon itself
+    then .tycon ([S' (k + x.width)] t)
+    else
+    -- Or we index into one of the constructors
+      if p : dcs.length > idx
+      then .datacon ([S' (k + 1)] dcs.reverse[idx]'(by rw[<-List.reverse_length]; assumption))
+      else dnth xs ((n + 1) - x.width) (k + x.width)
   | .classDecl _ xs1 xs2 xs3  => -- FIX ME
     if p : xs3.length > n
     then .clsmth (xs3.reverse[n]'(by rw[List.reverse_length] at p; assumption))
@@ -254,6 +261,6 @@ def dnth : HsCtx T -> Nat -> Nat -> FrameMetadata T
       else dnth xs (n - xs.length) (k + xs.length)
   |  _ => dnth xs n (k + 1)
 
-notation:1000 t "d@s" x => dnth t x 1
+notation:1000 t "s@" x => dnth t x 1
 
 end HsCtx
