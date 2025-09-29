@@ -88,16 +88,6 @@ namespace HsFrame
   | tyfaminst t1 t2, σ => tyfaminst ([σ]t1) ([σ]t2)
 
   @[simp]
-  def get_type : HsFrame T -> Option T
-  | .kind t => .some t
-  | .type t => .some t
-  | .datatypeDecl t _ => .some t
-  | .classDecl t _ _ _ => .some t
-  | .term t _ => .some t
-  | .tyfam t => .some t
-  | _ => .none
-
-  @[simp]
   def width : HsFrame T -> Nat
   | datatypeDecl _ ds => 1 + ds.length
   | classDecl _ scs fds oms => 1 + scs.length + fds.length + oms.length
@@ -166,6 +156,18 @@ inductive FrameMetadata T where
 | clscon : T -> FrameMetadata T
 | clsmth : T -> FrameMetadata T
 | empty : FrameMetadata T
+
+@[simp]
+def FrameMetadata.get_type : FrameMetadata T -> Option T
+| .kind t => .some t
+| .type t => .some t
+| .datacon t => .some t
+| .tycon t => .some t
+| .clscon t => .some t
+| .clsmth t => .some t
+| .term t _ => .some t
+| _ => .none
+
 
 protected def FrameMetadata.repr [r : Repr T]: (a : FrameMetadata T) -> (p : Nat) -> Std.Format
 | .empty, _ => ".empty"

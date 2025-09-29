@@ -2,10 +2,13 @@ import Hs.HsTerm
 import Hs.Monad
 import SystemFD.Term
 import SystemFD.Judgment
+import Hs.HsJudgment
 
 import Hs.Translator.Kinds
 
 import Mathlib.Data.Prod.Basic
+
+set_option maxHeartbeats 500000
 
 theorem kind_shape_split_arrow_aux (k : Term) (acc : List Term):
   Term.IsKind k ->
@@ -271,3 +274,34 @@ case _ ih1 ih2 =>
   exists (A' -k> B')
   constructor;
   simp; exists A'; constructor; assumption; exists B'; constructor; assumption; assumption
+
+@[simp]
+abbrev CompileKindSoundLemmaType (_ : HsCtx HsTerm) (Γ' : Ctx Term): (i : JIdx) -> JudgmentType i -> Prop
+| .CtxJ => λ () => true
+| .TypeJ => λ _ => true
+| .TermJ => λ _ => true
+| .KindJ => λ (k, c) => c = `□ -> ∃ (k' : Term), compile_kind Γ' □ k = .ok k' ∧ (Γ' ⊢ k' : □)
+
+theorem compile_kind_sound_3 {Γ : HsCtx HsTerm} {Γ' : Ctx Term} :
+  -- somthing about relating Γ and Γ' to make sure Γ' is wf?
+  ⊢ Γ' ->
+  HsJudgment i Γ jty ->
+  -- k.IsKind ->
+  CompileKindSoundLemmaType Γ Γ' i jty
+
+  := by
+intro wf j; induction j <;> simp at *
+case _ =>
+  constructor; assumption
+case _ ih1 ih2 =>
+  cases ih1; case _ k1 ih1 =>
+  cases ih1;
+  cases ih2; case _ k2 ih2 =>
+  cases ih2;
+  exists (k1 -k> k2)
+  constructor
+  exists k1;
+  constructor;
+  case _ => assumption
+  case _ => exists k2
+  constructor; assumption; assumption
