@@ -13,7 +13,7 @@ import Batteries.Lean.Except
 
 import Mathlib.Data.Prod.Basic
 
-set_option maxHeartbeats 500000
+set_option maxHeartbeats 1000000
 
 
 theorem is_type_list_reverse (τs : List Term) :
@@ -260,122 +260,258 @@ case _ sp idx _ tnfp _ _ _ _ =>
  case _ => cases j3
 case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
 
-theorem compile_type_sound (k : Term) (τ : HsTerm) :
-  ⊢ Γ ->
-  Term.IsKind k ->
-  HsTerm.IsType τ ->
-  compile_type Γ k τ = .ok τ' ->
-  Γ ⊢ τ' : k := by
-intro wf j1 j2 j
-induction Γ, k, τ using compile_type.induct generalizing τ' <;> simp at *
-case _ A B ih1 ih2 => -- a → b
-  cases j; case _ w1 j =>
-  cases j; case _ h1 j =>
-  cases j; case _ w2 j =>
-  cases j; case _ h2 j =>
-  cases j; cases j2;
-  case _ e1 e2 =>
-  have wf' := Judgment.wfempty wf
-  replace ih1 := @ih1 w1 wf (by constructor) e1 h1
-  replace ih2 := @ih2 w2 wf' (by constructor) e2 h2
+-- theorem compile_type_sound (k : Term) (τ : HsTerm) :
+--   ⊢ Γ ->
+--   Term.IsKind k ->
+--   HsTerm.IsType τ ->
+--   compile_type Γ k τ = .ok τ' ->
+--   Γ ⊢ τ' : k := by
+-- intro wf j1 j2 j
+-- induction Γ, k, τ using compile_type.induct generalizing τ' <;> simp at *
+-- case _ A B ih1 ih2 => -- a → b
+--   cases j; case _ w1 j =>
+--   cases j; case _ h1 j =>
+--   cases j; case _ w2 j =>
+--   cases j; case _ h2 j =>
+--   cases j; cases j2;
+--   case _ e1 e2 =>
+--   have wf' := Judgment.wfempty wf
+--   replace ih1 := @ih1 w1 wf (by constructor) e1 h1
+--   replace ih2 := @ih2 w2 wf' (by constructor) e2 h2
+--   constructor; assumption; assumption
+-- case _ ih1 ih2 => -- a ⇒ b
+--   cases j; case _ w1 j =>
+--   cases j; case _ h1 j =>
+--   cases j; case _ w2 j =>
+--   cases j; case _ h2 j =>
+--   cases j; cases j2;
+--   case _ e1 e2 =>
+--   have wf' := Judgment.wfempty wf
+--   replace ih1 := @ih1 w1 wf (by constructor) e1 h1
+--   replace ih2 := @ih2 w2 wf' (by constructor) e2 h2
+--   constructor; assumption; assumption
+-- case _ Γ A B ih => -- ∀[a] b
+--   cases j; case _ w1 j =>
+--   cases j; case _ h1 j =>
+--   cases j; case _ w2 j =>
+--   cases j; case _ h2 j =>
+--   cases j; cases j2;
+--   case _ e1 e2 =>
+--   have lem1 := compile_kind_sound wf e1 h1
+--   have wf' := Judgment.wfkind lem1 wf
+--   replace ih := @ih w1 w2 wf' (by constructor) e2 h2
+--   constructor; assumption; assumption
+-- case _ k τ tnf tnfp _ _ _ =>
+--   split at j; cases j
+--   case _ e => rw [tnfp] at e; cases e
+-- case _ k τ sp h tnfp tnf _ _ _ ih =>
+--   split at j; cases j
+--   case _ e =>
+--   rw[tnf] at e; cases e;
+--   clear tnf; clear tnfp;
+--   split at j
+--   case _ he1 he2 =>
+--     cases he1; cases he2;
+--     rw[Except.bind_eq_ok] at j;
+--     cases j; case _ w1 j =>
+--     cases j; case _ t1 j =>
+--     simp at j; split at j <;> try simp at j
+--     case _ wfk =>
+--     split at j <;> try simp at j
+--     split at j <;> try simp at j
+--     case _ κs ret_κ h1 h2 =>
+--     cases j; case _ τs j =>
+--     simp at h2; cases h2; case _ h2 h3 =>
+--     cases h2; case _ h2 h4 =>
+--     have e := Term.eq_of_beq h2; cases e; clear h2
+--     cases j; case _ j e =>
+--     cases e; rw[<-List.mapM'_eq_mapM] at j; rw[List.foldl_eq_foldr_reverse]
+--     have lem1 := kinding_split_arrow wf (wf_kind_sound wfk wf) h1
+--     cases lem1; case _ Γ _ _ _ _ _ lem1 lem2 =>
+--     have lem3 := mapM'_elems_image j
+
+--     have lem4 : Γ ⊢ #h : w1 := by
+--       constructor; assumption
+--       case _ =>
+--         unfold DsM.toDsM at t1; split at t1 <;> simp at t1
+--         cases t1; symm; assumption
+--     have lem5 : Γ ⊢ w1 : □ := (wf_kind_sound wfk wf)
+--     have lem6 : κs.length = τs.reverse.length := by sorry -- becuase τs sp and κs are of the same length
+
+--     apply typing_spine_application
+--     sorry
+--     sorry
+--     sorry
+--     sorry
+--     sorry
+--     sorry
+
+--     case _ contra => sorry
+
+
+
+--     -- lem5 lem4 h1 lem6
+--     -- intro e p
+--     -- have lem7 := lem3 e.val.snd.val (by sorry)
+--     -- cases lem7; case _ w3 lem7 =>
+--     -- cases lem7; case _ w4 lem7 =>
+--     -- simp at lem7; split at lem7 <;> simp at lem7
+--     -- case _ contra => simp at contra
+--     -- case _ =>
+--     --   apply @ih κs.attach
+--     --   case _ => sorry
+--     --   assumption
+--     --   case _ => sorry
+--     --   case _ =>
+--     --     sorry
+--     --   sorry
+--     --   sorry
+--     --   sorry
+--     --   sorry
+--     --   sorry
+
+
+--   case _ tnf ih =>
+--   rw[tnf] at e; cases e;
+--   have ih' := ih h e rfl; simp at ih'
+
+-- case _ k τ tnf tnfp _ _ _ =>
+--   split at j;
+--   · cases j
+--   case _ h1 => rw[h1] at tnf; cases tnf; simp at j
+
+@[simp]
+abbrev HsNeutralFormWellTypedType (Γ : HsCtx HsTerm) : (i : JIdx) -> Nat -> List (HsSpineVariant × HsTerm) -> JudgmentType i -> Prop
+| .CtxJ => λ _ _ _ => true
+| .KindJ => λ _ _ _ => true
+| .TypeJ => λ h sp (A, k) =>
+  A.neutral_form = .some (`#h, sp) ->
+  (∃ k, (Γ s@ h) = .type k ∨ (Γ s@ h) = .tycon k)  ∧
+  ∀ e ∈ sp, ∃ k, HsJudgment .TypeJ Γ (e.2, k)
+| .TermJ => λ _ _ _ => true
+
+theorem hs_neutral_form_well_typed {Γ : HsCtx HsTerm} {h : Nat} {sp : List (HsSpineVariant × HsTerm)}:
+  HsJudgment i Γ jty ->
+  HsNeutralFormWellTypedType Γ i h sp jty
+  := by
+intro j
+induction j generalizing h sp <;> simp at *
+case _ T _ _ _ =>
+  intro e1 e2
+  cases e1; cases e2
+  constructor
+  exists T
+  intros; contradiction
+
+case _ ih1 ih2 =>
+ intro h1;
+ rw[Option.bind_eq_some] at h1
+ cases h1; case _ w h1 =>
+ cases h1; case _ h1a h2a =>
+ injection h2a; case _ h2a =>
+ injection h2a; case _ e1 e2 =>
+ have lem : w = (w.1, w.2) := by simp
+ rw[lem] at h1a; rw[e1] at h1a
+
+ replace ih1 := @ih1 h w.2 h1a;
+ cases ih1
+ constructor
+ assumption
+ case _ ih =>
+ rw[<-e2]
+ intro a b ab_in_sp
+ replace ih := ih a b
+ simp at ab_in_sp
+ cases ab_in_sp
+ case _ h => replace ih := ih h; assumption
+ case _ h =>
+   cases h; case _ k _ _ _ _ _ _ _ h1 h2 =>
+   cases h1; cases h2; exists k
+
+
+
+
+
+@[simp]
+abbrev CompileTypeSoundnessLemmaType (Γ' : Ctx Term): (i : JIdx) -> JudgmentType i -> Prop
+| .CtxJ => λ () => true
+| .KindJ => λ (k, c) => true -- c = `□  ∧ ∃ k', compile_kind Γ' □ k = .ok k' ∧ Γ' ⊢ k' : □
+| .TypeJ => λ (t, k) => ∃ t' k', (compile_kind Γ' □ k = .ok k' ∧ compile_type Γ' k' t = .ok t' ∧ Γ' ⊢ t' : k')
+| .TermJ => λ _ => true
+
+
+theorem compile_type_soundness {Γ : HsCtx HsTerm} {Γ' : Ctx Term} {t k : HsTerm} :
+  -- still need to find a Prop that characterizes what is the relationship between Γ and Γ'
+  ⊢ Γ' ->
+  HsJudgment i Γ jty ->
+ CompileTypeSoundnessLemmaType Γ' i jty := by
+intro wf j
+induction j generalizing Γ' <;> simp at *
+case _ Γ x T j _ _ =>
+
+  sorry
+case _ ih1 ih2 =>
+  replace ih1 := @ih1 Γ' wf
+  cases ih1; case _ A' ih1 =>
+  cases ih1; case _ ih1 =>
+
+  replace ih2 := @ih2 (.empty :: Γ') (by constructor; assumption)
+  cases ih2; case _ B' ih2 =>
+  cases ih2; case _ ih2 =>
+
+  exists (A' -t> B')
+  constructor
+  exists A';
+  constructor;
+  case _ => assumption
+  case _ => exists B';
   constructor; assumption; assumption
-case _ ih1 ih2 => -- a ⇒ b
-  cases j; case _ w1 j =>
-  cases j; case _ h1 j =>
-  cases j; case _ w2 j =>
-  cases j; case _ h2 j =>
-  cases j; cases j2;
-  case _ e1 e2 =>
-  have wf' := Judgment.wfempty wf
-  replace ih1 := @ih1 w1 wf (by constructor) e1 h1
-  replace ih2 := @ih2 w2 wf' (by constructor) e2 h2
-  constructor; assumption; assumption
-case _ Γ A B ih => -- ∀[a] b
-  cases j; case _ w1 j =>
-  cases j; case _ h1 j =>
-  cases j; case _ w2 j =>
-  cases j; case _ h2 j =>
-  cases j; cases j2;
-  case _ e1 e2 =>
-  have lem1 := compile_kind_sound wf e1 h1
-  have wf' := Judgment.wfkind lem1 wf
-  replace ih := @ih w1 w2 wf' (by constructor) e2 h2
-  constructor; assumption; assumption
-case _ k τ tnf tnfp _ _ _ =>
-  split at j; cases j
-  case _ e => rw [tnfp] at e; cases e
-case _ k τ sp h tnfp tnf _ _ _ ih =>
-  split at j; cases j
-  case _ e =>
-  rw[tnf] at e; cases e;
-  clear tnf; clear tnfp;
-  split at j
-  case _ he1 he2 =>
-    cases he1; cases he2;
-    rw[Except.bind_eq_ok] at j;
-    cases j; case _ w1 j =>
-    cases j; case _ t1 j =>
-    simp at j; split at j <;> try simp at j
-    case _ wfk =>
-    split at j <;> try simp at j
-    split at j <;> try simp at j
-    case _ κs ret_κ h1 h2 =>
-    cases j; case _ τs j =>
-    simp at h2; cases h2; case _ h2 h3 =>
-    cases h2; case _ h2 h4 =>
-    have e := Term.eq_of_beq h2; cases e; clear h2
-    cases j; case _ j e =>
-    cases e; rw[<-List.mapM'_eq_mapM] at j; rw[List.foldl_eq_foldr_reverse]
-    have lem1 := kinding_split_arrow wf (wf_kind_sound wfk wf) h1
-    cases lem1; case _ Γ _ _ _ _ _ lem1 lem2 =>
-    have lem3 := mapM'_elems_image j
 
-    have lem4 : Γ ⊢ #h : w1 := by
-      constructor; assumption
-      case _ =>
-        unfold DsM.toDsM at t1; split at t1 <;> simp at t1
-        cases t1; symm; assumption
-    have lem5 : Γ ⊢ w1 : □ := (wf_kind_sound wfk wf)
-    have lem6 : κs.length = τs.reverse.length := by sorry -- becuase τs sp and κs are of the same length
+case _ j1 j2 j3 _ _ ih =>
+  have lem := compile_kind_sound_3 wf j2; simp at lem
+  cases lem; case _ A' lem =>
+  cases lem
+  replace ih := @ih (.kind A' :: Γ') (by constructor; assumption; assumption)
+  cases ih; case _ B' ih =>
+  cases ih
+  exists (∀[A']B')
+case _ j1 j2 j3 ih1 _ ih2 =>
+  replace ih2 := @ih2 Γ' wf
+  cases ih2; case _ T' ih2 =>
+  cases ih2; case _ Tk ih2 =>
+  cases ih2; case _ ih2a ih2b =>
+  cases ih2a; case _ κ ih2a =>
+  cases ih2a; case _ ih2a =>
+  cases ih2a; case _ κ' ih2a =>
+  cases ih2a; case _ ih2a =>
+  cases ih2a
+  cases ih2b
 
-    apply typing_spine_application
-    sorry
-    sorry
-    sorry
-    sorry
-    sorry
-    sorry
-
-    case _ contra => sorry
-
-
-
-    -- lem5 lem4 h1 lem6
-    -- intro e p
-    -- have lem7 := lem3 e.val.snd.val (by sorry)
-    -- cases lem7; case _ w3 lem7 =>
-    -- cases lem7; case _ w4 lem7 =>
-    -- simp at lem7; split at lem7 <;> simp at lem7
-    -- case _ contra => simp at contra
-    -- case _ =>
-    --   apply @ih κs.attach
-    --   case _ => sorry
-    --   assumption
-    --   case _ => sorry
-    --   case _ =>
-    --     sorry
-    --   sorry
-    --   sorry
-    --   sorry
-    --   sorry
-    --   sorry
-
-
-  case _ tnf ih =>
-  rw[tnf] at e; cases e;
-  have ih' := ih h e rfl; simp at ih'
-
-case _ k τ tnf tnfp _ _ _ =>
-  split at j;
-  · cases j
-  case _ h1 => rw[h1] at tnf; cases tnf; simp at j
+  replace ih1 := @ih1 Γ' wf
+  cases ih1; case _ A' ih1 =>
+  cases ih1; case _ ih1 =>
+  cases ih1; case _ e1 _ _ _ _ e2 ih1 =>
+  rw[e1] at e2; cases e2
+  cases ih1
+  exists (T' `@k A'); exists κ'
+  constructor
+  case _ => assumption
+  case _ =>
+    split
+    case _ h =>
+      exfalso; simp at h
+      sorry
+    case _ h =>
+      rw[Option.bind_eq_some] at h
+      cases h; case _ h =>
+      cases h; case _ w h1 h2 =>
+      injection h2; case _ h2 =>
+      injection h2; case _ e1 e2 =>
+      split
+      case _ T k k' A _ _ _ _ _ _ _ sp _ tnfp x =>
+        simp
+        have h1' : w = (w.1, w.2) := by simp
+        rw[h1'] at h1
+        have lem := @hs_neutral_form_well_typed .TypeJ (T, k `-k> k') Γ x w.2
+        sorry
+      case _ => sorry

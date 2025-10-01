@@ -2,7 +2,7 @@ import Hs.HsTerm
 import Hs.HsCtx
 
 def pad_empty_ctx : Nat -> HsCtx HsTerm
-| 0 => [.empty]
+| 0 => []
 | n + 1 => .empty :: pad_empty_ctx n
 
 
@@ -32,7 +32,7 @@ inductive HsJudgment : (i : JIdx) -> HsCtx HsTerm -> JudgmentType i -> Prop wher
 | wfdatatypeDecl :
   HsJudgment .CtxJ Γ () ->
   HsJudgment .TermJ Γ (k, `□) ->
-  ∀ p: i < ctors.length, HsJudgment .TermJ (pad_empty_ctx i ++ Γ) (ctors[i]'(by assumption), `★) ->
+  ∀ p: i < ctors.length, HsJudgment .TermJ (pad_empty_ctx (i - 1) ++ Γ) (ctors[i]'(by assumption), `★) ->
   HsJudgment .CtxJ (.datatypeDecl k ctors :: Γ) ()
 | wfterm :
   HsJudgment .CtxJ Γ () ->
@@ -53,7 +53,7 @@ inductive HsJudgment : (i : JIdx) -> HsCtx HsTerm -> JudgmentType i -> Prop wher
 
 | varTy :
   HsJudgment .CtxJ Γ () ->
-  FrameMetadata.get_type (Γ s@ x) = .some T ->
+  (Γ s@ x) = .type T ∨ (Γ s@ x) = .tycon T ->
   HsJudgment .TypeJ Γ (`#x, T)
 
 | arrowt :
@@ -63,11 +63,11 @@ inductive HsJudgment : (i : JIdx) -> HsCtx HsTerm -> JudgmentType i -> Prop wher
   HsJudgment .TypeJ Γ (A → B, `★)
 | allt :
   HsJudgment .CtxJ Γ () ->
-  HsJudgment .TypeJ Γ (A, `★) ->
-  HsJudgment .TypeJ (.type A :: Γ) (B, `★) ->
+  HsJudgment .KindJ Γ (A, `□) ->
+  HsJudgment .TypeJ (.kind A :: Γ) (B, `★) ->
   HsJudgment .TypeJ Γ (`∀{A} B, `★)
 | appt :
   HsJudgment .CtxJ Γ () ->
   HsJudgment .TypeJ Γ (T, k `-k> k') ->
   HsJudgment .TypeJ Γ (A, k) ->
-  HsJudgment .TypeJ Γ (T `•k A, `★)
+  HsJudgment .TypeJ Γ (T `•k A, k')

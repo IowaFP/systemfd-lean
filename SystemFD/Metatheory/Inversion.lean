@@ -511,33 +511,12 @@ case _ =>
   apply And.intro j1 j3
 
 
+-- theorem neutral_form_well_typed {Γ : Ctx Term} {A : Term} {h : Nat} :
+--   ⊢ Γ ->
+--   Term.neutral_form A = .some (h, sp) ->
+--   Γ ⊢ A : k ->
+--   (∃ k, (Γ ⊢ #h : k) ∧
+--   ∀ e ∈ sp, ∃ k, (Γ ⊢ e.2 : k)) := by
+-- intro wf e j
 
-@[simp]
-abbrev KindOfTypeLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
-| .prf => λ (τ, k) => Term.isType Γ τ -> Γ ⊢ τ : k -> Γ ⊢ k : □
-| .wf => λ () => True
-
-
-theorem kind_of_type_well_formed : ⊢ Γ ->
- Judgment v Γ a -> KindOfTypeLemmaType Γ v a
-:= by
-intro wf j1
-induction j1 <;> simp at *
-all_goals(
-intro j2 j3
-have lem := Term.is_type_shape_sound j2; cases lem
-)
-case _ =>
-  unfold Term.isType at j2; simp at j2
-  cases j2
-  sorry
-  sorry
-case _ => constructor; assumption
-case _ => constructor; assumption
-case _ =>
-  cases j3; case _ h0 ih _ h1 h2 _ h3 h4  =>
-  have u := uniqueness_of_kinds h2 h3 h0; cases u
-  unfold Term.isType at j2; simp at j2
-  replace ih := ih wf j2.1 h4
-  cases ih; assumption
-case _ => constructor; assumption
+-- sorry

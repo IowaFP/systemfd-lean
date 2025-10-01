@@ -8,17 +8,17 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
   | ★ , .HsBind2 .arrow A B => do
   let A' <- compile_type Γ ★ A
   let B' <- compile_type (.empty :: Γ) ★ B
-  .ok (.bind2 .arrow A' B')
+  return (.bind2 .arrow A' B')
 
   | ★ , .HsBind2 .farrow A B => do
   let A' <- compile_type Γ ★ A
   let B' <- compile_type (.empty :: Γ) ★ B
-  .ok (.bind2 .arrow A' B')
+  return (.bind2 .arrow A' B')
 
   | ★ , .HsBind2 .all A B => do
   let A' <- compile_kind Γ □ A
   let B' <- compile_type (.kind A' :: Γ) ★ B
-  .ok (.bind2 .all A' B')
+  return (.bind2 .all A' B')
 
   | exp_κ, τ => do
     match tnfp : τ.neutral_form with
@@ -42,7 +42,7 @@ def compile_type (Γ : Ctx Term) : Term -> HsTerm -> DsM Term
                         have lem := arg.property
                         compile_type Γ arg.val.1 (arg.val.2.val.2)
                         else .error ("compile_type ill kinded ty arg" ++ repr arg.val))
-            .ok (Term.mk_kind_apps #h args')
+            return (Term.mk_kind_apps #h args')
           else .error ("compile_type ill kinded" ++ repr τ)
           else .error ("compile_type ill kinded" ++ repr τ)
       | _ => .error ("compile_type head" ++ repr h ++ repr sp)
