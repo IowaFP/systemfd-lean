@@ -428,6 +428,24 @@ case _ ih1 ih2 =>
    cases h; case _ k _ _ _ _ _ _ _ h1 h2 =>
    cases h1; cases h2; exists k
 
+inductive FrameEquiv : FrameMetadata HsTerm -> Frame Term -> Type where
+| emptyEquiv : FrameEquiv .empty .empty
+| kindEquiv : FrameEquiv (.kind t) (.kind t')
+| typeEquiv : FrameEquiv (.type t) (.type t')
+| dataconEquiv : FrameEquiv (.datacon t) (.ctor t')
+| tyconEquiv : FrameEquiv (.tycon t) (.datatype t')
+| clsconEquiv : FrameEquiv (.clscon t) (.opent t')
+
+@[simp]
+abbrev CtxEquiv (Γ : HsCtx HsTerm) (Γ' : Ctx Term) := ∀ i, FrameEquiv (Γ s@ i) (Γ' d@ i)
+
+-- inductive CtxEquiv : (Γ : HsCtx HsTerm) -> (Γ' : Ctx Term) -> Prop where
+-- | nilEquiv : CtxEquiv [] []
+-- | emptyEquiv : CtxEquiv Γ Γ' -> CtxEquiv (.empty :: Γ) (.empty :: Γ')
+-- | kindEquiv : compile_kind Γ' □ k = .ok k' -> CtxEquiv Γ Γ' ->  CtxEquiv (.kind k :: Γ) (.kind k' :: Γ')
+-- | typeEquiv : CtxEquiv Γ Γ' ->  CtxEquiv (.type t :: Γ) (.type t' :: Γ')
+-- | tyconEquiv : CtxEquiv Γ Γ' ->  CtxEquiv (. t :: Γ) (.type t' :: Γ') -- can't do this
+
 
 
 
@@ -440,25 +458,65 @@ abbrev CompileTypeSoundnessLemmaType (Γ' : Ctx Term): (i : JIdx) -> JudgmentTyp
 | .TermJ => λ _ => true
 
 
-theorem compile_type_soundness {Γ : HsCtx HsTerm} {Γ' : Ctx Term} {t k : HsTerm} :
+theorem compile_type_soundness :
   -- still need to find a Prop that characterizes what is the relationship between Γ and Γ'
   ⊢ Γ' ->
+  CtxEquiv Γ Γ' ->
   HsJudgment i Γ jty ->
- CompileTypeSoundnessLemmaType Γ' i jty := by
-intro wf j
+  CompileTypeSoundnessLemmaType Γ' i jty := by
+intro wf Γe j
 induction j generalizing Γ' <;> simp at *
-case _ Γ x T j _ _ =>
+case _ Γ x K j f _ =>
+  exists #x
+  generalize fh : (Γ' d@ x) = f' at *
+  have Γe' := Γe x
+  cases f <;> simp at *
+  case _ f =>
+    rw[f] at Γe';
+    rw[fh] at Γe'
+    cases Γe'; case _ K' =>
+    exists K'
+    constructor
+    sorry -- should be because of CtxEquiv property
+    constructor
+    case _ =>
+      exists K'; unfold Frame.get_type; simp; unfold DsM.toDsM; simp;
+      split
+      case _ =>
+        split -- split K' into neutral form
+        sorry
+        case _ κs ret_κ h =>
+          rw[Option.bind_eq_some] at h;
+          cases h; case _ ksplit h =>
+          cases h; case _ h1 h2 =>
+          simp at h2
+          split -- if condition
+          case _ =>
+            unfold Except.bind; simp;
+            generalize kargsh : (κs.attach.zip []) = kargs at *
+            simp at kargsh; rw[kargsh]; simp; unfold pure;
+            unfold Applicative.toPure; unfold Monad.toApplicative; unfold Except.instMonad;
+            unfold Except.pure; simp
+          case _ =>  sorry
 
-  sorry
+      case _ h =>
+
+        exfalso; sorry -- contradiction
+    case _ =>
+      constructor; assumption; rw[fh]; unfold Frame.get_type; simp
+  -- cases f'
+
+  -- exists
+  case _ f => sorry
+
 case _ ih1 ih2 =>
-  replace ih1 := @ih1 Γ' wf
+  replace ih1 := @ih1 Γ' wf Γe
   cases ih1; case _ A' ih1 =>
   cases ih1; case _ ih1 =>
 
-  replace ih2 := @ih2 (.empty :: Γ') (by constructor; assumption)
+  replace ih2 := @ih2 (.empty :: Γ') (by constructor; assumption) sorry
   cases ih2; case _ B' ih2 =>
   cases ih2; case _ ih2 =>
-
   exists (A' -t> B')
   constructor
   exists A';
@@ -471,12 +529,12 @@ case _ j1 j2 j3 _ _ ih =>
   have lem := compile_kind_sound_3 wf j2; simp at lem
   cases lem; case _ A' lem =>
   cases lem
-  replace ih := @ih (.kind A' :: Γ') (by constructor; assumption; assumption)
+  replace ih := @ih (.kind A' :: Γ') (by constructor; assumption; assumption) sorry
   cases ih; case _ B' ih =>
   cases ih
   exists (∀[A']B')
 case _ j1 j2 j3 ih1 _ ih2 =>
-  replace ih2 := @ih2 Γ' wf
+  replace ih2 := @ih2 Γ' wf Γe
   cases ih2; case _ T' ih2 =>
   cases ih2; case _ Tk ih2 =>
   cases ih2; case _ ih2a ih2b =>
@@ -487,7 +545,7 @@ case _ j1 j2 j3 ih1 _ ih2 =>
   cases ih2a
   cases ih2b
 
-  replace ih1 := @ih1 Γ' wf
+  replace ih1 := @ih1 Γ' wf Γe
   cases ih1; case _ A' ih1 =>
   cases ih1; case _ ih1 =>
   cases ih1; case _ e1 _ _ _ _ e2 ih1 =>
