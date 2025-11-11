@@ -152,3 +152,7 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
 inductive RedStar : Ctx Term -> Term -> Term -> Prop where
 | refl : RedStar Γ x x
 | step : RedStar Γ x y -> Red Γ y z -> RedStar Γ x z
+
+
+notation:25 M:20 " ⟨ " Γ:20 " ⟩⟶⋆ " N:20 => RedStar Γ M N
+notation:25 M:20 " ⟨ " Γ:20 " ⟩⟶ " N:20 => Red Γ M N
