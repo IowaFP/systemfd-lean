@@ -148,6 +148,37 @@ case _ => cases h; symm; assumption
 theorem mk_arrow_kind_cons {k ret_k : Term} {ks : List Term}:
   (k -k> ret_k.mk_kind_arrow ks) = ret_k.mk_kind_arrow (k :: ks) := by simp
 
+theorem kinds_always_split_aux {Γ : List Term} {k : Term} : k.IsKind ->
+  Term.split_kind_arrow_aux Γ k = .some (κs, κ) ->
+  Term.split_kind_arrow_aux (Γ ++ [K]) k = .some (κs ++ [K], κ) := by
+intro h1 h2
+induction h1 generalizing Γ <;> simp at *
+case _ => assumption
+case _ K' _ _ _ _ ih =>
+  replace ih := @ih (K' :: Γ) h2; simp at ih;
+  assumption
+
+
+theorem kind_always_splits {k : Term} : k.IsKind ->
+  ∃ κ κs,  k.split_kind_arrow = .some (κs, κ) := by
+intro h
+induction h <;> simp at *
+case _ A B _ _ _ ih =>
+  cases ih; case _ ih =>
+  cases ih; case _ ih =>
+  rw[Option.bind_eq_some] at ih;
+  cases ih; case _ ih =>
+  case _ h _ ret_k ks w =>
+  exists ret_k
+  exists ((ks.reverse ++ [A]).reverse)
+  rw[Option.bind_eq_some]; simp
+  cases ih; case _ h1 h2 =>
+  have lem := @kinds_always_split_aux w.1 w.2 A [] B h
+  have lem1 : w = (w.1, w.2) := by simp
+  rw[lem1] at h1
+  replace lem := lem h1
+  simp at lem
+  cases h2; simp; assumption
 
 theorem kind_split_arrow_mk_arrow_law {k k' ret_k : Term} {ks : List Term} :
   (k -k> k').split_kind_arrow = .some (k :: ks, ret_k) ->
@@ -278,8 +309,8 @@ case _ ih1 ih2 =>
 @[simp]
 abbrev CompileKindSoundLemmaType (_ : HsCtx HsTerm) (Γ' : Ctx Term): (i : JIdx) -> JudgmentType i -> Prop
 | .CtxJ => λ () => true
-| .TypeJ => λ _ => true
 | .TermJ => λ _ => true
+| .TypeJ => λ _ => true
 | .KindJ => λ (k, c) => c = `□ -> ∃ (k' : Term), compile_kind Γ' □ k = .ok k' ∧ (Γ' ⊢ k' : □)
 
 theorem compile_kind_sound_3 {Γ : HsCtx HsTerm} {Γ' : Ctx Term} :
@@ -288,7 +319,6 @@ theorem compile_kind_sound_3 {Γ : HsCtx HsTerm} {Γ' : Ctx Term} :
   HsJudgment i Γ jty ->
   -- k.IsKind ->
   CompileKindSoundLemmaType Γ Γ' i jty
-
   := by
 intro wf j; induction j <;> simp at *
 case _ =>

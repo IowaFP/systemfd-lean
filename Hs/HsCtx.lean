@@ -191,41 +191,7 @@ namespace HsCtx
 instance instFrameMetadata_repr [r : Repr T] : Repr (FrameMetadata T) where
   reprPrec a p := FrameMetadata.repr a p
 
--- Should Go away. Don't need it
-def nth : HsCtx T -> Nat -> FrameMetadata T
-| [], _ => .empty
-| (.cons x _), 0 => match x with
-  | .empty => .empty
-  | .kind t => .kind t
-  | .type t => .type t
-  | .datatypeDecl t ctrs =>
-    if p : ctrs.isEmpty
-    then .tycon t
-    else .datacon (ctrs[0]'(by simp at *; cases ctrs; contradiction; simp))
-  | .classDecl t _ _ _  => .clscon t
-  | .inst _ _ => .empty
-  | .term ty t => .term ty t
-  | .tyfam _ => .empty
-  | .tyfaminst _ _  => .empty
-| (.cons x xs), n + 1 => match x with
-  | .datatypeDecl _ dcs =>
-    if p : dcs.length > n
-    then .datacon (dcs[n]'(by assumption))
-    else nth xs (n - dcs.length)
-  | .classDecl _ xs1 xs2 xs3 =>
-    if p : xs3.length > n
-    then .clsmth (xs3.reverse[n]'(by rw[List.reverse_length] at p; assumption))
-    else if p : xs3.length + xs2.length > n
-    then .empty
-    else let k := xs3.length + xs2.length + xs1.length;
-      if p : k > n
-      then .clsmth (xs1[n - (xs2.length + xs3.length)]'(by unfold k at p; omega))
-      else nth xs (n - xs.length)
-  | .tyfam _ => .empty
-  | .tyfaminst _ _  => .empty
-  | .inst _ _ => .empty
-  |  _ => nth xs n
-
+@[simp]
 def dnth : HsCtx T -> Nat -> Nat -> FrameMetadata T
 | [], _, _ => .empty
 | (.cons x _), 0, k => match x with
@@ -253,13 +219,13 @@ def dnth : HsCtx T -> Nat -> Nat -> FrameMetadata T
       then .datacon ([S' (k + 1)] dcs.reverse[idx]'(by rw[<-List.reverse_length]; assumption))
       else dnth xs ((n + 1) - x.width) (k + x.width)
   | .classDecl _ xs1 xs2 xs3  => -- FIX ME
-    if p : xs3.length > n
-    then .clsmth (xs3.reverse[n]'(by rw[List.reverse_length] at p; assumption))
-    else if p : xs3.length + xs2.length > n
-    then .empty
-    else let k := xs3.length + xs2.length + xs1.length;
-      if p : k > n
-      then .clsmth (xs1[n - (xs2.length + xs3.length)]'(by unfold k at p; omega))
+    if p : xs3.length > n -- this is an class open method
+    then .clsmth ([S' (k + 1)] xs3.reverse[n]'(by rw[List.reverse_length] at p; assumption))
+    else if p : xs3.length + xs2.length > n -- This is indexing a fundep
+    then .empty -- should we return the template function? or should we return .empty?
+    else let w := xs3.length + xs2.length + xs1.length;
+      if p : w > n -- this is indexing a superclass open method
+      then .clsmth (xs1[n - (xs2.length + xs3.length)]'(by unfold w at p; omega))
       else dnth xs (n - xs.length) (k + xs.length)
   |  _ => dnth xs n (k + 1)
 

@@ -13,7 +13,7 @@ import Batteries.Lean.Except
 
 import Mathlib.Data.Prod.Basic
 
-set_option maxHeartbeats 1000000
+set_option maxHeartbeats 10000000
 
 
 theorem is_type_list_reverse (τs : List Term) :
@@ -383,12 +383,12 @@ case _ tnf _ _ _ _ => simp_all; rw[tnf] at j3; simp at j3;
 @[simp]
 abbrev HsNeutralFormWellTypedType (Γ : HsCtx HsTerm) : (i : JIdx) -> Nat -> List (HsSpineVariant × HsTerm) -> JudgmentType i -> Prop
 | .CtxJ => λ _ _ _ => true
-| .KindJ => λ _ _ _ => true
-| .TypeJ => λ h sp (A, k) =>
-  A.neutral_form = .some (`#h, sp) ->
-  (∃ k, (Γ s@ h) = .type k ∨ (Γ s@ h) = .tycon k)  ∧
-  ∀ e ∈ sp, ∃ k, HsJudgment .TypeJ Γ (e.2, k)
 | .TermJ => λ _ _ _ => true
+| .KindJ => λ _ _ _ => true
+| .TypeJ => λ h sp (A, _) =>
+  A.neutral_form = .some (`#h, sp) ->
+  (∃ k, (Γ s@ h) = .kind k ∨ (Γ s@ h) = .tycon k)  ∧
+  ∀ e ∈ sp, ∃ k, HsJudgment .TypeJ Γ (e.2, k)
 
 theorem hs_neutral_form_well_typed {Γ : HsCtx HsTerm} {h : Nat} {sp : List (HsSpineVariant × HsTerm)}:
   HsJudgment i Γ jty ->
@@ -396,13 +396,6 @@ theorem hs_neutral_form_well_typed {Γ : HsCtx HsTerm} {h : Nat} {sp : List (HsS
   := by
 intro j
 induction j generalizing h sp <;> simp at *
-case _ T _ _ _ =>
-  intro e1 e2
-  cases e1; cases e2
-  constructor
-  exists T
-  intros; contradiction
-
 case _ ih1 ih2 =>
  intro h1;
  rw[Option.bind_eq_some] at h1
@@ -428,24 +421,69 @@ case _ ih1 ih2 =>
    cases h; case _ k _ _ _ _ _ _ _ h1 h2 =>
    cases h1; cases h2; exists k
 
-inductive FrameEquiv : FrameMetadata HsTerm -> Frame Term -> Type where
-| emptyEquiv : FrameEquiv .empty .empty
-| kindEquiv : FrameEquiv (.kind t) (.kind t')
-| typeEquiv : FrameEquiv (.type t) (.type t')
-| dataconEquiv : FrameEquiv (.datacon t) (.ctor t')
-| tyconEquiv : FrameEquiv (.tycon t) (.datatype t')
-| clsconEquiv : FrameEquiv (.clscon t) (.opent t')
+inductive FrameEquiv (Γ : HsCtx HsTerm) (Γ' : Ctx Term): FrameMetadata HsTerm -> Frame Term -> Prop where
+| emptyEquiv : FrameEquiv Γ Γ' .empty .empty
+| kindEquiv :
+  (compile_kind Γ' □ t = .ok t' ∧ HsJudgment .KindJ Γ (t, `□)) ->
+  FrameEquiv Γ Γ' (.kind t) (.kind t')
+-- TODO Fix this
+| typeEquiv :
+  (compile_kind Γ' □ K = .ok K' ∧ HsJudgment .KindJ Γ (t, `□)) ->
+  FrameEquiv Γ  Γ' (.type K) (.type K')
+| dataconEquiv : FrameEquiv Γ  Γ' (.datacon T) (.ctor T')
+| tyconEquiv :
+ (compile_kind Γ' □ K = .ok K' ∧ HsJudgment .KindJ Γ (t, `□)) ->
+ FrameEquiv Γ  Γ' (.tycon K) (.datatype K')
+| clsconEquiv : compile_kind Γ' □ K = .ok K' -> FrameEquiv Γ  Γ' (.clscon K) (.opent K')
 
 @[simp]
-abbrev CtxEquiv (Γ : HsCtx HsTerm) (Γ' : Ctx Term) := ∀ i, FrameEquiv (Γ s@ i) (Γ' d@ i)
+abbrev CtxEquiv (Γ : HsCtx HsTerm) (Γ' : Ctx Term) := ∀ i, FrameEquiv Γ Γ' (Γ s@ i) (Γ' d@ i)
 
--- inductive CtxEquiv : (Γ : HsCtx HsTerm) -> (Γ' : Ctx Term) -> Prop where
--- | nilEquiv : CtxEquiv [] []
--- | emptyEquiv : CtxEquiv Γ Γ' -> CtxEquiv (.empty :: Γ) (.empty :: Γ')
--- | kindEquiv : compile_kind Γ' □ k = .ok k' -> CtxEquiv Γ Γ' ->  CtxEquiv (.kind k :: Γ) (.kind k' :: Γ')
--- | typeEquiv : CtxEquiv Γ Γ' ->  CtxEquiv (.type t :: Γ) (.type t' :: Γ')
--- | tyconEquiv : CtxEquiv Γ Γ' ->  CtxEquiv (. t :: Γ) (.type t' :: Γ') -- can't do this
 
+-- Does this need renaming and weakening lemmas?
+def lift_ctx_equiv (Γ : HsCtx HsTerm) (Γ' : Ctx Term) :
+  CtxEquiv Γ Γ' ->
+  CtxEquiv (.empty :: Γ ) (.empty :: Γ') := by
+
+sorry
+
+theorem FrameEquivRefineType :
+  (x : FrameEquiv Γ Γ' (.kind K) y) ->
+  (∃ K', compile_kind Γ' □ K = .ok K' ∧ y = .kind K') := by
+intro h
+cases h; case _ K' h =>
+cases h; exists K'
+
+theorem FrameEquivRefineDataType :
+  (x : FrameEquiv Γ Γ' (.tycon K) y) ->
+  (∃ K', compile_kind Γ' □ K = .ok K' ∧ y = .datatype K') := by
+intro h
+cases h; case _ K' _ h =>
+cases h; exists K'
+
+@[simp]
+abbrev TypeHeadsVarTyType (Γ : HsCtx HsTerm) : (i : JIdx) -> JudgmentType i -> Prop
+| .CtxJ => λ () => true
+| .TermJ => λ _ => true
+| .KindJ => λ _ => true
+| .TypeJ => λ (t, k) => ∀ x sp, HsJudgment .TypeJ Γ (t, k) -> t.neutral_form = .some (`#x, sp)
+                     -> ∃ T, (Γ s@ x) = .tycon T ∨ (Γ s@ x) = .kind T
+
+
+theorem type_heads_varty : ⊢s Γ ->
+  HsJudgment i Γ jty ->
+  TypeHeadsVarTyType Γ i jty := by
+intro wf j; induction j <;> simp at *
+case _ j _ ih _ _ =>
+intro x sp j' tnf
+rw[Option.bind_eq_some] at tnf; cases tnf; case _ w tnf =>
+cases tnf; case _ h1 h2 =>
+injection h2; case _ h2 =>
+injection h2; case _ h2 h3 =>
+have e : w = (w.1, w.2) := by simp
+rw[e] at h1; rw[h2] at h1
+replace ih := ih wf x w.2 j h1
+assumption
 
 
 
@@ -453,9 +491,26 @@ abbrev CtxEquiv (Γ : HsCtx HsTerm) (Γ' : Ctx Term) := ∀ i, FrameEquiv (Γ s@
 @[simp]
 abbrev CompileTypeSoundnessLemmaType (Γ' : Ctx Term): (i : JIdx) -> JudgmentType i -> Prop
 | .CtxJ => λ () => true
-| .KindJ => λ (k, c) => true -- c = `□  ∧ ∃ k', compile_kind Γ' □ k = .ok k' ∧ Γ' ⊢ k' : □
-| .TypeJ => λ (t, k) => ∃ t' k', (compile_kind Γ' □ k = .ok k' ∧ compile_type Γ' k' t = .ok t' ∧ Γ' ⊢ t' : k')
 | .TermJ => λ _ => true
+| .KindJ => λ _ => true
+| .TypeJ => λ (t, k) => ∃ t' k', (compile_kind Γ' □ k = .ok k' ∧ compile_type Γ' k' t = .ok t' ∧ Γ' ⊢ t' : k')
+
+theorem compile_type_app_soundness {Γ : HsCtx HsTerm} {Γ' : Ctx Term} {T : HsTerm} :
+  ⊢s Γ -> ⊢ Γ' -> CtxEquiv Γ Γ' ->
+  HsJudgment .KindJ Γ (k, `□) ->
+  HsJudgment .TypeJ Γ (T, k) ->
+  compile_kind Γ' □ k = .ok k' ->
+  T.neutral_form = .some (`#x, sp) ->
+  compile_type Γ' k' T = .ok T' ->
+  ∃ sp', T'.neutral_form = .some (x, sp') ∧ (∀ t ∈ sp', ∃ k', (Γ' ⊢ t.2 : k'))
+  := by
+intro wf wf' cc jk jT ck tnf cT
+have lem := @hs_neutral_form_well_typed .TypeJ  (T, k) Γ x sp jT
+simp at lem;
+replace lem := lem tnf
+sorry
+
+
 
 
 theorem compile_type_soundness :
@@ -466,55 +521,14 @@ theorem compile_type_soundness :
   CompileTypeSoundnessLemmaType Γ' i jty := by
 intro wf Γe j
 induction j generalizing Γ' <;> simp at *
-case _ Γ x K j f _ =>
-  exists #x
-  generalize fh : (Γ' d@ x) = f' at *
-  have Γe' := Γe x
-  cases f <;> simp at *
-  case _ f =>
-    rw[f] at Γe';
-    rw[fh] at Γe'
-    cases Γe'; case _ K' =>
-    exists K'
-    constructor
-    sorry -- should be because of CtxEquiv property
-    constructor
-    case _ =>
-      exists K'; unfold Frame.get_type; simp; unfold DsM.toDsM; simp;
-      split
-      case _ =>
-        split -- split K' into neutral form
-        sorry
-        case _ κs ret_κ h =>
-          rw[Option.bind_eq_some] at h;
-          cases h; case _ ksplit h =>
-          cases h; case _ h1 h2 =>
-          simp at h2
-          split -- if condition
-          case _ =>
-            unfold Except.bind; simp;
-            generalize kargsh : (κs.attach.zip []) = kargs at *
-            simp at kargsh; rw[kargsh]; simp; unfold pure;
-            unfold Applicative.toPure; unfold Monad.toApplicative; unfold Except.instMonad;
-            unfold Except.pure; simp
-          case _ =>  sorry
 
-      case _ h =>
-
-        exfalso; sorry -- contradiction
-    case _ =>
-      constructor; assumption; rw[fh]; unfold Frame.get_type; simp
-  -- cases f'
-
-  -- exists
-  case _ f => sorry
-
-case _ ih1 ih2 =>
+case _ ih1 ih2 => -- arrow
   replace ih1 := @ih1 Γ' wf Γe
   cases ih1; case _ A' ih1 =>
   cases ih1; case _ ih1 =>
 
-  replace ih2 := @ih2 (.empty :: Γ') (by constructor; assumption) sorry
+  replace ih2 := @ih2 (.empty :: Γ') (by constructor; assumption) (by apply lift_ctx_equiv; assumption)
+
   cases ih2; case _ B' ih2 =>
   cases ih2; case _ ih2 =>
   exists (A' -t> B')
@@ -525,7 +539,7 @@ case _ ih1 ih2 =>
   case _ => exists B';
   constructor; assumption; assumption
 
-case _ j1 j2 j3 _ _ ih =>
+case _ j1 j2 j3 _ _ ih => -- all
   have lem := compile_kind_sound_3 wf j2; simp at lem
   cases lem; case _ A' lem =>
   cases lem
@@ -533,7 +547,11 @@ case _ j1 j2 j3 _ _ ih =>
   cases ih; case _ B' ih =>
   cases ih
   exists (∀[A']B')
-case _ j1 j2 j3 ih1 _ ih2 =>
+  constructor;
+  case _ => exists A'; constructor; assumption; exists B'
+  case _ => constructor; assumption; assumption
+
+case _ Γ _ _ _ _ j1 j2 j3 ih1 _ ih2 => -- app case
   replace ih2 := @ih2 Γ' wf Γe
   cases ih2; case _ T' ih2 =>
   cases ih2; case _ Tk ih2 =>
@@ -556,7 +574,7 @@ case _ j1 j2 j3 ih1 _ ih2 =>
   case _ => assumption
   case _ =>
     split
-    case _ h =>
+    case _ T _ _ _ _ _ _ _ _ _ h =>
       exfalso; simp at h
       sorry
     case _ h =>
@@ -570,6 +588,52 @@ case _ j1 j2 j3 ih1 _ ih2 =>
         simp
         have h1' : w = (w.1, w.2) := by simp
         rw[h1'] at h1
-        have lem := @hs_neutral_form_well_typed .TypeJ (T, k `-k> k') Γ x w.2
+        rw[Option.bind_eq_some] at h
+        cases h; case _ tnf =>
+        cases tnf; case _ h1a tnf =>
+        rw[h1] at h1a; cases h1a; rw[e1] at h1;
+        have lem := @hs_neutral_form_well_typed .TypeJ (T, k `-k> k') Γ x w.2 j2
+        simp at lem;
+        replace lem := lem h1
+        cases lem; case _ lem1 lem2 =>
+        cases lem1; case _ K lem1 =>
+        constructor;
+        case _ =>
+          have lem3 := Γe x
+          -- Γ s@ x is a tycon or it is a kind
+          cases lem1;
+          case _ lem1 =>
+            rw[lem1] at lem3;
+            replace lem3 := @FrameEquivRefineType Γ Γ' K (Γ' d@ x) lem3
+            cases lem3; case _ K' lem3 =>
+            exists K'
+            constructor
+            case _ => rw[lem3.2]; unfold Frame.get_type; simp; unfold DsM.toDsM; simp
+            case _ =>
+            split
+            case _ =>
+              split
+              case _ => sorry -- well formed kind always splits. contradiction
+              case _ =>
+                split
+                case _ wfk ks ret_k h2 h3 =>
+                  simp at h3; cases h3; case _ h3 h4 =>
+                  cases h3; case _ h3 h5 =>
+                  rw[Option.bind_eq_some] at h2; cases h2; case _ sp' h2 =>
+                  have e := Term.eq_of_beq h3; cases e; clear h3
+                  rw[Except.bind_eq_ok]
+
+                  sorry
+                case _ => sorry
+            case _ h =>
+            have lem4 : Γ ⊢s `#x : K := by
+              constructor; assumption; apply Or.inr; assumption
+            -- K' is a wf kind contradiction with h
+            exfalso; sorry
+          case _ lem => sorry
+
         sorry
-      case _ => sorry
+      case _ =>
+        split <;> simp at *
+        sorry
+        sorry
