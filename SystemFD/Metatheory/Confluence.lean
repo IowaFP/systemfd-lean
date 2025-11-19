@@ -7,14 +7,38 @@ theorem reds_trans {Γ : Ctx Term} {L M R : Term} :
   (M ⟨ Γ ⟩⟶⋆ R) ->
   L ⟨ Γ ⟩⟶⋆ R := by
 intro s1 s2
-induction s1
+induction s2
 assumption
-sorry
+constructor; assumption; assumption
+
+theorem redstar_choice₁ :
+  (M ⟨ Γ ⟩⟶⋆ v) ->
+  (M ⊕ N) ⟨ Γ ⟩⟶⋆ (v ⊕ N) := by
+intro h1
+induction h1
+constructor
+case _ y z _ r ih =>
+  apply @RedStar.step Γ (M ⊕ N) (y ⊕ N) (z ⊕ N) ih
+  apply Red.ctor2_congr1 (by simp) r;
+
+theorem redstar_choice₂ :
+  (N ⟨ Γ ⟩⟶⋆ v) ->
+  (M ⊕ N) ⟨ Γ ⟩⟶⋆ (M ⊕ v) := by
+intro h1
+induction h1
+constructor
+case _ y z rs r ih =>
+  apply @RedStar.step Γ (M ⊕ N) (M ⊕ y) (M ⊕ z) ih
+  apply Red.ctor2_congr2 (by simp) r
 
 theorem reds_choice_parallel {Γ : Ctx Term} {L L' R R'} :
   L ⟨ Γ ⟩⟶⋆ R ->
   L' ⟨ Γ ⟩⟶⋆ R' ->
-  (L ⊕ L') ⟨ Γ ⟩⟶⋆ (R ⊕ R') := by sorry
+  (L ⊕ L') ⟨ Γ ⟩⟶⋆ (R ⊕ R') := by
+intro s1 s2
+have lem1 : (L ⊕ L') ⟨ Γ ⟩⟶⋆ (R ⊕ L') := redstar_choice₁ s1
+have lem2 : (R ⊕ L') ⟨ Γ ⟩⟶⋆ (R ⊕ R') := redstar_choice₂ s2
+apply reds_trans lem1 lem2
 
 
 
@@ -24,30 +48,4 @@ theorem confluence {Γ : Ctx Term} {M v1 v2: Term} :
   Val Γ v1 ->
   Val Γ v2 ->
   v1 = v2 := by
-sorry
-
-theorem choice_lift_red_lhs :
-  (M ⟨ Γ ⟩⟶⋆ v) ->
-  (M ⊕ N) ⟨ Γ ⟩⟶⋆ (v ⊕ N) := by
-intro h1
-induction h1
-constructor
-case _ y z _ _ ih =>
-  apply @RedStar.step Γ (M ⊕ N) (y ⊕ N) (z ⊕ N) ih
-
-
-  sorry
-
-theorem choice_reduction_unqiue {Γ : Ctx Term} {M N v: Term}:
-  (M ⟨ Γ ⟩⟶⋆ v) ->
-  (N ⟨ Γ ⟩⟶⋆ `0) ->
-  (M ⊕ N) ⟨ Γ ⟩⟶⋆ v := by
-intro h1 h2
-
-have lem1 : (M ⊕ N) ⟨ Γ ⟩⟶⋆ (M ⊕ `0) := by sorry
-have lem2 : (M ⊕ `0) ⟨ Γ ⟩⟶⋆ v := by
-  apply @RedStar.step Γ (M ⊕ `0) (v ⊕ `0) v
-  sorry
-  constructor
-
 sorry

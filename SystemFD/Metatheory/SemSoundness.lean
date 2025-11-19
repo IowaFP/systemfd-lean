@@ -1,20 +1,29 @@
 import SystemFD.Term
 import SystemFD.Term.Subexpression
+import SystemFD.Term.Variant
 import SystemFD.Metatheory.Canonicity
 import SystemFD.Metatheory.Confluence
 
 def saturated : Ctx Term -> Term -> Prop := sorry
 
--- change Term.subexpr to Term.contains_variant decidable predicate
+-- TODO: Change Term.subexpr to Term.contains_variant decidable predicate
 
-inductive WDVal : Ctx Term -> Term -> Prop where
+inductive WDVal (Γ : Ctx Term) : Term -> Prop where
 |  WDVal :
-     Val Γ t ->
+     -- Val Γ t -> -- what if the term is loopy loopy?
      ¬ (Term.Subexpr `0 t) ->
      ∀ M N, ¬ (Term.Subexpr (M ⊕ N) t) ->
      ∀ M N P, ¬ (Term.Subexpr (.guard M P N) t) ->
      (∀ x, Term.Subexpr #x t -> Γ.is_openm x -> saturated Γ #x) ->
      WDVal Γ t
+
+
+inductive WDVal' (Γ : Ctx Term) : Term -> Prop where
+|  WDVal' :
+     ¬ (ContainsVariant (Ctx.variants Γ) [.zero, .guard, .ctor2 .choice] t) ->
+     (∀ x, Term.Subexpr #x t -> Γ.is_openm x -> saturated Γ #x) ->
+     -- cannot use ContainsVariant (Ctx.variants Γ) [.var .opent] becuase i want to imply that it is saturated.
+     WDVal' Γ t
 
 
 inductive WDTerm : Ctx Term -> Term -> Prop where
@@ -58,3 +67,20 @@ case _ N M h1 h2 ih =>
   constructor
   apply reds_trans lem lem2
   assumption
+
+-- Next step:
+-- 1. What does saturation mean?
+-- a. Semantically
+--    x is saturated iff
+--    ∀ τ e, x is open in Γ ->
+--    WDValue Γ e ->
+--    x[τ]e is of ground type ->
+--    x[τ]e -->* ∃ v. WDVal Γ v
+
+-- b. Syntactically
+-- c. Syntactic saturation => semantic saturation
+
+
+-- 2. Syntactic Weakly deterministic Term => Semantic Weakly Deterministic Term
+-- Way 1: Syntactic WD Term to use Semantic saturation
+-- And then try proving 2.
