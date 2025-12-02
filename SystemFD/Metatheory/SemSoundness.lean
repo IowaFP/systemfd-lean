@@ -5,53 +5,84 @@ import SystemFD.Metatheory.Canonicity
 import SystemFD.Metatheory.Confluence
 
 
-def saturated : Ctx Term -> Nat -> Prop := sorry
--- TODO: Change Term.subexpr to Term.contains_variant decidable predicate
+@[simp]
+def ShallowlyDeterm : Term -> Prop
+| .zero => false
+| .ctor2 .choice _ _ => false
+| _ => true
 
-inductive WDVal (Γ : Ctx Term) : Term -> Prop where
-|  WDVal :
-     -- Val Γ t -> -- what if the term is loopy loopy?
-     ¬ (Term.Subexpr `0 t) ->
-     ∀ M N, ¬ (Term.Subexpr (M ⊕ N) t) ->
-     ∀ M N P, ¬ (Term.Subexpr (.guard M P N) t) ->
-     (∀ x, Term.Subexpr #x t -> Γ.is_openm x -> saturated Γ x) ->
-     WDVal Γ t
+
+-- Shalowly Deterministic Value is a value which also shallowly deterministic
+@[simp]
+abbrev SDVal (Γ : Ctx Term) (t: Term) := Val Γ t ∧ ShallowlyDeterm t
+
+ -- where
+-- |  SDVal :
+--     Val Γ t ->
+--     ShallowlyDeterm t ->
+--     -- ¬ (ContainsVariant (Ctx.variants Γ) [.zero, .guard, .ctor2 .choice] t) ->
+--     -- (∀ x, Term.Subexpr #x t -> Γ.is_openm x -> saturated Γ x) ->
+--     SDVal Γ t
+
 
 namespace Term
+
 def mk_ty_tm_app (t : Term) (τs : List Term) (es : List Term) := (t.mk_ty_apps τs).mk_apps es
-def GroundTy (Γ : Ctx Term) (t : Term) : Prop := sorry
+
+-- Ground Types are the ones that are not lambda bound
+def GroundTy (Γ : Ctx Term) (t : Term) : Bool :=
+  sorry
+
 end Term
 
-
--- Semantic Characterization of a Weakly Deterministic Value
-inductive SemWDVal (Γ : Ctx Term) : Term ->  Prop where
-| SemWDVal :
-    ¬ (ContainsVariant (Ctx.variants Γ) [.zero, .guard, .ctor2 .choice] t) ->
-    (∀ x : Nat, Term.Subexpr #x t -> Γ.is_openm x ->
-    (∀ τs es,
-        (∀ e ∈ es, WDVal Γ e) ->
-        (∃ σ, Γ ⊢ (#x).mk_ty_tm_app τs es : σ ∧ σ.GroundTy Γ) ->
-        (¬ ((#x).mk_ty_tm_app τs es) ⟨ Γ ⟩⟶⋆ `0))) ->
-    (∃ v, t ⟨ Γ ⟩⟶⋆ v ∧ Val Γ v) ->
-    SemWDVal Γ t
 
 
 -- a. Semantically
 --    x is saturated iff
 --    ∀ τ e, x is open in Γ ->
---    WDVal Γ e ->
+--    Val Γ e ->
 --    x[τ]e is of ground type ->
---    ¬ (x[τ]e ⟶★ `0)
-inductive SemSat (Γ : Ctx Term) : Term -> Prop where
-| Sat :
-  t = #x ->
-  Γ.is_openm x ->
+--    (∃ v, x[τ]e ⟶★ v ∧ SemWDVal Γ v)
+@[simp]
+abbrev Sat (Γ : Ctx Term) (x : Nat):  Prop :=
+  Γ.is_openm x ∧
   (∀ τs es,
-      (∀ e ∈ es, SemWDVal Γ e) ->
+      (∀ e ∈ es, SDVal Γ e) ->
       (∃ σ, Γ ⊢ (#x).mk_ty_tm_app τs es : σ ∧ σ.GroundTy Γ) ->
-      (¬ ((#x).mk_ty_tm_app τs es) ⟨ Γ ⟩⟶⋆ `0)) ->
-  SemSat Γ t
+      (∃ v, ((#x).mk_ty_tm_app τs es) ⟨ Γ ⟩⟶⋆ v ∧ SDVal Γ v))
 
+@[simp]
+abbrev SatCtx (Γ : Ctx Term) : Prop := ∀ x, Γ.is_openm x -> Sat Γ x -- sorry
+
+-- TODO: Change Term.subexpr to Term.contains_variant decidable predicate
+
+-- Question: Is the term (λ x. `0) a value, is it weakly deterministic?
+-- Claim: WD is a property of arbitrary terms.
+-- We have normal forms:
+-- Its shallowly determistic value if it doesn't have `0 or ⊕ at the head
+--   So, (λ x. `0) is a shallowly deterministic value.
+--   but  (`0  ⊕ `0) is not a shallowly deterministic value.
+
+-- Weak Determinism is how we handle open methods
+-- this is where guards come in.
+-- in any context evaluation C, t is weakly deterministic
+-- if C[t] -->* doesn't reduce to `0 or ⊕ i.e. it is shallowly deterministic value.
+
+-- "Shallowness": Terms that we know reduce to `0 (or not) in "one step"
+-- Reductions do not preserve shallowness
+
+-- Semantic Characterization of a Weakly Deterministic Value
+inductive SemWDVal (Wf : Term -> Prop) (Γ : Ctx Term) : Term ->  Prop where
+| SemWDVal :
+    ¬ (ContainsVariant (Ctx.variants Γ) [.zero, .guard, .ctor2 .choice] t) ->
+    -- Complaint: this syntactic not semantic
+    -- (∀ x : Nat, Term.Subexpr #x t -> Γ.is_openm x -> (SemSat P Γ #x)) ->
+    -- (∃ v, t ⟨ Γ ⟩⟶⋆ v ∧ SemWDVal Wf Γ v) ->
+    SatCtx Γ ->
+    Wf t ->
+    SemWDVal Wf Γ t
+
+-- IDEA1: fix this by marmaduking it
 
 inductive SemWDTerm (Γ : Ctx Term) : Term -> Prop where
 | WDBase :
