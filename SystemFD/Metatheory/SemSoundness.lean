@@ -3,6 +3,7 @@ import SystemFD.Term.Subexpression
 import SystemFD.Term.Variant
 import SystemFD.Metatheory.Canonicity
 import SystemFD.Metatheory.Confluence
+import SystemFD.Metatheory.Progress
 
 /-
 
@@ -14,9 +15,9 @@ We want to have a syntactic property P on terms of SystemFD
 st. the following holds for it:
 
    P τ t ⇒
-   ∃ v, (t ⟶⋆ n) ∧
-        (Val Γ n ∧ v is confusion free)
-        ∨ n does not have a normal form
+   ∃ n, (t ⟶⋆ n) ∧
+        (Val Γ n ∧ n is confusion free)
+        ∨ ( does not have a normal form)
 
 The context Γ has to bear some responsibility for the term to be confusion free,
 as the · ⟶⋆ · relation is dependent on Γ for instantiating open methods. We call this
@@ -26,14 +27,118 @@ property saturation. Intuitively, the saturation property enforces that the
 To explicitly encode this property in our formalization:
 
    SatCtx Γ ∧ P τ Γ t ⇒
-   ∃ v, (t ⟨Γ⟩⟶⋆ n) ∧
-        (Val Γ n ∧ v is confusion free)
+   ∃ n, (t ⟨Γ⟩⟶⋆ n) ∧
+        (Val Γ n ∧ n is confusion free)
          ∨ n does not have a normal form
 
 
-Confusion Free:
+Confusion Free (or (Weakly) Determined):
 ---------------
-Take 1: A (well typed) term, t,
+
+Idea 1:
+
+Determined Γ τ t
+
+A (well typed) term, t,
+1. t does not contain `0 or ⊕ or guards (at the head)
+2. open methods are fine but they need to be fully applied -- enforced by typing?
+
+
+Idea 2:
+DeterminedTyping Γ t τ
+
+Deeply checked  Idea 1. check that t does not contain `0, ⊕ etc only at the head but for all subterms of t
+
+theorem : NoConfusion Γ → Closed Γ → DetermindedTyping Γ t τ
+          Val Γ t  ∨ (∃ t', t ⟶+ t' ∧ DetermindedTyping Γ t' τ)
+
+m [τs] ds : σ
+
+NoConfusion Γ
+
+    ∀ τs ds,
+      (τs are ground, ds are DeterminedTyping Γ σ d, σ is ground)
+    ∃ i, Γ d@ i = .inst #m t ∧ t [τs] ds - ̸⟶⋆ `0 ∧
+    ∀ k, k ≠ i ∧  Γ d@ k = .inst #m t' ∧ t' [τs] ds ⟶⋆ `0
+
+Captures: Saturation.
+1. Instance existence --> no `0
+2. Instance uniqueness --> no ⊕
+
+
+Equivalent to:
+∀ m [τs] ds : σ ⟶+ n, DeterminedTyping Γ n σ
+
+
+-/
+
+namespace Term
+
+def mk_ty_tm_app (t : Term) (τs : List Term) (es : List Term) := (t.mk_ty_apps τs).mk_apps es
+notation:70 t:170 "⬝[" τs:170 "]⬝" es:170 "⬝" => mk_ty_tm_app t τs es
+
+-- Ground Types are the ones that are not lambda bound
+-- Int, Bool, Int → Bool, Maybe, Maybe Int are all ground types
+-- a → Int, Maybe a are not ground types
+def groundTy (Γ : Ctx Term) : Term -> Bool
+| #x => Γ.is_datatype x || Γ.is_opent x
+| (τ1 -t> τ2) => groundTy Γ τ1 && groundTy (.empty :: Γ) τ2
+| τ1 `@k τ2 => groundTy Γ τ1 && groundTy  Γ τ2
+| _ => false
+
+end Term
+
+namespace Ctx
+
+@[simp]
+-- A closed context is a context where there are only pure declarations and no let, lambda bound terms
+abbrev Closed (Γ : Ctx Term) : Prop :=
+  ⊢ Γ ∧  ∀ (x : Nat), (Γ d@ x).is_stable_red
+
+end Ctx
+
+@[simp]
+abbrev NoConfusionWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
+  Γ ⊢ t : τ ∧
+  ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
+
+
+
+@[simp]
+abbrev NoConfusion Γ := ∀ x, Γ.is_openm x -> ∀ τs ds : List Term, ∀ σ : Term, (Γ ⊢ ((#x) ⬝[τs]⬝ ds ⬝) : σ) ∧
+  (∀ τ ∈ τs, τ.groundTy Γ) ∧
+  (∀ d ∈ ds, ∃ κ, Γ ⊢ d : κ ∧ κ.groundTy Γ ∧ NoConfusionWellTyped Γ κ d) ∧
+  ∃ n, ((#x) ⬝[τs]⬝ ds ⬝) ⟨Γ⟩⟶⋆ n ∧ NoConfusionWellTyped Γ σ n
+
+theorem NoConfusionProgress Γ σ t:
+  NoConfusion Γ -> Γ.Closed -> NoConfusionWellTyped Γ σ t ->
+  Val Γ t ∨
+  (∃ t', t ⟨Γ⟩⟶ t' ∧ NoConfusionWellTyped Γ σ t') ∨ (∃ n, t' ⟨Γ⟩⟶⋆ n ∧ NoConfusionWellTyped Γ σ n) := by
+intro h1 h2 h3
+simp at h3; cases h3; case _ wt noc =>
+have no_var : (∀ x, ¬ Γ.is_type x) := by simp at h2; cases h2; case _ h2 =>
+    intro x; replace h2 := h2 x; intro h3; unfold Ctx.is_type at h3;
+    replace h3 := type_indexing_exists h3; cases h3; case _ h3 =>
+    rw[h3] at h2; unfold Frame.is_stable_red at h2; simp at h2
+have lem_p := progress no_var wt
+cases lem_p
+case _ => constructor; assumption
+case _ lem_p =>
+  cases lem_p
+  case _ h =>
+    cases h; case _ t' r =>
+    apply Or.inr;
+
+    sorry
+  case _ e => exfalso; rw[e] at noc; simp at noc
+
+
+
+
+
+
+/-
+
 is confusion free if for all term contexts C[⬝], and saturated context Γ
 C[t] ⟨Γ⟩ ⟶⋆ n s.t. n is a value and n does not contain open methods or `0 or ⊕ or guards
 
@@ -52,6 +157,13 @@ C[t] ⟨Γ⟩ ⟶⋆ n s.t. n is a value (or it loops indefinitely) and n does n
 contain open methods or `0 or ⊕ or guards
 
 
+Maybe what we need is a measure for confusion for term contexts.
+
+
+
+
+
+
 Context Saturation:
 -------------------
 Intuitively, a context Γ is saturated
@@ -67,12 +179,13 @@ so `m [τs] ds` ⟶ (I_1 ⊕ I_2 ⊕ .. I_n) [τs] ds ⟶⋆ (I_1 [τs] ds) ⊕ 
 Now we want saturation property to capture the idea only one of these I_j survives.
 
 Take 1:
+
     ∀ τs ds,
       (τs are ground, ds are confusion free)
     ∃ i, Γ d@ i = .inst #m t ∧ t [τs] ds - ̸⟶⋆ `0 ∧
     ∀ k, k ≠ i ∧  Γ d@ k = .inst #m t' ∧ t' [τs] ds ⟶⋆ `0
 
-but our saturation property has too strict! ds shouldn't be confusion free, they can
+but our saturation property is too strict! ds shouldn't be confusion free, they can
 very well contain calls to open methods. This is where related inputs go to related outputs
 idea gets used (I think). ds should satisfy the original goal property P from above.
 
@@ -80,6 +193,7 @@ Option: Let P be collection of terms that contains no guards, `0, ⊕. (open met
 This seems to have some merit. It is a syntactic check and with context saturation ensuring no confusion
 
 Take 2:
+
     ∀ τs ds,
       (τs are ground, ds satisfy property P)
     ∃ i, Γ d@ i = .inst #m t ∧ t [τs] ds - ̸⟶⋆ `0 ∧
@@ -87,22 +201,6 @@ Take 2:
 
 -/
 
-
-namespace Term
-
-def mk_ty_tm_app (t : Term) (τs : List Term) (es : List Term) := (t.mk_ty_apps τs).mk_apps es
-notation:70 t:170 "⬝[" τs:170 "]⬝" es:170 "⬝" => mk_ty_tm_app t τs es
-
--- Ground Types are the ones that are not lambda bound
--- Int, Bool, Int → Bool, Maybe, Maybe Int are all ground types
--- a → Int, Maybe a are not ground types
-def groundTy (Γ : Ctx Term) : Term -> Bool
-| #x => Γ.is_datatype x
-| (τ1 -t> τ2) => groundTy Γ τ1 && groundTy (.empty :: Γ) τ2
-| τ1 `@k τ2 => groundTy Γ τ1 && groundTy  Γ τ2
-| _ => false
-
-end Term
 
 
 namespace TermCtx
@@ -150,11 +248,6 @@ abbrev Sat (Wf : Ctx Term -> Term -> Prop)(Γ : Ctx Term) (x : Nat):  Prop :=
 @[simp]
 -- if the variable is not an open thingy then it is automatically saturated
 abbrev SatCtx (Wf : Ctx Term -> Term -> Prop) (Γ : Ctx Term) : Prop := ∀ x, Γ.is_openm x -> Sat Wf Γ x
-
-@[simp]
--- A closed context is a context where there are only pure declarations and no let, lambda bound terms
-abbrev ClosedCtx (Γ : Ctx Term) : Prop :=
-  ⊢ Γ ∧  ∀ (x : Nat), (Γ d@ x).is_stable_red
 
 -- Question: Is the term (λ x. `0) a value, but applying it to anything will make it vanish
 -- Weak Determinism is how we handle open methods
