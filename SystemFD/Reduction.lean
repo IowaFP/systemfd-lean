@@ -153,6 +153,9 @@ inductive RedStar (Γ : Ctx Term) : Term -> Term -> Prop where
 | refl : RedStar Γ x x
 | step : RedStar Γ x y -> Red Γ y z -> RedStar Γ x z
 
+inductive RedPlus (Γ : Ctx Term) : Term -> Term -> Prop where
+| step : RedStar Γ x y -> Red Γ y z -> RedPlus Γ x z
 
 notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶⋆ " N:170 => RedStar Γ M N
+notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶+ " N:170 => RedPlus Γ M N
 notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶ " N:170 => Red Γ M N

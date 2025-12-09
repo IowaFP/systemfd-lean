@@ -4,6 +4,9 @@ import SystemFD.Term.Variant
 import SystemFD.Metatheory.Canonicity
 import SystemFD.Metatheory.Confluence
 import SystemFD.Metatheory.Progress
+import SystemFD.Metatheory.Preservation
+
+set_option maxHeartbeats 500000
 
 /-
 
@@ -99,8 +102,7 @@ end Ctx
 
 @[simp]
 abbrev NoConfusionWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
-  Γ ⊢ t : τ ∧
-  ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
+  Γ ⊢ t : τ ∧  ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
 
 
 
@@ -113,7 +115,7 @@ abbrev NoConfusion Γ := ∀ x, Γ.is_openm x -> ∀ τs ds : List Term, ∀ σ 
 theorem NoConfusionProgress Γ σ t:
   NoConfusion Γ -> Γ.Closed -> NoConfusionWellTyped Γ σ t ->
   Val Γ t ∨
-  (∃ t', t ⟨Γ⟩⟶ t' ∧ NoConfusionWellTyped Γ σ t') ∨ (∃ n, t' ⟨Γ⟩⟶⋆ n ∧ NoConfusionWellTyped Γ σ n) := by
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ σ t') := by
 intro h1 h2 h3
 simp at h3; cases h3; case _ wt noc =>
 have no_var : (∀ x, ¬ Γ.is_type x) := by simp at h2; cases h2; case _ h2 =>
@@ -128,8 +130,20 @@ case _ lem_p =>
   case _ h =>
     cases h; case _ t' r =>
     apply Or.inr;
-
-    sorry
+    have lem_pres := preservation wt (RedStar.step RedStar.refl r)
+    have lem_prog := progress no_var lem_pres
+    cases lem_prog
+    case _ h =>
+      exists t'
+      constructor
+      · constructor; constructor; assumption
+      · sorry
+  -- Have : Γ ⊢ t ⟶ t' : σ. t' is value.
+  -- Show: t' has no confusion
+    case _ h =>
+      cases h;
+      case _ h => sorry
+      case _ h => exfalso; sorry
   case _ e => exfalso; rw[e] at noc; simp at noc
 
 
@@ -265,7 +279,7 @@ abbrev CFVal (Wf : Term -> Prop) (t : Term): Prop := ∀ Γ,
     -- Complaint: this is syntactic not semantic
     -- (∀ x : Nat, Term.Subexpr #x t -> Γ.is_openm x -> (SemSat P Γ #x)) ->
     -- (∃ v, t ⟨ Γ ⟩⟶⋆ v ∧ CFVal Wf Γ v) ->
-    ClosedCtx Γ ->
+    Γ.Closed ->
     SatCtx ShallowlyConfusionFree Γ ->
     Val Γ t ->
     Wf t

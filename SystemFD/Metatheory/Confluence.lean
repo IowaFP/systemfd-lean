@@ -11,6 +11,20 @@ induction s2
 assumption
 constructor; assumption; assumption
 
+theorem redplus_is_redstar {Γ : Ctx Term} {N M : Term} :
+  N ⟨Γ⟩⟶+ M ->
+  N ⟨Γ⟩⟶⋆ M := by
+intro h
+induction h; constructor; assumption; assumption
+
+theorem red_and_red_is_redplus {Γ : Ctx Term}{L M N : Term} :
+  L ⟨Γ⟩⟶ M ->
+  M ⟨Γ⟩⟶ N ->
+  L ⟨Γ⟩⟶+ N := by
+intro s1 s2
+constructor; apply RedStar.step; apply RedStar.refl; assumption; assumption
+
+
 theorem redstar_choice₁ :
   (M ⟨ Γ ⟩⟶⋆ v) ->
   (M ⊕ N) ⟨ Γ ⟩⟶⋆ (v ⊕ N) := by
@@ -39,7 +53,6 @@ intro s1 s2
 have lem1 : (L ⊕ L') ⟨ Γ ⟩⟶⋆ (R ⊕ L') := redstar_choice₁ s1
 have lem2 : (R ⊕ L') ⟨ Γ ⟩⟶⋆ (R ⊕ R') := redstar_choice₂ s2
 apply reds_trans lem1 lem2
-
 
 
 theorem confluence {Γ : Ctx Term} {M v1 v2: Term} :
