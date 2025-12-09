@@ -93,27 +93,46 @@ end Term
 
 namespace Ctx
 
+end Ctx
+
+@[simp]
+abbrev NoConfusion (Γ : Ctx Term) (t : Term) : Prop := ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
+
+
+@[simp]
+abbrev Confusion (Γ : Ctx Term) (t : Term) : Prop := contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
+
+theorem partition_confusion {Γ : Ctx Term}  {t : Term} : NoConfusion Γ t <-> ¬ Confusion Γ t :=
+ by simp
+
+
+
+@[simp]
+abbrev NoConfusionWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
+  Γ ⊢ t : τ ∧  NoConfusion Γ t
+
+
+namespace Ctx
+
 @[simp]
 -- A closed context is a context where there are only pure declarations and no let, lambda bound terms
 abbrev Closed (Γ : Ctx Term) : Prop :=
   ⊢ Γ ∧  ∀ (x : Nat), (Γ d@ x).is_stable_red
 
-end Ctx
-
 @[simp]
-abbrev NoConfusionWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
-  Γ ⊢ t : τ ∧  ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
-
-
-
-@[simp]
-abbrev NoConfusion Γ := ∀ x, Γ.is_openm x -> ∀ τs ds : List Term, ∀ σ : Term, (Γ ⊢ ((#x) ⬝[τs]⬝ ds ⬝) : σ) ∧
+abbrev NoConfusionCtx Γ := ∀ x, Γ.is_openm x -> ∀ τs ds : List Term, ∀ σ : Term, (Γ ⊢ ((#x) ⬝[τs]⬝ ds ⬝) : σ) ∧
   (∀ τ ∈ τs, τ.groundTy Γ) ∧
   (∀ d ∈ ds, ∃ κ, Γ ⊢ d : κ ∧ κ.groundTy Γ ∧ NoConfusionWellTyped Γ κ d) ∧
   ∃ n, ((#x) ⬝[τs]⬝ ds ⬝) ⟨Γ⟩⟶⋆ n ∧ NoConfusionWellTyped Γ σ n
 
-theorem NoConfusionProgress Γ σ t:
-  NoConfusion Γ -> Γ.Closed -> NoConfusionWellTyped Γ σ t ->
+@[simp]
+abbrev NoConfusionClosedCtx Γ := NoConfusionCtx Γ ∧ Closed Γ
+end Ctx
+
+
+-- A direct proof of this lemma obviously fails
+theorem NoConfusionProgressFail Γ σ t:
+  Γ.NoConfusionCtx -> Γ.Closed -> NoConfusionWellTyped Γ σ t ->
   Val Γ t ∨
   (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ σ t') := by
 intro h1 h2 h3
@@ -147,8 +166,35 @@ case _ lem_p =>
   case _ e => exfalso; rw[e] at noc; simp at noc
 
 
+-- Take 1: Generalize NoFunction of terms indexed by an inductive type
+-- This is very similar to the Strong Normalization Predicate (indexed by types) for terms
+
+inductive SemNoConfusion (Γ : Ctx Term) : Term -> Term -> Prop
+| AppTy :
+  Γ.NoConfusionClosedCtx ->
+  τ = Term.mk_kind_apps #x τs ->
+  NoConfusionWellTyped Γ τ t ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ τ t) ->
+  SemNoConfusion Γ τ t
+| ArrowTy :
+  Γ.NoConfusionClosedCtx ->
+  NoConfusionWellTyped Γ (τ1 -t> τ2) f ->
+  ∀ e, SemNoConfusion Γ τ1 e ->
+  SemNoConfusion Γ τ2 (f `@ e)
+| AllTy :
+  Γ.NoConfusionClosedCtx ->
+  NoConfusionWellTyped Γ (∀[K] σ) f ->
+  ∀ τ, Γ ⊢ τ : K ->
+  σ' = σ β[τ] ->
+  SemNoConfusion Γ σ' (f `@t τ)
+| EqTy :
+  Γ.NoConfusionClosedCtx ->
+  ∀ τ1 τ2, Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ (τ1 ~[K]~ τ2) t) ->
+  SemNoConfusion Γ (τ1 ~[K]~ τ2) t
 
 
+-- Need to now show stability over substitutions
 
 
 /-
