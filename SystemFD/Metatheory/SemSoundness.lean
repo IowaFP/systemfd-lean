@@ -159,6 +159,7 @@ case _ lem_p =>
       · sorry
   -- Have : Γ ⊢ t ⟶ t' : σ. t' is value.
   -- Show: t' has no confusion
+  -- we know that NoConfusionWellTyped property is not directly preserved over reduction relation
     case _ h =>
       cases h;
       case _ h => sorry
@@ -166,7 +167,7 @@ case _ lem_p =>
   case _ e => exfalso; rw[e] at noc; simp at noc
 
 
--- Take 1: Generalize NoFunction of terms indexed by an inductive type
+-- Attempt 1: Generalize NoConfusion of terms indexed by its type
 -- This is very similar to the Strong Normalization Predicate (indexed by types) for terms
 
 inductive SemNoConfusion (Γ : Ctx Term) : Term -> Term -> Prop
@@ -174,13 +175,14 @@ inductive SemNoConfusion (Γ : Ctx Term) : Term -> Term -> Prop
   Γ.NoConfusionClosedCtx ->
   τ = Term.mk_kind_apps #x τs ->
   NoConfusionWellTyped Γ τ t ->
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ τ t) ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ τ t') ->
   SemNoConfusion Γ τ t
 | ArrowTy :
   Γ.NoConfusionClosedCtx ->
   NoConfusionWellTyped Γ (τ1 -t> τ2) f ->
   ∀ e, SemNoConfusion Γ τ1 e ->
-  SemNoConfusion Γ τ2 (f `@ e)
+  σ' = τ2 β[e] ->
+  SemNoConfusion Γ σ' (f `@ e)
 | AllTy :
   Γ.NoConfusionClosedCtx ->
   NoConfusionWellTyped Γ (∀[K] σ) f ->
@@ -190,8 +192,49 @@ inductive SemNoConfusion (Γ : Ctx Term) : Term -> Term -> Prop
 | EqTy :
   Γ.NoConfusionClosedCtx ->
   ∀ τ1 τ2, Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ (τ1 ~[K]~ τ2) t) ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ (τ1 ~[K]~ τ2) t') ->
   SemNoConfusion Γ (τ1 ~[K]~ τ2) t
+
+
+theorem NoConfusionProgressFail2 :
+  SemNoConfusion Γ σ t ->
+  Val Γ t ∨
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ σ t') := by
+intro h
+induction h
+case _ => apply Or.inr; assumption
+case _ ih =>
+  apply Or.inr
+  cases ih
+  case _ f _ _ j1 e j2 _ ih =>
+    simp at j1;
+    cases j1; case _ j1 _ =>
+    have no_var : ∀ x, ¬ Γ.is_type x := sorry
+    have lem_prog := progress no_var j1
+    cases lem_prog;
+    case _ h =>
+      have f_shape := canonical_lambda j1; simp at f_shape;
+      replace f_shape := f_shape h j1;
+
+
+      sorry
+    case _ => sorry
+  case _ ih =>
+    cases ih; case _ f _ _ _ _ _ _ e' ih =>
+    cases ih
+    exists (f `@ e')
+    constructor
+    sorry
+    case _ h1 _ _ _ _ h2 =>
+      simp at h1; cases h1;
+      simp at h2; cases h2;
+      case _ j1 _ j2 _ =>
+      simp; constructor
+      · apply Judgment.app; assumption; assumption; sorry -- -t> bullshit
+      · constructor; assumption; assumption
+
+case _ => sorry
+case _ => apply Or.inr; assumption
 
 
 -- Need to now show stability over substitutions
