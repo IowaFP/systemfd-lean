@@ -96,20 +96,19 @@ namespace Ctx
 end Ctx
 
 @[simp]
-abbrev NoConfusion (Γ : Ctx Term) (t : Term) : Prop := ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
+abbrev Determined (Γ : Ctx Term) (t : Term) : Prop := ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
 
 
 @[simp]
-abbrev Confusion (Γ : Ctx Term) (t : Term) : Prop := contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
+abbrev Confused (Γ : Ctx Term) (t : Term) : Prop := contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
 
-theorem partition_confusion {Γ : Ctx Term}  {t : Term} : NoConfusion Γ t <-> ¬ Confusion Γ t :=
+theorem partition_confusion_determined {Γ : Ctx Term}  {t : Term} : Determined Γ t <-> ¬ Confused Γ t :=
  by simp
 
 
-
 @[simp]
-abbrev NoConfusionWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
-  Γ ⊢ t : τ ∧  NoConfusion Γ t
+abbrev DeterminedWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
+  Γ ⊢ t : τ ∧  Determined Γ t
 
 
 namespace Ctx
@@ -120,21 +119,32 @@ abbrev Closed (Γ : Ctx Term) : Prop :=
   ⊢ Γ ∧  ∀ (x : Nat), (Γ d@ x).is_stable_red
 
 @[simp]
-abbrev NoConfusionCtx Γ := ∀ x, Γ.is_openm x -> ∀ τs ds : List Term, ∀ σ : Term, (Γ ⊢ ((#x) ⬝[τs]⬝ ds ⬝) : σ) ∧
+abbrev Determined Γ := ∀ x, Γ.is_openm x ->
+  ∀ τs ds : List Term, ∀ σ : Term,
+  σ.groundTy Γ ∧
+  (Γ ⊢ ((#x) ⬝[τs]⬝ ds ⬝) : σ) ∧ -- genarazlize this to arbitrary spine
   (∀ τ ∈ τs, τ.groundTy Γ) ∧
-  (∀ d ∈ ds, ∃ κ, Γ ⊢ d : κ ∧ κ.groundTy Γ ∧ NoConfusionWellTyped Γ κ d) ∧
-  ∃ n, ((#x) ⬝[τs]⬝ ds ⬝) ⟨Γ⟩⟶⋆ n ∧ NoConfusionWellTyped Γ σ n
+  (∀ d ∈ ds, ∃ κ, Γ ⊢ d : κ ∧ κ.groundTy Γ ∧ DeterminedWellTyped Γ κ d) ∧
+  ∃ n, ((#x) ⬝[τs]⬝ ds ⬝) ⟨Γ⟩⟶⋆ n ∧ DeterminedWellTyped Γ σ n
 
 @[simp]
-abbrev NoConfusionClosedCtx Γ := NoConfusionCtx Γ ∧ Closed Γ
+abbrev DeterminedClosedCtx Γ := Determined Γ ∧ Closed Γ
 end Ctx
+
+
+theorem closed_ctx_has_no_vars (Γ : Ctx Term) : Γ.DeterminedClosedCtx -> (∀ x, ¬ Γ.is_type x) := by
+ intro h; cases h; case _ h2 =>
+ simp at h2; cases h2; case _ h2 =>
+ intro x; replace h2 := h2 x; intro h3; unfold Ctx.is_type at h3;
+ replace h3 := type_indexing_exists h3; cases h3; case _ h3 =>
+ rw[h3] at h2; unfold Frame.is_stable_red at h2; simp at h2
 
 
 -- A direct proof of this lemma obviously fails
 theorem NoConfusionProgressFail Γ σ t:
-  Γ.NoConfusionCtx -> Γ.Closed -> NoConfusionWellTyped Γ σ t ->
+  Γ.Determined -> Γ.Closed -> DeterminedWellTyped Γ σ t ->
   Val Γ t ∨
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ σ t') := by
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ σ t') := by
 intro h1 h2 h3
 simp at h3; cases h3; case _ wt noc =>
 have no_var : (∀ x, ¬ Γ.is_type x) := by simp at h2; cases h2; case _ h2 =>
@@ -170,74 +180,162 @@ case _ lem_p =>
 -- Attempt 1: Generalize NoConfusion of terms indexed by its type
 -- This is very similar to the Strong Normalization Predicate (indexed by types) for terms
 
-inductive SemNoConfusion (Γ : Ctx Term) : Term -> Term -> Prop
+inductive SemDetermined (Γ : Ctx Term) : Term -> Term -> Prop
 | AppTy :
-  Γ.NoConfusionClosedCtx ->
+  Γ.DeterminedClosedCtx ->
   τ = Term.mk_kind_apps #x τs ->
-  NoConfusionWellTyped Γ τ t ->
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ τ t') ->
-  SemNoConfusion Γ τ t
+  DeterminedWellTyped Γ τ t ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ τ t') ->
+  SemDetermined Γ τ t
 | ArrowTy :
-  Γ.NoConfusionClosedCtx ->
-  NoConfusionWellTyped Γ (τ1 -t> τ2) f ->
-  ∀ e, SemNoConfusion Γ τ1 e ->
+  Γ.DeterminedClosedCtx ->
+  DeterminedWellTyped Γ (τ1 -t> τ2) f ->
+  ∀ e, SemDetermined Γ τ1 e ->
   σ' = τ2 β[e] ->
-  SemNoConfusion Γ σ' (f `@ e)
+  SemDetermined Γ σ' (f `@ e)
 | AllTy :
-  Γ.NoConfusionClosedCtx ->
-  NoConfusionWellTyped Γ (∀[K] σ) f ->
+  Γ.DeterminedClosedCtx ->
+  DeterminedWellTyped Γ (∀[K] σ) f ->
   ∀ τ, Γ ⊢ τ : K ->
   σ' = σ β[τ] ->
-  SemNoConfusion Γ σ' (f `@t τ)
+  SemDetermined Γ σ' (f `@t τ)
 | EqTy :
-  Γ.NoConfusionClosedCtx ->
+  Γ.DeterminedClosedCtx ->
   ∀ τ1 τ2, Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ (τ1 ~[K]~ τ2) t') ->
-  SemNoConfusion Γ (τ1 ~[K]~ τ2) t
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ (τ1 ~[K]~ τ2) t') ->
+  SemDetermined Γ (τ1 ~[K]~ τ2) t
+
+
+-- Need to now show stability over substitutions
+theorem subst_determined_stable {Γ : Ctx Term} {τ τ' t e : Term} :
+  DeterminedWellTyped (.type τ' :: Γ) τ t ->
+  DeterminedWellTyped Γ τ' e ->
+  DeterminedWellTyped Γ (τ β[e]) (t β[e]) := by
+intro h1 h2
+cases h1; case _ j1 h1 =>
+cases h2; case _ j2 h2 =>
+simp;
+constructor
+apply beta_type j1 j2
+sorry
 
 
 theorem NoConfusionProgressFail2 :
-  SemNoConfusion Γ σ t ->
+  SemDetermined Γ σ t ->
   Val Γ t ∨
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ NoConfusionWellTyped Γ σ t') := by
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ σ t') := by
 intro h
 induction h
 case _ => apply Or.inr; assumption
 case _ ih =>
-  apply Or.inr
   cases ih
-  case _ f _ _ j1 e j2 _ ih =>
+  case _ τ1 τ2 f _ _ j1 e j2 _ ih =>
     simp at j1;
     cases j1; case _ j1 _ =>
-    have no_var : ∀ x, ¬ Γ.is_type x := sorry
+    have no_var : ∀ x, ¬ Γ.is_type x := by apply closed_ctx_has_no_vars; assumption
     have lem_prog := progress no_var j1
     cases lem_prog;
     case _ h =>
       have f_shape := canonical_lambda j1; simp at f_shape;
       replace f_shape := f_shape h j1;
+      have lem := classification_lemma j1; simp at j1; cases lem;
+      case _ h => cases h
+      case _ h =>
+        cases h;
+        case _ h => have lem := classification_lemma h; cases h
+        case _ h => cases h; case _ h => cases h; case _ h =>
+          have lem := invert_arr_kind h; cases lem;
+          replace f_shape := f_shape h
+          have lem : ArrowLike (τ1 -t> τ2) := by constructor
+          replace f_shape := f_shape lem;
+          induction f_shape
+          case _ τ t _ =>
+            apply Or.inr
+            have lem : τ = τ1 := lam_typing_unique2 j1; cases lem
 
+            sorry --> needs stubstitution is stable over NoConfusion
+          case _ => /- illtyped (Λ[k] f `@ t) -/ cases j1
+          case _ vh _ => /- (ctor `@ e) is a value -/
+            apply Or.inl;
+            cases vh; case _ t _ _ nf =>
+              cases nf; case _ w nf ctor =>
+              constructor
+              have lem := Term.neutral_form_law nf
+              rw[<-lem]; simp; rw[Option.bind_eq_some];
+              exists w; simp;
+              constructor;
+              rw[lem]; apply Eq.symm nf
+              constructor; exact rfl; exact rfl
+              simp at ctor;  apply Frame.is_ctor_implies_is_stable_red ctor
+          case _ vh _ => /- inst `@ e -/
+            apply Or.inl;
+            cases vh; case _ t _ _ nf =>
+              cases nf; case _ w nf inst =>
+              constructor
+              have lem := Term.neutral_form_law nf
+              rw[<-lem]; simp; rw[Option.bind_eq_some];
+              exists w; simp;
+              constructor;
+              rw[lem]; apply Eq.symm nf
+              constructor; exact rfl; exact rfl
+              simp at inst;  apply Frame.is_insttype_implies_is_stable_red inst
 
-      sorry
-    case _ => sorry
+          case _ => simp at * --> contradiction
+    case _ h =>
+      cases h
+      case _ h => sorry
+      case _ h => exfalso; cases h; simp at *
   case _ ih =>
     cases ih; case _ f _ _ _ _ _ _ e' ih =>
-    cases ih
-    exists (f `@ e')
-    constructor
-    sorry
+    cases ih;
+    apply Or.inr; exists (f `@ e');
+    constructor;
+    -- exists (f `@ e')
+    -- constructor
+    -- sorry
     case _ h1 _ _ _ _ h2 =>
       simp at h1; cases h1;
       simp at h2; cases h2;
       case _ j1 _ j2 _ =>
-      simp; constructor
-      · apply Judgment.app; assumption; assumption; sorry -- -t> bullshit
-      · constructor; assumption; assumption
+      sorry
+    -- sorry
+    simp; constructor
+    · sorry -- -t> bullshit
+    · constructor;
+      case _ h _ _ _ _ _ => simp at h; cases h; assumption
+      case _ h => simp at h; cases h; assumption
 
 case _ => sorry
 case _ => apply Or.inr; assumption
 
 
--- Need to now show stability over substitutions
+-- Determined needs to be defined using a recursive function.
+-- But we cannot becuase substitutions get in the way
+def SemDetermined' (Γ : Ctx Term) : Term -> (Term -> Prop)
+| τ1 -t> τ2 => λ f =>
+  Γ.DeterminedClosedCtx ->
+  DeterminedWellTyped Γ (τ1 -t> τ2) f ->
+  ∀ e, SemDetermined' Γ τ1 e ->
+  -- σ' = τ2 β[e] ->
+  SemDetermined' Γ (τ2 β[e]) (f `@ e)
+| ∀[K] σ => λ f =>
+  Γ.DeterminedClosedCtx ->
+  DeterminedWellTyped Γ (∀[K] σ) f ->
+  ∀ τ, Γ ⊢ τ : K ->
+  -- σ' = σ β[τ] ->
+  SemDetermined' Γ (σ β[τ]) (f `@t τ)
+| (τ1 ~[K]~ τ2) => λ t =>
+  Γ.DeterminedClosedCtx ->
+  Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ (τ1 ~[K]~ τ2) t') ->
+  SemDetermined' Γ (τ1 ~[K]~ τ2) t
+| τ => λ t =>
+  Γ.DeterminedClosedCtx ->
+  ∃ x τs, τ = Term.mk_kind_apps #x τs ->
+  DeterminedWellTyped Γ τ t ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ τ t') ->
+  SemDetermined' Γ τ t
+decreasing_by repeat sorry
 
 
 /-

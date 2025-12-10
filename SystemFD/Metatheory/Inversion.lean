@@ -27,6 +27,9 @@ intros tJ; cases tJ; simp_all;
 theorem lam_typing_unique : Γ ⊢ `λ[A]b : t -> ∃ B', (t = (A -t> B')) := by
 intros tJ; cases tJ; simp_all;
 
+theorem lam_typing_unique2 : Γ ⊢ `λ[A]b : (A' -t> B) -> A = A' := by
+intros tJ; cases tJ; simp_all;
+
 theorem refl_typing_unique : Γ ⊢ refl! K A : t -> (t = (A ~[K]~ A)) := by
 intros tJ; cases tJ; simp_all;
 
