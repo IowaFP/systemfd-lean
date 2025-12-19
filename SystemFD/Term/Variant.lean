@@ -705,7 +705,7 @@ macro "contains_variant_from_subst_ih_case!" ih:Lean.Parser.Tactic.elimTarget ",
     apply ih1
 })
 
-theorem is_openm_subst_rename_lift {Γ Δ : List FrameVariant} (A : FrameVariant) (σ : Subst Term) :
+theorem variant_subst_rename_lift {Γ Δ : List FrameVariant} (A : FrameVariant) (σ : Subst Term) :
   (∀ x y, σ x = .re y -> Γ[x]? = Δ[y]?) ->
   (∀ x y, ^σ x = .re y -> (A :: Γ)[x]? = (A :: Δ)[y]?)
 := by
@@ -779,7 +779,7 @@ case bind2 ih1 ih2 =>
     contains_variant_from_subst_ih_case! ih1, ContainsVariant.bind2_1
   case bind2_2 v t1 t2 h =>
     replace ih2 := @ih2 (^σ) (bind2_frame_variant v :: Γ) (bind2_frame_variant v :: Δ); simp at ih2
-    have rh' := is_openm_subst_rename_lift (bind2_frame_variant v) σ rh; simp at rh'
+    have rh' := variant_subst_rename_lift (bind2_frame_variant v) σ rh; simp at rh'
     replace ih2 := ih2 rh' h
     cases ih2
     case _ ih2 =>
@@ -855,7 +855,7 @@ case letterm ih1 ih2 ih3 =>
     contains_variant_from_subst_ih_case! ih2, ContainsVariant.letterm2
   case letterm3 h =>
     replace ih3 := @ih3 (^σ) (.term :: Γ) (.term :: Δ); simp at ih3
-    have rh' := is_openm_subst_rename_lift (.term) _ rh; simp at rh'
+    have rh' := variant_subst_rename_lift (.term) _ rh; simp at rh'
     replace ih3 := ih3 rh' h
     cases ih3
     case _ ih3 =>

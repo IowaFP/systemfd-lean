@@ -96,7 +96,87 @@ namespace Ctx
 end Ctx
 
 @[simp]
-abbrev Determined (Γ : Ctx Term) (t : Term) : Prop := ¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t
+def noOpenType (Γ : Ctx Term) : Term -> Bool
+| #x => ¬ Γ.is_openm x
+| (τ -t> τ') => noOpenType Γ τ ∧ noOpenType (.type τ :: Γ) τ'
+| ∀[K] τ => noOpenType (.kind K :: Γ) τ
+| τ `@k τ' => noOpenType Γ τ ∧ noOpenType Γ τ'
+| _ => false
+
+@[simp]
+abbrev Determined (Γ : Ctx Term) (t : Term) : Prop :=
+  (¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t)
+
+
+@[simp]
+abbrev NeutralFormSpineType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
+| .prf => λ Γ => λ(t , τ) => ∀ x, ∀sp, t.neutral_form = .some (x, sp) -> (∃ T, .some T = (Γ d@ x).get_type ∧ ∃ τ' , SpineType Γ sp τ' T)
+| .wf => λ _ => λ _ => true
+
+-- Spine type collects prefixes
+-- Need to have some connection between the type elements of the spine and the original type
+-- Try to repurpose SpineType here
+theorem neutral_form_spine_type :
+  Judgment v Γ ix ->
+  NeutralFormSpineType v Γ ix
+   := by
+intro j; induction j <;> simp at *
+case _ T _ _ _ => exists T; constructor; assumption; exists T; constructor
+case _ ih _ =>
+  intro x sp tnf
+  rw[Option.bind_eq_some] at tnf; simp at tnf;
+  cases tnf; case _ x' tnf =>
+  cases tnf; case _ sp' tnf =>
+  cases tnf; case _ tnf es =>
+  cases es; case _ e1 e2 =>
+  cases e1;
+  have ih' := ih x sp' tnf
+  cases ih'; case _ T ih =>
+  exists T; cases ih; case _ ih =>
+  cases ih; case _ τ' _ =>
+  constructor
+  · assumption;
+  · sorry
+sorry
+sorry
+
+-- If t is in normal form, then it is applied to enough arguments.
+-- There are 2 main cases:
+-- Case 1. It is an open method eg. (==)
+--   So, we want all the type and instance arguments applied, meaning,
+--   there is no open type mentioned in the type of the term
+--   `(==) t (d :: Eq t)` is okay, `(==) t` is not okay, as the instance argument
+--   is not applied
+-- Case 2. It is an open function related to superclasses and fundeps
+--   So, we are okay with the return type to be an open type, but it should be fully applied (no arrows allowed)
+--   eg. `fdSup t (d: Ord t)` is okay, but `fdSup t` is not.
+
+
+-- This property is not composable
+-- In the sense that we cannot just brute force check this property for the term by
+-- checking it for _all_ its subterms.
+-- Obviously, `(==) t d` is fine, but `(==) t` is not and `(==) t` is a subterm of `(==) t d`
+-- We need a more intelligent way of checking it
+
+
+def sufficiently_applied (Γ : Ctx Term) (τ: Term) :=
+  (match τ.neutral_form with
+  | .some _ => true
+  | .none => noOpenType Γ τ)
+
+-- match tnf : t.neutral_form with
+-- | .some (x, sp) =>
+--   if Γ.is_openm x
+--   then (match τ.neutral_form with
+--        | .some _ => true -- to handle cases such as (supC t d) where supC : ∀t. Ord t -> Eq t, etc.
+--        | .none => noOpenType Γ τ) && -- to handle applications of open functions at term level Eg. (==) t d
+--        (sp.all (λ x => match x.fst with
+--          | .kind => true -- this just means we have an illformed term. Typing should save us
+--          | .type => noOpenType Γ x.snd
+--          | .term => sufficiently_applied_neutral_form Γ sorry x.snd))
+--   else true
+-- | .none => true
+-- decreasing_by repeat sorry
 
 
 @[simp]
@@ -108,7 +188,13 @@ theorem partition_confusion_determined {Γ : Ctx Term}  {t : Term} : Determined 
 
 @[simp]
 abbrev DeterminedWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
-  Γ ⊢ t : τ ∧  Determined Γ t
+  Γ ⊢ t : τ ∧  Determined Γ t ∧ sufficiently_applied Γ τ
+
+@[simp]
+abbrev DeterminedWellTypedVal (Γ : Ctx Term) (τ t: Term) : Prop :=
+  DeterminedWellTyped Γ τ t ∧ Val Γ t
+
+-- TODO: Generalize this to mean also that open methods are fully applied
 
 
 namespace Ctx
@@ -116,16 +202,21 @@ namespace Ctx
 @[simp]
 -- A closed context is a context where there are only pure declarations and no let, lambda bound terms
 abbrev Closed (Γ : Ctx Term) : Prop :=
-  ⊢ Γ ∧  ∀ (x : Nat), (Γ d@ x).is_stable_red
+  ⊢ Γ ∧  ∀ (x : Nat), Γ.is_stable_red x
+
+abbrev SpineArgWellShaped (Γ : Ctx Term) : (SpineVariant × Term) -> Prop
+| (.term, t) => ∃ τ, DeterminedWellTypedVal Γ τ t
+| (.type, τ) => ∃ k, Γ ⊢ τ : k
+| (.kind, _) => false
+
 
 @[simp]
 abbrev Determined Γ := ∀ x, Γ.is_openm x ->
-  ∀ τs ds : List Term, ∀ σ : Term,
-  σ.groundTy Γ ∧
-  (Γ ⊢ ((#x) ⬝[τs]⬝ ds ⬝) : σ) ∧ -- genarazlize this to arbitrary spine
-  (∀ τ ∈ τs, τ.groundTy Γ) ∧
-  (∀ d ∈ ds, ∃ κ, Γ ⊢ d : κ ∧ κ.groundTy Γ ∧ DeterminedWellTyped Γ κ d) ∧
-  ∃ n, ((#x) ⬝[τs]⬝ ds ⬝) ⟨Γ⟩⟶⋆ n ∧ DeterminedWellTyped Γ σ n
+  ∀ sp :  List (SpineVariant × Term), ∀ σ : Term,
+  σ.groundTy Γ ->
+  (Γ ⊢ (#x).apply_spine sp : σ) ->
+  (∀ arg ∈ sp, SpineArgWellShaped Γ arg) ->
+  ∃ n, ((#x).apply_spine sp) ⟨Γ⟩⟶⋆ n ∧ DeterminedWellTyped Γ σ n
 
 @[simp]
 abbrev DeterminedClosedCtx Γ := Determined Γ ∧ Closed Γ
@@ -146,11 +237,8 @@ theorem NoConfusionProgressFail Γ σ t:
   Val Γ t ∨
   (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ σ t') := by
 intro h1 h2 h3
+have no_var := closed_ctx_has_no_vars Γ (by constructor; assumption; assumption)
 simp at h3; cases h3; case _ wt noc =>
-have no_var : (∀ x, ¬ Γ.is_type x) := by simp at h2; cases h2; case _ h2 =>
-    intro x; replace h2 := h2 x; intro h3; unfold Ctx.is_type at h3;
-    replace h3 := type_indexing_exists h3; cases h3; case _ h3 =>
-    rw[h3] at h2; unfold Frame.is_stable_red at h2; simp at h2
 have lem_p := progress no_var wt
 cases lem_p
 case _ => constructor; assumption
@@ -205,19 +293,151 @@ inductive SemDetermined (Γ : Ctx Term) : Term -> Term -> Prop
   (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ (τ1 ~[K]~ τ2) t') ->
   SemDetermined Γ (τ1 ~[K]~ τ2) t
 
+theorem variants_preserves_length {Γ : Ctx Term} : Γ.length = Γ.variants.length := by
+induction Γ using Ctx.variants.induct <;> simp at *
+· assumption
 
--- Need to now show stability over substitutions
+def det_ops := [CtorVariant.zero, CtorVariant.guard, CtorVariant.ctor2 Ctor2Variant.choice]
+
+theorem frame_apply_empty [SubstitutionType T]{f : Frame T}:
+  f.apply σ = Frame.empty -> f = Frame.empty := by
+intro h
+induction f <;> simp at *
+all_goals (unfold Frame.apply at h; simp at h)
+
+theorem temp [SubstitutionType T] {Γ Δ : Ctx T}:
+  (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+  (∀ n y, σ n = .re y -> Γ.variants[n]? = Δ.variants[y]?) := by
+  -- this business of d@ on lhs and [·]? on rhs is a bit of a pain.
+  -- in essense the d@ returns empty when the indexing is beyond the size or the frame is actually empty
+  -- in either case the indexing should land us in the same variant projection of Γ and Δ
+intro h n y s
+have lem := h n y s
+generalize fr : Γ d@ n = f at *;
+cases f
+all_goals (unfold Frame.apply at lem; simp at lem; symm at lem)
+· sorry
+all_goals (
+  have lem2 := Ctx.variant_is_sound lem (by simp)
+  unfold Frame.variant at lem2; simp at lem2; rw[lem2];
+  have lem1 := Ctx.variant_is_sound fr (by simp)
+  unfold Frame.variant at lem1; simp at lem1; rw[lem1];
+)
+
+def mk_frame_from_variant (v : FrameVariant) : Term -> Frame Term := match v with
+| .empty => λ _ => .empty
+| .kind => .kind
+| .type => .type
+| .datatype => .datatype
+| .ctor => .ctor
+| .opent => .opent
+| .openm => .openm
+| .insttype => .insttype
+| _ => λ _ => .empty
+
+
+theorem variant_empty_sound[SubstitutionType T] {Γ : Ctx T} :
+    Γ d@ x = .empty -> Γ.variants[x]? = .some .empty ∨ Γ.variants[x]? = .none := by
+intro h
+induction Γ using Ctx.variants.induct <;> simp at *
+induction x <;> simp at *;
+have lem := frame_apply_empty h; rw[lem]; unfold Frame.variant; simp
+sorry
+
+theorem subst_determined_stable_lemma {Γ Δ : Ctx Term} {σ : Subst Term} {e : Term}:
+  (∀ n : Nat, ∀ t, σ n = .su t -> Determined Δ t) ->
+  (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+  Determined Γ e ->
+  Determined Δ ([σ] e) := by
+intro h1 h2 h3
+simp at h3
+generalize Γv : Γ.variants = Γvs at *;
+induction Γvs, e using  contains_variant.induct generalizing Γ σ <;> simp_all
+case _ n _ e =>
+  generalize g : σ n = act at *;
+  cases act <;> simp at *
+  case re y =>
+    have h2' := h2 n y g;
+    generalize fr : Γ d@ n = f at *;
+    cases f <;> simp at *
+    case _ =>
+      unfold Frame.apply at h2'; simp at h2'; symm at h2'
+      have lem := variant_empty_sound h2'
+      cases lem;
+      all_goals (
+      case _ lem => rw[lem])
+    all_goals (
+      unfold Frame.apply at h2'; simp at h2'; symm at h2'
+      have lem := Ctx.variant_is_sound h2' (by simp)
+      rw[lem])
+  case su t => have h1' := h1 n t g; assumption
+case _ => sorry
+case _ v _ ih =>
+  have lem := @variant_subst_rename_lift
+  sorry
+case _ =>
+  have lem := temp h2
+  have lem2 := variant_subst_rename_lift .term σ lem
+
+  sorry
+sorry
+sorry
+sorry
+sorry
+
+
+theorem subst_determinedwt_stable_lemma {Γ Δ : Ctx Term} {σ : Subst Term} {τ e}:
+  (∀ n : Nat, ∀ t, σ n = .su t -> ∃ τ, DeterminedWellTyped Δ τ t) ->
+  (∀ n y, σ n = .re y -> (Γ d@ n).apply σ = Δ d@ y) ->
+  (∀ n t T, σ n = .su t -> .some T = (Γ d@ n).get_type -> Δ ⊢ t : ([σ]T)) ->
+  (∀ n, Γ.is_stable n -> ∃ y, σ n = .re y) ->
+  DeterminedWellTyped Γ τ e ->
+  ⊢ Δ ->
+  DeterminedWellTyped Δ ([σ] τ) ([σ] e) := by
+intro h1 h2 h3 h4 h5 wf
+simp
+constructor
+· cases h5; case _ h6 _ => apply subst h2 h3 h4 h6 wf
+· constructor
+  · cases h5; case _ h5 =>
+    cases h5; case _ h5 _ =>
+    simp at h5
+    have lem : Determined Δ ([σ] e) :=
+         @subst_determined_stable_lemma Γ Δ σ e
+           (by intro n t h;
+               have h1' := h1 n t h;
+               cases h1'; case _ h1' =>
+               cases h1'; case _ h1' =>
+               cases h1'; case _ h1' =>
+               assumption)
+           (by assumption)
+           (by simp; apply h5)
+    simp at lem; assumption
+  · sorry
+
+
+
+-- Need to now show stability of determinedness over substitutions
 theorem subst_determined_stable {Γ : Ctx Term} {τ τ' t e : Term} :
   DeterminedWellTyped (.type τ' :: Γ) τ t ->
   DeterminedWellTyped Γ τ' e ->
   DeterminedWellTyped Γ (τ β[e]) (t β[e]) := by
 intro h1 h2
-cases h1; case _ j1 h1 =>
-cases h2; case _ j2 h2 =>
-simp;
-constructor
-apply beta_type j1 j2
-sorry
+apply @subst_determinedwt_stable_lemma (Frame.type τ' :: Γ) Γ _ τ t
+· intro n e h
+  induction n <;> simp at *
+  cases h; exists τ'
+· intro n y h
+  induction n <;> simp at *
+  cases h; rw[Frame.apply_compose]; simp
+· intro n t T h gt
+  induction n <;> simp at *
+  cases h; unfold Frame.get_type at gt; simp at gt; rw[gt]; simp; cases h2; assumption
+· intro n h;
+  induction n <;> simp at *
+  unfold Frame.apply at h; simp at h; unfold Frame.is_stable at h; simp at h
+· assumption
+· simp at h2; cases h2; case _ h2 _ => apply judgment_ctx_wf h2
 
 
 theorem NoConfusionProgressFail2 :
@@ -252,8 +472,11 @@ case _ ih =>
           case _ τ t _ =>
             apply Or.inr
             have lem : τ = τ1 := lam_typing_unique2 j1; cases lem
+            exists (t β[e])  --> needs substitution is stable over NoConfusion
+            constructor
+            sorry
+            sorry
 
-            sorry --> needs stubstitution is stable over NoConfusion
           case _ => /- illtyped (Λ[k] f `@ t) -/ cases j1
           case _ vh _ => /- (ctor `@ e) is a value -/
             apply Or.inl;
@@ -283,16 +506,15 @@ case _ ih =>
           case _ => simp at * --> contradiction
     case _ h =>
       cases h
-      case _ h => sorry
+      case _ h =>
+
+        sorry
       case _ h => exfalso; cases h; simp at *
   case _ ih =>
     cases ih; case _ f _ _ _ _ _ _ e' ih =>
     cases ih;
     apply Or.inr; exists (f `@ e');
     constructor;
-    -- exists (f `@ e')
-    -- constructor
-    -- sorry
     case _ h1 _ _ _ _ h2 =>
       simp at h1; cases h1;
       simp at h2; cases h2;
@@ -302,15 +524,15 @@ case _ ih =>
     simp; constructor
     · sorry -- -t> bullshit
     · constructor;
-      case _ h _ _ _ _ _ => simp at h; cases h; assumption
-      case _ h => simp at h; cases h; assumption
+      case _ h _ _ _ _ _ => simp at h; cases h; sorry -- assumption
+      case _ h => simp at h; cases h; sorry -- assumption
 
 case _ => sorry
 case _ => apply Or.inr; assumption
 
 
 -- Determined needs to be defined using a recursive function.
--- But we cannot becuase substitutions get in the way
+-- But we cannot because substitutions get in the way
 def SemDetermined' (Γ : Ctx Term) : Term -> (Term -> Prop)
 | τ1 -t> τ2 => λ f =>
   Γ.DeterminedClosedCtx ->
@@ -324,7 +546,7 @@ def SemDetermined' (Γ : Ctx Term) : Term -> (Term -> Prop)
   ∀ τ, Γ ⊢ τ : K ->
   -- σ' = σ β[τ] ->
   SemDetermined' Γ (σ β[τ]) (f `@t τ)
-| (τ1 ~[K]~ τ2) => λ t =>
+| (τ1 ~[K]~ τ2) => λ t => -- in this case t should just step to refl
   Γ.DeterminedClosedCtx ->
   Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
   (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ (τ1 ~[K]~ τ2) t') ->
@@ -335,7 +557,13 @@ def SemDetermined' (Γ : Ctx Term) : Term -> (Term -> Prop)
   DeterminedWellTyped Γ τ t ->
   (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ τ t') ->
   SemDetermined' Γ τ t
-decreasing_by repeat sorry
+-- termination_by λ τ t =>  sorry
+decreasing_by
+  case _ => unfold sizeOf; unfold sizeOf_Term; simp; omega
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
 
 
 /-
