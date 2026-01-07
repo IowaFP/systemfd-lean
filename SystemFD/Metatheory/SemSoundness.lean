@@ -107,39 +107,6 @@ def noOpenType (Γ : Ctx Term) : Term -> Bool
 abbrev Determined (Γ : Ctx Term) (t : Term) : Prop :=
   (¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t)
 
-
-@[simp]
-abbrev NeutralFormSpineType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
-| .prf => λ Γ => λ(t , τ) => ∀ x, ∀sp, t.neutral_form = .some (x, sp) -> (∃ T, .some T = (Γ d@ x).get_type ∧ ∃ τ' , SpineType Γ sp τ' T)
-| .wf => λ _ => λ _ => true
-
--- Spine type collects prefixes
--- Need to have some connection between the type elements of the spine and the original type
--- Try to repurpose SpineType here
-theorem neutral_form_spine_type :
-  Judgment v Γ ix ->
-  NeutralFormSpineType v Γ ix
-   := by
-intro j; induction j <;> simp at *
-case _ T _ _ _ => exists T; constructor; assumption; exists T; constructor
-case _ ih _ =>
-  intro x sp tnf
-  rw[Option.bind_eq_some] at tnf; simp at tnf;
-  cases tnf; case _ x' tnf =>
-  cases tnf; case _ sp' tnf =>
-  cases tnf; case _ tnf es =>
-  cases es; case _ e1 e2 =>
-  cases e1;
-  have ih' := ih x sp' tnf
-  cases ih'; case _ T ih =>
-  exists T; cases ih; case _ ih =>
-  cases ih; case _ τ' _ =>
-  constructor
-  · assumption;
-  · sorry
-sorry
-sorry
-
 -- If t is in normal form, then it is applied to enough arguments.
 -- There are 2 main cases:
 -- Case 1. It is an open method eg. (==)
@@ -164,6 +131,78 @@ def sufficiently_applied (Γ : Ctx Term) (τ: Term) :=
   | .some _ => true
   | .none => noOpenType Γ τ)
 
+
+
+
+-- Spine type collects prefixes
+-- Need to have some connection between the type elements of the spine and the original type
+-- Try to repurpose SpineType here
+
+inductive DetSpineType : Ctx Term -> List (SpineVariant × Term) -> Term -> Term -> Prop where
+| refl :
+  DetSpineType Γ [] T T
+| arrow :
+  Γ ⊢ a : A ->
+  sufficiently_applied Γ A ->
+  Γ ⊢ (A -t> B) : ★ ->
+  DetSpineType Γ sp (B β[a]) T ->
+  DetSpineType Γ ((.term, a) :: sp) (A -t> B) T
+| all :
+  Γ ⊢ a : A ->
+  sufficiently_applied Γ a -> -- is this correct?
+  Γ ⊢ (∀[A] B) : ★ ->
+  DetSpineType Γ sp (B β[a]) T ->
+  DetSpineType Γ ((.type, a) :: sp) (∀[A] B) T
+| arrowk :
+  Γ ⊢ a : A ->
+  Γ ⊢ (A -k> B) : □ ->
+  DetSpineType Γ sp B T ->
+  DetSpineType Γ ((.kind, a) :: sp) (A -k> B) T
+
+@[simp]
+abbrev NeutralFormSpineType : (v : JudgmentVariant) -> (Γ : Ctx Term) -> (JudgmentArgs v) -> Prop
+| .prf => λ Γ => λ(t , τ) => sufficiently_applied Γ τ ->
+              ∀ x, ∀sp, t.neutral_form = .some (x, sp) ->
+              (∃ T, .some T = (Γ d@ x).get_type ∧ ∃ τ' , DetSpineType Γ sp τ' T)
+| .wf => λ _ => λ _ => true
+
+
+theorem neutral_form_spine_type :
+  Judgment v Γ ix ->
+  NeutralFormSpineType v Γ ix
+   := by
+intro j; induction j <;> simp at *
+case _ T _ _ _ =>
+  intros; exists T; constructor; assumption; exists T; constructor
+case _ ih _ => -- appk bogus case
+  intro h x sp tnf
+  rw[Option.bind_eq_some] at tnf; simp at tnf;
+  cases tnf; case _ x' tnf =>
+  cases tnf; case _ sp' tnf =>
+  cases tnf; case _ tnf es =>
+  cases es; case _ e1 e2 =>
+  cases e1;
+  sorry
+  -- have ih' := ih _ x sp' tnf
+  -- cases ih'; case _ T ih =>
+  -- exists T; cases ih; case _ ih =>
+  -- cases ih; case _ τ' _ =>
+  -- constructor
+  -- · assumption;
+  -- · sorry
+case _ => -- arrow
+  intro h x sp tnf
+  rw[Option.bind_eq_some] at tnf; simp at tnf;
+  cases tnf; case _ x' tnf =>
+  cases tnf; case _ sp' tnf =>
+  cases tnf; case _ tnf es =>
+  cases es; case _ e1 e2 =>
+  cases e1;
+  sorry
+
+case _ => -- appt
+  sorry
+
 -- match tnf : t.neutral_form with
 -- | .some (x, sp) =>
 --   if Γ.is_openm x
@@ -184,7 +223,6 @@ abbrev Confused (Γ : Ctx Term) (t : Term) : Prop := contains_variant Γ.variant
 
 theorem partition_confusion_determined {Γ : Ctx Term}  {t : Term} : Determined Γ t <-> ¬ Confused Γ t :=
  by simp
-
 
 @[simp]
 abbrev DeterminedWellTyped (Γ : Ctx Term) (τ t: Term) : Prop :=
@@ -218,7 +256,6 @@ abbrev Determined Γ := ∀ x, Γ.is_openm x ->
   (∀ arg ∈ sp, SpineArgWellShaped Γ arg) ->
   ∃ n, ((#x).apply_spine sp) ⟨Γ⟩⟶⋆ n ∧ DeterminedWellTyped Γ σ n
 
-@[simp]
 abbrev DeterminedClosedCtx Γ := Determined Γ ∧ Closed Γ
 end Ctx
 
@@ -229,69 +266,6 @@ theorem closed_ctx_has_no_vars (Γ : Ctx Term) : Γ.DeterminedClosedCtx -> (∀ 
  intro x; replace h2 := h2 x; intro h3; unfold Ctx.is_type at h3;
  replace h3 := type_indexing_exists h3; cases h3; case _ h3 =>
  rw[h3] at h2; unfold Frame.is_stable_red at h2; simp at h2
-
-
--- A direct proof of this lemma obviously fails
-theorem NoConfusionProgressFail Γ σ t:
-  Γ.Determined -> Γ.Closed -> DeterminedWellTyped Γ σ t ->
-  Val Γ t ∨
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ σ t') := by
-intro h1 h2 h3
-have no_var := closed_ctx_has_no_vars Γ (by constructor; assumption; assumption)
-simp at h3; cases h3; case _ wt noc =>
-have lem_p := progress no_var wt
-cases lem_p
-case _ => constructor; assumption
-case _ lem_p =>
-  cases lem_p
-  case _ h =>
-    cases h; case _ t' r =>
-    apply Or.inr;
-    have lem_pres := preservation wt (RedStar.step RedStar.refl r)
-    have lem_prog := progress no_var lem_pres
-    cases lem_prog
-    case _ h =>
-      exists t'
-      constructor
-      · constructor; constructor; assumption
-      · sorry
-  -- Have : Γ ⊢ t ⟶ t' : σ. t' is value.
-  -- Show: t' has no confusion
-  -- we know that NoConfusionWellTyped property is not directly preserved over reduction relation
-    case _ h =>
-      cases h;
-      case _ h => sorry
-      case _ h => exfalso; sorry
-  case _ e => exfalso; rw[e] at noc; simp at noc
-
-
--- Attempt 1: Generalize NoConfusion of terms indexed by its type
--- This is very similar to the Strong Normalization Predicate (indexed by types) for terms
-
-inductive SemDetermined (Γ : Ctx Term) : Term -> Term -> Prop
-| AppTy :
-  Γ.DeterminedClosedCtx ->
-  τ = Term.mk_kind_apps #x τs ->
-  DeterminedWellTyped Γ τ t ->
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ τ t') ->
-  SemDetermined Γ τ t
-| ArrowTy :
-  Γ.DeterminedClosedCtx ->
-  DeterminedWellTyped Γ (τ1 -t> τ2) f ->
-  ∀ e, SemDetermined Γ τ1 e ->
-  σ' = τ2 β[e] ->
-  SemDetermined Γ σ' (f `@ e)
-| AllTy :
-  Γ.DeterminedClosedCtx ->
-  DeterminedWellTyped Γ (∀[K] σ) f ->
-  ∀ τ, Γ ⊢ τ : K ->
-  σ' = σ β[τ] ->
-  SemDetermined Γ σ' (f `@t τ)
-| EqTy :
-  Γ.DeterminedClosedCtx ->
-  ∀ τ1 τ2, Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ (τ1 ~[K]~ τ2) t') ->
-  SemDetermined Γ (τ1 ~[K]~ τ2) t
 
 theorem variants_preserves_length {Γ : Ctx Term} : Γ.length = Γ.variants.length := by
 induction Γ using Ctx.variants.induct <;> simp at *
@@ -437,205 +411,102 @@ apply @subst_determinedwt_stable_lemma (Frame.type τ' :: Γ) Γ _ τ t
   induction n <;> simp at *
   unfold Frame.apply at h; simp at h; unfold Frame.is_stable at h; simp at h
 · assumption
-· simp at h2; cases h2; case _ h2 _ => apply judgment_ctx_wf h2
+· cases h2; case _ h2 _ => apply judgment_ctx_wf h2
 
+@[simp]
+abbrev  NoConfusionProgressType (Γ : Ctx Term) : (v : JudgmentVariant) -> (JudgmentArgs v) -> Prop
+| .prf => λ (t, σ) =>
+  DeterminedWellTyped Γ σ t ->
+  Val Γ t ∨ (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ σ t')
+| .wf => λ _ => true
 
-theorem NoConfusionProgressFail2 :
-  SemDetermined Γ σ t ->
-  Val Γ t ∨
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ σ t') := by
-intro h
-induction h
-case _ => apply Or.inr; assumption
-case _ ih =>
-  cases ih
-  case _ τ1 τ2 f _ _ j1 e j2 _ ih =>
-    simp at j1;
-    cases j1; case _ j1 _ =>
-    have no_var : ∀ x, ¬ Γ.is_type x := by apply closed_ctx_has_no_vars; assumption
-    have lem_prog := progress no_var j1
-    cases lem_prog;
-    case _ h =>
-      have f_shape := canonical_lambda j1; simp at f_shape;
-      replace f_shape := f_shape h j1;
-      have lem := classification_lemma j1; simp at j1; cases lem;
-      case _ h => cases h
-      case _ h =>
-        cases h;
-        case _ h => have lem := classification_lemma h; cases h
-        case _ h => cases h; case _ h => cases h; case _ h =>
-          have lem := invert_arr_kind h; cases lem;
-          replace f_shape := f_shape h
-          have lem : ArrowLike (τ1 -t> τ2) := by constructor
-          replace f_shape := f_shape lem;
-          induction f_shape
-          case _ τ t _ =>
-            apply Or.inr
-            have lem : τ = τ1 := lam_typing_unique2 j1; cases lem
-            exists (t β[e])  --> needs substitution is stable over NoConfusion
-            constructor
-            sorry
-            sorry
-
-          case _ => /- illtyped (Λ[k] f `@ t) -/ cases j1
-          case _ vh _ => /- (ctor `@ e) is a value -/
-            apply Or.inl;
-            cases vh; case _ t _ _ nf =>
-              cases nf; case _ w nf ctor =>
-              constructor
-              have lem := Term.neutral_form_law nf
-              rw[<-lem]; simp; rw[Option.bind_eq_some];
-              exists w; simp;
-              constructor;
-              rw[lem]; apply Eq.symm nf
-              constructor; exact rfl; exact rfl
-              simp at ctor;  apply Frame.is_ctor_implies_is_stable_red ctor
-          case _ vh _ => /- inst `@ e -/
-            apply Or.inl;
-            cases vh; case _ t _ _ nf =>
-              cases nf; case _ w nf inst =>
-              constructor
-              have lem := Term.neutral_form_law nf
-              rw[<-lem]; simp; rw[Option.bind_eq_some];
-              exists w; simp;
-              constructor;
-              rw[lem]; apply Eq.symm nf
-              constructor; exact rfl; exact rfl
-              simp at inst;  apply Frame.is_insttype_implies_is_stable_red inst
-
-          case _ => simp at * --> contradiction
-    case _ h =>
-      cases h
-      case _ h =>
-
-        sorry
-      case _ h => exfalso; cases h; simp at *
-  case _ ih =>
-    cases ih; case _ f _ _ _ _ _ _ e' ih =>
-    cases ih;
-    apply Or.inr; exists (f `@ e');
-    constructor;
-    case _ h1 _ _ _ _ h2 =>
-      simp at h1; cases h1;
-      simp at h2; cases h2;
-      case _ j1 _ j2 _ =>
-      sorry
-    -- sorry
-    simp; constructor
-    · sorry -- -t> bullshit
-    · constructor;
-      case _ h _ _ _ _ _ => simp at h; cases h; sorry -- assumption
-      case _ h => simp at h; cases h; sorry -- assumption
-
+-- A direct proof of this lemma obviously fails
+theorem NoConfusionProgress Γ v idx :
+  Γ.DeterminedClosedCtx ->
+  Judgment v Γ idx ->
+  NoConfusionProgressType Γ v idx := by
+intro h1 h3
+cases h1; case _ h1 h2 =>
+have no_var := closed_ctx_has_no_vars Γ (by constructor; assumption; assumption)
+induction h3 <;> simp
+all_goals (intro j)
+case _ Γ A t b T _ j' j'' _ _ _ _ _ =>
+  intro h3 h4 h5 h6;
+  apply Or.inr
+  generalize th : b β[t] = t' at *;
+  exists t';
+  constructor
+  · rw[<-th]; apply RedPlus.step (RedStar.refl) Red.letbeta
+  · have d1 : DeterminedWellTyped Γ T (A.letterm t b) := by
+         constructor
+         · assumption
+         · constructor
+           simp; constructor; constructor; assumption; assumption; assumption; assumption
+    have d2 : DeterminedWellTyped Γ A t := by
+      constructor
+      · assumption
+      · constructor; simp; assumption; sorry
+    have d3 : DeterminedWellTyped Γ T t' := sorry
+    constructor
+    · have lem := beta_term j'' j'
+      rw[th] at lem;
+      rw[Subst.apply_compose_commute] at lem; simp at lem; assumption
+    · constructor
+      · sorry
+      · assumption
+case _ => intro d1; apply Or.inl; apply Val.star
 case _ => sorry
-case _ => apply Or.inr; assumption
+case _ => intros; apply Or.inl; apply Val.arrk
+case _ => intros; apply Or.inl; apply Val.all
+case _ => intros; apply Or.inl; apply Val.arr
+case _ => intros; apply Or.inl; sorry
+case _ => intros; apply Or.inl; apply Val.eq
+case _ => sorry
+case _ => intros; apply Or.inl; apply Val.lam
+case _ => sorry
+case _ => intros; apply Or.inl; apply Val.lamt
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
 
 
--- Determined needs to be defined using a recursive function.
--- But we cannot because substitutions get in the way
-def SemDetermined' (Γ : Ctx Term) : Term -> (Term -> Prop)
-| τ1 -t> τ2 => λ f =>
+
+
+-- Attempt 1: Generalize NoConfusion of terms indexed by its type
+-- This is very similar to the Strong Normalization Predicate (indexed by types) for terms
+
+inductive SemDetermined (Γ : Ctx Term) : Term -> Term -> Prop
+| AppTy :
+  Γ.DeterminedClosedCtx ->
+  τ = Term.mk_kind_apps #x τs ->
+  DeterminedWellTyped Γ τ t ->
+  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ τ t') ->
+  SemDetermined Γ τ t
+| ArrowTy :
   Γ.DeterminedClosedCtx ->
   DeterminedWellTyped Γ (τ1 -t> τ2) f ->
-  ∀ e, SemDetermined' Γ τ1 e ->
-  -- σ' = τ2 β[e] ->
-  SemDetermined' Γ (τ2 β[e]) (f `@ e)
-| ∀[K] σ => λ f =>
+  ∀ e, SemDetermined Γ τ1 e ->
+  σ' = τ2 β[e] ->
+  SemDetermined Γ σ' (f `@ e)
+| AllTy :
   Γ.DeterminedClosedCtx ->
   DeterminedWellTyped Γ (∀[K] σ) f ->
   ∀ τ, Γ ⊢ τ : K ->
-  -- σ' = σ β[τ] ->
-  SemDetermined' Γ (σ β[τ]) (f `@t τ)
-| (τ1 ~[K]~ τ2) => λ t => -- in this case t should just step to refl
+  σ' = σ β[τ] ->
+  SemDetermined Γ σ' (f `@t τ)
+| EqTy :
   Γ.DeterminedClosedCtx ->
-  Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
+  ∀ τ1 τ2, Γ ⊢ τ1 : K -> Γ ⊢ τ2 : K ->
   (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ (τ1 ~[K]~ τ2) t') ->
-  SemDetermined' Γ (τ1 ~[K]~ τ2) t
-| τ => λ t =>
-  Γ.DeterminedClosedCtx ->
-  ∃ x τs, τ = Term.mk_kind_apps #x τs ->
-  DeterminedWellTyped Γ τ t ->
-  (∃ t', t ⟨Γ⟩⟶+ t' ∧ DeterminedWellTyped Γ τ t') ->
-  SemDetermined' Γ τ t
--- termination_by λ τ t =>  sorry
-decreasing_by
-  case _ => unfold sizeOf; unfold sizeOf_Term; simp; omega
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-
-
-/-
-
-is confusion free if for all term contexts C[⬝], and saturated context Γ
-C[t] ⟨Γ⟩ ⟶⋆ n s.t. n is a value and n does not contain open methods or `0 or ⊕ or guards
-
-Its definitely not the case that any C[⬝] would do.  Why?
-C[⬝] itself can easily induce confusion:
-if C[⬝] = 3 ⊕ ⬝ then any confusion free term results in confusion
-
-Idea:
-Apply some restriction on C[⬝].
-A term context C[⬝] is confusion free if it does not contain open methods, `0, ⊕ or guards
-The key observation is that confusion can be induced by only these 4 constructs.
-
-
-Take 2: A term is confusion free if in any confusion free term context  C[⬝], and a saturated context Γ
-C[t] ⟨Γ⟩ ⟶⋆ n s.t. n is a value (or it loops indefinitely) and n does not
-contain open methods or `0 or ⊕ or guards
-
-
-Maybe what we need is a measure for confusion for term contexts.
-
-
-
-
-
-
-Context Saturation:
--------------------
-Intuitively, a context Γ is saturated
-If for any open method in the context, there is only one instance that does not make the term vanish.
-
-Suppose `m` is the open method. with type ∀ τs. Qs ⇒ τ'
-now, consider all possible (well typed applications) of this open method.
-WLOG, `m [τs] ds` such that Γ ⊢ d : Q[α ↦ τ], Γ ⊢ m [τs] ds : τ'[α ↦ τ]
-
-now, `m` will have some associated instantiations I_j in the context of the form (Λ αs .guards ... )
-so `m [τs] ds` ⟶ (I_1 ⊕ I_2 ⊕ .. I_n) [τs] ds ⟶⋆ (I_1 [τs] ds) ⊕ (I_2 [τs] ds) ⊕ ... ⊕ (I_n [τs] ds)
-
-Now we want saturation property to capture the idea only one of these I_j survives.
-
-Take 1:
-
-    ∀ τs ds,
-      (τs are ground, ds are confusion free)
-    ∃ i, Γ d@ i = .inst #m t ∧ t [τs] ds - ̸⟶⋆ `0 ∧
-    ∀ k, k ≠ i ∧  Γ d@ k = .inst #m t' ∧ t' [τs] ds ⟶⋆ `0
-
-but our saturation property is too strict! ds shouldn't be confusion free, they can
-very well contain calls to open methods. This is where related inputs go to related outputs
-idea gets used (I think). ds should satisfy the original goal property P from above.
-
-Option: Let P be collection of terms that contains no guards, `0, ⊕. (open methods are okay)
-This seems to have some merit. It is a syntactic check and with context saturation ensuring no confusion
-
-Take 2:
-
-    ∀ τs ds,
-      (τs are ground, ds satisfy property P)
-    ∃ i, Γ d@ i = .inst #m t ∧ t [τs] ds - ̸⟶⋆ `0 ∧
-    ∀ k, k ≠ i,  Γ d@ k = .inst #m t' → (t' [τs] ds ⟶⋆ `0)
-
--/
-
-
-
-namespace TermCtx
-
-
-end TermCtx
+  SemDetermined Γ (τ1 ~[K]~ τ2) t
 
 
 -- shallowly confusion free is a term that does not have a `0 or ⊕ at its head
@@ -741,27 +612,3 @@ case _ N M h1 h2 ih =>
   constructor
   apply reds_trans lem lem2
   assumption
-
--- Next step:
--- 1. What does saturation mean?
--- a. Semantically
---    x is saturated iff
---    ∀ τ e, x is open in Γ ->
---    WDVal Γ e ->
---    x[τ]e is of ground type ->
---    x[τ]e -->* ∃ v. WDVal Γ v
-
--- b. Syntactically
---    AI: We don't have a syntactic characterization yet, maybe we never need it for our purposes.
---    After all, when a programmer uses an overloaded operator, there is no indication that
---    that function will actually be fine at runtime syntactically. It is only when the typechecker
---    works on it (does some typed semantic analysis) is when it can generate an instance to fill in
---    that decides what the behavior of the overloaded function is. Open term variables in our case
---    _are_ the  overloaded functions
-
--- c. Syntactic saturation => semantic saturation
-
-
--- 2. Syntactic Weakly deterministic Term => Semantic Weakly Deterministic Term
--- Way 1: Syntactic WD Term to use Semantic saturation
--- And then try proving 2.
