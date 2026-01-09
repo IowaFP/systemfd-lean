@@ -364,9 +364,9 @@ partial def compile_ctx : HsCtx HsTerm -> DsM (Ctx Term)
   -- let class_arity := ty_vars_ctx.length
 
   -- Step 3. Add fundeps open methods
-  let Γ' <- List.foldlM (λ Γ fd_data => do
+  let Γ' <- List.foldlM (λ (Γ : Ctx Term) (fd_data : Term × List Nat × Nat) => do
 
-    let cls_con := fd_data.1
+    let cls_con := fd_data.fst
     let fd := fd_data.2
 
     let determiners := fd.1

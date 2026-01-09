@@ -32,9 +32,9 @@ case var Γ x _ j1 j2 _  =>
   all_goals case _ z1 z2 => subst j2; cases z1
 case allk j1 j2 ih1 ih2 =>
   intro h; cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some]; apply Exists.intro ()
+  rw [Option.bind_eq_some_iff]; apply Exists.intro ()
   apply And.intro (ih1 h1)
-  rw [Option.bind_eq_some]; apply Exists.intro ()
+  rw [Option.bind_eq_some_iff]; apply Exists.intro ()
   apply And.intro (ih2 h2) rfl
 case appk j1 j2 ih1 ih2 =>
   intro h1 h2; subst h1

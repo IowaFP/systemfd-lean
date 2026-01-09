@@ -61,12 +61,12 @@ case ctor2 v t1 t2 ih1 ih2 =>
   cases v; any_goals try simp at h2
   all_goals
     case _ =>
-    rw [Option.bind_eq_some] at h2
+    rw [Option.bind_eq_some_iff] at h2
     cases h2; case _ a h2 =>
     cases h2; case _ h2 h3 =>
       injection h3 with e; simp at *;
       cases e; case _ e1 e2 =>
-        rw [Option.bind_eq_some]; subst e1; subst e2; simp
+        rw [Option.bind_eq_some_iff]; subst e1; subst e2; simp
         cases a; case _ ax asp =>
           replace ih1 := ih1 σ h1 h2; simp at ih1
           apply ih1

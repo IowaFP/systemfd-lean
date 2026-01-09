@@ -5,7 +5,24 @@ import SystemFD.Util
 
 inductive SpineVariant where
 | term | type | kind
- deriving Repr
+deriving Repr
+
+@[coe]
+def Ctor2Variant.coe : Ctor2Variant -> SpineVariant
+| app => .term
+| appt => .type
+| _ => .kind
+
+instance : Coe Ctor2Variant SpineVariant where
+  coe := Ctor2Variant.coe
+
+@[coe]
+def Term.action : Subst.Action Term -> Term
+| .su t => t
+| .re x => #x
+
+instance : Coe (Subst.Action Term) Term where
+  coe := Term.action
 
 namespace SpineVariant
   @[simp]
@@ -131,7 +148,7 @@ namespace Term
   := by
   intros h; simp_all;
   case _ n =>
-  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  rw [Option.bind_eq_some_iff] at h; cases h; case _ w h =>
   simp at h; have h2 := h.2.1; have h3 := h.2.2;
   subst h2; subst h3; simp_all;
 
@@ -141,7 +158,7 @@ namespace Term
   := by
   intros h; simp_all;
   case _ n =>
-  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  rw [Option.bind_eq_some_iff] at h; cases h; case _ w h =>
   simp at h; have h2 := h.2.1; have h3 := h.2.2;
   subst h2; subst h3; simp_all;
 
@@ -151,7 +168,7 @@ namespace Term
   := by
   intros h; simp_all;
   case _ n =>
-  rw [Option.bind_eq_some] at h; cases h; case _ w h =>
+  rw [Option.bind_eq_some_iff] at h; cases h; case _ w h =>
   simp at h; have h2 := h.2.1; have h3 := h.2.2;
   subst h2; subst h3; simp_all;
 
@@ -187,7 +204,7 @@ namespace Term
       subst h1; subst h2; simp
   case _ ih =>
     simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
+    rw [Option.bind_eq_some_iff] at h; simp at h
     cases h; case _ a h =>
     cases h; case _ b h =>
     cases h; case _ h1 h2 =>
@@ -197,7 +214,7 @@ namespace Term
       rw [apply_spine_peel_term, ih]
   case _ ih =>
     simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
+    rw [Option.bind_eq_some_iff] at h; simp at h
     cases h; case _ a h =>
     cases h; case _ b h =>
     cases h; case _ h1 h2 =>
@@ -207,7 +224,7 @@ namespace Term
       rw [apply_spine_peel_type, ih]
   case _ ih =>
     simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
+    rw [Option.bind_eq_some_iff] at h; simp at h
     cases h; case _ a h =>
     cases h; case _ b h =>
     cases h; case _ h1 h2 =>
@@ -309,6 +326,16 @@ namespace Term
 
   theorem apply_compose {s : Term} {σ τ : Subst Term} : [τ][σ]s = [τ ⊙ σ]s := by
   solve_compose Term, apply_stable, s, σ, τ
+
+  @[simp]
+  theorem subst_spine {t : Term}
+    : [σ](t.apply_spine sp) = ([σ]t).apply_spine (sp.map (λ (v, s) => (v, [σ]s)))
+  := by
+    induction sp generalizing t <;> simp
+    case _ hd tl ih =>
+      rcases hd with ⟨sv, s⟩
+      cases sv <;> simp
+      all_goals rw [ih]; simp
 
   @[simp]
   def to_telescope : Term -> Ctx Term × Term
@@ -462,39 +489,112 @@ namespace Term
      mk_lets_rev (.letterm A x t) xs
    | _, _ => .none
 
+  def ground : Term -> Bool
+  | var _ => true
+  | ctor2 .appk _ _ => true
+  | eq _ _ _ => true
+  | _ => false
+
+  def arity : Term -> Nat
+  | _ -k> b => arity b + 1
+  | _ -t> b => arity b + 1
+  | ∀[_] b => arity b + 1
+  | _ => 0
+
+  theorem arity_rename {r : Ren} {T : Term} :
+    (Ren.apply r T).arity = T.arity
+  := by
+    induction T generalizing r <;> simp [Ren.apply, arity] at *
+    case _ i => simp [Ren.to, arity]
+    case _ v t1 t2 ih1 ih2 =>
+      cases v <;> simp [arity] at *
+      rw [ih2]
+    case _ v t1 t2 ih1 ih2 =>
+      replace ih2 := @ih2 r.lift
+      have lem : Ren.fro (Ren.to (T := Term) r) = r := by
+        funext; case _ x =>
+        simp [Ren.to, Ren.fro]
+      cases v <;> simp [arity] at *
+      all_goals rw [lem, ih2]
+
+  theorem arity_subst_leq {T : Term} :
+    T.arity ≤ ([σ]T).arity
+  := by
+    induction T generalizing σ <;> simp [arity] at *
+    case _ v t1 t2 ih1 ih2 =>
+      cases v <;> simp [arity] at *
+      apply ih2
+    case _ v t1 t2 ih1 ih2 =>
+      cases v <;> simp [arity] at *
+      all_goals apply ih2
+
+  theorem arity_subst {T : Term} :
+    (∀ i, Term.arity (σ i) = 0) ->
+    ([σ]T).arity = T.arity
+  := by
+    intro h; induction T generalizing σ <;> simp [arity] at *
+    case _ i =>
+      replace h1 := h i
+      generalize zdef : σ i = z at *
+      cases z <;> simp [action, arity] at *
+      all_goals simp [*]
+    case _ v t1 t2 ih1 ih2 =>
+      cases v <;> simp [arity] at *
+      rw [ih2 h]
+    case _ v t1 t2 ih1 ih2 =>
+      replace ih2 := @ih2 σ.lift (by {
+        intro i; cases i <;> simp [action, arity, Subst.lift]
+        case _ i =>
+        generalize zdef : σ i = z at *
+        cases z <;> simp [Term.arity]; case _ t =>
+        replace h := h i; rw [zdef] at h
+        simp [action] at h
+        rw [arity_rename]; exact h
+      })
+      cases v <;> simp [arity] at *
+      all_goals rw [ih2]
+
+  theorem arity_beta {a b : Term} : b.arity = 0 -> (a β[b]).arity = a.arity := by
+    intro h; apply arity_subst
+    intro i; simp [action]
+    cases i <;> simp; apply h; simp [arity]
+
 end Term
+
+def OpenVarVal (Γ : Ctx Term) (x : Nat) (sp : List (SpineVariant × Term)) : Prop :=
+  Γ.is_openm x ∧ ∀ T, (Γ d@ x).get_type = .some T -> sp.length < T.arity
 
 instance substTypeLaws_Term : SubstitutionTypeLaws Term where
   apply_id := Term.apply_id
   apply_compose := Term.apply_compose
   apply_stable := Term.apply_stable
 
-  @[simp]
-  theorem size_of_subst_rename {t : Term} (r : Ren)
-    : Term.size ([r.to]t) = Term.size t
-  := by
-  have lem (r : Ren) :
-    .re 0::((@S Term) ⊙ r.to) = (Subst.size_of_subst_rename_renamer r).to
-  := by
-    unfold Ren.to; simp
-    funext; case _ x =>
-      cases x <;> simp
-      case _ n => unfold Subst.compose; simp
-  induction t generalizing r <;> simp [*]
-  case _ x => unfold Ren.to; simp
+@[simp]
+theorem size_of_subst_rename {t : Term} (r : Ren)
+  : Term.size ([r.to]t) = Term.size t
+:= by
+have lem (r : Ren) :
+  .re 0::((@S Term) ⊙ r.to) = (Subst.size_of_subst_rename_renamer r).to
+:= by
+  unfold Ren.to; simp
+  funext; case _ x =>
+    cases x <;> simp
+    case _ n => unfold Subst.compose; simp
+induction t generalizing r <;> simp [*]
+case _ x => unfold Ren.to; simp
 
-  theorem right_shifting_size_no_change (s : Term) : s.size = ([S' k]s).size := by
-  have lem := @size_of_subst_rename s (fun n => n + k);
-  unfold S'; rw [<-lem]; rfl
+theorem right_shifting_size_no_change (s : Term) : s.size = ([S' k]s).size := by
+have lem := @size_of_subst_rename s (fun n => n + k);
+unfold S'; rw [<-lem]; rfl
 
-  theorem right_shifting_size_no_change1 {s : Term} : s.size = ([S]s).size := by
-  have lem := @right_shifting_size_no_change 1 s;
-  unfold S; unfold S' at lem; assumption
+theorem right_shifting_size_no_change1 {s : Term} : s.size = ([S]s).size := by
+have lem := @right_shifting_size_no_change 1 s;
+unfold S; unfold S' at lem; assumption
 
-  theorem left_shifting_size_no_change {s : Term} : s.size = ([P' k]s).size := by
-  have lem := @size_of_subst_rename s (fun n => n - k);
-  unfold P'; rw [<-lem]; rfl
+theorem left_shifting_size_no_change {s : Term} : s.size = ([P' k]s).size := by
+have lem := @size_of_subst_rename s (fun n => n - k);
+unfold P'; rw [<-lem]; rfl
 
-  theorem left_shifting_size_no_change1 {s : Term} : s.size = ([P]s).size := by
-  have lem := @left_shifting_size_no_change 1 s;
-  unfold P; unfold P' at lem; assumption
+theorem left_shifting_size_no_change1 {s : Term} : s.size = ([P]s).size := by
+have lem := @left_shifting_size_no_change 1 s;
+unfold P; unfold P' at lem; assumption

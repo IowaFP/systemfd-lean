@@ -65,8 +65,11 @@ case _ Γ f A B a j1 j2 ih1 ih2 =>
     cases ih1
     case app x sp q1 q2 =>
       apply @Val.app Γ (f `@k a) x (sp ++ [(.kind, a)])
-      simp; rw [Option.bind_eq_some]; simp; apply q2
-      apply q1
+      simp; rw [Option.bind_eq_some_iff]; simp; apply q2
+      rcases q1 with h | ⟨h2, h3⟩; apply Or.inl h
+      replace q2 := Term.neutral_form_law (Eq.symm q2)
+      -- f is a type so this is impossible
+      sorry
     case choice =>
       cases j1; case _ h1 h2 _ _ =>
         cases h2; cases h1
@@ -141,137 +144,164 @@ apply types_are_values_lemma j1 j2
 
 theorem val_sound_var_lemma :
   t.neutral_form = .some (n, sp) ->
-  Γ.is_stable_red n ->
+  Γ.is_stable_red n ∨ OpenVarVal Γ n sp ->
   ∀ t', ¬ (Red Γ t t')
 := by
-intro j1 j2 t' r
-induction t generalizing n sp Γ t'
-all_goals (try simp at j1)
-case _ x =>
-  cases j1; case _ e1 e2 =>
-    subst e1; subst e2
-    cases r
-    case _ x' sp' tl q1 q2 q3 q4 =>
-      replace q1 := Frame.is_openm_destruct q1
-      cases q1; case _ q1 =>
+  intro j1 j2 t' r
+  induction t generalizing n sp Γ t'
+  all_goals (try simp at j1)
+  case _ x =>
+    cases j1; case _ e1 e2 =>
+      subst e1; subst e2
+      cases r
+      case _ x' sp' tl q1 q2 q3 q4 =>
+        replace q1 := Frame.is_openm_destruct q1
+        cases q1; case _ q1 =>
         simp at *; cases q3; case _ e1 e2 =>
-          subst e1; subst e2
-          unfold Frame.is_stable_red at j2
-          simp at j2; rw [q1] at j2; simp at j2
-    case _ s x' sp' t q1 q2 =>
-      simp at *; cases q2; case _ e1 e2 =>
+        subst e1; subst e2
+        unfold Frame.is_stable_red at j2
+        simp at j2; rw [q1] at j2; simp at j2
+        simp [OpenVarVal] at j2
+        replace j2 := j2.2 _ (Eq.symm tl)
+        simp at x'; rw [<-x'] at j2; simp at j2
+      case _ s x' sp' t q1 q2 =>
+        simp at *; cases q2; case _ e1 e2 =>
         subst e1; subst e2
         rw [<-q1] at j2; unfold Frame.is_stable_red at j2
-        simp at j2
-case _ v _ _ ih1 ih2 =>
-  cases v; all_goals (try simp at j1)
-  case _ =>
-    rw [Option.bind_eq_some] at j1; simp at j1
-    cases j1; case _ a j1 =>
-    cases j1; case _ b j1 =>
-    cases j1; case _ h1 h2 =>
-    cases h2; case _ h2 h3 =>
-      subst h2; cases r <;> simp at *
-      case _ x' sp' tl q1 q2 q3 q4 =>
-        replace q3 := Eq.symm q3
-        rw [Option.bind_eq_some] at q3; simp at q3
-        cases q3; case _ u q3 =>
-        cases q3; case _ v q3 =>
-        cases q3; case _ w1 w2 =>
-        cases w2; case _ w2 w3 =>
+        simp at j2; unfold OpenVarVal at j2; simp at j2
+        rw [<-q1] at j2; simp [Frame.is_openm] at j2
+  case _ v _ _ ih1 ih2 =>
+    cases v; all_goals (try simp at j1)
+    case _ =>
+      rw [Option.bind_eq_some_iff] at j1; simp at j1
+      cases j1; case _ a j1 =>
+      cases j1; case _ b j1 =>
+      cases j1; case _ h1 h2 =>
+      cases h2; case _ h2 h3 =>
+        subst h2; cases r <;> simp at *
+        case _ x' sp' T tl tl' e1 e2 q1 q2 q3 q4 e3 =>
+          replace q3 := Eq.symm q3
+          rw [Option.bind_eq_some_iff] at q3; simp at q3
+          cases q3; case _ u q3 =>
+          cases q3; case _ v q3 =>
+          cases q3; case _ w1 w2 =>
+          cases w2; case _ w2 w3 =>
           subst w2; rw [w1] at h1
           injection h1 with e
           injection e with e1 e2
           subst e1; subst e2
           replace q1 := Frame.is_openm_destruct q1
           cases q1; case _ q1 =>
-            rw [q1] at j2; unfold Frame.is_stable_red at j2
-            simp at j2
-      case _ s x sp' t q1 q2 =>
-        replace q2 := Eq.symm q2
-        rw [Option.bind_eq_some] at q2; simp at q2
-        cases q2; case _ u q2 =>
-        cases q2; case _ v q2 =>
-        cases q2; case _ w1 w2 =>
-        cases w2; case _ w2 w3 =>
+          rw [q1] at j2; unfold Frame.is_stable_red at j2
+          simp at j2; simp [OpenVarVal] at j2
+          replace j2 := j2.2 _ (Eq.symm e2)
+          rw [w3] at h3; subst h3; omega
+        case _ s x sp' t q1 q2 =>
+          replace q2 := Eq.symm q2
+          rw [Option.bind_eq_some_iff] at q2; simp at q2
+          cases q2; case _ u q2 =>
+          cases q2; case _ v q2 =>
+          cases q2; case _ w1 w2 =>
+          cases w2; case _ w2 w3 =>
           subst w2; rw [w1] at h1
           injection h1 with e
           injection e with e1 e2
           subst e1; subst e2
           rw [<-q1] at j2; unfold Frame.is_stable_red at j2
-          simp at j2
-  case _ =>
-    rw [Option.bind_eq_some] at j1; simp at j1
-    cases j1; case _ a j1 =>
-    cases j1; case _ b j1 =>
-    cases j1; case _ h1 h2 =>
-    cases h2; case _ h2 h3 =>
-      subst h2; cases r <;> simp at *
-      case _ xx' sp' tl q1 q2 q3 q4 =>
-        replace q3 := Eq.symm q3
-        rw [Option.bind_eq_some] at q3; simp at q3
-        cases q3; case _ u q3 =>
-        cases q3; case _ v q3 =>
-        cases q3; case _ w1 w2 =>
-        cases w2; case _ w2 w3 =>
-          subst w2; rw [w1] at h1
-          injection h1 with e
-          injection e with e1 e2
-          subst e1; subst e2
-          replace q1 := Frame.is_openm_destruct q1
-          cases q1; case _ q1 =>
+          simp at j2; simp [OpenVarVal] at j2
+          rw [<-q1] at j2; simp [Frame.is_openm] at j2
+    case _ =>
+      rw [Option.bind_eq_some_iff] at j1; simp at j1
+      cases j1; case _ a j1 =>
+      cases j1; case _ b j1 =>
+      cases j1; case _ h1 h2 =>
+      cases h2; case _ h2 h3 =>
+        subst h2; cases r <;> simp at *
+        case _ x' sp' T tl tl' e1 e2 q1 q2 q3 q4 e3 =>
+          replace q3 := Eq.symm q3
+          rw [Option.bind_eq_some_iff] at q3; simp at q3
+          cases q3; case _ u q3 =>
+          cases q3; case _ v q3 =>
+          cases q3; case _ w1 w2 =>
+          cases w2; case _ w2 w3 =>
+            subst w2; rw [w1] at h1
+            injection h1 with e
+            injection e with e1 e2
+            subst e1; subst e2
+            replace q1 := Frame.is_openm_destruct q1
+            cases q1; case _ q1 =>
             rw [q1] at j2; unfold Frame.is_stable_red at j2
-            simp at j2
-      case _ s x sp' t q1 q2 =>
-        replace q2 := Eq.symm q2
-        rw [Option.bind_eq_some] at q2; simp at q2
-        cases q2; case _ u q2 =>
-        cases q2; case _ v q2 =>
-        cases q2; case _ w1 w2 =>
-        cases w2; case _ w2 w3 =>
-          subst w2; rw [w1] at h1
-          injection h1 with e
-          injection e with e1 e2
-          subst e1; subst e2
-          rw [<-q1] at j2; unfold Frame.is_stable_red at j2
-          simp at j2
-      case _ tl r e => apply ih1 h1 j2 tl r
-  case _ =>
-    rw [Option.bind_eq_some] at j1; simp at j1
-    cases j1; case _ a j1 =>
-    cases j1; case _ b j1 =>
-    cases j1; case _ h1 h2 =>
-    cases h2; case _ h2 h3 =>
-      subst h2; cases r <;> simp at *
-      case _ x' sp' tl q1 q2 q3 q4 =>
-        replace q3 := Eq.symm q3
-        rw [Option.bind_eq_some] at q3; simp at q3
-        cases q3; case _ u q3 =>
-        cases q3; case _ v q3 =>
-        cases q3; case _ w1 w2 =>
-        cases w2; case _ w2 w3 =>
-          subst w2; rw [w1] at h1
-          injection h1 with e
-          injection e with e1 e2
-          subst e1; subst e2
-          replace q1 := Frame.is_openm_destruct q1
-          cases q1; case _ q1 =>
+            simp at j2; simp [OpenVarVal] at j2
+            replace j2 := j2.2 _ (Eq.symm e2)
+            rw [w3] at h3; subst h3; omega
+        case _ s x sp' t q1 q2 =>
+          replace q2 := Eq.symm q2
+          rw [Option.bind_eq_some_iff] at q2; simp at q2
+          cases q2; case _ u q2 =>
+          cases q2; case _ v q2 =>
+          cases q2; case _ w1 w2 =>
+          cases w2; case _ w2 w3 =>
+            subst w2; rw [w1] at h1
+            injection h1 with e
+            injection e with e1 e2
+            subst e1; subst e2
+            rw [<-q1] at j2; unfold Frame.is_stable_red at j2
+            simp at j2; simp [OpenVarVal] at j2
+            rw [<-q1] at j2; simp [Frame.is_openm] at j2
+        case _ tl r e =>
+          apply ih1 h1 _ tl r
+          cases j2
+          case _ j2 => apply Or.inl j2
+          case _ j2 =>
+            subst h3; apply Or.inr; simp [OpenVarVal] at *
+            apply And.intro j2.1; intro T h
+            replace j2 := j2.2 _ h; omega
+    case _ =>
+      rw [Option.bind_eq_some_iff] at j1; simp at j1
+      cases j1; case _ a j1 =>
+      cases j1; case _ b j1 =>
+      cases j1; case _ h1 h2 =>
+      cases h2; case _ h2 h3 =>
+        subst h2; cases r <;> simp at *
+        case _  x' sp' T tl tl' e1 e2 q1 q2 q3 q4 e3 =>
+          replace q3 := Eq.symm q3
+          rw [Option.bind_eq_some_iff] at q3; simp at q3
+          cases q3; case _ u q3 =>
+          cases q3; case _ v q3 =>
+          cases q3; case _ w1 w2 =>
+          cases w2; case _ w2 w3 =>
+            subst w2; rw [w1] at h1
+            injection h1 with e
+            injection e with e1 e2
+            subst e1; subst e2
+            replace q1 := Frame.is_openm_destruct q1
+            cases q1; case _ q1 =>
             rw [q1] at j2; unfold Frame.is_stable_red at j2
-            simp at j2
-      case _ s x sp' t q1 q2 =>
-        replace q2 := Eq.symm q2
-        rw [Option.bind_eq_some] at q2; simp at q2
-        cases q2; case _ u q2 =>
-        cases q2; case _ v q2 =>
-        cases q2; case _ w1 w2 =>
-        cases w2; case _ w2 w3 =>
-          subst w2; rw [w1] at h1
-          injection h1 with e
-          injection e with e1 e2
-          subst e1; subst e2
-          rw [<-q1] at j2; unfold Frame.is_stable_red at j2
-          simp at j2
-      case _ tl r e => apply ih1 h1 j2 tl r
+            simp at j2; simp [OpenVarVal] at j2
+            replace j2 := j2.2 _ (Eq.symm e2)
+            rw [w3] at h3; subst h3; omega
+        case _ s x sp' t q1 q2 =>
+          replace q2 := Eq.symm q2
+          rw [Option.bind_eq_some_iff] at q2; simp at q2
+          cases q2; case _ u q2 =>
+          cases q2; case _ v q2 =>
+          cases q2; case _ w1 w2 =>
+          cases w2; case _ w2 w3 =>
+            subst w2; rw [w1] at h1
+            injection h1 with e
+            injection e with e1 e2
+            subst e1; subst e2
+            rw [<-q1] at j2; unfold Frame.is_stable_red at j2
+            simp at j2; simp [OpenVarVal] at j2
+            rw [<-q1] at j2; simp [Frame.is_openm] at j2
+        case _ tl r e =>
+          apply ih1 h1 _ tl r
+          cases j2
+          case _ j2 => apply Or.inl j2
+          case _ j2 =>
+            subst h3; apply Or.inr; simp [OpenVarVal] at *
+            apply And.intro j2.1; intro T h
+            replace j2 := j2.2 _ h; omega
 
 theorem val_sound : Val Γ t -> t ≠ `0 ∧ ∀ t', ¬ (Red Γ t t') := by
 intro j; induction j
@@ -336,16 +366,17 @@ case var Γ x T j1 j2 _ =>
   cases f
   case term A t =>
     apply Or.inr; apply Exists.intro _
-    apply @Red.letterm A #x x [] Γ t
+    apply @Red.letterm _ x [] Γ A t
     simp; rw [fdef]
   case openm A =>
     generalize tldef : get_instances Γ x = tl at *
     generalize tdef : List.foldl (·⊕·) `0 tl = t at *
     apply Or.inr; apply Exists.intro t
-    apply @Red.inst _ x [] tl _ tl t; simp
-    unfold Ctx.is_openm; rw [fdef]
-    unfold Frame.is_openm; simp; rw [tldef]
-    simp; rw [tdef]
+    sorry
+    -- apply @Red.inst _ x [] Γ tl _ tl t; simp
+    -- unfold Ctx.is_openm; rw [fdef]
+    -- unfold Frame.is_openm; simp; rw [tldef]
+    -- simp; rw [tdef]
   case type =>
     replace h1 := h1 x; rw [fdef] at h1;
     unfold Frame.is_type at h1; simp at h1
@@ -354,7 +385,7 @@ case var Γ x T j1 j2 _ =>
   all_goals (
     apply Or.inl; apply @Val.app Γ #x x []
     simp; simp; unfold Frame.is_stable_red
-    rw [fdef]
+    rw [fdef]; simp
   )
 case allk => apply Or.inl; apply Val.arrk
 case allt => apply Or.inl; apply Val.all
@@ -384,18 +415,26 @@ case ite j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
     case app x3 sp3 h2 h3 =>
       generalize t1def : prefix_equal sp1 sp3 = t at *
       replace h3 := Eq.symm h3
-      cases t
-      case _ =>
-        apply Or.inr; apply Exists.intro _
-        apply Red.ite_missed j5.1 h3 h2 (Or.inr t1def)
-      case _ q =>
-        cases Nat.decEq x1 x3
-        case _ h4 =>
-          apply Or.inr; apply Exists.intro _
-          apply Red.ite_missed j5.1 h3 h2 (Or.inl h4)
-        case _ h4 =>
-          subst h4; apply Or.inr; apply Exists.intro _
-          apply Red.ite_matched j5.1 h3 (Eq.symm t1def) j5.2
+      sorry
+      -- cases t
+      -- case _ =>
+      --   cases h2
+      --   case _ h2 =>
+      --     apply Or.inr; apply Exists.intro _
+      --     apply Red.ite_missed j5.1 h3 h2 (Or.inr t1def)
+      --   case _ h2 => sorry
+      -- case _ q =>
+      --   cases Nat.decEq x1 x3
+      --   case _ h4 =>
+      --     cases h2
+      --     case _ h2 =>
+      --       apply Or.inr; apply Exists.intro _
+      --       apply Red.ite_missed j5.1 h3 h2 (Or.inl h4)
+      --     case _ h2 =>
+      --       sorry
+      --   case _ h4 =>
+      --     subst h4; apply Or.inr; apply Exists.intro _
+      --     apply Red.ite_matched j5.1 h3 (Eq.symm t1def) j5.2
     case choice v1 v2 =>
       apply Or.inr; apply Exists.intro _
       apply Red.ite_map
@@ -424,18 +463,19 @@ case guard j1 j2 j3 j4 j5 j6 j7 j8 j9 ih1 ih2 ih3 ih4 ih5 =>
     case app x3 sp3 h2 h3 =>
       generalize t1def : prefix_equal sp1 sp3 = t at *
       replace h3 := Eq.symm h3
-      cases t
-      case _ =>
-        apply Or.inr; apply Exists.intro _
-        apply Red.guard_missed j5.1 h3 h2 (Or.inr t1def)
-      case _ q =>
-        cases Nat.decEq x1 x3
-        case _ h4 =>
-          apply Or.inr; apply Exists.intro _
-          apply Red.guard_missed j5.1 h3 h2 (Or.inl h4)
-        case _ h4 =>
-          subst h4; apply Or.inr; apply Exists.intro _
-          apply Red.guard_matched j5.1 h3 (Eq.symm t1def)
+      sorry
+      -- cases t
+      -- case _ =>
+      --   apply Or.inr; apply Exists.intro _
+      --   apply Red.guard_missed j5.1 h3 h2 (Or.inr t1def)
+      -- case _ q =>
+      --   cases Nat.decEq x1 x3
+      --   case _ h4 =>
+      --     apply Or.inr; apply Exists.intro _
+      --     apply Red.guard_missed j5.1 h3 h2 (Or.inl h4)
+      --   case _ h4 =>
+      --     subst h4; apply Or.inr; apply Exists.intro _
+      --     apply Red.guard_matched j5.1 h3 (Eq.symm t1def)
     case choice v1 v2 =>
       apply Or.inr; apply Exists.intro _
       apply Red.guard_map
@@ -457,8 +497,9 @@ case app a _ j1 j2 j3 ih1 ih2 =>
   case _ v =>
     cases v
     case app x sp h1 h2 =>
-      apply Or.inl; apply Val.app x (sp ++ [(.term, a)]) _ h1
-      simp; rw [Option.bind_eq_some]; simp; rw [h2]
+      sorry
+      -- apply Or.inl; apply Val.app x (sp ++ [(.term, a)]) _ h1
+      -- simp; rw [Option.bind_eq_some]; simp; rw [h2]
     case choice =>
       apply Or.inr; apply Exists.intro _
       apply Red.ctor2_map1 rfl; simp
@@ -483,8 +524,9 @@ case appt  a _ j1 j2 j3 ih1 ih2 =>
   case _ v =>
     cases v
     case app x sp h1 h2 =>
-      apply Or.inl; apply Val.app x (sp ++ [(.type, a)]) _ h1
-      simp; rw [Option.bind_eq_some]; simp; rw [h2]
+      sorry
+      -- apply Or.inl; apply Val.app x (sp ++ [(.type, a)]) _ h1
+      -- simp; rw [Option.bind_eq_some]; simp; rw [h2]
     case choice =>
       apply Or.inr; apply Exists.intro _
       apply Red.ctor2_map1 rfl; simp

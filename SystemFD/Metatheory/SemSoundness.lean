@@ -1,111 +1,111 @@
-import SystemFD.Term
-import SystemFD.Term.Subexpression
-import SystemFD.Term.Variant
-import SystemFD.Metatheory.Canonicity
-import SystemFD.Metatheory.Confluence
-import SystemFD.Metatheory.Progress
-import SystemFD.Metatheory.Preservation
+-- import SystemFD.Term
+-- import SystemFD.Term.Subexpression
+-- import SystemFD.Term.Variant
+-- import SystemFD.Metatheory.Canonicity
+-- import SystemFD.Metatheory.Confluence
+-- import SystemFD.Metatheory.Progress
+-- import SystemFD.Metatheory.Preservation
 
-set_option maxHeartbeats 500000
+-- set_option maxHeartbeats 500000
 
-/-
+-- /-
 
-Goal
-----
+-- Goal
+-- ----
 
-We want to have a syntactic property P on terms of SystemFD
-(possibly indexed over types and context)
-st. the following holds for it:
+-- We want to have a syntactic property P on terms of SystemFD
+-- (possibly indexed over types and context)
+-- st. the following holds for it:
 
-   P τ t ⇒
-   ∃ n, (t ⟶⋆ n) ∧
-        (Val Γ n ∧ n is confusion free)
-        ∨ ( does not have a normal form)
+--    P τ t ⇒
+--    ∃ n, (t ⟶⋆ n) ∧
+--         (Val Γ n ∧ n is confusion free)
+--         ∨ ( does not have a normal form)
 
-The context Γ has to bear some responsibility for the term to be confusion free,
-as the · ⟶⋆ · relation is dependent on Γ for instantiating open methods. We call this
-property saturation. Intuitively, the saturation property enforces that the
-(well typed) open method call instantiations cannot cause confusion.
+-- The context Γ has to bear some responsibility for the term to be confusion free,
+-- as the · ⟶⋆ · relation is dependent on Γ for instantiating open methods. We call this
+-- property saturation. Intuitively, the saturation property enforces that the
+-- (well typed) open method call instantiations cannot cause confusion.
 
-To explicitly encode this property in our formalization:
+-- To explicitly encode this property in our formalization:
 
-   SatCtx Γ ∧ P τ Γ t ⇒
-   ∃ n, (t ⟨Γ⟩⟶⋆ n) ∧
-        (Val Γ n ∧ n is confusion free)
-         ∨ n does not have a normal form
-
-
-Confusion Free (or (Weakly) Determined):
----------------
-
-Idea 1:
-
-Determined Γ τ t
-
-A (well typed) term, t,
-1. t does not contain `0 or ⊕ or guards (at the head)
-2. open methods are fine but they need to be fully applied -- enforced by typing?
+--    SatCtx Γ ∧ P τ Γ t ⇒
+--    ∃ n, (t ⟨Γ⟩⟶⋆ n) ∧
+--         (Val Γ n ∧ n is confusion free)
+--          ∨ n does not have a normal form
 
 
-Idea 2:
-DeterminedTyping Γ t τ
+-- Confusion Free (or (Weakly) Determined):
+-- ---------------
 
-Deeply checked  Idea 1. check that t does not contain `0, ⊕ etc only at the head but for all subterms of t
+-- Idea 1:
 
-theorem : NoConfusion Γ → Closed Γ → DetermindedTyping Γ t τ
-          Val Γ t  ∨ (∃ t', t ⟶+ t' ∧ DetermindedTyping Γ t' τ)
+-- Determined Γ τ t
 
-m [τs] ds : σ
-
-NoConfusion Γ
-
-    ∀ τs ds,
-      (τs are ground, ds are DeterminedTyping Γ σ d, σ is ground)
-    ∃ i, Γ d@ i = .inst #m t ∧ t [τs] ds - ̸⟶⋆ `0 ∧
-    ∀ k, k ≠ i ∧  Γ d@ k = .inst #m t' ∧ t' [τs] ds ⟶⋆ `0
-
-Captures: Saturation.
-1. Instance existence --> no `0
-2. Instance uniqueness --> no ⊕
+-- A (well typed) term, t,
+-- 1. t does not contain `0 or ⊕ or guards (at the head)
+-- 2. open methods are fine but they need to be fully applied -- enforced by typing?
 
 
-Equivalent to:
-∀ m [τs] ds : σ ⟶+ n, DeterminedTyping Γ n σ
+-- Idea 2:
+-- DeterminedTyping Γ t τ
+
+-- Deeply checked  Idea 1. check that t does not contain `0, ⊕ etc only at the head but for all subterms of t
+
+-- theorem : NoConfusion Γ → Closed Γ → DetermindedTyping Γ t τ
+--           Val Γ t  ∨ (∃ t', t ⟶+ t' ∧ DetermindedTyping Γ t' τ)
+
+-- m [τs] ds : σ
+
+-- NoConfusion Γ
+
+--     ∀ τs ds,
+--       (τs are ground, ds are DeterminedTyping Γ σ d, σ is ground)
+--     ∃ i, Γ d@ i = .inst #m t ∧ t [τs] ds - ̸⟶⋆ `0 ∧
+--     ∀ k, k ≠ i ∧  Γ d@ k = .inst #m t' ∧ t' [τs] ds ⟶⋆ `0
+
+-- Captures: Saturation.
+-- 1. Instance existence --> no `0
+-- 2. Instance uniqueness --> no ⊕
 
 
--/
+-- Equivalent to:
+-- ∀ m [τs] ds : σ ⟶+ n, DeterminedTyping Γ n σ
 
-namespace Term
 
-def mk_ty_tm_app (t : Term) (τs : List Term) (es : List Term) := (t.mk_ty_apps τs).mk_apps es
-notation:70 t:170 "⬝[" τs:170 "]⬝" es:170 "⬝" => mk_ty_tm_app t τs es
+-- -/
 
--- Ground Types are the ones that are not lambda bound
--- Int, Bool, Int → Bool, Maybe, Maybe Int are all ground types
--- a → Int, Maybe a are not ground types
-def groundTy (Γ : Ctx Term) : Term -> Bool
-| #x => Γ.is_datatype x || Γ.is_opent x
-| (τ1 -t> τ2) => groundTy Γ τ1 && groundTy (.empty :: Γ) τ2
-| τ1 `@k τ2 => groundTy Γ τ1 && groundTy  Γ τ2
-| _ => false
+-- namespace Term
 
-end Term
+-- def mk_ty_tm_app (t : Term) (τs : List Term) (es : List Term) := (t.mk_ty_apps τs).mk_apps es
+-- notation:70 t:170 "⬝[" τs:170 "]⬝" es:170 "⬝" => mk_ty_tm_app t τs es
 
-namespace Ctx
+-- -- Ground Types are the ones that are not lambda bound
+-- -- Int, Bool, Int → Bool, Maybe, Maybe Int are all ground types
+-- -- a → Int, Maybe a are not ground types
+-- def groundTy (Γ : Ctx Term) : Term -> Bool
+-- | #x => Γ.is_datatype x || Γ.is_opent x
+-- | (τ1 -t> τ2) => groundTy Γ τ1 && groundTy (.empty :: Γ) τ2
+-- | τ1 `@k τ2 => groundTy Γ τ1 && groundTy  Γ τ2
+-- | _ => false
 
-end Ctx
+-- end Term
 
-@[simp]
-def noOpenType (Γ : Ctx Term) : Term -> Bool
-| #x => ¬ Γ.is_openm x
-| (τ -t> τ') => noOpenType Γ τ ∧ noOpenType (.type τ :: Γ) τ'
-| ∀[K] τ => noOpenType (.kind K :: Γ) τ
-| τ `@k τ' => noOpenType Γ τ ∧ noOpenType Γ τ'
-| _ => false
+-- namespace Ctx
 
-@[simp]
-abbrev Determined (Γ : Ctx Term) (t : Term) : Prop :=
-  (¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t)
+-- end Ctx
+
+-- @[simp]
+-- def noOpenType (Γ : Ctx Term) : Term -> Bool
+-- | #x => ¬ Γ.is_openm x
+-- | (τ -t> τ') => noOpenType Γ τ ∧ noOpenType (.type τ :: Γ) τ'
+-- | ∀[K] τ => noOpenType (.kind K :: Γ) τ
+-- | τ `@k τ' => noOpenType Γ τ ∧ noOpenType Γ τ'
+-- | _ => false
+
+-- @[simp]
+-- abbrev Determined (Γ : Ctx Term) (t : Term) : Prop :=
+--   (¬ contains_variant Γ.variants [.zero, .guard, .ctor2 .choice] t)
 
 -- If t is in normal form, then it is applied to enough arguments.
 -- There are 2 main cases:

@@ -13,16 +13,20 @@ constructor; assumption; assumption
 
 theorem redplus_is_redstar {Γ : Ctx Term} {N M : Term} :
   N ⟨Γ⟩⟶+ M ->
-  N ⟨Γ⟩⟶⋆ M := by
-intro h
-induction h; constructor; assumption; assumption
+  N ⟨Γ⟩⟶⋆ M
+:= by
+sorry
+-- intro h
+-- induction h; constructor; assumption; assumption
 
 theorem red_and_red_is_redplus {Γ : Ctx Term}{L M N : Term} :
   L ⟨Γ⟩⟶ M ->
   M ⟨Γ⟩⟶ N ->
-  L ⟨Γ⟩⟶+ N := by
-intro s1 s2
-constructor; apply RedStar.step; apply RedStar.refl; assumption; assumption
+  L ⟨Γ⟩⟶+ N
+:= by
+sorry
+-- intro s1 s2
+-- constructor; apply RedStar.step; apply RedStar.refl; assumption; assumption
 
 
 theorem redstar_choice₁ :

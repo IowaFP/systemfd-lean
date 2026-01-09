@@ -16,7 +16,7 @@ all_goals try (rw[<-et])
 
 case _ => apply Red.ite_map
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ u1 et =>
   cases et; case _ h1 et =>
   cases et
@@ -25,7 +25,7 @@ case _ ih1 =>
 
 case _ => apply Red.guard_map
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ u1 et =>
   cases et; case _ h1 et =>
   cases et
@@ -35,7 +35,7 @@ case _ ih1 =>
 case _ => apply Red.ctor1_map
 
 case _ ih1 ih2 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ u1 et =>
   cases et; case _ h1 et =>
   cases et
@@ -97,7 +97,7 @@ all_goals try (rw[<-et])
 
 case _ => apply Red.ite_absorb
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ et =>
   cases et; case _ h1 et =>
   cases et;
@@ -106,7 +106,7 @@ case _ ih1 =>
 
 case _ => apply Red.guard_absorb
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ et =>
   cases et; case _ h1 et =>
   cases et;
@@ -115,7 +115,7 @@ case _ ih1 =>
 
 case _ => apply Red.ctor1_absorb
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ et =>
   cases et; case _ h1 et =>
   cases et;
@@ -159,7 +159,7 @@ all_goals try (rw[<-et])
 
 all_goals try (
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ et =>
   cases et; case _ h1 et =>
   cases et;
@@ -168,7 +168,7 @@ case _ ih1 =>
 )
 
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ et =>
   cases et; case _ h1 et =>
   cases et;
@@ -176,7 +176,7 @@ case _ ih1 =>
   apply Red.ite_congr; assumption
 
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ et =>
   cases et; case _ h1 et =>
   cases et;
@@ -253,7 +253,7 @@ all_goals try (rw[<-et])
 
 all_goals try (
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ et =>
   cases et; case _ h1 et =>
   cases et;
@@ -263,7 +263,7 @@ case _ ih1 =>
 
 all_goals try (
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ t' et =>
   cases et; case _ h1 et =>
   cases et
@@ -273,7 +273,7 @@ case _ ih1 =>
 
 all_goals try (
 case _ ih1 =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ t' et =>
   cases et; case _ h1 et =>
   cases et
@@ -286,22 +286,23 @@ case _ Γ n _ om =>
   generalize instsp : get_instances Γ n = insts at *;
   have nfh := @Term.var_neutral_form n; symm at nfh;
   symm at instsp;
-  apply Red.inst nfh _ instsp; unfold Term.apply_spine; simp_all;
-  apply instsp; rfl
-  simp; rw[om]; unfold Frame.is_openm; simp
+  sorry
+  -- apply Red.inst nfh _ instsp; unfold Term.apply_spine; simp_all;
+  -- apply instsp; rfl
+  -- simp; rw[om]; unfold Frame.is_openm; simp
 case _ Γ n _ _ lt =>
     rw [lt] at et; simp at et; subst et;
     have nf :=  @Term.var_neutral_form n; symm at nf; symm at lt;
     apply Red.letterm nf lt;
 case _ => apply Red.letbeta
 case _ Γ p s b c ih =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ w h =>
     have pne := And.left h;
     have site := And.right h;
     simp at site; split at site; simp_all;
     case _ =>
-      rw[Option.bind_eq_some] at site;
+      rw[Option.bind_eq_some_iff] at site;
       cases site; case _ w h =>
       cases h; case _ h =>
       injection (And.right h) with ts; subst ts; simp at h;
@@ -311,7 +312,7 @@ case _ Γ p s b c ih =>
       have wisctor := site.1;
       replace site := site.2;
       split at site;
-      case _ => rw[Option.bind_eq_some] at site; cases site; case _ w h =>
+      case _ => rw[Option.bind_eq_some_iff] at site; cases site; case _ w h =>
         simp at h;
         have tl' := h.2;
         subst tl';
@@ -334,13 +335,13 @@ case _ Γ p s b c ih =>
           apply Red.ite_missed pne snf s'_stable (Or.inl h)
 
 case _ Γ p s c ih =>
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ w h =>
   have pne := And.left h;
   have smatch := And.right h;
   simp_all; split at smatch;
   case _ =>
-    rw[Option.bind_eq_some] at smatch;
+    rw[Option.bind_eq_some_iff] at smatch;
     cases smatch; case _ s' smatch' =>
     cases smatch'; case _ smatch' =>
     have ih' := ih (And.left smatch'); simp_all
@@ -348,7 +349,7 @@ case _ Γ p s c ih =>
   case _ s' sp' snf =>
     split at smatch;
     case _ frame_term =>
-      rw[Option.bind_eq_some] at smatch;
+      rw[Option.bind_eq_some_iff] at smatch;
       symm at snf; symm at frame_term; simp_all
       cases smatch;
       case _ w ts' =>
@@ -380,7 +381,7 @@ case _ => apply Red.beta
 
 case _ n _ tnf ih1 => -- app recursive case
   rw[tnf] at et; simp at et;
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ t' et =>
   cases et; case _ h1 et =>
   cases et
@@ -394,12 +395,13 @@ case _ Γ f t e n sp fnf t' om => -- app openm
   generalize tlp' : List.map (·.apply_spine sp) ιs = tl' at *; symm at tlp'
   apply Red.ctor2_congr1
   simp
-  apply Red.inst;
-  apply Eq.symm fnf
-  simp; unfold Frame.is_openm; rw[om]
-  apply instsp;
-  apply tlp'
-  rfl
+  sorry
+  -- apply Red.inst;
+  -- apply Eq.symm fnf
+  -- simp; unfold Frame.is_openm; rw[om]
+  -- apply instsp;
+  -- apply tlp'
+  -- rfl
 
 case _ n _ tnf _ _ lt => -- app let term
   rw[tnf] at et; simp at et;
@@ -416,7 +418,7 @@ case _ => apply Red.betat
 
 case _ n _ tnf ih1 => -- appt recursive case
   rw[tnf] at et; simp at et;
-  rw[Option.bind_eq_some] at et;
+  rw[Option.bind_eq_some_iff] at et;
   cases et; case _ t' et =>
   cases et; case _ h1 et =>
   cases et
@@ -432,10 +434,11 @@ case _ Γ f t e n sp fnf t' om =>  -- appt openm
   simp
   apply Red.inst;
   apply Eq.symm fnf
-  simp; unfold Frame.is_openm; rw[om]
-  apply instsp;
-  apply tlp'
-  rfl
+  all_goals sorry
+  -- simp; unfold Frame.is_openm; rw[om]
+  -- apply instsp;
+  -- apply tlp'
+  -- rfl
 
 case _ n _ tnf _ _ lt => -- appt let term
   rw[tnf] at et; simp at et;

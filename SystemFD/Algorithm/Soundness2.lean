@@ -13,40 +13,40 @@ case _ Γ n => -- var
   apply Judgment.var wf h;
 
 case _ Γ p s i e ih1 ih2 ih3 ih4 => -- ite
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
-  rw [Option.bind_eq_some] at h8
+  rw [Option.bind_eq_some_iff] at h8
   cases h8; case _ u7' h8 =>
   cases h8; case _ h8 h9 =>
-  rw [Option.bind_eq_some] at h9
+  rw [Option.bind_eq_some_iff] at h9
   cases h9; case _ u8 h9 =>
   cases h9; case _ h9 h10 =>
-  rw [Option.bind_eq_some] at h10
+  rw [Option.bind_eq_some_iff] at h10
   cases h10; case _ u9 h10 =>
   cases h10; case _ h10 h11 =>
-  rw [Option.bind_eq_some] at h11
+  rw [Option.bind_eq_some_iff] at h11
   cases h11; case _ u10 h11 =>
   cases h11; case _ h11 h12 =>
-  rw [Option.bind_eq_some] at h12
+  rw [Option.bind_eq_some_iff] at h12
   cases h12; case _ u11 h12 =>
   cases h12; case _ h12 h13 =>
   simp at h13;
@@ -73,37 +73,37 @@ case _ Γ p s i e ih1 ih2 ih3 ih4 => -- ite
   apply Judgment.ite h1 h2 h3 h5 h6'' h7'' h8' h9' h10 h12
 
 case _ Γ p s t ih1 ih2 ih3 => -- guard
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u5' h6 =>
   cases h6; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
-  rw [Option.bind_eq_some] at h8
+  rw [Option.bind_eq_some_iff] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
-  rw [Option.bind_eq_some] at h9
+  rw [Option.bind_eq_some_iff] at h9
   cases h9; case _ u9 h9 =>
   cases h9; case _ h9 h10 =>
-  rw [Option.bind_eq_some] at h10
+  rw [Option.bind_eq_some_iff] at h10
   cases h10; case _ u10 h10 =>
   cases h10; case _ h10 h11 =>
-  rw [Option.bind_eq_some] at h11
+  rw [Option.bind_eq_some_iff] at h11
   cases h11; case _ u11 h11 =>
   cases h11; case _ h11 h12 =>
     replace h1 := ih1 h1 wf
@@ -123,38 +123,38 @@ case _ Γ p s t ih1 ih2 ih3 => -- guard
     apply Judgment.guard h1 h2 h3 h8 h6'' h7'' h9' h7' h10;
 
 case _ ih => -- lam
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
-  rw [Option.bind_eq_some] at h8
+  rw [Option.bind_eq_some_iff] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h9; case _ u9 h7 =>
   cases h7; case _ h9 h10 =>
-  rw [Option.bind_eq_some] at h10
+  rw [Option.bind_eq_some_iff] at h10
   cases h10; case _ u10 h10 =>
   cases h10; case _ h10 h11 =>
-  rw [Option.bind_eq_some] at h11
+  rw [Option.bind_eq_some_iff] at h11
   cases h11; case _ u11 h11 =>
   cases h11; case _ h10 h11 =>
   cases h11; case _ h11 h12 =>
-  rw [Option.bind_eq_some] at h12
+  rw [Option.bind_eq_some_iff] at h12
   cases h12; case _ u12 h13 =>
   cases h13; case _ h13 h14 =>
   cases h14;
@@ -172,13 +172,13 @@ case _ ih => -- lam
   apply Judgment.arrow; assumption; assumption;
 
 case _ ih1 ih2 => -- app
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
   simp at h4; have e := h4.2; subst e; simp at h4;
@@ -190,25 +190,25 @@ case _ ih1 ih2 => -- app
   rfl
 
 case _ ih => -- Λ[A]b
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u6 h3 =>
   cases h3; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
-  rw [Option.bind_eq_some] at h8
+  rw [Option.bind_eq_some_iff] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
   injection h9 with e; subst e
@@ -223,13 +223,13 @@ case _ ih => -- Λ[A]b
   apply Judgment.allt; assumption; assumption
 
 case _ ih => -- appt
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
   simp at h4;
@@ -241,13 +241,13 @@ case _ ih => -- appt
   constructor; apply ih h1 wf; apply h3; rfl
 
 case _ ih1 ih2 => -- cast
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
   simp at h4; cases h4; case _ h4 h5 =>
@@ -258,11 +258,11 @@ case _ ih1 ih2 => -- cast
   apply Judgment.cast lem1 lem2;
 
 case _ h => -- refl
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ w h =>
   cases h; case _ h1 h2 =>
   replace h1 := infer_kind_sound h1 wf;
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u1 h2 =>
   cases h2; case _ h2 h3 =>
   simp at h3;
@@ -273,10 +273,10 @@ case _ h => -- refl
   apply Judgment.refl h2 h1
 
 case _ ih1 => -- sym
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
   injection h3 with e; subst e;
@@ -286,16 +286,16 @@ case _ ih1 => -- sym
 
 
 case _ ih1 ih2 => -- seq
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
   simp at h5; cases h5; case _ h5 h6 =>
@@ -312,38 +312,38 @@ case _ ih1 ih2 => -- seq
   apply Judgment.seq lem1 lem2
 
 case _ ih1 ih2 => -- appc
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   simp at h4; cases h4; case _ u4 h5 =>
   cases h5; case _ u5 h5 =>
   cases h5; case _ h4 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h8 =>
   simp at h8; cases h8; case _ u8 h9 =>
-  rw [Option.bind_eq_some] at h9;
+  rw [Option.bind_eq_some_iff] at h9;
   cases h9; case _ u9 h9 =>
   cases h9; case _ h9 h10 =>
-  rw [Option.bind_eq_some] at h10;
+  rw [Option.bind_eq_some_iff] at h10;
   cases h10; case _ u10 h10 =>
   cases h10; case _ h10 h11 =>
-  rw [Option.bind_eq_some] at h11;
+  rw [Option.bind_eq_some_iff] at h11;
   cases h11; case _ u11 h11 =>
   cases h11; case _ h11 h12 =>
-  rw [Option.bind_eq_some] at h12;
+  rw [Option.bind_eq_some_iff] at h12;
   cases h12; case _ u12 h12 =>
   cases h12; case _ h12 h13 =>
-  rw [Option.bind_eq_some] at h13;
+  rw [Option.bind_eq_some_iff] at h13;
   cases h13; case _ u13 h13 =>
   cases h13; case _ h13 h14 =>
   cases h14; case _ h14 h15 =>
@@ -373,40 +373,40 @@ case _ ih1 ih2 => -- appc
   rw[<-e3]; assumption
 
 case _ ih1 ih2 => -- arrowc
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
-  rw [Option.bind_eq_some] at h8
+  rw [Option.bind_eq_some_iff] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
-  rw [Option.bind_eq_some] at h9
+  rw [Option.bind_eq_some_iff] at h9
   cases h9; case _ u9 h9 =>
   cases h9; case _ h9 h10 =>
-  rw [Option.bind_eq_some] at h10
+  rw [Option.bind_eq_some_iff] at h10
   cases h10; case _ u10 h10 =>
   cases h10; case _ h10 h11 =>
-  rw [Option.bind_eq_some] at h11
+  rw [Option.bind_eq_some_iff] at h11
   cases h11; case _ u11 h11 =>
   cases h11; case _ h11 h12 =>
-  rw [Option.bind_eq_some] at h12
+  rw [Option.bind_eq_some_iff] at h12
   cases h12; case _ u12 h12 =>
   cases h12; case _ h12 h13 =>
   simp at h13
@@ -438,28 +438,28 @@ case _ ih1 ih2 => -- arrowc
   assumption; assumption;
 
 case _ ih => -- fst
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
-  rw [Option.bind_eq_some] at h8
+  rw [Option.bind_eq_some_iff] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
   simp at h9;
@@ -486,25 +486,25 @@ case _ ih => -- fst
   assumption
 
 case _ ih1 => -- snd
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
   simp at h8;
@@ -524,22 +524,22 @@ case _ ih1 => -- snd
   constructor; assumption; assumption; assumption; assumption
 
 case _ ih1 ih2 =>  -- let
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
   simp at h7; cases h7; case _ u7 h7 =>
@@ -559,43 +559,43 @@ case _ ih1 ih2 =>  -- let
   assumption
 
 case _ ih => -- ∀c[K]t
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h4 =>
   simp at h4; cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h4;
+  rw [Option.bind_eq_some_iff] at h4;
   cases h4; case _ u4 h4 =>
   have h6 := h4.1;
   replace h4 := h4.2;
-  rw [Option.bind_eq_some] at h4;
+  rw [Option.bind_eq_some_iff] at h4;
   cases h4; case _ u5 h4 =>
   have h7 := h4.1;
   replace h4 := h4.2;
-  rw [Option.bind_eq_some] at h4;
+  rw [Option.bind_eq_some_iff] at h4;
   cases h4; case _ u6 h4 =>
   have e := h4.2;
   replace h4 := h4.1;
-  rw [Option.bind_eq_some] at h5;
+  rw [Option.bind_eq_some_iff] at h5;
   cases h5; case _ u8 h8 =>
   have h9 := h8.2;  replace h8 := h8.1;
-  rw [Option.bind_eq_some] at h9;
+  rw [Option.bind_eq_some_iff] at h9;
   cases h9; case _ u9 h9 =>
-  rw [Option.bind_eq_some] at h9;
+  rw [Option.bind_eq_some_iff] at h9;
   cases h9; case _ h10 h9 =>
   cases h10; case _ h10 h11 =>
-  rw [Option.bind_eq_some] at h9;
+  rw [Option.bind_eq_some_iff] at h9;
   cases h9; case _ u11 h13 =>
   cases h13; case _ h13 h14 =>
-  rw [Option.bind_eq_some] at h11;
+  rw [Option.bind_eq_some_iff] at h11;
   cases h11; case _ u12 h11 =>
   cases h11; case _ h15 h11 =>
   cases h11; case _ u13 h16 =>
-  rw [Option.bind_eq_some] at h16;
+  rw [Option.bind_eq_some_iff] at h16;
   cases h16; case _ u16 h16 =>
   cases h16; case _ h16 h17 =>
   cases h17;
@@ -616,28 +616,28 @@ case _ ih => -- ∀c[K]t
   apply Judgment.allc; assumption; assumption
 
 case _ ih1 ih2 => -- appc
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ h1 h2 =>
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
-  rw [Option.bind_eq_some] at h7
+  rw [Option.bind_eq_some_iff] at h7
   cases h7; case _ u7 h7 =>
   cases h7; case _ h7 h8 =>
-  rw [Option.bind_eq_some] at h8
+  rw [Option.bind_eq_some_iff] at h8
   cases h8; case _ u8 h8 =>
   cases h8; case _ h8 h9 =>
   simp at h9;
@@ -663,22 +663,22 @@ case _ ih1 ih2 => -- appc
   rw[<-e4] at lem2; rw[e6] at lem2
   apply Judgment.apptc; assumption; assumption; rfl; rfl
 case _ ih1 ih2 =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ h1 h2 =>
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
-  rw [Option.bind_eq_some] at h6
+  rw [Option.bind_eq_some_iff] at h6
   cases h6; case _ u6 h6 =>
   cases h6; case _ h6 h7 =>
   simp at h7
@@ -697,36 +697,36 @@ induction Γ using wf_ctx.induct generalizing u <;> simp at *
 case _ => constructor
 case _ ih => constructor; apply ih h
 case _ ih =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     have lem := ih h3
     replace h2 := is_type_some h2; subst h2
     constructor; apply infer_kind_sound h1 lem; apply lem
 case _ ih =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
     have lem := ih h2
     constructor; apply wf_kind_sound h1 lem; apply lem
 case _ ih =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
     have lem := ih h2
     constructor; apply wf_kind_sound h1 lem; apply lem
 
 case _ ih => -- wfctor
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3;
+  rw [Option.bind_eq_some_iff] at h3;
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
   simp at h3; have wf := ih h4;
@@ -734,29 +734,29 @@ case _ ih => -- wfctor
   constructor; apply infer_kind_sound h1 wf;
   apply wf; apply valid_ctor_sound h3;
 case _ ih =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
     have lem := ih h2
     constructor; apply wf_kind_sound h1 lem; apply lem
 case _ ih =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     have lem := ih h3
     replace h2 := is_type_some h2; subst h2
     constructor; apply infer_kind_sound h1 lem; apply lem
 case _ ih =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
   have lem := ih h4;
@@ -764,16 +764,16 @@ case _ ih =>
   constructor; apply infer_kind_sound h1 lem; apply lem;
   apply valid_insttype_sound h3;
 case _ ih =>
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
     simp at h5; replace h4 := ih h4
@@ -783,10 +783,10 @@ case _ ih =>
     apply infer_type_sound h3 h4; apply h4
 case _ hx ih =>
   rw [hx] at h; simp at h
-  rw [Option.bind_eq_some] at h
+  rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
     simp at h3; replace h2 := ih h2

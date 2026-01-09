@@ -108,7 +108,7 @@ namespace HsTerm
       subst h1; subst h2; simp
   case _ ih =>
     simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
+    rw [Option.bind_eq_some_iff] at h; simp at h
     cases h; case _ a h =>
     cases h; case _ b h =>
     cases h; case _ h1 h2 =>
@@ -118,7 +118,7 @@ namespace HsTerm
       rw [apply_spine_peel_term, ih]
   case _ ih =>
     simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
+    rw [Option.bind_eq_some_iff] at h; simp at h
     cases h; case _ a h =>
     cases h; case _ b h =>
     cases h; case _ h1 h2 =>
@@ -128,7 +128,7 @@ namespace HsTerm
       rw [@HsTerm.apply_spine_peel_kind, ih]
   case _ ih =>
     simp at h; replace h := Eq.symm h
-    rw [Option.bind_eq_some] at h; simp at h
+    rw [Option.bind_eq_some_iff] at h; simp at h
     cases h; case _ a h =>
     cases h; case _ b h =>
     cases h; case _ h1 h2 =>

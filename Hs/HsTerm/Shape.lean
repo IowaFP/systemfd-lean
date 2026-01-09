@@ -33,7 +33,7 @@ theorem hs_type_neutral_form_is_type {τ h : HsTerm}:
     cases h2; cases h3;
     constructor;constructor; simp
   case _ ih1 ih2 =>
-    rw[Option.bind_eq_some] at h2; cases h2
+    rw[Option.bind_eq_some_iff] at h2; cases h2
     case _ h2 =>
     cases h2; case _ h2 h3 =>
     cases h3
@@ -61,7 +61,7 @@ case _ =>
   cases h2a; cases h2b
   simp
 case _ =>
-  rw[Option.bind_eq_some] at h2;
+  rw[Option.bind_eq_some_iff] at h2;
   cases h2; case _ h2 =>
   cases h2; case _ h2 =>
   simp at h2

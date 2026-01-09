@@ -37,7 +37,7 @@ theorem kind_shape_split_arrow {k : Term} :
   Term.split_kind_arrow k = some (κs, ret_κ) ->
   ret_κ.IsKind ∧ ∀ k ∈ κs, k.IsKind := by
  intros h1 h2; simp at h2
- rw[Option.bind_eq_some] at h2;
+ rw[Option.bind_eq_some_iff] at h2;
  cases h2; case _ w h2 =>
  cases h2; case _ h2 e =>
  cases e
@@ -76,7 +76,7 @@ intro wf j h
 apply kinding_split_arrow_aux k [] wf j
 simp
 unfold Term.split_kind_arrow at h; simp at h
-rw[Option.bind_eq_some] at h; cases h; case _ w h =>
+rw[Option.bind_eq_some_iff] at h; cases h; case _ w h =>
 cases h; case _ h e =>
 cases e
 simp; assumption
@@ -166,12 +166,12 @@ induction h <;> simp at *
 case _ A B _ _ _ ih =>
   cases ih; case _ ih =>
   cases ih; case _ ih =>
-  rw[Option.bind_eq_some] at ih;
+  rw[Option.bind_eq_some_iff] at ih;
   cases ih; case _ ih =>
   case _ h _ ret_k ks w =>
   exists ret_k
   exists ((ks.reverse ++ [A]).reverse)
-  rw[Option.bind_eq_some]; simp
+  rw[Option.bind_eq_some_iff]; simp
   cases ih; case _ h1 h2 =>
   have lem := @kinds_always_split_aux w.1 w.2 A [] B h
   have lem1 : w = (w.1, w.2) := by simp
@@ -187,7 +187,7 @@ theorem kind_split_arrow_mk_arrow_law {k k' ret_k : Term} {ks : List Term} :
   generalize p : k :: ks = ls at *
   induction ls using List.foldr.induct generalizing k ks <;> simp at *;
   case _ ih =>
-    symm; rw[Option.bind_eq_some] at h;
+    symm; rw[Option.bind_eq_some_iff] at h;
     cases h; case _ w h =>
     cases h <;> simp at *
     case _ h1 e =>

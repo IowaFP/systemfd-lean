@@ -24,10 +24,10 @@ case _ v t1 t2 ih1 ih2 =>
       replace ih1 := @ih1 .none r lem; simp at ih1
       rw [h2] at ih1; injection ih1
     case _ v =>
-      simp at h; simp; rw [Option.bind_eq_some] at h
+      simp at h; simp; rw [Option.bind_eq_some_iff] at h
       cases h; case _ a h =>
       cases h; case _ h1 h2 =>
-        injection h2 with e; rw [Option.bind_eq_some]; subst e; simp
+        injection h2 with e; rw [Option.bind_eq_some_iff]; subst e; simp
         replace ih1 := ih1 r h1; simp at ih1; apply ih1
         -- exists (r a.fst); exists (List.map (fun x => (x.fst, [r.to]x.snd)) a.snd)
 
@@ -131,7 +131,7 @@ theorem stable_type_match_sound :
 := by
 intro h
 unfold stable_type_match at h
-simp at h; rw [Option.bind_eq_some] at h; simp at h
+simp at h; rw [Option.bind_eq_some_iff] at h; simp at h
 cases h; case _ a h =>
 cases h; case _ h1 h2 =>
 cases h1; case _ sp h1 =>
@@ -150,7 +150,7 @@ intro h; induction B generalizing sB <;> simp at * <;> try simp [*]
 case _ v t1 t2 ih1 ih2 =>
   cases v <;> simp at * <;> try simp [*]
 
-theorem telescope_valid_frames {B : Term} :
+theorem telescope_valid_frames {τ : Ctx Term} {B : Term} :
   (f :: τ, sB) = B.to_telescope ->
   (∃ t, f = .type t) ∨ (∃ t, f = .kind t)
 := by
@@ -160,7 +160,7 @@ case _ v t1 t2 ih1 ih2 =>
   case _ => apply Or.inr; exists t1; apply h.1.1
   case _ => apply Or.inl; exists t1; apply h.1.1
 
-theorem telescope_type_head {B : Term} :
+theorem telescope_type_head {τ : Ctx Term} {B : Term} :
   (.type A :: τ, sB) = B.to_telescope ->
   ∃ D, B = (A -t> D) ∧ (τ, sB) = D.to_telescope
 := by
@@ -173,7 +173,7 @@ case _ v t1 t2 ih1 ih2 =>
       subst h1; subst h2; subst h3
       exists t2
 
-theorem telescope_kind_head {B : Term} :
+theorem telescope_kind_head {τ : Ctx Term} {B : Term} :
   (.kind A :: τ, sB) = B.to_telescope ->
   ∃ D, B = (∀[A] D) ∧ (τ, sB) = D.to_telescope
 := by
@@ -232,7 +232,7 @@ theorem prefix_type_match_sound :
 intros h; induction Γ, A, B using prefix_type_match.induct generalizing T;
 all_goals try (unfold prefix_type_match at h; simp at h;
                have h1 := h.1; replace h := h.2;
-               rw[Option.bind_eq_some] at h)
+               rw[Option.bind_eq_some_iff] at h)
 case _ heq ih =>
   have hbeq := Term.eq_of_beq heq; subst hbeq;
   cases h; case _ w' h =>
@@ -257,7 +257,7 @@ case _ heq ih =>
 case _ h' => contradiction
 case _ =>
   unfold prefix_type_match at h; simp at h;
-  rw[Option.bind_eq_some] at h;
+  rw[Option.bind_eq_some_iff] at h;
   cases h; case _ w h =>
   have h1 := h.1; have h2 := h.2; simp at h2;
   rw [h2.2];
@@ -276,7 +276,7 @@ case _ ih =>
   apply ValidCtorType.all ih;
 case _ =>
   unfold valid_ctor at h;
-  simp at h; rw[Option.bind_eq_some] at h;
+  simp at h; rw[Option.bind_eq_some_iff] at h;
   cases h; case _ w h =>
   simp at h; have h1 := h.1; symm at h1; have h2 := h.2;
   apply ValidCtorType.refl; unfold ValidHeadVariable; apply Exists.intro w;
@@ -294,7 +294,7 @@ case _ ih =>
   apply ValidInstType.all ih;
 case _ =>
   unfold valid_insttype at h;
-  simp at h; rw[Option.bind_eq_some] at h;
+  simp at h; rw[Option.bind_eq_some_iff] at h;
   cases h; case _ w h =>
   simp at h; have h1 := h.1; symm at h1; have h2 := h.2;
   apply ValidInstType.refl; unfold ValidHeadVariable; apply Exists.intro w;

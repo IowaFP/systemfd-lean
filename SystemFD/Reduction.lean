@@ -64,6 +64,8 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
 ----------------------------------------------------------------
 | inst :
   .some (x, sp) = Term.neutral_form h ->
+  .some T = (Γ d@ x).get_type ->
+  sp.length ≥ T.arity ->
   Γ.is_openm x ->
   tl = get_instances Γ x ->
   tl' = List.map (λ x => x.apply_spine sp) tl ->
@@ -74,7 +76,7 @@ inductive Red : Ctx Term -> Term -> Term -> Prop where
 ----------------------------------------------------------------
 | letterm :
   .some (x, sp) = Term.neutral_form h ->
-  .term _ t = Γ d@ x ->
+  .term A t = Γ d@ x ->
   Red Γ h (t.apply_spine sp)
 ----------------------------------------------------------------
 ---- Congruence Rules
@@ -154,8 +156,69 @@ inductive RedStar (Γ : Ctx Term) : Term -> Term -> Prop where
 | step : RedStar Γ x y -> Red Γ y z -> RedStar Γ x z
 
 inductive RedPlus (Γ : Ctx Term) : Term -> Term -> Prop where
-| step : RedStar Γ x y -> Red Γ y z -> RedPlus Γ x z
+| one : Red Γ x y -> RedPlus Γ x y
+| step : RedPlus Γ x y -> Red Γ y z -> RedPlus Γ x z
 
 notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶⋆ " N:170 => RedStar Γ M N
 notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶+ " N:170 => RedPlus Γ M N
 notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶ " N:170 => Red Γ M N
+
+theorem RedPlus.ctor1_congr :
+  RedPlus Γ t t' ->
+  RedPlus Γ (.ctor1 v t) (.ctor1 v t')
+:= by
+  intro r; induction r
+  case _ r => apply RedPlus.one (Red.ctor1_congr r)
+  case _ r1 r2 ih => apply RedPlus.step ih (Red.ctor1_congr r2)
+
+theorem RedPlus.ctor2_congr1 :
+  ctor2_has_congr1 v ->
+  RedPlus Γ t1 t1' ->
+  RedPlus Γ (.ctor2 v t1 t2) (.ctor2 v t1' t2)
+:= by
+  intro h r; induction r
+  case _ r => apply RedPlus.one (Red.ctor2_congr1 h r)
+  case _ r1 r2 ih => apply RedPlus.step ih (Red.ctor2_congr1 h r2)
+
+theorem RedPlus.ctor2_congr2 :
+  ctor2_has_congr2 v ->
+  RedPlus Γ t2 t2' ->
+  RedPlus Γ (.ctor2 v t1 t2) (.ctor2 v t1 t2')
+:= by
+  intro h r; induction r
+  case _ r => apply RedPlus.one (Red.ctor2_congr2 h r)
+  case _ r1 r2 ih => apply RedPlus.step ih (Red.ctor2_congr2 h r2)
+
+theorem RedPlus.bind2_congr1 :
+  bind2_has_congr1 v ->
+  RedPlus Γ t1 t1' ->
+  RedPlus Γ (.bind2 v t1 t2) (.bind2 v t1' t2)
+:= by
+  intro h r; induction r
+  case _ r => apply RedPlus.one (Red.bind2_congr1 h r)
+  case _ r1 r2 ih => apply RedPlus.step ih (Red.bind2_congr1 h r2)
+
+theorem RedPlus.bind2_congr2 :
+  bind2_has_congr2 v ->
+  RedPlus (bind2_frame t1 v :: Γ) t2 t2' ->
+  RedPlus Γ (.bind2 v t1 t2) (.bind2 v t1 t2')
+:= by
+  intro h r; induction r
+  case _ r => apply RedPlus.one (Red.bind2_congr2 h r)
+  case _ r1 r2 ih => apply RedPlus.step ih (Red.bind2_congr2 h r2)
+
+theorem RedPlus.ite_congr :
+  RedPlus Γ s s' ->
+  RedPlus Γ (.ite p s b e) (.ite p s' b e)
+:= by
+  intro r; induction r
+  case _ r => apply RedPlus.one (Red.ite_congr r)
+  case _ r1 r2 ih => apply RedPlus.step ih (Red.ite_congr r2)
+
+theorem RedPlus.guard_congr :
+  RedPlus Γ s s' ->
+  RedPlus Γ (.guard p s b) (.guard p s' b)
+:= by
+  intro r; induction r
+  case _ r => apply RedPlus.one (Red.guard_congr r)
+  case _ r1 r2 ih => apply RedPlus.step ih (Red.guard_congr r2)

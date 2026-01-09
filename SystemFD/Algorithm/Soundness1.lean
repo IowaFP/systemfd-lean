@@ -8,9 +8,9 @@ intro h wf
 induction t using wf_kind.induct
 case _ => constructor; apply wf
 case _ A B ih1 ih2 =>
-  simp at h; rw [Option.bind_eq_some] at h
+  simp at h; rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
-  simp at h; rw [Option.bind_eq_some] at h
+  simp at h; rw [Option.bind_eq_some_iff] at h
   cases h; case _ h1 h2 =>
   cases h2; case _ u2 h2 =>
   constructor; apply ih1 h1; apply ih2 h2.1
@@ -23,21 +23,21 @@ theorem infer_kind_sound : infer_kind Γ t = .some A -> ⊢ Γ -> Γ ⊢ t : A :
 intro h wf
 induction Γ, t using infer_kind.induct generalizing A
 case _ Γ x => -- Var
-  simp at h; rw [Option.bind_eq_some] at h
+  simp at h; rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  simp at h2; rw [Option.bind_eq_some] at h2
+  simp at h2; rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
     constructor; apply wf
     rw [h2.2] at h1; rw [h1]
 case _ Γ A' B ih => -- ∀[A] B
-  simp at h; rw [Option.bind_eq_some] at h
+  simp at h; rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  simp at h2; rw [Option.bind_eq_some] at h2
+  simp at h2; rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  simp at h3; rw [Option.bind_eq_some] at h3
+  simp at h3; rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
   injection h4 with e; subst e
@@ -50,16 +50,16 @@ case _ Γ A' B ih => -- ∀[A] B
   apply Judgment.allt lem1 lem3;
 
 case _ Γ A' B ih1 ih2 => -- A -t> B
-  simp at h; rw [Option.bind_eq_some] at h
+  simp at h; rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
   replace h2 := is_type_some h2; subst h2
@@ -72,13 +72,13 @@ case _ Γ A' B ih1 ih2 => -- A -t> B
   assumption; assumption;
 
 case _ Γ f a ih1 ih2 =>
-  simp at h; rw [Option.bind_eq_some] at h
+  simp at h; rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
     replace h2 := is_arrowk_some h2
@@ -87,19 +87,19 @@ case _ Γ f a ih1 ih2 =>
     constructor; apply ih1 h1 wf
     apply ih2 h3 wf
 case _ ih1 ih2 =>
-  simp at h; rw [Option.bind_eq_some] at h
+  simp at h; rw [Option.bind_eq_some_iff] at h
   cases h; case _ u1 h =>
   cases h; case _ h1 h2 =>
-  rw [Option.bind_eq_some] at h2
+  rw [Option.bind_eq_some_iff] at h2
   cases h2; case _ u2 h2 =>
   cases h2; case _ h2 h3 =>
-  rw [Option.bind_eq_some] at h3
+  rw [Option.bind_eq_some_iff] at h3
   cases h3; case _ u3 h3 =>
   cases h3; case _ h3 h4 =>
-  rw [Option.bind_eq_some] at h4
+  rw [Option.bind_eq_some_iff] at h4
   cases h4; case _ u4 h4 =>
   cases h4; case _ h4 h5 =>
-  rw [Option.bind_eq_some] at h5
+  rw [Option.bind_eq_some_iff] at h5
   cases h5; case _ u5 h5 =>
   cases h5; case _ h5 h6 =>
   simp at h6;

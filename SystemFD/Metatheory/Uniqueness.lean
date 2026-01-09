@@ -367,7 +367,7 @@ case _ i =>
 case _ v t1 t2 ih1 ih2 =>
   cases v; all_goals try simp at j1
   case _ =>
-    replace j1 := Option.bind_eq_some.1 j1
+    replace j1 := Option.bind_eq_some_iff.1 j1
     cases j1; case _ w j1 =>
     cases w; case _ j sp' =>
     simp at j1; cases j1; case _ h1 h2 =>
@@ -378,7 +378,7 @@ case _ v t1 t2 ih1 ih2 =>
     replace ih1 := ih1 h1 q2 w2
     injection ih1
   case _ =>
-    replace j1 := Option.bind_eq_some.1 j1
+    replace j1 := Option.bind_eq_some_iff.1 j1
     cases j1; case _ w j1 =>
     cases w; case _ j sp' =>
     simp at j1; cases j1; case _ h1 h2 =>
@@ -391,7 +391,7 @@ case _ v t1 t2 ih1 ih2 =>
     subst e1; subst e2
     subst q3; subst w3; rfl
   case _ =>
-    replace j1 := Option.bind_eq_some.1 j1
+    replace j1 := Option.bind_eq_some_iff.1 j1
     cases j1; case _ w j1 =>
     cases w; case _ j sp' =>
     simp at j1; cases j1; case _ h1 h2 =>

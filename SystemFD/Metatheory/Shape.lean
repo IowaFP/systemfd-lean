@@ -407,9 +407,9 @@ induction k using wf_kind.induct generalizing u
 case _ => constructor
 all_goals (unfold wf_kind at h; simp at h)
 case _ ih1 ih2 =>
-  rw[Option.bind_eq_some] at h; cases h; case _ h =>
+  rw[Option.bind_eq_some_iff] at h; cases h; case _ h =>
   cases h; case _ h =>
-  rw[Option.bind_eq_some] at h; cases h; case _ h =>
+  rw[Option.bind_eq_some_iff] at h; cases h; case _ h =>
   cases h; case _ h1 _ h2 _ =>
   -- cases e
   replace ih1 := ih1 h1

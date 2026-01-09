@@ -15,7 +15,7 @@ theorem application_spine_size (τ : HsTerm) :
   case _ v _ _ ih1 ih2 =>
     cases v <;> simp at h1
     all_goals(
-      rw[Option.bind_eq_some] at h1; cases h1;
+      rw[Option.bind_eq_some_iff] at h1; cases h1;
       case _ sp' nf =>
       cases nf; case _ anf nf =>
       cases nf; simp at h2;
@@ -39,7 +39,7 @@ case _ => cases h; case _ h _ => cases h; simp
 case _ cv _ _ ih1 ih2 =>
   cases cv <;>  simp at h
   all_goals (
-    rw[Option.bind_eq_some] at h; cases h; case _ h =>
+    rw[Option.bind_eq_some_iff] at h; cases h; case _ h =>
     cases h; case _ w h1 h2 =>
     cases h2;
     have ih1' := @ih1 w.snd h1;

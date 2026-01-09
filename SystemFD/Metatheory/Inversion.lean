@@ -395,9 +395,49 @@ case _ B T A j ih =>
   cases h2; case _ h =>
     unfold ValidHeadVariable at h; simp at *
 
+theorem term_has_no_arity :
+  Γ ⊢ t : A ->
+  Γ ⊢ A : ★ ->
+  t.arity = 0
+:= by
+  intro j1 j2
+  cases j1 <;> simp [Term.arity]
+  all_goals cases j2
+
+theorem spine_less_than_spine_type :
+  sp.length < A.arity ->
+  B.ground ->
+  SpineType Γ sp A B ->
+  False
+:= by
+  intro h1 h2 j; induction j
+  case _ T =>
+    simp [Term.ground] at *
+    cases T <;> try simp at h2
+    case _ => simp [Term.arity] at h1
+    case _ v t1 t2 =>
+      cases v <;> simp at h2
+      simp [Term.arity] at h1
+    case _ => simp [Term.arity] at h1
+  case _ a A B sp T j1 j2 j3 ih =>
+    simp [Term.arity] at h1
+    cases j2; case _ j2 j4 =>
+    apply ih _ h2; rw [Term.arity_beta]
+    exact h1; apply term_has_no_arity j1 j2
+  case _ a A B sp T j1 j2 j3 ih =>
+    simp [Term.arity] at h1
+    cases j2; case _ j2 j4 =>
+    have lem1 : B.arity ≤ (B β[a]).arity := Term.arity_subst_leq
+    have lem2 : sp.length < (B β[a]).arity := by omega
+    apply ih lem2 h2
+  case _ a A B sp T j1 j2 j3 ih =>
+    simp [Term.arity] at h1
+    replace h1 : sp.length < B.arity := by omega
+    apply ih h1 h2
+
 theorem ctx_get_var_no_spine_eq_type:
   ⊢ Γ ->
-  Γ.is_stable_red x ->
+  Γ.is_stable_red x ∨ OpenVarVal Γ x sp ->
   (Γ d@ x).get_type = some T ->
   Γ ⊢ (A ~[K]~ B) : ★ ->
   SpineType Γ sp T (A ~[K]~ B) ->
@@ -409,11 +449,16 @@ simp at *; generalize fdef : Γ d@ x = f at *
 cases lem1
 all_goals (
   unfold Frame.get_type at h3
-  unfold Frame.is_stable_red at h2; simp at *)
+  unfold Frame.is_stable_red at h2
+  simp [OpenVarVal] at *)
+any_goals (rw [fdef] at h2; simp [Frame.is_openm] at h2)
 case _ j => subst h3; apply spine_type_is_not_kind h5 h4 j
 case _ j => subst h3; apply spine_type_is_not_kind h5 h4 j
 case _ j1 j2 => subst h3; apply spine_type_is_not_valid_ctor rfl h5 j2
 case _ j => subst h3; apply spine_type_is_not_kind h5 h4 j
+case _ C j =>
+  subst h3; replace h2 := h2 C; simp [Frame.get_type] at h2
+  apply spine_less_than_spine_type h2 _ h5; simp [Term.ground]
 case _ j1 j2 => subst h3; apply spine_type_is_not_valid_insttype rfl h5 j2
 
 theorem ctx_get_var_spine_type :

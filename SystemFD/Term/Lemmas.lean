@@ -20,7 +20,7 @@ theorem application_spine_size (τ : Term) :
   case _ v _ _ ih1 ih2 =>
     cases v <;> simp at h1
     all_goals(
-      rw[Option.bind_eq_some] at h1; cases h1;
+      rw[Option.bind_eq_some_iff] at h1; cases h1;
       case _ sp' nf =>
       cases nf; case _ anf nf =>
       cases nf; simp at h2;

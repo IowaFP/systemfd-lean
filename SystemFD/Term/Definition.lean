@@ -27,7 +27,6 @@ inductive Bind2Variant : Type where
 | arrowc
 deriving Repr
 
-
 @[simp]
 def ctor2_has_congr1 : Ctor2Variant -> Bool
 | .refl => false

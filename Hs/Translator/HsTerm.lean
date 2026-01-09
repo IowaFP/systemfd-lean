@@ -146,7 +146,6 @@ case _ =>
   replace lem := lem prf
   assumption
 case _ =>
-  simp;
   cases cmph;
   have lem : (HsTerm.HsAnnotate τh h).size ≤ tm.size :=
        @HsTerm.application_spine_head_size (.HsAnnotate τh h) args tm tnfp
