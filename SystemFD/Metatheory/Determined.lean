@@ -60,10 +60,6 @@ def Determined.beta (f : FrameVariant) :
   case _ h3 => apply h1 h3
   case _ h3 => apply h2 h3
 
-inductive Frame.Determined : Frame Term -> Prop
-| openm :
-  Determined (.openm t)
-
 def Determined.openm (Γ : Ctx Term) (i : Nat) : Prop :=
   ∀ T G sp,
     Γ d@ i = .openm T ->
@@ -246,3 +242,14 @@ theorem determined_progress_lemma :
   case allc => sorry
   case apptc => sorry
   case empty dt _ => exfalso; apply dt; constructor; simp
+
+theorem determined_progress :
+  (∀ x, ¬ Γ.is_type x) ->
+  Γ ⊢ t : A ->
+  t.Determined Γ.variants ->
+  Γ.Determined ->
+  Val Γ t ∨ (∃ t', RedPlus Γ t t' ∧ t'.Determined Γ.variants)
+:= by
+  intro h j dt dΓ
+  have lem := determined_progress_lemma h j
+  simp at lem; apply lem dt dΓ
