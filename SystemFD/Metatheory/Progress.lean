@@ -371,12 +371,26 @@ case var Γ x T j1 j2 _ =>
   case openm A =>
     generalize tldef : get_instances Γ x = tl at *
     generalize tdef : List.foldl (·⊕·) `0 tl = t at *
-    apply Or.inr; apply Exists.intro t
-    sorry
-    -- apply @Red.inst _ x [] Γ tl _ tl t; simp
-    -- unfold Ctx.is_openm; rw [fdef]
-    -- unfold Frame.is_openm; simp; rw [tldef]
-    -- simp; rw [tdef]
+    unfold Frame.get_type at j2; simp at j2; cases j2
+    generalize Taritydef : T.arity = t_ar at *
+    cases t_ar
+    case _ =>
+     apply Or.inr; apply Exists.intro t
+     apply @Red.inst _ x [] Γ T tl tl t; simp
+     · rw [fdef]; unfold Frame.get_type; simp
+     · simp; assumption
+     · simp; rw [fdef]; unfold Frame.is_openm; simp
+     · symm at tldef; assumption
+     · simp
+     · symm at tdef; assumption
+    case _ =>
+      apply Or.inl; apply Val.app x []
+      · simp
+      · simp; unfold Frame.is_stable_red; rw[fdef]; simp; unfold OpenVarVal;
+        constructor
+        · simp; rw[fdef]; unfold Frame.is_openm; simp
+        · intro _ gt ; simp; rw[fdef] at gt;
+          unfold Frame.get_type at gt; simp at gt; cases gt; rw[Taritydef]; omega
   case type =>
     replace h1 := h1 x; rw [fdef] at h1;
     unfold Frame.is_type at h1; simp at h1
@@ -415,26 +429,25 @@ case ite j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 ih1 ih2 ih3 ih4 ih5 ih6 =>
     case app x3 sp3 h2 h3 =>
       generalize t1def : prefix_equal sp1 sp3 = t at *
       replace h3 := Eq.symm h3
-      sorry
-      -- cases t
-      -- case _ =>
-      --   cases h2
-      --   case _ h2 =>
-      --     apply Or.inr; apply Exists.intro _
-      --     apply Red.ite_missed j5.1 h3 h2 (Or.inr t1def)
-      --   case _ h2 => sorry
-      -- case _ q =>
-      --   cases Nat.decEq x1 x3
-      --   case _ h4 =>
-      --     cases h2
-      --     case _ h2 =>
-      --       apply Or.inr; apply Exists.intro _
-      --       apply Red.ite_missed j5.1 h3 h2 (Or.inl h4)
-      --     case _ h2 =>
-      --       sorry
-      --   case _ h4 =>
-      --     subst h4; apply Or.inr; apply Exists.intro _
-      --     apply Red.ite_matched j5.1 h3 (Eq.symm t1def) j5.2
+      cases t
+      case _ =>
+        cases h2
+        case _ h2 =>
+          apply Or.inr; apply Exists.intro _
+          apply Red.ite_missed j5.1 h3 h2 (Or.inr t1def)
+        case _ h2 => sorry
+      case _ q =>
+        cases Nat.decEq x1 x3
+        case _ h4 =>
+          cases h2
+          case _ h2 =>
+            apply Or.inr; apply Exists.intro _
+            apply Red.ite_missed j5.1 h3 h2 (Or.inl h4)
+          case _ h2 =>
+            sorry
+        case _ h4 =>
+          subst h4; apply Or.inr; apply Exists.intro _
+          apply Red.ite_matched j5.1 h3 (Eq.symm t1def) j5.2
     case choice v1 v2 =>
       apply Or.inr; apply Exists.intro _
       apply Red.ite_map

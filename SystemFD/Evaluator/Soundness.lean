@@ -245,7 +245,7 @@ case _ => simp_all
 
 
 
-theorem eval_inst_soundess : eval_inst Γ t = .some t' -> Red Γ t t' := by
+theorem eval_inst_soundess : eval Γ t = .some t' -> Red Γ t t' := by
 intro et
 induction Γ, t using eval_inst.induct generalizing t'
 all_goals (simp at et)

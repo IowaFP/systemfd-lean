@@ -557,14 +557,3 @@ case _ =>
   apply Exists.intro _
   apply Exists.intro _
   apply And.intro j1 j3
-
-
--- theorem neutral_form_well_typed {Γ : Ctx Term} {A : Term} {h : Nat} :
---   ⊢ Γ ->
---   Term.neutral_form A = .some (h, sp) ->
---   Γ ⊢ A : k ->
---   (∃ k, (Γ ⊢ #h : k) ∧
---   ∀ e ∈ sp, ∃ k, (Γ ⊢ e.2 : k)) := by
--- intro wf e j
-
--- sorry

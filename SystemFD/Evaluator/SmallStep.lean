@@ -208,41 +208,45 @@ def eval_const_folding2 (Γ : Ctx Term) : (t : Term) -> Option Term
 
 | _ => .none
 
+@[simp, grind]
+def eval_inst (Γ : Ctx Term) (h arity: Nat) : Option Term :=
+  match Γ d@ h with
+  | .openm T =>
+    if arity ≥ T.arity
+    then
+      let ιs := get_instances Γ h -- select the right instances using the indices
+      .some (List.foldl (·⊕·) `0 ιs)
+    else .none
+  | .term _ b => b  -- inline a let bound term
+  | _ => .none -- do not evaluate
 
 
 -- Instantiates instances/performs a one step term evaluation
 @[simp]
-def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
-| .var h =>
-  match (Γ d@ h) with
-  | .openm _ =>
-    let ιs := get_instances Γ h -- select the right instances using the indices
-    .some (List.foldl (·⊕·) `0 ιs)
-  | .term _ b => b  -- inline a let bound term
-  | _ => .none -- do not evaluate
-
+def eval (Γ : Ctx Term) : (t : Term) -> Option Term
+| .var h => eval_inst Γ h 0
 | .letterm _ t t' => .some (t' β[ t ])
 
 ------------------------
 -- Case matching
 ------------------------
 | .ite p s b c => do
-  let (h, sp) <- Term.neutral_form p
+  let (h, sp) <- p.neutral_form
   if Γ.is_ctor h
-  then (match Term.neutral_form s with
+  then (match s.neutral_form with
         | .none => do
-          let s'' <- eval_inst Γ s
+          let s'' <- eval Γ s
           .some (.ite p s'' b c)
-        | .some (s' , sp') =>
+        | .some (h , sp') =>
           -- s can be neutral, but the head is a let term or an open method
           -- so instantiate it
-          if ¬ (Γ.is_stable_red s')
+          if ¬ (Γ.is_stable_red h)
           then do
-               let s'' <- eval_inst Γ s
-               .some (.ite p s'' b c)
+                 let s'' <- eval_inst Γ h sp.length
+                 .some (.ite p s'' b c)
           else ( -- s' cannot be a term or an instance
                  -- if it is then evaluate by eval_inst
-                 if h == s'
+                 if h == h
                  then match (prefix_equal sp sp') with
                       | .some l => .some (Term.apply_spine b l)
                       | _ => .some c
@@ -254,21 +258,21 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 -- Guards over open terms
 ------------------------
 | .guard p s c => do
-  let (p', sp) <- Term.neutral_form p
+  let (p', sp) <- p.neutral_form
   if Γ.is_insttype p'
-  then match Term.neutral_form s with
+  then match s.neutral_form with
        | .none => do
-         let s'' <- eval_inst Γ s
+         let s'' <- eval Γ s
          .some (.guard p s'' c)
-       | .some (s' , sp') =>
+       | .some (h , sp') =>
           -- s can be neutral, but the head is a let term or an open method
           -- so instantiate it
-         if ¬ (Γ.is_stable_red s')
+         if ¬ (Γ.is_stable_red h)
          then do
-           let s'' <- eval_inst Γ s
+           let s'' <- eval_inst Γ h sp.length
            .some (.guard p s'' c)
          else
-            if p' == s'
+            if p' == h
             then match prefix_equal sp sp' with
                  | .some l => .some (c.apply_spine l)
                  | _       => .some `0 -- guards failing return empty list
@@ -281,7 +285,7 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 ---------------------------
 
 | .ctor1 v η => do
-  let η' <- eval_inst Γ η
+  let η' <- eval Γ η
   .some (.ctor1 v η')
 
 --------------------------
@@ -292,7 +296,7 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 | .ctor2 .app f t =>
   match f.neutral_form with
   | .none => do
-      let f' <- eval_inst Γ f
+      let f' <- eval Γ f
       .some (f' `@ t) -- call by name
 
   | .some (h, sp) =>
@@ -308,7 +312,7 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 | .ctor2 .appt f t =>
   match f.neutral_form with
   | .none => do
-      let f' <- eval_inst Γ f
+      let f' <- eval Γ f
       .some (f' `@t t) -- call by name
 
   | .some (h, sp) =>
@@ -323,15 +327,15 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 
 
 | .ctor2 v η1 η2 => if ctor2_has_congr1 v
-  then match eval_inst Γ η1 with
+  then match eval Γ η1 with
        | .some η1' => .some (.ctor2 v η1' η2)
        | .none => if ctor2_has_congr2 v
-                  then match eval_inst Γ η2 with
+                  then match eval Γ η2 with
                        | .some η2' => .some (.ctor2 v η1 η2')
                        | .none => .none
                   else .none
   else (if ctor2_has_congr2 v
-       then match eval_inst Γ η2 with
+       then match eval Γ η2 with
            | .some η2' => .some (.ctor2 v η1 η2')
            | .none => .none
        else .none)
@@ -341,30 +345,30 @@ def eval_inst (Γ : Ctx Term) : (t : Term) -> Option Term
 ---------------------------
 -- Evaluate first component first
 | .bind2 .arrowc (.ctor2 .refl ★ t) η => do
-  let η' <- eval_inst (.empty :: Γ) η
+  let η' <- eval (.empty :: Γ) η
   .some ((refl! ★ t) -c> η')
 
 | .bind2 .arrowc η η' => do
-  let η'' <- eval_inst Γ η
+  let η'' <- eval Γ η
   .some (η'' -c> η')
 
 
 -- Evaluate second component first
 | .bind2 .allc t η => do
-  let η' <- eval_inst (.kind t :: Γ) η
+  let η' <- eval (.kind t :: Γ) η
   .some (∀c[t] η')
 
 | .bind2 v η1 η2 =>
   if bind2_has_congr1 v
-  then match eval_inst Γ η1 with
+  then match eval Γ η1 with
        | .some η1' => .some (.bind2 v η1' η2)
        | .none => if bind2_has_congr2 v
-                  then match eval_inst (bind2_frame η1 v :: Γ) η2 with
+                  then match eval (bind2_frame η1 v :: Γ) η2 with
                        | .some η2' => .some (.bind2 v η1 η2')
                        | .none => .none
                   else .none
   else (if bind2_has_congr2 v
-       then match eval_inst (bind2_frame η1 v :: Γ) η2 with
+       then match eval (bind2_frame η1 v :: Γ) η2 with
            | .some η2' => .some (.bind2 v η1 η2')
            | .none => .none
        else .none)
@@ -379,6 +383,6 @@ def eval_small_step (Γ : Ctx Term) (t : Term) : Option Term :=
              | .some t' => .some t'
              | .none    => match eval_const_folding2 Γ t with
                            | .some t' => .some t'
-                           | .none   => match eval_inst Γ t with
+                           | .none   => match eval Γ t with
                                         | .some t' => .some t'
                                         | .none => .none

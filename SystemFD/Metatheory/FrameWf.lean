@@ -272,6 +272,3 @@ all_goals (cases h2)
 case _ => cases h1; assumption
 all_goals (unfold Frame.is_opent at h3; simp at h3)
 case _ => cases h1; assumption
-
-  -- subst h2
-  -- cases h1; assumption
