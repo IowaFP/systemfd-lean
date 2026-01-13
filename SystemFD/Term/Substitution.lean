@@ -84,7 +84,7 @@ namespace Term
   def mk_kind_arrow (k : Term) (ks : List Term) : Term := List.foldr (λ a acc => a -k> acc) k ks
 
 
-  #eval split_kind_arrow (★ -k> ★ -k> (★ -k> ★) -k> ★)
+  #reduce split_kind_arrow (★ -k> ★ -k> (★ -k> ★) -k> ★)
   #eval mk_kind_arrow ★ [★, ★, (★ -k> ★)]
 
   @[simp]
@@ -193,6 +193,42 @@ namespace Term
   induction t, t1 using Term.apply_spine.induct generalizing t2
   case _ => simp
   all_goals (case _ ih => simp; rw [ih])
+
+
+
+theorem apply_spine_term_extend (h : Term) :
+  t = h.apply_spine τs ->
+  (t `@ a) = h.apply_spine (τs ++ [(.term, a)]) := by
+intro h1
+induction h, τs using Term.apply_spine.induct <;> simp at *
+assumption
+all_goals (
+  case _ ih =>
+  replace ih := ih h1
+  assumption)
+
+theorem apply_spine_type_extend (h : Term) :
+  t = h.apply_spine τs ->
+  (t `@t a) = h.apply_spine (τs ++ [(.type, a)]) := by
+intro h1
+induction h, τs using Term.apply_spine.induct <;> simp at *
+assumption
+all_goals (
+  case _ ih =>
+  replace ih := ih h1
+  assumption)
+
+theorem apply_spine_kind_extend (h : Term) :
+  t = h.apply_spine τs ->
+  (t `@k a) = h.apply_spine (τs ++ [(.kind, a)]) := by
+intro h1
+induction h, τs using Term.apply_spine.induct <;> simp at *
+assumption
+all_goals (
+  case _ ih =>
+  replace ih := ih h1
+  assumption)
+
 
   theorem neutral_form_law :
     .some (x, sp) = Term.neutral_form t ->

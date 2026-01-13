@@ -6,7 +6,7 @@ import SystemFD.Metatheory.FrameWf
 import SystemFD.Metatheory.Inversion
 import SystemFD.Reduction
 
--- set_option maxHeartbeats 500000
+set_option maxHeartbeats 500000
 
 
 inductive Val : Ctx Term -> Term -> Prop where
@@ -174,7 +174,9 @@ inductive LambdaLike (Γ : Ctx Term) : (T : Term) -> Prop where
   LambdaLike Γ t1 ->
   LambdaLike Γ t2 ->
   LambdaLike Γ (t1 ⊕ t2)
-| app : OpenVarVal Γ h τs -> LambdaLike Γ ((#h).apply_spine ts)
+| app :
+  OpenVarVal Γ h τs ->
+  LambdaLike Γ ((#h).apply_spine τs)
 
 @[simp]
 abbrev CanonicalLambdaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentArgs v -> Prop
@@ -185,6 +187,14 @@ abbrev CanonicalLambdaType (Γ : Ctx Term) : (v : JudgmentVariant) -> JudgmentAr
        ArrowLike τ ->
        LambdaLike Γ t
 | .wf => λ () => true
+
+theorem neutral_form_apply_spine :
+  (#n).apply_spine τs = t ->
+  t.neutral_form = .some (n, τs) := by
+intro h; rw[<-h]
+induction τs <;> simp at *
+sorry
+
 
 theorem canonical_lambda :
   Judgment v Γ idx ->
@@ -245,7 +255,7 @@ case var Γ n T wf gt ih =>
       cases n_stable
       case _ h => simp at h; rw[fh] at h; unfold Frame.is_stable_red at h; simp at h
       case _ A B _ h =>
-        apply @LambdaLike.app Γ n [] [] h
+        apply @LambdaLike.app Γ n [] h
     case _ =>
       apply LambdaLike.insttype; unfold ValidHeadVariable;
       apply Exists.intro (n, []);
@@ -298,7 +308,7 @@ case var Γ n T wf gt ih =>
       cases n_stable
       case _ h => simp at h; rw[fh] at h; unfold Frame.is_stable_red at h; simp at h
       case _ A B _ h =>
-        apply @LambdaLike.app Γ n [] [] h
+        apply @LambdaLike.app Γ n [] h
     case _ =>
       apply LambdaLike.insttype; unfold ValidHeadVariable;
       apply Exists.intro (n, []);
@@ -352,8 +362,18 @@ case app Γ f A B a B' fJ aJ h0 ih1 ih2 =>
   cases ts'; case _ x sp =>
   simp at hts; cases hts; case _ e1 e2 =>
   subst e1; subst e2
-  -- have h := Val.app x sp fnf n_stable;
-  simp at *;
+  have h : Val Γ f := Val.app x sp fnf
+    (by cases n_stable;
+        case _ => apply Or.inl; assumption
+        case _ h =>
+          apply Or.inr; unfold OpenVarVal at h; simp at h;
+          cases h; case _ h =>
+          unfold OpenVarVal; simp at *
+          constructor
+          · assumption
+          · intro T gt; replace h := h T gt; omega
+    )
+  simp at *
   have lem := classification_lemma fJ; simp at lem;
   cases lem;
   case _ h => cases h
@@ -362,31 +382,42 @@ case app Γ f A B a B' fJ aJ h0 ih1 ih2 =>
     cases h; case _ k h =>
     cases h; case _ aK bK =>
     have arrK := Judgment.arrow aK bK;
-    -- have ih := ih1 h fJ arrK (ArrowLike.arrowt); cases ih;
-    -- case _ h => cases fnf
-    -- case _ h => cases fnf
-    -- case _ h =>
-    --   apply LambdaLike.ctor;
-    --   unfold ValidHeadVariable;
-    --   have fanf := @Term.neutral_form_app f a x sp fnf; symm at fanf;
-    --   apply Exists.intro (x, sp ++ [(.term, a)]);
-    --   apply And.intro; assumption; simp;
-    --   unfold ValidHeadVariable at h; simp at h;
-    --   cases h; case _ h => cases h; case _ fnf' h =>
-    --   rw [fnf] at fnf'; cases fnf'; case _ h =>
-    --   cases h; assumption
-    -- case _ h =>
-    --   apply LambdaLike.insttype;
-    --   unfold ValidHeadVariable;
-    --   have fanf := @Term.neutral_form_app f a x sp fnf; symm at fanf;
-    --   apply Exists.intro (x, sp ++ [(.term, a)]);
-    --   apply And.intro; assumption; simp;
-    --   unfold ValidHeadVariable at h; simp at h;
-    --   cases h; case _ h => cases h; case _ fnf' h =>
-    --   rw [fnf] at fnf'; cases fnf'; case _ h =>
-    --   cases h; assumption
-    -- case _ => cases fnf
-    sorry
+    have ih := ih1 h fJ arrK (ArrowLike.arrowt); cases ih;
+    case _ h => cases fnf
+    case _ h => cases fnf
+    case _ h =>
+      apply LambdaLike.ctor;
+      unfold ValidHeadVariable;
+      have fanf := @Term.neutral_form_app f a x sp fnf; symm at fanf;
+      apply Exists.intro (x, sp ++ [(.term, a)]);
+      apply And.intro; assumption; simp;
+      unfold ValidHeadVariable at h; simp at h;
+      cases h; case _ h => cases h; case _ fnf' h =>
+      rw [fnf] at fnf'; cases fnf'; case _ h =>
+      cases h; assumption
+    case _ h =>
+      apply LambdaLike.insttype;
+      unfold ValidHeadVariable;
+      have fanf := @Term.neutral_form_app f a x sp fnf; symm at fanf;
+      apply Exists.intro (x, sp ++ [(.term, a)]);
+      apply And.intro; assumption; simp;
+      unfold ValidHeadVariable at h; simp at h;
+      cases h; case _ h => cases h; case _ fnf' h =>
+      rw [fnf] at fnf'; cases fnf'; case _ h =>
+      cases h; assumption
+    case _ => cases fnf
+    case _ n τs _ =>
+      simp at *;
+      have ih := ih1 h fJ arrK (by constructor)
+      generalize tdef : (#n).apply_spine τs = t at *
+      have lem := @Term.apply_spine_term_extend t τs a #n (Eq.symm tdef); rw[lem]
+      have lem := neutral_form_apply_spine tdef; rw[lem] at fnf; cases fnf;
+      apply LambdaLike.app
+      cases n_stable;
+      case _ h _ _ =>
+        unfold OpenVarVal at h; simp at h; cases h;
+        case _ h' h _ => have lem := Frame.is_openm_implies_not_is_stable_red h; exfalso; apply lem h'
+      case _ => assumption
 
 case _ Γ f A B a B' fJ aJ _ ih1 ih2 =>
   cases h1; case _ n ts n_stable h1 =>
@@ -396,7 +427,18 @@ case _ Γ f A B a B' fJ aJ _ ih1 ih2 =>
   cases ts'; case _ x sp =>
   simp at hts; cases hts; case _ e1 e2 =>
   subst e1; subst e2
-  -- have h := Val.app x sp fnf n_stable;
+  have h : Val Γ f := Val.app x sp fnf
+    (by cases n_stable;
+        case _ => apply Or.inl; assumption
+        case _ h =>
+          apply Or.inr; unfold OpenVarVal at h; simp at h;
+          cases h; case _ h =>
+          unfold OpenVarVal; simp at *
+          constructor
+          · assumption
+          · intro T gt; replace h := h T gt; omega
+    )
+
   simp at *;
   have lem := classification_lemma fJ; simp at lem;
   cases lem;
@@ -406,42 +448,47 @@ case _ Γ f A B a B' fJ aJ _ ih1 ih2 =>
     cases h; case _ k h =>
     cases h; case _ aK bK =>
     have arrK := Judgment.allt aK bK;
-    sorry
---     have ih := ih1 h fJ arrK (ArrowLike.allt); cases ih;
---     case _ h => cases fnf
---     case _ h => cases fnf
---     case _ h =>
---         apply LambdaLike.ctor;
---         unfold ValidHeadVariable;
---         have fanf := @Term.neutral_form_appt f a x sp fnf; symm at fanf;
---         apply Exists.intro (x, sp ++ [(.type, a)]);
---         apply And.intro; assumption; simp;
---         unfold ValidHeadVariable at h; simp at h;
---         cases h; case _ h => cases h; case _ fnf' h =>
---         rw [fnf] at fnf'; cases fnf'; case _ h =>
---         cases h; assumption;
---     case _ h =>
---         apply LambdaLike.insttype;
---         unfold ValidHeadVariable;
---         have fanf := @Term.neutral_form_appt f a x sp fnf; symm at fanf;
---         apply Exists.intro (x, sp ++ [(.type, a)]);
---         apply And.intro; assumption; simp;
---         unfold ValidHeadVariable at h; simp at h;
---         cases h; case _ h => cases h; case _ fnf' h =>
---         rw [fnf] at fnf'; cases fnf'; case _ h =>
---         cases h; assumption;
---     case _ => cases fnf
--- case _ ih2 => cases h4
--- case choice j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
---   cases h1; case _ h => cases h
---   case _ v1 v2 =>
---     replace ih3 := ih3 v1 j3 h3 h4
---     replace ih4 := ih4 v2 j4 h3 h4
---     apply LambdaLike.choice ih3 ih4
-case refl   => cases h4
-case choice ih1 ih2 =>
-  cases h2
-  cases h1
-  case _ h1 => simp at h1
+    have ih := ih1 h fJ arrK (ArrowLike.allt); cases ih;
+    case _ h => cases fnf
+    case _ h => cases fnf
+    case _ h =>
+        apply LambdaLike.ctor;
+        unfold ValidHeadVariable;
+        have fanf := @Term.neutral_form_appt f a x sp fnf; symm at fanf;
+        apply Exists.intro (x, sp ++ [(.type, a)]);
+        apply And.intro; assumption; simp;
+        unfold ValidHeadVariable at h; simp at h;
+        cases h; case _ h => cases h; case _ fnf' h =>
+        rw [fnf] at fnf'; cases fnf'; case _ h =>
+        cases h; assumption;
+    case _ h =>
+        apply LambdaLike.insttype;
+        unfold ValidHeadVariable;
+        have fanf := @Term.neutral_form_appt f a x sp fnf; symm at fanf;
+        apply Exists.intro (x, sp ++ [(.type, a)]);
+        apply And.intro; assumption; simp;
+        unfold ValidHeadVariable at h; simp at h;
+        cases h; case _ h => cases h; case _ fnf' h =>
+        rw [fnf] at fnf'; cases fnf'; case _ h =>
+        cases h; assumption;
+    case _ => cases fnf
+    case _ hd tl _ =>
+      simp at *;
+      have ih := ih1 h fJ arrK (by constructor)
+      generalize tdef : (#hd).apply_spine tl = t at *
+      have lem := @Term.apply_spine_type_extend t tl a #hd (Eq.symm tdef); rw[lem]
+      have lem := neutral_form_apply_spine tdef; rw[lem] at fnf; cases fnf;
+      apply LambdaLike.app
+      cases n_stable;
+      case _ h _ _ =>
+        unfold OpenVarVal at h; simp at h; cases h;
+        case _ h' h _ => have lem := Frame.is_openm_implies_not_is_stable_red h; exfalso; apply lem h'
+      case _ => assumption
+
+case refl ih2 => cases h4
+case choice j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
+  cases h1; case _ h => cases h
   case _ v1 v2 =>
-    apply LambdaLike.choice <;> simp_all
+    replace ih3 := ih3 v1 j3 h3 h4
+    replace ih4 := ih4 v2 j4 h3 h4
+    apply LambdaLike.choice ih3 ih4
