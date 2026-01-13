@@ -492,3 +492,42 @@ case choice j1 j2 j3 j4 ih1 ih2 ih3 ih4 =>
     replace ih3 := ih3 v1 j3 h3 h4
     replace ih4 := ih4 v2 j4 h3 h4
     apply LambdaLike.choice ih3 ih4
+@[simp]
+abbrev CanonicalDatatypeLemmaType (Γ : Ctx Term) : (v : JudgmentVariant) -> (JudgmentArgs v) -> Prop
+| .prf => λ (t, τ) =>
+  Γ ⊢ t : τ ->
+  Val Γ t ->
+  ValidHeadVariable τ Γ.is_datatype ->
+  (ValidHeadVariable t Γ.is_ctor) ∨ (∃ t1 t2 : Term, t = (t1 ⊕ t2))
+| .wf => λ _ => true
+
+theorem canonical_datatype_lemma :
+  Judgment v Γ idx ->
+  CanonicalDatatypeLemmaType Γ v idx := by
+intro j
+induction j <;> simp at *
+all_goals (intro h1 h2)
+all_goals (try cases h2; case _ h2 => simp at h2)
+all_goals (try case _ => intro h; cases h; case _ h => cases h; case _ h _ => simp at h)
+case var => intro h; sorry
+case appk => sorry
+case app => sorry
+case appt => sorry
+
+
+theorem canonical_datatype :
+  Γ ⊢ t : T ->
+  Val Γ t ->
+  ValidHeadVariable T Γ.is_datatype ->
+  (ValidHeadVariable t Γ.is_ctor) ∨ (∃ t1 t2 : Term, t = (t1 ⊕ t2)) := by
+intro tJ tv vhv
+have lem := canonical_datatype_lemma tJ
+simp at lem; replace lem := lem tJ tv vhv
+cases lem;
+case _ lem =>
+  apply Or.inl;
+  cases lem; case _ x lem =>
+  cases lem; case _ lem _ =>
+  unfold ValidHeadVariable;
+  exists x
+case _ lem => apply Or.inr; assumption

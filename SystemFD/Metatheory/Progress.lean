@@ -509,10 +509,25 @@ case app a _ j1 j2 j3 ih1 ih2 =>
   cases ih1
   case _ v =>
     cases v
-    case app x sp h1 h2 =>
-      sorry
-      -- apply Or.inl; apply Val.app x (sp ++ [(.term, a)]) _ h1
-      -- simp; rw [Option.bind_eq_some]; simp; rw [h2]
+    case app Γ _ _ _ _ x sp h1 h2 =>
+      cases h1;
+      case _ h1 =>
+        apply Or.inl
+        apply Val.app x (sp ++ [(.term, a)]) _ (Or.inl h1)
+        simp; rw [Option.bind_eq_some_iff]; simp; rw [h2]
+      case _ B' h1 =>
+        simp [OpenVarVal] at h1
+
+        generalize fdef : Γ d@x = f at *
+        cases f
+        all_goals (simp [Frame.is_openm] at h1)
+        case _ T' =>
+        cases Nat.decLt (sp ++ [(SpineVariant.term, a)]).length B'.arity
+        case _ h3 =>
+          sorry
+        case _ h3 =>
+          sorry
+
     case choice =>
       apply Or.inr; apply Exists.intro _
       apply Red.ctor2_map1 rfl; simp
