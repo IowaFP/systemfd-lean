@@ -1,0 +1,19 @@
+name = "systemfd"
+version = "0.1.0"
+defaultTargets = ["systemfd"]
+
+[[require]]
+name = "lean-subst"
+scope = "amarmaduke"
+git = "https://github.com/amarmaduke/lean-subst"
+rev = "main"
+
+[[lean_lib]]
+name = "Core"
+
+[[lean_lib]]
+name = "SystemFD"
+
+[[lean_exe]]
+name = "systemfd"
+root = "Main"

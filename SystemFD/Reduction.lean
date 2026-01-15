@@ -163,6 +163,11 @@ notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶⋆ " N:170 => RedStar Γ M N
 notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶+ " N:170 => RedPlus Γ M N
 notation:175 M:175 " ⟨ " Γ:170 " ⟩⟶ " N:170 => Red Γ M N
 
+theorem RedPlus.stepr : Red Γ x y -> RedStar Γ y z -> RedPlus Γ x z := by
+  intro r1 r2; induction r2 generalizing x
+  case _ => apply RedPlus.one r1
+  case _ r2 r3 ih => apply RedPlus.step (ih r1) r3
+
 theorem RedPlus.ctor1_congr :
   RedPlus Γ t t' ->
   RedPlus Γ (.ctor1 v t) (.ctor1 v t')
