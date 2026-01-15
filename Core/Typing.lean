@@ -6,6 +6,34 @@ import Core.Global
 
 open LeanSubst
 
+def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
+  ∃ x, .some x = Term.spine t ∧ test x.fst
+
+def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
+  ∃ x, .some x = Ty.spine t ∧ test x.fst
+
+inductive StableTypeMatch : List Kind -> Ty -> Ty -> Prop
+| refl :
+  some x = Ty.spine R ->
+  StableTypeMatch Δ R R
+| arrow :
+  StableTypeMatch Δ B R ->
+  StableTypeMatch Δ (A -:> B) R
+| all :
+  StableTypeMatch (K::Δ) B R[+1] ->
+  StableTypeMatch Δ (∀[K] B) R
+
+inductive PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
+| refl :
+  some x = Ty.spine B ->
+  PrefixTypeMatch Δ B T T
+| arrow :
+  PrefixTypeMatch Δ B V T ->
+  PrefixTypeMatch Δ (A -:> B) (A -:> V) T
+| all :
+  PrefixTypeMatch (K::Δ) B V T[+1] ->
+  PrefixTypeMatch Δ (∀[K] B) (∀[K] V) T
+
 inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 | var :
   Δ[x]? = some K ->
@@ -42,12 +70,26 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Matches
 --------------------------------------------------------------------------------------
 | mtch :
-  Typing G Δ Γ (match! p s cs) A
+  Typing G Δ Γ p A ->
+  Typing G Δ Γ s R ->
+  (∀ i, Typing G Δ Γ (cs i) T) ->
+  ValidHeadVariable p (is_ctor G) ->
+  ValidTyHeadVariable R (is_datatype G) ->
+  StableTypeMatch Δ A R ->
+  PrefixTypeMatch Δ A B T ->
+  Typing G Δ Γ (match! p s cs) T
 --------------------------------------------------------------------------------------
 ---- Guards
 --------------------------------------------------------------------------------------
 | guard :
-  Typing G Δ Γ (.guard p s t) A
+  Typing G Δ Γ p A ->
+  Typing G Δ Γ s R ->
+  Typing G Δ Γ t B ->
+  ValidHeadVariable p (is_instty G) ->
+  ValidTyHeadVariable R (is_opent G) ->
+  StableTypeMatch Δ A R ->
+  PrefixTypeMatch Δ A B T ->
+  Typing G Δ Γ (.guard p s t) T
 --------------------------------------------------------------------------------------
 ---- Terms
 --------------------------------------------------------------------------------------
@@ -93,11 +135,15 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ t2 (C ~[★]~ D) ->
   Typing G Δ Γ (t1 -c> t2) (A -:> C ~[★]~ B -:> D)
 | fst :
+  G;Δ ⊢ C : K1 ->
+  G;Δ ⊢ D : K1 ->
   Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
-  Typing G Δ Γ (fst[K1] t) (A ~[K1 -:> K2]~ B)
+  Typing G Δ Γ (fst! t) (A ~[K1 -:> K2]~ B)
 | snd :
+  G;Δ ⊢ C : K1 ->
+  G;Δ ⊢ D : K1 ->
   Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
-  Typing G Δ Γ (snd[K1] t) (C ~[K1]~ D)
+  Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
   Typing G (K::Δ) Γ t (A ~[★]~ B) ->
   Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
@@ -118,3 +164,5 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ t1 A ->
   Typing G Δ Γ t2 A ->
   Typing G Δ Γ (t1 + t2) A
+
+notation:170 G:170 " ; " Δ:170 " ; " Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A

@@ -30,3 +30,11 @@ def lookup_type (x : String) : List Global -> Option Ty
 | .cons (.instty n A) t =>
   if n == x then A else lookup_type x t
 | .cons _ t => lookup_type x t
+
+def is_ctor : List Global -> String -> Bool := sorry
+
+def is_datatype : List Global -> String -> Bool := sorry
+
+def is_instty : List Global -> String -> Bool := sorry
+
+def is_opent : List Global -> String -> Bool := sorry
