@@ -7,4 +7,4 @@ partial def eval_ctx_loop (Γ : Ctx Term) (t : Term) : Term :=
   | .none => t
   | .some t => eval_ctx_loop Γ t
 
-partial def eval (t : Term) : Term := eval_ctx_loop [] t
+partial def eval_big (t : Term) : Term := eval_ctx_loop [] t

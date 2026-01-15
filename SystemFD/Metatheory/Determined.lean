@@ -51,8 +51,9 @@ def Determined.ite : Term.Determined Γ (.ite p s t e) <->
     apply h1.2.2.2; assumption
 
 @[simp]
-def Determined.let : Term.Determined Γ (.letterm A t b) <->
-  Term.Determined Γ A ∧ Term.Determined Γ t ∧ Term.Determined (.term :: Γ) b := by
+def Determined.let :
+    Term.Determined Γ (.letterm A t b)
+    <-> Term.Determined Γ A ∧ Term.Determined Γ t ∧ Term.Determined (.term :: Γ) b := by
   apply Iff.intro
   · intro h; have lem := not_contains_variant_letterm h;
     constructor
@@ -60,8 +61,11 @@ def Determined.let : Term.Determined Γ (.letterm A t b) <->
     · constructor; apply lem.2.1; apply lem.2.2
   · intro h; cases h; case _ h =>
     cases h; simp at *
-
-    sorry
+    unfold Term.Determined; intro h;
+    cases h <;> try (simp at *)
+    case _ h' _ _ h => apply h' h
+    case _ h' _ h => apply h' h
+    case _ h' h => apply h' h
 
 @[simp]
 def Determined.bind2 :
@@ -69,12 +73,12 @@ def Determined.bind2 :
   <-> Term.Determined Γ t1 ∧ Term.Determined (bind2_frame_variant v::Γ) t2
 := by
   apply Iff.intro
-  intro h; apply not_contains_variant_bind2 h
-  intro h; rcases h with ⟨h1, h2⟩; intro h3
-  cases h3
-  case _ h3 => cases v <;> simp at h3
-  case _ h3 => apply h1 h3
-  case _ h3 => apply h2 h3
+  · intro h; apply not_contains_variant_bind2 h
+  · intro h; rcases h with ⟨h1, h2⟩; intro h3
+    cases h3
+    case _ h3 => cases v <;> simp at h3
+    case _ h3 => apply h1 h3
+    case _ h3 => apply h2 h3
 
 def Determined.beta (f : FrameVariant) :
   Term.Determined (f::Γ) b ->
