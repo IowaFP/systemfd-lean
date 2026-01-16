@@ -9,3 +9,8 @@ def Ty.spine : Ty -> Option (String × List Ty)
   let (x, sp) <- spine f
   (x, sp ++ [a])
 | _ => none
+
+def Ty.arity : Ty -> Nat
+| _ -:> B => B.arity + 1
+| ∀[_] P => P.arity + 1
+| _ => 0

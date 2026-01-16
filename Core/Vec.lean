@@ -200,15 +200,32 @@ theorem Vec.update_stable i t {ts ts' : Vec T n} :
   intro h1 j h2; simp [update, *]
   intro h3; exfalso; apply h2; rw [h3]
 
-def Vec.beq [BEq T] : {n : Nat} -> Vec T n -> Vec T n -> Bool
-| 0, _, _ => true
-| _ + 1, v1, v2 =>
+def Vec.fold (acc : A -> B -> B) (d : B) : {n : Nat} -> Vec A n -> B
+| 0, _ => d
+| _ + 1, vs =>
+  let (h, tl) := uncons vs
+  acc h (fold acc d tl)
+
+def Vec.fold2 (acc : A -> B -> C -> C) (d : C) : {n1 n2 : Nat} -> (n1 = n2) -> Vec A n1 -> Vec B n2 -> C
+| 0, 0, rfl, _, _ => d
+| _ + 1, _ + 1, h, va, vb =>
+  let (h1, tl1) := uncons va
+  let (h2, tl2) := uncons vb
+  acc h1 h2 (fold2 acc d (by cases h; rfl) tl1 tl2)
+
+def Vec.sum : {n : Nat} -> Vec Nat n -> Nat
+| 0, _ => 0
+| _ + 1, ts => ts 0 + ts.drop.sum
+
+def Vec.beq (beq : T -> T -> Bool) : {n1 n2 : Nat} -> (n1 = n2) -> Vec T n1 -> Vec T n2 -> Bool
+| 0, 0, rfl, _, _ => true
+| _ + 1, _ + 1, h, v1, v2 =>
   let (h1, t1) := Vec.uncons v1
   let (h2, t2) := Vec.uncons v2
-  h1 == h2 && Vec.beq t1 t2
+  beq h1 h2 && Vec.beq beq (by cases h; rfl) t1 t2
 
 instance [BEq T] : BEq (Vec T n) where
-  beq := Vec.beq
+  beq := Vec.beq BEq.beq rfl
 
 variable {S T : Type} [RenMap T] [SubstMap S T]
 
