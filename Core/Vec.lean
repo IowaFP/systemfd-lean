@@ -43,6 +43,14 @@ protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
   let (h, t) := uncons v
   (repr h) ++ ", " ++ (Vec.reprPrec t i)
 
+protected def Vec.reprPrec' (repr : T -> Std.Format) : {n : Nat} -> Vec T n -> Nat -> Std.Format
+| 0, _, _ => ""
+| 1, v, _ => repr (v 0)
+| _ + 1, v, i =>
+  let (h, t) := uncons v
+  (repr h) ++ ", " ++ (Vec.reprPrec' repr t i)
+
+
 instance [Repr T] : Repr (Vec T n) where
   reprPrec v n := "v[" ++ Vec.reprPrec v n ++ "]"
 

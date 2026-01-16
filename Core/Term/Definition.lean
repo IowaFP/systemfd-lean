@@ -69,6 +69,7 @@ notation "∀c[" K "]" P => Term.tbind TyBindVariant.allc K P
 
 notation "match!" => Term.match
 
+
 @[simp]
 def Term.size : Term -> Nat
 | var _ => 0
@@ -80,3 +81,52 @@ def Term.size : Term -> Nat
 | lam _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
 | .match t1 t2 ts => size t1 + size t2 + Vec.sum (λ i => (ts i).size) + 1
+
+protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
+| .var n => "#" ++ Nat.repr n
+| .global n => "g#" ++ n
+
+| .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
+| .ctor0 .zero => "`0"
+
+| .ctor1 .sym t => "(sym! " ++ Term.repr p t ++ ")"
+| .ctor1 .fst t => "(fst! " ++ Term.repr p t ++ ")"
+| .ctor1 .snd t => "(snd! " ++ Term.repr p t ++ ")"
+| .ctor1 (.appt τ) t => Repr.addAppParen (Term.repr max_prec t ++ " •[" ++ repr τ ++ "]") p
+
+| .ctor2 .app t1 t2 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++Term.repr p t2) p
+| .ctor2 .appo t1 t2 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++ " ∘[" ++ Term.repr p t2 ++ "]") p
+| .ctor2 .cast t1 t2 =>
+  Repr.addAppParen ((Term.repr max_prec t1 ++ " • " ++ Term.repr p t2)) p
+| .ctor2 .seq t1 t2 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++ "`;" ++
+  Std.Format.line ++ Term.repr p t2) p
+| .ctor2 .appc t1 t2 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++ " •c " ++
+  Std.Format.line ++ Term.repr max_prec t2) p
+| .ctor2 .apptc t1 t2 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++
+  Std.Format.line ++ " •c[ " ++ Term.repr p t2 ++ "]") p
+| .ctor2 .arrowc t1 t2 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++ " -c> " ++ Term.repr p t2) p
+| .ctor2 .choice t1 t2 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++ " `+ " ++ Term.repr max_prec t2) p
+
+| .tbind .lamt K t =>
+  Repr.addAppParen ("Λ[ " ++ repr K ++ " ] " ++ Term.repr max_prec t) p
+| .tbind .allc K t =>
+  Repr.addAppParen ("∀c[ " ++ repr K ++ " ] " ++ Term.repr max_prec t) p
+
+| .lam τ t => Repr.addAppParen ("λ[ " ++ repr τ ++ " ] " ++ Term.repr max_prec t) p
+| .match pat s ts =>
+  Std.Format.nest 4 <| ("match!" ++ Term.repr p pat ++ " ← " ++ Term.repr p s) ++
+  Vec.reprPrec' (Term.repr p) ts p
+| .guard pat s t =>
+  Std.Format.nest 4 <| ("«guard»" ++ Term.repr p pat ++ " ← " ++ Term.repr p s) ++
+  Std.Format.line ++ Term.repr p t
+decreasing_by repeat sorry
+
+instance termRepr : Repr Term where
+  reprPrec a p := Term.repr p a

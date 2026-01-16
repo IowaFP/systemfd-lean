@@ -37,11 +37,11 @@ protected def Ty.repr (p : Nat) : (a : Ty) -> Std.Format
 | .global s => "gt#" ++ s
 | .arrow t1 t2 => Repr.addAppParen (Ty.repr max_prec t1 ++ " -:> " ++ Ty.repr p t2) p
 | .all K t => Repr.addAppParen ("∀[ " ++ repr K ++ " ] " ++ Ty.repr max_prec t) p
-| .eq K A B => Repr.addAppParen (Ty.repr max_prec A ++ "~[" ++ repr K ++ "]~" ++ Ty.repr max_prec B) p
+| .eq K A B => Repr.addAppParen (Ty.repr max_prec A ++ " ~[" ++ repr K ++ "]~ " ++ Ty.repr max_prec B) p
 | .app t1 t2 => Repr.addAppParen (Ty.repr p t1 ++ " • " ++ Ty.repr max_prec t2) p
 
 instance tyRepr : Repr Ty where
   reprPrec a p := Ty.repr p a
 
 
-#eval (∀[★ -:> ★] t#0 -:> (gt#"Eq" • (t#0 • gt#"Bool")))
+#eval (∀[ (★ -:> ★) -:> ★] t#0 -:> (gt#"Eq" • (t#0 • gt#"Bool")))
