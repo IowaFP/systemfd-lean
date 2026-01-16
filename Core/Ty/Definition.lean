@@ -23,3 +23,25 @@ infixr:64 " -:> " => Ty.arrow
 notation "∀[" K "]" B => Ty.all K B
 infixl:54 " • " => Ty.app
 notation:55 A:55 " ~[" K "]~ " B => Ty.eq K A B
+
+protected def Kind.repr (p : Nat) : (a : Kind) -> Std.Format
+| .base .closed => "★"
+| .base .open => "◯"
+| .arrow k1 k2 => Repr.addAppParen ((Kind.repr max_prec k1) ++ " -:> " ++ Kind.repr p k2) p
+
+instance kindRepr : Repr Kind where
+  reprPrec a p := Kind.repr p a
+
+protected def Ty.repr (p : Nat) : (a : Ty) -> Std.Format
+| .var n => "t#" ++ Nat.repr n
+| .global s => "gt#" ++ s
+| .arrow t1 t2 => Repr.addAppParen (Ty.repr max_prec t1 ++ " -:> " ++ Ty.repr p t2) p
+| .all K t => Repr.addAppParen ("∀[ " ++ repr K ++ " ] " ++ Ty.repr max_prec t) p
+| .eq K A B => Repr.addAppParen (Ty.repr max_prec A ++ "~[" ++ repr K ++ "]~" ++ Ty.repr max_prec B) p
+| .app t1 t2 => Repr.addAppParen (Ty.repr p t1 ++ " • " ++ Ty.repr max_prec t2) p
+
+instance tyRepr : Repr Ty where
+  reprPrec a p := Ty.repr p a
+
+
+#eval (∀[★ -:> ★] t#0 -:> (gt#"Eq" • (t#0 • gt#"Bool")))
