@@ -87,10 +87,11 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 | inst :
   some (x, sp) = Term.spine h ->
+  is_openm G x ->
   (∀ e ∈ sp, ∀ a, .oterm a = e -> Value G a) ->
   some T = lookup_type x G ->
   sp.length ≥ T.arity ->
-  some tl = instances x G ->
+  tl = instances x G ->
   tl' = List.map (·.apply sp) tl ->
   h' = List.foldl (·`+·) `0 tl' ->
   Red G h h'

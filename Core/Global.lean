@@ -22,15 +22,22 @@ def lookup_kind (x : String) : List Global -> Option Kind
 
 def lookup_type (x : String) : List Global -> Option Ty
 | [] => none
-| .cons (.data _ _ ctors) t =>
-  sorry
+| .cons (.data (n := n) _ _ ctors) t =>
+  let ctors : Vec (Option Ty) n := λ i =>
+    let (y, A) := ctors i
+    if y == x then A else none
+  Vec.fold Option.or (lookup_type x t) ctors
 | .cons (.openm n A) t
 | .cons (.let n A _) t
 | .cons (.instty n A) t =>
   if n == x then A else lookup_type x t
 | .cons _ t => lookup_type x t
 
-def instances (x : String) : List Global -> Option (List Term) := sorry
+def instances (x : String) : List Global -> List Term
+| [] => []
+| .cons (.inst y t) tl =>
+  if x == y then t :: instances x tl else instances x tl
+| .cons _ tl => instances x tl
 
 def is_ctor : List Global -> String -> Bool := sorry
 

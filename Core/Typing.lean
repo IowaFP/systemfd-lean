@@ -7,10 +7,10 @@ import Core.Global
 open LeanSubst
 
 def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
-  ∃ x, .some x = Term.spine t ∧ test x.fst
+  ∃ x, some x = Term.spine t ∧ test x.fst
 
 def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
-  ∃ x, .some x = Ty.spine t ∧ test x.fst
+  ∃ x, some x = Ty.spine t ∧ test x.fst
 
 inductive StableTypeMatch : List Kind -> Ty -> Ty -> Prop
 | refl :
@@ -42,9 +42,9 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
   lookup_kind x G = some K ->
   Kinding G Δ gt#x K
 | arrow :
-  Kinding G Δ A (.base b) ->
-  Kinding G Δ B ★ ->
-  Kinding G Δ (A -:> B) ★
+  Kinding G Δ A (.base b1) ->
+  Kinding G Δ B (.base b2) ->
+  Kinding G Δ (A -:> B) (.base b2)
 | all :
   Kinding G (K::Δ) P ★ ->
   Kinding G Δ (∀[K] P) ★
@@ -62,9 +62,11 @@ notation:170 G:170 " ; " Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
   Γ[x]? = some A ->
+  G;Δ ⊢ A : K ->
   Typing G Δ Γ #x A
 | global :
   lookup_type x G = some A ->
+  G;Δ ⊢ A : K ->
   Typing G Δ Γ g#x A
 --------------------------------------------------------------------------------------
 ---- Matches
@@ -94,15 +96,21 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Terms
 --------------------------------------------------------------------------------------
 | lam :
-  G;Δ ⊢ A : ★ ->
+  G;Δ ⊢ A : .base b ->
   Typing G Δ (A::Γ) t B ->
   Typing G Δ Γ (λ[A] t) (A -:> B)
 | app :
+  G;Δ ⊢ A : ★ ->
   Typing G Δ Γ f (A -:> B) ->
   Typing G Δ Γ a A ->
   Typing G Δ Γ (f • a) B
+| appo :
+  G;Δ ⊢ A : ◯ ->
+  Typing G Δ Γ f (A -:> B) ->
+  Typing G Δ Γ a A ->
+  Typing G Δ Γ (f ∘[a]) B
 | lamt :
-  Typing G (K::Δ) Γ t P ->
+  Typing G (K::Δ) (Γ.map (·[+1])) t P ->
   Typing G Δ Γ (Λ[K] t) (∀[K] P)
 | appt :
   Typing G Δ Γ f (∀[K] P) ->
@@ -145,7 +153,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
-  Typing G (K::Δ) Γ t (A ~[★]~ B) ->
+  Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[★]~ B) ->
   Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
 | apptc :
   Typing G Δ Γ f ((∀[K] A) ~[★]~ (∀[K] B)) ->
@@ -163,6 +171,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   G;Δ ⊢ A : K ->
   Typing G Δ Γ t1 A ->
   Typing G Δ Γ t2 A ->
-  Typing G Δ Γ (t1 + t2) A
+  Typing G Δ Γ (t1 `+ t2) A
 
 notation:170 G:170 " ; " Δ:170 " ; " Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
