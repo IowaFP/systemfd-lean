@@ -15,8 +15,7 @@ inductive Ctor1Variant : Type where
 | appt (a : Ty)
 
 inductive Ctor2Variant : Type where
-| app
-| appo
+| app (b : BaseKind)
 | cast
 | seq
 | appc
@@ -35,7 +34,7 @@ inductive Term : Type where
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
 | tbind : TyBindVariant -> Kind -> Term -> Term
-| lam : Ty -> Term -> Term
+| lam : BaseKind -> Ty -> Term -> Term
 | guard : Term -> Term -> Term -> Term
 | «match» : Term -> Term -> Vec Term n -> Term
 
@@ -53,8 +52,9 @@ notation "snd!" t => Term.ctor1 Ctor1Variant.snd t
 notation f " •[" a "]" => Term.ctor1 (Ctor1Variant.appt a) f
 
 -- ctor2 notation
-notation f " • " a => Term.ctor2 Ctor2Variant.app f a
-notation f " ∘[" a "]" => Term.ctor2 Ctor2Variant.appo f a
+notation f " •(" b ") " a => Term.ctor2 (Ctor2Variant.app b) f a
+notation f " • " a => Term.ctor2 (Ctor2Variant.app BaseKind.closed) f a
+notation f " ∘[" a "]" => Term.ctor2 (Ctor2Variant.app BaseKind.open) f a
 notation t " ▹ " c => Term.ctor2 Ctor2Variant.cast t c
 notation t1 " `; " t2 => Term.ctor2 Ctor2Variant.seq t1 t2
 notation f " •c " a => Term.ctor2 Ctor2Variant.appc f a
@@ -64,11 +64,10 @@ notation t1 " `+ " t2 => Term.ctor2 Ctor2Variant.choice t1 t2
 
 -- bind notation
 notation "Λ[" K "]" t => Term.tbind TyBindVariant.lamt K t
-notation "λ[" A "]" t => Term.lam A t
+notation "λ[" b "," A "]" t => Term.lam b A t
 notation "∀c[" K "]" P => Term.tbind TyBindVariant.allc K P
 
 notation "match!" => Term.match
-
 
 @[simp]
 def Term.size : Term -> Nat
@@ -78,25 +77,22 @@ def Term.size : Term -> Nat
 | ctor1 _ t => size t + 1
 | ctor2 _ t1 t2 => size t1 + size t2 + 1
 | tbind _ _ t => size t + 1
-| lam _ t => size t + 1
+| lam _ _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
 | .match t1 t2 ts => size t1 + size t2 + Vec.sum (λ i => (ts i).size) + 1
 
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .global n => "g#" ++ n
-
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
 | .ctor0 .zero => "`0"
-
 | .ctor1 .sym t => "(sym! " ++ Term.repr p t ++ ")"
 | .ctor1 .fst t => "(fst! " ++ Term.repr p t ++ ")"
 | .ctor1 .snd t => "(snd! " ++ Term.repr p t ++ ")"
 | .ctor1 (.appt τ) t => Repr.addAppParen (Term.repr max_prec t ++ " •[" ++ repr τ ++ "]") p
-
-| .ctor2 .app t1 t2 =>
+| .ctor2 (.app .closed) t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++Term.repr p t2) p
-| .ctor2 .appo t1 t2 =>
+| .ctor2 (.app .open) t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " ∘[" ++ Term.repr p t2 ++ "]") p
 | .ctor2 .cast t1 t2 =>
   Repr.addAppParen ((Term.repr max_prec t1 ++ " • " ++ Term.repr p t2)) p
@@ -113,20 +109,20 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   Repr.addAppParen (Term.repr max_prec t1 ++ " -c> " ++ Term.repr p t2) p
 | .ctor2 .choice t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " `+ " ++ Term.repr max_prec t2) p
-
 | .tbind .lamt K t =>
   Repr.addAppParen ("Λ[ " ++ repr K ++ " ] " ++ Term.repr max_prec t) p
 | .tbind .allc K t =>
   Repr.addAppParen ("∀c[ " ++ repr K ++ " ] " ++ Term.repr max_prec t) p
-
-| .lam τ t => Repr.addAppParen ("λ[ " ++ repr τ ++ " ] " ++ Term.repr max_prec t) p
-| .match pat s ts =>
-  Std.Format.nest 4 <| ("match!" ++ Term.repr p pat ++ " ← " ++ Term.repr p s) ++
-  Vec.reprPrec' (Term.repr p) ts p
+| .lam _ τ t => Repr.addAppParen ("λ[ " ++ repr τ ++ " ] " ++ Term.repr max_prec t) p
+| .match (n := n) pat s ts =>
+  let ts : Vec Std.Format n := λ i =>
+    let t := ts i
+    Term.repr p t
+  Std.Format.nest 4 <| ("match!" ++ Term.repr p pat ++ " ← " ++ Term.repr p s)
+    ++ Vec.fold (·++·) (repr "") ts
 | .guard pat s t =>
   Std.Format.nest 4 <| ("«guard»" ++ Term.repr p pat ++ " ← " ++ Term.repr p s) ++
   Std.Format.line ++ Term.repr p t
-decreasing_by repeat sorry
 
 instance termRepr : Repr Term where
   reprPrec a p := Term.repr p a

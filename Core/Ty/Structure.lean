@@ -11,6 +11,6 @@ def Ty.spine : Ty -> Option (String × List Ty)
 | _ => none
 
 def Ty.arity : Ty -> Nat
-| _ -:> B => B.arity + 1
+| arrow _ _ B => B.arity + 1
 | ∀[_] P => P.arity + 1
 | _ => 0

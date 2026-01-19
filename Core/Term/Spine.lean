@@ -20,10 +20,10 @@ instance : BEq SpineElem where
 
 def Term.spine : Term -> Option (String × List SpineElem)
 | g#x => return (x, [])
-| ctor2 .app f a => do
+| ctor2 (.app .closed) f a => do
   let (x, sp) <- spine f
   (x, sp ++ [.term a])
-| f ∘[a] => do
+| ctor2 (.app .open) f a => do
   let (x, sp) <- spine f
   (x, sp ++ [.oterm a])
 | f •[a] => do

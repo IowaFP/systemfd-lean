@@ -33,7 +33,7 @@ def Term.rmap (lf : Endo Ren) (r : Ren) : Term -> Term
 | ctor1 c t => ctor1 c (rmap lf r t)
 | ctor2 c t1 t2 => ctor2 c (rmap lf r t1) (rmap lf r t2)
 | tbind v A t => tbind v A (rmap lf r t)
-| lam A t => lam A (rmap lf (lf r) t)
+| lam b A t => lam b A (rmap lf (lf r) t)
 | guard t1 t2 t3 => guard (rmap lf r t1) (rmap lf r t2) (rmap lf r t3)
 | .match t1 t2 ts => .match (rmap lf r t1) (rmap lf r t2) (λ i => rmap lf r (ts i))
 
@@ -200,7 +200,7 @@ def Term.Ty.smap (lf : Endo (Subst Ty)) (σ : Subst Ty) : Term -> Term
 | ctor1 c t => ctor1 c[σ:Ty] (smap lf σ t)
 | ctor2 c t1 t2 => ctor2 c[σ:Ty] (smap lf σ t1) (smap lf σ t2)
 | tbind v A t => tbind v A (smap lf (lf σ) t)
-| lam A t => lam A[σ:_] (smap lf σ t)
+| lam b A t => lam b A[σ:_] (smap lf σ t)
 | guard t1 t2 t3 => guard (smap lf σ t1) (smap lf σ t2) (smap lf σ t3)
 | .match t1 t2 ts => .match (smap lf σ t1) (smap lf σ t2) (λ i => smap lf σ (ts i))
 
@@ -215,7 +215,7 @@ def Term.smap (lf : Endo (Subst Term)) (σ : Subst Term) : Term -> Term
 | ctor1 c t => ctor1 c (smap lf σ t)
 | ctor2 c t1 t2 => ctor2 c (smap lf σ t1) (smap lf σ t2)
 | tbind v A t => tbind v A (smap lf (σ ◾ +1@Ty) t)
-| lam A t => lam A (smap lf (lf σ) t)
+| lam b A t => lam b A (smap lf (lf σ) t)
 | guard t1 t2 t3 => guard (smap lf σ t1) (smap lf σ t2) (smap lf σ t3)
 | .match t1 t2 ts => .match (smap lf σ t1) (smap lf σ t2) (λ i => smap lf σ (ts i))
 
@@ -247,7 +247,7 @@ theorem Term.subst_tbind : (tbind v A t)[σ:Term] = tbind v A t[σ ◾ +1@Ty:_] 
   simp [Subst.apply, SubstMap.smap]
 
 @[simp]
-theorem Term.subst_lam : (lam A t)[σ:Term] = lam A t[σ.lift:_] := by
+theorem Term.subst_lam : (lam b A t)[σ:Term] = lam b A t[σ.lift:_] := by
   simp [Subst.apply, SubstMap.smap]
 
 @[simp]
@@ -293,7 +293,7 @@ theorem Term.Ty.subst_tbind : (tbind b A t)[σ:Ty] = tbind b A t[σ.lift:_] := b
   simp [Subst.apply, SubstMap.smap]
 
 @[simp]
-theorem Term.Ty.subst_lam : (lam A t)[σ:Ty] = lam A[σ:_] t[σ:_] := by
+theorem Term.Ty.subst_lam : (lam b A t)[σ:Ty] = lam b A[σ:_] t[σ:_] := by
   simp [Subst.apply, SubstMap.smap]
 
 @[simp]

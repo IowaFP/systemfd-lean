@@ -39,12 +39,12 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
   Δ[x]? = some K ->
   Kinding G Δ t#x K
 | global :
-  lookup_kind x G = some K ->
+  lookup_kind G x = some K ->
   Kinding G Δ gt#x K
 | arrow :
   Kinding G Δ A (.base b1) ->
   Kinding G Δ B (.base b2) ->
-  Kinding G Δ (A -:> B) (.base b2)
+  Kinding G Δ (A -[b1]> B) (.base b2)
 | all :
   Kinding G (K::Δ) P ★ ->
   Kinding G Δ (∀[K] P) ★
@@ -65,18 +65,18 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   G;Δ ⊢ A : K ->
   Typing G Δ Γ #x A
 | global :
-  lookup_type x G = some A ->
+  lookup_type G x = some A ->
   G;Δ ⊢ A : K ->
   Typing G Δ Γ g#x A
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch :
+| mtch (cs : Vec Term (n + 1)) :
   Typing G Δ Γ p A ->
   Typing G Δ Γ s R ->
   (∀ i, Typing G Δ Γ (cs i) T) ->
   ValidHeadVariable p (is_ctor G) ->
-  ValidTyHeadVariable R (is_datatype G) ->
+  ValidTyHeadVariable R (is_data G) ->
   StableTypeMatch Δ A R ->
   PrefixTypeMatch Δ A B T ->
   Typing G Δ Γ (match! p s cs) T
@@ -98,17 +98,11 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | lam :
   G;Δ ⊢ A : .base b ->
   Typing G Δ (A::Γ) t B ->
-  Typing G Δ Γ (λ[A] t) (A -:> B)
+  Typing G Δ Γ (λ[b,A] t) (A -:> B)
 | app :
-  G;Δ ⊢ A : ★ ->
-  Typing G Δ Γ f (A -:> B) ->
+  Typing G Δ Γ f (A -[b]> B) ->
   Typing G Δ Γ a A ->
-  Typing G Δ Γ (f • a) B
-| appo :
-  G;Δ ⊢ A : ◯ ->
-  Typing G Δ Γ f (A -:> B) ->
-  Typing G Δ Γ a A ->
-  Typing G Δ Γ (f ∘[a]) B
+  Typing G Δ Γ (f •(b) a) B
 | lamt :
   Typing G (K::Δ) (Γ.map (·[+1])) t P ->
   Typing G Δ Γ (Λ[K] t) (∀[K] P)
