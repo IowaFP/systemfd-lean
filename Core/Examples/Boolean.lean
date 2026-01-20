@@ -19,7 +19,7 @@ not = λ x → case x of
                _ → False
 -/
 def notTerm : Term := λ[ .closed , .global "Bool" ]
-  match! g# "True" #0 v[
+  match! #0 v[
          g# "False",
          g# "True" ]
 
@@ -33,9 +33,9 @@ def notTerm : Term := λ[ .closed , .global "Bool" ]
                        False → True
  -/
 def eqBool : Term := λ[ .closed,  .global "Bool" ] λ[ .closed, .global "Bool" ]
-  match! (g# "True") #1
-   v[ match! (g# "True") #0 v[ g#"True", g#"False"] ,
-      match! (g# "True") #0 v[ g# "False", g# "False"]
+  match! #1
+   v[ match! #0 v[ g#"True", g#"False"] ,
+      match! #0 v[ g# "False", g# "False"]
     ]
 
 
@@ -61,11 +61,11 @@ def EqBoolCtx : List Global := [
   .opent "Eq" (★ -:> ◯)
   ] ++ BoolCtx
 
--- def t1 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"False"
--- def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
+def t1 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"False"
+def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
 
--- #eval! eval_loop EqBoolCtx t1
--- #eval! eval_loop EqBoolCtx t2
+#eval! eval_loop EqBoolCtx t1
+#eval! eval_loop EqBoolCtx t2
 
 -- #eval! eval EqBoolCtx t1
 -- def t3 := Option.getD (eval EqBoolCtx t1) `0
@@ -88,17 +88,3 @@ def EqBoolCtx : List Global := [
 -- #eval! eval EqBoolCtx t11
 -- def t12 := Option.getD (eval EqBoolCtx t11) `0
 -- #eval! eval EqBoolCtx t12
-
-def t1 := (g#"eqBool" • g#"True") • g#"False"
-
-#eval! eval EqBoolCtx t1
-def t3 := Option.getD (eval EqBoolCtx t1) `0
-#eval! eval EqBoolCtx t3
-def t4 := Option.getD (eval EqBoolCtx t3) `0
-#eval! eval EqBoolCtx t4
-def t5 := Option.getD (eval EqBoolCtx t4) `0
-#eval! eval EqBoolCtx t5
-def t6 := Option.getD (eval EqBoolCtx t5) `0
-#eval! eval EqBoolCtx t6
-def t7 := Option.getD (eval EqBoolCtx t6) `0
-#eval! eval EqBoolCtx t7

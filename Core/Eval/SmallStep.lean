@@ -208,7 +208,7 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
                        return (ts idx).apply s_sp
 
 | t => match t.spine with
-       | .some (x, sp) => return (inline_insts x G sp)
+       | .some (x, sp) => if is_defn G x || is_openm G x then return (inline_insts x G sp) else .none
        | .none => .none
 
 @[simp]

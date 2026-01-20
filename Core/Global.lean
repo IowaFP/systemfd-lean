@@ -88,6 +88,7 @@ def is_data G x := lookup x G |> Option.map Entry.is_data |> Option.get!
 def is_instty G x := lookup x G |> Option.map Entry.is_instty |> Option.get!
 def is_opent G x := lookup x G |> Option.map Entry.is_opent |> Option.get!
 def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!
+def is_defn G x := lookup x G |> Option.map Entry.is_defn |> Option.get!
 
 def ctor_idx (x : String) (G : List Global) : Option Nat := do
   let t <- lookup x G
