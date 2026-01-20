@@ -38,3 +38,19 @@ intro h1 h2; subst h2; apply h1; simp
 def rep (f : T -> T) (x : T) : Nat -> T
 | 0 => x
 | n + 1 => f (rep f x n)
+
+theorem List.reverse_ind :
+  {motive : List T -> Prop} ->
+  (ℓ : List T) ->
+  (nil : motive []) ->
+  (rcons : ∀ hd tl, motive tl -> motive (tl ++ [hd])) ->
+  motive ℓ
+:= by
+  intro P ℓ h1 h2
+  generalize zdef : reverse ℓ = z at *
+  induction z generalizing ℓ
+  case nil => simp at zdef; subst zdef; apply h1
+  case cons hd tl ih =>
+    have lem : ℓ.reverse.reverse = (hd :: tl).reverse := by rw [zdef]
+    simp at lem; rw [lem]; apply h2 _ _
+    apply ih; simp

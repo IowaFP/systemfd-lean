@@ -21,7 +21,7 @@ inductive Ty : Type where
 
 prefix:max "t#" => Ty.var
 prefix:max "gt#" => Ty.global
-notation A:64 " -[" b "]>" B:65 => Ty.arrow b A B
+notation A:64 " -[" b "]> " B:65 => Ty.arrow b A B
 infixr:64 " -:> " => Ty.arrow BaseKind.closed
 infixr:64 " =:> " => Ty.arrow BaseKind.open
 notation "∀[" K "]" B => Ty.all K B

@@ -13,6 +13,7 @@ inductive Value (G : List Global) : Term -> Prop where
 | app :
   some (x, sp) = t.spine ->
   (∀ e ∈ sp, ∀ t, .oterm t = e -> Value G t) ->
+  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.not_choice) ->
   is_stable x G ∨ OpenVarVal G x sp ->
   Value G t
 | choice : Value G t1 -> Value G t2 -> Value G (t1 `+ t2)
@@ -88,6 +89,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   some (x, sp) = Term.spine h ->
   is_openm G x ->
   (∀ e ∈ sp, ∀ a, .oterm a = e -> Value G a) ->
+  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.not_choice) ->
   some T = lookup_type G x ->
   sp.length ≥ T.arity ->
   tl = instances x G ->

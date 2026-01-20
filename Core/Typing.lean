@@ -131,9 +131,9 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ a (C ~[K1]~ D) ->
   Typing G Δ Γ (f •c a) (A • C ~[K2]~ B • D)
 | arrowc :
-  Typing G Δ Γ t1 (A ~[★]~ B) ->
-  Typing G Δ Γ t2 (C ~[★]~ D) ->
-  Typing G Δ Γ (t1 -c> t2) (A -:> C ~[★]~ B -:> D)
+  Typing G Δ Γ t1 (A ~[.base b1]~ B) ->
+  Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
+  Typing G Δ Γ (t1 -c> t2) (A -[b1]> C ~[.base b2]~ B -[b1]> D)
 | fst :
   G;Δ ⊢ C : K1 ->
   G;Δ ⊢ D : K1 ->
@@ -145,8 +145,8 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
-  Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[★]~ B) ->
-  Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
+  Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[.base b]~ B) ->
+  Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[.base b]~ (∀[K] B))
 | apptc :
   Typing G Δ Γ f ((∀[K] A) ~[★]~ (∀[K] B)) ->
   Typing G Δ Γ a (C ~[K]~ D) ->
@@ -165,4 +165,45 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ t2 A ->
   Typing G Δ Γ (t1 `+ t2) A
 
-notation:170 G:170 " ; " Δ:170 " ; " Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
+notation:170 G:170 ";" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
+
+inductive ValidCtor (x : String) : Ty -> Prop where
+| base :
+  some (x, sp) = T.spine ->
+  ValidCtor x T
+| all :
+  ValidCtor x P ->
+  ValidCtor x (∀[K] P)
+| arrow :
+  ValidCtor x B ->
+  ValidCtor x (A -[b]> B)
+
+inductive ValidOpenKind : Kind -> Prop where
+| base : ValidOpenKind ◯
+| arrow : ValidOpenKind B -> ValidOpenKind (A -:> B)
+
+inductive GlobalWf : List Global -> Global -> Prop where
+| data :
+  (∀ i y T, (y, T) = ctors i -> ValidCtor x T) ->
+  GlobalWf G (.data x K ctors)
+| opent :
+  ValidOpenKind K ->
+  GlobalWf G (.opent x K)
+| openm :
+  G;[] ⊢ T : .base b ->
+  GlobalWf G (.openm x T)
+| defn :
+  G;[] ⊢ T : .base b ->
+  G;[],[] ⊢ t : T ->
+  GlobalWf G (.defn x T t)
+| inst :
+  some (.openm x T) = lookup x G ->
+  G;[],[] ⊢ t : T ->
+  GlobalWf G (.inst x t)
+| instty :
+  G;[] ⊢ T : ◯ ->
+  GlobalWf G (.instty x T)
+
+def ListGlobalWf (G : List Global) := ∀ (i : Nat) e, some e = G[i]? -> GlobalWf G e
+
+notation:175 "⊢ " G:175 => ListGlobalWf G

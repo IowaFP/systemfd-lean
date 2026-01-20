@@ -52,8 +52,8 @@ notation "snd!" t => Term.ctor1 Ctor1Variant.snd t
 notation f " •[" a "]" => Term.ctor1 (Ctor1Variant.appt a) f
 
 -- ctor2 notation
-notation f " •(" b ") " a => Term.ctor2 (Ctor2Variant.app b) f a
-notation f " • " a => Term.ctor2 (Ctor2Variant.app BaseKind.closed) f a
+notation:70 f " •(" b ") " a:70 => Term.ctor2 (Ctor2Variant.app b) f a
+notation:70 f " • " a:70 => Term.ctor2 (Ctor2Variant.app BaseKind.closed) f a
 notation f " ∘[" a "]" => Term.ctor2 (Ctor2Variant.app BaseKind.open) f a
 notation t " ▹ " c => Term.ctor2 Ctor2Variant.cast t c
 notation t1 " `; " t2 => Term.ctor2 Ctor2Variant.seq t1 t2
