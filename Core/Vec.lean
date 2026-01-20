@@ -214,6 +214,8 @@ def Vec.fold (acc : A -> B -> B) (d : B) : {n : Nat} -> Vec A n -> B
   let (h, tl) := uncons vs
   acc h (fold acc d tl)
 
+def Vec.length : Vec A n -> Nat := Vec.fold (λ _ acc => acc + 1) 0
+
 def Vec.fold2 (acc : A -> B -> C -> C) (d : C) : {n1 n2 : Nat} -> (n1 = n2) -> Vec A n1 -> Vec B n2 -> C
 | 0, 0, rfl, _, _ => d
 | _ + 1, _ + 1, h, va, vb =>

@@ -72,14 +72,12 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Matches
 --------------------------------------------------------------------------------------
 | mtch (cs : Vec Term (n + 1)) :
-  Typing G Δ Γ p A ->
   Typing G Δ Γ s R ->
   (∀ i, Typing G Δ Γ (cs i) T) ->
-  ValidHeadVariable p (is_ctor G) ->
   ValidTyHeadVariable R (is_data G) ->
   StableTypeMatch Δ A R ->
   PrefixTypeMatch Δ A B T ->
-  Typing G Δ Γ (match! p s cs) T
+  Typing G Δ Γ (match! s cs) T
 --------------------------------------------------------------------------------------
 ---- Guards
 --------------------------------------------------------------------------------------

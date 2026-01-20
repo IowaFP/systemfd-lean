@@ -36,7 +36,7 @@ inductive Term : Type where
 | tbind : TyBindVariant -> Kind -> Term -> Term
 | lam : BaseKind -> Ty -> Term -> Term
 | guard : Term -> Term -> Term -> Term
-| «match» : Term -> Term -> Vec Term n -> Term
+| «match» : Term -> Vec Term n -> Term
 
 prefix:max "#" => Term.var
 prefix:max "g#" => Term.global
@@ -79,7 +79,7 @@ def Term.size : Term -> Nat
 | tbind _ _ t => size t + 1
 | lam _ _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
-| .match t1 t2 ts => size t1 + size t2 + Vec.sum (λ i => (ts i).size) + 1
+| .match t1 ts => size t1 + Vec.sum (λ i => (ts i).size) + 1
 
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
@@ -114,12 +114,12 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .tbind .allc K t =>
   Repr.addAppParen ("∀c[ " ++ repr K ++ " ] " ++ Term.repr max_prec t) p
 | .lam _ τ t => Repr.addAppParen ("λ[ " ++ repr τ ++ " ] " ++ Term.repr max_prec t) p
-| .match (n := n) pat s ts =>
+| .match (n := n) s ts =>
   let ts : Vec Std.Format n := λ i =>
     let t := ts i
-    Term.repr p t
-  Std.Format.nest 4 <| ("match!" ++ Term.repr p pat ++ " ← " ++ Term.repr p s)
-    ++ Vec.fold (·++·) (repr "") ts
+    Std.Format.nest 4 <| Std.Format.line ++ Term.repr p t
+  Std.Format.nest 4 <| ("match! " ++ Term.repr p s)
+    ++ Vec.fold (·++·) Std.Format.nil ts
 | .guard pat s t =>
   Std.Format.nest 4 <| ("«guard»" ++ Term.repr p pat ++ " ← " ++ Term.repr p s) ++
   Std.Format.line ++ Term.repr p t
