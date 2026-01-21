@@ -7,14 +7,14 @@ import Core.Global
 open LeanSubst
 
 def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
-  ∃ x, some x = Term.spine t ∧ test x.fst
+  ∃ x, Term.spine t = some x ∧ test x.fst
 
 def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
-  ∃ x, some x = Ty.spine t ∧ test x.fst
+  ∃ x, Ty.spine t = some x ∧ test x.fst
 
 inductive StableTypeMatch : List Kind -> Ty -> Ty -> Prop
 | refl :
-  some x = Ty.spine R ->
+  Ty.spine R = some x ->
   StableTypeMatch Δ R R
 | arrow :
   StableTypeMatch Δ B R ->
@@ -25,7 +25,7 @@ inductive StableTypeMatch : List Kind -> Ty -> Ty -> Prop
 
 inductive PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
 | refl :
-  some x = Ty.spine B ->
+  Ty.spine B = some x ->
   PrefixTypeMatch Δ B T T
 | arrow :
   PrefixTypeMatch Δ B V T ->
@@ -57,16 +57,16 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
   Kinding G Δ B K ->
   Kinding G Δ (A ~[K]~ B) ★
 
-notation:170 G:170 " ; " Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
+notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
   Γ[x]? = some A ->
-  G;Δ ⊢ A : K ->
+  G&Δ ⊢ A : K ->
   Typing G Δ Γ #x A
 | global :
   lookup_type G x = some A ->
-  G;Δ ⊢ A : K ->
+  G&Δ ⊢ A : K ->
   Typing G Δ Γ g#x A
 --------------------------------------------------------------------------------------
 ---- Matches
@@ -94,7 +94,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Terms
 --------------------------------------------------------------------------------------
 | lam :
-  G;Δ ⊢ A : .base b ->
+  G&Δ ⊢ A : .base b ->
   Typing G Δ (A::Γ) t B ->
   Typing G Δ Γ (λ[b,A] t) (A -:> B)
 | app :
@@ -106,7 +106,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ (Λ[K] t) (∀[K] P)
 | appt :
   Typing G Δ Γ f (∀[K] P) ->
-  G;Δ ⊢ a : K ->
+  G&Δ ⊢ a : K ->
   P' = P[su a::+0] ->
   Typing G Δ Γ (f •[a]) P'
 | cast :
@@ -117,7 +117,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Coercions
 --------------------------------------------------------------------------------------
 | refl :
-  G;Δ ⊢ A : K ->
+  G&Δ ⊢ A : K ->
   Typing G Δ Γ (refl! A) (A ~[K]~ A)
 | sym :
   Typing G Δ Γ t (A ~[K]~ B) ->
@@ -135,13 +135,13 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
   Typing G Δ Γ (t1 -c> t2) (A -[b1]> C ~[.base b2]~ B -[b1]> D)
 | fst :
-  G;Δ ⊢ C : K1 ->
-  G;Δ ⊢ D : K1 ->
+  G&Δ ⊢ C : K1 ->
+  G&Δ ⊢ D : K1 ->
   Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
   Typing G Δ Γ (fst! t) (A ~[K1 -:> K2]~ B)
 | snd :
-  G;Δ ⊢ C : K1 ->
-  G;Δ ⊢ D : K1 ->
+  G&Δ ⊢ C : K1 ->
+  G&Δ ⊢ D : K1 ->
   Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
@@ -157,19 +157,19 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Non-determinism
 --------------------------------------------------------------------------------------
 | zero :
-  G;Δ ⊢ A : K ->
+  G&Δ ⊢ A : K ->
   Typing G Δ Γ `0 A
 | choice :
-  G;Δ ⊢ A : K ->
+  G&Δ ⊢ A : K ->
   Typing G Δ Γ t1 A ->
   Typing G Δ Γ t2 A ->
   Typing G Δ Γ (t1 `+ t2) A
 
-notation:170 G:170 ";" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
+notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
 
 inductive ValidCtor (x : String) : Ty -> Prop where
 | base :
-  some (x, sp) = T.spine ->
+  T.spine = some (x, sp) ->
   ValidCtor x T
 | all :
   ValidCtor x P ->
@@ -184,26 +184,28 @@ inductive ValidOpenKind : Kind -> Prop where
 
 inductive GlobalWf : List Global -> Global -> Prop where
 | data :
-  (∀ i y T, (y, T) = ctors i -> ValidCtor x T) ->
+  (∀ i y T, ctors i = (y, T) -> G&[] ⊢ T : ★ ∧ ValidCtor x T) ->
   GlobalWf G (.data x K ctors)
 | opent :
   ValidOpenKind K ->
   GlobalWf G (.opent x K)
 | openm :
-  G;[] ⊢ T : .base b ->
+  G&[] ⊢ T : .base b ->
   GlobalWf G (.openm x T)
 | defn :
-  G;[] ⊢ T : .base b ->
-  G;[],[] ⊢ t : T ->
+  G&[] ⊢ T : .base b ->
+  G&[],[] ⊢ t : T ->
   GlobalWf G (.defn x T t)
 | inst :
   some (.openm x T) = lookup x G ->
-  G;[],[] ⊢ t : T ->
+  G&[],[] ⊢ t : T ->
   GlobalWf G (.inst x t)
 | instty :
-  G;[] ⊢ T : ◯ ->
+  G&[] ⊢ T : ◯ ->
   GlobalWf G (.instty x T)
 
-def ListGlobalWf (G : List Global) := ∀ (i : Nat) e, some e = G[i]? -> GlobalWf G e
+inductive ListGlobalWf : List Global -> Prop where
+| nil : ListGlobalWf []
+| cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
 
 notation:175 "⊢ " G:175 => ListGlobalWf G

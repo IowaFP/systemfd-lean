@@ -1,7 +1,8 @@
 import LeanSubst
 import Core.Util
 import Core.Term.Definition
-import Core.Term.Beq
+import Core.Term.Substitution
+import Core.Term.BEq
 
 open LeanSubst
 
@@ -10,6 +11,58 @@ inductive SpineElem : Type where
 | term (x : Term)
 | oterm (x : Term)
 deriving Repr
+
+@[simp]
+def SpineElem.rmap (_ : Endo Ren) (r : Ren) : SpineElem -> SpineElem
+| type T => type T[r:Ty]
+| term t => term t[r:Term]
+| oterm t => oterm t[r:Term]
+
+instance : RenMap SpineElem where
+  rmap := SpineElem.rmap
+
+@[simp]
+def SpineElem.Ty.smap (_ : Endo (Subst Ty)) (σ : Subst Ty) : SpineElem -> SpineElem
+| type T => type T[σ]
+| term t => term t[σ:Ty]
+| oterm t => oterm t[σ:Ty]
+
+instance : SubstMap SpineElem Ty where
+  smap := SpineElem.Ty.smap
+
+@[simp]
+theorem SpineElem.Ty.subst_type : (type T)[σ:Ty] = type T[σ] := by
+  simp [Subst.apply, SubstMap.smap]
+
+@[simp]
+theorem SpineElem.Ty.subst_term : (term T)[σ:Ty] = term T[σ:_] := by
+  simp [Subst.apply, SubstMap.smap]
+
+@[simp]
+theorem SpineElem.Ty.subst_oterm : (oterm T)[σ:Ty] = oterm T[σ:_] := by
+  simp [Subst.apply, SubstMap.smap]
+
+@[simp]
+def SpineElem.Term.smap (_ : Endo (Subst Term)) (σ : Subst Term) : SpineElem -> SpineElem
+| type T => type T
+| term t => term t[σ]
+| oterm t => oterm t[σ]
+
+instance : SubstMap SpineElem Term where
+  smap := SpineElem.Term.smap
+
+@[simp]
+theorem SpineElem.Term.subst_type : (type T)[σ:Term] = type T := by
+  simp [Subst.apply, SubstMap.smap]
+
+@[simp]
+theorem SpineElem.Term.subst_term : (term T)[σ:Term] = term T[σ:_] := by
+  simp [Subst.apply, SubstMap.smap]
+
+@[simp]
+theorem SpineElem.Term.subst_oterm : (oterm T)[σ:Term] = oterm T[σ:_] := by
+  simp [Subst.apply, SubstMap.smap]
+
 
 def SpineElem.beq : SpineElem -> SpineElem -> Bool
 | type A, type B => A == B
@@ -38,6 +91,20 @@ def Term.apply (t : Term) : List SpineElem -> Term
 | .cons (.type A) tl => (t •[A]).apply tl
 | .cons (.term a) tl => (t • a).apply tl
 | .cons (.oterm a) tl => (t ∘[a]).apply tl
+
+@[simp]
+theorem Spine.apply_subst_type {t : Term} : (t.apply sp)[σ:Ty] = (t[σ:_]).apply (sp.map (·[σ:_])) := by
+  induction sp generalizing t <;> simp [Term.apply]
+  case cons hd tl ih =>
+    cases hd <;> simp [Term.apply]
+    all_goals rw [ih]; simp
+
+@[simp]
+theorem Spine.apply_subst {t : Term} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ:Term])) := by
+  induction sp generalizing t <;> simp [Term.apply]
+  case cons hd tl ih =>
+    cases hd <;> simp [Term.apply]
+    all_goals rw [ih]; simp
 
 macro "spine_app_eq_solve" x:term : tactic => `(tactic| {
   apply Iff.intro <;> intro h
@@ -95,17 +162,17 @@ macro "spine_apply_eq_case_solve"
   ih:term ","
   ap:Lean.Parser.Tactic.rwRule : tactic =>
 `(tactic| {
-  replace h := Eq.symm $h
+  replace h := $h
   rw [Option.bind_eq_some_iff] at h
   rcases h with ⟨q, e1, e2⟩
   rcases q with ⟨y, sp'⟩; simp at e2
   rcases e2 with ⟨e2, e3⟩; subst e2 e3
-  replace ih := $ih (Eq.symm e1)
+  replace ih := $ih e1
   rw [ih, $ap]
 })
 
 theorem Spine.apply_eq  :
-  some (x, sp) = t.spine -> t = (g#x).apply sp
+  t.spine = some (x, sp) -> t = (g#x).apply sp
 := by
   intro h
   fun_induction Term.spine generalizing x sp <;> simp at *

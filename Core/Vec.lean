@@ -214,7 +214,13 @@ def Vec.fold (acc : A -> B -> B) (d : B) : {n : Nat} -> Vec A n -> B
   let (h, tl) := uncons vs
   acc h (fold acc d tl)
 
-def Vec.length : Vec A n -> Nat := Vec.fold (λ _ acc => acc + 1) 0
+@[simp]
+theorem Vec.fold_nil : fold acc d Vec.nil = d := by simp [fold]
+
+@[simp]
+theorem Vec.fold_cons : fold acc d (hd :: tl) = acc hd (fold acc d tl) := by simp [fold]
+
+def Vec.length (_ : Vec A n) : Nat := n
 
 def Vec.fold2 (acc : A -> B -> C -> C) (d : C) : {n1 n2 : Nat} -> (n1 = n2) -> Vec A n1 -> Vec B n2 -> C
 | 0, 0, rfl, _, _ => d
