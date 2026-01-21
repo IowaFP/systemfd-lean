@@ -19,9 +19,9 @@ not = λ x → case x of
                _ → False
 -/
 def notTerm : Term := λ[ .closed , .global "Bool" ]
-  match! #0 v[
-         g# "False",
-         g# "True" ]
+  match! #0
+         v[ "True", "False" ]
+         v[ g# "False", g# "True" ]
 
 /-  eqBool =
   λ x. λ y. case x of
@@ -34,25 +34,26 @@ def notTerm : Term := λ[ .closed , .global "Bool" ]
  -/
 def eqBool : Term := λ[ .closed,  .global "Bool" ] λ[ .closed, .global "Bool" ]
   match!  #1
-   v[ match! #0 v[ g#"True", g#"False"] ,
-      match! #0 v[ g# "False", g# "False"]
+   v[ "True", "False" ]
+   v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False" ] ,
+      match! #0 v[ "True", "False" ] v[ g# "False", g# "False"]
     ]
 
 def EqBoolCtx := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool] ++ BoolCtx
 
 def t1 := Term.match g#"False"
-             v[ g#"False" , g#"True" ]
+              v[ "True", "False" ] v[ g#"False" , g#"True" ]
 
 def t2 := Term.match g#"True"
-             v[ g#"True" , g#"False" ]
+              v[ "True", "False" ]  v[ g#"True" , g#"False" ]
 
 
-#eval ctor_idx "True" EqBoolCtx
-#eval Fin.ofNat 2 0
+-- #eval ctor_idx "True" EqBoolCtx
+-- #eval Fin.ofNat 2 0
 
 
-#eval ctor_idx "False" EqBoolCtx
-#eval Fin.ofNat 2 1
+-- #eval ctor_idx "False" EqBoolCtx
+-- #eval Fin.ofNat 2 1
 
 
 #eval v[ g#"True", g#"False"] 0 -- g#"True"

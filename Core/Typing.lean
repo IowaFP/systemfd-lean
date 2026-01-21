@@ -71,13 +71,17 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch (cs : Vec Term (n + 1)) :
+| mtch (ps : Vec String (n + 1)) (cs : Vec Term (n + 1)) :
   Typing G Δ Γ s R ->
-  (∀ i, Typing G Δ Γ (cs i) T) ->
   ValidTyHeadVariable R (is_data G) ->
-  StableTypeMatch Δ A R ->
-  PrefixTypeMatch Δ A B T ->
-  Typing G Δ Γ (match! s cs) T
+  R.spine = some (dt, _) -> -- R is of the form gt#x.spine sp
+  (∀ i pat,
+    ps.indexOf pat = some i -> -- i is the index of the i-th pattern
+    ctor_ty pat G = some B ->
+    StableTypeMatch Δ B R ->
+    PrefixTypeMatch Δ A B T ->
+    Typing G Δ Γ (cs i) B) ->
+  Typing G Δ Γ (match! s ps cs) T
 --------------------------------------------------------------------------------------
 ---- Guards
 --------------------------------------------------------------------------------------
@@ -96,7 +100,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | lam :
   G&Δ ⊢ A : .base b ->
   Typing G Δ (A::Γ) t B ->
-  Typing G Δ Γ (λ[b,A] t) (A -:> B)
+  Typing G Δ Γ (λ[b,A] t) (A -[b]> B)
 | app :
   Typing G Δ Γ f (A -[b]> B) ->
   Typing G Δ Γ a A ->

@@ -35,7 +35,7 @@ def Term.rmap (lf : Endo Ren) (r : Ren) : Term -> Term
 | tbind v A t => tbind v A (rmap lf r t)
 | lam b A t => lam b A (rmap lf (lf r) t)
 | guard t1 t2 t3 => guard (rmap lf r t1) (rmap lf r t2) (rmap lf r t3)
-| .match t1 ts => .match (rmap lf r t1) (λ i => rmap lf r (ts i))
+| .match t1 ps ts => .match (rmap lf r t1) ps (λ i => rmap lf r (ts i))
 
 instance : RenMap Term where
   rmap := Term.rmap
@@ -202,7 +202,7 @@ def Term.Ty.smap (lf : Endo (Subst Ty)) (σ : Subst Ty) : Term -> Term
 | tbind v A t => tbind v A (smap lf (lf σ) t)
 | lam b A t => lam b A[σ:_] (smap lf σ t)
 | guard t1 t2 t3 => guard (smap lf σ t1) (smap lf σ t2) (smap lf σ t3)
-| .match t1 ts => .match (smap lf σ t1) (λ i => smap lf σ (ts i))
+| .match t1 pats ts => .match (smap lf σ t1) pats (λ i => smap lf σ (ts i))
 
 instance : SubstMap Term Ty where
   smap := Term.Ty.smap
@@ -217,7 +217,7 @@ def Term.smap (lf : Endo (Subst Term)) (σ : Subst Term) : Term -> Term
 | tbind v A t => tbind v A (smap lf (σ ◾ +1@Ty) t)
 | lam b A t => lam b A (smap lf (lf σ) t)
 | guard t1 t2 t3 => guard (smap lf σ t1) (smap lf σ t2) (smap lf σ t3)
-| .match t1 ts => .match (smap lf σ t1) (λ i => smap lf σ (ts i))
+| .match t1 pats ts => .match (smap lf σ t1) pats (λ i => smap lf σ (ts i))
 
 instance : SubstMap Term Term where
   smap := Term.smap
@@ -256,7 +256,7 @@ theorem Term.subst_guard : (guard t1 t2 t3)[σ:Term] = guard t1[σ:_] t2[σ:_] t
 
 @[simp]
 theorem Term.subst_match
-  : (match! t1 t2)[σ:Term] = match! t1[σ:_] (λ i => (t2 i)[σ:_])
+  : (match! t1 pats t2)[σ:Term] = match! t1[σ:_] pats (λ i => (t2 i)[σ:_])
 := by
   simp [Subst.apply, SubstMap.smap]
 
@@ -302,7 +302,7 @@ theorem Term.Ty.subst_guard : (guard t1 t2 t3)[σ:Ty] = guard t1[σ:_] t2[σ:_] 
 
 @[simp]
 theorem Term.Ty.subst_match
-  : (match! t1 t2)[σ:Ty] = match! t1[σ:_] (λ i => (t2 i)[σ:_])
+  : (match! t1 ps t2)[σ:Ty] = match! t1[σ:_] ps (λ i => (t2 i)[σ:_])
 := by
   simp [Subst.apply, SubstMap.smap]
 

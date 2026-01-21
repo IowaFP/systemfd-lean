@@ -65,10 +65,10 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Data Matching
 ----------------------------------------------------------------
 | data_match (cs : Vec Term (n + 1)) :
-  some (x, sp') = Term.spine s ->
-  some i = ctor_idx x G ->
+  some (x, sp) = Term.spine s ->
+  ps.indexOf x = some i ->
   k = Fin.ofNat (n + 1) i ->
-  Red G (.match s cs) ((cs k).apply q)
+  Red G (.match s ps cs) ((cs k).apply sp)
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -119,7 +119,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Red G (.guard p s b) (.guard p s' b)
 | match_congr :
   Red G s s' ->
-  Red G (.match s ts) (.match s' ts)
+  Red G (.match s ps ts) (.match s' ps ts)
 ----------------------------------------------------------------
 ---- Absorption Rules
 ----------------------------------------------------------------
@@ -137,7 +137,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | guard_absorb :
   Red G (.guard p `0 b) `0
 | match_absorb :
-  Red G (.match `0 ts) `0
+  Red G (.match `0 ps ts) `0
 ----------------------------------------------------------------
 ---- Mapping Rules
 ----------------------------------------------------------------
@@ -158,6 +158,6 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | guard_map :
   Red G (.guard p (c1 `+ c2) b) (.guard p c1 b `+ .guard p c2 b)
 | match_map :
-  Red G (.match (c1 `+ c2) ts) (.match c1 ts `+ .match c2 ts)
+  Red G (.match (c1 `+ c2) ps ts) (.match c1 ps ts `+ .match c2 ps ts)
 
 notation:170 G:170 " ⊢ " t:170 " ~> " t':170 => Red G t t'

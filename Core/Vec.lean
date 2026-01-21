@@ -222,6 +222,11 @@ theorem Vec.fold_cons : fold acc d (hd :: tl) = acc hd (fold acc d tl) := by sim
 
 def Vec.length (_ : Vec A n) : Nat := n
 
+theorem Vec.length_bound : (v : Vec A n) -> v.length == n := by
+  intro v
+  unfold Vec.length
+  induction n <;> (simp at *)
+
 def Vec.fold2 (acc : A -> B -> C -> C) (d : C) : {n1 n2 : Nat} -> (n1 = n2) -> Vec A n1 -> Vec B n2 -> C
 | 0, 0, rfl, _, _ => d
 | _ + 1, _ + 1, h, va, vb =>
@@ -254,3 +259,17 @@ theorem Vec.subst_cons {t : Vec S n} {σ : Subst T}
     cases n; apply Fin.elim0 i
     case _ n =>
     cases i using Fin.cases <;> simp [Vec.map] at *
+
+def Vec.indexOf [BEq T] (c : T) (v :  Vec T (n + 1)) : Option (Fin (n + 1)) :=
+    let (found, i, _) := Vec.fold (λ x acc =>
+      if not acc.1
+        then if x == c
+                then (true, acc.2.2, acc.2.2)
+                else (false, acc.2.1, acc.2.2 + 1)
+        else acc
+    ) (false, 0, 0) v
+  if found then return Fin.ofNat (n + 1) (n - 1 - i) else none
+
+#check Vec.indexOf "x" v["x", "y", "p"] == some 0
+#check Vec.indexOf "p" v["x", "y", "p"] == some 2
+#check Vec.indexOf "z" v["x", "y", "p"] == none

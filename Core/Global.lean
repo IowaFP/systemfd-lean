@@ -96,4 +96,10 @@ def ctor_idx (x : String) (G : List Global) : Option Nat := do
   | .ctor _ n _ => n
   | _ => none
 
+def ctor_ty (x : String) (G : List Global) : Option Ty := do
+  let t <- lookup x G
+  match t with
+  | .ctor _ _ ty => return ty
+  | _ => none
+
 def is_stable (x : String) (G : List Global) : Bool := !is_openm G x

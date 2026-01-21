@@ -28,11 +28,11 @@ def inline_insts (n : String) (G : List Global) (sp : List SpineElem) :=
 
 @[simp]
 def eval_choice_mapping (G : List Global) : Term -> Option Term
-| .match (.ctor2 .choice t1 t2) ts =>
-  return (.match t1 ts `+ .match t2 ts)
-| .match s ts => do
+| .match (.ctor2 .choice t1 t2) ps ts =>
+  return (.match t1 ps ts `+ .match t2 ps ts)
+| .match s ps ts => do
   let s' <- eval_choice_mapping G s
-  return .match s' ts
+  return .match s' ps ts
 
 | .guard  p (.ctor2 .choice s1 s2) t =>
   return (.guard p s1 t `+ .guard p s2 t)
@@ -64,10 +64,10 @@ def eval_choice_mapping (G : List Global) : Term -> Option Term
 
 @[simp]
 def eval_const_folding_zero (G : List Global) : Term -> Option Term
-| .match `0 _=> return `0
-| .match s ts => do
+| .match `0 _ _=> return `0
+| .match s ps ts => do
   let s' <- eval_const_folding_zero G s
-  return .match s' ts
+  return .match s' ps ts
 | .guard _ `0 _ => return `0
 | .guard p s t => do
   let s' <- eval_const_folding_zero G s
@@ -112,9 +112,9 @@ def eval_const_folding_zero (G : List Global) : Term -> Option Term
 
 @[simp]
 def eval_const_folding_refl (G : List Global) : Term -> Option Term
-| .match s ts => do
+| .match s ps ts => do
   let s' <- eval_const_folding_refl G s
-  return .match s' ts
+  return .match s' ps ts
 | .guard p s t => do
   let s' <- eval_const_folding_refl G s
   return .guard p s' t
@@ -195,17 +195,17 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
       else .some `0
     | .none => .none
 
-| .match (n := k + 1) s ts =>
+| .match (n := k + 1) s ps cs =>
    match eval_inst_beta G s with
-   | .some s' => return .match s' ts
+   | .some s' => return .match s' ps cs
    | .none => match s.spine with
            | .none => .none -- stuck term
            | .some (s_x, s_sp) =>
-               match ctor_idx s_x G with
+               match ps.indexOf s_x with
                | .none => .none -- stuck term
                | .some i => do
                        let idx := Fin.ofNat (k + 1) i
-                       return (ts idx).apply s_sp
+                       return (cs idx).apply s_sp
 
 | t => match t.spine with
        | .some (x, sp) => if is_defn G x || is_openm G x then return (inline_insts x G sp) else .none
