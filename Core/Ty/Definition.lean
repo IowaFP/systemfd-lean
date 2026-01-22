@@ -3,6 +3,9 @@ inductive BaseKind : Type where
 | closed
 | «open»
 
+notation "b★" => BaseKind.closed
+notation "b◯" => BaseKind.open
+
 inductive Kind : Type where
 | base : BaseKind -> Kind
 | arrow : Kind -> Kind -> Kind

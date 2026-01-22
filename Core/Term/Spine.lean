@@ -110,7 +110,6 @@ macro "spine_app_eq_solve" x:term : tactic => `(tactic| {
   apply Iff.intro <;> intro h
   case _ =>
     simp [Term.spine] at h
-    replace h := Eq.symm h
     rw [Option.bind_eq_some_iff] at h
     rcases h with ⟨q, e1, e2⟩
     rcases q with ⟨y, sp'⟩; simp at e2
@@ -118,27 +117,27 @@ macro "spine_app_eq_solve" x:term : tactic => `(tactic| {
     rw [e1]; exists sp'
   case _ =>
     rcases h with ⟨sp', e1, e2⟩; subst e1
-    simp [Term.spine]; apply Eq.symm
+    simp [Term.spine]
     rw [Option.bind_eq_some_iff]; apply Exists.intro ($x, sp')
-    apply And.intro (Eq.symm e2); simp
+    apply And.intro e2; simp
 })
 
 @[simp]
 theorem Spine.app_closed_eq {f a : Term} :
-  some (x, sp) = (f • a).spine
-  <-> ∃ sp', sp = sp' ++ [.term a] ∧ some (x, sp') = f.spine
+  (f • a).spine = some (x, sp)
+  <-> ∃ sp', sp = sp' ++ [.term a] ∧ f.spine = some (x, sp')
 := by spine_app_eq_solve x
 
 @[simp]
 theorem Spine.app_open_eq {f a : Term} :
-  some (x, sp) = (f ∘[a]).spine
-  <-> ∃ sp', sp = sp' ++ [.oterm a] ∧ some (x, sp') = f.spine
+  (f ∘[a]).spine = some (x, sp)
+  <-> ∃ sp', sp = sp' ++ [.oterm a] ∧ f.spine = some (x, sp')
 := by spine_app_eq_solve x
 
 @[simp]
 theorem Spine.appt_eq {f : Term} :
-  some (x, sp) = (f •[a]).spine
-  <-> ∃ sp', sp = sp' ++ [.type a] ∧ some (x, sp') = f.spine
+  (f •[a]).spine = some (x, sp)
+  <-> ∃ sp', sp = sp' ++ [.type a] ∧ f.spine = some (x, sp')
 := by spine_app_eq_solve x
 
 macro "spine_apply_solve" sp:Lean.Parser.Tactic.elimTarget "," t:term : tactic => `(tactic| {
@@ -171,8 +170,8 @@ macro "spine_apply_eq_case_solve"
   rw [ih, $ap]
 })
 
-theorem Spine.apply_eq  :
-  t.spine = some (x, sp) -> t = (g#x).apply sp
+theorem Spine.apply_eq
+  : t.spine = some (x, sp) -> t = (g#x).apply sp
 := by
   intro h
   fun_induction Term.spine generalizing x sp <;> simp at *
@@ -182,3 +181,25 @@ theorem Spine.apply_eq  :
   case _ ih => spine_apply_eq_case_solve h, ih, apply_term
   case _ ih => spine_apply_eq_case_solve h, ih, apply_oterm
   case _ ih => spine_apply_eq_case_solve h, ih, apply_type
+
+theorem Spine.apply_compose {t : Term}
+  : t.spine = some (x, sp1) -> (t.apply sp2).spine = some (x, sp1 ++ sp2)
+:= by
+  intro h; induction sp2 generalizing t x sp1
+  simp [Term.apply]; exact h
+  case _ hd tl ih =>
+  cases hd <;> simp [Term.apply] at *
+  case _ T =>
+    have lem : (t •[T]).spine = some (x, sp1 ++ [.type T]) := by simp; exact h
+    replace ih := ih lem; simp at ih; exact ih
+  case _ a =>
+    have lem : (t • a).spine = some (x, sp1 ++ [.term a]) := by simp; exact h
+    replace ih := ih lem; simp at ih; exact ih
+  case _ a =>
+    have lem : (t ∘[a]).spine = some (x, sp1 ++ [.oterm a]) := by simp; exact h
+    replace ih := ih lem; simp at ih; exact ih
+
+@[simp]
+theorem Spine.apply_eta : ((g#x).apply sp).spine = some (x, sp) := by
+  have lem := @apply_compose x [] sp g#x (by simp [Term.spine])
+  simp at lem; exact lem
