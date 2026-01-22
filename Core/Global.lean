@@ -81,6 +81,12 @@ def instances (x : String) : List Global -> List Term
   if x == y then t :: instances x tl else instances x tl
 | .cons _ tl => instances x tl
 
+def lookup_defn G x := do
+  let t <- lookup x G
+  match t with
+  | .defn _ _ t => return t
+  | _ => none
+
 def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.get!
 def lookup_type G x := lookup x G |> Option.map Entry.type |> Option.get!
 def is_ctor G x := lookup x G |> Option.map Entry.is_ctor |> Option.get!

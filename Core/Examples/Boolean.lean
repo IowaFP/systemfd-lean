@@ -67,8 +67,8 @@ def EqBoolCtx : List Global := [
 def t1 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"False"
 def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
 
-#eval! eval_loop EqBoolCtx t1
-#eval! eval_loop EqBoolCtx t2
+#eval! eval_loop EqBoolCtx t1 -- False
+#eval! eval_loop EqBoolCtx t2 -- True
 
 -- #eval! eval EqBoolCtx t1
 -- def t3 := Option.getD (eval EqBoolCtx t1) `0

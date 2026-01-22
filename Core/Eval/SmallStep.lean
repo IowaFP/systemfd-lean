@@ -9,22 +9,10 @@ import Core.Reduction.Definition
 import Core.Util
 open LeanSubst
 
-@[simp]
-def get_insts (n : String) :  List Global -> List Term
-| [] => []
-| .cons (.inst n' t) G =>
-  if n == n'
-  then t :: (get_insts n G)
-  else get_insts n G
-| .cons (.defn n' _ t) G =>
-  if n == n'
-  then t :: (get_insts n G)
-  else get_insts n G
-| .cons _ G => get_insts n G
 
 @[simp]
 def inline_insts (n : String) (G : List Global) (sp : List SpineElem) :=
-  List.foldr (λ (x : Term) (acc : Term) => x.apply sp `+ acc) `0 (get_insts n G)
+  List.foldr (λ (x : Term) (acc : Term) => x.apply sp `+ acc) `0 (instances n G)
 
 @[simp]
 def eval_choice_mapping (G : List Global) : Term -> Option Term
@@ -58,6 +46,21 @@ def eval_choice_mapping (G : List Global) : Term -> Option Term
 
 | .ctor2 v t (.ctor2 .choice a1 a2) =>
   return (.ctor2 v t a1) `+ (.ctor2 v t a2)
+
+| .ctor2 v t1 t2 =>
+  if v.congr1
+  then match eval_choice_mapping G t1 with
+       | .some t1' => return .ctor2 v t1' t2
+       | .none => if v.congr2
+                  then match eval_choice_mapping G t2 with
+                       | .some t2' => return .ctor2 v t1 t2'
+                       | .none => .none
+                  else .none
+  else (if v.congr2
+        then match eval_choice_mapping G t2 with
+             | .some t2' => return .ctor2 v t1 t2'
+             | .none => .none
+        else .none)
 
 | _ => .none
 
@@ -154,12 +157,11 @@ def eval_const_folding_refl (G : List Global) : Term -> Option Term
 @[simp]
 def eval_inst_beta (G : List Global) :  Term -> Option Term
 | .ctor1 (.appt a) (.tbind .lamt _ t) => return t[.su a::+0 : Ty]
-| .ctor1 (.appt a) t => do
+| .ctor1 v t => do
   let t' <- eval_inst_beta G t
-  return .ctor1 (.appt a) t'
+  return .ctor1 v t'
 
-| .ctor2 (.app _) (.lam _ _ t) a =>
-  return t[su a ::+0]
+| .ctor2 (.app _) (.lam _ _ t) a => return t[su a ::+0]
 | .ctor2 (.app k) t1 t2 => do
   let t' <- eval_inst_beta G t1
   return .ctor2 (.app k) t' t2
@@ -208,7 +210,14 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
                        return (cs idx).apply s_sp
 
 | t => match t.spine with
-       | .some (x, sp) => if is_defn G x || is_openm G x then return (inline_insts x G sp) else .none
+       | .some (x, sp) =>
+         if is_defn G x
+         then do
+              let t <- lookup_defn G x
+              return t.apply sp
+         else if is_openm G x
+              then return (inline_insts x G sp)
+              else .none
        | .none => .none
 
 @[simp]

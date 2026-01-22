@@ -93,7 +93,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .ctor2 (.app .closed) t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++Term.repr p t2) p
 | .ctor2 (.app .open) t1 t2 =>
-  Repr.addAppParen (Term.repr max_prec t1 ++ " ∘[" ++ Term.repr p t2 ++ "]") p
+  Repr.addAppParen (Term.repr max_prec t1 ++ " ∘" ++ Std.Format.sbracket (Term.repr p t2)) p
 | .ctor2 .cast t1 t2 =>
   Repr.addAppParen ((Term.repr max_prec t1 ++ " • " ++ Term.repr p t2)) p
 | .ctor2 .seq t1 t2 =>
@@ -104,16 +104,16 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   Std.Format.line ++ Term.repr max_prec t2) p
 | .ctor2 .apptc t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++
-  Std.Format.line ++ " •c[ " ++ Term.repr p t2 ++ "]") p
+  Std.Format.line ++ " •c" ++ Std.Format.sbracket (Term.repr p t2)) p
 | .ctor2 .arrowc t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " -c> " ++ Term.repr p t2) p
 | .ctor2 .choice t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " `+ " ++ Term.repr max_prec t2) p
 | .tbind .lamt K t =>
-  Repr.addAppParen ("Λ[ " ++ repr K ++ " ] " ++ Term.repr max_prec t) p
+  Repr.addAppParen ("Λ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .tbind .allc K t =>
-  Repr.addAppParen ("∀c[ " ++ repr K ++ " ] " ++ Term.repr max_prec t) p
-| .lam _ τ t => Repr.addAppParen ("λ[ " ++ repr τ ++ " ] " ++ Term.repr max_prec t) p
+  Repr.addAppParen ("∀c" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
+| .lam _ τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
 | .match (n := n) s pats ts =>
   let ts : Vec Std.Format n := λ i =>
     let t := ts i
