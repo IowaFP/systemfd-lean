@@ -69,30 +69,34 @@ def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] •
 #eval! eval_loop EqBoolCtx t1
 #eval! eval_loop EqBoolCtx t2
 
-#eval! eval EqBoolCtx t1
-def t3 := Option.getD (eval EqBoolCtx t1) `0
-#eval! eval EqBoolCtx t3
-def t4 := Option.getD (eval EqBoolCtx t3) `0
-#eval! eval EqBoolCtx t4
-def t5 := Option.getD (eval EqBoolCtx t4) `0
-#eval! eval EqBoolCtx t5
-def t6 := Option.getD (eval EqBoolCtx t5) `0
-#eval! eval EqBoolCtx t6
-def t7 := Option.getD (eval EqBoolCtx t6) `0
-#eval! eval EqBoolCtx t7
-def t8 := Option.getD (eval EqBoolCtx t7) `0
-#eval! eval EqBoolCtx t8
-def t9 := Option.getD (eval EqBoolCtx t8) `0
-#eval! eval EqBoolCtx t9
-def t10 := Option.getD (eval EqBoolCtx t9) `0
-#eval! eval EqBoolCtx t10
-def t11 := Option.getD (eval EqBoolCtx t10) `0
-#eval! eval EqBoolCtx t11
-def t12 := Option.getD (eval EqBoolCtx t11) `0
-#eval! eval EqBoolCtx t12
-def t13 := Option.getD (eval EqBoolCtx t12) `0
-#eval! eval EqBoolCtx t13
-def t14 := Option.getD (eval EqBoolCtx t13) `0
-#eval! eval EqBoolCtx t14
-def t15 := Option.getD (eval EqBoolCtx t14) `0
-#eval! eval EqBoolCtx t15
+-- #eval! eval EqBoolCtx t1
+-- def t3 := Option.getD (eval EqBoolCtx t1) `0
+-- #eval! eval EqBoolCtx t3
+-- def t4 := Option.getD (eval EqBoolCtx t3) `0
+-- #eval! eval EqBoolCtx t4
+-- def t5 := Option.getD (eval EqBoolCtx t4) `0
+-- #eval! eval EqBoolCtx t5
+-- def t6 := Option.getD (eval EqBoolCtx t5) `0
+-- #eval! eval EqBoolCtx t6
+-- def t7 := Option.getD (eval EqBoolCtx t6) `0
+-- #eval! eval EqBoolCtx t7
+-- def t8 := Option.getD (eval EqBoolCtx t7) `0
+-- #eval! eval EqBoolCtx t8
+-- def t9 := Option.getD (eval EqBoolCtx t8) `0
+-- #eval! eval EqBoolCtx t9
+-- def t10 := Option.getD (eval EqBoolCtx t9) `0
+-- #eval! eval EqBoolCtx t10
+-- def t11 := Option.getD (eval EqBoolCtx t10) `0
+-- #eval! eval EqBoolCtx t11
+-- def t12 := Option.getD (eval EqBoolCtx t11) `0
+-- #eval! eval EqBoolCtx t12
+-- def t13 := Option.getD (eval EqBoolCtx t12) `0
+-- #eval! eval EqBoolCtx t13
+-- def t14 := Option.getD (eval EqBoolCtx t13) `0
+-- #eval! eval EqBoolCtx t14
+-- def t15 := Option.getD (eval EqBoolCtx t14) `0
+-- #eval! eval EqBoolCtx t15
+-- def t16 := Option.getD (eval EqBoolCtx t15) `0
+-- #eval! eval EqBoolCtx t16
+-- def t17 := Option.getD (eval EqBoolCtx t16) `0
+-- #eval! eval EqBoolCtx t17

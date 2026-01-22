@@ -60,5 +60,5 @@ def t2 := Term.match g#"True"
 
 #eval v[ g#"True", g#"False"] 1 -- g#"False"
 
-#eval eval EqBoolCtx t1
-#eval eval EqBoolCtx t2
+#guard eval EqBoolCtx t1 == g#"True"
+#guard eval EqBoolCtx t2 == g#"True"
