@@ -64,7 +64,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
-| data_match (cs : Vec Term (n + 1)) :
+| data_match (ps: Vec String (n + 1)) (cs : Vec Term (n + 1)) :
   some (x, sp) = Term.spine s ->
   ps.indexOf x = some i ->
   k = Fin.ofNat (n + 1) i ->

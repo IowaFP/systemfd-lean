@@ -14,7 +14,7 @@ inductive Global : Type where
 | instty : String -> Ty -> Global
 
 inductive Entry : Type where
-| data : String -> Kind -> Entry
+| data : String -> Kind -> Vec (String × Ty) n -> Entry
 | ctor : String -> Nat -> Ty -> Entry
 | opent : String -> Kind -> Entry
 | openm : String -> Ty -> Entry
@@ -22,7 +22,7 @@ inductive Entry : Type where
 | instty : String -> Ty -> Entry
 
 def Entry.is_data : Entry -> Bool
-| data _ _ => true
+| data _ _ _ => true
 | _ => false
 
 def Entry.is_ctor : Entry -> Bool
@@ -46,7 +46,7 @@ def Entry.is_instty : Entry -> Bool
 | _ => false
 
 def Entry.kind : Entry -> Option Kind
-| data _ K => K
+| data _ K _ => K
 | opent _ K => K
 | _ => none
 
@@ -60,11 +60,11 @@ def Entry.type : Entry -> Option Ty
 def lookup (x : String) : List Global -> Option Entry
 | [] => none
 | .cons (.data (n := n) y K ctors) tl =>
-  let ctors : Vec (Option Entry) n := λ i =>
+  let ctors' : Vec (Option Entry) n := λ i =>
     let (z, A) := ctors i
     if x == z then return .ctor z i A else none
-  if x == y then return .data y K
-  else Vec.fold Option.or (lookup x tl) ctors
+  if x == y then return .data y K ctors
+  else Vec.fold Option.or (lookup x tl) ctors'
 | .cons (.opent y a) tl =>
   if x == y then return .opent y a else lookup x tl
 | .cons (.openm y a) tl =>
@@ -101,5 +101,11 @@ def ctor_ty (x : String) (G : List Global) : Option Ty := do
   match t with
   | .ctor _ _ ty => return ty
   | _ => none
+
+def ctor_count (x : String) (G : List Global) : Option Nat := do
+  let t <- lookup x G
+  match t with
+  | .data _ _ ctors => ctors.length
+  | _ => .none
 
 def is_stable (x : String) (G : List Global) : Bool := !is_openm G x

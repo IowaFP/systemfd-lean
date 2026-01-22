@@ -274,3 +274,6 @@ def Vec.indexOf [BEq T] (c : T) (v :  Vec T (n + 1)) : Option (Fin (n + 1)) :=
 #guard Vec.indexOf "y" v["x", "y", "p"] == some 1
 #guard Vec.indexOf "p" v["x", "y", "p"] == some 2
 #guard Vec.indexOf "z" v["x", "y", "p"] == none
+
+
+def Vec.HasUniqElems [BEq T] (v : Vec T (n + 1)) : Prop := ∀ x y, x ≠ y -> v.indexOf x ≠ v.indexOf y
