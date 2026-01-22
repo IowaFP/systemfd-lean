@@ -129,7 +129,7 @@ theorem Kinding.rename Δr (r : Ren) :
   case app ih1 ih2 => apply Kinding.app (ih1 _ _ h) (ih2 _ _ h)
   case eq ih1 ih2 => apply Kinding.eq (ih1 _ _ h) (ih2 _ _ h)
 
-theorem Kinding.weaken : G&Δ ⊢ A : K -> G&(T::Δ) ⊢ A[+1] : K := by
+theorem Kinding.weaken T : G&Δ ⊢ A : K -> G&(T::Δ) ⊢ A[+1] : K := by
   intro j; apply rename (T::Δ) (· + 1) _ j
   intro i; cases i <;> simp
 
