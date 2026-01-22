@@ -35,7 +35,8 @@ def notTerm : Term := λ[ .closed , .global "Bool" ]
                        False → True
  -/
 def eqBool : Term := λ[ .closed,  .global "Bool" ] λ[ .closed, .global "Bool" ]
-  match! #1 v[ "True", "False" ]
+  match! #1
+   v[ "True", "False" ]
    v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False"] ,
       match! #0 v[ "True", "False" ] v[ g# "False", g# "False"]
     ]

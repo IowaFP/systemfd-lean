@@ -1,0 +1,75 @@
+import Core.Ty
+import Core.Term
+import Core.Global
+import Core.Vec
+
+import Core.Eval.BigStep
+
+
+def c1 := match! #0 v[ "Z" , "S" ]  v[ g#"True", λ[BaseKind.closed, gt#"Nat"] g#"False" ]
+def c2 := λ[BaseKind.closed , gt#"Nat"] match! #1 v[ "Z" , "S" ]
+               v[  g#"False"
+                , λ[BaseKind.closed, gt#"Nat"] (g#"eq" • #1) • #0 ]
+
+def NatCtxFix : List Global := [
+
+    /- ==@Nat := λ x λ y.
+                  case x of
+                    Zero → case y of
+                            Zero → True
+                            _ → False
+                    Suc → λ x'. case y of
+                            Zero → False
+                            Succ →  λ y'. ==@Nat x' y'
+   -/
+
+  .inst "eq"
+     (λ[.closed, gt#"Nat"] λ[.closed, gt#"Nat"]
+        match! #1
+        v[ "Z" , "S" ]
+        v[ c1
+         , c2
+         ]
+    ) ,
+
+  .openm "eq" (gt#"Nat" -:> gt#"Nat" -:> gt#"Bool"),
+  -- Bool = True | False
+  .data "Bool" ★ v[ ("True", gt#"Bool"), ("False", gt#"Bool") ],
+
+  -- two = add (S Z) (S Z)
+  .defn "two" gt#"Nat" ((g#"add" • (g#"S" • g#"Z")) • (g#"S" • g#"Z")),
+
+  .defn "add" (gt#"Nat" -:> gt#"Nat" -:> gt#"Nat")
+        ((g#"fix" •[gt#"Nat" -:> gt#"Nat" -:> gt#"Nat"]) • g#"add_rec"),
+
+  -- let add_rec : (Nat -> Nat -> Nat) -> Nat -> Nat -> Nat :=
+  --   λ rec n m. ite zero <- n then m
+  --     else ite succ <- n then λ x. succ (rec x m)
+  --     else m
+  .defn "add_rec"
+        ((gt#"Nat" -:> gt#"Nat" -:> gt#"Nat") -:> gt#"Nat" -:> gt#"Nat" -:> gt#"Nat")
+        (λ[.closed, gt#"Nat" -:> gt#"Nat" -:> gt#"Nat"]
+          λ[.closed, gt#"Nat"] λ[.closed, gt#"Nat"]
+            match! #1
+              v["Z", "S" ]
+              v[ #0 ,
+                 λ[ BaseKind.closed, gt#"Nat" ] (g#"S" • ((#3 • #0) • #1)) ]
+         ),
+
+  -- instance fix = Λ a. λ f. f (fix i f)
+  .inst "fix" (Λ[★] λ[.closed, t#0 -:> t#0] (#0 • ((g#"fix" •[t#0]) • #0))),
+  -- open fix : ∀ a, (a -> a) -> a
+  .openm "fix" (∀[★] (t#0 -:> t#0) -:> t#0),
+  -- data Nat = Z | Succ Nat
+  .data "Nat" ★ v[ ("Z", gt#"Nat"), ("S", gt#"Nat" -:> gt#"Nat") ]
+
+]
+
+-- #eval eval_loop NatCtxFix g#"two"
+
+#eval eval_loop NatCtxFix ((g#"eq" • g#"Z") • g#"Z") -- True
+#eval eval_loop NatCtxFix ((g#"eq" • (g#"Z")) • ((g#"S" • g#"Z"))) -- False
+#eval eval_loop NatCtxFix ((g#"eq" • (g#"S" • g#"Z")) • ((g#"S" • g#"Z"))) -- True
+#eval eval_loop NatCtxFix ((g#"eq" • (g#"S" • (g#"S" • g#"Z"))) • (g#"S" • (g#"S" • g#"Z"))) -- True
+#eval eval_loop NatCtxFix ((g#"eq" • (g#"two")) • (g#"S" • (g#"S" • g#"Z"))) -- True
+#eval eval_loop NatCtxFix ((g#"eq" • (g#"two")) • ((g#"S" • g#"Z"))) -- False
