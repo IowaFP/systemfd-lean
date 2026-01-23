@@ -81,7 +81,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
     ps.indexOf pat = some i -> -- i is the index of the i-th pattern
     ctor_ty pat G = some B ->
     StableTypeMatch Δ B R -> -- B has the same result type. i.e. B = ∀[K] X -> ... -> R
-    PrefixTypeMatch Δ A B T -> -- the case type A and constructor have the same prefix types
+    PrefixTypeMatch Δ A B T -> -- the case type A and constructor type B have the same prefixes
     Typing G Δ Γ (cs i) A) ->
   Typing G Δ Γ (match! s ps cs) T
 --------------------------------------------------------------------------------------

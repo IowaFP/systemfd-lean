@@ -228,16 +228,16 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply ValidTyHeadVariable.rename r vhv
     sorry
     assumption
-    sorry
-    (intro i pat j1 j2 j3 j4; sorry
-     -- apply ihcs
-     -- apply j1
-     -- apply j2
+    assumption
+    (intro i pat A' B' j3 j4 j5 j6;
+      have ichs' := ihcs i pat A' B' j3 j4
+
+      sorry
      -- apply StableTypeMatch.rename _ _ h j3
 
      )
     sorry
-    apply dt
+    sorry
 
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
@@ -360,7 +360,22 @@ theorem Typing.rename Γr (r : Ren) :
   intro wf h j; induction j generalizing Γr r <;> simp
   case var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
   case global j1 j2 => apply Typing.global j1 j2
-  case mtch => sorry
+  case mtch js h1 h2 h3 h4 ih1 ih2 ih3 =>
+    apply mtch
+    case _ =>
+      apply ih2; apply h
+    assumption
+    assumption
+    assumption
+    assumption
+    case _ =>
+      intro i' pat' B' A' h1' h2' h3' h4'
+      apply ih3
+      assumption
+      assumption
+      assumption
+      assumption
+      assumption
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply Typing.guard
     apply ih1 _ _ h
