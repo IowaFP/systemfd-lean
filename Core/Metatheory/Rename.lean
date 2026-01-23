@@ -222,7 +222,23 @@ theorem Typing.rename_type Δr (r : Ren) :
     replace j2 := Kinding.rename Δr r h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch => sorry
+  case mtch x n _ s R B dt T ps cs sJ vhv h1 h2 h3 csJ ihs ihcs =>
+    apply mtch
+    apply ihs; assumption
+    apply ValidTyHeadVariable.rename r vhv
+    sorry
+    assumption
+    sorry
+    (intro i pat j1 j2 j3 j4; sorry
+     -- apply ihcs
+     -- apply j1
+     -- apply j2
+     -- apply StableTypeMatch.rename _ _ h j3
+
+     )
+    sorry
+    apply dt
+
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
     apply ih1 _ _ h

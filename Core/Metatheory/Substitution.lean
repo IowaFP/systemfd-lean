@@ -137,7 +137,23 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     replace j2 := Kinding.subst Δσ σ h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch => sorry
+  case mtch ps cs sJ vhv h1 h2 h3 csJ ihs ihcs =>
+    simp at *
+    apply mtch
+    apply ihs
+    assumption
+    apply ValidTyHeadVariable.subst σ vhv
+    (sorry)
+    assumption
+    apply h3
+    (intro i pat B A h1 h2 h3 h4;
+     have csJ' := csJ i pat B[σ] A[σ] h1 sorry
+
+     replace ihcs := ihcs i pat B A h1 h2
+     sorry)
+    sorry
+
+
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
     apply ih1 _ _ h
