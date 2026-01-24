@@ -205,6 +205,36 @@ theorem PrefixTypeMatch.rename Δr (r : Ren) :
     rw [Ren.to_lift (S := Ty)] at ih; simp at ih
     simp; exact ih
 
+theorem Ty.spine_rename (Δ Δr : List Kind) (r: Ren) (A : Ty) :
+  (∀ i, Δ[i]? = Δr[r i]?) ->
+  A.spine = .some (H, sp) ->
+  A[r].spine = .some (H, sp.map (·[r])) := by
+intro h j
+induction A generalizing sp <;> simp at *
+all_goals (try case _ => unfold spine at j; cases j)
+case _ => unfold spine at j; simp at j; unfold spine; simp; assumption
+case _ f a ih1 ih2 => cases j; case _ spf j =>
+  cases j; case _ e1 h1 =>
+  have ih1' := ih1 h1
+  exists spf.map (·[r])
+  rw[e1]; constructor;
+  simp
+  assumption
+
+theorem Typing.case_rename {n : Nat} {Δ : List Kind} {Δr : List Kind} {Γ : List Ty} {r : Ren}
+  {ps : Vec String (n + 1)} {cs : Vec Term (n + 1)} (i : Fin (n + 1)) (pat : String) (B A : Ty):
+    -- (∀ i, Δ[i]? = Δr[r i]?) ->
+    ps.indexOf pat = some i -> -- i is the index of the i-th pattern
+    ctor_ty pat G = some B -> -- It has some type B
+    StableTypeMatch Δ B R -> -- B has the same result type. i.e. B = ∀[K] X -> ... -> R
+    PrefixTypeMatch Δ A B T -> -- the case type A and constructor type B have the same prefixes
+    G&Δ,Γ ⊢ (cs i) : A ->
+    G&Δr,(Γ.map (·[r])) ⊢ (cs i)[r] : A[r] := by
+intro h1 h2 h3 h4 h5
+-- have lem := Vec.induction _ (λ x => ) sorry
+sorry
+
+
 theorem Typing.rename_type Δr (r : Ren) :
   ⊢ G ->
   (∀ i, Δ[i]? = Δr[r i]?) ->
@@ -222,22 +252,20 @@ theorem Typing.rename_type Δr (r : Ren) :
     replace j2 := Kinding.rename Δr r h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch x n _ s R B dt T ps cs sJ vhv h1 h2 h3 csJ ihs ihcs =>
+  case mtch sp n Δ Γ s R dt T ps cs sJ vhv h1 h2 h3 csJ ihs ihcs =>
     apply mtch
     apply ihs; assumption
     apply ValidTyHeadVariable.rename r vhv
-    sorry
+    apply R.spine_rename _ _ r h h1
     assumption
     assumption
-    (intro i pat A' B' j3 j4 j5 j6;
-      have ichs' := ihcs i pat A' B' j3 j4
-
-      sorry
+    replace csJ := csJ
+    (intro i pat Br A h1' h2' h3' h4'
+     have ihcs := ihcs i pat Br A
+     sorry
      -- apply StableTypeMatch.rename _ _ h j3
 
      )
-    sorry
-    sorry
 
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard

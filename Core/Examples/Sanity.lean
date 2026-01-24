@@ -4,13 +4,14 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
-
+import Core.Algorithm.Kind
 
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
   .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
   ]
-
+#guard infer_kind BoolCtx [] (gt#"Bool") == .some ★
+#guard infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
 /-
 not : Bool -> Bool
 not = λ x → case x of
