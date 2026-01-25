@@ -1,5 +1,6 @@
 import Core.Ty.Definition
 
+@[simp]
 def BaseKind.beq : BaseKind -> BaseKind -> Bool
 | closed, closed => true
 | .open, .open => true
@@ -8,6 +9,19 @@ def BaseKind.beq : BaseKind -> BaseKind -> Bool
 instance : BEq BaseKind where
   beq := BaseKind.beq
 
+instance instLawfulBEq_BaseKind : LawfulBEq BaseKind where
+  eq_of_beq := by
+    intro a b h
+    cases a <;> cases b
+    all_goals (simp at *)
+    all_goals (unfold BEq.beq at h;  unfold instBEqBaseKind at h; simp at h)
+
+  rfl := by
+    intro a
+    cases a
+    all_goals (unfold BEq.beq; unfold instBEqBaseKind; simp)
+
+@[simp]
 def Kind.beq : Kind -> Kind -> Bool
 | base b1, base b2 => b1 == b2
 | arrow A1 B1, arrow A2 B2 => beq A1 A2 && beq B1 B2
@@ -15,6 +29,18 @@ def Kind.beq : Kind -> Kind -> Bool
 
 instance : BEq Kind where
   beq := Kind.beq
+
+instance : LawfulBEq Kind where
+  eq_of_beq := by
+    intro a b h
+    induction a <;> cases b
+    all_goals (simp at *)
+    all_goals (unfold BEq.beq at h; unfold instBEqKind at h; simp at h)
+    assumption
+    rcases h with ⟨h1, h2⟩;
+    sorry
+  rfl := by sorry
+
 
 def Ty.beq : Ty -> Ty -> Bool
 | var x, var y => x == y

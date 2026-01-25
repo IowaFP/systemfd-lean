@@ -1,6 +1,7 @@
 import Core.Ty
 import Core.Global
 
+@[simp]
 def wf_kind : (K : Kind) -> Option Unit
 | ★ => return ()
 | ◯ => return ()
@@ -9,11 +10,17 @@ def wf_kind : (K : Kind) -> Option Unit
   _ <- wf_kind k2
   return ()
 
+@[simp]
 def Kind.is_arrow : (K : Kind) -> Option (Kind × Kind)
 | .arrow k1 k2 => return (k1 , k2)
 | _ => none
 
+def Kind.base_kind : (K : Kind) -> Option BaseKind
+| ★ => return b★
+| ◯ => return b◯
+| _ => none
 
+@[simp]
 def infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
 | t#x => do
   let T <- Δ[x]?
@@ -26,9 +33,11 @@ def infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
 | .arrow b t1 t2 => do
   let k1 <- infer_kind G Δ t1
   let _ <- wf_kind k1
+  let b1 <- k1.base_kind
   let k2 <- infer_kind G Δ t2
+  let _ <- k2.base_kind
   let _ <- wf_kind k2
-  return .base b
+  if b == b1 then return k2 else none
 | .all K t => do
   let _ <- wf_kind K
   let tk <- infer_kind G (K :: Δ) t

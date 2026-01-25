@@ -12,6 +12,7 @@ def BoolCtx : List Global := [
   ]
 #guard infer_kind BoolCtx [] (gt#"Bool") == .some ★
 #guard infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
+#guard infer_kind BoolCtx [] (gt#"Bool" =:> gt#"Bool" -:> gt#"Bool") == none
 /-
 not : Bool -> Bool
 not = λ x → case x of

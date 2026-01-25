@@ -49,7 +49,7 @@ def EqBoolCtx : List Global := [
   --        λb1. λb2. ==@Bool ▹ sym c
   .inst "eq" (Λ[ ★ ] λ[ .open, gt#"Eq" • t#0 ]
         .guard (g#"EqBool" •[ t#0 ]) #0
-           (λ[.open, t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
+           (λ[.closed, t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
    ),
 
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool,
@@ -58,7 +58,7 @@ def EqBoolCtx : List Global := [
   .instty "EqBool" (∀[★] (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)) ,
 
   -- == : ∀ t. Eq t → t → t → Bool
-  .openm "eq" (∀[★] (gt#"Eq" • t#0) -:> t#0 -:> t#0 -:> gt#"Bool") ,
+  .openm "eq" (∀[★] (gt#"Eq" • t#0) =:> t#0 -:> t#0 -:> gt#"Bool") ,
 
   -- class Eq a
   .opent "Eq" (★ -:> ◯)
