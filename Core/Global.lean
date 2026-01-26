@@ -115,3 +115,6 @@ def ctor_count (x : String) (G : List Global) : Option Nat := do
   | _ => .none
 
 def is_stable (x : String) (G : List Global) : Bool := !is_openm G x
+
+
+def Globals := List Global

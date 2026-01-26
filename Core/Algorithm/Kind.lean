@@ -20,7 +20,7 @@ def Kind.base_kind : (K : Kind) -> Option BaseKind
 | _ => none
 
 @[simp]
-def infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
+def Ty.infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
 | t#x => do
   let T <- Δ[x]?
   let _ <- wf_kind T

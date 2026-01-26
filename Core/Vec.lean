@@ -157,6 +157,8 @@ theorem get2_1 : v[a, b] 1 = b := by simp [Vec.cons]
 
 def Vec.map (f : A -> B) (v : Vec A n) : Vec B n := λ i => f (v i)
 
+def Vec.map2 (v1 : Vec A n) (v2 : Vec B n) (f : A -> B -> C)  : Vec C n := λ i => f (v1 i) (v2 i)
+
 @[simp]
 theorem Vec.map_nil : Vec.map f v[] = v[] := by
   funext; case _ x => apply Fin.elim0 x
@@ -277,3 +279,41 @@ def Vec.indexOf [BEq T] (c : T) (v :  Vec T (n + 1)) : Option (Fin (n + 1)) :=
 
 
 def Vec.HasUniqElems [BEq T] (v : Vec T (n + 1)) : Prop := ∀ x y, x ≠ y -> v.indexOf x ≠ v.indexOf y
+
+def Vec.seq_lemma (vs : Vec (Option T) n) :
+  (Σ' (i : Fin n), (vs i).isSome = false) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
+:= by {
+    induction n
+    case _ =>
+      apply Sum.inr; intro i
+      apply Fin.elim0 i
+    case _ n ih =>
+      generalize zdef : uncons vs = z at *
+      rcases z with ⟨h, t⟩
+      have lem := cons_iff_uncons.2 zdef
+      cases h
+      case none =>
+        apply Sum.inl; apply PSigma.mk 0
+        rw [lem]; simp
+      case some h =>
+        replace ih := ih t
+        cases ih
+        case _ ih =>
+          rcases ih with ⟨k, ih⟩
+          apply Sum.inl; apply PSigma.mk (Fin.succ k)
+          rw [lem]; simp at *; exact ih
+        case _ ih =>
+          apply Sum.inr; intro i
+          cases i using Fin.cases
+          case _ => rw [lem]; simp; apply PSigma.mk h; rfl
+          case _ i => rw [lem]; simp; apply ih i
+  }
+
+def Vec.seq (vs : Vec (Option T) n) : Option (Vec T n) :=
+  match seq_lemma vs with
+  | .inl h => none
+  | .inr h => some (λ i => Option.get (vs i) (by {
+    replace h := h i
+    rcases h with ⟨t, e⟩
+    rw [e]; simp
+  }))
