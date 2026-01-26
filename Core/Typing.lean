@@ -86,18 +86,24 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch (ps : Vec String (n + 1)) (cs : Vec Term (n + 1)) :
+| mtch (A : Nat -> Ty) (ps : Vec String (n + 1)) (cs : Vec Term (n + 1)) :
   Typing G Δ Γ s R ->
   ValidTyHeadVariable R (is_data G) ->
   R.spine = some (dt, _) -> -- R is of the form gt#x.spine sp
   ps.HasUniqElems -> -- all the patterns are unique
   ctor_count dt G = some (n + 1) ->   -- need to also have that n + 1 = length of ctors of R
-  (∀ i pat B A,
-    ps.indexOf pat = some i -> -- i is the index of the i-th pattern
-    ctor_ty pat G = some B -> -- It has some type B
-    StableTypeMatch Δ B R -> -- B has the same result type. i.e. B = ∀[K] X -> ... -> R
-    PrefixTypeMatch Δ A B T -> -- the case type A and constructor type B have the same prefixes
-    Typing G Δ Γ (cs i) A) ->
+  (∀ i, Typing G Δ Γ (cs i) (A i)) ->
+  (∀ i B,
+    ps.indexOf pat = some i
+    ∧ ctor_ty pat G = some B
+    ∧ StableTypeMatch Δ B R
+    ∧ PrefixTypeMatch Δ (A i) B T) ->
+  -- (∀ i pat B A,
+  --   ps.indexOf pat = some i -> -- i is the index of the i-th pattern
+  --   ctor_ty pat G = some B -> -- It has some type B
+  --   StableTypeMatch Δ B R -> -- B has the same result type. i.e. B = ∀[K] X -> ... -> R
+  --   PrefixTypeMatch Δ A B T -> -- the case type A and constructor type B have the same prefixes
+  --   Typing G Δ Γ (cs i) A) ->
   Typing G Δ Γ (match! s ps cs) T
 --------------------------------------------------------------------------------------
 ---- Guards
