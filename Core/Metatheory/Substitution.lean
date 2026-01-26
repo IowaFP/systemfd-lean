@@ -120,6 +120,55 @@ theorem PrefixTypeMatch.subst Δσ (σ : Subst Ty) :
     replace ih := ih (K::Δσ) σ.lift (Kinding.subst_lift K h)
     simp at ih; simp; exact ih
 
+theorem Ty.spine_subst (Δ Δσ : List Kind) (σ: Subst Ty) (A : Ty) :
+  (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
+  A.spine = .some (H, sp) ->
+  A[r].spine = .some (H, sp.map (·[r])) := by
+intro h j
+induction A generalizing sp <;> simp at *
+all_goals (try case _ => unfold spine at j; cases j)
+case _ => unfold spine at j; simp at j; unfold spine; simp; assumption
+case _ f a ih1 ih2 => cases j; case _ spf j =>
+  cases j; case _ e1 h1 =>
+  have ih1' := ih1 h1
+  exists spf.map (·[r])
+  rw[e1]; constructor;
+  simp
+  assumption
+
+theorem Global.type_subst_noop (G : List Global) (p : String) (σ : Subst Ty) : ⊢ G ->
+  ctor_ty p G = .some B ->
+  B = B[r] := by
+intro wf h
+unfold ctor_ty at h;
+fun_induction lookup
+all_goals (try solve | simp at *)
+case _ n y K ctors tl ctors' ih1 ih2  =>
+  cases wf; case _ wftl _ =>
+  replace ih2 := ih2 wftl; simp at ih2;
+  rw[Option.bind_eq_some_iff] at ih2;
+  simp at ih2; simp at h;
+  rw[Option.bind_eq_some_iff] at h;
+  rcases h with ⟨e, h1, h2⟩
+  replace ih2 := ih2 e
+  unfold Vec.fold at h1;
+  induction n
+  case _ => simp at h1; replace ih2 := ih2 h1 h2; assumption
+  case _ => simp at *; sorry
+all_goals (
+case _ tl _ ih =>
+  cases wf; case _ wftl _ =>
+  replace ih := ih wftl
+  simp at ih;
+  rw[Option.bind_eq_some_iff] at ih
+  simp at ih; simp at h;
+  rw[Option.bind_eq_some_iff] at h
+  rcases h with ⟨e, h1, h2⟩
+  replace ih := ih e h1 h2
+  assumption)
+
+
+
 theorem Typing.subst_type Δσ (σ : Subst Ty) :
   ⊢ G ->
   (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
@@ -137,23 +186,26 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     replace j2 := Kinding.subst Δσ σ h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch ps cs sJ vhv h1 h2 h3 csJ ihs ihcs =>
-    simp at *
-    apply mtch
-    apply ihs
+  case mtch A ps cs sJ vhv h1 h2 h3 h4 h5 ihs ihcs =>
+    apply mtch (A := λ x => (A x)[σ])
+    apply ihs; assumption
+    apply ValidTyHeadVariable.subst; assumption
+    apply Ty.spine_subst; assumption; assumption
     assumption
-    apply ValidTyHeadVariable.subst σ vhv
-    (sorry)
     assumption
-    apply h3
-    (intro i pat B A h1 h2 h3 h4;
-     have csJ' := csJ i pat B[σ] A[σ] h1 sorry
-
-     replace ihcs := ihcs i pat B A h1 h2
-     sorry)
-    sorry
-
-
+    · intro i
+      replace ihcs := ihcs i Δσ σ h; assumption
+    · intro i pat
+      replace h5 := h5 i pat
+      rcases h5 with ⟨B, p1, p2, p3, p4⟩
+      exists B[σ]
+      constructor
+      · assumption
+      · constructor
+        · rw[<-Global.type_subst_noop G pat σ wf p2]; assumption
+        · constructor
+          · apply StableTypeMatch.subst Δσ σ h p3
+          · apply PrefixTypeMatch.subst Δσ σ h p4
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
     apply ih1 _ _ h
@@ -290,7 +342,16 @@ theorem Typing.subst Γσ (σ : Subst Term) :
   intro wf h j; induction j generalizing Γσ σ <;> simp
   case var Γ x A Δ K j1 j2 => apply h x A K j1 j2
   case global j1 j2 => apply global j1 j2
-  case mtch => sorry
+  case mtch ih1 ih2 ih3 =>
+    apply mtch
+    apply ih2; apply h
+    assumption
+    assumption
+    assumption
+    assumption
+    intros; apply ih3; assumption
+    · intros i pat
+      apply ih1 i pat
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply Typing.guard
     apply ih1 _ _ h

@@ -184,7 +184,7 @@ theorem StableTypeMatch.rename Δr (r : Ren) :
     rw [Ren.to_lift (S := Ty)] at ih; simp at ih
     simp; exact ih
 
-theorem PrefixTypeMatch.rename Δr (r : Ren) :
+theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty}:
   (∀ i, Δ[i]? = Δr[r i]?) ->
   PrefixTypeMatch Δ A B C ->
   PrefixTypeMatch Δr A[r] B[r] C[r]
@@ -221,18 +221,49 @@ case _ f a ih1 ih2 => cases j; case _ spf j =>
   simp
   assumption
 
-theorem Typing.case_rename {n : Nat} {Δ : List Kind} {Δr : List Kind} {Γ : List Ty} {r : Ren}
-  {ps : Vec String (n + 1)} {cs : Vec Term (n + 1)} (i : Fin (n + 1)) (pat : String) (B A : Ty):
-    -- (∀ i, Δ[i]? = Δr[r i]?) ->
-    ps.indexOf pat = some i -> -- i is the index of the i-th pattern
-    ctor_ty pat G = some B -> -- It has some type B
-    StableTypeMatch Δ B R -> -- B has the same result type. i.e. B = ∀[K] X -> ... -> R
-    PrefixTypeMatch Δ A B T -> -- the case type A and constructor type B have the same prefixes
-    G&Δ,Γ ⊢ (cs i) : A ->
-    G&Δr,(Γ.map (·[r])) ⊢ (cs i)[r] : A[r] := by
-intro h1 h2 h3 h4 h5
--- have lem := Vec.induction _ (λ x => ) sorry
-sorry
+theorem Ty.closed_rename_noop : Kinding G Δ T K -> Δ = [] -> T[r] = T := by
+intro h1 h2
+induction h1 <;> simp at *
+all_goals (try (subst h2; simp at *))
+all_goals (try (case _ ih1 ih2 => constructor; assumption; assumption))
+case _ ih _ => subst h2; sorry
+
+
+theorem Global.type_rename_noop (G : List Global) (p : String) (r : Ren) : ⊢ G ->
+  ctor_ty p G = .some B ->
+  B = B[r] := by
+intro wf h
+unfold ctor_ty at h
+fun_induction lookup
+all_goals (try solve | simp at *)
+case _ n y K ctors tl ctors' ih1 ih2  =>
+  cases wf; case _ wftl _ =>
+  replace ih2 := ih2 wftl; simp at ih2;
+  rw[Option.bind_eq_some_iff] at ih2;
+  simp at ih2; simp at h;
+  rw[Option.bind_eq_some_iff] at h;
+  rcases h with ⟨e, h1, h2⟩
+  replace ih2 := ih2 e
+  unfold Vec.fold at h1;
+  induction n
+  case _ => simp at h1; replace ih2 := ih2 h1 h2; assumption
+  case _ n _ _ =>
+    simp at *; cases h1
+    case _ => sorry
+    case _ => sorry
+
+all_goals (
+case _ tl _ ih =>
+  cases wf; case _ wftl _ =>
+  replace ih := ih wftl
+  simp at ih;
+  rw[Option.bind_eq_some_iff] at ih
+  simp at ih; simp at h;
+  rw[Option.bind_eq_some_iff] at h
+  rcases h with ⟨e, h1, h2⟩
+  replace ih := ih e h1 h2
+  assumption)
+
 
 
 theorem Typing.rename_type Δr (r : Ren) :
@@ -252,20 +283,31 @@ theorem Typing.rename_type Δr (r : Ren) :
     replace j2 := Kinding.rename Δr r h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch sp n Δ Γ s R dt T ps cs sJ vhv h1 h2 h3 csJ ihs ihcs =>
-    apply mtch
-    apply ihs; assumption
-    apply ValidTyHeadVariable.rename r vhv
-    apply R.spine_rename _ _ r h h1
+  case mtch _ n Δ Γ s R pat T A ps cs sJ vhv h1 h2 h3 h4 ih1 ih2 ih3 =>
+    have lem : ∀ i, (A i)[r] = (λ x => (A x)[r]) i := by simp
+    apply mtch (A := λ i => (A i)[r])
+    apply ih2 _ _ h
+    apply ValidTyHeadVariable.rename; assumption
+    apply Ty.spine_rename _ _ _ _ h h1
     assumption
     assumption
-    replace csJ := csJ
-    (intro i pat Br A h1' h2' h3' h4'
-     have ihcs := ihcs i pat Br A
-     sorry
-     -- apply StableTypeMatch.rename _ _ h j3
-
-     )
+    · intro i
+      replace ih3 := ih3 i Δr r h
+      rw[lem] at ih3
+      apply ih3
+    · intro i pat
+      have ih1 := ih1 i pat
+      rcases ih1 with ⟨B, p1, p2, p3, p4⟩
+      exists B[r]
+      constructor
+      · assumption
+      · constructor
+        · rw[<-Global.type_rename_noop G pat r wf p2]
+          assumption
+        · constructor
+          · apply StableTypeMatch.rename Δr r h p3
+          · have p4' := @PrefixTypeMatch.rename _ _ _ _ _ (A i) h p4; rw[lem] at p4'
+            apply p4';
 
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
@@ -388,22 +430,16 @@ theorem Typing.rename Γr (r : Ren) :
   intro wf h j; induction j generalizing Γr r <;> simp
   case var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
   case global j1 j2 => apply Typing.global j1 j2
-  case mtch js h1 h2 h3 h4 ih1 ih2 ih3 =>
+  case mtch ih1 ih2 ih3 =>
     apply mtch
-    case _ =>
-      apply ih2; apply h
+    apply ih2; apply h
     assumption
     assumption
     assumption
     assumption
-    case _ =>
-      intro i' pat' B' A' h1' h2' h3' h4'
-      apply ih3
-      assumption
-      assumption
-      assumption
-      assumption
-      assumption
+    intros; apply ih3; assumption
+    · intros i pat
+      apply ih1 i pat
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply Typing.guard
     apply ih1 _ _ h
