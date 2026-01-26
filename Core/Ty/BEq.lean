@@ -43,15 +43,13 @@ instance instReflBEq_Kind : ReflBEq Kind where
 instance instLawfulBeq_Kind : LawfulBEq Kind where
   eq_of_beq := by
     intro a b h
-    cases a <;> cases b
-    all_goals (simp at *)
+    induction a, b using Kind.beq.induct <;> simp at *
     all_goals (unfold BEq.beq at h; unfold instBEqKind at h; simp at h)
     assumption
-    rcases h with ⟨h1, h2⟩;
-    case _ a1 b1 a2 b2 =>
-    constructor
-    · sorry
-    · sorry
+    case _ ih1 ih2 =>
+      constructor
+      · apply ih1 h.1
+      · apply ih2 h.2
 
 def Ty.beq : Ty -> Ty -> Bool
 | var x, var y => x == y
