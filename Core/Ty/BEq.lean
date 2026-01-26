@@ -9,6 +9,12 @@ def BaseKind.beq : BaseKind -> BaseKind -> Bool
 instance : BEq BaseKind where
   beq := BaseKind.beq
 
+instance instReflBEq_BaseKind : ReflBEq BaseKind where
+  rfl := by
+    intro a
+    cases a
+    all_goals (unfold BEq.beq; unfold instBEqBaseKind; simp)
+
 instance instLawfulBEq_BaseKind : LawfulBEq BaseKind where
   eq_of_beq := by
     intro a b h
@@ -16,31 +22,36 @@ instance instLawfulBEq_BaseKind : LawfulBEq BaseKind where
     all_goals (simp at *)
     all_goals (unfold BEq.beq at h;  unfold instBEqBaseKind at h; simp at h)
 
-  rfl := by
-    intro a
-    cases a
-    all_goals (unfold BEq.beq; unfold instBEqBaseKind; simp)
-
 @[simp]
 def Kind.beq : Kind -> Kind -> Bool
 | base b1, base b2 => b1 == b2
-| arrow A1 B1, arrow A2 B2 => beq A1 A2 && beq B1 B2
+| arrow A1 B1, arrow A2 B2 => Kind.beq A1 A2 && Kind.beq B1 B2
 | _, _ => false
 
 instance : BEq Kind where
   beq := Kind.beq
 
-instance : LawfulBEq Kind where
+
+instance instReflBEq_Kind : ReflBEq Kind where
+  rfl := by
+    intro a; induction a
+    all_goals (unfold BEq.beq; unfold instBEqKind; simp)
+    case _ ih1 ih2 =>
+    constructor; apply ih1; apply ih2
+
+
+instance instLawfulBeq_Kind : LawfulBEq Kind where
   eq_of_beq := by
     intro a b h
-    induction a <;> cases b
+    cases a <;> cases b
     all_goals (simp at *)
     all_goals (unfold BEq.beq at h; unfold instBEqKind at h; simp at h)
     assumption
     rcases h with ⟨h1, h2⟩;
-    sorry
-  rfl := by sorry
-
+    case _ a1 b1 a2 b2 =>
+    constructor
+    · sorry
+    · sorry
 
 def Ty.beq : Ty -> Ty -> Bool
 | var x, var y => x == y

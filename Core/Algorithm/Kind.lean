@@ -10,7 +10,6 @@ def wf_kind : (K : Kind) -> Option Unit
   _ <- wf_kind k2
   return ()
 
-@[simp]
 def Kind.is_arrow : (K : Kind) -> Option (Kind × Kind)
 | .arrow k1 k2 => return (k1 , k2)
 | _ => none
@@ -42,7 +41,7 @@ def infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
   let _ <- wf_kind K
   let tk <- infer_kind G (K :: Δ) t
   let _ <- wf_kind tk
-  return ★
+  if tk == ★ then return ★ else none
 | .eq K A B => do
   let _ <- wf_kind K
   let Ak <- infer_kind G Δ A
