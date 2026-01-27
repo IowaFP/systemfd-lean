@@ -156,6 +156,7 @@ theorem get2_1 : v[a, b] 1 = b := by simp [Vec.cons]
 
 def Vec.map (f : A -> B) (v : Vec A n) : Vec B n := λ i => f (v i)
 
+@[simp]
 def Vec.map2 (v1 : Vec A n) (v2 : Vec B n) (f : A -> B -> C)  : Vec C n := λ i => f (v1 i) (v2 i)
 
 @[simp]
@@ -322,3 +323,20 @@ def Vec.seq (vs : Vec (Option T) n) : Option (Vec T n) :=
     rcases h with ⟨t, e⟩
     rw [e]; simp
   }))
+
+-- Returns the 1st element if all the elements are equal
+def Vec.get_elem_if_eq [BEq T] (vs : Vec T (n + 1)) : Option T :=
+  match vs.uncons with
+  | (h, vs') => do
+    if vs'.fold (λ c acc => c == h && acc) true
+    then return h else none
+
+theorem get_elem_if_eq_sound [BEq T] (vs : Vec T (n + 1)) (t : T) :
+  vs.get_elem_if_eq = some t ->
+  ∀ i, vs i = t := by
+intro h i
+unfold Vec.get_elem_if_eq at h; simp at h;
+rcases h with ⟨h1, h2⟩;
+generalize vsdef' : vs.uncons.snd = vs' at *
+generalize tdef : vs.uncons.fst = t at *; cases h2
+sorry

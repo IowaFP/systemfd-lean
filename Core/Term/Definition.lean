@@ -81,6 +81,10 @@ def Term.size : Term -> Nat
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
 | .match t1 _ ts => size t1 + Vec.sum (λ i => (ts i).size) + 1
 
+@[simp]
+instance instSizeOf_Term : SizeOf Term where
+  sizeOf := Term.size
+
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .global n => "g#" ++ n

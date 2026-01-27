@@ -25,7 +25,9 @@ inductive TelescopeElem
 | kind (k  : Kind)
 | ty (t : Ty)
 
-def Ty.telescope : Ty -> List TelescopeElem × Ty
+def TyTelescope := List TelescopeElem
+
+def Ty.telescope : Ty -> TyTelescope  × Ty
 | .arrow A B =>
   let (tys, b) := B.telescope
   (.ty A :: tys, b)
@@ -34,10 +36,10 @@ def Ty.telescope : Ty -> List TelescopeElem × Ty
   (.kind K :: tys, b)
 | t => ([], t)
 
--- def TyTele.count_binders (t : TyTele) : Nat :=
---   t.foldl (λ acc x => match x with
---                   | .kind _ => acc + 1
---                   | _ => acc) 0
+def TyTelescope.count_binders (t : TyTelescope) : Nat :=
+  t.foldl (λ acc x => match x with
+                  | .kind _ => acc + 1
+                  | _ => acc) 0
 
 def Ty.from_telescope : List TelescopeElem -> Ty -> Ty
 | .nil , t => t

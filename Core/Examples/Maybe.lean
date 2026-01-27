@@ -4,6 +4,7 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
+import Core.Algorithm.Type
 
 def c1  := Λ[★] match! #0 v[ "Nothing", "Just"]
                      v[ Λ[★] g#"True" , Λ[★] λ[BaseKind.closed, t#0] g#"False" ]
@@ -85,10 +86,15 @@ def t0' := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • 
 -- #eval! eval_loop MaybeBoolCtx t0' -- False
 
 
-def t1 := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
+def t1 : Term := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
                          • ((g#"Just" •[gt#"Bool"]) • g#"True"))
                          • ((g#"Just" •[gt#"Bool"]) • g#"True")
 -- #eval! eval_loop MaybeBoolCtx t1 -- True
+#eval (g#"eq@Maybe").infer_type MaybeBoolCtx [] []
+#eval (g#"eq@Maybe" •[gt#"Bool"]).infer_type MaybeBoolCtx [] []
+#eval (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
+#eval ((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
+
 
 -- eq : ∀ t -> Eq t -> t -> t -> Bool
 def t2 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"Bool" ])

@@ -22,6 +22,17 @@ inductive Ty : Type where
 | app : Ty -> Ty -> Ty
 | eq : Kind -> Ty -> Ty -> Ty
 
+def Ty.size : Ty -> Nat
+| var _ => 0
+| global _ => 0
+| all _ t => t.size + 1
+| arrow t1 t2 => t1.size + t2.size + 1
+| app t1 t2 => t1.size + t2.size + 1
+| eq _ t1 t2 => t1.size + t2.size + 1
+
+instance instSizeOf_Ty : SizeOf Ty where
+  sizeOf := Ty.size
+
 prefix:max "t#" => Ty.var
 prefix:max "gt#" => Ty.global
 infixr:64 " -:> " => Ty.arrow

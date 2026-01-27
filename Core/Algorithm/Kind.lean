@@ -38,14 +38,14 @@ def Ty.infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
   let T <- lookup_kind G x
   let _ <- wf_kind T
   return T
-| .arrow b t1 t2 => do
+| .arrow t1 t2 => do
   let k1 <- infer_kind G Δ t1
   let _ <- wf_kind k1
-  let b1 <- k1.base_kind
+  let _ <- k1.base_kind
   let k2 <- infer_kind G Δ t2
   let _ <- k2.base_kind
   let _ <- wf_kind k2
-  if b == b1 then return k2 else none
+  return ★
 | .all K t => do
   let _ <- wf_kind K
   let tk <- infer_kind G (K :: Δ) t
