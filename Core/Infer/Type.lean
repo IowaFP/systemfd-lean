@@ -1,6 +1,6 @@
 import LeanSubst
 import Core.Ty
-import Core.Algorithm.Kind
+import Core.Infer.Kind
 import Core.Global
 
 -- open LeanSubst
@@ -217,9 +217,3 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let T2 <- infer_type G Δ Γ t2
   if T1 == T2 then return T1 else none
 | _ => none
--- termination_by t => t.size
--- decreasing_by (
--- any_goals (solve | simp)
--- any_goals (simp at *; omega)
--- case _ => simp; sorry
--- )

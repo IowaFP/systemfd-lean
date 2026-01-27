@@ -18,7 +18,7 @@ not = λ x → case x of
                True → False
                _ → False
 -/
-def notTerm : Term := λ[ .closed , .global "Bool" ]
+def notTerm : Term := λ[ .global "Bool" ]
   match! #0
          v[ "True", "False" ]
          v[
@@ -34,7 +34,7 @@ def notTerm : Term := λ[ .closed , .global "Bool" ]
                        True → False
                        False → True
  -/
-def eqBool : Term := λ[ .closed,  .global "Bool" ] λ[ .closed, .global "Bool" ]
+def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
   match! #1
    v[ "True", "False" ]
    v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False"] ,
@@ -47,9 +47,9 @@ def EqBoolCtx : List Global := [
   --    If EqBool[t] tBool ← i
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. ==@Bool ▹ sym c
-  .inst "eq" (Λ[ ★ ] λ[ .open, gt#"Eq" • t#0 ]
+  .inst "eq" (Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
         .guard (g#"EqBool" •[ t#0 ]) #0
-           (λ[.closed, t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
+           (λ[t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
    ),
 
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool,
@@ -58,7 +58,7 @@ def EqBoolCtx : List Global := [
   .instty "EqBool" (∀[★] (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)) ,
 
   -- == : ∀ t. Eq t → t → t → Bool
-  .openm "eq" (∀[★] (gt#"Eq" • t#0) =:> t#0 -:> t#0 -:> gt#"Bool") ,
+  .openm "eq" (∀[★] (gt#"Eq" • t#0) -:> t#0 -:> t#0 -:> gt#"Bool") ,
 
   -- class Eq a
   .opent "Eq" (★ -:> ◯)

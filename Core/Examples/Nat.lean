@@ -6,10 +6,10 @@ import Core.Vec
 import Core.Eval.BigStep
 
 
-def c1 := match! #0 v[ "Z" , "S" ]  v[ g#"True", λ[BaseKind.closed, gt#"Nat"] g#"False" ]
-def c2 := λ[BaseKind.closed , gt#"Nat"] match! #1 v[ "Z" , "S" ]
+def c1 := match! #0 v[ "Z" , "S" ]  v[ g#"True", λ[gt#"Nat"] g#"False" ]
+def c2 := λ[ gt#"Nat"] match! #1 v[ "Z" , "S" ]
                v[  g#"False"
-                , λ[BaseKind.closed, gt#"Nat"] (g#"eq" • #1) • #0 ]
+                , λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
 
 def NatCtxFix : List Global := [
 
@@ -24,7 +24,7 @@ def NatCtxFix : List Global := [
    -/
 
   .inst "eq"
-     (λ[.closed, gt#"Nat"] λ[.closed, gt#"Nat"]
+     (λ[ gt#"Nat"] λ[gt#"Nat"]
         match! #1
         v[ "Z" , "S" ]
         v[ c1
@@ -48,16 +48,16 @@ def NatCtxFix : List Global := [
   --     else m
   .defn "add_rec"
         ((gt#"Nat" -:> gt#"Nat" -:> gt#"Nat") -:> gt#"Nat" -:> gt#"Nat" -:> gt#"Nat")
-        (λ[.closed, gt#"Nat" -:> gt#"Nat" -:> gt#"Nat"]
-          λ[.closed, gt#"Nat"] λ[.closed, gt#"Nat"]
+        (λ[ gt#"Nat" -:> gt#"Nat" -:> gt#"Nat"]
+          λ[gt#"Nat"] λ[gt#"Nat"]
             match! #1
               v["Z", "S" ]
               v[ #0 ,
-                 λ[ BaseKind.closed, gt#"Nat" ] (g#"S" • ((#3 • #0) • #1)) ]
+                 λ[ gt#"Nat" ] (g#"S" • ((#3 • #0) • #1)) ]
          ),
 
   -- instance fix = Λ a. λ f. f (fix i f)
-  .inst "fix" (Λ[★] λ[.closed, t#0 -:> t#0] (#0 • ((g#"fix" •[t#0]) • #0))),
+  .inst "fix" (Λ[★] λ[t#0 -:> t#0] (#0 • ((g#"fix" •[t#0]) • #0))),
   -- open fix : ∀ a, (a -> a) -> a
   .openm "fix" (∀[★] (t#0 -:> t#0) -:> t#0),
   -- data Nat = Z | Succ Nat

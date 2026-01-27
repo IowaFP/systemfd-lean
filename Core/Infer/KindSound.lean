@@ -1,4 +1,4 @@
-import Core.Algorithm.Kind
+import Core.Infer.Kind
 import Core.Ty
 import Core.Typing
 
@@ -38,7 +38,7 @@ case _ ih1 ih2 =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h4, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h5, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h6, h⟩
-  simp at h; cases h.1; cases h.2; clear h
+  simp at h; cases h
   replace ih1 := ih1 h1
   replace ih2 := ih2 h4
   replace h3 := base_kind_some h3

@@ -4,14 +4,14 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
-import Core.Algorithm.Type
+import Core.Infer.Type
 
 def c1  := Λ[★] match! #0 v[ "Nothing", "Just"]
-                     v[ Λ[★] g#"True" , Λ[★] λ[BaseKind.closed, t#0] g#"False" ]
+                     v[ Λ[★] g#"True" , Λ[★] λ[t#0] g#"False" ]
 
-def c2 := Λ[★] λ[.closed, t#0] match! #1
+def c2 := Λ[★] λ[t#0] match! #1
               v[ "Nothing", "Just" ]
-              v[ Λ[★] g#"False", Λ[★] λ[BaseKind.closed, t#0] ((((g#"eq" •[ t#0 ]) • #4) • #1) •#0) ]
+              v[ Λ[★] g#"False", Λ[★] λ[t#0] ((((g#"eq" •[ t#0 ]) • #4) • #1) •#0) ]
 
 def MaybeBoolCtx : List Global := [
 
@@ -22,16 +22,16 @@ def MaybeBoolCtx : List Global := [
             eqMaybe ▹ sym (<t ~ Maybe u> → <t ~ Maybe u> → <Bool>)
     -/
 
-  .inst "eq" (Λ[★] λ[BaseKind.open, gt#"Eq" • t#0]
+  .inst "eq" (Λ[★] λ[gt#"Eq" • t#0]
        .guard (g#"EqMaybe" •[t#0]) #0
-         (Λ[★] λ[BaseKind.closed, t#1 ~[★]~ (gt#"Maybe" • t#0)] λ[ BaseKind.open , gt#"Eq" • t#0]
+         (Λ[★] λ[t#1 ~[★]~ (gt#"Maybe" • t#0)] λ[ gt#"Eq" • t#0]
      ((g#"eq@Maybe" •[t#0]) • #0) ▹ sym! (#1 -c> #1 -c> refl! gt#"Bool"))
    ),
 
 
   -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
-  .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) =:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
-        (Λ[★] λ[.open, gt#"Eq" • t#0] λ[.closed, gt#"Maybe" • t#0] λ[.closed, gt#"Maybe" • t#0]
+  .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
+        (Λ[★] λ[gt#"Eq" • t#0] λ[ gt#"Maybe" • t#0] λ[gt#"Maybe" • t#0]
           match! #1 v[ "Nothing" , "Just" ]
                     v[ c1 , c2 ]
 
@@ -48,13 +48,13 @@ def MaybeBoolCtx : List Global := [
   --    If EqBool[t] tBool ← i
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. ==@Bool ▹ sym c
-  .inst "eq" (Λ[ ★ ] λ[ .open, gt#"Eq" • t#0 ]
+  .inst "eq" (Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
         .guard (g#"EqBool" •[ t#0 ]) #0
-           (λ[.open, t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
+           (λ[t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
    ),
 
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool")
-    (λ[ .closed,  .global "Bool" ] λ[ .closed, .global "Bool" ]
+    (λ[ .global "Bool" ] λ[ .global "Bool" ]
       match! #1
       v[ "True", "False" ]
       v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False"] ,

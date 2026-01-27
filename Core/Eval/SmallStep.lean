@@ -161,7 +161,7 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
   let t' <- eval_inst_beta G t
   return .ctor1 v t'
 
-| .ctor2 (.app _) (.lam _ _ t) a => return t[su a ::+0]
+| .ctor2 (.app _) (.lam _ t) a => return t[su a ::+0]
 | .ctor2 (.app k) t1 t2 => do
   let t' <- eval_inst_beta G t1
   return .ctor2 (.app k) t' t2

@@ -4,8 +4,8 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
-import Core.Algorithm.Kind
-import Core.Algorithm.Type
+import Core.Infer.Kind
+import Core.Infer.Type
 
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
@@ -13,7 +13,7 @@ def BoolCtx : List Global := [
   ]
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
-#guard Ty.infer_kind BoolCtx [] (gt#"Bool" =:> gt#"Bool" -:> gt#"Bool") == none
+
 /-
 not : Bool -> Bool
 not = λ x → case x of
@@ -21,7 +21,7 @@ not = λ x → case x of
                True → False
                _ → False
 -/
-def notTerm : Term := λ[ .closed , .global "Bool" ]
+def notTerm : Term := λ[.global "Bool" ]
   match! #0
          v[ "True", "False" ]
          v[ g# "False", g# "True" ]
@@ -35,7 +35,7 @@ def notTerm : Term := λ[ .closed , .global "Bool" ]
                        True → False
                        False → True
  -/
-def eqBool : Term := λ[ .closed,  .global "Bool" ] λ[ .closed, .global "Bool" ]
+def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
   match!  #1
    v[ "True", "False" ]
    v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False" ] ,
