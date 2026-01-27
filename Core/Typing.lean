@@ -34,21 +34,6 @@ inductive PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
   PrefixTypeMatch (K::Δ) B V T[+1] ->
   PrefixTypeMatch Δ (∀[K] B) (∀[K] V) T
 
-inductive Srt : Type where
-| kind : Srt
-
-notation "□" => Srt.kind
-
-inductive Sorting : Kind -> Srt -> Prop
-| axO :
-  Sorting ★ □
-| axC :
-  Sorting ◯  □
-| arrow :
-  Sorting k1 □ ->
-  Sorting k2 □ ->
-  Sorting (k1 -:> k2) □
-
 inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 | var :
   Δ[x]? = some K ->

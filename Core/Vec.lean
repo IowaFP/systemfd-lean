@@ -240,10 +240,12 @@ def Vec.fold2 (acc : A -> B -> C -> C) (d : C) : {n1 n2 : Nat} -> (n1 = n2) -> V
   let (h2, tl2) := uncons vb
   acc h1 h2 (fold2 acc d (by cases h; rfl) tl1 tl2)
 
+@[simp]
 def Vec.sum : {n : Nat} -> Vec Nat n -> Nat
 | 0, _ => 0
 | _ + 1, ts => ts 0 + ts.drop.sum
 
+@[simp]
 def Vec.beq (beq : T -> T -> Bool) : {n1 n2 : Nat} -> (n1 = n2) -> Vec T n1 -> Vec T n2 -> Bool
 | 0, 0, rfl, _, _ => true
 | _ + 1, _ + 1, h, v1, v2 =>
