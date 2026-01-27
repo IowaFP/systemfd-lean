@@ -1,8 +1,54 @@
+import LeanSubst
 import Core.Ty
 import Core.Algorithm.Kind
 import Core.Global
 
+open LeanSubst
+-- A is the type of the pattern
+-- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
+-- R is the type of the scrutinee
+-- and is of the form T' p' q' r'
+-- we need to make sure T == T' (i.e. it is a datatype or an opent)
+def Ty.stable_type_match (G : List Global) (A R : Ty) : Option Unit := do
+  let (tele, sR) := A.split
+  let (x, _) <- R.spine
+  if R[λ x => re (x + tele.count_binders)] == sR && (is_opent G x || is_data G x)
+  then some ()
+  else none
 
+-- A is the type of the pattern and has the form
+-- ∀[★]∀[★].. x -t> y -t> T p q r
+-- T is the type of the rhs of the branch and has the form
+-- ∀[★]∀[★].. x' -t> y' -t> ... z -t> T' p' q' r'
+-- A potentially has more ∀s and -t> s than in the branch
+-- This function returns the 'extra' bits
+def Ty.prefix_type_match (Δ : List Kind) : (A B : Ty) -> Option Ty
+  | (.arrow b A B), (.arrow b' A' B') => do
+    if A == A' && b == b'
+    then prefix_type_match Δ B B'
+    else none
+
+  | (.all K A), (.all K' A') => do
+    if K == K'
+    then let x <- prefix_type_match (K :: Δ) A A'
+         if x[λ x => re (x - 1)][λ x => re (x + 1)] == x
+         then return x[λ x => re (x - 1)]
+         else none
+    else none
+  | A, T => do
+    let _ <- A.spine
+    return T
+
+def Ty.valid_open_type (G : List Global) : (T : Ty) -> Option Unit
+| .arrow _ _ B => valid_open_type G B
+| .all _ B => valid_open_type G B
+| A => do let (x, _) <- A.spine
+          if is_opent G x
+           then return () else none
+
+def Term.valid_inst_type (G : List Global) : (A : Term) -> Option Unit := λ A =>
+  do let (x, _) <- A.spine
+     if is_instty G x then return () else none
 
 def Ty.is_all_some : Ty -> Option (Kind × Ty)
 | .all K B => return (K, B)
@@ -21,10 +67,6 @@ def Ty.is_app_some : Ty -> Option (Ty × Ty)
 | .app A B => return (A, B)
 | _ => none
 
-def Ty.stable_type_match (Δ : List Kind) (A : Ty) (R : Ty) : Option Unit := none
-def Ty.prefix_type_match (Δ : List Kind) (A B : Ty) : Option Ty := none
-
-
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x =>  Γ[x]?
 | g#x => lookup_type G x
@@ -34,19 +76,28 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Tso := Vec.map2 ps cs (λ p c => do
     let B <- ctor_ty p G
     let A <- c.infer_type G Δ Γ
-    let _ <- Ty.stable_type_match Δ B R
+    let _ <- R.stable_type_match G B
     let T <- Ty.prefix_type_match Δ A B
     return T
     )
   let Ts <- Tso.seq
   -- TODO: check that each element of Ts is equal
+  Ts[Fin.ofNat (n + 1) 0]?
 
-  none
-  -- let Ts := cs.fold (λ acc c =>
-  --   none
-  --   ) (v[])
 | .guard p s t => do
-  none
+  let A <- p.infer_type G Δ Γ
+  let R <- s.infer_type G Δ Γ
+  let Rk <- R.infer_kind G Δ
+  let _ <- Rk.is_open_kind
+  let _ <- R.stable_type_match G A
+  let (ph, _) <- p.spine
+  let _ <- R.valid_open_type G
+  let _ <- p.valid_inst_type G
+  let B <- t.infer_type G Δ Γ
+  let T <- Ty.prefix_type_match Δ A B
+  let Tk <- T.infer_kind G Δ
+  return T
+
 | .lam b A t => do
   let R <- t.infer_type G Δ (A::Γ)
   let _ <- R.infer_kind G Δ
@@ -159,4 +210,6 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let T2 <- infer_type G Δ Γ t2
   if T1 == T2 then return T1 else none
 | _ => none
-decreasing_by repeat sorry
+decreasing_by
+  case _ => sorry
+  repeat sorry

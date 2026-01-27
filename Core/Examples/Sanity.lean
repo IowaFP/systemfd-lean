@@ -5,14 +5,15 @@ import Core.Vec
 
 import Core.Eval.BigStep
 import Core.Algorithm.Kind
+import Core.Algorithm.Type
 
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
   .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
   ]
-#guard infer_kind BoolCtx [] (gt#"Bool") == .some ★
-#guard infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
-#guard infer_kind BoolCtx [] (gt#"Bool" =:> gt#"Bool" -:> gt#"Bool") == none
+#guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
+#guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
+#guard Ty.infer_kind BoolCtx [] (gt#"Bool" =:> gt#"Bool" -:> gt#"Bool") == none
 /-
 not : Bool -> Bool
 not = λ x → case x of
@@ -41,7 +42,10 @@ def eqBool : Term := λ[ .closed,  .global "Bool" ] λ[ .closed, .global "Bool" 
       match! #0 v[ "True", "False" ] v[ g# "False", g# "False"]
     ]
 
+
 def EqBoolCtx := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool] ++ BoolCtx
+
+#eval! eqBool.infer_type EqBoolCtx [] []
 
 def t1 := Term.match g#"False"
               v[ "True", "False" ] v[ g#"False" , g#"True" ]

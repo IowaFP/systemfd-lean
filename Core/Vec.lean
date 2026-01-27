@@ -140,6 +140,10 @@ instance : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
   getElem xs i _ := xs i
 
 @[simp]
+instance : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
+  getElem? xs i := .some (xs i)
+
+@[simp]
 theorem get_cons_head {t : Vec T n} : (h::t) 0 = h := by simp [Vec.cons]
 
 @[simp]

@@ -19,6 +19,15 @@ def Kind.base_kind : (K : Kind) -> Option BaseKind
 | ◯ => return b◯
 | _ => none
 
+def Kind.is_open_kind : (K : Kind) -> Option Unit
+| ◯ => return ()
+| _ => none
+
+def Kind.is_closed_kind : (K : Kind) -> Option Unit
+| ★ => return ()
+| _ => none
+
+
 @[simp]
 def Ty.infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
 | t#x => do

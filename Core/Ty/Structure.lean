@@ -1,6 +1,7 @@
 import LeanSubst
 import Core.Ty.Definition
 import Core.Ty.Substitution
+import Core.Ty.BEq
 
 open LeanSubst
 
@@ -35,6 +36,12 @@ def Ty.split : Ty -> TyTele × Ty
   (.kind K :: tys, b)
 | t => ([], t)
 
+def TyTele.count_binders (t : TyTele) : Nat :=
+  t.foldl (λ acc x => match x with
+                  | .kind _ => acc + 1
+                  | _ => acc) 0
+
+
 def Ty.mk_from_tele : TyTele -> Ty -> Ty
 | .nil , t => t
 | .cons (.ty K A) tys, t =>
@@ -43,6 +50,8 @@ def Ty.mk_from_tele : TyTele -> Ty -> Ty
 | .cons (.kind K) tys, t =>
   let r := t.mk_from_tele tys
   ∀[K] r
+
+
 @[simp]
 theorem Ty.Spine.apply_subst {t : Ty} {sp : List Ty} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ])) := by
   induction sp generalizing t <;> simp [Ty.apply]
