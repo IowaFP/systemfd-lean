@@ -44,9 +44,9 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 | arrow :
   Kinding G Δ A (.base b1) ->
   Kinding G Δ B (.base b2) ->
-  Kinding G Δ (A -[b1]> B) (.base b2)
+  Kinding G Δ (A -:> B) ★
 | all :
-  Kinding G (K::Δ) P ★ ->
+  Kinding G (K::Δ) P (.base b) ->
   Kinding G Δ (∀[K] P) ★
 | app :
   Kinding G Δ f (A -:> B) ->
@@ -102,9 +102,10 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | lam :
   G&Δ ⊢ A : .base b ->
   Typing G Δ (A::Γ) t B ->
-  Typing G Δ Γ (λ[b,A] t) (A -[b]> B)
+  Typing G Δ Γ (λ[A] t) (A -:> B)
 | app :
-  Typing G Δ Γ f (A -[b]> B) ->
+  G&Δ ⊢ A : .base b ->
+  Typing G Δ Γ f (A -:> B) ->
   Typing G Δ Γ a A ->
   Typing G Δ Γ (f •(b) a) B
 | lamt :
@@ -139,7 +140,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | arrowc :
   Typing G Δ Γ t1 (A ~[.base b1]~ B) ->
   Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
-  Typing G Δ Γ (t1 -c> t2) (A -[b1]> C ~[.base b2]~ B -[b1]> D)
+  Typing G Δ Γ (t1 -c> t2) (A -:> C ~[★]~ B -:> D)
 | fst :
   G&Δ ⊢ C : K1 ->
   G&Δ ⊢ D : K1 ->
@@ -152,7 +153,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
   Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[.base b]~ B) ->
-  Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[.base b]~ (∀[K] B))
+  Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
 | apptc :
   Typing G Δ Γ f ((∀[K] A) ~[★]~ (∀[K] B)) ->
   Typing G Δ Γ a (C ~[K]~ D) ->
@@ -182,11 +183,23 @@ inductive ValidCtor (x : String) : Ty -> Prop where
   ValidCtor x (∀[K] P)
 | arrow :
   ValidCtor x B ->
-  ValidCtor x (A -[b]> B)
+  ValidCtor x (A -:> B)
 
 inductive ValidOpenKind : Kind -> Prop where
 | base : ValidOpenKind ◯
 | arrow : ValidOpenKind B -> ValidOpenKind (A -:> B)
+
+inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop where
+| base :
+  T.spine = some (x, sp) ->
+  G&Δ ⊢ T : ◯ ->
+  ValidInstTy G x Δ T
+| all :
+  ValidInstTy G x (K::Δ) T ->
+  ValidInstTy G x Δ (∀[K] T)
+| arrow :
+  ValidInstTy G x Δ T ->
+  ValidInstTy G x Δ (A -:> T)
 
 inductive GlobalWf : List Global -> Global -> Prop where
 | data :
@@ -207,7 +220,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
   G&[],[] ⊢ t : T ->
   GlobalWf G (.inst x t)
 | instty :
-  G&[] ⊢ T : ◯ ->
+  ValidInstTy G x [] T ->
   GlobalWf G (.instty x T)
 
 inductive ListGlobalWf : List Global -> Prop where
@@ -215,3 +228,22 @@ inductive ListGlobalWf : List Global -> Prop where
 | cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
 
 notation:175 "⊢ " G:175 => ListGlobalWf G
+
+inductive SpineType (x : String) (G : List Global) : List Kind -> List Ty -> List SpineElem -> Ty -> Prop where
+| refl :
+  G&Δ,Γ ⊢ g#x : T ->
+  SpineType x G Δ Γ [] T
+| term :
+  G&Δ ⊢ A : ★ ->
+  G&Δ,Γ ⊢ a : A ->
+  SpineType x G Δ Γ sp (A -:> T) ->
+  SpineType x G Δ Γ (.term a :: sp) T
+| oterm :
+  G&Δ ⊢ A : ◯ ->
+  G&Δ,Γ ⊢ a : A ->
+  SpineType x G Δ Γ sp (A -:> T) ->
+  SpineType x G Δ Γ (.oterm a :: sp) T
+| type :
+  G&Δ ⊢ a : K ->
+  SpineType x G Δ Γ sp (∀[K] T) ->
+  SpineType x G Δ Γ (.type a :: sp) T

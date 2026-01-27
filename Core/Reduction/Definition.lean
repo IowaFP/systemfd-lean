@@ -17,7 +17,7 @@ inductive Value (G : List Global) : Term -> Prop where
   is_stable x G ∨ OpenVarVal G x sp ->
   Value G t
 | choice : Value G t1 -> Value G t2 -> Value G (t1 `+ t2)
-| lam : Value G (λ[b,A] t)
+| lam : Value G (λ[A] t)
 | lamt : Value G (Λ[K] t)
 | refl : Value G (refl! A)
 
@@ -48,7 +48,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
 ----------------------------------------------------------------
-| beta : Red G ((λ[s,A] b) •(s) t) b[su t::+0]
+| beta : Red G ((λ[A] b) •(s) t) b[su t::+0]
 | betat : Red G ((Λ[A] b) •[t]) b[su t::+0:Ty]
 | cast : Red G (t ▹ refl! A) t
 | sym : Red G (sym! (refl! A)) (refl! A)
@@ -88,8 +88,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | inst :
   some (x, sp) = Term.spine h ->
   is_openm G x ->
-  (∀ e ∈ sp, ∀ a, .oterm a = e -> Value G a) ->
-  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.not_choice) ->
+  (∀ e ∈ sp, ∀ a, .oterm a = e -> ∃ y sp, a.spine = some (y, sp)) ->
   some T = lookup_type G x ->
   sp.length ≥ T.arity ->
   tl = instances x G ->
@@ -160,4 +159,4 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | match_map :
   Red G (.match (c1 `+ c2) ps ts) (.match c1 ps ts `+ .match c2 ps ts)
 
-notation:170 G:170 " ⊢ " t:170 " ~> " t':170 => Red G t t'
+notation:160 G:160 " ⊢ " t:160 " ~> " t':160 => Red G t t'

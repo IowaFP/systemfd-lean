@@ -29,7 +29,7 @@ instance : Coe (Subst.Action Ty) Ty where
 def Ty.rmap (lf : Endo Ren) (r : Ren) : Ty -> Ty
 | t#x => t#(r x)
 | gt#x => gt#x
-| A -[b]> B => rmap lf r A -[b]> rmap lf r B
+| A -:> B => rmap lf r A -:> rmap lf r B
 | ∀[K] P => ∀[K] rmap lf (lf r) P
 | app f a => rmap lf r f • rmap lf r a
 | A ~[K]~ B => rmap lf r A ~[K]~ rmap lf r B
@@ -41,7 +41,7 @@ instance : RenMap Ty where
 def Ty.smap (lf : Endo (Subst Ty)) (σ : Subst Ty) : Ty -> Ty
 | t#x => σ x
 | gt#x => gt#x
-| A -[b]> B => smap lf σ A -[b]> smap lf σ B
+| A -:> B => smap lf σ A -:> smap lf σ B
 | ∀[K] P => ∀[K] smap lf (lf σ) P
 | app f a => smap lf σ f • smap lf σ a
 | A ~[K]~ B => smap lf σ A ~[K]~ smap lf σ B
@@ -58,7 +58,7 @@ theorem Ty.subst_global : (gt#x)[σ:Ty] = gt#x := by
   unfold Subst.apply; simp [SubstMap.smap]
 
 @[simp]
-theorem Ty.subst_arr {A B : Ty} : (A -[b]> B)[σ:Ty] = A[σ:_] -[b]> B[σ:_] := by
+theorem Ty.subst_arr {A B : Ty} : (A -:> B)[σ:Ty] = A[σ:_] -:> B[σ:_] := by
   unfold Subst.apply; simp [SubstMap.smap]
 
 @[simp]

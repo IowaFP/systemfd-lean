@@ -21,7 +21,7 @@ def Fin.cases2
     induction i using Fin.induction; simp [*]
     case _ i h => apply Fin.elim0 i
 
-def Vec (T : Type u) (n : Nat) := Fin n -> T
+def Vec (T : Sort u) (n : Nat) := Fin n -> T
 
 def Vec.nil : Vec T 0 := λ x => nomatch x
 
@@ -111,14 +111,8 @@ theorem Vec.cons_iff_uncons {t : Vec T n} : v = h::t <-> uncons v = (h, t) := by
     cases e; case _ e1 e2 =>
     subst e1; subst e2; simp
 
-theorem Vec.cons_destruct (v : Vec T (n + 1)) : ∃ h t, v = cons h t := by
-  generalize pdef : uncons v = p
-  cases p; case _ h t =>
-  exists h; exists t
-  rw [cons_iff_uncons]; apply pdef
-
-theorem Vec.induction
-  {motive : {n : Nat} -> Vec T n -> Prop}
+def Vec.induction
+  {motive : {n : Nat} -> Vec T n -> Sort u}
   (nc : motive Vec.nil)
   (cc : ∀ {n t} {v : Vec T n}, motive v -> motive (t::v))
   (v : Vec T n)
@@ -127,9 +121,10 @@ theorem Vec.induction
   induction n
   case _ => rw [nil_singleton v]; exact nc
   case _ n ih =>
-    have lem := cons_destruct v
-    rcases lem with ⟨h, t, e⟩; subst e
-    apply cc; apply ih
+    generalize zdef : uncons v = z at *
+    rcases z with ⟨h, t⟩
+    have lem := cons_iff_uncons.2 zdef
+    rw [lem]; apply cc (ih t)
 
 -- theorem Vec.induction1
 --   {motive : Vec T 1 -> Prop}
@@ -214,11 +209,15 @@ theorem Vec.update_stable i t {ts ts' : Vec T n} :
   intro h1 j h2; simp [update, *]
   intro h3; exfalso; apply h2; rw [h3]
 
+-- def Vec.fold (acc : A -> B -> B) (d : B) : Vec A n -> B :=
+--   Vec.induction (motive := λ _ => B) d (@fun _ hd _ ih => acc hd ih)
+
 def Vec.fold (acc : A -> B -> B) (d : B) : {n : Nat} -> Vec A n -> B
 | 0, _ => d
 | _ + 1, vs =>
   let (h, tl) := uncons vs
   acc h (fold acc d tl)
+
 
 @[simp]
 theorem Vec.fold_nil : fold acc d Vec.nil = d := by simp [fold]

@@ -29,7 +29,7 @@ theorem Kinding.subst Δσ (σ : Subst Ty) :
     apply arrow
     apply ih1 _ _ h
     apply ih2 _ _ h
-  case all K Δ P j ih =>
+  case all K Δ P b j ih =>
     replace ih := ih (K::Δσ) σ.lift (subst_lift K h)
     simp at ih
     apply all ih
@@ -219,8 +219,9 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     apply lam
     apply Kinding.subst _ _ h j1
     apply ih _ _ h
-  case app j1 j2 ih1 ih2 =>
+  case app j1 j2 j3 ih1 ih2 =>
     apply app
+    apply Kinding.subst _ _ h j1
     apply ih1 _ _ h
     apply ih2 _ _ h
   case lamt K Δ t P Γ j ih =>
@@ -362,8 +363,8 @@ theorem Typing.subst Γσ (σ : Subst Term) :
   case lam Δ A b Γ t B j1 j2 ih =>
     replace ih := ih (A::Γσ) σ.lift (subst_lift A wf h)
     simp at ih; apply lam j1 ih
-  case app j1 j2 ih1 ih2 =>
-    apply app
+  case app j1 j2 j3 ih1 ih2 =>
+    apply app j1
     apply ih1 _ _ h
     apply ih2 _ _ h
   case lamt j ih =>

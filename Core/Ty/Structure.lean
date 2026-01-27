@@ -17,40 +17,36 @@ def Ty.apply (t : Ty) : List Ty -> Ty
 | .cons a tl => (t • a).apply tl
 
 def Ty.arity : Ty -> Nat
-| arrow _ _ B => B.arity + 1
+| arrow _ B => B.arity + 1
 | ∀[_] P => P.arity + 1
 | _ => 0
 
-inductive TyTeleElem
+inductive TelescopeElem
 | kind (k  : Kind)
-| ty (b : BaseKind) (t : Ty)
+| ty (t : Ty)
 
-def TyTele  := List TyTeleElem
-
-def Ty.split : Ty -> TyTele × Ty
-| .arrow K A B =>
-  let (tys, b) := B.split
-  (.ty K A :: tys, b)
+def Ty.telescope : Ty -> List TelescopeElem × Ty
+| .arrow A B =>
+  let (tys, b) := B.telescope
+  (.ty A :: tys, b)
 | .all K B =>
-  let (tys, b) := B.split
+  let (tys, b) := B.telescope
   (.kind K :: tys, b)
 | t => ([], t)
 
-def TyTele.count_binders (t : TyTele) : Nat :=
-  t.foldl (λ acc x => match x with
-                  | .kind _ => acc + 1
-                  | _ => acc) 0
+-- def TyTele.count_binders (t : TyTele) : Nat :=
+--   t.foldl (λ acc x => match x with
+--                   | .kind _ => acc + 1
+--                   | _ => acc) 0
 
-
-def Ty.mk_from_tele : TyTele -> Ty -> Ty
+def Ty.from_telescope : List TelescopeElem -> Ty -> Ty
 | .nil , t => t
-| .cons (.ty K A) tys, t =>
-  let r := t.mk_from_tele tys
-  A -[K]> r
+| .cons (.ty A) tys, t =>
+  let r := t.from_telescope tys
+  A -:> r
 | .cons (.kind K) tys, t =>
-  let r := t.mk_from_tele tys
+  let r := t.from_telescope tys
   ∀[K] r
-
 
 @[simp]
 theorem Ty.Spine.apply_subst {t : Ty} {sp : List Ty} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ])) := by

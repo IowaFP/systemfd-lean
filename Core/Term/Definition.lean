@@ -34,7 +34,7 @@ inductive Term : Type where
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
 | tbind : TyBindVariant -> Kind -> Term -> Term
-| lam : BaseKind -> Ty -> Term -> Term
+| lam : Ty -> Term -> Term
 | guard : Term -> Term -> Term -> Term
 | «match» : Term -> Vec String n -> Vec Term n -> Term
 
@@ -64,7 +64,7 @@ notation t1 " `+ " t2 => Term.ctor2 Ctor2Variant.choice t1 t2
 
 -- bind notation
 notation "Λ[" K "]" t => Term.tbind TyBindVariant.lamt K t
-notation "λ[" b "," A "]" t => Term.lam b A t
+notation "λ[" A "]" t => Term.lam A t
 notation "∀c[" K "]" P => Term.tbind TyBindVariant.allc K P
 
 notation "match!" => Term.match
@@ -77,7 +77,7 @@ def Term.size : Term -> Nat
 | ctor1 _ t => size t + 1
 | ctor2 _ t1 t2 => size t1 + size t2 + 1
 | tbind _ _ t => size t + 1
-| lam _ _ t => size t + 1
+| lam _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
 | .match t1 _ ts => size t1 + Vec.sum (λ i => (ts i).size) + 1
 
@@ -113,7 +113,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   Repr.addAppParen ("Λ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .tbind .allc K t =>
   Repr.addAppParen ("∀c" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
-| .lam _ τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
+| .lam τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
 | .match (n := n) s pats ts =>
   let ts : Vec Std.Format n := λ i =>
     let t := ts i
