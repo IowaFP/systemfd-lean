@@ -4,7 +4,7 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
-import Core.Infer.Type
+import Core.Infer
 
 def c1  := Λ[★] match! #0 v[ "Nothing", "Just"]
                      v[ Λ[★] g#"True" , Λ[★] λ[t#0] g#"False" ]

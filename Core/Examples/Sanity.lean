@@ -4,11 +4,10 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
-import Core.Infer.Kind
-import Core.Infer.Type
+import Core.Infer
 
 /- data Bool = True | False -/
-def BoolCtx : List Global := [
+def BoolCtx : Globals := [
   .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
   ]
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
@@ -43,9 +42,11 @@ def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
     ]
 
 
-def EqBoolCtx := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool] ++ BoolCtx
+def funs : Globals := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool]
+def EqBoolCtx : Globals := funs ++ BoolCtx
 
 #eval! eqBool.infer_type EqBoolCtx [] []
+#guard Globals.wf_globals EqBoolCtx == some ()
 
 def t1 := Term.match g#"False"
               v[ "True", "False" ] v[ g#"False" , g#"True" ]

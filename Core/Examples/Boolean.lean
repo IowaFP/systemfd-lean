@@ -4,7 +4,7 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
-
+import Core.Infer
 
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
@@ -66,6 +66,8 @@ def EqBoolCtx : List Global := [
 
 def t1 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"False"
 def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
+
+#eval Globals.wf_globals (List.drop 1 EqBoolCtx)
 
 #eval! eval_loop EqBoolCtx t1 -- False
 #eval! eval_loop EqBoolCtx t2 -- True

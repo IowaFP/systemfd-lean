@@ -129,5 +129,6 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   Std.Format.nest 4 <| ("«guard»" ++ Term.repr p pat ++ " ← " ++ Term.repr p s) ++
   Std.Format.line ++ Term.repr p t
 
-instance termRepr : Repr Term where
+@[simp]
+instance instRepr_Term : Repr Term where
   reprPrec a p := Term.repr p a

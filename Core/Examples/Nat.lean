@@ -4,7 +4,7 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
-
+import Core.Infer
 
 def c1 := match! #0 v[ "Z" , "S" ]  v[ g#"True", λ[gt#"Nat"] g#"False" ]
 def c2 := λ[ gt#"Nat"] match! #1 v[ "Z" , "S" ]
@@ -73,3 +73,9 @@ def NatCtxFix : List Global := [
 #eval eval_loop NatCtxFix ((g#"eq" • (g#"S" • (g#"S" • g#"Z"))) • (g#"S" • (g#"S" • g#"Z"))) -- True
 #eval eval_loop NatCtxFix ((g#"eq" • (g#"two")) • (g#"S" • (g#"S" • g#"Z"))) -- True
 #eval eval_loop NatCtxFix ((g#"eq" • (g#"two")) • ((g#"S" • g#"Z"))) -- False
+
+
+#guard ((g#"eq" • g#"Z") • g#"Z").infer_type NatCtxFix [] [] == .some (gt#"Bool")
+#guard ((g#"eq" • (g#"two")) • ((g#"S" • g#"Z"))).infer_type NatCtxFix [] [] == .some (gt#"Bool")
+
+#eval NatCtxFix

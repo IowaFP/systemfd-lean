@@ -115,7 +115,6 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if A == A' && bk == bk' then return B else none
 | .ctor1 (.appt τ) t => do
   let τk <- τ.infer_kind G Δ
-  let _ <- wf_kind τk
   let T <- t.infer_type G Δ Γ
   let (_, T) <- T.is_all_some
   return T[.su τ::+0]
@@ -127,44 +126,36 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if Tk == Tk' && tT == A then return B else none
 | .ctor0 (.refl A) => do
   let Ak <- A.infer_kind G Δ
-  let _ <- wf_kind Ak
   return (A ~[Ak]~ A)
 | .ctor1 .sym t => do
   let T <- t.infer_type G Δ Γ
   let Tk <- T.infer_kind G Δ
-  _ <- wf_kind Tk
   let (K, A, B) <- T.is_eq_some
   return (B ~[K]~ A)
 | .ctor2 .seq t1 t2 => do
   let T1 <- t1.infer_type G Δ Γ
   let T1k <- T1.infer_kind G Δ
-  _ <- wf_kind T1k
   let (K, A1, B1) <- T1.is_eq_some
   let T2 <- t2.infer_type G Δ Γ
   let T2k <- T2.infer_kind G Δ
-  _ <- wf_kind T2k
   let (K', A2, B2) <- T2.is_eq_some
   if K == K' && B1 == A2 then return (A1 ~[K]~ B2) else none
 | .ctor2 .appc f a => do
   let T1 <- f.infer_type G Δ Γ
   let T1k <- T1.infer_kind G Δ
-  _ <- wf_kind T1k
   let (Kf, A1, B1) <- T1.is_eq_some
   let T2 <- a.infer_type G Δ Γ
   let T2k <- T2.infer_kind G Δ
-  _ <- wf_kind T2k
   let (Ka, A2, B2) <- T2.is_eq_some
   let (Kf1, Kf2) <- Kf.is_arrow
   if Ka == Kf1 then return ((A1 • A2) ~[Kf2]~ (B1 • B2)) else none
 | .ctor2 .arrowc t1 t2 => do
   let T1 <- t1.infer_type G Δ Γ
   let T1k <- T1.infer_kind G Δ
-  _ <- wf_kind T1k
   let (Kt1, A1, B1) <- T1.is_eq_some
   let bt1 <- Kt1.base_kind
   let T2 <- t2.infer_type G Δ Γ
   let T2k <- T2.infer_kind G Δ
-  _ <- wf_kind T2k
   let (Kt2, A2, B2) <- T2.is_eq_some
   let bt2 <- Kt2.base_kind
   return (A1 -:> A2 ~[.base bt2]~ B1 -:> B2)
@@ -199,7 +190,6 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | .tbind .allc K t => do
   let T1 <- infer_type G (K::Δ) (Γ.map (·[+1])) t
   let (Tk, A, B) <- T1.is_eq_some
-  let _ <- wf_kind Tk
   let Tbk <- Tk.base_kind
   return (∀[K]A ~[.base Tbk]~ ∀[K]B)
 | .ctor2 .apptc f a => do
