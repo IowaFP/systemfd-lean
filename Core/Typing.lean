@@ -199,11 +199,12 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
   ValidInstTy G x Δ (∀[K] T)
 | arrow :
   ValidInstTy G x Δ T ->
+  G&Δ ⊢ A : .base b ->
   ValidInstTy G x Δ (A -:> T)
 
 inductive GlobalWf : List Global -> Global -> Prop where
 | data :
-  (∀ i y T, ctors i = (y, T) -> G&[] ⊢ T : ★ ∧ ValidCtor x T) ->
+  (∀ i y T, ctors i = (y, T) -> (.data x K v[]::G)&[] ⊢ T : ★ ∧ ValidCtor x T) ->
   GlobalWf G (.data x K ctors)
 | opent :
   ValidOpenKind K ->

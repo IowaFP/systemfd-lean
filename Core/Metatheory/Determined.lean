@@ -37,7 +37,7 @@ def ExistsUnique {α : Sort u} (p : α → Prop) := ∃ x, p x ∧ ∀ y, p y �
 def Trace : Type := List String
 
 inductive InstTrace (G : List Global) : Term -> Trace -> Prop where
-| body : t.Determined -> InstTrace t []
+| body : Term.Determined t -> InstTrace G t []
 | lam_open :
   A.spine = some (x, sp) ->
   InstTrace t tr ->
@@ -68,7 +68,7 @@ def Saturated (G : List Global) : Prop :=
   sorry
 
 theorem inst_red_trace_agree :
-  InstTrace t tr ->
+  InstTrace G t tr ->
   SpineTrace sp tr ->
   G&Δ,Γ ⊢ t.apply sp : T ->
   ∃ t', Star (Red G) (t.apply sp) t' ∧ t'.Determined

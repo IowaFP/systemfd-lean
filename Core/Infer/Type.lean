@@ -16,6 +16,8 @@ def Ty.stable_type_match (G : List Global) (A R : Ty) : Option Unit := do
   then some ()
   else none
 
+
+
 -- A is the type of the pattern and has the form
 -- ∀[★]∀[★].. x -t> y -t> T p q r
 -- T is the type of the rhs of the branch and has the form

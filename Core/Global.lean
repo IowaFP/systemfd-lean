@@ -137,10 +137,8 @@ def ctor_idx (x : String) (G : List Global) : Option Nat := do
   | _ => none
 
 def ctor_ty (x : String) (G : List Global) : Option Ty := do
-  let t <- lookup x G
-  match t with
-  | .ctor _ _ ty => return ty
-  | _ => none
+  let t <- lookup_type G x
+  if is_ctor G x then return t else none
 
 def ctor_count (x : String) (G : List Global) : Option Nat := do
   let t <- lookup x G

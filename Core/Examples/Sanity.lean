@@ -22,8 +22,10 @@ not = λ x → case x of
 -/
 def notTerm : Term := λ[.global "Bool" ]
   match! #0
-         v[ "True", "False" ]
-         v[ g# "False", g# "True" ]
+         v[ "True",
+            "False" ]
+         v[ g# "False",
+            g# "True" ]
 
 /-  eqBool =
   λ x. λ y. case x of
@@ -36,7 +38,9 @@ def notTerm : Term := λ[.global "Bool" ]
  -/
 def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
   match!  #1
+
    v[ "True", "False" ]
+
    v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False" ] ,
       match! #0 v[ "True", "False" ] v[ g# "False", g# "False"]
     ]

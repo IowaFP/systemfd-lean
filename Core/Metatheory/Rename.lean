@@ -37,6 +37,19 @@ theorem Kinding.closed_rep :
 theorem Kinding.closed : G&[] ⊢ A : K -> ∀ σ, A[σ] = A := by
   intro j; apply closed_rep j
 
+theorem ValidInstTy.closed : ValidInstTy G x Δ T -> ∃ b, G&Δ ⊢ T : .base b := by
+  intro h; induction h <;> simp at *
+  case _ => exists b◯
+  case _ ih =>
+    cases ih; case _ b ih =>
+    exists b★
+    constructor; assumption
+  case _ ih =>
+    cases ih; case _ b ih =>
+    exists b★
+    constructor; assumption; assumption
+
+
 theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
   intro j; cases j; case _ j => exact j
 
@@ -95,12 +108,15 @@ theorem GlobalWf.closed {G : List Global} :
     have lem := head j
     cases lem; case _ j1 j2 =>
     apply Kinding.closed j1
-  case _ y T tl e => sorry
-    -- replace e := LawfulBEq.eq_of_beq e
-    -- simp [Entry.type] at h; subst e h
-    -- have lem := head j
-    -- cases lem; case _ j =>
-    -- apply Kinding.closed j
+  case _ y T tl e =>
+    replace e := LawfulBEq.eq_of_beq e
+    simp [Entry.type] at h; subst e h
+    cases j; case _ wf j =>
+    cases j; case _ j =>
+    have lemj : ∃ b, (tl&[] ⊢ T : .base b) := by
+      apply ValidInstTy.closed j
+    cases lemj; case _ lemj =>
+    apply Kinding.closed lemj
 
 theorem Kinding.rename_lift {Δ Δr : List Kind} K (r : Ren) :
   (∀ i, Δ[i]? = Δr[r i]?) ->
@@ -221,50 +237,15 @@ case _ f a ih1 ih2 => cases j; case _ spf j =>
   simp
   assumption
 
-theorem Ty.closed_rename_noop : Kinding G Δ T K -> Δ = [] -> T[r] = T := by
-intro h1 h2
-induction h1 <;> simp at *
-all_goals (try (subst h2; simp at *))
-all_goals (try (case _ ih1 ih2 => constructor; assumption; assumption))
-case _ ih _ => subst h2; sorry
-
-
 theorem Global.type_rename_noop (G : List Global) (p : String) (r : Ren) : ⊢ G ->
   ctor_ty p G = .some B ->
-  B = B[r] := by
+  B[r] = B := by
 intro wf h
 unfold ctor_ty at h
-fun_induction lookup
-all_goals (try solve | simp at *)
-case _ n y K ctors tl ctors' ih1 ih2  =>
-  cases wf; case _ wftl _ =>
-  replace ih2 := ih2 wftl; simp at ih2;
-  rw[Option.bind_eq_some_iff] at ih2;
-  simp at ih2; simp at h;
-  rw[Option.bind_eq_some_iff] at h;
-  rcases h with ⟨e, h1, h2⟩
-  replace ih2 := ih2 e
-  unfold Vec.fold at h1;
-  induction n
-  case _ => simp at h1; replace ih2 := ih2 h1 h2; assumption
-  case _ n _ _ =>
-    simp at *; cases h1
-    case _ => sorry
-    case _ => sorry
-
-all_goals (
-case _ tl _ ih =>
-  cases wf; case _ wftl _ =>
-  replace ih := ih wftl
-  simp at ih;
-  rw[Option.bind_eq_some_iff] at ih
-  simp at ih; simp at h;
-  rw[Option.bind_eq_some_iff] at h
-  rcases h with ⟨e, h1, h2⟩
-  replace ih := ih e h1 h2
-  assumption)
-
-
+generalize ludef : lookup_type G p = lu at *
+cases lu <;> simp at *
+rcases h with ⟨h1, h2⟩; cases h2
+apply GlobalWf.closed wf ludef
 
 theorem Typing.rename_type Δr (r : Ren) :
   ⊢ G ->
@@ -302,7 +283,7 @@ theorem Typing.rename_type Δr (r : Ren) :
       constructor
       · assumption
       · constructor
-        · rw[<-Global.type_rename_noop G pat r wf p2]
+        · rw[Global.type_rename_noop G pat r wf p2]
           assumption
         · constructor
           · apply StableTypeMatch.rename Δr r h p3

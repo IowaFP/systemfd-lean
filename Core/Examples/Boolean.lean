@@ -67,7 +67,26 @@ def EqBoolCtx : List Global := [
 def t1 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"False"
 def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
 
-#eval Globals.wf_globals (List.drop 1 EqBoolCtx)
+
+def ctx' := List.drop 1 EqBoolCtx
+
+def t := ( --Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
+        Term.guard (g#"EqBool" •[ t#0 ]) #0
+           (λ[t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool"))))
+
+
+#eval Globals.wf_globals ctx'
+#eval t.infer_type ctx' [★] [ gt#"Eq" • t#0]
+#eval (g#"EqBool" •[ t#0 ]).infer_type ctx' [★] [ gt#"Eq" • t#0 ]
+def sA := ((g#"EqBool" •[ t#0 ]).infer_type ctx' [★] [ gt#"Eq" • t#0 ])
+
+#eval ((#0).infer_type ctx' [★] [ gt#"Eq" • t#0 ])
+def sR := ((#0).infer_type ctx' [★] [ gt#"Eq" • t#0 ])
+#eval do let R <- sR
+         let A <- sA
+         R.stable_type_match ctx' A
+
+#eval ((gt#"Eq" • t#0).infer_kind ctx' [★])
 
 #eval! eval_loop EqBoolCtx t1 -- False
 #eval! eval_loop EqBoolCtx t2 -- True

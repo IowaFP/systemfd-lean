@@ -29,8 +29,8 @@ theorem Kinding.subst Δσ (σ : Subst Ty) :
     apply arrow
     apply ih1 _ _ h
     apply ih2 _ _ h
-  case all K Δ P b j ih =>
-    replace ih := ih (K::Δσ) σ.lift (subst_lift K h)
+  case all K Δ P _ j ih =>
+    replace ih := ih (K :: Δσ) σ.lift (subst_lift K h)
     simp at ih
     apply all ih
   case app j1 j2 ih1 ih2 =>
@@ -138,35 +138,14 @@ case _ f a ih1 ih2 => cases j; case _ spf j =>
 
 theorem Global.type_subst_noop (G : List Global) (p : String) (σ : Subst Ty) : ⊢ G ->
   ctor_ty p G = .some B ->
-  B = B[r] := by
+  B[σ] = B := by
 intro wf h
 unfold ctor_ty at h;
-fun_induction lookup
-all_goals (try solve | simp at *)
-case _ n y K ctors tl ctors' ih1 ih2  =>
-  cases wf; case _ wftl _ =>
-  replace ih2 := ih2 wftl; simp at ih2;
-  rw[Option.bind_eq_some_iff] at ih2;
-  simp at ih2; simp at h;
-  rw[Option.bind_eq_some_iff] at h;
-  rcases h with ⟨e, h1, h2⟩
-  replace ih2 := ih2 e
-  unfold Vec.fold at h1;
-  induction n
-  case _ => simp at h1; replace ih2 := ih2 h1 h2; assumption
-  case _ => simp at *; sorry
-all_goals (
-case _ tl _ ih =>
-  cases wf; case _ wftl _ =>
-  replace ih := ih wftl
-  simp at ih;
-  rw[Option.bind_eq_some_iff] at ih
-  simp at ih; simp at h;
-  rw[Option.bind_eq_some_iff] at h
-  rcases h with ⟨e, h1, h2⟩
-  replace ih := ih e h1 h2
-  assumption)
-
+generalize ludef : lookup_type G p = lu at *
+cases lu <;> simp at *
+rcases h with ⟨h1, h2⟩
+cases h2
+apply GlobalWf.closed wf ludef
 
 
 theorem Typing.subst_type Δσ (σ : Subst Ty) :
@@ -202,7 +181,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
       constructor
       · assumption
       · constructor
-        · rw[<-Global.type_subst_noop G pat σ wf p2]; assumption
+        · rw[Global.type_subst_noop G pat σ wf p2]; assumption
         · constructor
           · apply StableTypeMatch.subst Δσ σ h p3
           · apply PrefixTypeMatch.subst Δσ σ h p4
@@ -310,7 +289,7 @@ theorem Typing.subst_lift_type {Γ Γσ : List Ty} {σ : Subst Term} T :
   cases i <;> simp at *
   case _ =>
     rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h1 := h1 0 a K e1 sorry
+    replace h1 := h1 0 a K e1 (by sorry)
     apply rename_type (T::Δ) (· + 1) wf _ h1
     intro i; cases i <;> simp
   case _ i =>
@@ -364,7 +343,8 @@ theorem Typing.subst Γσ (σ : Subst Term) :
     replace ih := ih (A::Γσ) σ.lift (subst_lift A wf h)
     simp at ih; apply lam j1 ih
   case app j1 j2 j3 ih1 ih2 =>
-    apply app j1
+    apply app
+    assumption
     apply ih1 _ _ h
     apply ih2 _ _ h
   case lamt j ih =>
