@@ -50,7 +50,7 @@ def MaybeBoolCtx : List Global := [
   --        λb1. λb2. ==@Bool ▹ sym c
   .inst "eq" (Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
         .guard (g#"EqBool" •[ t#0 ]) #0
-           (λ[t#1 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
+           (λ[t#0 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
    ),
 
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool")
@@ -74,10 +74,16 @@ def MaybeBoolCtx : List Global := [
 
 ]
 
+def ctx' := List.drop 2 MaybeBoolCtx
+#eval Globals.wf_globals ctx'
+
+
+
 
 def t0 := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
                           • (g#"Nothing" •[gt#"Bool"] ))
                           • (g#"Nothing" •[gt#"Bool"])
+
 -- #eval! eval_loop MaybeBoolCtx t0 -- True
 
 def t0' := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))

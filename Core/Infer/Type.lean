@@ -16,6 +16,28 @@ def Ty.stable_type_match (G : List Global) (A R : Ty) : Option Unit := do
   then some ()
   else none
 
+namespace Infer.Type.Test
+
+def G : List Global := [
+    .opent "Eq" (★ -:> ◯)
+    , .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
+  ]
+
+
+def R : Ty := gt#"Eq" • t#0
+def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
+
+#eval A.stable_type_match G R
+def ATele := A.telescope.1
+def sR := A.telescope.2
+
+#eval R.spine
+#eval is_opent G "Eq"
+#eval ATele.count_binders
+#eval R[λ x => .re (x + ATele.count_binders)] == sR
+
+end Infer.Type.Test
+
 
 
 -- A is the type of the pattern and has the form
@@ -82,12 +104,10 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Tso : Vec (Option Ty) (n + 1) :=
     λ i => do let cT <- cTs i
               let pT <- pTs i
-              let _ <- R.stable_type_match G pT
-              pT.prefix_type_match Δ cT
+              let _ <- Ty.stable_type_match G pT R
+              Ty.prefix_type_match Δ cT pT
 
   let Ts : Vec Ty (n + 1) <- Tso.seq
-  -- let Ts <- Tso.seq
-  --TODO: check that each element of Ts is equal
   Ts.get_elem_if_eq
 
 | .guard p s t => do
@@ -95,7 +115,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let R <- s.infer_type G Δ Γ
   let Rk <- R.infer_kind G Δ
   let _ <- Rk.is_open_kind
-  let _ <- R.stable_type_match G A
+  let _ <- Ty.stable_type_match G A R
   let (ph, _) <- p.spine
   let _ <- R.valid_open_type G
   let _ <- p.valid_inst_type G
@@ -115,8 +135,11 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Ak' <- A'.infer_kind G Δ
   let bk' <- Ak'.base_kind
   if A == A' && bk == bk' then return B else none
+| .tbind .lamt K t => do
+  let T <- t.infer_type G (K::Δ) (Γ.map (·[+1]))
+  return (∀[K] T)
 | .ctor1 (.appt τ) t => do
-  let τk <- τ.infer_kind G Δ
+  let _ <- τ.infer_kind G Δ
   let T <- t.infer_type G Δ Γ
   let (_, T) <- T.is_all_some
   return T[.su τ::+0]
@@ -153,11 +176,11 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if Ka == Kf1 then return ((A1 • A2) ~[Kf2]~ (B1 • B2)) else none
 | .ctor2 .arrowc t1 t2 => do
   let T1 <- t1.infer_type G Δ Γ
-  let T1k <- T1.infer_kind G Δ
+  let _ <- T1.infer_kind G Δ
   let (Kt1, A1, B1) <- T1.is_eq_some
   let bt1 <- Kt1.base_kind
   let T2 <- t2.infer_type G Δ Γ
-  let T2k <- T2.infer_kind G Δ
+  let _ <- T2.infer_kind G Δ
   let (Kt2, A2, B2) <- T2.is_eq_some
   let bt2 <- Kt2.base_kind
   return (A1 -:> A2 ~[.base bt2]~ B1 -:> B2)

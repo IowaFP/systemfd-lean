@@ -24,6 +24,7 @@ def Ty.arity : Ty -> Nat
 inductive TelescopeElem
 | kind (k  : Kind)
 | ty (t : Ty)
+deriving Repr
 
 def TyTelescope := List TelescopeElem
 
