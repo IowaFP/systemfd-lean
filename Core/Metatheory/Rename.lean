@@ -180,11 +180,10 @@ theorem ValidTyHeadVariable.rename (r : Ren) :
   rw [lem]; simp
 
 theorem StableTypeMatch.rename Δr (r : Ren) :
-  (∀ i, Δ[i]? = Δr[r i]?) ->
   StableTypeMatch Δ A B ->
   StableTypeMatch Δr A[r] B[r]
 := by
-  intro h j
+  intro j
   induction j generalizing Δr r
   case refl R x Δ j =>
     rcases x with ⟨x, sp⟩
@@ -193,19 +192,18 @@ theorem StableTypeMatch.rename Δr (r : Ren) :
     rw [lem]; simp
   case arrow j ih =>
     simp; apply arrow
-    apply ih _ _ h
+    apply ih _ _
   case all K Δ B R j ih =>
     simp; apply all
-    replace ih := ih (K::Δr) r.lift (Kinding.rename_lift K r h)
+    replace ih := ih (K::Δr) r.lift
     rw [Ren.to_lift (S := Ty)] at ih; simp at ih
     simp; exact ih
 
-theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty}:
-  (∀ i, Δ[i]? = Δr[r i]?) ->
+theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty} :
   PrefixTypeMatch Δ A B C ->
   PrefixTypeMatch Δr A[r] B[r] C[r]
 := by
-  intro h j
+  intro j
   induction j generalizing Δr r
   case refl B x Δ T j =>
     rcases x with ⟨x, sp⟩
@@ -214,10 +212,10 @@ theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty}:
     rw [lem]; simp
   case arrow j ih =>
     simp; apply arrow
-    apply ih _ _ h
+    apply ih _ _
   case all K Δ B V T j ih =>
     simp; apply all
-    replace ih := ih (K::Δr) r.lift (Kinding.rename_lift K r h)
+    replace ih := ih (K::Δr) r.lift
     rw [Ren.to_lift (S := Ty)] at ih; simp at ih
     simp; exact ih
 
@@ -265,15 +263,16 @@ theorem Typing.rename_type Δr (r : Ren) :
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
-    apply mtch (A := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r])
-    apply ih6; assumption
-    apply ValidTyHeadVariable.rename; assumption
-    apply ih7; assumption
-    intro i; replace ih1 := ih1 i; apply ValidHeadVariable.rename_type; assumption
-    intro i; replace ih8 := ih8 i; apply ih8; assumption
-    intro i; replace ih3 := ih3 i; apply StableTypeMatch.rename; assumption; assumption
-    intro i; replace ih9 := ih9 i; apply ih9; assumption
-    intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.rename; assumption; assumption
+    sorry
+    -- apply mtch (A := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r])
+    -- apply ih6; assumption
+    -- apply ValidTyHeadVariable.rename; assumption
+    -- apply ih7; assumption
+    -- intro i; replace ih1 := ih1 i; apply ValidHeadVariable.rename_type; assumption
+    -- intro i; replace ih8 := ih8 i; apply ih8; assumption
+    -- intro i; replace ih3 := ih3 i; apply StableTypeMatch.rename; assumption; sorry
+    -- intro i; replace ih9 := ih9 i; apply ih9; assumption
+    -- intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.rename; assumption; assumption
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
     apply ih1 _ _ h
@@ -281,8 +280,8 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply ih3 _ _ h
     apply ValidHeadVariable.rename_type r j4
     apply ValidTyHeadVariable.rename r j5
-    apply StableTypeMatch.rename _ _ h j6
-    apply PrefixTypeMatch.rename _ _ h j7
+    apply StableTypeMatch.rename _ _ j6
+    apply PrefixTypeMatch.rename _ _ j7
   case lam j1 j2 ih =>
     apply lam
     apply Kinding.rename _ _ h j1

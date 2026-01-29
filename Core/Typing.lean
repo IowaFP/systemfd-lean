@@ -230,21 +230,32 @@ inductive ListGlobalWf : List Global -> Prop where
 
 notation:175 "⊢ " G:175 => ListGlobalWf G
 
-inductive SpineType (x : String) (G : List Global) : List Kind -> List Ty -> List SpineElem -> Ty -> Prop where
+inductive TypeMatch : Ty -> Ty -> Prop
 | refl :
-  G&Δ,Γ ⊢ g#x : T ->
-  SpineType x G Δ Γ [] T
+  TypeMatch R R
+| arrow :
+  TypeMatch B R ->
+  TypeMatch (A -:> B) R
+| all :
+  TypeMatch B R ->
+  TypeMatch (∀[K] B) R
+
+inductive SpineType (t : Term) (G : List Global) : List Kind -> List Ty -> List SpineElem -> Ty -> Prop where
+| refl :
+  G&Δ,Γ ⊢ t : T ->
+  SpineType t G Δ Γ [] T
 | term :
   G&Δ ⊢ A : ★ ->
   G&Δ,Γ ⊢ a : A ->
-  SpineType x G Δ Γ sp (A -:> T) ->
-  SpineType x G Δ Γ (.term a :: sp) T
+  SpineType t G Δ Γ sp (A -:> T) ->
+  SpineType t G Δ Γ (sp ++ [.term a]) T
 | oterm :
   G&Δ ⊢ A : ◯ ->
   G&Δ,Γ ⊢ a : A ->
-  SpineType x G Δ Γ sp (A -:> T) ->
-  SpineType x G Δ Γ (.oterm a :: sp) T
+  SpineType t G Δ Γ sp (A -:> T) ->
+  SpineType t G Δ Γ (sp ++ [.oterm a]) T
 | type :
   G&Δ ⊢ a : K ->
-  SpineType x G Δ Γ sp (∀[K] T) ->
-  SpineType x G Δ Γ (.type a :: sp) T
+  SpineType t G Δ Γ sp (∀[K] T) ->
+  T' = T[su a::+0] ->
+  SpineType t G Δ Γ (sp ++ [.type a]) T'

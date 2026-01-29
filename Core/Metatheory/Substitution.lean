@@ -81,11 +81,10 @@ theorem ValidTyHeadVariable.subst (σ : Subst Ty)
   simp
 
 theorem StableTypeMatch.subst Δσ (σ : Subst Ty) :
-  (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
   StableTypeMatch Δ A B ->
   StableTypeMatch Δσ A[σ] B[σ]
 := by
-  intro h j
+  intro j
   induction j generalizing Δσ σ
   case refl R x Δ j =>
     rcases x with ⟨x, sp⟩
@@ -94,18 +93,17 @@ theorem StableTypeMatch.subst Δσ (σ : Subst Ty) :
     rw [lem]; simp
   case arrow j ih =>
     simp; apply arrow
-    apply ih _ _ h
+    apply ih _ _
   case all K Δ B R j ih =>
     simp; apply all
-    replace ih := ih (K::Δσ) σ.lift (Kinding.subst_lift K h)
+    replace ih := ih (K::Δσ) σ.lift
     simp at ih; simp; exact ih
 
 theorem PrefixTypeMatch.subst Δσ (σ : Subst Ty) :
-  (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
   PrefixTypeMatch Δ A B C ->
   PrefixTypeMatch Δσ A[σ] B[σ] C[σ]
 := by
-  intro h j
+  intro j
   induction j generalizing Δσ σ
   case refl B x Δ T j =>
     rcases x with ⟨x, sp⟩
@@ -114,10 +112,10 @@ theorem PrefixTypeMatch.subst Δσ (σ : Subst Ty) :
     rw [lem]; simp
   case arrow j ih =>
     simp; apply arrow
-    apply ih _ _ h
+    apply ih _ _
   case all K Δ B V T j ih =>
     simp; apply all
-    replace ih := ih (K::Δσ) σ.lift (Kinding.subst_lift K h)
+    replace ih := ih (K::Δσ) σ.lift
     simp at ih; simp; exact ih
 
 theorem Ty.spine_subst (Δ Δσ : List Kind) (σ: Subst Ty) (A : Ty) :
@@ -166,15 +164,16 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
-    apply mtch (A := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
-    apply ih6; assumption
-    apply ValidTyHeadVariable.subst; assumption
-    apply ih7; assumption
-    intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst_type; assumption
-    intro i; replace ih8 := ih8 i; apply ih8; assumption
-    intro i; replace ih3 := ih3 i; apply StableTypeMatch.subst; assumption; assumption
-    intro i; replace ih9 := ih9 i; apply ih9; assumption
-    intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.subst; assumption; assumption
+    sorry
+    -- apply mtch (A := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
+    -- apply ih6; assumption
+    -- apply ValidTyHeadVariable.subst; assumption
+    -- apply ih7; assumption
+    -- intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst_type; assumption
+    -- intro i; replace ih8 := ih8 i; apply ih8; assumption
+    -- intro i; replace ih3 := ih3 i; apply StableTypeMatch.subst; assumption; assumption
+    -- intro i; replace ih9 := ih9 i; apply ih9; assumption
+    -- intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.subst; assumption; assumption
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
     apply ih1 _ _ h
@@ -182,8 +181,8 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     apply ih3 _ _ h
     apply ValidHeadVariable.subst_type σ j4
     apply ValidTyHeadVariable.subst σ j5
-    apply StableTypeMatch.subst _ _ h j6
-    apply PrefixTypeMatch.subst _ _ h j7
+    apply StableTypeMatch.subst _ _ j6
+    apply PrefixTypeMatch.subst _ _ j7
   case lam j1 j2 ih =>
     apply lam
     apply Kinding.subst _ _ h j1
