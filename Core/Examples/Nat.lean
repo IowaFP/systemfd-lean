@@ -6,8 +6,8 @@ import Core.Vec
 import Core.Eval.BigStep
 import Core.Infer
 
-def c1 := match! #0 v[ "Z" , "S" ]  v[ g#"True", λ[gt#"Nat"] g#"False" ]
-def c2 := λ[ gt#"Nat"] match! #1 v[ "Z" , "S" ]
+def c1 := match! #0 v[ g#"Z" , g#"S" ]  v[ g#"True", λ[gt#"Nat"] g#"False" ]
+def c2 := λ[ gt#"Nat"] match! #1 v[ g#"Z" , g#"S" ]
                v[  g#"False"
                 , λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
 
@@ -26,7 +26,7 @@ def NatCtxFix : List Global := [
   .inst "eq"
      (λ[ gt#"Nat"] λ[gt#"Nat"]
         match! #1
-        v[ "Z" , "S" ]
+        v[ g#"Z" , g#"S" ]
         v[ c1
          , c2
          ]
@@ -51,7 +51,7 @@ def NatCtxFix : List Global := [
         (λ[ gt#"Nat" -:> gt#"Nat" -:> gt#"Nat"]
           λ[gt#"Nat"] λ[gt#"Nat"]
             match! #1
-              v["Z", "S" ]
+              v[ g#"Z", g#"S" ]
               v[ #0 ,
                  λ[ gt#"Nat" ] (g#"S" • ((#3 • #0) • #1)) ]
          ),

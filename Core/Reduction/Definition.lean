@@ -64,11 +64,19 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
-| data_match (ps: Vec String (n + 1)) (cs : Vec Term (n + 1)) :
+| data_match (ps: Vec Term (n + 1))
+             (phs' : Vec (Option String) (n + 1))
+             (psp' : Vec (Option (List SpineElem)) (n + 1))
+             (cs : Vec Term (n + 1)) :
   some (x, sp) = Term.spine s ->
-  ps.indexOf x = some i ->
+  ((λ i => (ps i).spine.map (·.1)) = phs') ->
+  ((λ i => (ps i).spine.map (·.2)) = psp') ->
+  phs'.seq = some phs ->
+  psp'.seq = some psp ->
+  phs.indexOf x = some i ->
   k = Fin.ofNat (n + 1) i ->
-  Red G (.match s ps cs) ((cs k).apply sp)
+  some p = prefix_equal sp (psp i) ->
+  Red G (.match s ps cs) ((cs k).apply p)
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------

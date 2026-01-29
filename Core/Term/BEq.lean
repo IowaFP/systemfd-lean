@@ -52,7 +52,7 @@ def Term.beq : Term -> Term -> Bool
 | .match (n := n1) a1 ps1 c1, .match (n := n2) a2 ps2 c2 =>
   if h : n1 = n2 then
     let c : Vec Bool n1 := λ i => beq (c1 i) (c2 (by rw [h] at i; exact i))
-    let p : Vec Bool n1 := λ i => (ps1 i) == (ps2 (by rw[h] at i; exact i))
+    let p : Vec Bool n1 := λ i => beq (ps1 i) (ps2 (by rw[h] at i; exact i))
     beq a1 a2 && Vec.fold (·&&·) true c && Vec.fold (·&&·) true p
   else false
 | _, _ => false

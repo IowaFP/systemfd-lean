@@ -6,12 +6,12 @@ import Core.Vec
 import Core.Eval.BigStep
 import Core.Infer
 
-def c1  := Λ[★] match! #0 v[ "Nothing", "Just"]
-                     v[ Λ[★] g#"True" , Λ[★] λ[t#0] g#"False" ]
+def c1  := match! #0 v[ g#"Nothing" •[t#0] , g#"Just" •[t#0] ]
+                     v[ g#"True" , λ[t#0] g#"False" ]
 
-def c2 := Λ[★] λ[t#0] match! #1
-              v[ "Nothing", "Just" ]
-              v[ Λ[★] g#"False", Λ[★] λ[t#0] ((((g#"eq" •[ t#0 ]) • #4) • #1) •#0) ]
+def c2 := λ[t#0] match! #1
+              v[ g#"Nothing" •[t#0], g#"Just" •[t#0]]
+              v[ g#"False", λ[t#0] ((((g#"eq" •[ t#0 ]) •(.open) #4) • #1) •#0) ]
 
 def MaybeBoolCtx : List Global := [
 
@@ -25,14 +25,14 @@ def MaybeBoolCtx : List Global := [
   .inst "eq" (Λ[★] λ[gt#"Eq" • t#0]
        .guard (g#"EqMaybe" •[t#0]) #0
          (Λ[★] λ[t#1 ~[★]~ (gt#"Maybe" • t#0)] λ[ gt#"Eq" • t#0]
-     ((g#"eq@Maybe" •[t#0]) • #0) ▹ sym! (#1 -c> #1 -c> refl! gt#"Bool"))
+     ((g#"eq@Maybe" •[t#0]) •(.open) #0) ▹ sym! (#1 -c> #1 -c> refl! gt#"Bool"))
    ),
 
 
   -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
   .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
         (Λ[★] λ[gt#"Eq" • t#0] λ[ gt#"Maybe" • t#0] λ[gt#"Maybe" • t#0]
-          match! #1 v[ "Nothing" , "Just" ]
+          match! #1 v[ g#"Nothing" •[t#0] , g#"Just"•[t#0] ]
                     v[ c1 , c2 ]
 
         ),
@@ -56,9 +56,9 @@ def MaybeBoolCtx : List Global := [
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool")
     (λ[ .global "Bool" ] λ[ .global "Bool" ]
       match! #1
-      v[ "True", "False" ]
-      v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False"] ,
-         match! #0 v[ "True", "False" ] v[ g# "False", g# "False"]
+      v[ g#"True", g#"False" ]
+      v[ match! #0 v[ g#"True", g#"False" ] v[ g#"True", g#"False"] ,
+         match! #0 v[ g#"True", g#"False" ] v[ g# "False", g# "False"]
        ]),
 
   -- EqBool : ∀ t. t ~ Bool → Eq t
@@ -74,9 +74,7 @@ def MaybeBoolCtx : List Global := [
 
 ]
 
-def ctx' := List.drop 2 MaybeBoolCtx
-#eval Globals.wf_globals ctx'
-
+#guard Globals.wf_globals MaybeBoolCtx == .some ()
 
 
 
@@ -92,14 +90,14 @@ def t0' := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • 
 -- #eval! eval_loop MaybeBoolCtx t0' -- False
 
 
-def t1 : Term := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
+def t1 : Term := (((g#"eq@Maybe" •[gt#"Bool"]) •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
                          • ((g#"Just" •[gt#"Bool"]) • g#"True"))
                          • ((g#"Just" •[gt#"Bool"]) • g#"True")
 -- #eval! eval_loop MaybeBoolCtx t1 -- True
-#eval (g#"eq@Maybe").infer_type MaybeBoolCtx [] []
-#eval (g#"eq@Maybe" •[gt#"Bool"]).infer_type MaybeBoolCtx [] []
-#eval (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
-#eval ((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
+-- #eval (g#"eq@Maybe").infer_type MaybeBoolCtx [] []
+-- #eval (g#"eq@Maybe" •[gt#"Bool"]).infer_type MaybeBoolCtx [] []
+-- #eval (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
+-- #eval ((g#"eq@Maybe" •[gt#"Bool"]) •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
 
 
 -- eq : ∀ t -> Eq t -> t -> t -> Bool
@@ -107,77 +105,77 @@ def t2 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"
                                        • (refl! (gt#"Maybe" • gt#"Bool")))
                                        • (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"));
           ((((g#"eq" •[ gt#"Maybe" • gt#"Bool" ])
-                     • eqt)
+                     •(.open) eqt)
                      • ((g#"Just" •[gt#"Bool"]) • g#"True")))
                      • ((g#"Just" •[gt#"Bool"]) • g#"True")
 
-#eval! eval_loop MaybeBoolCtx t2
+-- #eval! eval_loop MaybeBoolCtx t2
 
-def t3 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"Bool" ])
-                                       • (refl! (gt#"Maybe" • gt#"Bool")))
-                                       • (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"));
-          ((((g#"eq" •[ gt#"Maybe" • gt#"Bool" ])
-                     • eqt)
-                     • ((g#"Just" •[gt#"Bool"]) • g#"True")))
-                     • ((g#"Nothing" •[gt#"Bool"]))
+-- def t3 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"Bool" ])
+--                                        • (refl! (gt#"Maybe" • gt#"Bool")))
+--                                        • (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"));
+--           ((((g#"eq" •[ gt#"Maybe" • gt#"Bool" ])
+--                      • eqt)
+--                      • ((g#"Just" •[gt#"Bool"]) • g#"True")))
+--                      • ((g#"Nothing" •[gt#"Bool"]))
 
-#eval! eval_loop MaybeBoolCtx t3
-
-
+-- #eval! eval_loop MaybeBoolCtx t3
 
 
--- #eval! eval MaybeBoolCtx t2
--- def t3 := Option.getD (eval MaybeBoolCtx t2) `0
--- #eval! eval MaybeBoolCtx t3
--- def t4 := Option.getD (eval MaybeBoolCtx t3) `0
--- #eval! eval MaybeBoolCtx t4
--- def t5 := Option.getD (eval MaybeBoolCtx t4) `0
--- #eval! eval MaybeBoolCtx t5
--- def t6 := Option.getD (eval MaybeBoolCtx t5) `0
--- #eval! eval MaybeBoolCtx t6
--- def t7 := Option.getD (eval MaybeBoolCtx t6) `0
--- #eval! eval MaybeBoolCtx t7
--- def t8 := Option.getD (eval MaybeBoolCtx t7) `0
--- #eval! eval MaybeBoolCtx t8
--- def t9 := Option.getD (eval MaybeBoolCtx t8) `0
--- #eval! eval MaybeBoolCtx t9
--- def t10 := Option.getD (eval MaybeBoolCtx t9) `0
--- #eval! eval MaybeBoolCtx t10
--- def t11 := Option.getD (eval MaybeBoolCtx t10) `0
--- #eval! eval MaybeBoolCtx t11
--- def t12 := Option.getD (eval MaybeBoolCtx t11) `0
--- #eval! eval MaybeBoolCtx t12
--- def t13 := Option.getD (eval MaybeBoolCtx t12) `0
--- #eval! eval MaybeBoolCtx t13
--- def t14 := Option.getD (eval MaybeBoolCtx t13) `0
--- #eval! eval MaybeBoolCtx t14
--- def t15 := Option.getD (eval MaybeBoolCtx t14) `0
--- #eval! eval MaybeBoolCtx t15
--- def t16 := Option.getD (eval MaybeBoolCtx t15) `0
--- #eval! eval MaybeBoolCtx t16
--- def t17 := Option.getD (eval MaybeBoolCtx t16) `0
--- #eval! eval MaybeBoolCtx t17
--- def t18 := Option.getD (eval MaybeBoolCtx t17) `0
--- #eval! eval MaybeBoolCtx t18
--- def t19 := Option.getD (eval MaybeBoolCtx t18) `0
--- #eval! eval MaybeBoolCtx t19
--- def t20 := Option.getD (eval MaybeBoolCtx t19) `0
--- #eval! eval MaybeBoolCtx t19
--- def t21 := Option.getD (eval MaybeBoolCtx t20) `0
--- #eval! eval MaybeBoolCtx t20
--- def t22 := Option.getD (eval MaybeBoolCtx t21) `0
--- #eval! eval MaybeBoolCtx t22
--- def t23 := Option.getD (eval MaybeBoolCtx t22) `0
--- #eval! eval MaybeBoolCtx t23
--- def t24 := Option.getD (eval MaybeBoolCtx t23) `0
--- #eval! eval MaybeBoolCtx t24
--- def t25 := Option.getD (eval MaybeBoolCtx t24) `0
--- #eval! eval MaybeBoolCtx t25
--- def t26 := Option.getD (eval MaybeBoolCtx t25) `0
--- #eval! eval MaybeBoolCtx t26
--- def t27 := Option.getD (eval MaybeBoolCtx t26) `0
--- #eval! eval MaybeBoolCtx t27
--- def t28 := Option.getD (eval MaybeBoolCtx t27) `0
--- #eval! eval MaybeBoolCtx t28
--- def t29 := Option.getD (eval MaybeBoolCtx t28) `0
--- #eval! eval MaybeBoolCtx t29
+
+
+#eval! eval MaybeBoolCtx t2
+def t3 := Option.getD (eval MaybeBoolCtx t2) `0
+#eval! eval MaybeBoolCtx t3
+def t4 := Option.getD (eval MaybeBoolCtx t3) `0
+#eval! eval MaybeBoolCtx t4
+def t5 := Option.getD (eval MaybeBoolCtx t4) `0
+#eval! eval MaybeBoolCtx t5
+def t6 := Option.getD (eval MaybeBoolCtx t5) `0
+#eval! eval MaybeBoolCtx t6
+def t7 := Option.getD (eval MaybeBoolCtx t6) `0
+#eval! eval MaybeBoolCtx t7
+def t8 := Option.getD (eval MaybeBoolCtx t7) `0
+#eval! eval MaybeBoolCtx t8
+def t9 := Option.getD (eval MaybeBoolCtx t8) `0
+#eval! eval MaybeBoolCtx t9
+def t10 := Option.getD (eval MaybeBoolCtx t9) `0
+#eval! eval MaybeBoolCtx t10
+def t11 := Option.getD (eval MaybeBoolCtx t10) `0
+#eval! eval MaybeBoolCtx t11
+def t12 := Option.getD (eval MaybeBoolCtx t11) `0
+#eval! eval MaybeBoolCtx t12
+def t13 := Option.getD (eval MaybeBoolCtx t12) `0
+#eval! eval MaybeBoolCtx t13
+def t14 := Option.getD (eval MaybeBoolCtx t13) `0
+#eval! eval MaybeBoolCtx t14
+def t15 := Option.getD (eval MaybeBoolCtx t14) `0
+#eval! eval MaybeBoolCtx t15
+def t16 := Option.getD (eval MaybeBoolCtx t15) `0
+#eval! eval MaybeBoolCtx t16
+def t17 := Option.getD (eval MaybeBoolCtx t16) `0
+#eval! eval MaybeBoolCtx t17
+def t18 := Option.getD (eval MaybeBoolCtx t17) `0
+#eval! eval MaybeBoolCtx t18
+def t19 := Option.getD (eval MaybeBoolCtx t18) `0
+#eval! eval MaybeBoolCtx t19
+def t20 := Option.getD (eval MaybeBoolCtx t19) `0
+#eval! eval MaybeBoolCtx t19
+def t21 := Option.getD (eval MaybeBoolCtx t20) `0
+#eval! eval MaybeBoolCtx t20
+def t22 := Option.getD (eval MaybeBoolCtx t21) `0
+#eval! eval MaybeBoolCtx t22
+def t23 := Option.getD (eval MaybeBoolCtx t22) `0
+#eval! eval MaybeBoolCtx t23
+def t24 := Option.getD (eval MaybeBoolCtx t23) `0
+#eval! eval MaybeBoolCtx t24
+def t25 := Option.getD (eval MaybeBoolCtx t24) `0
+#eval! eval MaybeBoolCtx t25
+def t26 := Option.getD (eval MaybeBoolCtx t25) `0
+#eval! eval MaybeBoolCtx t26
+def t27 := Option.getD (eval MaybeBoolCtx t26) `0
+#eval! eval MaybeBoolCtx t27
+def t28 := Option.getD (eval MaybeBoolCtx t27) `0
+#eval! eval MaybeBoolCtx t28
+def t29 := Option.getD (eval MaybeBoolCtx t28) `0
+#eval! eval MaybeBoolCtx t29

@@ -6,11 +6,13 @@ import Core.Term.BEq
 
 open LeanSubst
 
+
 inductive SpineElem : Type where
 | type (x : Ty)
 | term (x : Term)
 | oterm (x : Term)
 deriving Repr
+
 
 @[simp]
 def SpineElem.rmap (_ : Endo Ren) (r : Ren) : SpineElem -> SpineElem
@@ -72,6 +74,7 @@ def SpineElem.beq : SpineElem -> SpineElem -> Bool
 
 instance : BEq SpineElem where
   beq := SpineElem.beq
+
 
 def Term.spine : Term -> Option (String × List SpineElem)
 | g#x => return (x, [])

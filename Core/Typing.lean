@@ -71,19 +71,22 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch (A : Nat -> Ty) (ps : Vec String (n + 1)) (cs : Vec Term (n + 1)) :
+| mtch (A : Nat -> Ty)
+       (PTy : Nat -> Ty)
+       (patshapes : Vec (String × List SpineElem) (n + 1))
+       (pats : Vec Term (n + 1))
+       (cs : Vec Term (n + 1)) :
   Typing G Δ Γ s R ->
   ValidTyHeadVariable R (is_data G) ->
   R.spine = some (dt, _) -> -- R is of the form gt#x.spine sp
-  ps.HasUniqElems -> -- all the patterns are unique
+  (ps = patshapes.map (λ x => x.1)) -> ps.HasUniqElems -> -- all the patterns are unique
   ctor_count dt G = some (n + 1) ->   -- need to also have that n + 1 = length of ctors of R
-  (∀ i, Typing G Δ Γ (cs i) (A i)) ->
-  (∀ i pat, ∃ B,
-    ps.indexOf pat = some i
-    ∧ ctor_ty pat G = some B
-    ∧ StableTypeMatch Δ B R
-    ∧ PrefixTypeMatch Δ (A i) B T) ->
-  Typing G Δ Γ (match! s ps cs) T
+  (∀ i, ValidHeadVariable (pats i) (is_ctor G)) -> -- patterns are of the right shape
+  (∀ i, Typing G Δ Γ (pats i) (PTy i)) -> -- each pattern has a type
+  (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
+  (∀ i, Typing G Δ Γ (cs i) (A i)) -> -- each case match has a type
+  (∀ i, PrefixTypeMatch Δ (A i) (PTy i) T) -> -- patten type and case type
+  Typing G Δ Γ (match! s pats cs) T
 --------------------------------------------------------------------------------------
 ---- Guards
 --------------------------------------------------------------------------------------

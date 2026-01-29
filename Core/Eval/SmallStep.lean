@@ -197,17 +197,24 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
       else .some `0
     | .none => .none
 
-| .match (n := k + 1) s ps cs =>
+| .match (n := k + 1) s ps' cs => do
+   let ps : Vec (Option (String × List SpineElem)) (k + 1) := λ i => (ps' i).spine
+   let ps <- ps.seq -- just fail if patterns are not of the correct shape
+   let p_pats : Vec String (k + 1) := λ i => (ps i).1
+   let p_sps : Vec (List SpineElem) (k + 1) := λ i => (ps i).2
    match eval_inst_beta G s with
-   | .some s' => return .match s' ps cs
+   | .some s' => return .match s' ps' cs
    | .none => match s.spine with
-           | .none => .none -- stuck term
-           | .some (s_x, s_sp) =>
-               match ps.indexOf s_x with
+           | .none => .none -- stuck term, cannot evaluate and not in formal form
+           | .some (s_x, s_sp) => do
+               match (p_pats.indexOf s_x) with
                | .none => .none -- stuck term
                | .some i => do
                        let idx := Fin.ofNat (k + 1) i
-                       return (cs idx).apply s_sp
+                       let pat_sp : List SpineElem := (p_sps i)
+                       match prefix_equal pat_sp s_sp with
+                       | .some p => return (cs idx).apply p
+                       | .none => none -- stuck term
 
 | t => match t.spine with
        | .some (x, sp) =>

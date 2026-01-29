@@ -331,6 +331,13 @@ def Vec.get_elem_if_eq [BEq T] (vs : Vec T (n + 1)) : Option T :=
     if vs'.fold (λ c acc => c == h && acc) true
     then return h else none
 
+def Vec.elems_eq_to [BEq T] (e : T) : {n : Nat} -> (vs : Vec T n) -> Bool
+| 0, _ => true
+| _ + 1, vs =>
+  match vs.uncons with
+  | (h, vs') =>
+    if h == e then vs'.elems_eq_to e else false
+
 theorem get_elem_if_eq_sound [BEq T] (vs : Vec T (n + 1)) (t : T) :
   vs.get_elem_if_eq = some t ->
   ∀ i, vs i = t := by

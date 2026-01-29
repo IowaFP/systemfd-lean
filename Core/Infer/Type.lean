@@ -9,7 +9,13 @@ import Core.Global
 -- R is the type of the scrutinee
 -- and is of the form T' p' q' r'
 -- we need to make sure T == T' (i.e. it is a datatype or an opent)
-def Ty.stable_type_match (G : List Global) (A R : Ty) : Option Unit := do
+def Ty.stable_type_match (G : List Global) : Ty -> Ty -> Option Unit
+| (Ty.all K A), (Ty.all K' R) =>
+  if K == K'
+  then Ty.stable_type_match G A R
+  else none
+| A, R =>
+ do
   let (tele, sR) := A.telescope
   let (x, _) <- R.spine
   if R[λ x => .re (x + tele.count_binders)] == sR && (is_opent G x || is_data G x)
@@ -46,7 +52,7 @@ end Infer.Type.Test
 -- ∀[★]∀[★].. x' -t> y' -t> ... z -t> T' p' q' r'
 -- A potentially has more ∀s and -t> s than in the branch
 -- This function returns the 'extra' bits
-def Ty.prefix_type_match (Δ : List Kind) : (A B : Ty) -> Option Ty
+def Ty.prefix_type_match (Δ : List Kind) : Ty -> Ty -> Option Ty
   | (.arrow A B), (.arrow A' B') => do
     if A == A'
     then prefix_type_match Δ B B'
@@ -69,6 +75,13 @@ def Ty.valid_open_type (G : List Global) : (T : Ty) -> Option Unit
 | A => do let (x, _) <- A.spine
           if is_opent G x
            then return () else none
+
+def Ty.valid_data_type (G : List Global) : (T : Ty) -> Option Unit
+| .arrow _ B => valid_open_type G B
+| .all _ B => valid_open_type G B
+| A => do let (x, _) <- A.spine
+          if is_data G x
+          then return () else none
 
 def Term.valid_inst_type (G : List Global) : (A : Term) -> Option Unit := λ A =>
   do let (x, _) <- A.spine
@@ -96,19 +109,27 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | g#x => lookup_type G x
 | .match (n := n + 1) s ps cs => do
   let R <- s.infer_type G Δ Γ
+  let _ <- R.valid_data_type G
   let (dt, _) <- R.spine
-  let cTs : Vec (Option Ty) (n + 1) :=
-    λ i => (cs i).infer_type G Δ Γ
-  let pTs : Vec (Option Ty) (n + 1) :=
-    λ i => (ctor_ty (ps i) G)
-  let Tso : Vec (Option Ty) (n + 1) :=
-    λ i => do let cT <- cTs i
-              let pT <- pTs i
-              let _ <- Ty.stable_type_match G pT R
-              Ty.prefix_type_match Δ cT pT
+  let ps':  Vec (Option (String × List SpineElem)) (n + 1) := λ i => (ps i).spine
+  let ps'' <- ps'.seq
+  let vhv_pats : Vec Bool (n + 1) := λ i => is_ctor G ((ps'' i).fst)
+  let ctor_test := Vec.elems_eq_to true vhv_pats
+  if ctor_count dt G == some (n + 1) && ctor_test
+  then
+    let cTs : Vec (Option Ty) (n + 1) :=
+      λ i => (cs i).infer_type G Δ Γ
+    let pTs : Vec (Option Ty) (n + 1) :=
+      λ i => (ps i).infer_type G Δ Γ
+    let Tso : Vec (Option Ty) (n + 1) :=
+      λ i => do let cT <- cTs i
+                let pT <- pTs i
+                let _ <- Ty.stable_type_match G pT R
+                Ty.prefix_type_match Δ pT cT
 
-  let Ts : Vec Ty (n + 1) <- Tso.seq
-  Ts.get_elem_if_eq
+    let Ts : Vec Ty (n + 1) <- Tso.seq
+    Ts.get_elem_if_eq
+  else none
 
 | .guard p s t => do
   let A <- p.infer_type G Δ Γ
