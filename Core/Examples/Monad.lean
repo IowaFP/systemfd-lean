@@ -25,8 +25,9 @@ not = λ x → case x of
 -/
 def notTerm : Term := λ[ .global "Bool" ]
   match! #0
-         v[ "True", "False" ]
+         v[ g#"True", g#"False" ]
          v[ g# "False", g# "True" ]
+         g#"False"
 
 /-  eqBool =
   λ x. λ y. case x of
@@ -39,10 +40,11 @@ def notTerm : Term := λ[ .global "Bool" ]
  -/
 def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
   match!  #1
-   v[ "True", "False" ]
-   v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False" ] ,
-      match! #0 v[ "True", "False" ] v[ g# "False", g# "False"]
+   v[ g#"True", g#"False" ]
+   v[ match! #0 v[ g#"True", g#"False" ] v[ g#"True", g#"False" ] g#"False",
+      match! #0 v[ g#"True", g#"False" ] v[ g# "False", g# "False"] g#"False"
     ]
+   g#"False"
 
 def EqBoolCtx := [.defn "notTerm" (gt#"Bool" -:> gt#"Bool") notTerm,
                   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool] ++ BoolCtx

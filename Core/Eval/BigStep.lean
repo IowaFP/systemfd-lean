@@ -7,7 +7,7 @@ import Core.Eval.SmallStep
 
 open LeanSubst
 
-partial def eval_loop (G : List Global) (t : Term) : Term :=
+partial def Term.eval_loop (G : List Global) (t : Term) : Term :=
   match eval G t with
   | .none => t
-  | .some t => eval_loop G t
+  | .some t => Term.eval_loop G t

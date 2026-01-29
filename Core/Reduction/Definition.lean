@@ -76,7 +76,20 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   phs.indexOf x = some i ->
   k = Fin.ofNat (n + 1) i ->
   some p = prefix_equal sp (psp i) ->
-  Red G (.match s ps cs) ((cs k).apply p)
+  Red G (.match s ps cs c) ((cs k).apply p)
+
+| data_match_default
+             (ps: Vec Term (n + 1))
+             (phs' : Vec (Option String) (n + 1))
+             (psp' : Vec (Option (List SpineElem)) (n + 1))
+             (cs : Vec Term (n + 1)) :
+  some (x, sp) = Term.spine s ->
+  ((λ i => (ps i).spine.map (·.1)) = phs') ->
+  ((λ i => (ps i).spine.map (·.2)) = psp') ->
+  phs'.seq = some phs ->
+  psp'.seq = some psp ->
+  phs.indexOf x = none ->
+  Red G (.match s ps cs c) c
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -126,7 +139,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Red G (.guard p s b) (.guard p s' b)
 | match_congr :
   Red G s s' ->
-  Red G (.match s ps ts) (.match s' ps ts)
+  Red G (.match s ps ts c) (.match s' ps ts c)
 ----------------------------------------------------------------
 ---- Absorption Rules
 ----------------------------------------------------------------
@@ -144,7 +157,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | guard_absorb :
   Red G (.guard p `0 b) `0
 | match_absorb :
-  Red G (.match `0 ps ts) `0
+  Red G (.match `0 ps ts c) `0
 ----------------------------------------------------------------
 ---- Mapping Rules
 ----------------------------------------------------------------
@@ -165,6 +178,6 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | guard_map :
   Red G (.guard p (c1 `+ c2) b) (.guard p c1 b `+ .guard p c2 b)
 | match_map :
-  Red G (.match (c1 `+ c2) ps ts) (.match c1 ps ts `+ .match c2 ps ts)
+  Red G (.match (c1 `+ c2) ps ts c) (.match c1 ps ts c `+ .match c2 ps ts c)
 
 notation:160 G:160 " ⊢ " t:160 " ~> " t':160 => Red G t t'

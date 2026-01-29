@@ -35,7 +35,7 @@ def Term.rmap (lf : Endo Ren) (r : Ren) : Term -> Term
 | tbind v A t => tbind v A (rmap lf r t)
 | lam A t => lam A (rmap lf (lf r) t)
 | guard t1 t2 t3 => guard (rmap lf r t1) (rmap lf r t2) (rmap lf r t3)
-| .match t1 t2 t3 => .match (rmap lf r t1) (λ i => rmap lf r (t2 i)) (λ i => rmap lf r (t3 i))
+| .match t1 t2 t3 t4 => .match (rmap lf r t1) (λ i => rmap lf r (t2 i)) (λ i => rmap lf r (t3 i)) (rmap lf r t4)
 
 instance : RenMap Term where
   rmap := Term.rmap
@@ -202,7 +202,7 @@ def Term.Ty.smap (lf : Endo (Subst Ty)) (σ : Subst Ty) : Term -> Term
 | tbind v A t => tbind v A (smap lf (lf σ) t)
 | lam A t => lam A[σ:_] (smap lf σ t)
 | guard t1 t2 t3 => guard (smap lf σ t1) (smap lf σ t2) (smap lf σ t3)
-| .match t1 pats ts => .match (smap lf σ t1) pats (λ i => smap lf σ (ts i))
+| .match t1 t2 t3 t4  => .match (smap lf σ t1) (λ i => smap lf σ (t2 i)) (λ i => smap lf σ (t3 i)) (smap lf σ t4)
 
 instance : SubstMap Term Ty where
   smap := Term.Ty.smap
@@ -217,7 +217,7 @@ def Term.smap (lf : Endo (Subst Term)) (σ : Subst Term) : Term -> Term
 | tbind v A t => tbind v A (smap lf (σ ◾ +1@Ty) t)
 | lam A t => lam A (smap lf (lf σ) t)
 | guard t1 t2 t3 => guard (smap lf σ t1) (smap lf σ t2) (smap lf σ t3)
-| .match t1 pats ts => .match (smap lf σ t1) pats (λ i => smap lf σ (ts i))
+| .match t1 t2 t3 t4 => .match (smap lf σ t1) (λ i => smap lf σ (t2 i)) (λ i => smap lf σ (t3 i)) (smap lf σ t4)
 
 instance : SubstMap Term Term where
   smap := Term.smap
@@ -256,7 +256,7 @@ theorem Term.subst_guard : (guard t1 t2 t3)[σ:Term] = guard t1[σ:_] t2[σ:_] t
 
 @[simp]
 theorem Term.subst_match
-  : (match! t1 pats t2)[σ:Term] = match! t1[σ:_] pats (λ i => (t2 i)[σ:_])
+  : (match! t1 t2 t3 t4)[σ:Term] = match! t1[σ:_] (λ i => (t2 i)[σ:_]) (λ i => (t3 i)[σ:_]) (t4[σ:_])
 := by
   simp [Subst.apply, SubstMap.smap]
 
@@ -302,7 +302,7 @@ theorem Term.Ty.subst_guard : (guard t1 t2 t3)[σ:Ty] = guard t1[σ:_] t2[σ:_] 
 
 @[simp]
 theorem Term.Ty.subst_match
-  : (match! t1 ps t2)[σ:Ty] = match! t1[σ:_] ps (λ i => (t2 i)[σ:_])
+  : (match! t1 ps t2 t3)[σ:Ty] = match! t1[σ:_] (λ i => (ps i)[σ:_]) (λ i => (t2 i)[σ:_]) t3[σ:_]
 := by
   simp [Subst.apply, SubstMap.smap]
 
@@ -323,7 +323,7 @@ theorem Term.hcompose_var {σ : Subst Term} {τ : Subst Ty}
 
 theorem Term.apply_stable (r : Ren) (σ : Subst Term)
   : r.to = σ -> Ren.apply (T := Term) r = Subst.apply σ
-:= by sorry -- subst_solve_stable Term, r, σ
+:= by subst_solve_stable Term, r, σ
 
 
 instance : SubstMapStable Term where

@@ -16,11 +16,11 @@ def inline_insts (n : String) (G : List Global) (sp : List SpineElem) :=
 
 @[simp]
 def eval_choice_mapping (G : List Global) : Term -> Option Term
-| .match (.ctor2 .choice t1 t2) ps ts =>
-  return (.match t1 ps ts `+ .match t2 ps ts)
-| .match s ps ts => do
+| .match (.ctor2 .choice t1 t2) ps ts c =>
+  return (.match t1 ps ts c `+ .match t2 ps ts c)
+| .match s ps ts c => do
   let s' <- eval_choice_mapping G s
-  return .match s' ps ts
+  return .match s' ps ts c
 
 | .guard  p (.ctor2 .choice s1 s2) t =>
   return (.guard p s1 t `+ .guard p s2 t)
@@ -67,10 +67,10 @@ def eval_choice_mapping (G : List Global) : Term -> Option Term
 
 @[simp]
 def eval_const_folding_zero (G : List Global) : Term -> Option Term
-| .match `0 _ _=> return `0
-| .match s ps ts => do
+| .match `0 _ _ _=> return `0
+| .match s ps ts c => do
   let s' <- eval_const_folding_zero G s
-  return .match s' ps ts
+  return .match s' ps ts c
 | .guard _ `0 _ => return `0
 | .guard p s t => do
   let s' <- eval_const_folding_zero G s
@@ -115,9 +115,9 @@ def eval_const_folding_zero (G : List Global) : Term -> Option Term
 
 @[simp]
 def eval_const_folding_refl (G : List Global) : Term -> Option Term
-| .match s ps ts => do
+| .match s ps ts c => do
   let s' <- eval_const_folding_refl G s
-  return .match s' ps ts
+  return .match s' ps ts c
 | .guard p s t => do
   let s' <- eval_const_folding_refl G s
   return .guard p s' t
@@ -148,7 +148,6 @@ def eval_const_folding_refl (G : List Global) : Term -> Option Term
              | .none => .none
         else .none)
 | .tbind .allc t (.ctor0 (.refl t')) => return refl! (∀[t] t')
-
 | _ => .none
 
 
@@ -197,18 +196,18 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
       else .some `0
     | .none => .none
 
-| .match (n := k + 1) s ps' cs => do
+| .match (n := k + 1) s ps' cs default => do
    let ps : Vec (Option (String × List SpineElem)) (k + 1) := λ i => (ps' i).spine
    let ps <- ps.seq -- just fail if patterns are not of the correct shape
    let p_pats : Vec String (k + 1) := λ i => (ps i).1
    let p_sps : Vec (List SpineElem) (k + 1) := λ i => (ps i).2
    match eval_inst_beta G s with
-   | .some s' => return .match s' ps' cs
+   | .some s' => return .match s' ps' cs default
    | .none => match s.spine with
-           | .none => .none -- stuck term, cannot evaluate and not in formal form
+           | .none => .none -- stuck term, cannot evaluate and not in neutral form
            | .some (s_x, s_sp) => do
                match (p_pats.indexOf s_x) with
-               | .none => .none -- stuck term
+               | .none => return default -- catch all case
                | .some i => do
                        let idx := Fin.ofNat (k + 1) i
                        let pat_sp : List SpineElem := (p_sps i)

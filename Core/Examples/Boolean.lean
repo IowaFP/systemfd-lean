@@ -24,6 +24,7 @@ def notTerm : Term := λ[ .global "Bool" ]
          v[
          g# "False",
          g# "True" ]
+         g#"False"
 
 /-  eqBool =
   λ x. λ y. case x of
@@ -37,9 +38,10 @@ def notTerm : Term := λ[ .global "Bool" ]
 def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
   match! #1
    v[ g#"True", g#"False" ]
-   v[ match! #0 v[ g#"True", g#"False" ] v[ g#"True", g#"False"] ,
-      match! #0 v[ g#"True", g#"False" ] v[ g# "False", g# "False"]
+   v[ match! #0 v[ g#"True", g#"False" ] v[ g#"True", g#"False"] g#"False",
+      match! #0 v[ g#"True", g#"False" ] v[ g# "False", g# "False"] g#"False"
     ]
+    g#"False"
 
 
 def EqBoolCtx : List Global := [
@@ -76,9 +78,8 @@ def t := (Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
 
 
 #guard Globals.wf_globals EqBoolCtx == .some ()
-
-#eval! eval_loop EqBoolCtx t1 -- False
-#eval! eval_loop EqBoolCtx t2 -- True
+#guard t1.eval_loop EqBoolCtx == g#"False"
+#guard t2.eval_loop EqBoolCtx == g#"True"
 
 -- #eval! eval EqBoolCtx t1
 -- def t3 := Option.getD (eval EqBoolCtx t1) `0

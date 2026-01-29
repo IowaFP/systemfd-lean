@@ -107,15 +107,14 @@ def Ty.is_app_some : Ty -> Option (Ty × Ty)
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x =>  Γ[x]?
 | g#x => lookup_type G x
-| .match (n := n + 1) s ps cs => do
+| .match (n := n + 1) s ps cs c => do
   let R <- s.infer_type G Δ Γ
   let _ <- R.valid_data_type G
-  let (dt, _) <- R.spine
   let ps':  Vec (Option (String × List SpineElem)) (n + 1) := λ i => (ps i).spine
   let ps'' <- ps'.seq
   let vhv_pats : Vec Bool (n + 1) := λ i => is_ctor G ((ps'' i).fst)
   let ctor_test := Vec.elems_eq_to true vhv_pats
-  if ctor_count dt G == some (n + 1) && ctor_test
+  if ctor_test
   then
     let cTs : Vec (Option Ty) (n + 1) :=
       λ i => (cs i).infer_type G Δ Γ
@@ -128,7 +127,9 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
                 Ty.prefix_type_match Δ pT cT
 
     let Ts : Vec Ty (n + 1) <- Tso.seq
-    Ts.get_elem_if_eq
+    let T <- Ts.get_elem_if_eq
+    let allT <- c.infer_type G Δ Γ
+    if T == allT then T else none
   else none
 
 | .guard p s t => do
@@ -137,12 +138,12 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Rk <- R.infer_kind G Δ
   let _ <- Rk.is_open_kind
   let _ <- Ty.stable_type_match G A R
-  let (ph, _) <- p.spine
   let _ <- R.valid_open_type G
   let _ <- p.valid_inst_type G
   let B <- t.infer_type G Δ Γ
   let T <- Ty.prefix_type_match Δ A B
   let Tk <- T.infer_kind G Δ
+  let _ <- Tk.base_kind
   return T
 
 | .lam A t => do

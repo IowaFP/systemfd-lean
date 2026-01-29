@@ -6,10 +6,11 @@ import Core.Vec
 import Core.Eval.BigStep
 import Core.Infer
 
-def c1 := match! #0 v[ g#"Z" , g#"S" ]  v[ g#"True", λ[gt#"Nat"] g#"False" ]
-def c2 := λ[ gt#"Nat"] match! #1 v[ g#"Z" , g#"S" ]
-               v[  g#"False"
-                , λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
+def c1 := match! #0 v[ g#"Z" , g#"S" ]  v[ g#"True", λ[gt#"Nat"] g#"False" ] g#"Z"
+def c2 := λ[ gt#"Nat"] match! #1
+                       v[ g#"Z" , g#"S" ]
+                       v[  g#"False" , λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
+                       g#"Z"
 
 def NatCtxFix : List Global := [
 
@@ -30,6 +31,7 @@ def NatCtxFix : List Global := [
         v[ c1
          , c2
          ]
+        g#"Z"
     ) ,
 
   .openm "eq" (gt#"Nat" -:> gt#"Nat" -:> gt#"Bool"),
@@ -54,6 +56,7 @@ def NatCtxFix : List Global := [
               v[ g#"Z", g#"S" ]
               v[ #0 ,
                  λ[ gt#"Nat" ] (g#"S" • ((#3 • #0) • #1)) ]
+              g#"Z"
          ),
 
   -- instance fix = Λ a. λ f. f (fix i f)
@@ -67,12 +70,12 @@ def NatCtxFix : List Global := [
 
 -- #eval eval_loop NatCtxFix g#"two"
 
-#eval eval_loop NatCtxFix ((g#"eq" • g#"Z") • g#"Z") -- True
-#eval eval_loop NatCtxFix ((g#"eq" • (g#"Z")) • ((g#"S" • g#"Z"))) -- False
-#eval eval_loop NatCtxFix ((g#"eq" • (g#"S" • g#"Z")) • ((g#"S" • g#"Z"))) -- True
-#eval eval_loop NatCtxFix ((g#"eq" • (g#"S" • (g#"S" • g#"Z"))) • (g#"S" • (g#"S" • g#"Z"))) -- True
-#eval eval_loop NatCtxFix ((g#"eq" • (g#"two")) • (g#"S" • (g#"S" • g#"Z"))) -- True
-#eval eval_loop NatCtxFix ((g#"eq" • (g#"two")) • ((g#"S" • g#"Z"))) -- False
+#guard ((g#"eq" • g#"Z") • g#"Z").eval_loop NatCtxFix  == g#"True"
+#guard ((g#"eq" • (g#"Z")) • ((g#"S" • g#"Z"))).eval_loop NatCtxFix == g#"False"
+#guard ((g#"eq" • (g#"S" • g#"Z")) • ((g#"S" • g#"Z"))).eval_loop NatCtxFix == g#"True"
+#guard ((g#"eq" • (g#"S" • (g#"S" • g#"Z"))) • (g#"S" • (g#"S" • g#"Z"))).eval_loop NatCtxFix == g#"True"
+#guard  ((g#"eq" • (g#"two")) • (g#"S" • (g#"S" • g#"Z"))).eval_loop NatCtxFix == g#"True"
+#guard  ((g#"eq" • (g#"two")) • ((g#"S" • g#"Z"))).eval_loop NatCtxFix == g#"False"
 
 
 #guard ((g#"eq" • g#"Z") • g#"Z").infer_type NatCtxFix [] [] == .some (gt#"Bool")
