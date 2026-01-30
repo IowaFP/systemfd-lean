@@ -180,3 +180,15 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Red G (.match (c1 `+ c2) ps ts c) (.match c1 ps ts c `+ .match c2 ps ts c)
 
 notation:160 G:160 " ⊢ " t:160 " ~> " t':160 => Red G t t'
+
+inductive RedStar (G : Globals) : Term -> Term -> Prop where
+| refl : RedStar G x x
+| step : RedStar G x y -> Red G y z -> RedStar G x z
+
+notation:160 G:160 " ⊢ " t:160 " ~>* " t':160 => RedStar G t t'
+
+inductive RedPlus (G : Globals) : Term -> Term -> Prop where
+| one : Red G x y -> RedPlus G x y
+| step : RedPlus G x y -> Red G y z -> RedPlus G x z
+
+notation:160 G:160 " ⊢ " t:160 " ~>+ " t':160 => RedPlus G t t'
