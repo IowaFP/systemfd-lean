@@ -165,26 +165,16 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     replace j2 := Kinding.subst Δσ σ h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch A ps cs sJ vhv h1 h2 h3 h4 h5 ihs ihcs =>
-    apply mtch (A := λ x => (A x)[σ])
-    apply ihs; assumption
+  case mtch _ s R c T A PTy patshps ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
+    apply mtch (A := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ]) patshps
+    apply ih6; assumption
     apply ValidTyHeadVariable.subst; assumption
-    apply Ty.spine_subst; assumption; assumption
-    assumption
-    assumption
-    · intro i
-      replace ihcs := ihcs i Δσ σ h; assumption
-    · intro i pat
-      replace h5 := h5 i pat
-      rcases h5 with ⟨B, p1, p2, p3, p4⟩
-      exists B[σ]
-      constructor
-      · assumption
-      · constructor
-        · rw[Global.type_subst_noop G pat σ wf p2]; assumption
-        · constructor
-          · apply StableTypeMatch.subst Δσ σ h p3
-          · apply PrefixTypeMatch.subst Δσ σ h p4
+    apply ih7; assumption
+    intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst_type; assumption
+    intro i; replace ih8 := ih8 i; apply ih8; assumption
+    intro i; replace ih3 := ih3 i; apply StableTypeMatch.subst; assumption; assumption
+    intro i; replace ih9 := ih9 i; apply ih9; assumption
+    intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.subst; assumption; assumption
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
     apply ih1 _ _ h
@@ -322,16 +312,17 @@ theorem Typing.subst Γσ (σ : Subst Term) :
   intro wf h j; induction j generalizing Γσ σ <;> simp
   case var Γ x A Δ K j1 j2 => apply h x A K j1 j2
   case global j1 j2 => apply global j1 j2
-  case mtch ih1 ih2 ih3 =>
-    apply mtch
-    apply ih2; apply h
+  case mtch c _ A PTy patshapes pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
+    apply mtch (A := A) (PTy := PTy)
+    apply patshapes
+    apply ih6; apply h
     assumption
-    assumption
-    assumption
-    assumption
-    intros; apply ih3; assumption
-    · intros i pat
-      apply ih1 i pat
+    apply ih7; apply h
+    intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst; assumption
+    intro i; apply ih8; assumption
+    intro i; replace ih3 := ih3 i; assumption
+    intro i; replace ih9 := ih9 i; apply ih9; assumption
+    intro i; replace ih5 := ih5 i; assumption
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply Typing.guard
     apply ih1 _ _ h
