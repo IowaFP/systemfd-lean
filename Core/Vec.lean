@@ -268,7 +268,10 @@ theorem Vec.subst_cons {t : Vec S n} {σ : Subst T}
     case _ n =>
     cases i using Fin.cases <;> simp [Vec.map] at *
 
-def Vec.indexOf [BEq T] (c : T) (v :  Vec T (n + 1)) : Option (Fin (n + 1)) :=
+def Vec.indexOf [BEq T] (c : T) {n : Nat} (v :  Vec T n) : Option (Fin n) :=
+match n with
+| 0 => none
+| n + 1 =>
     let (found, i, _) := Vec.fold (λ x (found, found_idx, i) =>
       if not found
         then if x == c
@@ -276,7 +279,7 @@ def Vec.indexOf [BEq T] (c : T) (v :  Vec T (n + 1)) : Option (Fin (n + 1)) :=
                 else (found, found_idx, i + 1)
         else (found, found_idx, i + 1)
     ) (false, 0, 0) v
-  if found then return Fin.ofNat (n + 1) (n - i) else none
+    if found then return Fin.ofNat (n + 1) (n - i) else none
 
 #guard Vec.indexOf "x" v["x", "y", "p"] == some 0
 #guard Vec.indexOf "y" v["x", "y", "p"] == some 1

@@ -124,7 +124,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
     let pat := pats i
     Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " => " ++ Term.repr p t
   let css := Vec.fold (·++·) Std.Format.nil ts
-  Std.Format.nest 4 <| (("match " ++ Term.repr p s ++ "with")
+  Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
     ++ css
     ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)
     )

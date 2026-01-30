@@ -196,11 +196,11 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
       else .some `0
     | .none => .none
 
-| .match (n := k + 1) s ps' cs default => do
-   let ps : Vec (Option (String × List SpineElem)) (k + 1) := λ i => (ps' i).spine
+| .match (n := n) s ps' cs default => do
+   let ps : Vec (Option (String × List SpineElem)) n := λ i => (ps' i).spine
    let ps <- ps.seq -- just fail if patterns are not of the correct shape
-   let p_pats : Vec String (k + 1) := λ i => (ps i).1
-   let p_sps : Vec (List SpineElem) (k + 1) := λ i => (ps i).2
+   let p_pats : Vec String n := λ i => (ps i).1
+   let p_sps : Vec (List SpineElem) n := λ i => (ps i).2
    match eval_inst_beta G s with
    | .some s' => return .match s' ps' cs default
    | .none => match s.spine with
@@ -209,10 +209,9 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
                match (p_pats.indexOf s_x) with
                | .none => return default -- catch all case
                | .some i => do
-                       let idx := Fin.ofNat (k + 1) i
                        let pat_sp : List SpineElem := (p_sps i)
                        match prefix_equal pat_sp s_sp with
-                       | .some p => return (cs idx).apply p
+                       | .some p => return (cs i).apply p
                        | .none => none -- stuck term
 
 | t => match t.spine with

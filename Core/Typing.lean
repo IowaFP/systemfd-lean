@@ -71,11 +71,11 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch (A : Nat -> Ty)
-       (PTy : Nat -> Ty)
-       (patshapes : Vec (String × List SpineElem) (n + 1))
-       (pats : Vec Term (n + 1))
-       (cs : Vec Term (n + 1)) :
+| mtch (A : Fin n -> Ty)
+       (PTy : Fin n -> Ty)
+       (patshapes : Vec (String × List SpineElem) n)
+       (pats : Vec Term n)
+       (cs : Vec Term n) :
   Typing G Δ Γ s R ->
   ValidTyHeadVariable R (is_data G) ->
   Typing G Δ Γ c T -> -- catch all term is of type T

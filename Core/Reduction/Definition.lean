@@ -64,25 +64,24 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
-| data_match (ps: Vec Term (n + 1))
-             (phs' : Vec (Option String) (n + 1))
-             (psp' : Vec (Option (List SpineElem)) (n + 1))
-             (cs : Vec Term (n + 1)) :
+| data_match (ps: Vec Term n)
+             (phs' : Vec (Option String) n)
+             (psp' : Vec (Option (List SpineElem)) n)
+             (cs : Vec Term n) :
   some (x, sp) = Term.spine s ->
   ((λ i => (ps i).spine.map (·.1)) = phs') ->
   ((λ i => (ps i).spine.map (·.2)) = psp') ->
   phs'.seq = some phs ->
   psp'.seq = some psp ->
   phs.indexOf x = some i ->
-  k = Fin.ofNat (n + 1) i ->
   some p = prefix_equal sp (psp i) ->
-  Red G (.match s ps cs c) ((cs k).apply p)
+  Red G (.match s ps cs c) ((cs i).apply p)
 
 | data_match_default
-             (ps: Vec Term (n + 1))
-             (phs' : Vec (Option String) (n + 1))
-             (psp' : Vec (Option (List SpineElem)) (n + 1))
-             (cs : Vec Term (n + 1)) :
+             (ps: Vec Term n)
+             (phs' : Vec (Option String) n)
+             (psp' : Vec (Option (List SpineElem)) n)
+             (cs : Vec Term n) :
   some (x, sp) = Term.spine s ->
   ((λ i => (ps i).spine.map (·.1)) = phs') ->
   ((λ i => (ps i).spine.map (·.2)) = psp') ->

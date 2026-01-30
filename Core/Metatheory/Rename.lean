@@ -264,31 +264,31 @@ theorem Typing.rename_type Δr (r : Ren) :
     replace j2 := Kinding.rename Δr r h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch _ n Δ Γ s R pat T A ps cs sJ vhv h1 h2 h3 h4 ih1 ih2 ih3 =>
-    have lem : ∀ i, (A i)[r] = (λ x => (A x)[r]) i := by simp
-    apply mtch (A := λ i => (A i)[r])
-    apply ih2 _ _ h
-    apply ValidTyHeadVariable.rename; assumption
-    apply Ty.spine_rename _ _ _ _ h h1
-    assumption
-    assumption
-    · intro i
-      replace ih3 := ih3 i Δr r h
-      rw[lem] at ih3
-      apply ih3
-    · intro i pat
-      have ih1 := ih1 i pat
-      rcases ih1 with ⟨B, p1, p2, p3, p4⟩
-      exists B[r]
-      constructor
-      · assumption
-      · constructor
-        · rw[Global.type_rename_noop G pat r wf p2]
-          assumption
-        · constructor
-          · apply StableTypeMatch.rename Δr r h p3
-          · have p4' := @PrefixTypeMatch.rename _ _ _ _ _ (A i) h p4; rw[lem] at p4'
-            apply p4';
+  case mtch _ n Δ Γ s R pat T A ps cs sJ vhv h1 h2 h3 h4 ih1 ih2 ih3 => sorry
+    -- have lem : ∀ i, (A i)[r] = (λ x => (A x)[r]) i := by simp
+    -- apply mtch (A := λ i => (A i)[r])
+    -- apply ih2 _ _ h
+    -- apply ValidTyHeadVariable.rename; assumption
+    -- apply Ty.spine_rename _ _ _ _ h h1
+    -- assumption
+    -- assumption
+    -- · intro i
+    --   replace ih3 := ih3 i Δr r h
+    --   rw[lem] at ih3
+    --   apply ih3
+    -- · intro i pat
+    --   have ih1 := ih1 i pat
+    --   rcases ih1 with ⟨B, p1, p2, p3, p4⟩
+    --   exists B[r]
+    --   constructor
+    --   · assumption
+    --   · constructor
+    --     · rw[Global.type_rename_noop G pat r wf p2]
+    --       assumption
+    --     · constructor
+    --       · apply StableTypeMatch.rename Δr r h p3
+    --       · have p4' := @PrefixTypeMatch.rename _ _ _ _ _ (A i) h p4; rw[lem] at p4'
+    --         apply p4';
 
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
@@ -412,16 +412,19 @@ theorem Typing.rename Γr (r : Ren) :
   intro wf h j; induction j generalizing Γr r <;> simp
   case var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
   case global j1 j2 => apply Typing.global j1 j2
-  case mtch ih1 ih2 ih3 =>
+  case mtch c _ A Ty patshapes pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
     apply mtch
-    apply ih2; apply h
+    apply patshapes
+    apply ih6; apply h
     assumption
+    apply ih7; apply h
+    intro i; replace ih1 := ih1 i; apply ValidHeadVariable.rename; assumption
+    intro i; sorry
     assumption
-    assumption
-    assumption
-    intros; apply ih3; assumption
-    · intros i pat
-      apply ih1 i pat
+    sorry
+    sorry
+    sorry
+
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply Typing.guard
     apply ih1 _ _ h

@@ -6,11 +6,11 @@ import Core.Vec
 import Core.Eval.BigStep
 import Core.Infer
 
-def c1 := match! #0 v[ g#"Z" , g#"S" ]  v[ g#"True", λ[gt#"Nat"] g#"False" ] g#"Z"
+def c1 := match! #0 v[ g#"S" ]  v[ λ[gt#"Nat"] g#"False" ] g#"True"
 def c2 := λ[ gt#"Nat"] match! #1
-                       v[ g#"Z" , g#"S" ]
-                       v[  g#"False" , λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
-                       g#"Z"
+                       v[ g#"S" ]
+                       v[ λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
+                       g#"False"
 
 def NatCtxFix : List Global := [
 
@@ -31,7 +31,7 @@ def NatCtxFix : List Global := [
         v[ c1
          , c2
          ]
-        g#"Z"
+        g#"False"
     ) ,
 
   .openm "eq" (gt#"Nat" -:> gt#"Nat" -:> gt#"Bool"),
@@ -68,6 +68,7 @@ def NatCtxFix : List Global := [
 
 ]
 
+#guard Globals.wf_globals NatCtxFix == some ()
 -- #eval eval_loop NatCtxFix g#"two"
 
 #guard ((g#"eq" • g#"Z") • g#"Z").eval_loop NatCtxFix  == g#"True"
@@ -80,5 +81,7 @@ def NatCtxFix : List Global := [
 
 #guard ((g#"eq" • g#"Z") • g#"Z").infer_type NatCtxFix [] [] == .some (gt#"Bool")
 #guard ((g#"eq" • (g#"two")) • ((g#"S" • g#"Z"))).infer_type NatCtxFix [] [] == .some (gt#"Bool")
+
+
 
 #eval NatCtxFix
