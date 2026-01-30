@@ -73,7 +73,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 | mtch (A : Fin n -> Ty)
        (PTy : Fin n -> Ty)
-       (patshapes : Vec (String × List SpineElem) n)
        (pats : Vec Term n)
        (cs : Vec Term n) :
   Typing G Δ Γ s R ->

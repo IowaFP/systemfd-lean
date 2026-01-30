@@ -264,8 +264,8 @@ theorem Typing.rename_type Δr (r : Ren) :
     replace j2 := Kinding.rename Δr r h j2
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
-  case mtch _ s R c T A PTy patshps ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
-    apply mtch (A := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r]) patshps
+  case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
+    apply mtch (A := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r])
     apply ih6; assumption
     apply ValidTyHeadVariable.rename; assumption
     apply ih7; assumption
@@ -396,9 +396,8 @@ theorem Typing.rename Γr (r : Ren) :
   intro wf h j; induction j generalizing Γr r <;> simp
   case var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
   case global j1 j2 => apply Typing.global j1 j2
-  case mtch c _ A PTy patshapes pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
+  case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
     apply mtch (A := A) (PTy := PTy)
-    apply patshapes
     apply ih6; apply h
     assumption
     apply ih7; apply h
