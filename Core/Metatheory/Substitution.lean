@@ -164,16 +164,15 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
-    sorry
-    -- apply mtch (A := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
-    -- apply ih6; assumption
-    -- apply ValidTyHeadVariable.subst; assumption
-    -- apply ih7; assumption
-    -- intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst_type; assumption
-    -- intro i; replace ih8 := ih8 i; apply ih8; assumption
-    -- intro i; replace ih3 := ih3 i; apply StableTypeMatch.subst; assumption; assumption
-    -- intro i; replace ih9 := ih9 i; apply ih9; assumption
-    -- intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.subst; assumption; assumption
+    apply mtch (A := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
+    apply ih6; assumption
+    apply ValidTyHeadVariable.subst; assumption
+    apply ih7; assumption
+    intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst_type; assumption
+    intro i; replace ih8 := ih8 i; apply ih8; assumption
+    intro i; replace ih3 := ih3 i; apply StableTypeMatch.subst; assumption
+    intro i; replace ih9 := ih9 i; apply ih9; assumption
+    intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.subst; assumption
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply guard
     apply ih1 _ _ h

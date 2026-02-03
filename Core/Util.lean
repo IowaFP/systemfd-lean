@@ -1,3 +1,4 @@
+import Init.GetElem
 
 @[simp]
 def prefix_equal [BEq T] : List T -> List T -> Option (List T)
@@ -54,3 +55,15 @@ theorem List.reverse_ind :
     have lem : ℓ.reverse.reverse = (hd :: tl).reverse := by rw [zdef]
     simp at lem; rw [lem]; apply h2 _ _
     apply ih; simp
+
+
+theorem List.indexing_length_some {t : T} {Δ : List T} {x : Nat} :
+  Δ[x]? = some t ->
+  x < Δ.length := match x, Δ with
+| n, [] => by
+  intro h; simp at h;
+| 0, .cons t Δ => by
+  intro h; simp
+| n + 1, .cons _ Δ => by
+  intro h; simp at h;
+  simp; apply List.indexing_length_some (t := t) (Δ := Δ) (x := n) h
