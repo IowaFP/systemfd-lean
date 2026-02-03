@@ -54,7 +54,6 @@ instance instLawfulBeq_Kind : LawfulBEq Kind where
       · apply ih1 h.1
       · apply ih2 h.2
 
-@[simp]
 def Ty.beq : Ty -> Ty -> Bool
 | var x, var y => x == y
 | global x, global y => x == y
@@ -64,22 +63,19 @@ def Ty.beq : Ty -> Ty -> Bool
 | eq K1 A1 B1, eq K2 A2 B2 => K1 == K2 && beq A1 A2 && beq B1 B2
 | _, _ => false
 
-@[simp]
-instance : BEq Ty where
+instance instBEq_Ty : BEq Ty where
   beq := Ty.beq
 
-@[simp]
 instance instReflBEq_Type : ReflBEq Ty where
   rfl := by
-    intro a; induction a <;> simp at *
+    intro a; induction a <;> simp [instBEq_Ty, Ty.beq] at *
     all_goals (try case _ ih1 ih2 => constructor; assumption; assumption)
     case _ => assumption
 
-@[simp]
 instance instLawfulBeq_Ty : LawfulBEq Ty where
   eq_of_beq := by
     intro a b h
-    induction a, b using Ty.beq.induct <;> simp at *
+    induction a, b using Ty.beq.induct <;> simp [instBEq_Ty, Ty.beq] at *
     assumption
     assumption
     all_goals (try
