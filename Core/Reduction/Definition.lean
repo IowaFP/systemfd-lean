@@ -21,6 +21,7 @@ inductive Value (G : List Global) : Term -> Prop where
 | lamt : Value G (Λ[K] t)
 | refl : Value G (refl! A)
 
+@[simp]
 def Ctor2Variant.congr1 : Ctor2Variant -> Bool
 | app _ => true
 | cast => false
@@ -30,6 +31,7 @@ def Ctor2Variant.congr1 : Ctor2Variant -> Bool
 | arrowc => true
 | choice => true
 
+@[simp]
 def Ctor2Variant.congr2 : Ctor2Variant -> Bool
 | app .closed => false
 | app .open => true
@@ -40,6 +42,7 @@ def Ctor2Variant.congr2 : Ctor2Variant -> Bool
 | arrowc => true
 | choice => true
 
+@[simp]
 def TyBindVariant.congr : TyBindVariant -> Bool
 | lamt => false
 | allc => true
@@ -115,6 +118,14 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   tl' = List.map (·.apply sp) tl ->
   h' = List.foldl (·`+·) `0 tl' ->
   Red G h h'
+----------------------------------------------------------------
+---- Global Definitions
+----------------------------------------------------------------
+| defn :
+  some (x, sp) = Term.spine h ->
+  lookup_defn G x = some t ->
+  Red G h (t.apply sp)
+
 ----------------------------------------------------------------
 ---- Congruence Rules
 ----------------------------------------------------------------

@@ -75,7 +75,6 @@ def SpineElem.beq : SpineElem -> SpineElem -> Bool
 instance : BEq SpineElem where
   beq := SpineElem.beq
 
-
 def Term.spine : Term -> Option (String × List SpineElem)
 | g#x => return (x, [])
 | ctor2 (.app .closed) f a => do
