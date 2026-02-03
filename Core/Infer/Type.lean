@@ -105,8 +105,14 @@ def Ty.is_app_some : Ty -> Option (Ty × Ty)
 | _ => none
 
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
-| #x =>  Γ[x]?
-| g#x => lookup_type G x
+| #x => do
+  let T <- Γ[x]?
+  let _ <- T.infer_kind G Δ
+  return T
+| g#x => do
+  let T <- lookup_type G x
+  let _ <- T.infer_kind G Δ
+  return T
 | .match (n := n + 1) s ps cs c => do
   let R <- s.infer_type G Δ Γ
   let _ <- R.valid_data_type G
@@ -147,8 +153,11 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   return T
 
 | .lam A t => do
+  let Ak <- A.infer_kind G Δ
+  let _ <- Ak.base_kind
   let R <- t.infer_type G Δ (A::Γ)
-  let _ <- R.infer_kind G Δ
+  let Rk <- R.infer_kind G Δ
+  let _ <- Rk.base_kind
   return A -:> R
 | .ctor2 (.app bk) f a => do
   let F <- f.infer_type G Δ Γ
