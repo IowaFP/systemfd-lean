@@ -5,17 +5,60 @@ import Core.Ty
 import Core.Typing
 
 theorem valid_data_type_sound :
-  Ty.valid_data_type G x = some dt ->
-  ValidTyHeadVariable x (is_data G) := by sorry
+  Ty.valid_data_type G T = some () ->
+  ValidTyHeadVariable T (is_data G) := by
+intro h
+cases T <;> simp [Ty.valid_data_type, ValidTyHeadVariable, Ty.spine] at *
+case _ => assumption
+case _ a =>
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨w, h1, h⟩
+rw[Option.bind_eq_some_iff] at h1; simp at h1; simp at h
+rcases h1 with ⟨x, sp, h1⟩
+rcases h1 with ⟨e1, e2⟩
+exists x
+have lem1 : x = w.fst := by rw[<-e2]
+have lem2 : sp ++ [a] = w.snd := by rw[<-e2]
+constructor
+· exists w.snd;
+  rw[Option.bind_eq_some_iff]; simp; exists x; exists sp
+· rw[lem1]; assumption
+
 
 theorem valid_open_type_sound :
-  Ty.valid_open_type G x = some dt ->
-  ValidTyHeadVariable x (is_opent G) := by sorry
+  Ty.valid_open_type G T = some dt ->
+  ValidTyHeadVariable T (is_opent G) := by
+intro h
+cases T <;> simp [Ty.valid_open_type, ValidTyHeadVariable, Ty.spine] at *
+case _ => assumption
+case _ a =>
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨w, h1, h⟩
+rw[Option.bind_eq_some_iff] at h1; simp at h1; simp at h
+rcases h1 with ⟨x, sp, h1⟩
+rcases h1 with ⟨e1, e2⟩
+exists x
+have lem1 : x = w.fst := by rw[<-e2]
+have lem2 : sp ++ [a] = w.snd := by rw[<-e2]
+constructor
+· exists w.snd;
+  rw[Option.bind_eq_some_iff]; simp; exists x; exists sp
+· rw[lem1]; assumption
+
 
 theorem valid_inst_type_sound :
-  Term.valid_inst_type G x = some dt ->
-  ValidHeadVariable x (is_instty G) := by sorry
-
+  Term.valid_inst_type G t = some dt ->
+  ValidHeadVariable t (is_instty G) := by
+intro h
+cases t <;> simp [Term.valid_inst_type, ValidHeadVariable, Term.spine] at *
+case _ => assumption
+all_goals (
+  case _ =>
+    rw[Option.bind_eq_some_iff] at h; rcases h with ⟨w, h1, h⟩
+    exists w.fst
+    simp at h
+    constructor;
+    exists w.snd
+    assumption
+)
 
 theorem Ty.stable_type_match_sound :
   Ty.stable_type_match A R = .some () ->

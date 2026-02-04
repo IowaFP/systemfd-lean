@@ -22,7 +22,7 @@ def Ty.stable_type_match : Ty -> Ty -> Option Unit
   then some ()
   else none
 
-namespace Infer.Type.Test
+namespace Infer.Ty.Test
 
 def G : List Global := [
     .opent "Eq" (★ -:> ◯)
@@ -42,7 +42,7 @@ def sR := A.telescope.2
 #eval ATele.count_binders
 #eval R[λ x => .re (x + ATele.count_binders)] == sR
 
-end Infer.Type.Test
+end Infer.Ty.Test
 
 
 
@@ -69,23 +69,19 @@ def Ty.prefix_type_match (Δ : List Kind) : Ty -> Ty -> Option Ty
     let _ <- A.spine
     return T
 
-def Ty.valid_open_type (G : List Global) : (T : Ty) -> Option Unit
-| .arrow _ B => valid_open_type G B
-| .all _ B => valid_open_type G B
-| A => do let (x, _) <- A.spine
-          if is_opent G x
-           then return () else none
+def Ty.valid_open_type (G : List Global) (A : Ty) : Option Unit := do
+  let (x, _) <- A.spine
+  if is_opent G x
+  then return () else none
 
-def Ty.valid_data_type (G : List Global) : (T : Ty) -> Option Unit
-| .arrow _ B => valid_open_type G B
-| .all _ B => valid_open_type G B
-| A => do let (x, _) <- A.spine
-          if is_data G x
-          then return () else none
+def Ty.valid_data_type (G : List Global) (A : Ty) : Option Unit := do
+  let (x, _) <- A.spine
+  if is_data G x
+  then return () else none
 
-def Term.valid_inst_type (G : List Global) : (A : Term) -> Option Unit := λ A =>
-  do let (x, _) <- A.spine
-     if is_instty G x then return () else none
+def Term.valid_inst_type (G : List Global)(A : Term) : Option Unit := do
+  let (x, _) <- A.spine
+  if is_instty G x then return () else none
 
 def Ty.is_all_some : Ty -> Option (Kind × Ty)
 | .all K B => return (K, B)
