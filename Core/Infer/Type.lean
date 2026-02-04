@@ -9,16 +9,16 @@ import Core.Global
 -- R is the type of the scrutinee
 -- and is of the form T' p' q' r'
 -- we need to make sure T == T' (i.e. it is a datatype or an opent)
-def Ty.stable_type_match (G : List Global) : Ty -> Ty -> Option Unit
+def Ty.stable_type_match : Ty -> Ty -> Option Unit
 | (Ty.all K A), (Ty.all K' R) =>
   if K == K'
-  then Ty.stable_type_match G A R
+  then Ty.stable_type_match A R
   else none
 | A, R =>
  do
   let (tele, sR) := A.telescope
-  let (x, _) <- R.spine
-  if R[λ x => .re (x + tele.count_binders)] == sR && (is_opent G x || is_data G x)
+  let (_, _) <- R.spine
+  if R[λ x => .re (x + tele.count_binders)] == sR -- && (is_opent G x || is_data G x)
   then some ()
   else none
 
@@ -33,7 +33,7 @@ def G : List Global := [
 def R : Ty := gt#"Eq" • t#0
 def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
 
-#eval A.stable_type_match G R
+#eval A.stable_type_match R
 def ATele := A.telescope.1
 def sR := A.telescope.2
 
@@ -91,10 +91,24 @@ def Ty.is_all_some : Ty -> Option (Kind × Ty)
 | .all K B => return (K, B)
 | _ => none
 
+def Ty.is_all_some_sound {T : Ty} :
+  T.is_all_some = .some (K, T1) ->
+  T = ∀[K] T1 := by
+intro h
+cases T <;> simp [Ty.is_all_some] at *
+assumption
+
 
 def Ty.is_arrow_some : Ty -> Option (Ty × Ty)
 | .arrow A B => return (A, B)
 | _ => none
+
+def Ty.is_arrow_some_sound {T : Ty} :
+  T.is_arrow_some = .some (T1, T2) ->
+  T = T1 -:> T2 := by
+intro h
+cases T <;> simp [Ty.is_arrow_some] at *
+assumption
 
 def Ty.is_eq_some : Ty -> Option (Kind × Ty × Ty)
 | .eq K A B => return (K, A, B)
@@ -113,26 +127,26 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let T <- lookup_type G x
   let _ <- T.infer_kind G Δ
   return T
-| .match (n := n + 1) s ps cs c => do
+| .match (n := n) s ps cs c => do
   let R <- s.infer_type G Δ Γ
   let _ <- R.valid_data_type G
-  let ps':  Vec (Option (String × List SpineElem)) (n + 1) := λ i => (ps i).spine
+  let ps':  Vec (Option (String × List SpineElem)) n := λ i => (ps i).spine
   let ps'' <- ps'.seq
-  let vhv_pats : Vec Bool (n + 1) := λ i => is_ctor G ((ps'' i).fst)
+  let vhv_pats : Vec Bool n := λ i => is_ctor G ((ps'' i).fst)
   let ctor_test := Vec.elems_eq_to true vhv_pats
   if ctor_test
   then
-    let cTs : Vec (Option Ty) (n + 1) :=
+    let cTso : Vec (Option Ty) n :=
       λ i => (cs i).infer_type G Δ Γ
-    let pTs : Vec (Option Ty) (n + 1) :=
+    let cTs <- cTso.seq
+    let pTso : Vec (Option Ty) n :=
       λ i => (ps i).infer_type G Δ Γ
-    let Tso : Vec (Option Ty) (n + 1) :=
-      λ i => do let cT <- cTs i
-                let pT <- pTs i
-                let _ <- Ty.stable_type_match G pT R
-                Ty.prefix_type_match Δ pT cT
-
-    let Ts : Vec Ty (n + 1) <- Tso.seq
+    let pTs <- pTso.seq
+    let stmo : Vec (Option Unit) n := λ i => Ty.stable_type_match (pTs i) R
+    let _ <- stmo.seq
+    let Tso : Vec (Option Ty) n :=
+      λ i => Ty.prefix_type_match Δ (pTs i) (cTs i)
+    let Ts : Vec Ty n <- Tso.seq
     let T <- Ts.get_elem_if_eq
     let allT <- c.infer_type G Δ Γ
     if T == allT then T else none
@@ -143,7 +157,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let R <- s.infer_type G Δ Γ
   let Rk <- R.infer_kind G Δ
   let _ <- Rk.is_open_kind
-  let _ <- Ty.stable_type_match G A R
+  let _ <- Ty.stable_type_match A R
   let _ <- R.valid_open_type G
   let _ <- p.valid_inst_type G
   let B <- t.infer_type G Δ Γ

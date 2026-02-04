@@ -146,7 +146,7 @@ def ctor_count (x : String) (G : List Global) : Option Nat := do
   | .data _ _ ctors => ctors.length
   | _ => .none
 
-def is_stable (x : String) (G : List Global) : Bool := is_ctor G x ∨ is_instty G x
+def is_stable (x : String) (G : List Global) : Bool := (is_ctor G x ∨ is_instty G x) ∧ !is_defn G x
 
 theorem lookup_entry_openm_exists :
   is_openm G x -> ∃ y T, lookup x G = .some (Entry.openm y T) := by
@@ -164,13 +164,10 @@ theorem is_stable_implies_not_is_openm :
 intro h1 h2
 simp [is_stable] at h1;
 cases h1
-case _ h =>
+case _ h1 h3 =>
   have lem := lookup_entry_openm_exists h2
   rcases lem with ⟨_, _, lem⟩
-  simp [is_openm] at h2; simp [is_ctor] at h;
-  rw[lem] at h; simp [Entry.is_ctor] at h
-case _ h =>
-  have lem := lookup_entry_openm_exists h2
-  rcases lem with ⟨_, _, lem⟩
-  simp [is_openm] at h2; simp [is_instty] at h;
-  rw[lem] at h; simp [Entry.is_instty] at h
+  simp [is_openm] at h2; simp [is_ctor] at h1;
+  rw[lem] at h1; simp [Entry.is_ctor] at h1
+  simp [is_instty] at h1; rw[lem] at h1; simp at h1
+  simp [Entry.is_instty] at h1

@@ -8,7 +8,7 @@ import Core.Metatheory.Rename
 
 open LeanSubst
 
-
+-- this means that the type of n.apply sp should be and arrow type
 theorem refl_spine_lemma :
   OpenVarVal G n sp ->
   ¬ (G&Δ, Γ ⊢ (g#n).apply sp : (A ~[K]~ B)) := by
@@ -56,7 +56,7 @@ case global =>
       simp [OpenVarVal] at h;
       rcases h with ⟨_, h⟩
       replace h := h _ h3; omega
-  sorry
+  sorry -- exactly the same as above
 case ctor1 v _ ih =>
   cases v <;> simp [Term.spine] at h1
   rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨_, h1, h2⟩; cases h2
@@ -100,7 +100,7 @@ case ctor2 v f _ ih1 ih2 =>
           rcases h with ⟨_, h⟩
           replace h :=  h _ h3
           simp at h4; rw[e] at h; simp at h; omega
-      case _ => sorry
+      case _ h _ => sorry
       all_goals (try case _ h _ => simp at h)
       case _ h => sorry -- simp at h
       sorry
@@ -171,9 +171,8 @@ sorry
 theorem lookup_defn_type_sound :
   ⊢ G ->
   lookup_defn G x = .some t ->
-  G&Δ,Γ ⊢ g#x : T ->
   G&Δ,Γ ⊢ t : T := by
-intro wf h1 h2
+intro wf h1
 sorry
 
 theorem Typing.foldr_preservation :
@@ -240,7 +239,7 @@ case var h' _ =>
 all_goals (try simp at *)
 case global =>
   cases h
-  case _ h _ =>
+  case inst h _ =>
     simp [Term.spine] at h; rcases h with ⟨e1, e2⟩; cases e1; cases e2;
     simp [Term.apply] at *
     case _ x A Δ K Γ h1 h2 _ tl _ _ _ _ is _ _ e =>
@@ -252,28 +251,27 @@ case global =>
     apply Typing.foldr_preservation
     apply h2
     apply lem
-  case _ h =>
+  case defn h =>
     simp [Term.spine] at h; rcases h with ⟨e1, e2⟩; cases e1; cases e2;
     simp [Term.apply] at *
-    apply lookup_defn_type_sound wf; assumption; constructor; assumption; assumption
+    apply lookup_defn_type_sound wf; assumption
 
 case mtch =>
   cases h
-  case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 _ _ _ _ x _ _ i patshapes' patshapes _ h6 h7 h8 h9 =>
+  case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 _ _ _ _ x _ _ i patshapes' patshapes h6 h7 h8 h9 h10 =>
     apply preservation_prefix_match
     apply (h2 i)
     apply j1
     apply h4 i
     apply h3 i
     apply h5 i
-    apply h7
-    · have lem : some ((patshapes i).fst, (patshapes i).snd) = (pats i).spine := by
-
-           sorry
-
-      have lem := Vec.indexOf_correct (v := Vec.map (λ x => x.1) patshapes) (i := i) (x := x) h6
-      sorry
     apply h8
+    · have lem2 := Vec.seq_sound h6
+      replace lem2 := lem2 i
+      have lem4 : (pats i).spine  = patshapes' i := by rw[h10]
+      rw[lem4]; rw[lem2]
+    · have lem3 := Vec.indexOf_correct (v := Vec.map (λ x => x.1) patshapes) (i := i) (x := x) h7;
+      simp [Vec.map] at lem3; rw[lem3]; assumption
 
   case data_match_default =>  assumption
 
@@ -339,7 +337,9 @@ case app b _ f _ a j1 j2 j3 _ _ =>
   case beta =>
     cases j2; apply Typing.beta wf; assumption; assumption
   case inst => sorry
-  case defn => sorry
+  case defn t h1 h2 =>
+
+    sorry
   case ctor2_congr1 ih _ _ _ h =>
     apply Typing.app
     assumption

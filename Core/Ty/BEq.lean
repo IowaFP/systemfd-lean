@@ -1,13 +1,12 @@
 import Core.Ty.Definition
 
-@[simp]
 def BaseKind.beq : BaseKind -> BaseKind -> Bool
 | closed, closed => true
 | .open, .open => true
 | _, _ => false
 
-@[simp]
-instance : BEq BaseKind where
+
+instance instBEq_BaseKind : BEq BaseKind where
   beq := BaseKind.beq
 
 @[simp]
@@ -15,7 +14,7 @@ instance instReflBEq_BaseKind : ReflBEq BaseKind where
   rfl := by
     intro a
     cases a
-    all_goals (unfold BEq.beq; unfold instBEqBaseKind; simp)
+    all_goals (simp [instBEq_BaseKind, BaseKind.beq])
 
 @[simp]
 instance instLawfulBEq_BaseKind : LawfulBEq BaseKind where
@@ -23,32 +22,29 @@ instance instLawfulBEq_BaseKind : LawfulBEq BaseKind where
     intro a b h
     cases a <;> cases b
     all_goals (simp at *)
-    all_goals (unfold BEq.beq at h;  unfold instBEqBaseKind at h; simp at h)
+    all_goals (simp [instBEq_BaseKind, BaseKind.beq] at h)
 
-@[simp]
 def Kind.beq : Kind -> Kind -> Bool
 | base b1, base b2 => b1 == b2
 | arrow A1 B1, arrow A2 B2 => Kind.beq A1 A2 && Kind.beq B1 B2
 | _, _ => false
 
-@[simp]
-instance : BEq Kind where
+
+instance instBEq_Kind : BEq Kind where
   beq := Kind.beq
 
-@[simp]
+
 instance instReflBEq_Kind : ReflBEq Kind where
   rfl := by
-    intro a; induction a
-    all_goals (unfold BEq.beq; unfold instBEqKind; simp)
+    intro a; induction a <;> simp [Kind.beq, instBEq_Kind] at *
     case _ ih1 ih2 =>
     constructor; apply ih1; apply ih2
 
-@[simp]
 instance instLawfulBeq_Kind : LawfulBEq Kind where
   eq_of_beq := by
     intro a b h
-    induction a, b using Kind.beq.induct <;> simp at *
-    apply eq_of_beq h
+    induction a, b using Kind.beq.induct <;> simp [instBEq_Kind, Kind.beq] at *
+    apply h
     case _ ih1 ih2 =>
       constructor
       · apply ih1 h.1
@@ -85,11 +81,11 @@ instance instLawfulBeq_Ty : LawfulBEq Ty where
       · apply ih2 h.2)
     case _ ih =>
       constructor
-      · apply eq_of_beq h.1
+      · apply h.1
       · apply ih h.2
     case _ ih1 ih2 =>
       constructor
-      · apply eq_of_beq h.1.1
+      · apply h.1.1
       · constructor
         · apply ih1 h.1.2
         · apply ih2 h.2

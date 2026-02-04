@@ -1,4 +1,3 @@
-
 import LeanSubst
 
 open LeanSubst
@@ -287,7 +286,7 @@ match n with
 #guard Vec.indexOf "z" v["x", "y", "p"] == none
 
 
-theorem Vec.indexOf_correct {v : Vec String n} :
+theorem Vec.indexOf_correct [BEq Q] {v : Vec Q n} :
   v.indexOf x = some i ->
   (v i) = x := by
 intro h
@@ -298,7 +297,7 @@ case _ n ih =>
   sorry
 
 
-def Vec.seq_lemma (vs : Vec (Option T) n) :
+def Vec.seq_lemma (vs : Vec (Option Q) n) :
   (Σ' (i : Fin n), (vs i).isSome = false) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
 := by {
     induction n
@@ -327,7 +326,7 @@ def Vec.seq_lemma (vs : Vec (Option T) n) :
           case _ i => rw [lem]; simp; apply ih i
   }
 
-def Vec.seq (vs : Vec (Option T) n) : Option (Vec T n) :=
+def Vec.seq (vs : Vec (Option Q) n) : Option (Vec Q n) :=
   match seq_lemma vs with
   | .inl h => none
   | .inr h => some (λ i => Option.get (vs i) (by {
@@ -336,26 +335,35 @@ def Vec.seq (vs : Vec (Option T) n) : Option (Vec T n) :=
     rw [e]; simp
   }))
 
+theorem Vec.seq_sound {vs : Vec (Option Q) n} {vs' : Vec Q n}:
+  vs.seq = some vs' ->
+  ∀ i, (vs i) = some (vs' i) := by
+intro h i
+
+sorry
 -- Returns the 1st element if all the elements are equal
-def Vec.get_elem_if_eq [BEq T] (vs : Vec T (n + 1)) : Option T :=
-  match vs.uncons with
+def Vec.get_elem_if_eq [BEq Q] (vs : Vec Q n) : Option Q :=
+match n with
+| 0 => none
+| _ + 1 =>  match vs.uncons with
   | (h, vs') => do
     if vs'.fold (λ c acc => c == h && acc) true
     then return h else none
 
-def Vec.elems_eq_to [BEq T] (e : T) : {n : Nat} -> (vs : Vec T n) -> Bool
+theorem Vec.get_elem_if_eq_sound [BEq Q] {vs : Vec Q n} {t : Q} :
+  vs.get_elem_if_eq = some t ->
+  ∀ i, vs i = t := by
+intro h i
+sorry
+
+
+def Vec.elems_eq_to [BEq Q] (e : Q) : {n : Nat} -> (vs : Vec Q n) -> Bool
 | 0, _ => true
 | _ + 1, vs =>
   match vs.uncons with
   | (h, vs') =>
     if h == e then vs'.elems_eq_to e else false
 
-theorem get_elem_if_eq_sound [BEq T] (vs : Vec T (n + 1)) (t : T) :
-  vs.get_elem_if_eq = some t ->
-  ∀ i, vs i = t := by
-intro h i
-unfold Vec.get_elem_if_eq at h; simp at h;
-rcases h with ⟨h1, h2⟩;
-generalize vsdef' : vs.uncons.snd = vs' at *
-generalize tdef : vs.uncons.fst = t at *; cases h2
-sorry
+theorem Vec.elems_eq_to_sound [BEq Q] {e : Q} {vs : Vec Q n} :
+  vs.elems_eq_to e = true ->
+  ∀ i, (vs i) = e := by sorry

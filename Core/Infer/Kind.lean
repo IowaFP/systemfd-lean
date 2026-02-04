@@ -18,6 +18,13 @@ def Kind.is_closed_kind : (K : Kind) -> Option Unit
 | ★ => return ()
 | _ => none
 
+theorem Kind.is_open_kind_sound :
+  k.is_open_kind = some () ->
+  k = ◯ := by
+intro h
+cases k; case _ k => cases k; simp [Kind.is_open_kind] at *; rfl
+simp [Kind.is_open_kind] at *
+
 
 @[simp]
 def Ty.infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind

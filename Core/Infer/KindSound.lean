@@ -41,9 +41,8 @@ case _ ih1 ih2 =>
   constructor; assumption; assumption
 case _ ih1 =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h1, h⟩
-  simp at h; rcases h with ⟨h1, h2⟩
-  replace h1 := @eq_of_beq _ _ _ _ _ h1
-  replace h2 := eq_of_beq h2
+  simp at h; rcases h with ⟨h2, h3⟩
+  subst h2; subst h3
   replace ih1 := ih1 h1
   constructor; assumption
 case _ ih1 ih2 =>
