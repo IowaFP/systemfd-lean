@@ -71,7 +71,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch (A : Fin n -> Ty)
+| mtch (CTy : Fin n -> Ty)
        (PTy : Fin n -> Ty)
        (pats : Vec Term n)
        (cs : Vec Term n) :
@@ -81,8 +81,8 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ i, ValidHeadVariable (pats i) (is_ctor G)) -> -- patterns are of the right shape
   (∀ i, Typing G Δ Γ (pats i) (PTy i)) -> -- each pattern has a type
   (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
-  (∀ i, Typing G Δ Γ (cs i) (A i)) -> -- each case match has a type
-  (∀ i, PrefixTypeMatch Δ (A i) (PTy i) T) -> -- patten type and case type
+  (∀ i, Typing G Δ Γ (cs i) (CTy i)) -> -- each case match has a type
+  (∀ i, PrefixTypeMatch Δ (PTy i) (CTy i) T) -> -- patten type and case type
   Typing G Δ Γ (match! s pats cs c) T
 --------------------------------------------------------------------------------------
 ---- Guards
@@ -136,20 +136,20 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | appc :
   Typing G Δ Γ f (A ~[K1 -:> K2]~ B) ->
   Typing G Δ Γ a (C ~[K1]~ D) ->
-  Typing G Δ Γ (f •c a) (A • C ~[K2]~ B • D)
+  Typing G Δ Γ (f •c a) ((A • C) ~[K2]~ (B • D))
 | arrowc :
   Typing G Δ Γ t1 (A ~[.base b1]~ B) ->
   Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
-  Typing G Δ Γ (t1 -c> t2) (A -:> C ~[★]~ B -:> D)
+  Typing G Δ Γ (t1 -c> t2) ((A -:> C) ~[★]~ (B -:> D))
 | fst :
   G&Δ ⊢ C : K1 ->
   G&Δ ⊢ D : K1 ->
-  Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
+  Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
   Typing G Δ Γ (fst! t) (A ~[K1 -:> K2]~ B)
 | snd :
   G&Δ ⊢ C : K1 ->
   G&Δ ⊢ D : K1 ->
-  Typing G Δ Γ t (A • C ~[K2]~ B • D) ->
+  Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
   Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[.base b]~ B) ->

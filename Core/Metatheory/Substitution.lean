@@ -164,7 +164,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     rw [GlobalWf.closed wf j1] at j2
     apply global j1 j2
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
-    apply mtch (A := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
+    apply mtch (CTy := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
     apply ih6; assumption
     apply ValidTyHeadVariable.subst; assumption
     apply ih7; assumption
@@ -311,7 +311,7 @@ theorem Typing.subst Γσ (σ : Subst Term) :
   case var Γ x A Δ K j1 j2 => apply h x A K j1 j2
   case global j1 j2 => apply global j1 j2
   case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
-    apply mtch (A := A) (PTy := PTy)
+    apply mtch (CTy := A) (PTy := PTy)
     apply ih6; apply h
     assumption
     apply ih7; apply h

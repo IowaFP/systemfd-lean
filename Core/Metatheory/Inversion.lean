@@ -22,3 +22,26 @@ intros j; cases j; simp
 
 theorem Typing.refl_unique : (G&Δ, Γ ⊢ refl! A : T) -> ∃ K, (T = (A ~[K]~ A)) := by
 intros j; cases j; simp
+
+theorem Typing.kinding_base : G&Δ,Γ ⊢ t : T -> ∃ b, G&Δ ⊢ T : .base b := by
+intro j; induction j
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry

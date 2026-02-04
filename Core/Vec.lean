@@ -287,7 +287,16 @@ match n with
 #guard Vec.indexOf "z" v["x", "y", "p"] == none
 
 
-def Vec.HasUniqElems [BEq T] (v : Vec T (n + 1)) : Prop := ∀ x y, x ≠ y -> v.indexOf x ≠ v.indexOf y
+theorem Vec.indexOf_correct {v : Vec String n} :
+  v.indexOf x = some i ->
+  (v i) = x := by
+intro h
+induction n <;> simp at *
+case _ =>  cases i; simp [indexOf] at h
+case _ n ih =>
+  cases i;
+  sorry
+
 
 def Vec.seq_lemma (vs : Vec (Option T) n) :
   (Σ' (i : Fin n), (vs i).isSome = false) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)

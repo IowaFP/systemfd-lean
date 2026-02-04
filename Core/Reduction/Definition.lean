@@ -68,29 +68,25 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Data Matching
 ----------------------------------------------------------------
 | data_match (ps: Vec Term n)
-             (phs' : Vec (Option String) n)
-             (psp' : Vec (Option (List SpineElem)) n)
+             (patshapes' : Vec (Option (String × List SpineElem)) n)
+             (patshapes : Vec (String × List SpineElem) n)
              (cs : Vec Term n) :
   some (x, sp) = Term.spine s ->
-  ((λ i => (ps i).spine.map (·.1)) = phs') ->
-  ((λ i => (ps i).spine.map (·.2)) = psp') ->
-  phs'.seq = some phs ->
-  psp'.seq = some psp ->
-  phs.indexOf x = some i ->
-  some p = prefix_equal sp (psp i) ->
+  (patshapes' = λ i => (ps i).spine) ->
+  (patshapes'.seq = some patshapes) ->
+  (patshapes.map (·.1)).indexOf x = some i ->
+  some p = prefix_equal (patshapes i).2 sp ->
   Red G (.match s ps cs c) ((cs i).apply p)
 
 | data_match_default
              (ps: Vec Term n)
-             (phs' : Vec (Option String) n)
-             (psp' : Vec (Option (List SpineElem)) n)
+             (patshapes' : Vec (Option (String × List SpineElem)) n)
+             (patshapes : Vec (String × List SpineElem) n)
              (cs : Vec Term n) :
   some (x, sp) = Term.spine s ->
-  ((λ i => (ps i).spine.map (·.1)) = phs') ->
-  ((λ i => (ps i).spine.map (·.2)) = psp') ->
-  phs'.seq = some phs ->
-  psp'.seq = some psp ->
-  phs.indexOf x = none ->
+  (patshapes' = λ i => (ps i).spine) ->
+  (patshapes'.seq = some patshapes) ->
+  (patshapes.map (·.1)).indexOf x = none ->
   Red G (.match s ps cs c) c
 ----------------------------------------------------------------
 ---- Guard Matching
@@ -116,7 +112,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   sp.length ≥ T.arity ->
   tl = instances x G ->
   tl' = List.map (·.apply sp) tl ->
-  h' = List.foldl (·`+·) `0 tl' ->
+  h' = List.foldr (·`+·) `0 tl' ->
   Red G h h'
 ----------------------------------------------------------------
 ---- Global Definitions
