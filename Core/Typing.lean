@@ -203,24 +203,34 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
   ValidInstTy G x Δ (A -:> T)
 
 inductive GlobalWf : List Global -> Global -> Prop where
-| data :
-  (∀ i y T, ctors i = (y, T) -> (.data x K v[]::G)&[] ⊢ T : ★ ∧ ValidCtor x T) ->
+| data {ctors : Vec (String × Ty) n} {ctors' : Vec String n}:
+  (∀ i y T, ctors i = (y, T) ->
+    (.data x K v[]::G)&[] ⊢ T : ★ ∧
+     ValidCtor x T ∧
+     none = lookup y (.data x K v[]::G)) ->
+  (ctors' = λ i => (ctors i).1) ->
+   ctors'.HasUniqueElems ->
+  lookup x G = none ->
   GlobalWf G (.data x K ctors)
 | opent :
   ValidOpenKind K ->
+  lookup x G = none ->
   GlobalWf G (.opent x K)
 | openm :
   G&[] ⊢ T : .base b ->
+  lookup x G = none ->
   GlobalWf G (.openm x T)
 | defn :
   G&[] ⊢ T : .base b ->
   G&[],[] ⊢ t : T ->
+  lookup x G = none ->
   GlobalWf G (.defn x T t)
 | inst :
-  some (.openm x T) = lookup x G ->
+  lookup x G = some (.openm x T) ->
   G&[],[] ⊢ t : T ->
   GlobalWf G (.inst x t)
 | instty :
+  none = lookup x G ->
   ValidInstTy G x [] T ->
   GlobalWf G (.instty x T)
 

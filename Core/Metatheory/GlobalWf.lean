@@ -8,16 +8,37 @@ import Core.Metatheory.Rename
 import Core.Global
 
 
-theorem GlobalWf.weaken_type :
+theorem GlobalWf.weaken_defn :
   ⊢ G ->
-  GlobalWf G e ->
-  G&[], [] ⊢ t : T ->
-  (e :: G)&[], [] ⊢ t : T := by
+  GlobalWf G (.defn x T t) ->
+  G&Δ, Γ ⊢ t : A ->
+  (.defn x T t :: G)&Δ, Γ ⊢ t : A := by
 intro wf wfe j
+induction j <;> (simp at *; cases wfe)
+case var j => cases j <;> simp at *
+case global j => sorry
+case mtch => sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
 sorry
 
 
-theorem GlobalWf.weaken_kind e :
+
+theorem GlobalWf.weaken_type :
   ⊢ G ->
   GlobalWf G e ->
   G&[] ⊢ T : K ->

@@ -6,8 +6,17 @@ def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
 | refl A, refl B => A == B
 | _, _ => false
 
-instance : BEq Ctor0Variant where
+instance instBEq_Ctor0Variant : BEq Ctor0Variant where
   beq := Ctor0Variant.beq
+
+instance instReflBEq_Ctor0Variant : ReflBEq Ctor0Variant where
+  rfl := by
+    intro x; induction x <;> simp [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
+
+instance instLawfulBEq_CtorVariant : LawfulBEq Ctor0Variant where
+  eq_of_beq := by
+    intro x b; induction x <;> simp [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
+    all_goals (induction b <;> simp at *)
 
 def Ctor1Variant.beq : Ctor1Variant -> Ctor1Variant -> Bool
 | sym, sym => true
@@ -16,8 +25,18 @@ def Ctor1Variant.beq : Ctor1Variant -> Ctor1Variant -> Bool
 | appt a, appt b => a == b
 | _, _ => false
 
-instance : BEq Ctor1Variant where
+instance instBEq_Ctor1Variant : BEq Ctor1Variant where
   beq := Ctor1Variant.beq
+
+instance instReflBEq_Ctor1Variant : ReflBEq Ctor1Variant where
+  rfl := by
+    intro x; induction x <;> simp [instBEq_Ctor1Variant, Ctor1Variant.beq] at *
+
+instance instLawfulBEq_Ctor1Variant : LawfulBEq Ctor1Variant where
+  eq_of_beq := by
+    intro x b; induction x <;> simp [instBEq_Ctor1Variant, Ctor1Variant.beq] at *
+    all_goals (induction b <;> simp at *)
+
 
 def Ctor2Variant.beq : Ctor2Variant -> Ctor2Variant -> Bool
 | app b1, app b2 => b1 == b2
@@ -29,16 +48,36 @@ def Ctor2Variant.beq : Ctor2Variant -> Ctor2Variant -> Bool
 | choice, choice => true
 | _, _ => false
 
-instance : BEq Ctor2Variant where
+instance instBEq_Ctor2Variant : BEq Ctor2Variant where
   beq := Ctor2Variant.beq
+
+
+instance instReflBEq_Ctor2Variant : ReflBEq Ctor2Variant where
+  rfl := by
+    intro x; induction x <;> simp [instBEq_Ctor2Variant, Ctor2Variant.beq] at *
+
+instance instLawfulBEq_Ctor2Variant : LawfulBEq Ctor2Variant where
+  eq_of_beq := by
+    intro x b; induction x <;> simp [instBEq_Ctor2Variant, Ctor2Variant.beq] at *
+    all_goals (induction b <;> simp at *)
 
 def TyBindVariant.beq : TyBindVariant -> TyBindVariant -> Bool
 | lamt, lamt => true
 | allc, allc => true
 | _, _ => false
 
-instance : BEq TyBindVariant where
+instance instBEq_TyBindVariant : BEq TyBindVariant where
   beq := TyBindVariant.beq
+
+instance instReflBEq_TyBindVariant : ReflBEq TyBindVariant where
+  rfl := by
+    intro x; induction x <;> simp [instBEq_TyBindVariant, TyBindVariant.beq] at *
+
+instance instLawfulBEq_TyBindVariant : LawfulBEq TyBindVariant where
+  eq_of_beq := by
+    intro x b; induction x <;> simp [instBEq_TyBindVariant, TyBindVariant.beq] at *
+    all_goals (induction b <;> simp at *)
+
 
 def Term.beq : Term -> Term -> Bool
 | var x, var y => x == y
@@ -57,5 +96,34 @@ def Term.beq : Term -> Term -> Bool
   else false
 | _, _ => false
 
-instance : BEq Term where
+instance instBEq_Term : BEq Term where
   beq := Term.beq
+
+instance instReflBEq_Term : ReflBEq Term where
+  rfl := by
+    intro a; induction a <;> simp [instBEq_Term, Term.beq] at *
+    all_goals (repeat assumption)
+    constructor; assumption; assumption
+    constructor; constructor; assumption; assumption; assumption
+    constructor
+    · constructor
+      · constructor; assumption; sorry
+      · sorry
+    · assumption
+
+instance instLawfulBEq_Term : LawfulBEq Term where
+  eq_of_beq := by
+    intro a b; cases a <;> simp [instBEq_Term] at *
+    all_goals (induction b <;>
+      simp [instBEq_Ctor0Variant, instBEq_Ctor1Variant, Term.beq] at *)
+    case _ => intro e; apply eq_of_beq e
+    case _ =>
+      intro e1 e2;
+      constructor
+      apply eq_of_beq e1
+      sorry
+    sorry
+    sorry
+    sorry
+    sorry
+    sorry

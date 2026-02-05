@@ -252,8 +252,36 @@ def Vec.beq (beq : T -> T -> Bool) : {n1 n2 : Nat} -> (n1 = n2) -> Vec T n1 -> V
   let (h2, t2) := Vec.uncons v2
   beq h1 h2 && Vec.beq beq (by cases h; rfl) t1 t2
 
-instance [BEq T] : BEq (Vec T n) where
+instance instBEq_Vec [BEq T] : BEq (Vec T n) where
   beq := Vec.beq BEq.beq rfl
+
+def Vec.rfl [BEq T] [ReflBEq T] : ∀ {v : Vec T n}, (v == v) = true := by
+intro v
+match n, v with
+| 0, v => simp [instBEq_Vec] at *
+| n + 1, v => simp [instBEq_Vec] at *; match v.uncons with
+              | (x, v') =>
+                simp at *; apply @Vec.rfl _ n _ _ v'
+
+instance instReflBEq_Vec [BEq T] [ReflBEq T] : ReflBEq (Vec T n) where
+  rfl := Vec.rfl
+
+def Vec.eq_of_beq [BEq T] [LawfulBEq T] {a b : Vec T n} : (a == b) = true -> a = b := by
+  match n, a, b  with
+  | 0, _, _ => simp [instBEq_Vec] at *
+  | n + 1, v1, v2 =>
+    simp [instBEq_Vec] at *;
+    match v1.uncons, v2.uncons with
+    | (x, v1') , (y, v2') =>
+      simp at *;
+      intro e1 e2
+      replace e2 := @Vec.eq_of_beq _ n _ _ v1' v2' e2
+
+      sorry
+
+
+instance instLawfulBEq_Vec [BEq T] [LawfulBEq T] : LawfulBEq (Vec T n) where
+  eq_of_beq := Vec.eq_of_beq
 
 variable {S T : Type} [RenMap T] [SubstMap S T]
 
@@ -267,7 +295,7 @@ theorem Vec.subst_cons {t : Vec S n} {σ : Subst T}
     case _ n =>
     cases i using Fin.cases <;> simp [Vec.map] at *
 
-def Vec.indexOf [BEq T] (c : T) {n : Nat} (v :  Vec T n) : Option (Fin n) :=
+def Vec.indexOf [BEq Q] (c : Q) {n : Nat} (v :  Vec Q n) : Option (Fin n) :=
 match n with
 | 0 => none
 | n + 1 =>
@@ -285,6 +313,8 @@ match n with
 #guard Vec.indexOf "p" v["x", "y", "p"] == some 2
 #guard Vec.indexOf "z" v["x", "y", "p"] == none
 
+def Vec.HasUniqueElems [BEq Q] (v : Vec Q n) := ∀ i j, i ≠ j -> (v i) ≠ (v j)
+
 
 theorem Vec.indexOf_correct [BEq Q] {v : Vec Q n} :
   v.indexOf x = some i ->
@@ -293,8 +323,9 @@ intro h
 induction n <;> simp at *
 case _ =>  cases i; simp [indexOf] at h
 case _ n ih =>
-  cases i;
-  sorry
+  match v.uncons with
+  | (_, v') =>
+    sorry
 
 
 def Vec.seq_lemma (vs : Vec (Option Q) n) :

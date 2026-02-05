@@ -72,8 +72,19 @@ def SpineElem.beq : SpineElem -> SpineElem -> Bool
 | oterm a, oterm b => a == b
 | _, _ => false
 
-instance : BEq SpineElem where
+instance instBEq_SpineElem : BEq SpineElem where
   beq := SpineElem.beq
+
+instance instReflBEq_SpineElem : ReflBEq SpineElem where
+  rfl := by
+    intro a; cases a <;> simp [SpineElem.beq, instBEq_SpineElem] at *
+
+instance instLawfulBEq_SpineElem : LawfulBEq SpineElem where
+  eq_of_beq := by
+    intro a b; cases a <;> simp [instBEq_SpineElem, SpineElem.beq] at *
+    all_goals (cases b <;> simp at *)
+
+
 
 def Term.spine : Term -> Option (String × List SpineElem)
 | g#x => return (x, [])

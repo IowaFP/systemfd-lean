@@ -146,7 +146,7 @@ def ctor_count (x : String) (G : List Global) : Option Nat := do
   | .data _ _ ctors => ctors.length
   | _ => .none
 
-def is_stable (x : String) (G : List Global) : Bool := (is_ctor G x ∨ is_instty G x) ∧ !is_defn G x
+def is_stable (x : String) (G : List Global) : Bool := (is_ctor G x ∨ is_instty G x)
 
 theorem lookup_entry_openm_exists :
   is_openm G x -> ∃ y T, lookup x G = .some (Entry.openm y T) := by
@@ -158,16 +158,63 @@ case _ e =>
 cases e <;> simp [Entry.is_openm] at h
 case _ x T => exists x; exists T
 
+theorem lookup_entry_defn_exists :
+  is_defn G x -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
+intro h
+simp [is_defn] at h
+generalize edef : lookup x G = e at *
+cases e <;> simp at h
+case _ e =>
+cases e <;> simp [Entry.is_defn] at h
+case _ y T t => exists y; exists T; exists t
+
+theorem lookup_defn_is_defn_sound :
+  lookup_defn G x = .some t -> is_defn G x := by
+intro h; rw[is_defn]; rw[lookup_defn] at h; simp [Option.bind] at h
+generalize zdef : lookup x G = z at *
+cases z <;> simp at *
+case _ z =>
+cases z <;> simp [Entry.is_defn] at *
+
+
 
 theorem is_stable_implies_not_is_openm :
   is_stable G x -> ¬ is_openm x G := by
 intro h1 h2
 simp [is_stable] at h1;
 cases h1
-case _ h1 h3 =>
-  have lem := lookup_entry_openm_exists h2
-  rcases lem with ⟨_, _, lem⟩
-  simp [is_openm] at h2; simp [is_ctor] at h1;
-  rw[lem] at h1; simp [Entry.is_ctor] at h1
-  simp [is_instty] at h1; rw[lem] at h1; simp at h1
-  simp [Entry.is_instty] at h1
+all_goals (
+  case _ h1 =>
+    have lem := lookup_entry_openm_exists h2
+    rcases lem with ⟨_, _, lem⟩
+    simp [is_ctor, is_instty] at h1; rw[lem] at h1
+    simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
+)
+
+
+theorem is_stable_implies_not_is_defn :
+  is_stable G x -> ¬ is_defn x G := by
+intro h1 h2
+simp [is_stable] at h1;
+cases h1
+all_goals (
+  case _ h1 =>
+    have lem := lookup_entry_defn_exists h2
+    rcases lem with ⟨_, _, _, lem⟩
+    simp [is_ctor, is_instty] at h1; rw[lem] at h1
+    simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
+)
+
+theorem Global.lookup_unique :
+  lookup x G = some t ->
+  lookup x G = some t' ->
+  t = t' := by
+intro h1 h2
+all_goals (rw[h1] at h2; injection h2)
+
+theorem Global.lookup_type_unique :
+  lookup_type x G = some t ->
+  lookup_type x G = some t' ->
+  t = t' := by
+intro h1 h2
+all_goals (rw[h1] at h2; injection h2)
