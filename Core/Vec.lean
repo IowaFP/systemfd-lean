@@ -259,9 +259,10 @@ def Vec.rfl [BEq T] [ReflBEq T] : ∀ {v : Vec T n}, (v == v) = true := by
 intro v
 match n, v with
 | 0, v => simp [instBEq_Vec] at *
-| n + 1, v => simp [instBEq_Vec] at *; match v.uncons with
-              | (x, v') =>
-                simp at *; apply @Vec.rfl _ n _ _ v'
+| n + 1, v =>
+    simp [instBEq_Vec] at *
+    let (x, v') := v.uncons
+    simp at *; apply @Vec.rfl _ n _ _ v'
 
 instance instReflBEq_Vec [BEq T] [ReflBEq T] : ReflBEq (Vec T n) where
   rfl := Vec.rfl
@@ -271,13 +272,22 @@ def Vec.eq_of_beq [BEq T] [LawfulBEq T] {a b : Vec T n} : (a == b) = true -> a =
   | 0, _, _ => simp [instBEq_Vec] at *
   | n + 1, v1, v2 =>
     simp [instBEq_Vec] at *;
-    match v1.uncons, v2.uncons with
-    | (x, v1') , (y, v2') =>
-      simp at *;
-      intro e1 e2
-      replace e2 := @Vec.eq_of_beq _ n _ _ v1' v2' e2
+    let (x, v1') := v1.uncons
+    let (y, v2') := v2.uncons
+    generalize v1def : (x, v1') = v1.uncons at *
+    generalize v2def : (y, v2') = v2.uncons at *
+    intro e1 e2
+    rw[<-v1def] at e1; rw[<-v2def] at e1; simp at e1
+    rw[<-v1def] at e2; rw[<-v2def] at e2; simp at e2
+    replace e2 := @Vec.eq_of_beq _ n _ _ v1' v2' e2
 
-      sorry
+    -- match v1.uncons, v2.uncons with
+    -- | (x, v1') , (y, v2') =>
+    --   simp at *;
+    --   intro e1 e2
+    --   replace e2 := @Vec.eq_of_beq _ n _ _ v1' v2' e2
+
+    sorry
 
 
 instance instLawfulBEq_Vec [BEq T] [LawfulBEq T] : LawfulBEq (Vec T n) where

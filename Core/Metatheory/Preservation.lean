@@ -52,6 +52,20 @@ case _ hd tl ih =>
   apply h.1
   apply ih h.2
 
+theorem preservation_prefix_match_lemma :
+  a.spine = some (x, sp) ->
+  G&Δ,Γ ⊢ a : A ->
+  G&Δ,Γ ⊢ a.apply ξ : R ->
+  G&Δ,Γ ⊢ t : B ->
+  StableTypeMatch Δ A R ->
+  PrefixTypeMatch Δ A B T ->
+  G&Δ,Γ ⊢ t.apply ξ : T := by
+intro h1 h2 h3 h4 h5 h6
+induction ξ generalizing G Δ Γ A R B a t x sp <;> simp [Term.apply] at *
+sorry
+sorry
+
+
 
 theorem preservation_prefix_match {p s t : Term} :
   G&Δ,Γ ⊢ p : A ->
@@ -59,39 +73,17 @@ theorem preservation_prefix_match {p s t : Term} :
   G&Δ,Γ ⊢ t : B ->
   StableTypeMatch Δ A R ->
   PrefixTypeMatch Δ A B T ->
-  some ξ = prefix_equal sp sp' ->
-  some (x, sp) = p.spine ->
-  some (x, sp') = s.spine ->
+  prefix_equal sp sp' = some ξ ->
+  p.spine = some (x, sp) ->
+  s.spine = some (x, sp') ->
   G&Δ,Γ ⊢ t.apply ξ : T
 := by
 intro j1 j2 j3 j4 j5 j6 j7 j8
-replace j6 := prefix_equal_law j6; subst j6
-have h7 := Term.apply_eq j7; subst h7
-replace j8 := Term.neutral_form_law j8; subst j8
-rw [Term.apply_spine_compose] at j2
-apply preservation_prefix_match_lemma (Eq.symm j7) j1 j2 j3 j4 j5
-
--- induction s using Term.spine.induct generalizing x sp sp'
--- case _ =>
---   simp [Term.spine] at j8; rcases j8 with ⟨j8, j9⟩
---   cases j8; cases j9
---   induction p using Term.spine.induct
---   case _ =>
---     simp [Term.spine] at j7; rcases j7 with ⟨j8, j9⟩
---     cases j8; cases j9
---     simp [prefix_equal] at j6; cases j6
---     simp [Term.apply]
---     cases j1; cases j2; case _ j1 _ _ j2 => rw[j1] at j2; cases j2; sorry
---   simp [Term.spine] at j7; symm at j7
---   rw[Option.bind_eq_some_iff] at j7; rcases j7 with ⟨_, j7, j8⟩
---   sorry
---   sorry
---   sorry
---   sorry
--- sorry
--- sorry
--- sorry
--- sorry
+replace j6 := prefix_equal_law (Eq.symm j6); subst j6
+have h7 := Spine.apply_eq j7; subst h7
+replace j8 := Spine.apply_eq j8; subst j8
+rw [Spine.apply_spine_compose] at j2
+apply preservation_prefix_match_lemma j7 j1 j2 j3 j4 j5
 
 
 theorem preservation_lemma :
@@ -134,13 +126,13 @@ case mtch =>
     apply h4 i
     apply h3 i
     apply h5 i
-    apply h8
+    apply (Eq.symm h8)
     · have lem2 := Vec.seq_sound h6
       replace lem2 := lem2 i
       have lem4 : (pats i).spine  = patshapes' i := by rw[h10]
       rw[lem4]; rw[lem2]
     · have lem3 := Vec.indexOf_correct (v := Vec.map (λ x => x.1) patshapes) (i := i) (x := x) h7;
-      simp [Vec.map] at lem3; rw[lem3]; assumption
+      simp [Vec.map] at lem3; rw[lem3]; apply (Eq.symm h9)
 
   case data_match_default =>  assumption
 
@@ -177,9 +169,9 @@ case guard =>
     apply h3
     apply h6
     apply h7
-    apply h8
-    apply h9
-    apply h10
+    apply (Eq.symm h8)
+    apply (Eq.symm h9)
+    apply (Eq.symm h10)
 
   case guard_missed =>
     sorry -- need to show T is of base type

@@ -216,3 +216,9 @@ theorem Spine.apply_compose {t : Term}
 theorem Spine.apply_eta : ((g#x).apply sp).spine = some (x, sp) := by
   have lem := @apply_compose x [] sp g#x (by simp [Term.spine])
   simp at lem; exact lem
+
+
+theorem Spine.apply_spine_compose {t : Term}:
+  t.apply (s1 ++ s2) = (t.apply s1).apply s2 := by
+induction t, s1 using Term.apply.induct generalizing s2 <;> simp [Term.apply] at *
+all_goals (case _ ih => apply ih)
