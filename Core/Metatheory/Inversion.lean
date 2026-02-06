@@ -29,7 +29,7 @@ intros j; cases j; simp
 
 theorem Typing.inversion_apply_spine :
   G&Δ,Γ ⊢ t.apply sp : A ->
-  ∃ B, SpineType G Δ Γ sp B A ∧ G&Δ, Γ ⊢ t : B ∧ (∀ K, G&Δ ⊢ A : K -> G&Δ ⊢ B : K) := by
+  ∃ B, SpineType G Δ Γ sp A B ∧ G&Δ, Γ ⊢ t : B ∧ (∀ K, G&Δ ⊢ A : K -> G&Δ ⊢ B : K) := by
 intro j
 induction sp generalizing G Δ Γ t A <;> simp [Term.apply] at *
 case nil =>
@@ -39,35 +39,35 @@ case nil =>
   · constructor
     · assumption
     · intros; assumption
-case cons hd tl ih =>
-  have lem : hd :: tl = [hd] ++ tl := by simp
-  rw[lem] at j; rw[Spine.apply_spine_compose] at j;
-  cases hd <;> simp [Term.apply] at j
-  case _ a =>
-    replace ih := ih j
-    rcases ih with ⟨B, h1, h2, h3⟩
-    cases h2; case _ K P j1 j2 e =>
-    subst e
-    exists ∀[K]P
-    constructor
-    · apply SpineType.type; apply j1; rfl; apply h1
-    · constructor
-      assumption
-      intro K h; replace h3 := h3 K h;
+case cons hd tl ih => sorry
+  -- have lem : hd :: tl = [hd] ++ tl := by simp
+  -- rw[lem] at j; rw[Spine.apply_spine_compose] at j;
+  -- cases hd <;> simp [Term.apply] at j
+  -- case _ a =>
+  --   replace ih := ih j
+  --   rcases ih with ⟨B, h1, h2, h3⟩
+  --   cases h2; case _ K P j1 j2 e =>
+  --   subst e
+  --   exists ∀[K]P
+  --   constructor
+  --   · apply SpineType.type; apply j1; rfl; apply h1
+  --   · constructor
+  --     assumption
+  --     intro K h; replace h3 := h3 K h;
 
-      sorry
-  case _ a =>
-    replace ih := ih j
-    rcases ih with ⟨B, h1, h2, h3⟩
-    cases h2; case _ X P j1 j2 =>
-    exists (X -:> B)
-    constructor;
-    · sorry
-    · constructor
-      assumption
-      intro K h; replace h3 := h3 K h;
-      sorry
-  sorry
+  --     sorry
+  -- case _ a =>
+  --   replace ih := ih j
+  --   rcases ih with ⟨B, h1, h2, h3⟩
+  --   cases h2; case _ X P j1 j2 =>
+  --   exists (X -:> B)
+  --   constructor;
+  --   · sorry
+  --   · constructor
+  --     assumption
+  --     intro K h; replace h3 := h3 K h;
+  --     sorry
+  -- sorry
 
 -- apply @List.reverse_ind SpineElem
 --    (λ x => ∀ G Δ Γ t A, G&Δ,Γ ⊢ t.apply x : A ->

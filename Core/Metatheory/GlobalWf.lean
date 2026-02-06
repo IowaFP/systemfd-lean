@@ -46,10 +46,10 @@ sorry
 
 
 
-theorem wf_lookup_kind_sound :
+theorem GlobalWf.types_have_base_kind :
   ⊢ G ->
   lookup_type G x = some T ->
-  G&[] ⊢ T : .base b := by
+  ∃ b, G&Δ ⊢ T : .base b := by
 intro wf h
 -- generalize lkdef : lookup_type G x = lk at *
 induction wf generalizing x T
@@ -59,7 +59,7 @@ case _ G g gwf wf ih =>
   sorry
 
 
-theorem wf_lookup_type_sound :
+theorem wf_lookup_type_sound : -- needs weakning
   ⊢ G ->
   lookup_type G x = some T ->
   G&Δ, Γ ⊢ g#x : T := by
@@ -67,3 +67,20 @@ theorem wf_lookup_type_sound :
  constructor; assumption;
  sorry
  sorry
+
+theorem GlobalWf.lookup_defn_type_exists {G : List Global} {Δ : List Kind} {Γ : List Ty} :
+  ⊢ G ->
+  lookup_defn G x = some t ->
+  ∃ T b, lookup_type G x = some T ∧ G&Δ ⊢ T : .base b := by sorry
+
+theorem GlobalWf.lookup_defn_type {G : List Global} {Δ : List Kind} {Γ : List Ty} :
+  ⊢ G ->
+  lookup_defn G x = some t ->
+  ∃ T b, G&Δ, Γ ⊢ g#x : T ∧ G&Δ, Γ ⊢ t : T ∧ G&Δ ⊢ T : .base b := by
+intro wf h1
+have lem := GlobalWf.lookup_defn_type_exists (G := G) (Δ := Δ) (Γ := Γ) wf h1
+rcases lem with ⟨T, b, lem1, lem2⟩
+exists T; exists b
+constructor
+· sorry
+· sorry

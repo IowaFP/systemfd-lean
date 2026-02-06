@@ -1,14 +1,16 @@
 import LeanSubst
 import Core.Term
+import Core.Term.Spine
 import Core.Reduction
 import Core.Typing
 import Core.Util
 
-import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
+import Core.Metatheory.Substitution
 import Core.Metatheory.GlobalWf
 import Core.Metatheory.Uniqueness
 import Core.Metatheory.Inversion
+import Core.Metatheory.SpineType
 
 open LeanSubst
 
@@ -16,14 +18,14 @@ theorem instance_type_preservation :
   ⊢ G ->
   G&Δ, Γ ⊢ g#x : T ->
   is = instances x G ->
-  ∀ t ∈ is, G&Δ, Γ ⊢ t : T := by
+  ∀ t ∈ is, ∀ Δ Γ, G&Δ, Γ ⊢ t : T := by
 intro wf j h t t_in_is
 sorry
 
 theorem lookup_defn_type_sound :
   ⊢ G ->
   lookup x G = .some (Entry.defn y T t) ->
-  G&Δ, Γ ⊢ t : T := by
+  ∀ Δ Γ, G&Δ, Γ ⊢ t : T := by
 intro wf h
 induction G <;> simp [lookup] at *
 case _ hd tl ih =>
@@ -41,6 +43,8 @@ case _ hd tl ih =>
     replace ih := ih wfh h
     sorry -- need weakening on globals
 
+
+
 theorem Typing.foldr_preservation :
   G&Δ ⊢ T : .base b ->
   (∀ t ∈ is, G&Δ, Γ ⊢ t : T) ->
@@ -53,6 +57,23 @@ case _ hd tl ih =>
   apply j
   apply h.1
   apply ih h.2
+
+
+theorem Typing.foldr_preservation_choiceₗ :
+    G&Δ ⊢ B : .base b ->
+    (∀ t ∈ is,  G&Δ, Γ ⊢ t : T) ->
+    SpineType G Δ Γ sp B T ->
+    G&Δ, Γ ⊢ List.foldr (λ t acc => t.apply sp `+ acc) `0 is : B := by
+intro h1 h2 h3; induction is using List.foldr.induct <;> simp at *
+case _ => apply Typing.zero; assumption
+case _ i is ih =>
+   rcases h2 with ⟨h2, h4⟩
+   apply Typing.choice
+   assumption
+   apply SpineType.apply h2 h3
+   apply ih h4
+
+
 
 
 theorem preservation_prefix_match_lemma :
@@ -199,22 +220,80 @@ case guard =>
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
 
-case app b _ f _ a j1 j2 j3 _ _ =>
+case app b _ f B a j1 j2 j3 ih1 ih2  =>
   cases h
-  all_goals (try case _ h => simp [Term.spine] at h)
+  all_goals (try case _ h => simp at h)
   all_goals (try case _ h _ => simp at h)
   all_goals (try case _ h _ _ => simp at h)
   case beta =>
     cases j2; apply Typing.beta wf; assumption; assumption
-  case inst => sorry
-  case defn t h1 h2 => sorry
-  case ctor2_congr1 ih _ _ _ h =>
+  case inst Δ _ Γ x sp T _ _ _ _ h1 h2 h3 h4 h5 h6 =>
+    cases b
+    case closed =>
+      have lem := Typing.well_typed_terms_have_base_kinds wf j2
+      cases lem; case _ lem =>
+      cases lem; case _ j6 j7 =>
+      have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
+      cases Tkj; case _ b Tkj =>
+      have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
+      have lem2 := @instance_type_preservation _ _ _ _ _ _ wf lem1 h3
+      symm at h5; replace h5 := Spine.app_closed_eq.1 h5
+      rcases h5 with ⟨sp', h6, h7⟩
+      have h8 := Spine.apply_eq h7
+      rw[h8] at j2
+      have lem3 := Typing.inversion_apply_spine j2
+      rcases lem3 with ⟨T', h9, h10, h11⟩
+      have e := Typing.unique_var_typing lem1 h10; cases e
+      have lem4 : SpineType G Δ Γ sp B T := by
+        rw[h6]; apply SpineType.term
+        apply j1; apply j3; (constructor; assumption; assumption)
+        apply h9
+      have lem5 := Typing.foldr_preservation_choiceₗ j7 lem2 lem4
+      cases h3; cases h4; cases h6;
+      rw[List.foldr_map]; apply lem5
+
+    case «open» =>
+      have lem := Typing.well_typed_terms_have_base_kinds wf j2
+      cases lem; case _ lem =>
+      cases lem; case _ j6 j7 =>
+      have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
+      cases Tkj; case _ b Tkj =>
+      have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
+      have lem2 := @instance_type_preservation _ _ _ _ _ _ wf lem1 h3
+      symm at h5; replace h5 := Spine.app_open_eq.1 h5
+      rcases h5 with ⟨sp', h6, h7⟩
+      have h8 := Spine.apply_eq h7
+      rw[h8] at j2
+      have lem3 := Typing.inversion_apply_spine j2
+      rcases lem3 with ⟨T', h9, h10, h11⟩
+      have e := Typing.unique_var_typing lem1 h10; cases e
+      have lem4 : SpineType G Δ Γ sp B T := by
+        rw[h6]; apply SpineType.oterm
+        apply j1; apply j3; apply h9
+      have lem5 := Typing.foldr_preservation_choiceₗ j7 lem2 lem4
+      cases h3; cases h4; cases h6;
+      rw[List.foldr_map]; apply lem5
+  case defn Δ _ Γ x sp t h1 h2 =>
+      have j3 := Typing.app j1 j2 j3
+      have lem := Typing.well_typed_terms_have_base_kinds wf j2
+      cases lem; case _ lem =>
+      cases lem; case _ j6 j7 =>
+      have lem1 := GlobalWf.lookup_defn_type (G := G) (Δ := Δ) (Γ := Γ) wf h1
+      rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
+      have h8 := Spine.apply_eq (Eq.symm h2)
+      rw[h8] at j3
+      have lem3 := Typing.inversion_apply_spine j3
+      rcases lem3 with ⟨T', h9, h10, h11⟩
+      have e := Typing.unique_var_typing lem1 h10; cases e
+      apply SpineType.apply lem2 h9
+
+  case ctor2_congr1 h =>
     apply Typing.app
     assumption
-    apply ih h
+    apply ih1 h
     assumption
-  case ctor2_congr2 ih _ _ h =>
-    apply Typing.app; assumption; assumption; apply ih h
+  case ctor2_congr2  h =>
+    apply Typing.app; assumption; assumption; apply ih2 h
   case ctor2_absorb1 => cases j2; case _ j2 => cases j2; constructor; assumption
   case ctor2_absorb2 =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem1 =>
@@ -253,8 +332,42 @@ case appt f _ _ a _ j1 j2 _ _ =>
       rw[<-fdef]; simp
     rw[lem2] at lem
     assumption
-  case inst => sorry
-  case defn => sorry
+  case inst Δ Γ K P P' e _ x sp T _ _ _ _ h1 h2 h3 h4 h5 h6 =>
+      have lem := Typing.well_typed_terms_have_base_kinds wf j1
+      cases lem; case _ lem =>
+      cases lem; case _ j6 j7 =>
+      have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
+      cases Tkj; case _ b Tkj =>
+      have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
+      have lem2 := instance_type_preservation wf lem1 h3
+      symm at h5; replace h5 := Spine.appt_eq.1 h5
+      rcases h5 with ⟨sp', h6, h7⟩
+      have h8 := Spine.apply_eq h7
+      rw[h8] at j1
+      have lem3 := Typing.inversion_apply_spine j1
+      rcases lem3 with ⟨T', h9, h10, h11⟩
+      have e := Typing.unique_var_typing lem1 h10; cases e
+      have lem4 : SpineType G (K::Δ) (Γ.map (·[+1])) sp P' T := by
+        rw[h6]; apply SpineType.type
+        apply j2; (constructor; assumption); apply e
+        apply h9
+      -- have lem5 := Typing.foldr_preservation_choiceₗ (Kinding.all j7) lem2
+      -- cases h3; cases h4; cases h6;
+      -- rw[List.foldr_map]; apply lem5
+      sorry
+  case defn Δ _ Γ x sp t h1 h2 => sorry
+  --     have j3 := Typing.app j1 j2 j3
+  --     have lem := Typing.well_typed_terms_have_base_kinds wf j2
+  --     cases lem; case _ lem =>
+  --     cases lem; case _ j6 j7 =>
+  --     have lem1 := GlobalWf.lookup_defn_type (G := G) (Δ := Δ) (Γ := Γ) wf h1
+  --     rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
+  --     have h8 := Spine.apply_eq (Eq.symm h2)
+  --     rw[h8] at j3
+  --     have lem3 := Typing.inversion_apply_spine j3
+  --     rcases lem3 with ⟨T', h9, h10, h11⟩
+  --     have e := Typing.unique_var_typing lem1 h10; cases e
+  --     apply SpineType.apply lem2 h9
   case ctor1_congr ih _ h =>
     apply Typing.appt
     apply ih h
@@ -498,25 +611,74 @@ case arrowc j1 j2 _ _ =>
     · apply Typing.arrowc; assumption; assumption
 
 
-case fst =>
+case fst j1 j2 j3 ih  =>
   cases h
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
-  case fst => sorry
-  case ctor1_congr => sorry
-  case ctor1_absorb => sorry
-  case ctor1_map => sorry
+  case fst =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j3; cases lem1; case _ lem1 =>
+    cases lem1; case _ j1 j2 =>
+    cases j1; cases j2; case _ j4 j5 _ j6 j7 =>
+    have e := Kinding.unique j4 j1; cases e
+    have e := Kinding.unique j6 j2; cases e
+    cases j3; apply Typing.refl; assumption
+  case ctor1_congr h =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j3; cases lem1; case _ lem1 =>
+    cases lem1; case _ j1 j2 =>
+    cases j1; cases j2; case _ j4 j5 _ j6 j7 =>
+    have e := Kinding.unique j4 j1; cases e
+    have e := Kinding.unique j6 j2; cases e
+    have lem := ih h
+    apply Typing.fst _ _ lem
+    apply j4
+    apply j6
 
-case snd =>
+  case ctor1_absorb =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j3; cases lem1; case _ lem1 =>
+    cases lem1; case _ j1 j2 =>
+    cases j1; cases j2; case _ j4 j5 _ j6 j7 =>
+    have e := Kinding.unique j4 j1; cases e
+    have e := Kinding.unique j6 j2; cases e
+    apply Typing.zero
+    apply Kinding.eq; assumption; assumption
+  case ctor1_map =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j3; cases lem1; case _ lem1 =>
+    cases lem1; case _ j1 j2 =>
+    cases j1; cases j2; case _ j4 j5 _ j6 j7 =>
+    have e := Kinding.unique j4 j1; cases e
+    have e := Kinding.unique j6 j2; cases e
+    cases j3; case _ j7 j8 =>
+    apply Typing.choice
+    · apply Kinding.eq; assumption; assumption
+    · apply Typing.fst j4 j6 j7
+    · apply Typing.fst j1 j2 j8
+
+case snd j1 j2 j3 ih =>
   cases h
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
-  case snd => sorry
-  case ctor1_congr => sorry
-  case ctor1_absorb => sorry
-  case ctor1_map => sorry
+  case snd => cases j3; apply Typing.refl; assumption
+  case ctor1_congr h =>
+    replace ih := ih h
+    apply Typing.snd; repeat assumption
+
+  case ctor1_absorb =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j3; cases lem1; case _ lem1 =>
+    cases lem1; case _ j1 j2 =>
+    cases j1; cases j2;
+    case _ j4 j5 _ j6 j7 =>
+    have e := Kinding.unique j4 j1; cases e
+    have e := Kinding.unique j6 j2; cases e
+    apply Typing.zero
+    · apply Kinding.eq; repeat assumption
+  case ctor1_map =>
+    cases j3; case _ j3 j4 j5 =>
+    apply Typing.choice
+    · apply Kinding.eq; repeat assumption
+    · apply Typing.snd; repeat assumption
+    · apply Typing.snd; repeat assumption
 
 case allc K Δ _ A B Γ j _ =>
   cases h
@@ -527,9 +689,21 @@ case allc K Δ _ A B Γ j _ =>
     cases j; case _ b j _ =>
     apply Typing.refl
     apply Kinding.all; assumption
-  case tbind_congr =>  sorry
-  case tbind_absorb => sorry
-  case tbind_map => sorry
+  case tbind_congr ih _ _ h =>
+    replace ih := ih h
+    apply Typing.allc; assumption
+  case tbind_absorb ih =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j; cases lem1; case _ lem1 =>
+    cases lem1; case _ j1 j2 =>
+    apply Typing.zero
+    · apply Kinding.eq; repeat (apply Kinding.all; assumption)
+  case tbind_map =>
+    cases j; case _ j j1 j2 =>
+    cases j; case _ j3 j4 =>
+    apply Typing.choice
+    · apply Kinding.eq; repeat (apply Kinding.all; assumption)
+    · apply Typing.allc; assumption
+    · apply Typing.allc; assumption
 
 case apptc j1 j2 e1 e2 _  _ =>
   cases h

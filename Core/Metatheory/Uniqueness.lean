@@ -8,6 +8,15 @@ import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
 import Core.Metatheory.GlobalWf
 
+theorem Typing.unique_var_typing :
+  G&Δ,Γ ⊢ g#a : A ->
+  G&Δ,Γ ⊢ g#a : T ->
+  A = T := by
+intro j1 j2
+cases j1; cases j2
+case _ j1 _ _ j2 =>
+rw[j1] at j2; injection j2
+
 
 theorem Typing.spine_term_unique_typing :
   G&Δ,Γ ⊢ a : A ->

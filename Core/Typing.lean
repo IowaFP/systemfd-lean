@@ -252,7 +252,7 @@ inductive TypeMatch : Ty -> Ty -> Prop
   TypeMatch B R ->
   TypeMatch (∀[K] B) R
 
-inductive SpineType (G : List Global) (Δ : List Kind) (Γ : List Ty) : List SpineElem -> Ty -> Ty -> Prop where
+inductive SpineType (G : List Global) : (Δ : List Kind) -> (Γ : List Ty) -> List SpineElem -> Ty -> Ty -> Prop where
 | refl :
   -- G&Δ,Γ ⊢ t : T ->
   SpineType G Δ Γ [] T T
@@ -260,16 +260,16 @@ inductive SpineType (G : List Global) (Δ : List Kind) (Γ : List Ty) : List Spi
   G&Δ ⊢ A : ★ ->
   G&Δ,Γ ⊢ a : A ->
   G&Δ ⊢ (A -:> B) : ★ ->
-  SpineType G Δ Γ sp B T ->
-  SpineType G Δ Γ (.term a :: sp) (A -:> B) T
+  SpineType G Δ Γ sp (A -:> B) T ->
+  SpineType G Δ Γ (sp ++ [.term a]) B T
 | oterm :
   G&Δ ⊢ A : ◯ ->
   G&Δ,Γ ⊢ a : A ->
-  SpineType G Δ Γ sp B T ->
-  SpineType G Δ Γ (.oterm a :: sp) (A -:> B) T
+  SpineType G Δ Γ sp (A -:> B) T ->
+  SpineType G Δ Γ (sp ++ [.oterm a]) B T
 | type :
   G&Δ ⊢ a : K ->
-  -- G&Δ ⊢ ∀[K]P : ★ ->
+  G&Δ ⊢ ∀[K]P : ★ ->
   P' = P[su a::+0] ->
-  SpineType G Δ Γ sp P' T ->
-  SpineType G Δ Γ (.type a :: sp) (∀[K]P) T
+  SpineType G Δ Γ sp (∀[K]P) T ->
+  SpineType G (K ::Δ) (Γ.map (·[+1])) (sp ++ [.type a]) P' T
