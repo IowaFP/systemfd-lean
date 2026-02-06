@@ -39,7 +39,7 @@ case _ hd tl ih =>
     split at h
     cases h
     replace ih := ih wfh h
-    sorry
+    sorry -- need weakening on globals
 
 theorem Typing.foldr_preservation :
   G&Δ ⊢ T : .base b ->
@@ -180,20 +180,21 @@ case guard =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem2 =>
     have lem := PrefixTypeMatch.base_kinding lem1 lem2 h; cases lem
     apply Typing.zero; assumption
-  case guard_congr ih _ _ h =>
-    constructor; assumption; apply ih h; assumption; assumption; assumption; assumption; assumption
+  case guard_congr ih _ _ h => constructor; assumption; apply ih h; repeat assumption
   case guard_absorb j1 j2 _ _ _ h _ _ _ _ =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem1 =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem2 =>
     have lem := PrefixTypeMatch.base_kinding lem1 lem2 h; cases lem
     apply Typing.zero; assumption
-  case guard_map h _ =>
+  case guard_map j1 j2 _ _ _ j3 _ _ _ _ h _ =>
     cases h
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem1 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem2 =>
+    have lem := PrefixTypeMatch.base_kinding lem1 lem2 j3; cases lem
     apply Typing.choice
-    sorry -- T is of base type
-    · constructor; assumption; assumption; assumption; assumption; assumption; assumption; assumption
-    · constructor; assumption; assumption; assumption; assumption; assumption; assumption; assumption
-    sorry
+    · assumption
+    · constructor; repeat assumption
+    · constructor; repeat assumption
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
@@ -206,9 +207,7 @@ case app b _ f _ a j1 j2 j3 _ _ =>
   case beta =>
     cases j2; apply Typing.beta wf; assumption; assumption
   case inst => sorry
-  case defn t h1 h2 =>
-
-    sorry
+  case defn t h1 h2 => sorry
   case ctor2_congr1 ih _ _ _ h =>
     apply Typing.app
     assumption
@@ -217,7 +216,10 @@ case app b _ f _ a j1 j2 j3 _ _ =>
   case ctor2_congr2 ih _ _ h =>
     apply Typing.app; assumption; assumption; apply ih h
   case ctor2_absorb1 => cases j2; case _ j2 => cases j2; constructor; assumption
-  case ctor2_absorb2 => sorry
+  case ctor2_absorb2 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem1 =>
+    cases lem1;
+    apply Typing.zero; assumption
   case ctor2_map1 =>
     cases j2; case _ j2 _ _ =>
     cases j2
@@ -226,12 +228,14 @@ case app b _ f _ a j1 j2 j3 _ _ =>
     · constructor; assumption; assumption; assumption
     · constructor; assumption; assumption; assumption
   case ctor2_map2 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem1 =>
+    cases lem1;
     cases j3
     apply Typing.choice
-    sorry
+    · assumption
     · constructor; assumption; assumption; assumption
     · constructor; assumption; assumption; assumption
-    sorry
+
 
 case appt f _ _ a _ j1 j2 _ _ =>
   cases h
@@ -354,7 +358,6 @@ case seq =>
     cases lem;
     apply Typing.zero
     apply Kinding.eq; assumption; assumption
-
   case ctor2_absorb2 j1 _ _ j2 _ =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j1
     cases lem; case _ lem =>
@@ -363,7 +366,6 @@ case seq =>
     cases j2;
     apply Typing.zero
     apply Kinding.eq; assumption; assumption
-
   case ctor2_map1 j1 _ _ _ _ _ j2 _  =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j1
     cases lem; case _ lem =>
@@ -374,38 +376,127 @@ case seq =>
     apply Kinding.eq; assumption; assumption
     apply Typing.seq; assumption; assumption
     apply Typing.seq; assumption; assumption
-  case ctor2_map2 =>
-    sorry
-case appc Δ Γ _ K1 K2 A B _ C D _ _ _ _ =>
+  case ctor2_map2 j1 _ _ _ _ _ j2 _ =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2;
+    cases j2
+    apply Typing.choice
+    · apply Kinding.eq; assumption; assumption
+    · apply Typing.seq; assumption; assumption
+    · apply Typing.seq; assumption; assumption
+
+case appc Δ Γ _ K1 K2 A B _ C D j1 j2 _ _ =>
   cases h
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
-  case appc j1 _ j2 _ =>
+  case appc =>
     cases j1; cases j2
     apply @Typing.refl G Δ (A • C) K2 Γ
     constructor; assumption; assumption
+  case ctor2_congr1 ih _ _ _ h =>
+    replace ih := ih h
+    apply Typing.appc; assumption; assumption
+  case ctor2_congr2 ih _ _ h =>
+    replace ih := ih h
+    apply Typing.appc; assumption; assumption
 
-  case ctor2_congr1 => sorry
-  case ctor2_congr2 => sorry
-  case ctor2_absorb1 => sorry
-  case ctor2_absorb2 => sorry
-  case ctor2_map1 => sorry
-  case ctor2_map2 => sorry
+  case ctor2_absorb1 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2;
+    apply Typing.zero
+    · apply Kinding.eq
+      · apply Kinding.app; assumption; assumption
+      · apply Kinding.app; assumption; assumption
+  case ctor2_absorb2 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2;
+    apply Typing.zero
+    · apply Kinding.eq
+      · apply Kinding.app; assumption; assumption
+      · apply Kinding.app; assumption; assumption
+  case ctor2_map1 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2; cases j1
+    apply Typing.choice
+    · apply Kinding.eq;
+      · apply Kinding.app; assumption; assumption
+      · apply Kinding.app; assumption; assumption
+    · apply Typing.appc; assumption; assumption
+    · apply Typing.appc; assumption; assumption
 
-case arrowc =>
+  case ctor2_map2 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2; cases j2
+    apply Typing.choice
+    · apply Kinding.eq;
+      · apply Kinding.app; assumption; assumption
+      · apply Kinding.app; assumption; assumption
+    · apply Typing.appc; assumption; assumption
+    · apply Typing.appc; assumption; assumption
+
+
+
+case arrowc j1 j2 _ _ =>
   cases h
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
-  case arrowc => sorry
+  case arrowc =>
+    cases j1; cases j2;
+    case _ j1 _ j2 _ =>
+    have lem := Kinding.arrow j1 j2
+    apply Typing.refl; apply lem;
 
-  case ctor2_congr1 => sorry
-  case ctor2_congr2 => sorry
-  case ctor2_absorb1 => sorry
-  case ctor2_absorb2 => sorry
-  case ctor2_map1 => sorry
-  case ctor2_map2 => sorry
+  case ctor2_congr1 ih _ _ _ h =>
+    replace ih := ih h
+    constructor; assumption; assumption
+  case ctor2_congr2 ih _ _ h =>
+    replace ih := ih h
+    constructor; assumption; assumption
+  case ctor2_absorb1 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2;
+    apply Typing.zero
+    · apply Kinding.eq; repeat (apply Kinding.arrow; assumption; assumption)
+  case ctor2_absorb2 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2;
+    apply Typing.zero
+    · apply Kinding.eq; repeat (apply Kinding.arrow; assumption; assumption)
+  case ctor2_map1 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2; cases j1
+    apply Typing.choice
+    · apply Kinding.eq; repeat (apply Kinding.arrow; assumption; assumption)
+    · apply Typing.arrowc; assumption; assumption
+    · apply Typing.arrowc; assumption; assumption
+  case ctor2_map2 =>
+    have lem1 := Typing.well_typed_terms_have_base_kinds wf j1; cases lem1; case _ lem1 =>
+    cases lem1;
+    have lem2 := Typing.well_typed_terms_have_base_kinds wf j2; cases lem2; case _ lem2 =>
+    cases lem2; cases j2
+    apply Typing.choice
+    · apply Kinding.eq; repeat (apply Kinding.arrow; assumption; assumption)
+    · apply Typing.arrowc; assumption; assumption
+    · apply Typing.arrowc; assumption; assumption
+
 
 case fst =>
   cases h
@@ -436,25 +527,23 @@ case allc K Δ _ A B Γ j _ =>
     cases j; case _ b j _ =>
     apply Typing.refl
     apply Kinding.all; assumption
-  case tbind_congr =>
-
-    sorry
+  case tbind_congr =>  sorry
   case tbind_absorb => sorry
   case tbind_map => sorry
 
-case apptc =>
+case apptc j1 j2 e1 e2 _  _ =>
   cases h
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
-  case apptc e1 e2 _ _ _ h1 _ h2 _ =>
-    cases h1; cases h2
+  case apptc =>
+    cases j1; cases j2
     rw[<-e1] at e2; subst e2; subst e1
     case _ j1 _ j2 _ =>
     cases j1; case _ j1 =>
     apply Typing.refl
     apply Kinding.beta j1 j2
-  case ctor2_congr1 e1 e2 ih _ _ _ h =>
+  case ctor2_congr1 ih _ _ _ h =>
     replace ih := ih h
     subst e1; subst e2
     apply Typing.apptc
@@ -462,26 +551,64 @@ case apptc =>
     assumption
     rfl
     rfl
-  case ctor2_congr2 e1 e2 _ ih _ _ h =>
+  case ctor2_congr2 _ ih _ _ h =>
     subst e1; subst e2
     apply Typing.apptc
     assumption
     apply ih h
     rfl
     rfl
-  case ctor2_absorb1 j1 e1 e2 _ _ j2 _ =>
+  case ctor2_absorb1 =>
     subst e1; subst e2
-    cases j2; case _ j2 =>
-    cases j2; case _ j3 j4 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem =>
+    cases lem; case _ j5 j6 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem =>
+    cases lem; case _ j3 j4 =>
+    cases j5; case _ j5 =>
+    cases j6; case _ j6 =>
+    apply Typing.zero
+    · apply Kinding.eq
+      apply Kinding.beta j5 j3
+      apply Kinding.beta j6 j4
+  case ctor2_absorb2 =>
+    subst e1; subst e2
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem =>
+    cases lem; case _ j3 j4 =>
     cases j3; case _ j3 =>
     cases j4; case _ j4 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem =>
+    cases lem; case _ j5 j6 =>
     apply Typing.zero
-    sorry
-    sorry
-  case ctor2_absorb2 => sorry
-  case ctor2_map1 => sorry
-  case ctor2_map2 => sorry
+    · apply Kinding.eq
+      apply Kinding.beta j3 j5
+      apply Kinding.beta j4 j6
+  case ctor2_map1 =>
+    subst e1; subst e2
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem =>
+    cases lem; case _ j3 j4 =>
+    cases j3; case _ j3 =>
+    cases j4; case _ j4 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem =>
+    cases lem; case _ j5 j6 =>
+    cases j1;
+    apply Typing.choice
+    · apply Kinding.eq; apply Kinding.beta j3 j5; apply Kinding.beta j4 j6
+    · apply Typing.apptc; assumption; assumption; rfl; rfl
+    · apply Typing.apptc; assumption; assumption; rfl; rfl
 
+  case ctor2_map2 =>
+    subst e1; subst e2
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem =>
+    cases lem; case _ j3 j4 =>
+    cases j3; case _ j3 =>
+    cases j4; case _ j4 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem =>
+    cases lem; case _ j5 j6 =>
+    cases j2
+    apply Typing.choice
+    · apply Kinding.eq; apply Kinding.beta j3 j5; apply Kinding.beta j4 j6
+    · apply Typing.apptc; assumption; assumption; rfl; rfl
+    · apply Typing.apptc; assumption; assumption; rfl; rfl
 case zero =>
   cases h;
   case _ h _ => cases h
