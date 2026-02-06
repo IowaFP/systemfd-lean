@@ -29,7 +29,7 @@ theorem Kinding.subst Δσ (σ : Subst Ty) :
     apply arrow
     apply ih1 _ _ h
     apply ih2 _ _ h
-  case all K Δ P _ j ih =>
+  case all K Δ P j ih =>
     replace ih := ih (K :: Δσ) σ.lift (subst_lift K h)
     simp at ih
     apply all ih
@@ -191,9 +191,9 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     apply Kinding.subst _ _ h j1
     apply ih1 _ _ h
     apply ih2 _ _ h
-  case lamt K Δ t P Γ j ih =>
+  case lamt Δ K P t Γ jk j ih =>
     replace ih := ih (K::Δσ) σ.lift (Kinding.subst_lift K h)
-    simp at ih; apply lamt; simp
+    simp at ih; apply lamt; have lem := Kinding.subst _ _ h jk; simp at lem; exact lem; simp
     unfold Function.comp at *; simp at *
     exact ih
   case appt f K P a P' j1 j2 j3 ih =>
@@ -233,7 +233,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     apply Kinding.subst _ _ h j1
     apply Kinding.subst _ _ h j2
     apply ih _ _ h
-  case allc K Δ t b A B Γ j ih =>
+  case allc K Δ t A B Γ j ih =>
     replace ih := ih (K::Δσ) σ.lift (Kinding.subst_lift K h)
     simp at ih; apply allc; simp;
     unfold Function.comp at *; simp at *
@@ -335,9 +335,9 @@ theorem Typing.subst Γσ (σ : Subst Term) :
     assumption
     apply ih1 _ _ h
     apply ih2 _ _ h
-  case lamt j ih =>
+  case lamt j jk ih =>
     replace ih := ih (Γσ.map (·[+1])) (σ ◾ +1@Ty) (subst_lift_type _ wf h)
-    apply lamt ih
+    apply lamt j ih
   case appt j1 j2 j3 ih =>
     apply appt _ j2 j3
     apply ih _ _ h

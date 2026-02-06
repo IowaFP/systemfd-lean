@@ -2,6 +2,10 @@ import Core.Term
 import Core.Reduction
 import Core.Typing
 
+import Core.Metatheory.Rename
+import Core.Metatheory.Substitution
+import Core.Metatheory.Uniqueness
+
 theorem Kinding.invert_eq_kind : (G&Δ ⊢ (A ~[K]~ B) : w) -> w = ★ := by
 intro j; cases j; simp
 
@@ -23,25 +27,236 @@ intros j; cases j; simp
 theorem Typing.refl_unique : (G&Δ, Γ ⊢ refl! A : T) -> ∃ K, (T = (A ~[K]~ A)) := by
 intros j; cases j; simp
 
-theorem Typing.kinding_base : G&Δ,Γ ⊢ t : T -> ∃ b, G&Δ ⊢ T : .base b := by
-intro j; induction j
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
+theorem Typing.inversion_apply_spine :
+  G&Δ,Γ ⊢ t.apply sp : A ->
+  ∃ B, SpineType G Δ Γ sp B A ∧ G&Δ, Γ ⊢ t : B ∧ (∀ K, G&Δ ⊢ A : K -> G&Δ ⊢ B : K) := by
+intro j
+induction sp generalizing G Δ Γ t A <;> simp [Term.apply] at *
+case nil =>
+  exists A
+  constructor
+  · apply SpineType.refl
+  · constructor
+    · assumption
+    · intros; assumption
+case cons hd tl ih =>
+  have lem : hd :: tl = [hd] ++ tl := by simp
+  rw[lem] at j; rw[Spine.apply_spine_compose] at j;
+  cases hd <;> simp [Term.apply] at j
+  case _ a =>
+    replace ih := ih j
+    rcases ih with ⟨B, h1, h2, h3⟩
+    cases h2; case _ K P j1 j2 e =>
+    subst e
+    exists ∀[K]P
+    constructor
+    · apply SpineType.type; apply j1; rfl; apply h1
+    · constructor
+      assumption
+      intro K h; replace h3 := h3 K h;
+
+      sorry
+  case _ a =>
+    replace ih := ih j
+    rcases ih with ⟨B, h1, h2, h3⟩
+    cases h2; case _ X P j1 j2 =>
+    exists (X -:> B)
+    constructor;
+    · sorry
+    · constructor
+      assumption
+      intro K h; replace h3 := h3 K h;
+      sorry
+  sorry
+
+-- apply @List.reverse_ind SpineElem
+--    (λ x => ∀ G Δ Γ t A, G&Δ,Γ ⊢ t.apply x : A ->
+--       ∃ B, SpineType t G Δ Γ x B ∧ G&Δ, Γ ⊢ t : B ∧ (∀ K, G&Δ ⊢ A : K -> G&Δ ⊢ B : K))
+--    sp
+--    (by
+--      intro G Δ Γ t A j
+--      exists A
+--      simp [Term.apply] at j
+--      constructor
+--      · apply SpineType.refl; apply j
+--      · constructor
+--        · apply j
+--        · intros; assumption)
+--    (by intro hd tl ih G Δ Γ t A j2
+--        rw[Spine.apply_spine_compose] at j2
+--        cases hd
+--        all_goals (
+--           simp [Term.apply] at j2
+--        )
+--        case type a K P j1 j2 a =>
+--          replace ih := ih G Δ Γ (t •[a]) A
+--          rcases ih with ⟨B, h1, h2, h3⟩
+--          replace h3 := h3 ★
+
+--          sorry
+--        case term x T a j1 j2 =>
+--          replace ih1 := ih G Δ Γ t (T -:> A) j2
+--          rcases ih1 with ⟨B, h1, h2, h3⟩
+
+--          sorry
+--        case oterm x T a j1 j2 =>
+--          replace ih1 := ih G Δ Γ t (T -:> A) j2
+--          rcases ih1 with ⟨B, h1, h2, h3⟩
+--          sorry
+--    )
+--    G Δ Γ t A j
+
+theorem ValidInstTy.base_kinded :
+  ValidInstTy G x Δ T -> ∃ b, G&Δ ⊢ T : .base b := by
+intro j; induction j <;> simp at *
+exists b◯
+exists b★; apply Kinding.all; assumption
+case _ h =>
+  rcases h with ⟨b, h⟩
+  exists b★; apply Kinding.arrow; assumption
+  apply h
+
+theorem PrefixTypeMatch.base_kinding :
+  G&Δ ⊢ A : .base b1 ->
+  G&Δ ⊢ B : .base b2 ->
+  PrefixTypeMatch Δ A B T ->
+  ∃ b, G&Δ ⊢ T : .base b := by
+intro j1 j2 j3
+induction j3 generalizing b1 b2
+case refl => exists b2
+case arrow ih =>
+  cases j1; cases j2
+  case _ h1 _ _ _ h2 =>
+  apply ih h1 h2
+case all ih =>
+  cases j1; cases j2
+  case _ h1 h2 =>
+  replace ih := ih h1 h2
+  cases ih; case _ b _ =>
+  exists b;
+  sorry -- requires strengthening
+
+theorem GlobalWf.extract_kinding :
+  ⊢ G ->
+  lookup_type G x = some T ->
+  ∃ b, G&Δ ⊢ T : .base b := by
+intro wf h
+induction G generalizing x T Δ
+case _ => simp [lookup_type, lookup] at *
+case _ hd tl ih =>
+  cases wf; case _ wftl wfh =>
+  induction wfh
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  case _ y G T h1 h2 =>
+    simp [lookup_type, lookup] at h
+    split at h
+    case _ e =>
+      subst e
+      simp [Entry.type] at h; cases h
+      have lem := ValidInstTy.base_kinded h2
+      cases lem; case _ b lem =>
+      exists b;
+      sorry
+    sorry
+
+theorem Typing.well_typed_terms_have_base_kinds :
+  ⊢ G ->
+  G&Δ, Γ ⊢ t : A -> ∃ b, G&Δ ⊢ A : .base b := by
+intro wf j; induction j
+case _ => sorry
+case _ h => apply GlobalWf.extract_kinding wf; assumption
+case _ => assumption
+case _ h1 h2 _ h3 =>
+  cases h2; case _ h2 =>
+  cases h3; case _ h3 =>
+  apply PrefixTypeMatch.base_kinding h2 h3 h1
+case _ h =>
+  rcases h with ⟨_, h⟩
+  exists b★; constructor; assumption; assumption
+case _ h _ =>
+  rcases h with ⟨_, h⟩
+  cases h; case _ b _ _  =>
+  exists b
+case _ => exists b★
+case _ h =>
+  rcases h with ⟨b, h⟩
+  cases h; case _ h1 e h2 =>
+  exists b★;
+  subst e;
+  apply Kinding.beta h2 h1
+case _ h3 h1 =>
+  cases h1; case _ h1 =>
+  cases h1; case _ h1 h2 =>
+  cases h3; case _ w h3 =>
+  exists w
+  have lem := Kinding.unique h1 h3; cases lem
+  assumption
+case _ => exists b★; apply Kinding.eq; assumption; assumption
+case _ h =>
+  cases h; case _ h =>
+  cases h; exists b★
+  apply Kinding.eq; assumption; assumption
+case _ h1 h2 =>
+  exists b★
+  cases h1; case _ h1 =>
+  cases h1; cases h2; case _ h2 =>
+  cases h2
+  apply Kinding.eq; assumption; assumption
+case _ h1 h2 =>
+  cases h1; case _ h1 =>
+  cases h1; cases h2; case _ h2 =>
+  cases h2
+  exists b★
+  apply Kinding.eq
+  · apply Kinding.app; assumption; assumption
+  · apply Kinding.app; assumption; assumption
+case _ h1 h2 =>
+  cases h1; case _ h1 =>
+  cases h1; cases h2; case _ h2 =>
+  cases h2
+  exists b★
+  apply Kinding.eq
+  · apply Kinding.arrow; assumption; assumption
+  · apply Kinding.arrow; assumption; assumption
+case _ h =>
+  cases h; case _ h =>
+  cases h; case _ h1 h2 =>
+  cases h1; cases h2
+  case _ h1 h3 _ _ h2 _ _ h4 _ =>
+  have lem := Kinding.unique h1 h2; cases lem
+  have lem := Kinding.unique h3 h4; cases lem
+  exists b★
+  apply Kinding.eq; assumption; assumption
+case _ h =>
+  cases h; case _ h =>
+  cases h; case _ h1 h2 =>
+  cases h1; cases h2;
+  case _ h1 h3 _ _ h2 _ _ h4 _ =>
+  have lem := Kinding.unique h1 h2; cases lem
+  have lem := Kinding.unique h3 h4; cases lem
+  exists b★
+  apply Kinding.eq; assumption; assumption
+case _ h =>
+  cases h; case _ h =>
+  cases h;
+  exists b★
+  apply Kinding.eq
+  · apply Kinding.all; assumption
+  · apply Kinding.all; assumption
+case _ e1 e2 h1 h2 =>
+  cases h1; case _ h1 =>
+  cases h1; case _ h1 h2 =>
+  cases h1; cases h2
+  cases h2; case _ h2 =>
+  cases h2; case _ h1 h2 h3 h4 =>
+  exists b★
+  subst e1; subst e2
+  apply Kinding.eq
+  · apply Kinding.beta h1 h3
+  · apply Kinding.beta h2 h4
+case _ b _ _ => exists b
+case _ => assumption

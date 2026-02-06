@@ -43,7 +43,6 @@ theorem ValidInstTy.closed : ValidInstTy G x Δ T -> ∃ b, G&Δ ⊢ T : .base b
   intro h; induction h <;> simp at *
   case _ => exists b◯
   case _ ih =>
-    cases ih; case _ b ih =>
     exists b★
     constructor; assumption
   case _ ih =>
@@ -140,7 +139,7 @@ theorem Kinding.rename Δr (r : Ren) :
     rw [h x] at j; exact j
   case global j => apply Kinding.global j
   case arrow ih1 ih2 => apply Kinding.arrow (ih1 _ _ h) (ih2 _ _ h)
-  case all K Δ P b j ih =>
+  case all K Δ P j ih =>
     replace ih := ih (K::Δr) r.lift (rename_lift K r h)
     rw [Ren.to_lift (S := Ty)] at ih; simp at ih
     apply Kinding.all ih
@@ -292,11 +291,12 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply Kinding.rename _ _ h j1
     apply ih1 _ _ h
     apply ih2 _ _ h
-  case lamt K Δ t P Γ j ih =>
+  case lamt Δ K P t Γ jk j ih =>
     replace ih := ih (K::Δr) r.lift (Kinding.rename_lift K r h)
     rw [Ren.to_lift (S := Ty)] at ih; simp at ih
-    apply lamt; simp; unfold Function.comp at *; simp at *
-    exact ih
+    apply lamt;
+    case _ => have lem := Kinding.rename _ _ h jk; simp at lem; exact lem
+    case _ => simp; unfold Function.comp at *; simp at *;  exact ih
   case appt f K P a P' j1 j2 j3 ih =>
     apply appt (K := K) (P := P[r.lift])
     rw [Ren.to_lift (S := Ty)]
@@ -335,7 +335,7 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply Kinding.rename _ _ h j1
     apply Kinding.rename _ _ h j2
     apply ih _ _ h
-  case allc K Δ t b A B Γ j ih =>
+  case allc K Δ t A B Γ j ih =>
     replace ih := ih (K::Δr) r.lift (Kinding.rename_lift K r h)
     rw [Ren.to_lift (S := Ty)] at ih; simp at ih
     apply allc; simp; unfold Function.comp at *; simp at *
@@ -422,8 +422,9 @@ theorem Typing.rename Γr (r : Ren) :
     apply app j1
     apply ih1 _ _ h
     apply ih2 _ _ h
-  case lamt j ih =>
+  case lamt j h ih =>
     apply lamt
+    apply j
     apply ih _ _ (rename_lift_type r h)
   case appt j1 j2 j3 ih =>
     apply appt _ j2 j3

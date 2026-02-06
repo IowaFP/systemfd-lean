@@ -46,7 +46,7 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
   Kinding G Δ B (.base b2) ->
   Kinding G Δ (A -:> B) ★
 | all :
-  Kinding G (K::Δ) P (.base b) ->
+  Kinding G (K::Δ) P ★ ->
   Kinding G Δ (∀[K] P) ★
 | app :
   Kinding G Δ f (A -:> B) ->
@@ -109,6 +109,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ a A ->
   Typing G Δ Γ (f •(b) a) B
 | lamt :
+  Kinding G Δ (∀[K]P) ★ ->
   Typing G (K::Δ) (Γ.map (·[+1])) t P ->
   Typing G Δ Γ (Λ[K] t) (∀[K] P)
 | appt :
@@ -152,7 +153,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
-  Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[.base b]~ B) ->
+  Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[★]~ B) ->
   Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
 | apptc :
   Typing G Δ Γ f ((∀[K] A) ~[★]~ (∀[K] B)) ->
@@ -164,7 +165,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Non-determinism
 --------------------------------------------------------------------------------------
 | zero :
-  G&Δ ⊢ A : K ->
+  G&Δ ⊢ A : .base b ->
   Typing G Δ Γ `0 A
 | choice :
   G&Δ ⊢ A : K ->
@@ -195,6 +196,7 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
   G&Δ ⊢ T : ◯ ->
   ValidInstTy G x Δ T
 | all :
+  G& (K::Δ) ⊢ T : ★ ->
   ValidInstTy G x (K::Δ) T ->
   ValidInstTy G x Δ (∀[K] T)
 | arrow :
@@ -250,22 +252,24 @@ inductive TypeMatch : Ty -> Ty -> Prop
   TypeMatch B R ->
   TypeMatch (∀[K] B) R
 
-inductive SpineType (t : Term) (G : List Global) : List Kind -> List Ty -> List SpineElem -> Ty -> Prop where
+inductive SpineType (G : List Global) (Δ : List Kind) (Γ : List Ty) : List SpineElem -> Ty -> Ty -> Prop where
 | refl :
-  G&Δ,Γ ⊢ t : T ->
-  SpineType t G Δ Γ [] T
+  -- G&Δ,Γ ⊢ t : T ->
+  SpineType G Δ Γ [] T T
 | term :
   G&Δ ⊢ A : ★ ->
   G&Δ,Γ ⊢ a : A ->
-  SpineType t G Δ Γ sp (A -:> T) ->
-  SpineType t G Δ Γ (sp ++ [.term a]) T
+  G&Δ ⊢ (A -:> B) : ★ ->
+  SpineType G Δ Γ sp B T ->
+  SpineType G Δ Γ (.term a :: sp) (A -:> B) T
 | oterm :
   G&Δ ⊢ A : ◯ ->
   G&Δ,Γ ⊢ a : A ->
-  SpineType t G Δ Γ sp (A -:> T) ->
-  SpineType t G Δ Γ (sp ++ [.oterm a]) T
+  SpineType G Δ Γ sp B T ->
+  SpineType G Δ Γ (.oterm a :: sp) (A -:> B) T
 | type :
   G&Δ ⊢ a : K ->
-  SpineType t G Δ Γ sp (∀[K] T) ->
-  T' = T[su a::+0] ->
-  SpineType t G Δ Γ (sp ++ [.type a]) T'
+  -- G&Δ ⊢ ∀[K]P : ★ ->
+  P' = P[su a::+0] ->
+  SpineType G Δ Γ sp P' T ->
+  SpineType G Δ Γ (.type a :: sp) (∀[K]P) T

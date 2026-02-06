@@ -177,6 +177,11 @@ case _ z =>
 cases z <;> simp [Entry.is_defn] at *
 
 
+theorem lookup_defn_some :
+  lookup_defn G x = .some t -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
+intro h1
+replace h1 := lookup_defn_is_defn_sound h1
+apply lookup_entry_defn_exists h1
 
 theorem is_stable_implies_not_is_openm :
   is_stable G x -> ¬ is_openm x G := by

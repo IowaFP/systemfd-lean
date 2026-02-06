@@ -7,6 +7,8 @@ import Core.Util
 import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
 import Core.Metatheory.GlobalWf
+import Core.Metatheory.Uniqueness
+import Core.Metatheory.Inversion
 
 open LeanSubst
 
@@ -21,7 +23,7 @@ sorry
 theorem lookup_defn_type_sound :
   ⊢ G ->
   lookup x G = .some (Entry.defn y T t) ->
-  G&[],[] ⊢ t : T := by
+  G&Δ, Γ ⊢ t : T := by
 intro wf h
 induction G <;> simp [lookup] at *
 case _ hd tl ih =>
@@ -40,7 +42,7 @@ case _ hd tl ih =>
     sorry
 
 theorem Typing.foldr_preservation :
-  G&Δ ⊢ T : K ->
+  G&Δ ⊢ T : .base b ->
   (∀ t ∈ is, G&Δ, Γ ⊢ t : T) ->
   G&Δ, Γ ⊢ List.foldr (·`+·) `0 is : T := by
 intro j h
@@ -52,6 +54,7 @@ case _ hd tl ih =>
   apply h.1
   apply ih h.2
 
+
 theorem preservation_prefix_match_lemma :
   a.spine = some (x, sp) ->
   G&Δ,Γ ⊢ a : A ->
@@ -62,8 +65,10 @@ theorem preservation_prefix_match_lemma :
   G&Δ,Γ ⊢ t.apply ξ : T := by
 intro h1 h2 h3 h4 h5 h6
 induction ξ generalizing G Δ Γ A R B a t x sp <;> simp [Term.apply] at *
-sorry
-sorry
+case _ =>
+  have leme := Typing.spine_term_unique_typing h2 h3 h1; subst leme
+  sorry
+case _ => sorry
 
 
 
@@ -109,14 +114,20 @@ case global =>
     replace lem := instance_type_preservation wf lem is
     cases is; case _ e =>
     cases e
+    have lem' := GlobalWf.extract_kinding (Δ := Δ) (T := A) wf h1
+    cases lem';
     apply Typing.foldr_preservation
-    apply h2
+    assumption
     apply lem
-  case defn h =>
+  case defn Δ _ Γ h1 _ _ _ _ _ h =>
     simp [Term.spine] at h; rcases h with ⟨e1, e2⟩; cases e1; cases e2;
     simp [Term.apply] at *
-    sorry -- apply lookup_defn_type_sound wf; assumption
-
+    case _ h =>
+    have lem := lookup_defn_some h
+    rcases lem with ⟨y, T, t, lem⟩
+    simp [lookup_type] at h1; rw[lem] at h1; simp [Entry.type] at h1; cases h1
+    simp [lookup_defn] at h; rw[lem] at h; simp at h; cases h
+    apply lookup_defn_type_sound (Γ := Γ) (Δ := Δ) wf lem
 case mtch =>
   cases h
   case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 _ _ _ _ x _ _ i patshapes' patshapes h6 h7 h8 h9 h10 =>
@@ -134,29 +145,20 @@ case mtch =>
     · have lem3 := Vec.indexOf_correct (v := Vec.map (λ x => x.1) patshapes) (i := i) (x := x) h7;
       simp [Vec.map] at lem3; rw[lem3]; apply (Eq.symm h9)
 
-  case data_match_default =>  assumption
-
+  case data_match_default => assumption
   case match_congr ih _ _ _ _ h =>
-    constructor
-    apply ih h
-    assumption
-    assumption
-    assumption
-    assumption
-    assumption
-    assumption
-    assumption
-
-  case match_absorb =>
-    -- need to show T is of base type
-    sorry
-  case match_map h ih =>
+    constructor; apply ih h; repeat assumption
+  case match_absorb h _ _ _ _ _ _ _ _ _ _  =>
+    replace h := Typing.well_typed_terms_have_base_kinds wf h
+    cases h; apply Typing.zero; assumption
+  case match_map j _ _ _ _ _ _ _ _ _ _ h ih =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j
+    cases lem;
     cases h
     apply Typing.choice
-    sorry -- need to show T is of base type
-    · apply Typing.mtch; assumption; assumption; assumption; assumption; assumption; assumption; assumption; assumption
-    · apply Typing.mtch; assumption; assumption; assumption; assumption; assumption; assumption; assumption; assumption
-    sorry
+    assumption
+    · apply Typing.mtch; repeat assumption
+    · apply Typing.mtch; repeat assumption
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
 
@@ -173,12 +175,18 @@ case guard =>
     apply (Eq.symm h9)
     apply (Eq.symm h10)
 
-  case guard_missed =>
-    sorry -- need to show T is of base type
+  case guard_missed j1 _ j2 _ _ _ h _ _ _ _ _ _ _ _ _ _ =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem1 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem2 =>
+    have lem := PrefixTypeMatch.base_kinding lem1 lem2 h; cases lem
+    apply Typing.zero; assumption
   case guard_congr ih _ _ h =>
     constructor; assumption; apply ih h; assumption; assumption; assumption; assumption; assumption
-  case guard_absorb =>
-    sorry  -- need to show T is of base type
+  case guard_absorb j1 j2 _ _ _ h _ _ _ _ =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem1 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2; cases lem; case _ lem2 =>
+    have lem := PrefixTypeMatch.base_kinding lem1 lem2 h; cases lem
+    apply Typing.zero; assumption
   case guard_map h _ =>
     cases h
     apply Typing.choice
@@ -250,13 +258,13 @@ case appt f _ _ a _ j1 j2 _ _ =>
     assumption
   case ctor1_absorb =>
     cases j1; case _ j1 =>
-    cases j1; case _ e _ _ j1 =>
+    cases j1; case _ e _ j1 =>
     have lem := Kinding.beta j1 j2
     rw[e]; constructor; assumption
   case ctor1_map =>
     cases j1
     case _ j _ _ =>
-      cases j; case _ e _ _ _ _ _ _ _ _ _ j1 =>
+      cases j; case _  e _ _ _ _ _ _ _ _ j1 =>
       rw[e]
       apply Typing.choice
       apply Kinding.beta j1 j2
@@ -284,8 +292,14 @@ case cast tj cj _ ih =>
     simp at *; replace ih := ih cr
     constructor; assumption; assumption
   case _ =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf tj
+    cases lem; case _ lem =>
     cases cj; case _ cj =>
-    cases cj; constructor; assumption
+    cases cj; case _ cj _ =>
+    have lem := Kinding.unique cj lem
+    cases lem
+    apply Typing.zero; assumption
+
   case _ =>
     cases cj; case _ cj _ _ =>
     cases cj;
@@ -309,7 +323,7 @@ case sym =>
   case _ j _ =>
     cases j; case _ j =>
     cases j; case _ K _ _ _ _ _ =>
-    apply Typing.zero (K := ★)
+    apply Typing.zero
     constructor; assumption; assumption
   case _ j ih =>
     cases j; case _ j _ _ =>
@@ -334,24 +348,32 @@ case seq =>
     apply ih h
   case ctor2_absorb1 j1 _ _ j2 _ =>
     cases j2; case _ j2 =>
-    cases j2;
-    -- need some nice properties from wf contexts
-    sorry
-  case ctor2_absorb2 =>
+    cases j2; case _ k1 k2 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1
+    cases lem; case _ lem =>
+    cases lem;
+    apply Typing.zero
+    apply Kinding.eq; assumption; assumption
 
-    sorry
+  case ctor2_absorb2 j1 _ _ j2 _ =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1
+    cases lem; case _ lem =>
+    cases lem
+    cases j2; case _ j2 =>
+    cases j2;
+    apply Typing.zero
+    apply Kinding.eq; assumption; assumption
+
   case ctor2_map1 j1 _ _ _ _ _ j2 _  =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1
+    cases lem; case _ lem =>
+    cases lem
     cases j2; case _ j2 _ _ =>
     cases j2
     apply Typing.choice
-    constructor;
-    · assumption
-    · sorry
-    constructor
-    assumption
-    assumption
-    constructor; assumption; assumption
-
+    apply Kinding.eq; assumption; assumption
+    apply Typing.seq; assumption; assumption
+    apply Typing.seq; assumption; assumption
   case ctor2_map2 =>
     sorry
 case appc Δ Γ _ K1 K2 A B _ C D _ _ _ _ =>
@@ -405,15 +427,18 @@ case snd =>
   case ctor1_absorb => sorry
   case ctor1_map => sorry
 
-case allc K Δ _ _ A B Γ j _ =>
+case allc K Δ _ A B Γ j _ =>
   cases h
   all_goals (try case _ h => simp [Term.spine] at h)
   all_goals (try case _ h _ => simp [Term.spine] at h)
   all_goals (try case _ h _ _ => simp at h)
   case allc B _ =>
     cases j; case _ b j _ =>
-    apply @Typing.refl G Δ (∀[K]A) ★ Γ (Kinding.all j)
-  case tbind_congr => sorry
+    apply Typing.refl
+    apply Kinding.all; assumption
+  case tbind_congr =>
+
+    sorry
   case tbind_absorb => sorry
   case tbind_map => sorry
 
@@ -425,14 +450,34 @@ case apptc =>
   case apptc e1 e2 _ _ _ h1 _ h2 _ =>
     cases h1; cases h2
     rw[<-e1] at e2; subst e2; subst e1
-    constructor; case _ j1 _ j2 _ =>
+    case _ j1 _ j2 _ =>
     cases j1; case _ j1 =>
-    have lem := Kinding.beta j1 j2
+    apply Typing.refl
+    apply Kinding.beta j1 j2
+  case ctor2_congr1 e1 e2 ih _ _ _ h =>
+    replace ih := ih h
+    subst e1; subst e2
+    apply Typing.apptc
+    assumption
+    assumption
+    rfl
+    rfl
+  case ctor2_congr2 e1 e2 _ ih _ _ h =>
+    subst e1; subst e2
+    apply Typing.apptc
+    assumption
+    apply ih h
+    rfl
+    rfl
+  case ctor2_absorb1 j1 e1 e2 _ _ j2 _ =>
+    subst e1; subst e2
+    cases j2; case _ j2 =>
+    cases j2; case _ j3 j4 =>
+    cases j3; case _ j3 =>
+    cases j4; case _ j4 =>
+    apply Typing.zero
     sorry
-
-  case ctor2_congr1 => sorry
-  case ctor2_congr2 => sorry
-  case ctor2_absorb1 => sorry
+    sorry
   case ctor2_absorb2 => sorry
   case ctor2_map1 => sorry
   case ctor2_map2 => sorry

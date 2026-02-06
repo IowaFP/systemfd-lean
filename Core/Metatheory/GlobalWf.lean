@@ -36,8 +36,6 @@ sorry
 sorry
 sorry
 
-
-
 theorem GlobalWf.weaken_type :
   ⊢ G ->
   GlobalWf G e ->
