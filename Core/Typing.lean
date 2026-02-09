@@ -272,4 +272,4 @@ inductive SpineType (G : List Global) : (Δ : List Kind) -> (Γ : List Ty) -> Li
   G&Δ ⊢ ∀[K]P : ★ ->
   P' = P[su a::+0] ->
   SpineType G Δ Γ sp (∀[K]P) T ->
-  SpineType G (K ::Δ) (Γ.map (·[+1])) (sp ++ [.type a]) P' T
+  SpineType G Δ Γ (sp ++ [.type a]) P' T

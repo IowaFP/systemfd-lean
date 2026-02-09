@@ -45,20 +45,6 @@ case _ hd tl ih =>
 
 
 
-theorem Typing.foldr_preservation :
-  G&Δ ⊢ T : .base b ->
-  (∀ t ∈ is, G&Δ, Γ ⊢ t : T) ->
-  G&Δ, Γ ⊢ List.foldr (·`+·) `0 is : T := by
-intro j h
-induction is <;> simp at *
-constructor; assumption
-case _ hd tl ih =>
-  apply Typing.choice
-  apply j
-  apply h.1
-  apply ih h.2
-
-
 theorem Typing.foldr_preservation_choiceₗ :
     G&Δ ⊢ B : .base b ->
     (∀ t ∈ is,  G&Δ, Γ ⊢ t : T) ->
@@ -73,8 +59,26 @@ case _ i is ih =>
    apply SpineType.apply h2 h3
    apply ih h4
 
+theorem Typing.foldr_preservation :
+  G&Δ ⊢ T : .base b ->
+  (∀ t ∈ is, G&Δ, Γ ⊢ t : T) ->
+  G&Δ, Γ ⊢ List.foldr (·`+·) `0 is : T := by
+intro j h
+induction is <;> simp at *
+constructor; assumption
+case _ hd tl ih =>
+  apply Typing.choice
+  apply j
+  apply h.1
+  apply ih h.2
 
 
+theorem fix_quantifiers {is : List Term} {Δ : List Kind} {Γ : List Ty} :
+  (∀ t ∈ is, ∀ Δ Γ, G&Δ, Γ ⊢ t : T) ->
+  (∀ t ∈ is, G&Δ, Γ ⊢ t : T) := by
+intro h
+intro t h1
+apply h t h1
 
 theorem preservation_prefix_match_lemma :
   a.spine = some (x, sp) ->
@@ -139,7 +143,8 @@ case global =>
     cases lem';
     apply Typing.foldr_preservation
     assumption
-    apply lem
+    intro t h
+    apply lem t h
   case defn Δ _ Γ h1 _ _ _ _ _ h =>
     simp [Term.spine] at h; rcases h with ⟨e1, e2⟩; cases e1; cases e2;
     simp [Term.apply] at *
@@ -248,6 +253,7 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
         rw[h6]; apply SpineType.term
         apply j1; apply j3; (constructor; assumption; assumption)
         apply h9
+      replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
       have lem5 := Typing.foldr_preservation_choiceₗ j7 lem2 lem4
       cases h3; cases h4; cases h6;
       rw[List.foldr_map]; apply lem5
@@ -270,6 +276,7 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
       have lem4 : SpineType G Δ Γ sp B T := by
         rw[h6]; apply SpineType.oterm
         apply j1; apply j3; apply h9
+      replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
       have lem5 := Typing.foldr_preservation_choiceₗ j7 lem2 lem4
       cases h3; cases h4; cases h6;
       rw[List.foldr_map]; apply lem5
@@ -347,27 +354,27 @@ case appt f _ _ a _ j1 j2 _ _ =>
       have lem3 := Typing.inversion_apply_spine j1
       rcases lem3 with ⟨T', h9, h10, h11⟩
       have e := Typing.unique_var_typing lem1 h10; cases e
-      have lem4 : SpineType G (K::Δ) (Γ.map (·[+1])) sp P' T := by
+      have lem4 : SpineType G Δ Γ sp P' T := by
         rw[h6]; apply SpineType.type
         apply j2; (constructor; assumption); apply e
         apply h9
-      -- have lem5 := Typing.foldr_preservation_choiceₗ (Kinding.all j7) lem2
-      -- cases h3; cases h4; cases h6;
-      -- rw[List.foldr_map]; apply lem5
-      sorry
-  case defn Δ _ Γ x sp t h1 h2 => sorry
-  --     have j3 := Typing.app j1 j2 j3
-  --     have lem := Typing.well_typed_terms_have_base_kinds wf j2
-  --     cases lem; case _ lem =>
-  --     cases lem; case _ j6 j7 =>
-  --     have lem1 := GlobalWf.lookup_defn_type (G := G) (Δ := Δ) (Γ := Γ) wf h1
-  --     rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
-  --     have h8 := Spine.apply_eq (Eq.symm h2)
-  --     rw[h8] at j3
-  --     have lem3 := Typing.inversion_apply_spine j3
-  --     rcases lem3 with ⟨T', h9, h10, h11⟩
-  --     have e := Typing.unique_var_typing lem1 h10; cases e
-  --     apply SpineType.apply lem2 h9
+      replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
+      cases h3; cases h4; cases h6; subst e
+      rw[List.foldr_map];
+      have lem5 := Typing.foldr_preservation_choiceₗ (sp := sp) (Kinding.beta j7 j2) lem2 lem4
+      apply lem5
+  case defn Δ Γ _ _ _ e _ x sp t h1 h2 =>
+      have j3 := Typing.appt j1 j2 e
+      have lem := Typing.well_typed_terms_have_base_kinds wf j3
+      cases lem; case _ b j7 =>
+      have lem1 := GlobalWf.lookup_defn_type (G := G) (Δ := Δ) (Γ := Γ) wf h1
+      rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
+      have h8 := Spine.apply_eq (Eq.symm h2)
+      rw[h8] at j3
+      have lem3 := Typing.inversion_apply_spine j3
+      rcases lem3 with ⟨T', h9, h10, h11⟩
+      have e := Typing.unique_var_typing lem1 h10; cases e
+      apply SpineType.apply lem2 h9
   case ctor1_congr ih _ h =>
     apply Typing.appt
     apply ih h
