@@ -91,7 +91,7 @@ theorem Typing.well_typed_terms_have_base_kinds :
   ⊢ G ->
   G&Δ, Γ ⊢ t : A -> ∃ b, G&Δ ⊢ A : .base b := by
 intro wf j; induction j
-case _ => sorry
+case _ => constructor; assumption
 case _ h => apply GlobalWf.extract_kinding wf; assumption
 case _ => assumption
 case _ h1 h2 _ h3 =>

@@ -268,28 +268,28 @@ theorem Typing.beta_type :
 
 theorem Typing.subst_lift_type {Γ Γσ : List Ty} {σ : Subst Term} T :
   ⊢ G ->
-  (∀ i A K, Γ[i]? = some A -> G&Δ ⊢ A : K -> G&Δ,Γσ ⊢ σ i : A) ->
-  ∀ i A K, (Γ.map (·[+1]))[i]? = some A ->
-    G&(T::Δ) ⊢ A : K ->
+  (∀ i A b, Γ[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γσ ⊢ σ i : A) ->
+  ∀ i A b, (Γ.map (·[+1]))[i]? = some A ->
+    G&(T::Δ) ⊢ A : .base b ->
     G&(T::Δ),(Γσ.map (·[+1])) ⊢ (σ ◾ +1@Ty) i : A
 := by
-  intro wf h1 i A K h2 h3
+  intro wf h1 i A b h2 h3
   cases i <;> simp at *
   case _ =>
     rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h1 := h1 0 a K e1 (by sorry)
+    replace h1 := h1 0 a b e1 (by sorry)
     apply rename_type (T::Δ) (· + 1) wf _ h1
     intro i; cases i <;> simp
   case _ i =>
     rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h1 := h1 (i + 1) a K e1 sorry
+    replace h1 := h1 (i + 1) a b e1 sorry
     apply rename_type (T::Δ) (· + 1) wf _ h1
     intro i; cases i <;> simp
 
 theorem Typing.subst_lift {Γ Γσ : List Ty} {σ : Subst Term} T :
   ⊢ G ->
-  (∀ i A K, Γ[i]? = some A -> G&Δ ⊢ A : K -> G&Δ,Γσ ⊢ σ i : A) ->
-  ∀ i A K, (T::Γ)[i]? = some A -> G&Δ ⊢ A : K -> G&Δ,(T::Γσ) ⊢ σ.lift i : A
+  (∀ i A b, Γ[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γσ ⊢ σ i : A) ->
+  ∀ i A b, (T::Γ)[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,(T::Γσ) ⊢ σ.lift i : A
 := by
   intro wf h1 i A K h2 h3
   cases i <;> simp at *
@@ -303,7 +303,7 @@ theorem Typing.subst_lift {Γ Γσ : List Ty} {σ : Subst Term} T :
 
 theorem Typing.subst Γσ (σ : Subst Term) :
   ⊢ G ->
-  (∀ i A K, Γ[i]? = some A -> G&Δ ⊢ A : K -> G&Δ,Γσ ⊢ σ i : A) ->
+  (∀ i A b, Γ[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γσ ⊢ σ i : A) ->
   G&Δ,Γ ⊢ t : A ->
   G&Δ,Γσ ⊢ t[σ] : A
 := by

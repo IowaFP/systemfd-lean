@@ -62,11 +62,11 @@ notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
   Γ[x]? = some A ->
-  G&Δ ⊢ A : K ->
+  G&Δ ⊢ A : .base b ->
   Typing G Δ Γ #x A
 | global :
   lookup_type G x = some A ->
-  G&Δ ⊢ A : K ->
+  G&Δ ⊢ A : K -> -- I suspect this K = base b
   Typing G Δ Γ g#x A
 --------------------------------------------------------------------------------------
 ---- Matches
