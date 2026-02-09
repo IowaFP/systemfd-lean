@@ -27,94 +27,6 @@ intros j; cases j; simp
 theorem Typing.refl_unique : (G&Δ, Γ ⊢ refl! A : T) -> ∃ K, (T = (A ~[K]~ A)) := by
 intros j; cases j; simp
 
-theorem Typing.inversion_apply_spine :
-  G&Δ,Γ ⊢ t.apply sp : A ->
-  ∃ B, SpineType G Δ Γ sp A B ∧ G&Δ, Γ ⊢ t : B ∧ (∀ K, G&Δ ⊢ A : K -> G&Δ ⊢ B : K) := by
-intro j
-induction sp generalizing G Δ Γ t A <;> simp [Term.apply] at *
-case nil =>
-  exists A
-  constructor
-  · apply SpineType.refl
-  · constructor
-    · assumption
-    · intros; assumption
-case cons hd tl ih => sorry
-  -- have lem : hd :: tl = [hd] ++ tl := by simp
-  -- rw[lem] at j; rw[Spine.apply_spine_compose] at j;
-  -- cases hd <;> simp [Term.apply] at j
-  -- case _ a =>
-  --   replace ih := ih j
-  --   rcases ih with ⟨B, h1, h2, h3⟩
-  --   cases h2; case _ K P j1 j2 e =>
-  --   subst e
-  --   exists ∀[K]P
-  --   constructor
-  --   · apply SpineType.type; apply j1; rfl; apply h1
-  --   · constructor
-  --     assumption
-  --     intro K h; replace h3 := h3 K h;
-
-  --     sorry
-  -- case _ a =>
-  --   replace ih := ih j
-  --   rcases ih with ⟨B, h1, h2, h3⟩
-  --   cases h2; case _ X P j1 j2 =>
-  --   exists (X -:> B)
-  --   constructor;
-  --   · sorry
-  --   · constructor
-  --     assumption
-  --     intro K h; replace h3 := h3 K h;
-  --     sorry
-  -- sorry
-
--- apply @List.reverse_ind SpineElem
---    (λ x => ∀ G Δ Γ t A, G&Δ,Γ ⊢ t.apply x : A ->
---       ∃ B, SpineType t G Δ Γ x B ∧ G&Δ, Γ ⊢ t : B ∧ (∀ K, G&Δ ⊢ A : K -> G&Δ ⊢ B : K))
---    sp
---    (by
---      intro G Δ Γ t A j
---      exists A
---      simp [Term.apply] at j
---      constructor
---      · apply SpineType.refl; apply j
---      · constructor
---        · apply j
---        · intros; assumption)
---    (by intro hd tl ih G Δ Γ t A j2
---        rw[Spine.apply_spine_compose] at j2
---        cases hd
---        all_goals (
---           simp [Term.apply] at j2
---        )
---        case type a K P j1 j2 a =>
---          replace ih := ih G Δ Γ (t •[a]) A
---          rcases ih with ⟨B, h1, h2, h3⟩
---          replace h3 := h3 ★
-
---          sorry
---        case term x T a j1 j2 =>
---          replace ih1 := ih G Δ Γ t (T -:> A) j2
---          rcases ih1 with ⟨B, h1, h2, h3⟩
-
---          sorry
---        case oterm x T a j1 j2 =>
---          replace ih1 := ih G Δ Γ t (T -:> A) j2
---          rcases ih1 with ⟨B, h1, h2, h3⟩
---          sorry
---    )
---    G Δ Γ t A j
-
-theorem ValidInstTy.base_kinded :
-  ValidInstTy G x Δ T -> ∃ b, G&Δ ⊢ T : .base b := by
-intro j; induction j <;> simp at *
-exists b◯
-exists b★; apply Kinding.all; assumption
-case _ h =>
-  rcases h with ⟨b, h⟩
-  exists b★; apply Kinding.arrow; assumption
-  apply h
 
 theorem PrefixTypeMatch.base_kinding :
   G&Δ ⊢ A : .base b1 ->
@@ -135,6 +47,17 @@ case all ih =>
   cases ih; case _ b _ =>
   exists b;
   sorry -- requires strengthening
+
+
+theorem ValidInstTy.base_kinded :
+  ValidInstTy G x Δ T -> ∃ b, G&Δ ⊢ T : .base b := by
+intro j; induction j <;> simp at *
+exists b◯
+exists b★; apply Kinding.all; assumption
+case _ h =>
+  rcases h with ⟨b, h⟩
+  exists b★; apply Kinding.arrow; assumption
+  apply h
 
 theorem GlobalWf.extract_kinding :
   ⊢ G ->
@@ -162,6 +85,7 @@ case _ hd tl ih =>
       exists b;
       sorry
     sorry
+
 
 theorem Typing.well_typed_terms_have_base_kinds :
   ⊢ G ->
@@ -260,3 +184,66 @@ case _ e1 e2 h1 h2 =>
   · apply Kinding.beta h2 h4
 case _ b _ _ => exists b
 case _ => assumption
+
+
+
+theorem Typing.inversion_apply_spine :
+  ⊢ G ->
+  G&Δ,Γ ⊢ t.apply sp : A ->
+  ∃ B, SpineType G Δ Γ sp A B ∧ G&Δ, Γ ⊢ t : B ∧ (∃ b, G&Δ ⊢ B : .base b) := by
+intro wf j
+apply @List.reverse_ind SpineElem
+   (λ x => ∀ G Δ Γ t A, ⊢ G -> G&Δ,Γ ⊢ t.apply x : A ->
+      ∃ B, SpineType G Δ Γ x A B ∧ G&Δ, Γ ⊢ t : B ∧ (∃ b, G&Δ ⊢ B : .base b))
+   sp
+   (by
+     intro G Δ Γ t A wf j
+     exists A
+     simp [Term.apply] at j
+     constructor
+     · apply SpineType.refl
+     · constructor
+       assumption; intros; apply well_typed_terms_have_base_kinds wf j )
+   (by intro hd tl ih G Δ Γ t A wf j2
+       have lem := well_typed_terms_have_base_kinds wf j2
+       rcases lem with ⟨Abk, lem⟩
+       rw[Spine.apply_spine_compose] at j2
+       cases hd
+       all_goals (
+          simp [Term.apply] at j2
+       )
+       case type a K P j1 j2 a =>
+         cases j2; case _ K P jk j2 e =>
+         replace ih := ih G Δ Γ t (∀[K]P) wf j2
+         rcases ih with ⟨B, h1, h2, h3⟩
+         exists B
+         constructor
+         · apply SpineType.type (P := P) jk;
+           have lem := well_typed_terms_have_base_kinds wf j2
+           rcases lem with ⟨b, lem⟩
+           have e := Kinding.inver_all_kind lem; cases e
+           assumption; apply e; assumption
+         · constructor; assumption; assumption
+       case term x T a arg =>
+         cases j2
+         case _ X jk j1 j2 =>
+         replace ih1 := ih G Δ Γ t (X -:> A) wf j2
+         rcases ih1 with ⟨B, h1, h2, h3⟩
+         exists B
+         constructor;
+         · apply SpineType.term jk j1;
+           · constructor; assumption; apply lem
+           apply h1
+         · constructor;
+           assumption; assumption
+       case oterm x T a arg j2 =>
+         cases j2
+         case _ X jk j1 j2 =>
+         replace ih1 := ih G Δ Γ t (X -:> A) wf j2
+         rcases ih1 with ⟨B, h1, h2, h3⟩
+         exists B
+         constructor;
+         · apply SpineType.oterm jk j1 h1
+         · constructor; assumption; assumption
+   )
+   G Δ Γ t A wf j

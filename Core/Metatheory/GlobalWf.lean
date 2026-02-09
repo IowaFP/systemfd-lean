@@ -71,7 +71,10 @@ theorem wf_lookup_type_sound : -- needs weakning
 theorem GlobalWf.lookup_defn_type_exists {G : List Global} {Δ : List Kind} {Γ : List Ty} :
   ⊢ G ->
   lookup_defn G x = some t ->
-  ∃ T b, lookup_type G x = some T ∧ G&Δ ⊢ T : .base b := by sorry
+  ∃ T b, lookup_type G x = some T ∧ G&Δ ⊢ T : .base b := by
+intro wf h
+unfold lookup_defn at h
+sorry
 
 theorem GlobalWf.lookup_defn_type {G : List Global} {Δ : List Kind} {Γ : List Ty} :
   ⊢ G ->

@@ -246,7 +246,7 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
       rcases h5 with ⟨sp', h6, h7⟩
       have h8 := Spine.apply_eq h7
       rw[h8] at j2
-      have lem3 := Typing.inversion_apply_spine j2
+      have lem3 := Typing.inversion_apply_spine wf j2
       rcases lem3 with ⟨T', h9, h10, h11⟩
       have e := Typing.unique_var_typing lem1 h10; cases e
       have lem4 : SpineType G Δ Γ sp B T := by
@@ -270,7 +270,7 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
       rcases h5 with ⟨sp', h6, h7⟩
       have h8 := Spine.apply_eq h7
       rw[h8] at j2
-      have lem3 := Typing.inversion_apply_spine j2
+      have lem3 := Typing.inversion_apply_spine wf j2
       rcases lem3 with ⟨T', h9, h10, h11⟩
       have e := Typing.unique_var_typing lem1 h10; cases e
       have lem4 : SpineType G Δ Γ sp B T := by
@@ -289,7 +289,7 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
       rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
       have h8 := Spine.apply_eq (Eq.symm h2)
       rw[h8] at j3
-      have lem3 := Typing.inversion_apply_spine j3
+      have lem3 := Typing.inversion_apply_spine wf j3
       rcases lem3 with ⟨T', h9, h10, h11⟩
       have e := Typing.unique_var_typing lem1 h10; cases e
       apply SpineType.apply lem2 h9
@@ -351,7 +351,7 @@ case appt f _ _ a _ j1 j2 _ _ =>
       rcases h5 with ⟨sp', h6, h7⟩
       have h8 := Spine.apply_eq h7
       rw[h8] at j1
-      have lem3 := Typing.inversion_apply_spine j1
+      have lem3 := Typing.inversion_apply_spine wf j1
       rcases lem3 with ⟨T', h9, h10, h11⟩
       have e := Typing.unique_var_typing lem1 h10; cases e
       have lem4 : SpineType G Δ Γ sp P' T := by
@@ -371,7 +371,7 @@ case appt f _ _ a _ j1 j2 _ _ =>
       rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
       have h8 := Spine.apply_eq (Eq.symm h2)
       rw[h8] at j3
-      have lem3 := Typing.inversion_apply_spine j3
+      have lem3 := Typing.inversion_apply_spine wf j3
       rcases lem3 with ⟨T', h9, h10, h11⟩
       have e := Typing.unique_var_typing lem1 h10; cases e
       apply SpineType.apply lem2 h9
