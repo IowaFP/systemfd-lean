@@ -66,7 +66,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ #x A
 | global :
   lookup_type G x = some A ->
-  G&Δ ⊢ A : K -> -- I suspect this K = base b
+  G&Δ ⊢ A : .base b ->
   Typing G Δ Γ g#x A
 --------------------------------------------------------------------------------------
 ---- Matches

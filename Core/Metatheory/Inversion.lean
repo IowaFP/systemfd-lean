@@ -83,7 +83,8 @@ case _ hd tl ih =>
       have lem := ValidInstTy.base_kinded h2
       cases lem; case _ b lem =>
       exists b;
-      sorry
+      sorry -- requires weakening for globals
+
     sorry
 
 
