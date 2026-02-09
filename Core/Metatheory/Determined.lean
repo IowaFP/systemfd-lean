@@ -2,6 +2,7 @@ import LeanSubst
 import Core.Term
 import Core.Reduction
 import Core.Typing
+import Core.Metatheory.SpineType
 
 open LeanSubst
 
@@ -54,10 +55,13 @@ inductive InstTrace where
 | lam : InstTrace -> InstTrace
 | tlam : InstTrace -> InstTrace
 
-inductive InstTraceElem where
-| bound : String -> Nat -> InstTraceElem
-| applied : String -> String -> InstTraceElem
-| lam : InstTraceElem
+@[simp]
+def InstTrace.arity : InstTrace -> Nat
+| nil => 0
+| bound _ _ tr => tr.arity
+| applied _ _ tr => tr.arity
+| lam tr => tr.arity + 1
+| tlam tr => tr.arity + 1
 
 -- @[simp]
 -- def InstTraceElem.contains (i : Nat) : InstTraceElem -> Bool
@@ -169,6 +173,8 @@ inductive GetInstTrace (G : List Global) : List Kind -> List Ty -> Term -> InstT
 | guard_applied :
   p.spine = some (px, sp1) ->
   s.spine = some (sx, sp2) ->
+  prefix_equal sp1 sp2 = some q ->
+  (∀ (i : Nat) a, q[i]? = some (.oterm a) -> a.spine.isSome) ->
   GetInstTrace G Δ Γ t tr ->
   GetInstTrace G Δ Γ (.guard p s t) (.applied px sx tr)
 
@@ -192,6 +198,32 @@ inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
   GetSpineTrace sp tr ->
   GetSpineTrace (.type A :: sp) (.type :: tr)
 
+@[simp]
+def get_spine_trace : List SpineElem -> Option SpineTrace
+| .nil => return []
+| .cons (.term _) sp => do
+  let sp <- get_spine_trace sp
+  .term :: sp
+| .cons (.oterm a) sp => do
+  let sp <- get_spine_trace sp
+  let (x, _) <- a.spine
+  .oterm x :: sp
+| .cons (.type _) sp => do
+  let sp <- get_spine_trace sp
+  .type :: sp
+
+theorem get_spine_trace_iff :
+  (∀ (i : Nat) a, sp[i]? = some (.oterm a) -> a.spine.isSome) ->
+  GetSpineTrace sp tr <-> get_spine_trace sp = some tr
+:= by
+  sorry
+
+theorem get_spine_trace_wf :
+  (∀ (i : Nat) a, sp[i]? = some (.oterm a) -> a.spine.isSome) ->
+  ∃ tr, get_spine_trace sp = some tr
+:= by
+  sorry
+
 inductive TraceMatch : InstTrace -> SpineTrace -> Prop where
 | base : TraceMatch .nil sp
 | term :
@@ -208,47 +240,80 @@ inductive TraceMatch : InstTrace -> SpineTrace -> Prop where
   x = y ->
   TraceMatch (.applied x y tr) sp
 
-theorem spine_has_base_type {t : Term} :
-  G&Δ,Γ ⊢ t.apply sp : T ->
-  ∃ B, G&Δ,Γ ⊢ t.apply sp : B ∧ TypeMatch B T
-:= by
-  intro j; induction sp generalizing t T <;> simp [Term.apply] at *
-  case nil =>
-    exists T; apply And.intro j
-    apply TypeMatch.refl
-  case cons hd tl ih =>
-    cases hd
-    all_goals apply ih j
-
-theorem lambda_spine_forces_term :
-  G&Δ,Γ ⊢ (λ[A]t).apply sp : T ->
-  ∃ a, ∃ (sp' : List SpineElem), sp = (.term a :: sp')
-:= by
-  intro j
-  sorry
-
 theorem InstTrace.trace_match_reduce :
   GetInstTrace G Δ Γ t itr ->
   GetSpineTrace sp str ->
   TraceMatch itr str ->
+  str.length ≥ itr.arity ->
+  G&Δ,Γ ⊢ t.apply sp : T ->
   ∃ t', Star (Red G) (t.apply sp) t' ∧ t'.Determined
 := by
-  sorry
+  intro j1 j2 j3 j4 j5
+  induction itr generalizing Δ Γ t sp str T
+  case nil => sorry
+  case lam => sorry
+  case tlam => sorry
+  case bound x n itr ih => cases j3
+  case applied x y itr ih =>
+    cases j3; case _ e j3 =>
+    cases j1; case _ sp1 sp2 q t p s q1 q2 q3 q4 q5 =>
+
+    sorry
+  -- induction j3 generalizing Δ Γ t sp T
+  -- case base str =>
+  --   cases j1; case _ j1 =>
+  --   sorry
+  -- case term tr str' j ih =>
+  --   cases j1; case _ A t j1 =>
+  --   cases j2; case _ sp a j2 =>
+  --   replace j1 : GetInstTrace G Δ Γ t[su a::+0] tr[+1:String] := sorry
+  --   replace j5 : G&Δ,Γ ⊢ (t[su a::+0]).apply sp : T := by sorry
+  --   simp at j4; replace j4 : str'.length ≥ tr[+1:String].arity := by sorry
+  --   obtain ⟨t', ih1, ih2⟩ := ih j1 j2 j4 j5
+  --   sorry
+  -- case oterm y tr str' j ih =>
+  --   cases j1; case _ A t j1 =>
+  --   cases j2; case _ sp'' spa a q1 j2 =>
+  --   replace j1 : GetInstTrace G Δ Γ t[su a::+0] tr[su y::+0:String] := by sorry
+  --   replace j5 : G&Δ,Γ ⊢ (t[su a::+0]).apply sp'' : T := by sorry
+  --   simp at j4; replace j4 : str'.length ≥ tr[su y::+0:String].arity := by sorry
+  --   obtain ⟨t', ih1, ih2⟩ := ih j1 j2 j4 j5
+  --   sorry
+  -- case type =>
+  --   sorry
+  -- case guard tr str' x y j e ih =>
+  --   cases j1; case _ sp1 sp2 q t p s q1 q2 q3 q4 j1 =>
+  --   obtain ⟨qtr, lem1⟩ := get_spine_trace_wf q2
+  --   replace lem1 := get_spine_trace_iff.2 lem1 q2
+  --   replace j5 : G&Δ,Γ ⊢ t.apply (q ++ sp) : T := by sorry
+  --   replace j2 : GetSpineTrace (q ++ sp) (qtr ++ str') := by sorry
+  --   obtain ⟨t', ih1, ih2⟩ := ih j1 j2 j4 j5
+
+  --   sorry
 
 theorem InstTrace.trace_miss_reduce :
   GetInstTrace G Δ Γ t itr ->
   GetSpineTrace sp str ->
   ¬ TraceMatch itr str ->
+  str.length ≥ itr.arity ->
   G&Δ,Γ ⊢ t.apply sp : T ->
   Star (Red G) (t.apply sp) `0
 := by
-  intro j1 j2 j3 j4
+  intro j1 j2 j3 j4 j5
   induction j1 generalizing sp str T
   case base =>
     exfalso; apply j3; apply TraceMatch.base
   case lam Δ A Γ t tr j ih =>
+    cases sp
+    case nil => cases j2; simp at j4
+    case cons hd tl =>
+      cases hd <;> simp [Term.apply] at *
+      case type => sorry
+      case term a =>
 
-    sorry
+        sorry
+      case oterm =>
+        sorry
   case tlam =>
     sorry
   case guard_bound =>

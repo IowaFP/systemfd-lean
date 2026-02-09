@@ -248,8 +248,8 @@ inductive TypeMatch : Ty -> Ty -> Prop
 | arrow :
   TypeMatch B R ->
   TypeMatch (A -:> B) R
-| all :
-  TypeMatch B R ->
+| all A :
+  TypeMatch B[su A::+0] R ->
   TypeMatch (∀[K] B) R
 
 inductive SpineType (G : List Global) : (Δ : List Kind) -> (Γ : List Ty) -> List SpineElem -> Ty -> Ty -> Prop where

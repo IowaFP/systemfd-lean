@@ -7,7 +7,7 @@ def prefix_equal [BEq T] : List T -> List T -> Option (List T)
 | .cons x1 t1, .cons x2 t2 => if x1 == x2 then prefix_equal t1 t2 else .none
 
 theorem prefix_equal_law [BEq T] [LawfulBEq T] {p t1 t2 : List T}
-  : .some p = prefix_equal t1 t2 -> t2 = t1 ++ p
+  : prefix_equal t1 t2 = some p -> t2 = t1 ++ p
 := by
 intro h
 induction t1, t2 using prefix_equal.induct generalizing p
