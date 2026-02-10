@@ -11,108 +11,9 @@ import Core.Metatheory.GlobalWf
 import Core.Metatheory.Uniqueness
 import Core.Metatheory.Inversion
 import Core.Metatheory.SpineType
+import Core.Metatheory.Preservation.Lemmas
 
 open LeanSubst
-
-theorem instance_type_preservation :
-  ⊢ G ->
-  G&Δ, Γ ⊢ g#x : T ->
-  is = instances x G ->
-  ∀ t ∈ is, ∀ Δ Γ, G&Δ, Γ ⊢ t : T := by
-intro wf j h t t_in_is
-sorry
-
-theorem lookup_defn_type_sound :
-  ⊢ G ->
-  lookup x G = .some (Entry.defn y T t) ->
-  ∀ Δ Γ, G&Δ, Γ ⊢ t : T := by
-intro wf h
-induction G <;> simp [lookup] at *
-case _ hd tl ih =>
-  cases wf; case _ wfh wft =>
-  cases hd <;> simp [lookup] at *
-  case data =>
-    sorry
-  case opent => sorry
-  case openm => sorry
-  case defn => sorry
-  case inst => sorry
-  case instty =>
-    split at h
-    cases h
-    replace ih := ih wfh h
-    sorry -- need weakening on globals
-
-
-
-theorem Typing.foldr_preservation_choiceₗ :
-    G&Δ ⊢ B : .base b ->
-    G&Δ, Γ ⊢ a : B ->
-    (∀ t ∈ is,  G&Δ, Γ ⊢ t : B) ->
-    G&Δ, Γ ⊢ List.foldr (λ t acc => t `+ acc) a is : B := by
-intro h1 h2 h3 ; induction is using List.foldr.induct <;> simp at *
-assumption
-case _ ih =>
-  apply Typing.choice
-  apply h1;
-  apply h3.1
-  apply ih h3.2
-
-theorem Typing.foldr_preservation :
-  G&Δ ⊢ T : .base b ->
-  (∀ t ∈ is, G&Δ, Γ ⊢ t : T) ->
-  G&Δ, Γ ⊢ List.foldr (·`+·) `0 is : T := by
-intro j h
-induction is <;> simp at *
-constructor; assumption
-case _ hd tl ih =>
-  apply Typing.choice
-  apply j
-  apply h.1
-  apply ih h.2
-
-
-theorem fix_quantifiers {is : List Term} {Δ : List Kind} {Γ : List Ty} :
-  (∀ t ∈ is, ∀ Δ Γ, G&Δ, Γ ⊢ t : T) ->
-  (∀ t ∈ is, G&Δ, Γ ⊢ t : T) := by
-intro h
-intro t h1
-apply h t h1
-
-theorem preservation_prefix_match_lemma :
-  a.spine = some (x, sp) ->
-  G&Δ,Γ ⊢ a : A ->
-  G&Δ,Γ ⊢ a.apply ξ : R ->
-  G&Δ,Γ ⊢ t : B ->
-  StableTypeMatch Δ A R ->
-  PrefixTypeMatch Δ A B T ->
-  G&Δ,Γ ⊢ t.apply ξ : T := by
-intro h1 h2 h3 h4 h5 h6
-induction ξ generalizing G Δ Γ A R B a t x sp <;> simp [Term.apply] at *
-case _ =>
-  have leme := Typing.spine_term_unique_typing h2 h3 h1; subst leme
-  sorry
-case _ => sorry
-
-
-
-theorem preservation_prefix_match {p s t : Term} :
-  G&Δ,Γ ⊢ p : A ->
-  G&Δ,Γ ⊢ s : R ->
-  G&Δ,Γ ⊢ t : B ->
-  StableTypeMatch Δ A R ->
-  PrefixTypeMatch Δ A B T ->
-  prefix_equal sp sp' = some ξ ->
-  p.spine = some (x, sp) ->
-  s.spine = some (x, sp') ->
-  G&Δ,Γ ⊢ t.apply ξ : T
-:= by
-intro j1 j2 j3 j4 j5 j6 j7 j8
-replace j6 := prefix_equal_law (Eq.symm j6); subst j6
-have h7 := Spine.apply_eq j7; subst h7
-replace j8 := Spine.apply_eq j8; subst j8
-rw [Spine.apply_spine_compose] at j2
-apply preservation_prefix_match_lemma j7 j1 j2 j3 j4 j5
 
 
 theorem preservation_lemma :
@@ -156,7 +57,7 @@ case global =>
 case mtch =>
   cases h
   case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 _ _ _ _ x _ _ i patshapes' patshapes h6 h7 h8 h9 h10 =>
-    apply preservation_prefix_match
+    apply preservation_prefix_match wf
     apply (h2 i)
     apply j1
     apply h4 i
@@ -190,7 +91,7 @@ case mtch =>
 case guard =>
   cases h
   case guard_matched h1 h2 h3 h4 h5 h6 h7 _ _ _ _ _ _ _ h8 h9 h10 =>
-    apply preservation_prefix_match
+    apply preservation_prefix_match wf
     apply h1
     apply h2
     apply h3

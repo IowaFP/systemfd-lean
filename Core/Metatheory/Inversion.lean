@@ -248,3 +248,23 @@ apply @List.reverse_ind SpineElem
          · constructor; assumption; assumption
    )
    G Δ Γ t A wf j
+
+
+theorem StableTypeMatch.refl_inversion {A : Ty} :
+  StableTypeMatch Δ A A ->
+  ∃ x, A.spine = some x := by
+intro h; cases h <;> simp [*, Ty.spine]
+case _ h =>
+  sorry
+case _ h => sorry
+
+theorem StableTypeMatch.prefix_type_match_forced_refl :
+  StableTypeMatch Δ A A ->
+  PrefixTypeMatch Δ A B T ->
+  B = T := by
+intro h1 h2
+have lem := StableTypeMatch.refl_inversion h1
+cases h2
+case _ => rfl
+all_goals
+  (case _ => rcases lem with ⟨_, lem⟩; simp [Ty.spine] at lem)

@@ -5,9 +5,6 @@ import Core.Util
 
 open LeanSubst
 
-
-
-
 theorem subst_lift [RenMap T] (σ : Subst T) :
   x < n ->
   rep Subst.lift σ n x = re x
@@ -239,16 +236,6 @@ case _ f a ih1 ih2 => cases j; case _ spf j =>
   simp
   assumption
 
-theorem Global.type_rename_noop (G : List Global) (p : String) (r : Ren) : ⊢ G ->
-  ctor_ty p G = .some B ->
-  B[r] = B := by
-intro wf h
-unfold ctor_ty at h
-generalize ludef : lookup_type G p = lu at *
-cases lu <;> simp at *
-rcases h with ⟨h1, h2⟩; cases h2
-apply GlobalWf.closed wf ludef
-
 theorem Typing.rename_type Δr (r : Ren) :
   ⊢ G ->
   (∀ i, Δ[i]? = Δr[r i]?) ->
@@ -475,3 +462,7 @@ theorem Typing.rename Γr (r : Ren) :
 
 theorem Typing.weaken T : ⊢ G -> G&Δ,Γ ⊢ t : A -> G&Δ,(T::Γ) ⊢ t[+1] : A := by
   intro wf j; apply rename (T::Γ) (· + 1) wf _ j; simp
+
+
+-- theorem EntryWf.rename (r : Ren) :
+--   EntryWf G e ->

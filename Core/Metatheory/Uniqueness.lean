@@ -18,6 +18,22 @@ case _ j1 _ _ j2 =>
 rw[j1] at j2; injection j2
 
 
+theorem ValidTyHeadVariable.no_valid_head_with_all :
+  ¬ ValidTyHeadVariable (∀[A]B) test
+:= by
+intro h; unfold ValidTyHeadVariable at h
+cases h; case _ x h =>
+cases h; case _ h1 h2 =>
+  simp [Ty.spine] at h1
+
+theorem ValidTyHeadVariable.no_valid_head_with_arrow :
+  ¬ ValidTyHeadVariable (A -:> B) test
+:= by
+intro h; unfold ValidTyHeadVariable at h
+cases h; case _ x h =>
+cases h; case _ h1 h2 =>
+  simp [Ty.spine] at h1
+
 theorem Typing.spine_term_unique_typing :
   G&Δ,Γ ⊢ a : A ->
   G&Δ,Γ ⊢ a : T ->
@@ -68,3 +84,42 @@ case app jf ja ih1 ih2  =>
   cases j2; case _ j1 j2 =>
   replace ih2 := ih2 j1; cases ih2
   replace ih1 := ih1 j2; cases ih1; rfl
+
+
+
+theorem PrefixTypeMatch.uniqueness :
+  PrefixTypeMatch Δ U V A ->
+  PrefixTypeMatch Δ U V B ->
+  A = B := by
+intro j1 j2
+induction V generalizing  Δ U A B
+any_goals try (
+  case _ =>
+    cases j1; case _ j1 =>
+    cases j2; case _ j2 =>
+      rfl
+)
+case arrow ih1 ih2 =>
+  cases j1
+  case _ =>
+    cases j2
+    case _ h1 _ h2 => rw[h1] at h2
+    case _ h _ => simp [Ty.spine] at h
+  case _ =>
+    cases j2
+    case _ h => simp [Ty.spine] at h
+    case _ h1 h2 => apply ih2 h1 h2
+
+case all ih =>
+  cases j1
+  case _ =>
+    cases j2
+    case _ h1 _ h2 => rw[h1] at h2
+    case _ h _ => simp [Ty.spine] at h
+  case _ =>
+    cases j2
+    case _ h => simp [Ty.spine] at h
+    case _ h1 h2 =>
+      replace ih := ih h1 h2
+      have lem : A[+1][-1] = B[+1][-1] := by rw[ih];
+      simp at lem; apply lem
