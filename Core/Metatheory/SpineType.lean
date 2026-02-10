@@ -42,5 +42,27 @@ theorem SpineType.apply :
   G&Δ, Γ ⊢ t : T ->
   SpineType G Δ Γ sp B T ->
   G&Δ, Γ ⊢ t.apply sp : B := by
+intro j1 j2
+induction j2 generalizing t <;> simp [Term.apply] at *
+assumption
+all_goals (rw[Spine.apply_spine_compose]; simp [Term.apply])
+case term j2 j3 j4 j5 ih =>
+  apply Typing.app j2 (ih j1) j3
+case oterm j3 j4 j5 ih =>
+ apply Typing.app j3 (ih j1) j4
+case type j2 j3 e j4 ih =>
+ apply Typing.appt (ih j1) j2 e
 
-sorry
+
+theorem Typing.replace_head_regular :
+  ⊢ G ->
+  a.spine = some (x, sp') ->
+  G&Δ, Γ ⊢ a : T ->
+  G&Δ, Γ ⊢ b : T ->
+  G&Δ, Γ ⊢ a.apply sp : B ->
+  G&Δ, Γ ⊢ b.apply sp : B := by
+intro wf j1 j2 j3 j4
+have lem := Typing.inversion_apply_spine wf j4
+rcases lem with ⟨B', h1, h2, h3⟩
+have e := Typing.spine_term_unique_typing j2 h2 j1; cases e
+apply SpineType.apply j3 h1

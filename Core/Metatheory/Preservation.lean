@@ -47,17 +47,16 @@ case _ hd tl ih =>
 
 theorem Typing.foldr_preservation_choiceₗ :
     G&Δ ⊢ B : .base b ->
-    (∀ t ∈ is,  G&Δ, Γ ⊢ t : T) ->
-    SpineType G Δ Γ sp B T ->
-    G&Δ, Γ ⊢ List.foldr (λ t acc => t.apply sp `+ acc) `0 is : B := by
-intro h1 h2 h3; induction is using List.foldr.induct <;> simp at *
-case _ => apply Typing.zero; assumption
-case _ i is ih =>
-   rcases h2 with ⟨h2, h4⟩
-   apply Typing.choice
-   assumption
-   apply SpineType.apply h2 h3
-   apply ih h4
+    G&Δ, Γ ⊢ a : B ->
+    (∀ t ∈ is,  G&Δ, Γ ⊢ t : B) ->
+    G&Δ, Γ ⊢ List.foldr (λ t acc => t `+ acc) a is : B := by
+intro h1 h2 h3 ; induction is using List.foldr.induct <;> simp at *
+assumption
+case _ ih =>
+  apply Typing.choice
+  apply h1;
+  apply h3.1
+  apply ih h3.2
 
 theorem Typing.foldr_preservation :
   G&Δ ⊢ T : .base b ->
@@ -133,14 +132,14 @@ case global =>
   case inst h _ =>
     simp [Term.spine] at h; rcases h with ⟨e1, e2⟩; cases e1; cases e2;
     simp [Term.apply] at *
-    case _ x A Δ K Γ h1 h2 _ tl _ _ _ _ is _ _ e =>
-    cases e
+    case _ x A Δ K Γ h1 h2 _ tl _ _ is _ _ e =>
     have lem : G&Δ, Γ ⊢ g#x : A := by constructor; apply h1; apply h2
     replace lem := instance_type_preservation wf lem is
     cases is; case _ e =>
     cases e
     have lem' := GlobalWf.extract_kinding (Δ := Δ) (T := A) wf h1
-    cases lem';
+    cases lem'; case _ _ h =>
+    replace lem := fix_quantifiers (Δ := Δ) (Γ := Γ) lem
     apply Typing.foldr_preservation
     assumption
     intro t h
@@ -232,68 +231,61 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
   all_goals (try case _ h _ _ => simp at h)
   case beta =>
     cases j2; apply Typing.beta wf; assumption; assumption
-  case inst Δ _ Γ x sp T _ _ _ _ h1 h2 h3 h4 h5 h6 =>
-    cases b
-    case closed =>
-      have lem := Typing.well_typed_terms_have_base_kinds wf j2
-      cases lem; case _ lem =>
-      cases lem; case _ j6 j7 =>
-      have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
-      cases Tkj; case _ b Tkj =>
-      have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
-      have lem2 := @instance_type_preservation _ _ _ _ _ _ wf lem1 h3
-      symm at h5; replace h5 := Spine.app_closed_eq.1 h5
-      rcases h5 with ⟨sp', h6, h7⟩
-      have h8 := Spine.apply_eq h7
-      rw[h8] at j2
-      have lem3 := Typing.inversion_apply_spine wf j2
-      rcases lem3 with ⟨T', h9, h10, h11⟩
-      have e := Typing.unique_var_typing lem1 h10; cases e
-      have lem4 : SpineType G Δ Γ sp B T := by
-        rw[h6]; apply SpineType.term
-        apply j1; apply j3; (constructor; assumption; assumption)
-        apply h9
-      replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
-      have lem5 := Typing.foldr_preservation_choiceₗ j7 lem2 lem4
-      cases h3; cases h4; cases h6;
-      rw[List.foldr_map]; apply lem5
+  case inst Δ _ Γ x sp T _ _ _ h1 h2 h3 h4 h5 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j2
+    rcases lem with ⟨bk, lem⟩
+    cases lem; case _ lemj1 lemj2 =>
+    have e := Kinding.unique j1 lemj1; cases e
+    have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
+    cases Tkj; case _ bk Tkj =>
+    have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
+    have lem2 := instance_type_preservation wf lem1 h3
+    replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
+    have zero_typing : G&Δ, Γ ⊢ `0 : T := by apply Typing.zero; assumption
 
-    case «open» =>
-      have lem := Typing.well_typed_terms_have_base_kinds wf j2
-      cases lem; case _ lem =>
-      cases lem; case _ j6 j7 =>
-      have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
-      cases Tkj; case _ b Tkj =>
-      have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
-      have lem2 := @instance_type_preservation _ _ _ _ _ _ wf lem1 h3
-      symm at h5; replace h5 := Spine.app_open_eq.1 h5
-      rcases h5 with ⟨sp', h6, h7⟩
-      have h8 := Spine.apply_eq h7
-      rw[h8] at j2
-      have lem3 := Typing.inversion_apply_spine wf j2
-      rcases lem3 with ⟨T', h9, h10, h11⟩
-      have e := Typing.unique_var_typing lem1 h10; cases e
-      have lem4 : SpineType G Δ Γ sp B T := by
-        rw[h6]; apply SpineType.oterm
-        apply j1; apply j3; apply h9
-      replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
-      have lem5 := Typing.foldr_preservation_choiceₗ j7 lem2 lem4
-      cases h3; cases h4; cases h6;
-      rw[List.foldr_map]; apply lem5
+    have lem := Typing.foldr_preservation_choiceₗ Tkj zero_typing lem2
+    cases b
+    case _ =>
+      have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
+      have j4 := Typing.app j1 j2 j3
+      have lem2 := Spine.app_closed_eq.1 (Eq.symm h4)
+      rcases lem2 with  ⟨sp', e, lem2⟩
+      replace h4 := Spine.apply_eq (Eq.symm h4); rw[h4] at j4
+
+      have lem := Typing.replace_head_regular wf xnf lem1 lem j4
+      cases h3; cases h5
+      apply lem
+    case _ =>
+    case _ =>
+      have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
+      have j4 := Typing.app j1 j2 j3
+      have lem2 := Spine.app_open_eq.1 (Eq.symm h4)
+      rcases lem2 with  ⟨sp', e, lem2⟩
+      replace h4 := Spine.apply_eq (Eq.symm h4); rw[h4] at j4
+
+      have lem := Typing.replace_head_regular wf xnf lem1 lem j4
+      cases h3; cases h5
+      apply lem
   case defn Δ _ Γ x sp t h1 h2 =>
-      have j3 := Typing.app j1 j2 j3
+      have j4 := Typing.app j1 j2 j3
       have lem := Typing.well_typed_terms_have_base_kinds wf j2
       cases lem; case _ lem =>
       cases lem; case _ j6 j7 =>
       have lem1 := GlobalWf.lookup_defn_type (G := G) (Δ := Δ) (Γ := Γ) wf h1
-      rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
+      rcases lem1 with ⟨T,_, lem1, lem2, lem3⟩
       have h8 := Spine.apply_eq (Eq.symm h2)
-      rw[h8] at j3
-      have lem3 := Typing.inversion_apply_spine wf j3
-      rcases lem3 with ⟨T', h9, h10, h11⟩
-      have e := Typing.unique_var_typing lem1 h10; cases e
-      apply SpineType.apply lem2 h9
-
+      rw[h8] at j4
+      cases b
+      case _ =>
+         have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
+         replace h4 := Spine.apply_eq (Eq.symm h2);
+         have lem := Typing.replace_head_regular wf xnf lem1 lem2 j4
+         apply lem
+      case _ =>
+         have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
+         replace h4 := Spine.apply_eq (Eq.symm h2);
+         have lem := Typing.replace_head_regular wf xnf lem1 lem2 j4
+         apply lem
   case ctor2_congr1 h =>
     apply Typing.app
     assumption
@@ -339,30 +331,24 @@ case appt f _ _ a _ j1 j2 _ _ =>
       rw[<-fdef]; simp
     rw[lem2] at lem
     assumption
-  case inst Δ Γ K P P' e _ x sp T _ _ _ _ h1 h2 h3 h4 h5 h6 =>
-      have lem := Typing.well_typed_terms_have_base_kinds wf j1
-      cases lem; case _ lem =>
-      cases lem; case _ j6 j7 =>
-      have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
-      cases Tkj; case _ b Tkj =>
-      have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
-      have lem2 := instance_type_preservation wf lem1 h3
-      symm at h5; replace h5 := Spine.appt_eq.1 h5
-      rcases h5 with ⟨sp', h6, h7⟩
-      have h8 := Spine.apply_eq h7
-      rw[h8] at j1
-      have lem3 := Typing.inversion_apply_spine wf j1
-      rcases lem3 with ⟨T', h9, h10, h11⟩
-      have e := Typing.unique_var_typing lem1 h10; cases e
-      have lem4 : SpineType G Δ Γ sp P' T := by
-        rw[h6]; apply SpineType.type
-        apply j2; (constructor; assumption); apply e
-        apply h9
-      replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
-      cases h3; cases h4; cases h6; subst e
-      rw[List.foldr_map];
-      have lem5 := Typing.foldr_preservation_choiceₗ (sp := sp) (Kinding.beta j7 j2) lem2 lem4
-      apply lem5
+  case inst Δ Γ K P P' e _ x sp T _ _ _ h1 h2 h3 h4 h5 =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j1
+    rcases lem with ⟨bk, lem⟩
+    cases lem; case _ lemj1 =>
+    have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
+    cases Tkj; case _ b Tkj =>
+    have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
+    have lem2 := instance_type_preservation wf lem1 h3
+    replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
+    have zero_typing : G&Δ, Γ ⊢ `0 : T := by apply Typing.zero; assumption
+
+    have lem := Typing.foldr_preservation_choiceₗ Tkj zero_typing lem2
+    have app_ty := Typing.appt j1 j2 e
+    have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
+    replace h4 := Spine.apply_eq (Eq.symm h4); rw[h4] at app_ty
+    have lem := Typing.replace_head_regular wf xnf lem1 lem app_ty
+    cases h5
+    apply lem
   case defn Δ Γ _ _ _ e _ x sp t h1 h2 =>
       have j3 := Typing.appt j1 j2 e
       have lem := Typing.well_typed_terms_have_base_kinds wf j3
@@ -371,10 +357,11 @@ case appt f _ _ a _ j1 j2 _ _ =>
       rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
       have h8 := Spine.apply_eq (Eq.symm h2)
       rw[h8] at j3
-      have lem3 := Typing.inversion_apply_spine wf j3
-      rcases lem3 with ⟨T', h9, h10, h11⟩
-      have e := Typing.unique_var_typing lem1 h10; cases e
-      apply SpineType.apply lem2 h9
+      have app_ty := Typing.appt j1 j2 e
+      have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
+      have lem := Typing.replace_head_regular wf xnf lem1 lem2 j3
+      apply lem
+
   case ctor1_congr ih _ h =>
     apply Typing.appt
     apply ih h

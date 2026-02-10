@@ -74,6 +74,7 @@ theorem GlobalWf.lookup_defn_type_exists {G : List Global} {Δ : List Kind} {Γ 
   ∃ T b, lookup_type G x = some T ∧ G&Δ ⊢ T : .base b := by
 intro wf h
 unfold lookup_defn at h
+generalize zdef : lookup x G = z at *
 sorry
 
 theorem GlobalWf.lookup_defn_type {G : List Global} {Δ : List Kind} {Γ : List Ty} :

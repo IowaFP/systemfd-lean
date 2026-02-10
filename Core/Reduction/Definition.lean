@@ -111,8 +111,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   some T = lookup_type G x ->
   sp.length ≥ T.arity ->
   tl = instances x G ->
-  tl' = List.map (·.apply sp) tl ->
-  h' = List.foldr (·`+·) `0 tl' ->
+  h' = (List.foldr (·`+·) `0 tl).apply sp ->
   Red G h h'
 ----------------------------------------------------------------
 ---- Global Definitions

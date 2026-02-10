@@ -5,6 +5,9 @@ import Core.Util
 
 open LeanSubst
 
+
+
+
 theorem subst_lift [RenMap T] (σ : Subst T) :
   x < n ->
   rep Subst.lift σ n x = re x

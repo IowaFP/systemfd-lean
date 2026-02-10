@@ -106,7 +106,7 @@ case ctor2 v f _ ih1 ih2 =>
         rw[h1] at h; cases h
         simp [is_stable] at h2; case _ h2' _ _ _ _ _ =>
         cases h2
-        case _ w _ _ _ _ _ _ _ _ _ h =>
+        case _ w _ _ _ _ _ _ _ h =>
           have lem := @is_stable_implies_not_is_openm x G (by simp [is_stable]; assumption)
           apply lem h2'
         case _ h3 _ _ h4 _ h =>
@@ -127,7 +127,7 @@ case ctor2 v f _ ih1 ih2 =>
         rw[h1] at h; cases h
         simp [is_stable] at h2; case _ h2' _ _ _ _ _ =>
         cases h2
-        case _ w _ _ _ _ _ _ _ _ _ h =>
+        case _ w _ _ _ _ _ _ _ h =>
           have lem := @is_stable_implies_not_is_openm x G (by simp [is_stable]; assumption)
           apply lem h2'
         case _ h3 _ _ h4 _ h =>
