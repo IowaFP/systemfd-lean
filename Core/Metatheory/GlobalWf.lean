@@ -39,10 +39,57 @@ sorry
 theorem GlobalWf.weaken_type :
   ⊢ G ->
   GlobalWf G e ->
-  G&[] ⊢ T : K ->
-  (e :: G)&[] ⊢ T : K := by
-intro wf wfe j
-sorry
+  Δ = [] ->
+  G&Δ ⊢ T : K ->
+  (e :: G)&Δ ⊢ T : K := by
+intro wf wfe e j
+cases wfe
+case data =>
+  induction j
+  case var => subst e; simp at *
+  case global =>
+
+    sorry
+  case arrow => sorry
+  case all => sorry
+  case eq => sorry
+  case app => sorry
+
+case opent K y _ h =>
+  induction j
+  case var => subst e; simp at *
+  case global x K' _ h1 =>
+    apply Kinding.global
+    unfold lookup_kind
+    generalize zdef : lookup x (.opent y K :: G) = z at *
+    cases z;
+    case _ =>
+      simp; simp [lookup] at zdef;
+      split at zdef
+      case _ e =>
+        subst e; simp [lookup_kind] at h1; rw[h] at h1; simp at h1
+      case _ =>  simp [lookup_kind] at h1; rw[zdef] at h1; simp at h1
+    case _ z =>
+      simp; unfold lookup at zdef
+      split at zdef
+      case _ e =>
+        replace e := eq_of_beq e; subst e; simp at zdef; simp[lookup_kind] at h1; rw[h] at h1; simp at h1
+      case _ => simp[lookup_kind] at h1; rw[zdef] at h1; simp at h1; assumption
+  case arrow j1 j2 ih1 ih2 =>
+    apply Kinding.arrow
+    apply ih1 e
+    apply ih2 e
+  case all ih1 =>
+    subst e
+    sorry -- booo!!
+  case eq => sorry
+  case app => sorry
+
+case openm => sorry
+case inst => sorry
+case defn => sorry
+case instty => sorry
+
 
 
 

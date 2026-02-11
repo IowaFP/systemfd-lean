@@ -3,22 +3,20 @@ import Core.Ty
 import Core.Infer.Kind
 import Core.Global
 
--- open LeanSubst
+open LeanSubst
 -- A is the type of the pattern
 -- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
 -- R is the type of the scrutinee
 -- and is of the form T' p' q' r'
 -- we need to make sure T == T' (i.e. it is a datatype or an opent)
-def Ty.stable_type_match : Ty -> Ty -> Option Unit
-| (Ty.all K A), (Ty.all K' R) =>
-  if K == K'
-  then Ty.stable_type_match A R
-  else none
-| A, R =>
+def Ty.stable_type_match : List Kind -> Ty -> Ty -> Option Unit
+| Δ, (Ty.all K A), R => Ty.stable_type_match (K::Δ) A R[+1]
+| Δ, (Ty.arrow _ B), R => Ty.stable_type_match Δ B R
+| _, (Ty.eq _ _ _ ), _ => none
+| _, A, R =>
  do
-  let (tele, sR) := A.telescope
-  let (_, _) <- R.spine
-  if R[λ x => .re (x + tele.count_binders)] == sR -- && (is_opent G x || is_data G x)
+  let _ <- R.spine
+  if A == R -- && (is_opent G x || is_data G x)
   then some ()
   else none
 
@@ -33,7 +31,7 @@ def G : List Global := [
 def R : Ty := gt#"Eq" • t#0
 def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
 
-#eval A.stable_type_match R
+#eval A.stable_type_match [] R
 def ATele := A.telescope.1
 def sR := A.telescope.2
 
@@ -61,8 +59,8 @@ def Ty.prefix_type_match (Δ : List Kind) : Ty -> Ty -> Option Ty
   | (.all K A), (.all K' A') => do
     if K == K'
     then let x <- prefix_type_match (K :: Δ) A A'
-         if x[λ x => .re (x - 1)][λ x => .re (x + 1)] == x
-         then return x[λ x => .re (x - 1)]
+         if x[-1][+1] == x
+         then return x[-1]
          else none
     else none
   | A, T => do
@@ -132,11 +130,13 @@ assumption
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x => do
   let T <- Γ[x]?
-  let _ <- T.infer_kind G Δ
+  let Tk <- T.infer_kind G Δ
+  let _ <- Tk.base_kind
   return T
 | g#x => do
   let T <- lookup_type G x
-  let _ <- T.infer_kind G Δ
+  let Tk <- T.infer_kind G Δ
+  let _ <- Tk.base_kind
   return T
 | .match (n := n) s ps cs c => do
   let R <- s.infer_type G Δ Γ
@@ -153,7 +153,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
     let pTso : Vec (Option Ty) n :=
       λ i => (ps i).infer_type G Δ Γ
     let pTs <- pTso.seq
-    let stmo : Vec (Option Unit) n := λ i => Ty.stable_type_match (pTs i) R
+    let stmo : Vec (Option Unit) n := λ i => Ty.stable_type_match Δ (pTs i) R
     let _ <- stmo.seq
     let Tso : Vec (Option Ty) n :=
       λ i => Ty.prefix_type_match Δ (pTs i) (cTs i)
@@ -168,7 +168,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let R <- s.infer_type G Δ Γ
   let Rk <- R.infer_kind G Δ
   let _ <- Rk.is_open_kind
-  let _ <- Ty.stable_type_match A R
+  let _ <- Ty.stable_type_match Δ A R
   let _ <- R.valid_open_type G
   let _ <- p.valid_inst_type G
   let B <- t.infer_type G Δ Γ
@@ -193,7 +193,9 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if A == A' && bk == bk' then return B else none
 | .tbind .lamt K t => do
   let T <- t.infer_type G (K::Δ) (Γ.map (·[+1]))
-  return (∀[K] T)
+  let Tk <- (∀[K]T).infer_kind G Δ
+  let bk <- Tk.base_kind
+  if bk == b★ then return (∀[K] T) else none
 | .ctor1 (.appt τ) t => do
   let τk <- τ.infer_kind G Δ
   let T <- t.infer_type G Δ Γ

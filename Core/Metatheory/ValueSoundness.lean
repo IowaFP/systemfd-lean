@@ -40,7 +40,7 @@ induction t generalizing x sp G
 any_goals (simp [Term.spine] at h1)
 case global =>
   cases r;
-  case inst h2' _ _ _ _ _ h _ =>
+  case inst h2' _ _ _ _ h _ =>
     simp [is_stable] at h2;   simp [Term.spine] at h
     rcases h1 with ⟨e1, e2⟩; cases e1; cases e2; simp at *
     rcases h with ⟨e1, e2⟩; cases e1; cases e2; simp at *
@@ -79,7 +79,7 @@ case ctor1 v _ ih =>
     rw[h1] at h; cases h
     simp [is_stable] at h2; case _ h2' _ _ _ _ _ =>
     cases h2
-    case _ w _ _ _ _ _ _ _ _ _ h =>
+    case _ w _ _ _ _ _ _ _ h =>
       have lem := @is_stable_implies_not_is_openm w.fst G (by simp [is_stable]; assumption)
       apply lem h2'
     case _ h3 _ _ h4 _ h =>

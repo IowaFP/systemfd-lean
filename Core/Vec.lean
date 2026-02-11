@@ -35,6 +35,7 @@ def Vec.drop : Vec T (n + 1) -> Vec T n
 def Vec.uncons :  Vec T (n + 1) -> T × Vec T n
 | v => (v 0, drop v)
 
+
 protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 | 0, _, _ => ""
 | 1, v, _ => repr (v 0)
@@ -81,6 +82,7 @@ meta def unexpandVecCons : Lean.PrettyPrinter.Unexpander
   | _          => throw ()
 | _ => throw ()
 
+@[simp]
 theorem Vec.nil_singleton (v1 v2 : Vec T 0) : v1 = v2 := by
   funext; case _ i =>
   cases i; case _ i p => cases p
@@ -110,6 +112,7 @@ theorem Vec.cons_iff_uncons {t : Vec T n} : v = h::t <-> uncons v = (h, t) := by
     cases e; case _ e1 e2 =>
     subst e1; subst e2; simp
 
+
 def Vec.induction
   {motive : {n : Nat} -> Vec T n -> Sort u}
   (nc : motive Vec.nil)
@@ -124,6 +127,7 @@ def Vec.induction
     rcases z with ⟨h, t⟩
     have lem := cons_iff_uncons.2 zdef
     rw [lem]; apply cc (ih t)
+
 
 -- theorem Vec.induction1
 --   {motive : Vec T 1 -> Prop}
@@ -267,31 +271,6 @@ match n, v with
 instance instReflBEq_Vec [BEq T] [ReflBEq T] : ReflBEq (Vec T n) where
   rfl := Vec.rfl
 
-def Vec.eq_of_beq [BEq T] [LawfulBEq T] {a b : Vec T n} : (a == b) = true -> a = b := by
-  match n, a, b  with
-  | 0, _, _ => simp [instBEq_Vec] at *
-  | n + 1, v1, v2 =>
-    simp [instBEq_Vec] at *;
-    let (x, v1') := v1.uncons
-    let (y, v2') := v2.uncons
-    generalize v1def : (x, v1') = v1.uncons at *
-    generalize v2def : (y, v2') = v2.uncons at *
-    intro e1 e2
-    rw[<-v1def] at e1; rw[<-v2def] at e1; simp at e1
-    rw[<-v1def] at e2; rw[<-v2def] at e2; simp at e2
-    replace e2 := @Vec.eq_of_beq _ n _ _ v1' v2' e2
-
-    -- match v1.uncons, v2.uncons with
-    -- | (x, v1') , (y, v2') =>
-    --   simp at *;
-    --   intro e1 e2
-    --   replace e2 := @Vec.eq_of_beq _ n _ _ v1' v2' e2
-
-    sorry
-
-
-instance instLawfulBEq_Vec [BEq T] [LawfulBEq T] : LawfulBEq (Vec T n) where
-  eq_of_beq := Vec.eq_of_beq
 
 variable {S T : Type} [RenMap T] [SubstMap S T]
 
@@ -318,10 +297,30 @@ match n with
     ) (false, 0, 0) v
     if found then return Fin.ofNat (n + 1) (n - i) else none
 
+def Vec.indexOf_aux [BEq Q][LawfulBEq Q] (c : Q) (n : Nat) : Nat -> (Vec Q n) -> Option Nat := λ i v =>
+match n, v with
+| 0, _ => none
+| n + 1, v' =>
+    match v'.uncons with
+    | (x, v') => if x == c
+      then i
+      else (Vec.indexOf_aux c n (i + 1) v')
+
+def Vec.indexOf' [BEq Q][LawfulBEq Q] (c : Q) (v : Vec Q n) : Option (Fin n) :=
+match n with
+| 0 => none
+| n + 1 => (Vec.indexOf_aux c (n + 1) 0 v).map (Fin.ofNat (n + 1))
+
+
 #guard Vec.indexOf "x" v["x", "y", "p"] == some 0
 #guard Vec.indexOf "y" v["x", "y", "p"] == some 1
 #guard Vec.indexOf "p" v["x", "y", "p"] == some 2
 #guard Vec.indexOf "z" v["x", "y", "p"] == none
+
+#guard Vec.indexOf' "x" v["x", "y", "p"] == some 0
+#guard Vec.indexOf' "y" v["x", "y", "p"] == some 1
+#guard Vec.indexOf' "p" v["x", "y", "p"] == some 2
+#guard Vec.indexOf' "z" v["x", "y", "p"] == none
 
 def Vec.HasUniqueElems [BEq Q] (v : Vec Q n) := ∀ i j, i ≠ j -> (v i) ≠ (v j)
 
@@ -336,6 +335,43 @@ case _ n ih =>
   match v.uncons with
   | (_, v') =>
     sorry
+
+theorem Vec.indexOf'_le [BEq Q] [LawfulBEq Q] {v : Vec Q n} :
+  v.indexOf' x = some i ->
+  i < n := by
+intro h
+induction n <;> simp at *
+case _ => cases i; simp [indexOf'] at h
+
+theorem Vec.indexOf'_aux_le [BEq Q] [LawfulBEq Q] {v : Vec Q n} :
+  v.indexOf_aux x n 0 = some i ->
+  i < n := by
+intro j
+induction n generalizing i
+case _ => unfold Vec.indexOf_aux at j; cases j
+case _ ih =>
+  unfold Vec.indexOf_aux at j;
+  split at j; simp at j;
+  sorry
+
+
+
+theorem Vec.indexOf'_correct [BEq Q] [LawfulBEq Q] {v : Vec Q n} :
+  v.indexOf' x = some i ->
+  v i = x := by
+intro j; induction n
+case _ => simp [indexOf'] at j
+case _ n ih => sorry
+  -- have lem := Vec.indexOf'_le j
+  -- simp [indexOf', indexOf_aux] at *; rcases j with ⟨n, j1, j2⟩
+  -- have ih' := ih (i := i + 1) (v := v.uncons.snd)
+  -- split at j1
+  -- case _ n _ _ =>
+  --   simp [uncons] at *; subst j1;
+  --   rw[Fin.ofNat_zero] at j2; subst j2; assumption
+  -- case _ n _ _ => sorry
+
+
 
 
 def Vec.seq_lemma (vs : Vec (Option Q) n) :
@@ -380,8 +416,26 @@ theorem Vec.seq_sound {vs : Vec (Option Q) n} {vs' : Vec Q n}:
   vs.seq = some vs' ->
   ∀ i, (vs i) = some (vs' i) := by
 intro h i
+-- simp [Vec.seq, Vec.seq_lemma] at h
+match n with
+| 0 => simp at *; cases i; omega
+| n + 1 =>
+  apply @Fin.inductionOn n i
+  case _ =>
+    simp [Vec.seq, Vec.seq_lemma] at h; split at h <;> simp at *
+    case _ x h' heq =>
+      cases x
+      case _ =>
+        sorry
+      case _ => sorry
+  case _ =>
+    intro j h; simp at *
+    simp [Fin.succ, Fin.castSucc, Fin.castAdd, Fin.castLE] at *;
 
-sorry
+    sorry
+
+
+
 -- Returns the 1st element if all the elements are equal
 def Vec.get_elem_if_eq [BEq Q] (vs : Vec Q n) : Option Q :=
 match n with
@@ -395,7 +449,13 @@ theorem Vec.get_elem_if_eq_sound [BEq Q] {vs : Vec Q n} {t : Q} :
   vs.get_elem_if_eq = some t ->
   ∀ i, vs i = t := by
 intro h i
-sorry
+induction n <;> simp [Vec.get_elem_if_eq, Vec.uncons] at *
+case _ n ih =>
+  replace ih := @ih vs.drop
+  split at ih <;> simp at *
+  sorry
+  revert i; rcases h with ⟨h1, h2⟩; sorry
+
 
 
 def Vec.elems_eq_to [BEq Q] (e : Q) : {n : Nat} -> (vs : Vec Q n) -> Bool
@@ -408,3 +468,10 @@ def Vec.elems_eq_to [BEq Q] (e : Q) : {n : Nat} -> (vs : Vec Q n) -> Bool
 theorem Vec.elems_eq_to_sound [BEq Q] {e : Q} {vs : Vec Q n} :
   vs.elems_eq_to e = true ->
   ∀ i, (vs i) = e := by sorry
+
+theorem vec_size_1 [BEq Q]: Vec Q (0 + 1) = Vec Q 1 := by simp
+
+theorem Vec.uncons_injective [BEq Q] : Function.Injective (α := Vec Q (n + 1)) (β := Q × Vec Q n) Vec.uncons := by
+intro v1 v2; induction n
+sorry
+sorry

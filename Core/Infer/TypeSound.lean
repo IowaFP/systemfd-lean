@@ -61,12 +61,45 @@ all_goals (
 )
 
 theorem Ty.stable_type_match_sound :
-  Ty.stable_type_match A R = .some () ->
-  StableTypeMatch Δ A R := by sorry
+  Ty.stable_type_match Δ A R = .some () ->
+  StableTypeMatch Δ A R := by
+intro h
+induction Δ, A, R using Ty.stable_type_match.induct <;> simp [Ty.stable_type_match] at h
+case _ ih =>
+  replace ih := ih h
+  apply StableTypeMatch.all;
+  assumption
+case _ ih =>
+  replace ih := ih h;
+  apply StableTypeMatch.arrow; assumption
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h1, h⟩
+  simp at h; cases h
+  apply StableTypeMatch.refl
+  assumption
 
 theorem Ty.prefix_type_match_sound :
   Ty.prefix_type_match G A R = .some T ->
-  PrefixTypeMatch G A R T := by sorry
+  PrefixTypeMatch G A R T := by
+intro h
+induction G, A, R using Ty.prefix_type_match.induct generalizing T <;> simp [Ty.prefix_type_match] at h
+all_goals try (case _ h' => simp at h'; exfalso; apply h' h.1)
+case _ e ih =>
+  replace e := eq_of_beq e; cases e;  simp at h;
+  replace ih := ih h
+  constructor; assumption
+case _ h' ih =>
+  rcases h with ⟨e, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨w, h1, h⟩
+  simp at h; rcases h with ⟨h2, h3⟩; subst e
+  replace ih := ih h1
+  have lem : w[-1][+1] = T[+1] := by rw[<-h2]; rw[<-h3]; simp
+  apply PrefixTypeMatch.all;
+  simp at lem; rw[h2] at lem; subst lem
+  assumption
+case _ h =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨w, h1, h⟩
+  cases h; apply PrefixTypeMatch.refl; assumption
 
 
 theorem infer_type_sound :
@@ -75,12 +108,14 @@ theorem infer_type_sound :
   G&Δ, Γ ⊢ t : T := by
 intro wf h
 induction Δ, Γ, t using Term.infer_type.induct generalizing T <;> simp [Term.infer_type] at h
-all_goals (try
+all_goals try (
   case _ =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h1, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h3, h⟩
   cases h
   replace h2 := infer_kind_sound h2 wf
+  replace h3 := Kind.base_kind_sound h3; subst h3
   constructor; assumption; assumption )
 case _ ih1 ih2 ih3 ih4 => -- match
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h1, h⟩
@@ -179,9 +214,16 @@ case _ ih1 ih2 =>
 
 case _ ih =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h1, h⟩
-  cases h
-  replace ih := ih h1
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h3, h⟩
+  simp at h; cases h.1; cases h.2; clear h
+  rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨_, h4, h2⟩
+  replace ih := ih h1; clear h1
+  simp at h2; cases h2.1; cases h2.1; clear h2
+  replace h3 := Kind.base_kind_sound h3; cases h3
+  replace h4 := infer_kind_sound h4 wf
   apply Typing.lamt
+  apply Kinding.all; assumption
   assumption
 
 case _ ih1 =>

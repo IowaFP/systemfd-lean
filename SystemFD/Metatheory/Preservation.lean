@@ -39,8 +39,8 @@ theorem preservation_prefix_match_lemma :
   Γ ⊢ a : A ->
   Γ ⊢ a.apply_spine ξ : R ->
   Γ ⊢ t : B ->
-  StableTypeMatch Γ A R ->
-  PrefixTypeMatch Γ A B T ->
+  StableTypeMatch Γ A R -> -- R is the return type of A
+  PrefixTypeMatch Γ A B T -> -- T is B's return type, A and B have
   Γ ⊢ t.apply_spine ξ : T
 := by
 intro js j1 j2 j3 j4 j5

@@ -253,10 +253,36 @@ apply @List.reverse_ind SpineElem
 theorem StableTypeMatch.refl_inversion {A : Ty} :
   StableTypeMatch Δ A A ->
   ∃ x, A.spine = some x := by
-intro h; cases h <;> simp [*, Ty.spine]
-case _ h =>
-  sorry
-case _ h => sorry
+intro h; induction A generalizing Δ <;> simp [*, Ty.spine]
+cases h; simp [Ty.spine] at *
+sorry
+sorry
+sorry
+sorry
+-- intro h; cases h <;> simp [*, Ty.spine]
+-- case _ h =>
+--   sorry
+-- case _ h => sorry
+
+-- theorem StableTypeMatch.variable_head {G : List Global} {A : Ty} :
+--   StableTypeMatch Δ A A ->
+--   ValidTyHeadVariable A (λ x => ) := by
+-- intro h; cases h <;> simp [ValidTyHeadVariable]
+-- case _ h =>
+--   sorry
+-- case _ h =>
+
+--   sorry
+
+-- sorry
+
+
+-- intro h; cases h <;> simp [*, Ty.spine]
+-- case _ h =>
+--   sorry
+-- case _ h => sorry
+
+
 
 theorem StableTypeMatch.prefix_type_match_forced_refl :
   StableTypeMatch Δ A A ->

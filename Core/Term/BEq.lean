@@ -105,9 +105,23 @@ instance instReflBEq_Term : ReflBEq Term where
     all_goals (repeat assumption)
     constructor; assumption; assumption
     constructor; constructor; assumption; assumption; assumption
+    case «match» ih1 ih2 ih3 ih4 =>
     constructor
     · constructor
-      · constructor; assumption; sorry
+      · constructor; assumption;
+        unfold Vec.fold;
+        case _ n _ _ _ _ =>
+        induction n
+        case _ => simp
+        case _ n ih v1 v2 =>         -- split
+          simp;
+        -- case _ => rfl
+        -- case _ =>
+        --   split; case _ h =>
+        --   cases h; simp at *
+        --   constructor
+        --   apply ih3
+          sorry
       · sorry
     · assumption
 
@@ -115,7 +129,7 @@ instance instLawfulBEq_Term : LawfulBEq Term where
   eq_of_beq := by
     intro a b; cases a <;> simp [instBEq_Term] at *
     all_goals (induction b <;>
-      simp [instBEq_Ctor0Variant, instBEq_Ctor1Variant, Term.beq] at *)
+      simp [instBEq_Ctor0Variant, instBEq_Ctor1Variant, instBEq_Ctor2Variant, Term.beq] at *)
     case _ => intro e; apply eq_of_beq e
     case _ =>
       intro e1 e2;

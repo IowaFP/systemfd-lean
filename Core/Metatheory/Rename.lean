@@ -464,5 +464,5 @@ theorem Typing.weaken T : ⊢ G -> G&Δ,Γ ⊢ t : A -> G&Δ,(T::Γ) ⊢ t[+1] :
   intro wf j; apply rename (T::Γ) (· + 1) wf _ j; simp
 
 
--- theorem EntryWf.rename (r : Ren) :
---   EntryWf G e ->
+-- theorem EntryWf.rename_openm (r : Ren) :
+--   EntryWf G (.openm x T) ->
