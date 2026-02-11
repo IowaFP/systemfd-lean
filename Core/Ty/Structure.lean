@@ -21,14 +21,35 @@ def Ty.arity : Ty -> Nat
 | ∀[_] P => P.arity + 1
 | _ => 0
 
-inductive TelescopeElem
-| kind (k  : Kind)
-| ty (t : Ty)
+inductive TeleElem
+| kind (K : Kind)
+| ty (A : Ty)
 deriving Repr
 
-def TyTelescope := List TelescopeElem
+def Telescope := List TeleElem
 
-def Ty.telescope : Ty -> TyTelescope  × Ty
+def Telescope.extend (Γ : List Ty) : Telescope -> List Ty
+| [] => Γ
+| .cons (.kind _) te => extend Γ te
+| .cons (.ty A) te => extend (A::Γ) te
+
+def Telescope.rmap (lf : Endo Ren) (r : Ren) : Telescope -> Telescope
+| [] => []
+| .cons (.kind K) te => .cons (.kind K) (rmap lf r te)
+| .cons (.ty A) te => .cons (.ty A[r]) (rmap lf (lf r) te)
+
+instance : RenMap Telescope where
+  rmap := Telescope.rmap
+
+def Telescope.smap (lf : Endo (Subst Ty)) (σ : Subst Ty) : Telescope -> Telescope
+| [] => []
+| .cons (.kind K) te => .cons (.kind K) (smap lf σ te)
+| .cons (.ty A) te => .cons (.ty A[σ]) (smap lf (lf σ) te)
+
+instance : SubstMap Telescope Ty where
+  smap := Telescope.smap
+
+def Ty.telescope : Ty -> Telescope  × Ty
 | .arrow A B =>
   let (tys, b) := B.telescope
   (.ty A :: tys, b)
@@ -37,12 +58,12 @@ def Ty.telescope : Ty -> TyTelescope  × Ty
   (.kind K :: tys, b)
 | t => ([], t)
 
-def TyTelescope.count_binders (t : TyTelescope) : Nat :=
+def Telescope.count_binders (t : Telescope) : Nat :=
   t.foldl (λ acc x => match x with
                   | .kind _ => acc + 1
                   | _ => acc) 0
 
-def Ty.from_telescope : List TelescopeElem -> Ty -> Ty
+def Ty.from_telescope : List TeleElem -> Ty -> Ty
 | .nil , t => t
 | .cons (.ty A) tys, t =>
   let r := t.from_telescope tys

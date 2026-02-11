@@ -3,6 +3,8 @@ import Core.Ty.Definition
 
 open LeanSubst
 
+def Subst.add (k : Nat) : Subst T := λ n => re (n + k)
+
 @[coe]
 def Ty.from_action : Subst.Action Ty -> Ty
 | .re y => t#y

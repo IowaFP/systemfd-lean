@@ -56,7 +56,6 @@ theorem List.reverse_ind :
     simp at lem; rw [lem]; apply h2 _ _
     apply ih; simp
 
-
 theorem List.indexing_length_some {t : T} {Δ : List T} {x : Nat} :
   Δ[x]? = some t ->
   x < Δ.length := match x, Δ with

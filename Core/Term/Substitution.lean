@@ -365,3 +365,13 @@ theorem Term.apply_compose {s : Term} {σ τ : Subst Term} : s[σ][τ] = s[σ �
 
 instance : SubstMapCompose Term Term where
   apply_compose := Term.apply_compose
+
+inductive IteratedSubst where
+| nil : IteratedSubst
+| term : Subst Term -> IteratedSubst -> IteratedSubst
+| type : Subst Ty -> IteratedSubst -> IteratedSubst
+
+def Term.isubst (t : Term) : IteratedSubst -> Term
+| .nil => t
+| .term σ tl => t[σ].isubst tl
+| .type σ tl => t[σ:Ty].isubst tl

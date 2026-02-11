@@ -50,48 +50,47 @@ instance : RenMap String where
 
 inductive GuardTrace where
 | nil : GuardTrace
-| bound : String -> Nat -> GuardTrace -> GuardTrace
-| applied : String -> String -> GuardTrace -> GuardTrace
+| bound : String -> List SpineElem -> Nat -> Telescope -> GuardTrace -> GuardTrace
+| applied : String -> List SpineElem -> Term -> Telescope -> GuardTrace -> GuardTrace
 
 @[simp]
 def GuardTrace.rmap (lf : Endo Ren) (r : Ren) : GuardTrace -> GuardTrace
 | nil => nil
-| bound x n tr => bound x (r n) (rmap lf r tr)
-| applied x y tr => applied x y (rmap lf r tr)
+| bound x sp n te tr => bound x (sp.map (·[r:Term])) (r n) te (rmap lf (tele_lift_ren te r) tr)
+| applied x sp t te tr => applied x (sp.map (·[r:Term])) t[r:Term] te (rmap lf (tele_lift_ren te r) tr)
 
 instance : RenMap GuardTrace where
   rmap := GuardTrace.rmap
 
 @[simp]
-def GuardTrace.from_act (x : String) (a : Subst.Action String) (tr : GuardTrace) : GuardTrace :=
+def GuardTrace.from_act (a : Subst.Action Term) (x : String) (sp : List SpineElem) (te : Telescope) (tr : GuardTrace) : GuardTrace :=
   match a with
-  | re k => bound x k tr
-  | su y => applied x y tr
+  | re k => bound x sp k te tr
+  | su y => applied x sp y te tr
 
 @[simp]
-def GuardTrace.smap (lf : Endo (Subst String)) (σ : Subst String) : GuardTrace -> GuardTrace
+def GuardTrace.smap (lf : Endo (Subst Term)) (σ : Subst Term) : GuardTrace -> GuardTrace
 | nil => nil
-| bound x n tr => from_act x (σ n) (smap lf σ tr)
-| applied x y tr => applied x y (smap lf σ tr)
+| bound x sp n te tr => from_act (σ n) x (sp.map (·[σ:Term])) te (smap lf (tele_lift te σ) tr)
+| applied x sp t te tr => applied x (sp.map (·[σ:Term])) t[σ] te (smap lf (tele_lift te σ) tr)
 
-instance : SubstMap GuardTrace String where
+instance : SubstMap GuardTrace Term where
   smap := GuardTrace.smap
 
 @[simp]
 theorem GuardTrace.subst_nil :
-  (GuardTrace.nil)[σ:String] = .nil
+  (GuardTrace.nil)[σ:Term] = .nil
 := by simp [Subst.apply, SubstMap.smap]
 
 @[simp]
 theorem GuardTrace.subst_bound :
-  (GuardTrace.bound x n tr)[σ:String] = from_act x (σ n) tr[σ:_]
+  (GuardTrace.bound x sp n te tr)[σ:Term] = from_act (σ n) x (sp.map (·[σ:Term])) te tr[tele_lift te σ:_]
 := by simp [Subst.apply, SubstMap.smap]
 
 @[simp]
 theorem GuardTrace.subst_applied :
-  (GuardTrace.applied x y tr)[σ:String] = .applied x y tr[σ:_]
+  (GuardTrace.applied x sp t te tr)[σ:Term] = .applied x (sp.map (·[σ:Term])) t[σ:_] te tr[tele_lift te σ:_]
 := by simp [Subst.apply, SubstMap.smap]
-
 
 inductive InstTrace where
 | base : GuardTrace -> InstTrace
@@ -112,7 +111,7 @@ def InstTrace.arity : InstTrace -> Nat
 
 @[simp]
 def InstTrace.rmap (lf : Endo Ren) (r : Ren) : InstTrace -> InstTrace
-| base tr => base tr[r:String]
+| base tr => base tr[r:Term]
 | lam tr => lam (rmap lf (lf r) tr)
 | tlam tr => tlam (rmap lf r tr)
 
@@ -120,27 +119,27 @@ instance : RenMap InstTrace where
   rmap := InstTrace.rmap
 
 @[simp]
-def InstTrace.smap (lf : Endo (Subst String)) (σ : Subst String) : InstTrace -> InstTrace
-| base tr => base tr[σ:String]
+def InstTrace.smap (lf : Endo (Subst Term)) (σ : Subst Term) : InstTrace -> InstTrace
+| base tr => base tr[σ:Term]
 | lam tr => lam (smap lf (lf σ) tr)
 | tlam tr => tlam (smap lf σ tr)
 
-instance : SubstMap InstTrace String where
+instance : SubstMap InstTrace Term where
   smap := InstTrace.smap
 
 @[simp]
 theorem InstTrace.subst_nil :
-  (InstTrace.base tr)[σ:String] = .base tr[σ:_]
+  (InstTrace.base tr)[σ:Term] = .base tr[σ:_]
 := by simp [Subst.apply, SubstMap.smap]
 
 @[simp]
 theorem InstTrace.subst_lam :
-  (InstTrace.lam tr)[σ:String] = .lam tr[σ.lift:_]
+  (InstTrace.lam tr)[σ:Term] = .lam tr[σ.lift:_]
 := by simp [Subst.apply, SubstMap.smap]
 
 @[simp]
 theorem InstTrace.subst_tlam :
-  (InstTrace.tlam tr)[σ:String] = .tlam tr[σ:_]
+  (InstTrace.tlam tr)[σ:Term] = .tlam tr[σ:_]
 := by simp [Subst.apply, SubstMap.smap]
 
 -- def InstTrace.empty : InstTrace := λ _ => none
@@ -174,30 +173,130 @@ theorem InstTrace.subst_tlam :
 -- 3. Seems like you need two separate traces: the open lambda traces and the guard traces
 --    as you substitute, the open lambda trace gets propagated into the guard trace
 
+inductive TeleSpineAgree : Telescope -> List SpineElem -> Prop where
+| nil : TeleSpineAgree [] []
+| lam :
+  TeleSpineAgree te sp ->
+  TeleSpineAgree (.ty A :: te) (.term t :: sp)
+| olam :
+  TeleSpineAgree te sp ->
+  TeleSpineAgree (.ty A :: te) (.oterm t :: sp)
+| tlam :
+  TeleSpineAgree te sp ->
+  TeleSpineAgree (.kind K :: te) (.type A :: sp)
+
 inductive GetGuardTrace (G : List Global) : List Ty -> Term -> GuardTrace -> Prop where
 | base :
   t.Determined ->
   GetGuardTrace G Γ t .nil
-| lam :
-  GetGuardTrace G Γ t tr[+1:String] ->
-  GetGuardTrace G Γ (λ[A] t) tr
-| tlam :
-  GetGuardTrace G Γ t tr ->
-  GetGuardTrace G Γ (Λ[K] t) tr
 | guard_bound {Γ : List Ty} :
   Γ[x]? = some A ->
+  lookup_type G px = some B ->
   A.spine = some (Ax, spA) ->
   is_opent G Ax ->
   p.spine = some (px, sp) ->
-  GetGuardTrace G Γ t tr ->
-  GetGuardTrace G Γ (.guard p #x t) (.bound px x tr)
+  t.telescope = (te, b) ->
+  GetGuardTrace G (te.extend Γ) b tr ->
+  GetGuardTrace G Γ (.guard p #x t) (.bound px sp x te tr)
 | guard_applied :
   p.spine = some (px, sp1) ->
   s.spine = some (sx, sp2) ->
+  t.telescope = (te, b) ->
+  (∀ q, prefix_equal sp1 sp2 = some q -> TeleSpineAgree te q) ->
+  GetGuardTrace G (te.extend Γ) b tr ->
+  GetGuardTrace G Γ (.guard p s t) (.applied px sp1 s te tr)
+
+inductive GuardTraceMatched : GuardTrace -> Prop where
+| nil : GuardTraceMatched .nil
+| cons :
+  s.spine = some (x, sp2) ->
   prefix_equal sp1 sp2 = some q ->
-  (∀ (i : Nat) a, q[i]? = some (.oterm a) -> a.spine.isSome) ->
+  GuardTraceMatched tr ->
+  GuardTraceMatched (.applied x sp1 s te tr)
+
+inductive GuardTraceMissed : GuardTrace -> Prop where
+| skip :
+  GuardTraceMissed tr ->
+  GuardTraceMissed (.applied px sp1 s te tr)
+| miss :
+  s.spine = some (y, sp2) ->
+  x ≠ y ∨ (prefix_equal sp1 sp2 = none) ->
+  GuardTraceMissed (.applied px sp1 s te tr)
+
+@[simp]
+def iter_subst : List TeleElem -> List SpineElem -> IteratedSubst
+| [], [] => .nil
+| .cons (.ty _) te, .cons (.oterm a) sp => .term (tele_lift te (su a::+0)) (iter_subst te sp)
+| .cons (.ty _) te, .cons (.term a) sp => .term (tele_lift te (su a::+0)) (iter_subst te sp)
+| .cons (.kind _) te, .cons (.type a) sp => .type (tele_lift_ty te (su a::+0)) (iter_subst te sp)
+| _, _ => .nil
+
+theorem telescope_iterated_apply {b : Term} :
+  TeleSpineAgree te sp ->
+  Star (Red G) ((b.tele_intro te).apply sp) (b.isubst (iter_subst te sp))
+:= by
+  intro j
+  induction j generalizing b
+  all_goals simp [Term.tele_intro, Term.apply, Term.isubst]
+  case nil => apply Star.refl
+  case lam te sp A t j ih =>
+    apply Star.stepr
+    apply Red.spine_congr_step Red.beta
+    simp; apply ih
+  case olam =>
+    sorry
+  case tlam =>
+    sorry
+
+theorem GetGuardTrace.subst :
   GetGuardTrace G Γ t tr ->
-  GetGuardTrace G Γ (.guard p s t) (.applied px sx tr)
+  GetGuardTrace G Γ' t[σ] tr[σ:Term]
+:= by
+  intro j
+  induction j generalizing Γ' σ
+  case base => sorry
+  case guard_bound x A px B Ax spA sp te b tr p t Γ j1 j2 j3 j4 j5 j6 j7 ih =>
+    simp; generalize zdef : σ x = z at *
+    cases z <;> simp
+    case re k =>
+      sorry
+    case su s =>
+      sorry
+  case guard_applied =>
+    sorry
+
+theorem GetGuardTrace.matched_reduce :
+  GetGuardTrace G Γ t tr ->
+  GuardTraceMatched tr ->
+  ∃ t', Star (Red G) t t' ∧ t'.Determined
+:= by
+  intro h1 h2
+  induction h1
+  case base =>
+    sorry
+  case guard_bound => cases h2
+  case guard_applied px sp1 x sp2 tele b Γ tr p s t j1 j2 j3 j4 j5 ih =>
+    cases h2; case _ sp3 q q1 q2 q3 =>
+    replace j1 := Spine.apply_eq j1; subst j1
+    replace j2 := Spine.apply_eq j2; subst j2
+    simp at q2; rcases q2 with ⟨e1, e2⟩; subst e1 e2
+    replace q1 := prefix_equal_law q1; subst q1
+    replace j3 := Term.telescope_eq_law j3; subst j3
+    replace j4 := j4 q sorry
+    obtain ⟨b', ih1, ih2⟩ := ih q3
+    apply Exists.intro _; apply And.intro
+    apply Star.stepr
+    apply Red.guard_matched (x := x) (sp := sp1) (sp' := sp1 ++ q) (q := q)
+    simp; simp; sorry
+    apply telescope_iterated_apply j4
+    sorry
+  -- induction h2 generalizing t
+  -- case nil =>
+  --   sorry
+  -- case cons x sp2 sp1 q tr s j1 j2 j3 ih =>
+  --   cases h1; case _ B sx sp3 tele b k p t q1 q2 q3 q4 q5 q6 q7 =>
+
+  --   sorry
 
 inductive GetInstTrace (G : List Global) : List Ty -> Term -> InstTrace -> Prop where
 | base :
@@ -256,38 +355,36 @@ inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
 -- := by
 --   sorry
 
-inductive AppliedGuardTrace : InstTrace -> SpineTrace -> GuardTrace -> Prop where
-| base : AppliedGuardTrace (.base tr) sp tr
-| term :
-  AppliedGuardTrace tr[+1:String] sp gtr ->
-  AppliedGuardTrace (.lam tr) (.term :: sp) gtr
-| oterm :
-  AppliedGuardTrace tr[su y::+0:_] sp gtr ->
-  AppliedGuardTrace (.lam tr) (.oterm y :: sp) gtr
-| type :
-  AppliedGuardTrace tr sp gtr ->
-  AppliedGuardTrace (.tlam tr) (.type :: sp) gtr
+-- inductive AppliedGuardTrace : InstTrace -> SpineTrace -> GuardTrace -> Prop where
+-- | base : AppliedGuardTrace (.base tr) sp tr
+-- | term :
+--   AppliedGuardTrace tr[+1:String] sp gtr ->
+--   AppliedGuardTrace (.lam tr) (.term :: sp) gtr
+-- | oterm :
+--   AppliedGuardTrace tr[su y::+0:_] sp gtr ->
+--   AppliedGuardTrace (.lam tr) (.oterm y :: sp) gtr
+-- | type :
+--   AppliedGuardTrace tr sp gtr ->
+--   AppliedGuardTrace (.tlam tr) (.type :: sp) gtr
 
 
+-- theorem InstTrace.trace_match_reduce :
+--   GetInstTrace G Γ t itr ->
+--   GetSpineTrace sp str ->
+--   AppliedGuardTrace itr str gtr ->
+--   G&Δ,Γ ⊢ t.apply sp : T ->
+--   ∃ t', Star (Red G) (t.apply sp) t' ∧ t'.Determined
+-- := by
+--   intro j1 j2 j3 j4
+--   induction j3
+--   case base gtr str =>
+--     cases j1; case _ j1 =>
 
-
-theorem InstTrace.trace_match_reduce :
-  GetInstTrace G Γ t itr ->
-  GetSpineTrace sp str ->
-  AppliedGuardTrace itr str gtr ->
-  G&Δ,Γ ⊢ t.apply sp : T ->
-  ∃ t', Star (Red G) (t.apply sp) t' ∧ t'.Determined
-:= by
-  intro j1 j2 j3 j4
-  induction j3
-  case base gtr str =>
-    cases j1; case _ j1 =>
-
-    sorry
-  case term => sorry
-  case oterm => sorry
-  case type =>
-    sorry
+--     sorry
+--   case term => sorry
+--   case oterm => sorry
+--   case type =>
+--     sorry
   -- induction j3 generalizing Δ Γ t sp T
   -- case base str =>
   --   cases j1; case _ j1 =>
@@ -320,35 +417,35 @@ theorem InstTrace.trace_match_reduce :
 
   --   sorry
 
-theorem InstTrace.trace_miss_reduce :
-  GetInstTrace G Γ t itr ->
-  GetSpineTrace sp str ->
-  ¬ TraceMatch itr str ->
-  str.length ≥ itr.arity ->
-  G&Δ,Γ ⊢ t.apply sp : T ->
-  Star (Red G) (t.apply sp) `0
-:= by
-  intro j1 j2 j3 j4 j5
-  induction j1 generalizing sp str T
-  case base =>
-    exfalso; apply j3; apply TraceMatch.base
-  case lam Δ A Γ t tr j ih =>
-    cases sp
-    case nil => cases j2; simp at j4
-    case cons hd tl =>
-      cases hd <;> simp [Term.apply] at *
-      case type => sorry
-      case term a =>
+-- theorem InstTrace.trace_miss_reduce :
+--   GetInstTrace G Γ t itr ->
+--   GetSpineTrace sp str ->
+--   ¬ TraceMatch itr str ->
+--   str.length ≥ itr.arity ->
+--   G&Δ,Γ ⊢ t.apply sp : T ->
+--   Star (Red G) (t.apply sp) `0
+-- := by
+--   intro j1 j2 j3 j4 j5
+--   induction j1 generalizing sp str T
+--   case base =>
+--     exfalso; apply j3; apply TraceMatch.base
+--   case lam Δ A Γ t tr j ih =>
+--     cases sp
+--     case nil => cases j2; simp at j4
+--     case cons hd tl =>
+--       cases hd <;> simp [Term.apply] at *
+--       case type => sorry
+--       case term a =>
 
-        sorry
-      case oterm =>
-        sorry
-  case tlam =>
-    sorry
-  case guard_bound =>
-    sorry
-  case guard_applied =>
-    sorry
+--         sorry
+--       case oterm =>
+--         sorry
+--   case tlam =>
+--     sorry
+--   case guard_bound =>
+--     sorry
+--   case guard_applied =>
+--     sorry
 
 -- inductive InstGuardPreamble (G : List Global) : List Kind -> List Ty -> Trace -> Term -> GuardTrace -> Prop where
 -- | base :

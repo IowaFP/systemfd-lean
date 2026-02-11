@@ -6,13 +6,11 @@ import Core.Term.BEq
 
 open LeanSubst
 
-
 inductive SpineElem : Type where
 | type (x : Ty)
 | term (x : Term)
 | oterm (x : Term)
 deriving Repr
-
 
 @[simp]
 def SpineElem.rmap (_ : Endo Ren) (r : Ren) : SpineElem -> SpineElem
@@ -65,7 +63,6 @@ theorem SpineElem.Term.subst_term : (term T)[σ:Term] = term T[σ:_] := by
 theorem SpineElem.Term.subst_oterm : (oterm T)[σ:Term] = oterm T[σ:_] := by
   simp [Subst.apply, SubstMap.smap]
 
-
 def SpineElem.beq : SpineElem -> SpineElem -> Bool
 | type A, type B => A == B
 | term a, term b => a == b
@@ -83,8 +80,6 @@ instance instLawfulBEq_SpineElem : LawfulBEq SpineElem where
   eq_of_beq := by
     intro a b; cases a <;> simp [instBEq_SpineElem, SpineElem.beq] at *
     all_goals (cases b <;> simp at *)
-
-
 
 def Term.spine : Term -> Option (String × List SpineElem)
 | g#x => return (x, [])
@@ -104,6 +99,12 @@ def Term.apply (t : Term) : List SpineElem -> Term
 | .cons (.type A) tl => (t •[A]).apply tl
 | .cons (.term a) tl => (t • a).apply tl
 | .cons (.oterm a) tl => (t ∘[a]).apply tl
+
+def Spine.to_subst : List SpineElem -> IteratedSubst
+| [] => .nil
+| .cons (.term t) tl => .term (su t::+0) (Spine.to_subst tl)
+| .cons (.oterm t) tl => .term (su t::+0) (Spine.to_subst tl)
+| .cons (.type t) tl => .type (su t::+0) (Spine.to_subst tl)
 
 @[simp]
 theorem Spine.apply_subst_type {t : Term} : (t.apply sp)[σ:Ty] = (t[σ:_]).apply (sp.map (·[σ:_])) := by
@@ -216,7 +217,6 @@ theorem Spine.apply_compose {t : Term}
 theorem Spine.apply_eta : ((g#x).apply sp).spine = some (x, sp) := by
   have lem := @apply_compose x [] sp g#x (by simp [Term.spine])
   simp at lem; exact lem
-
 
 theorem Spine.apply_spine_compose {t : Term}:
   t.apply (s1 ++ s2) = (t.apply s1).apply s2 := by
