@@ -1,0 +1,6 @@
+name = "Lilac"
+version = "0.1.0"
+defaultTargets = ["Lilac"]
+
+[[lean_lib]]
+name = "Lilac"
