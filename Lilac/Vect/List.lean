@@ -6,6 +6,12 @@ def Vect.from_list : {n : Nat} -> (ℓ : List A) -> (ℓ.length = n) -> Vect n A
 | 0, [], _ => nil
 | n + 1, .cons x tl, h => x :: @from_list _ _ tl (by simp at h; exact h)
 
+@[coe]
+def Vect.to_list : Vect n A -> List A := Vect.fold [] List.cons
+
+instance  : CoeOut (Vect n T) (List T) where
+  coe := Vect.to_list
+
 instance : CoeDep (List A) [] (Vect 0 A) where
   coe := Vect.nil
 

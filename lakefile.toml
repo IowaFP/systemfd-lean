@@ -4,3 +4,6 @@ defaultTargets = ["Lilac"]
 
 [[lean_lib]]
 name = "Lilac"
+
+[[lean_exe]]
+name = "Examples"
