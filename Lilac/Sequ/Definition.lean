@@ -7,7 +7,7 @@ def Sequ.cons (head : A) (tail : Sequ A) : Sequ A
 | 0 => head
 | n + 1 => tail n
 
-infixr:67 " :: " => Sequ.cons
+infixr:67 (name := sequ_cons) " :: " => Sequ.cons
 
 @[simp]
 theorem Sequ.cons_zero {tl : Sequ A} : (hd :: tl) 0 = hd := by simp [cons]

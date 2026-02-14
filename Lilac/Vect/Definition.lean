@@ -8,7 +8,7 @@ def Vect.nil : Vect 0 A := λ x => nomatch x
 def Vect.cons (head : A) (tail : Vect n A) : Vect (n + 1) A :=
   Fin.cases (motive := λ _ => A) head tail
 
-infixr:67 " :: " => Vect.cons
+infixr:67 (name := vect_cons) " :: " => Vect.cons
 
 @[simp]
 theorem Vect.cons_zero {tl : Vect n A} : (hd :: tl) 0 = hd := by simp [cons]

@@ -15,8 +15,8 @@ namespace Vect
   def Ex.size : Ex -> Nat
   | base => 0
   | stuff vs =>
-    let sizes : Vect _ Nat := size <$> vs
-    List.sum sizes
+    let sizes : Vect _ _ := size <$> vs
+    List.sum sizes + 1
 end Vect
 
 def main : IO Unit := do
