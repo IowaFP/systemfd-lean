@@ -7,4 +7,4 @@ def Hequ.cons (head : A) (tail : Hequ T) : Hequ (A::T)
 | 0 => head
 | n + 1 => tail n
 
-infixr:67 (name := hequ_cons) " :: " => Hequ.cons
+infixr:67 (name := hequ_cons) " ::: " => Hequ.cons
