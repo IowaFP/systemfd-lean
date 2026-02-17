@@ -174,16 +174,16 @@ theorem InstTrace.subst_tlam :
 --    as you substitute, the open lambda trace gets propagated into the guard trace
 
 inductive TeleSpineAgree : Telescope -> List SpineElem -> Prop where
-| nil : TeleSpineAgree [] []
+| nil : TeleSpineAgree .nil []
 | lam :
   TeleSpineAgree te sp ->
-  TeleSpineAgree (.ty A :: te) (.term t :: sp)
+  TeleSpineAgree (.ty A te) (.term t :: sp)
 | olam :
   TeleSpineAgree te sp ->
-  TeleSpineAgree (.ty A :: te) (.oterm t :: sp)
+  TeleSpineAgree (.ty A te) (.oterm t :: sp)
 | tlam :
   TeleSpineAgree te sp ->
-  TeleSpineAgree (.kind K :: te) (.type A :: sp)
+  TeleSpineAgree (.kind K te) (.type A :: sp)
 
 inductive GetGuardTrace (G : List Global) : List Ty -> Term -> GuardTrace -> Prop where
 | base :
@@ -224,11 +224,11 @@ inductive GuardTraceMissed : GuardTrace -> Prop where
   GuardTraceMissed (.applied px sp1 s te tr)
 
 @[simp]
-def iter_subst : List TeleElem -> List SpineElem -> IteratedSubst
-| [], [] => .nil
-| .cons (.ty _) te, .cons (.oterm a) sp => .term (tele_lift te (su a::+0)) (iter_subst te sp)
-| .cons (.ty _) te, .cons (.term a) sp => .term (tele_lift te (su a::+0)) (iter_subst te sp)
-| .cons (.kind _) te, .cons (.type a) sp => .type (tele_lift_ty te (su a::+0)) (iter_subst te sp)
+def iter_subst : Telescope -> List SpineElem -> IteratedSubst
+| .nil, [] => .nil
+| .ty _ te, .cons (.oterm a) sp => .term (tele_lift te (su a::+0)) (iter_subst te sp)
+| .ty _ te, .cons (.term a) sp => .term (tele_lift te (su a::+0)) (iter_subst te sp)
+| .kind _ te, .cons (.type a) sp => .type (tele_lift_ty te (su a::+0)) (iter_subst te[su a::+0:_] sp)
 | _, _ => .nil
 
 theorem telescope_iterated_apply {b : Term} :
@@ -239,13 +239,18 @@ theorem telescope_iterated_apply {b : Term} :
   induction j generalizing b
   all_goals simp [Term.tele_intro, Term.apply, Term.isubst]
   case nil => apply Star.refl
-  case lam te sp A t j ih =>
+  case lam ih =>
     apply Star.stepr
     apply Red.spine_congr_step Red.beta
     simp; apply ih
-  case olam =>
-    sorry
-  case tlam =>
+  case olam ih =>
+    apply Star.stepr
+    apply Red.spine_congr_step Red.beta
+    simp; apply ih
+  case tlam te sp K A j ih =>
+    apply Star.stepr
+    apply Red.spine_congr_step Red.betat
+    simp; replace ih := @ih (b[tele_lift_ty te (su A::+0):_])
     sorry
 
 theorem GetGuardTrace.subst :

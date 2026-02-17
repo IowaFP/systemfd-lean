@@ -1,4 +1,6 @@
-import Init.GetElem
+import LeanSubst
+
+open LeanSubst
 
 import LeanSubst
 open LeanSubst
@@ -86,5 +88,38 @@ have zeroσ : (Ren.to (T := T) (λ x => x)) = +0 := by rfl
 induction y <;> simp at *
 case zero => rw[zeroσ]; simp
 case succ n ih =>
-
   sorry
+
+def List.rmap [i : RenMap S] (lf : Endo Ren) (r : Ren) : List S -> List S
+| [] => []
+| .cons x tl => (i.rmap lf r x) :: rmap lf r tl
+
+instance [RenMap S] : RenMap (List S) where
+  rmap := List.rmap
+
+def List.smap [RenMap T] [SubstMap S T] (lf : Endo (Subst T)) (σ : Subst T) : List S -> List S
+| [] => []
+| .cons x tl => x[σ:_] :: smap lf σ tl
+
+instance SubstMap_List  [RenMap T] [SubstMap S T] : SubstMap (List S) T where
+  smap := List.smap
+
+@[simp]
+theorem List.smap_nil [RenMap T] [SubstMap S T] {σ : Subst T} : (@List.nil S)[σ:_] = [] := by
+  simp [Subst.apply, SubstMap.smap, List.smap]
+
+@[simp]
+theorem List.smap_cons [RenMap T] [SubstMap S T] {x} {tl : List S} {σ : Subst T}
+  : (x :: tl)[σ:_] = x[σ:_] :: tl[σ:_]
+:= by
+  simp [Subst.apply, SubstMap.smap, List.smap]
+
+instance [RenMap T] [SubstMap S T] [SubstMapId S T]
+  : SubstMapId (List S) T
+where
+  apply_id := by intro t; induction t <;> simp [*]
+
+instance [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] [SubstMapCompose S T]
+  : SubstMapCompose (List S) T
+where
+  apply_compose := by intro s σ τ; induction s <;> simp [*]
