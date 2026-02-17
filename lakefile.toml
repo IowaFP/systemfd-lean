@@ -12,6 +12,12 @@ rev = "main"
 name = "Core"
 
 [[lean_lib]]
+name = "Surface"
+
+[[lean_lib]]
+name = "Translation"
+
+[[lean_lib]]
 name = "SystemFD"
 
 [[lean_exe]]

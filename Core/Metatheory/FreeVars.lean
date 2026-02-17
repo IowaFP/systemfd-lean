@@ -47,7 +47,7 @@ case succ n ih =>
     cases z <;> simp at *
     case _ a => exists (a + 1); symm at h; assumption
 
-
+-- x ∉ T[(x + 1)]
 theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T[((Subst.lift)^[x]) +1:Ty]) := by
 intro h
 induction T generalizing x <;> simp at *
