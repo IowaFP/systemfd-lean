@@ -58,3 +58,15 @@ protected def Ty.repr (p : Nat) : (a : Ty) -> Std.Format
 
 instance tyRepr : Repr Ty where
   reprPrec a p := Ty.repr p a
+
+
+/-
+
+case var => sorry
+case global => sorry
+case arrow => sorry
+case eq => sorry
+case app => sorry
+case all => sorry
+
+-/

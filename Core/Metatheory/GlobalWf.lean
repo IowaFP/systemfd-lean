@@ -7,6 +7,30 @@ import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
 import Core.Global
 
+theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
+intro n wf
+induction wf generalizing n
+case _ => simp; constructor
+case _ g gwf wf ih =>
+induction n
+case _ => simp; constructor; assumption; assumption
+case _ => simp; apply ih
+
+
+theorem EntryWf.get_openm {G} {Δ} {Γ} :
+   ⊢ G ->
+   EntryWf G (.openm x T) ->
+   G&Δ, Γ  ⊢ g#x : T ∧
+   ∃ b, G&Δ ⊢ T : .base b := by
+intro wf h; cases h; case _ h =>
+rcases h with ⟨n, p, h⟩
+cases h; case _ j =>
+
+have lem := Kinding.closed_arbitrary_weaking (Δ' := Δ) (GlobalWf.drop_wf _ wf) j
+constructor
+sorry
+sorry
+
 
 theorem GlobalWf.weaken_defn :
   ⊢ G ->
@@ -47,9 +71,7 @@ cases wfe
 case data =>
   induction j
   case var => subst e; simp at *
-  case global =>
-
-    sorry
+  case global => sorry
   case arrow => sorry
   case all => sorry
   case eq => sorry

@@ -80,6 +80,18 @@ intro t h1
 apply h t h1
 
 
+theorem type_match_spine_type_lemma :
+  StableTypeMatch Δ A R ->
+  PrefixTypeMatch Δ A B T ->
+  SpineType G Δ Γ sp A B := by
+intro j
+induction j
+case refl t =>
+
+  sorry
+case arrow t => sorry
+case all t => sorry
+
 theorem preservation_prefix_match_lemma :
   ⊢ G ->
   a.spine = some (x, sp) ->
@@ -94,8 +106,9 @@ induction ξ generalizing G Δ Γ A R B T a t x sp
 case _ =>
    simp [Term.apply] at *
    have e := Typing.spine_term_unique_typing h2 h3 h1; cases e
-   have e := StableTypeMatch.prefix_type_match_forced_refl h5 h6; cases e
-   assumption
+   -- have e := StableTypeMatch.prefix_type_match_forced_refl h5 h6; cases e
+   sorry
+   -- assumption
 case _ hd tl ih =>
     have lem : (hd :: tl) = [hd] ++ tl := by simp
     rw[lem, Spine.apply_spine_compose] at h3; rw[lem, Spine.apply_spine_compose]; clear lem

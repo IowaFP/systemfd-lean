@@ -2,6 +2,7 @@ import LeanSubst
 import Core.Typing
 
 import Core.Util
+import Core.Metatheory.FreeVars
 
 open LeanSubst
 
@@ -464,5 +465,137 @@ theorem Typing.weaken T : ⊢ G -> G&Δ,Γ ⊢ t : A -> G&Δ,(T::Γ) ⊢ t[+1] :
   intro wf j; apply rename (T::Γ) (· + 1) wf _ j; simp
 
 
--- theorem EntryWf.rename_openm (r : Ren) :
---   EntryWf G (.openm x T) ->
+theorem Kinding.closed_lifting_lemma : ∀ Δ', ⊢ G ->  G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K) := by
+intro Δ' wf j
+apply @List.reverse_ind (T := Kind)
+  (motive := λ Δ' => ∀ G Δ T K,  ⊢ G -> G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K))
+  Δ'
+  (by intro G Δ T K wf j;
+      have lem : (Ren.to (λ x => x)) = Subst.id (T := Kind) := by rfl
+      simp
+      sorry)
+  (by intro K' Δ' ih G Δ T K wf j
+      replace j := Kinding.weaken K' j
+      replace ih := ih G ([K'] ++ Δ) T[+1] K wf j
+      simp at *
+      -- have lem : ((+1 ∘ Ren.to (fun x => x + Δ'.length))) = Ren.to (fun x => x + (Δ'.length + 1)) := by sorry
+      sorry)
+  G Δ T K wf j
+
+theorem Kinding.closed_arbitrary_weaking : ∀ Δ',  ⊢ G ->  G&[] ⊢ T : K ->  G&Δ' ⊢ T : K := by
+intro Δ' wf j
+have lem1 := Kinding.closed j
+have lem2 := Kinding.closed_lifting_lemma Δ' wf j
+simp at *
+replace lem1 := lem1 (Ren.to (λ x => x + Δ'.length))
+rw[lem1] at lem2
+apply lem2
+
+
+
+def Ty.sup_aux (min_v max_v : Nat) : Ty -> Nat
+| .var x => if x < min_v then x else max_v
+| .global _ => max_v
+| .all _ y => (Ty.sup_aux min_v max_v y) - 1
+| .arrow x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
+| .eq _ x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
+| .app x y =>  min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
+
+-- Support is the greatest lower bound of a variable in the term
+def Ty.support (Δ : List Kind) (T : Ty) : Nat := T.sup_aux Δ.length Δ.length
+
+theorem Ty.sup_aux_upper_bound (T : Ty) : min_v ≤ max_v -> T.sup_aux min_v max_v ≤ max_v := by
+intro h; induction T <;> simp [sup_aux] at *
+all_goals try (omega)
+case var h =>
+  split; omega; omega
+
+
+theorem Ty.support_lemma_upper_bound {Δ : List Kind} {T : Ty} :
+  G&Δ ⊢ T : K ->
+  T.support Δ ≤ Δ.length := by
+intro j; simp [Ty.support] at *
+induction j <;> (simp [Ty.sup_aux] at *)
+case var h =>
+  have lem := List.indexing_length_some h
+  split; omega; omega
+all_goals try (omega)
+case all Δ P _ _ =>
+  have lem : Δ.length ≤ Δ.length := by omega
+  replace lem := Ty.sup_aux_upper_bound P lem
+  omega
+
+
+theorem Ty.support_lemma_lower_bound {Δ : List Kind} {T : Ty} :
+  (T' = T[Ren.to (· + 1)]) ->
+  (Δ' = K' :: Δ) ->
+  G&Δ' ⊢ T' : K ->
+  1 ≤ T'.support Δ' := by
+intro e1 e2 j; simp [Ty.support] at *
+induction j generalizing T Δ K'
+case var h =>
+  subst e2;
+  replace e1 := Ty.rename_preserves_var_shape e1
+  rcases e1 with ⟨_, lem⟩
+  cases lem.1; cases lem.2; clear lem; simp at *
+  replace h := List.indexing_length_some h
+  simp [Ty.sup_aux]; split; omega; omega
+case global =>
+  simp [Ty.sup_aux]
+  replace e1 := Ty.rename_preserves_global_shape e1
+  subst e1; subst e2; simp
+case arrow ih1 ih2 =>
+  subst e2
+  replace e1 := Ty.rename_preserves_arrow_shape e1
+  rcases e1 with ⟨a', b', e1, e2, e3, e4⟩
+  subst e1; subst e2; simp [Ty.sup_aux] at *
+  replace ih1 := @ih1 K' Δ a' rfl rfl rfl
+  replace ih2 := @ih2 K' Δ b' rfl rfl rfl
+  simp at *; omega
+case all K'' Δ'' p _ ih =>
+  subst e2
+  replace e1 := Ty.rename_preserves_all_shape e1
+  rcases e1 with ⟨P, e1, e2⟩; subst e1; subst e2; simp at *
+  replace ih := @ih K'' (K' :: Δ) (P[re 0 :: +1: Ty]) rfl rfl; simp at ih
+
+  sorry
+case eq => sorry
+case app => sorry
+
+
+
+-- def Ty.fvs : Ty -> Nat -> Prop
+-- | var x => λ y => if y = x then ⊤ else ⊥
+-- | global _ => λ _ => ⊥
+-- | eq _ a b
+-- | app a b
+-- | arrow a b => a.fvs ∪ b.fvs
+-- | all _ p => {y | y + 1 ∈ p.fvs }
+
+-- theorem Kinding.strengthening_lemma {r : Ren} :
+--   G&(Δ ++ [K'] ++ Δ') ⊢ T : κ ->
+--   Δ.length ∉ T.fvs ->
+--   r = Ren.to (λ x => x < Δ.length then x - 1 else x)
+--   G&(Δ ++ Δ') ⊢ T[r] : κ := by sorry
+
+
+theorem Kinding.strong_rename {Δ Δr : List Kind} {T : Ty} (r : Ren)  :
+  G&Δ ⊢ T : K ->
+  (∀ x : Nat,  x ∈ T -> Δr[x]? = Δ[r x]?) ->
+  G&Δr ⊢ T[r] : K := by sorry
+
+
+theorem Kinding.strengthening :
+  G&(K' :: Δ) ⊢ T[+1] : K ->
+  G&Δ ⊢ T : K := by
+intro j
+have lem := Kinding.strong_rename (G := G) (K := K) (Δ := K' :: Δ) (Δr := Δ) (r := λ x => x - 1) (T := T[+1]) j
+  (by intro x h; simp at *
+      induction x <;> simp at *
+      case zero =>
+        exfalso; apply FV.zero_not_in_succ h
+      case succ n ih =>
+
+        sorry
+  )
+simp at lem; apply lem

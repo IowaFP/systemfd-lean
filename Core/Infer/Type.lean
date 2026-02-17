@@ -32,13 +32,8 @@ def R : Ty := gt#"Eq" • t#0
 def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
 
 #eval A.stable_type_match [] R
-def ATele := A.telescope.1
-def sR := A.telescope.2
 
-#eval R.spine
-#eval is_opent G "Eq"
-#eval ATele.count_binders
-#eval R[λ x => .re (x + ATele.count_binders)] == sR
+#guard R.spine == .some ("Eq", [t#0])
 
 end Infer.Ty.Test
 

@@ -1,3 +1,4 @@
+import LeanSubst
 import Core.Term
 import Core.Reduction
 import Core.Typing
@@ -5,6 +6,8 @@ import Core.Typing
 import Core.Metatheory.Rename
 import Core.Metatheory.Substitution
 import Core.Metatheory.Uniqueness
+
+open LeanSubst
 
 theorem Kinding.invert_eq_kind : (G&Δ ⊢ (A ~[K]~ B) : w) -> w = ★ := by
 intro j; cases j; simp
@@ -250,19 +253,29 @@ apply @List.reverse_ind SpineElem
    G Δ Γ t A wf j
 
 
-theorem StableTypeMatch.refl_inversion {A : Ty} :
-  StableTypeMatch Δ A A ->
-  ∃ x, A.spine = some x := by
-intro h; induction A generalizing Δ <;> simp [*, Ty.spine]
-cases h; simp [Ty.spine] at *
-sorry
-sorry
-sorry
-sorry
--- intro h; cases h <;> simp [*, Ty.spine]
--- case _ h =>
---   sorry
--- case _ h => sorry
+-- theorem StableTypeMatch.return_type_shape {A R : Ty} :
+--   StableTypeMatch Δ A R ->
+--   ValidTyHeadVariable R (λ _ => true) := by
+-- intro j
+-- induction j
+-- case _ x _ h => exists x
+-- case _ => assumption
+-- case _ K Δ B R a h =>
+--   rcases h with ⟨x, h⟩
+--   exists (x.1, x.2.map (·[-1]))
+--   constructor
+--   case _ =>
+--     have lem : R.spine = some (x.fst, List.map (fun x => x[-1]) x.snd) := by
+--       replace h := h.1
+--       have lem : R.spine = some (x.fst, List.map (fun x => x[-1]) x.snd) := by
+--         apply @Ty.spine_rename
+--       apply lem
+--     apply lem
+--   simp
+
+-- theorem StableTypeMatch.refl_inversion {A : Ty} :
+--   StableTypeMatch Δ A A ->
+--   ValidTyHeadVariable A (λ _ => true) := by apply StableTypeMatch.return_type_shape
 
 -- theorem StableTypeMatch.variable_head {G : List Global} {A : Ty} :
 --   StableTypeMatch Δ A A ->
@@ -282,6 +295,29 @@ sorry
 --   sorry
 -- case _ h => sorry
 
+-- theorem Spine.rename_shape {Δ Δr : List Kind} {R : Ty} (r : Ren) :
+--   (∀ i, Δ[i]? = Δr[r i]?) ->
+--   (G&Δ ⊢ R[r].spine.map (·.1) = some x ->
+--   R.spine.map (·.1) = some x := by
+-- intro h
+-- induction R <;> simp [Ty.spine] at *
+-- case _ n =>
+--   intro Γ
+--   sorry
+-- sorry
+
+
+
+theorem StableTypeMatch.return_type_shape :
+  StableTypeMatch Δ A R ->
+  ∃ x, (R.spine).map (·.1) = some x := by
+intro h
+induction h
+case _ x _ e => exists x.1; rw[e]; simp;
+case _ => assumption
+case _ R _ ih =>
+  rcases ih with ⟨w, ih⟩
+  sorry
 
 
 theorem StableTypeMatch.prefix_type_match_forced_refl :
@@ -289,8 +325,7 @@ theorem StableTypeMatch.prefix_type_match_forced_refl :
   PrefixTypeMatch Δ A B T ->
   B = T := by
 intro h1 h2
-have lem := StableTypeMatch.refl_inversion h1
-cases h2
-case _ => rfl
-all_goals
-  (case _ => rcases lem with ⟨_, lem⟩; simp [Ty.spine] at lem)
+cases h1
+case refl => cases h2 <;> simp [Ty.spine] at *
+sorry
+sorry

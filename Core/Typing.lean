@@ -243,18 +243,19 @@ inductive ListGlobalWf : List Global -> Prop where
 notation:175 "⊢ " G:175 => ListGlobalWf G
 
 inductive EntryWf : List Global -> Entry -> Prop where
-| data :
-  GlobalWf G (Global.data x K ctors) ->
-  EntryWf G (Entry.data x K ctors)
-| ctor :
-  GlobalWf G (Global.data y K ctors) ->
-  (ctors n).fst = x ->
-  EntryWf G (Entry.ctor x n T)
-| opent :
-  GlobalWf G (.opent x K) ->
-  EntryWf G (.opent x K)
+-- | data :
+--   GlobalWf G (Global.data x K ctors) ->
+--   EntryWf G (Entry.data x K ctors)
+-- | ctor :
+--   GlobalWf G (Global.data y K ctors) ->
+--   (ctors n).fst = x ->
+--   (ctors n).snd = T ->
+--   EntryWf G (Entry.ctor x n T)
+-- | opent :
+--   GlobalWf G (.opent x K) ->
+--   EntryWf G (.opent x K)
 | openm :
-  GlobalWf G (.openm x K) ->
+  (∃ n, n > 0 ∧  GlobalWf (G.drop n) (.openm x K)) ->
   EntryWf G (.openm x K)
 | defn :
   GlobalWf G (.defn x T t) ->
@@ -263,7 +264,6 @@ inductive EntryWf : List Global -> Entry -> Prop where
   GlobalWf G (.instty x T) ->
   EntryWf G (.instty x T)
 
--- notation: 175 G:175 "⊢ " g:175 => EntryWf G g
 
 inductive TypeMatch : Ty -> Ty -> Prop
 | refl :
