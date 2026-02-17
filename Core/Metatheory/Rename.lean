@@ -519,7 +519,6 @@ theorem Typing.rename Γr (r : Ren) :
 theorem Typing.weaken T : ⊢ G -> G&Δ,Γ ⊢ t : A -> G&Δ,(T::Γ) ⊢ t[+1] : A := by
   intro wf j; apply rename (T::Γ) (· + 1) wf _ j; simp
 
-
 theorem Kinding.closed_lifting_lemma : ∀ Δ', ⊢ G ->  G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K) := by
 intro Δ' wf j
 apply @List.reverse_ind (T := Kind)
@@ -533,13 +532,14 @@ apply @List.reverse_ind (T := Kind)
       replace j := Kinding.weaken K' j
       replace ih := ih G ([K'] ++ Δ) T[+1] K wf j
       simp at *
-      have lem : ((+1 ∘ Ren.to (T := Ty) (fun x => x + Δ'.length))) = Ren.to (T := Ty) (fun x => x + (Δ'.length + 1)) := by
+      have lem : ((+1 ∘ Ren.to (T := Ty) (fun x => x + Δ'.length))) = Ren.to (T := Ty) (fun x => x + Δ'.length + 1) := by
          clear ih j wf;
-         sorry
+         have e := Ren.add_compose_distributes (T := Ty) (y := Δ'.length) (z := 1); rw[e]; simp;
+         replace e := Ren.add_one_commutes (T := Ty) (y := Δ'.length); simp at e; rw[e]
       rw[lem] at ih; apply ih)
   G Δ T K wf j
 
-theorem Kinding.closed_arbitrary_weaking : ∀ Δ',  ⊢ G ->  G&[] ⊢ T : K ->  G&Δ' ⊢ T : K := by
+theorem Kinding.closed_arbitrary_weakening : ∀ Δ',  ⊢ G ->  G&[] ⊢ T : K ->  G&Δ' ⊢ T : K := by
 intro Δ' wf j
 have lem1 := Kinding.closed j
 have lem2 := Kinding.closed_lifting_lemma Δ' wf j
@@ -547,7 +547,6 @@ simp at *
 replace lem1 := lem1 (Ren.to (λ x => x + Δ'.length))
 rw[lem1] at lem2
 apply lem2
-
 
 
 -- def Ty.sup_aux (min_v max_v : Nat) : Ty -> Nat

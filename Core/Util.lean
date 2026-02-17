@@ -1,5 +1,8 @@
 import Init.GetElem
 
+import LeanSubst
+open LeanSubst
+
 @[simp]
 def prefix_equal [BEq T] : List T -> List T -> Option (List T)
 | [], t => .some t
@@ -66,3 +69,22 @@ theorem List.indexing_length_some {t : T} {Δ : List T} {x : Nat} :
 | n + 1, .cons _ Δ => by
   intro h; simp at h;
   simp; apply List.indexing_length_some (t := t) (Δ := Δ) (x := n) h
+
+
+theorem Ren.add_compose_distributes [RenMap T] [SubstMap T T][SubstMapId T T] {y z : Nat} :
+  Ren.to (T := T) (λ x => x + y + z) = Subst.compose (T := T) (Ren.to (λ x => x + y)) (Ren.to (λ x => x + z)) := by
+induction y generalizing z <;> simp at *
+case zero =>
+  induction z <;> simp at *
+  case zero => sorry
+  case succ n ih => sorry
+sorry
+
+theorem Ren.add_one_commutes [RenMap T] [SubstMap T T] [SubstMapId T T] {y : Nat} :
+  (Ren.to (T := T) (λ x => x + y)) ∘ Ren.to (T := T) (λ x => x + 1) = Subst.compose (+1) (Ren.to (T := T) (λ x => x + y)) := by
+have zeroσ : (Ren.to (T := T) (λ x => x)) = +0 := by rfl
+induction y <;> simp at *
+case zero => rw[zeroσ]; simp
+case succ n ih =>
+
+  sorry

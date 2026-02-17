@@ -240,7 +240,10 @@ inductive ListGlobalWf : List Global -> Prop where
 | nil : ListGlobalWf []
 | cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
 
+
 notation:175 "⊢ " G:175 => ListGlobalWf G
+
+
 
 inductive EntryWf : List Global -> Entry -> Prop where
 -- | data :
@@ -255,7 +258,7 @@ inductive EntryWf : List Global -> Entry -> Prop where
 --   GlobalWf G (.opent x K) ->
 --   EntryWf G (.opent x K)
 | openm :
-  (∃ n, n > 0 ∧  GlobalWf (G.drop n) (.openm x K)) ->
+  (∃ n, n > 0 ∧ lookup_type G x = some K ∧ GlobalWf (G.drop n) (.openm x K)) ->
   EntryWf G (.openm x K)
 | defn :
   GlobalWf G (.defn x T t) ->
@@ -263,6 +266,9 @@ inductive EntryWf : List Global -> Entry -> Prop where
 | instty :
   GlobalWf G (.instty x T) ->
   EntryWf G (.instty x T)
+
+notation:175 G:175 "⊢e " e => EntryWf G e
+
 
 
 inductive TypeMatch : Ty -> Ty -> Prop
