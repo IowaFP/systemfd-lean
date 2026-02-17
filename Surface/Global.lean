@@ -1,13 +1,14 @@
 import LeanSubst
 import Core.Vec
 import Surface.Ty
+import Surface.Term
 
 open LeanSubst
 
 inductive Surface.Global : Type where
 | data : String -> Kind -> Vec (String × Ty) n -> Global
-| opent : String -> Kind -> Global
-| openm : String -> Ty -> Global
+-- | opent : String -> Kind -> Global
+-- | openm : String -> Ty -> Global
 -- | defn : String -> Ty -> Term -> Global
 -- | inst : String -> Term -> Global
 -- | instty : String -> Ty -> Global
@@ -22,8 +23,8 @@ def Surface.Global.repr (p : Nat) : (a : Surface.Global) -> Std.Format
     ++ "v" ++ Std.Format.sbracket (Vec.fold (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil ts)
 | .data s K _ =>
   ".data " ++ s ++ " : " ++ Surface.Kind.repr max_prec K
-| .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
-| .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
+-- | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
+-- | .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
 -- | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
 -- | .inst n t => ".inst " ++ n ++ " " ++  t.repr max_prec
 -- | .instty n T => ".instTy" ++ n ++ " " ++  T.repr max_prec
@@ -62,13 +63,13 @@ def Surface.Entry.is_ctor : Entry -> Bool
 | ctor _ _ _ => true
 | _ => false
 
-def Surface.Entry.is_opent : Entry -> Bool
-| opent _ _ => true
-| _ => false
+-- def Surface.Entry.is_opent : Entry -> Bool
+-- | opent _ _ => true
+-- | _ => false
 
-def Surface.Entry.is_openm : Entry -> Bool
-| openm _ _ => true
-| _ => false
+-- def Surface.Entry.is_openm : Entry -> Bool
+-- | openm _ _ => true
+-- | _ => false
 
 -- def Surface.Entry.is_defn : Entry -> Bool
 -- | defn _ _ _ => true
@@ -98,10 +99,10 @@ def Surface.lookup (x : String) : List Global -> Option Entry
     if x == z then return .ctor z i A else none
   if x == y then return .data y K ctors
   else Vec.fold Option.or (lookup x tl) ctors'
-| .cons (.opent y a) tl =>
-  if x == y then return .opent y a else lookup x tl
-| .cons (.openm y a) tl =>
-  if x == y then return .openm y a else lookup x tl
+-- | .cons (.opent y a) tl =>
+--   if x == y then return .opent y a else lookup x tl
+-- | .cons (.openm y a) tl =>
+--   if x == y then return .openm y a else lookup x tl
 -- | .cons (.defn y a b) tl =>
 --   if x == y then return .defn y a b else lookup x tl
 -- | .cons (.inst _ _) tl => lookup x tl
@@ -119,8 +120,8 @@ def Surface.lookup_type G x := lookup x G |> Option.map Surface.Entry.type |> Op
 def Surface.is_ctor G x := lookup x G |> Option.map Surface.Entry.is_ctor |> Option.get!
 def Surface.is_data G x := lookup x G |> Option.map Surface.Entry.is_data |> Option.get!
 -- def Surface.is_instty G x := lookup x G |> Option.map Surface.Entry.is_instty |> Option.get!
-def Surface.is_opent G x := lookup x G |> Option.map Surface.Entry.is_opent |> Option.get!
-def Surface.is_openm G x := lookup x G |> Option.map Surface.Entry.is_openm |> Option.get!
+-- def Surface.is_opent G x := lookup x G |> Option.map Surface.Entry.is_opent |> Option.get!
+-- def Surface.is_openm G x := lookup x G |> Option.map Surface.Entry.is_openm |> Option.get!
 -- def Surface.is_defn G x := lookup x G |> Option.map Surface.Entry.is_defn |> Option.get!
 
 def Surface.ctor_idx (x : String) (G : List Global) : Option Nat := do
@@ -141,15 +142,15 @@ def Surface.ctor_count (x : String) (G : List Global) : Option Nat := do
 
 def Surface.is_stable (x : String) (G : List Global) : Bool := is_ctor G x -- ∨ is_instty G x
 
-theorem Surface.lookup_entry_openm_exists :
-  is_openm G x -> ∃ y T, lookup x G = .some (Surface.Entry.openm y T) := by
-intro h
-simp [is_openm] at h
-generalize edef : lookup x G = e at *
-cases e <;> simp at h
-case _ e =>
-cases e <;> simp [Surface.Entry.is_openm] at h
-case _ x T => exists x; exists T
+-- theorem Surface.lookup_entry_openm_exists :
+--   is_openm G x -> ∃ y T, lookup x G = .some (Surface.Entry.openm y T) := by
+-- intro h
+-- simp [is_openm] at h
+-- generalize edef : lookup x G = e at *
+-- cases e <;> simp at h
+-- case _ e =>
+-- cases e <;> simp [Surface.Entry.is_openm] at h
+-- case _ x T => exists x; exists T
 
 -- theorem Surface.lookup_entry_defn_exists :
 --   is_defn G x -> ∃ y T t, lookup x G = .some (Surface.Entry.defn y T t) := by

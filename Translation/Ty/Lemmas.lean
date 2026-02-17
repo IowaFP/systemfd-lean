@@ -3,7 +3,6 @@ import Core.Typing
 import Surface.Typing
 -- Translation preservies kinding relation
 
-
 def trans_global : List Surface.Global -> Option (List Global) := sorry
 def trans_kis : List Surface.Kind -> List Kind := sorry
 
