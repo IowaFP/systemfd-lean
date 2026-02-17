@@ -2,9 +2,6 @@ import LeanSubst
 
 open LeanSubst
 
-import LeanSubst
-open LeanSubst
-
 @[simp]
 def prefix_equal [BEq T] : List T -> List T -> Option (List T)
 | [], t => .some t
@@ -74,21 +71,16 @@ theorem List.indexing_length_some {t : T} {Δ : List T} {x : Nat} :
 
 
 theorem Ren.add_compose_distributes [RenMap T] [SubstMap T T][SubstMapId T T] {y z : Nat} :
-  Ren.to (T := T) (λ x => x + y + z) = Subst.compose (T := T) (Ren.to (λ x => x + y)) (Ren.to (λ x => x + z)) := by
-induction y generalizing z <;> simp at *
-case zero =>
-  induction z <;> simp at *
-  case zero => sorry
-  case succ n ih => sorry
-sorry
+  Ren.to (T := T) (λ x => x + y + z) = Subst.compose (T := T) (Ren.to (λ x => x + y)) (Ren.to (λ x => x + z))
+:= by
+  funext; case _ x =>
+  simp [Ren.to, Subst.compose]
 
 theorem Ren.add_one_commutes [RenMap T] [SubstMap T T] [SubstMapId T T] {y : Nat} :
-  (Ren.to (T := T) (λ x => x + y)) ∘ Ren.to (T := T) (λ x => x + 1) = Subst.compose (+1) (Ren.to (T := T) (λ x => x + y)) := by
-have zeroσ : (Ren.to (T := T) (λ x => x)) = +0 := by rfl
-induction y <;> simp at *
-case zero => rw[zeroσ]; simp
-case succ n ih =>
-  sorry
+  (Ren.to (T := T) (λ x => x + y)) ∘ Ren.to (T := T) (λ x => x + 1) = Subst.compose (+1) (Ren.to (T := T) (λ x => x + y))
+:= by
+  funext; case _ x =>
+  simp [Ren.to, Subst.compose]; omega
 
 def List.rmap [i : RenMap S] (lf : Endo Ren) (r : Ren) : List S -> List S
 | [] => []
