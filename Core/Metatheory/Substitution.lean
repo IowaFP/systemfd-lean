@@ -277,12 +277,12 @@ theorem Typing.subst_lift_type {Γ Γσ : List Ty} {σ : Subst Term} T :
   cases i <;> simp at *
   case _ =>
     rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h1 := h1 0 a b e1 (by sorry)
+    replace h1 := h1 0 a b e1 (by apply Kinding.strengthening h3)
     apply rename_type (T::Δ) (· + 1) wf _ h1
     intro i; cases i <;> simp
   case _ i =>
     rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h1 := h1 (i + 1) a b e1 sorry
+    replace h1 := h1 (i + 1) a b e1 (by apply Kinding.strengthening h3)
     apply rename_type (T::Δ) (· + 1) wf _ h1
     intro i; cases i <;> simp
 

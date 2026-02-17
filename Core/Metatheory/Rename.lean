@@ -120,6 +120,71 @@ theorem GlobalWf.closed {G : List Global} :
     cases lemj; case _ lemj =>
     apply Kinding.closed lemj
 
+
+theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren} K :
+  (∀ x, x + 1 ∈ T -> Δr[r x]? = Δ[x]?) ->
+  ∀ x, x ∈ T -> (K::Δr)[r.lift x]? = (K ::Δ)[x]? := by
+intro h1 x h2
+induction x
+case _ => simp [Ren.lift] at *
+case succ n ih =>
+  replace h1 := h1 n h2
+  simp [Ren.lift]; assumption
+
+
+theorem Kinding.strong_rename {Δ Δr : List Kind} {T : Ty} (r : Ren)  :
+  G&Δ ⊢ T : K ->
+  (∀ x : Nat,  x ∈ T -> Δr[r x]? = Δ[x]?) ->
+  G&Δr ⊢ T[r] : K := by
+intro j h
+induction j generalizing Δr r <;> simp at *
+case var x K j =>
+  apply Kinding.var
+  replace h := h x (by apply Ty.FV.var)
+  rw[<-j]; assumption
+case global => apply Kinding.global; assumption
+case arrow A _ B _ _ _ ih1 ih2 =>
+  apply Kinding.arrow
+  apply ih1
+  · intro i h
+    replace h : i ∈ (A -:> B) := by apply Ty.FV.arrowr; assumption
+    revert i; apply h
+  apply ih2
+  · intro i h1
+    replace h1 : i ∈ (A -:> B) := by apply Ty.FV.arrowl; assumption
+    revert i; apply h
+case eq A K B _ _ ih1 ih2 =>
+  apply Kinding.eq
+  apply ih1
+  · intro i h
+    replace h : i ∈ (A ~[K]~ B) := by apply Ty.FV.eqr; assumption
+    revert i; apply h
+  apply ih2
+  · intro i h1
+    replace h1 : i ∈ (A ~[K]~ B) := by apply Ty.FV.eql; assumption
+    revert i; apply h
+case app A _ _ B _ _ ih1 ih2 =>
+  apply Kinding.app
+  apply ih1
+  · intro i h
+    replace h : i ∈ (A • B) := by apply Ty.FV.appr; assumption
+    revert i; apply h
+  apply ih2
+  · intro i h1
+    replace h1 : i ∈ (A • B) := by apply Ty.FV.appl; assumption
+    revert i; apply h
+case all K Δ P _ ih =>
+  have lem : ∀ (x : Nat), x + 1 ∈ P → (Δr)[r x]? = Δ[x]? := by
+    intro i x
+    replace x := Ty.FV.all (K := K) x
+    replace h := @h i x; simp at h; assumption
+  replace lem := Kinding.strong_rename_lift K lem
+  apply Kinding.all
+  replace ih := @ih (K :: Δr) r.lift
+  rw[Ren.to_lift (S := Ty) (T := Ty)] at ih; simp at ih;
+  apply ih lem;
+
+
 theorem Kinding.rename_lift {Δ Δr : List Kind} K (r : Ren) :
   (∀ i, Δ[i]? = Δr[r i]?) ->
   ∀ i, (K::Δ)[i]? = (K::Δr)[r.lift i]?
@@ -134,18 +199,8 @@ theorem Kinding.rename Δr (r : Ren) :
   G&Δr ⊢ A[r] : K
 := by
   intro h j
-  induction j generalizing Δr r <;> simp
-  case var Δ x K j =>
-    simp [Ren.to]; apply Kinding.var
-    rw [h x] at j; exact j
-  case global j => apply Kinding.global j
-  case arrow ih1 ih2 => apply Kinding.arrow (ih1 _ _ h) (ih2 _ _ h)
-  case all K Δ P j ih =>
-    replace ih := ih (K::Δr) r.lift (rename_lift K r h)
-    rw [Ren.to_lift (S := Ty)] at ih; simp at ih
-    apply Kinding.all ih
-  case app ih1 ih2 => apply Kinding.app (ih1 _ _ h) (ih2 _ _ h)
-  case eq ih1 ih2 => apply Kinding.eq (ih1 _ _ h) (ih2 _ _ h)
+  apply Kinding.strong_rename _ j
+  intro x _ ; replace h := @h x; symm at h; assumption
 
 theorem Kinding.weaken T : G&Δ ⊢ A : K -> G&(T::Δ) ⊢ A[+1] : K := by
   intro j; apply rename (T::Δ) (· + 1) _ j
@@ -471,15 +526,17 @@ apply @List.reverse_ind (T := Kind)
   (motive := λ Δ' => ∀ G Δ T K,  ⊢ G -> G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K))
   Δ'
   (by intro G Δ T K wf j;
-      have lem : (Ren.to (λ x => x)) = Subst.id (T := Kind) := by rfl
-      simp
-      sorry)
+      have lem : (Ren.to (λ x => x)) = Subst.id (T := Ty) := by rfl
+      simp; rw[lem]; simp; assumption)
+
   (by intro K' Δ' ih G Δ T K wf j
       replace j := Kinding.weaken K' j
       replace ih := ih G ([K'] ++ Δ) T[+1] K wf j
       simp at *
-      -- have lem : ((+1 ∘ Ren.to (fun x => x + Δ'.length))) = Ren.to (fun x => x + (Δ'.length + 1)) := by sorry
-      sorry)
+      have lem : ((+1 ∘ Ren.to (T := Ty) (fun x => x + Δ'.length))) = Ren.to (T := Ty) (fun x => x + (Δ'.length + 1)) := by
+         clear ih j wf;
+         sorry
+      rw[lem] at ih; apply ih)
   G Δ T K wf j
 
 theorem Kinding.closed_arbitrary_weaking : ∀ Δ',  ⊢ G ->  G&[] ⊢ T : K ->  G&Δ' ⊢ T : K := by
@@ -493,74 +550,74 @@ apply lem2
 
 
 
-def Ty.sup_aux (min_v max_v : Nat) : Ty -> Nat
-| .var x => if x < min_v then x else max_v
-| .global _ => max_v
-| .all _ y => (Ty.sup_aux min_v max_v y) - 1
-| .arrow x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
-| .eq _ x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
-| .app x y =>  min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
+-- def Ty.sup_aux (min_v max_v : Nat) : Ty -> Nat
+-- | .var x => if x < min_v then x else max_v
+-- | .global _ => max_v
+-- | .all _ y => (Ty.sup_aux min_v max_v y) - 1
+-- | .arrow x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
+-- | .eq _ x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
+-- | .app x y =>  min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
 
--- Support is the greatest lower bound of a variable in the term
-def Ty.support (Δ : List Kind) (T : Ty) : Nat := T.sup_aux Δ.length Δ.length
+-- -- Support is the greatest lower bound of a variable in the term
+-- def Ty.support (Δ : List Kind) (T : Ty) : Nat := T.sup_aux Δ.length Δ.length
 
-theorem Ty.sup_aux_upper_bound (T : Ty) : min_v ≤ max_v -> T.sup_aux min_v max_v ≤ max_v := by
-intro h; induction T <;> simp [sup_aux] at *
-all_goals try (omega)
-case var h =>
-  split; omega; omega
-
-
-theorem Ty.support_lemma_upper_bound {Δ : List Kind} {T : Ty} :
-  G&Δ ⊢ T : K ->
-  T.support Δ ≤ Δ.length := by
-intro j; simp [Ty.support] at *
-induction j <;> (simp [Ty.sup_aux] at *)
-case var h =>
-  have lem := List.indexing_length_some h
-  split; omega; omega
-all_goals try (omega)
-case all Δ P _ _ =>
-  have lem : Δ.length ≤ Δ.length := by omega
-  replace lem := Ty.sup_aux_upper_bound P lem
-  omega
+-- theorem Ty.sup_aux_upper_bound (T : Ty) : min_v ≤ max_v -> T.sup_aux min_v max_v ≤ max_v := by
+-- intro h; induction T <;> simp [sup_aux] at *
+-- all_goals try (omega)
+-- case var h =>
+--   split; omega; omega
 
 
-theorem Ty.support_lemma_lower_bound {Δ : List Kind} {T : Ty} :
-  (T' = T[Ren.to (· + 1)]) ->
-  (Δ' = K' :: Δ) ->
-  G&Δ' ⊢ T' : K ->
-  1 ≤ T'.support Δ' := by
-intro e1 e2 j; simp [Ty.support] at *
-induction j generalizing T Δ K'
-case var h =>
-  subst e2;
-  replace e1 := Ty.rename_preserves_var_shape e1
-  rcases e1 with ⟨_, lem⟩
-  cases lem.1; cases lem.2; clear lem; simp at *
-  replace h := List.indexing_length_some h
-  simp [Ty.sup_aux]; split; omega; omega
-case global =>
-  simp [Ty.sup_aux]
-  replace e1 := Ty.rename_preserves_global_shape e1
-  subst e1; subst e2; simp
-case arrow ih1 ih2 =>
-  subst e2
-  replace e1 := Ty.rename_preserves_arrow_shape e1
-  rcases e1 with ⟨a', b', e1, e2, e3, e4⟩
-  subst e1; subst e2; simp [Ty.sup_aux] at *
-  replace ih1 := @ih1 K' Δ a' rfl rfl rfl
-  replace ih2 := @ih2 K' Δ b' rfl rfl rfl
-  simp at *; omega
-case all K'' Δ'' p _ ih =>
-  subst e2
-  replace e1 := Ty.rename_preserves_all_shape e1
-  rcases e1 with ⟨P, e1, e2⟩; subst e1; subst e2; simp at *
-  replace ih := @ih K'' (K' :: Δ) (P[re 0 :: +1: Ty]) rfl rfl; simp at ih
+-- theorem Ty.support_lemma_upper_bound {Δ : List Kind} {T : Ty} :
+--   G&Δ ⊢ T : K ->
+--   T.support Δ ≤ Δ.length := by
+-- intro j; simp [Ty.support] at *
+-- induction j <;> (simp [Ty.sup_aux] at *)
+-- case var h =>
+--   have lem := List.indexing_length_some h
+--   split; omega; omega
+-- all_goals try (omega)
+-- case all Δ P _ _ =>
+--   have lem : Δ.length ≤ Δ.length := by omega
+--   replace lem := Ty.sup_aux_upper_bound P lem
+--   omega
 
-  sorry
-case eq => sorry
-case app => sorry
+
+-- theorem Ty.support_lemma_lower_bound {Δ : List Kind} {T : Ty} :
+--   (T' = T[Ren.to (· + 1)]) ->
+--   (Δ' = K' :: Δ) ->
+--   G&Δ' ⊢ T' : K ->
+--   1 ≤ T'.support Δ' := by
+-- intro e1 e2 j; simp [Ty.support] at *
+-- induction j generalizing T Δ K'
+-- case var h =>
+--   subst e2;
+--   replace e1 := Ty.rename_preserves_var_shape e1
+--   rcases e1 with ⟨_, lem⟩
+--   cases lem.1; cases lem.2; clear lem; simp at *
+--   replace h := List.indexing_length_some h
+--   simp [Ty.sup_aux]; split; omega; omega
+-- case global =>
+--   simp [Ty.sup_aux]
+--   replace e1 := Ty.rename_preserves_global_shape e1
+--   subst e1; subst e2; simp
+-- case arrow ih1 ih2 =>
+--   subst e2
+--   replace e1 := Ty.rename_preserves_arrow_shape e1
+--   rcases e1 with ⟨a', b', e1, e2, e3, e4⟩
+--   subst e1; subst e2; simp [Ty.sup_aux] at *
+--   replace ih1 := @ih1 K' Δ a' rfl rfl rfl
+--   replace ih2 := @ih2 K' Δ b' rfl rfl rfl
+--   simp at *; omega
+-- case all K'' Δ'' p _ ih =>
+--   subst e2
+--   replace e1 := Ty.rename_preserves_all_shape e1
+--   rcases e1 with ⟨P, e1, e2⟩; subst e1; subst e2; simp at *
+--   replace ih := @ih K'' (K' :: Δ) (P[re 0 :: +1: Ty]) rfl rfl; simp at ih
+
+--   sorry
+-- case eq => sorry
+-- case app => sorry
 
 
 
@@ -578,72 +635,12 @@ case app => sorry
 --   r = Ren.to (λ x => x < Δ.length then x - 1 else x)
 --   G&(Δ ++ Δ') ⊢ T[r] : κ := by sorry
 
-theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren} K :
-  (∀ x, x + 1 ∈ T -> Δr[r x]? = Δ[x]?) ->
-  ∀ x, x ∈ T -> (K::Δ)[r.lift x]? = Δ[r.lift x]? := by
-intro h1 x h2
-induction x
-sorry
-sorry
-
-
-theorem Kinding.strong_rename {Δ Δr : List Kind} {T : Ty} (r : Ren)  :
-  G&Δ ⊢ T : K ->
-  (∀ x : Nat,  x ∈ T -> Δr[r x]? = Δ[x]?) ->
-  G&Δr ⊢ T[r] : K := by
-intro j h
-induction j <;> simp at *
-case var x K j =>
-  apply Kinding.var
-  replace h := h x (by apply Ty.FV.var)
-  rw[<-j]; assumption
-case global => apply Kinding.global; assumption
-case arrow A _ B _ _ _ ih1 ih2 =>
-  apply Kinding.arrow
-  apply ih1
-  · intro i h
-    replace h : i ∈ (A -:> B) := by apply Ty.FV.arrowr; assumption
-    revert i; apply h
-  apply ih2
-  · intro i h1
-    replace h1 : i ∈ (A -:> B) := by apply Ty.FV.arrowl; assumption
-    revert i; apply h
-case eq A K B _ _ ih1 ih2 =>
-  apply Kinding.eq
-  apply ih1
-  · intro i h
-    replace h : i ∈ (A ~[K]~ B) := by apply Ty.FV.eqr; assumption
-    revert i; apply h
-  apply ih2
-  · intro i h1
-    replace h1 : i ∈ (A ~[K]~ B) := by apply Ty.FV.eql; assumption
-    revert i; apply h
-case app A _ _ B _ _ ih1 ih2 =>
-  apply Kinding.app
-  apply ih1
-  · intro i h
-    replace h : i ∈ (A • B) := by apply Ty.FV.appr; assumption
-    revert i; apply h
-  apply ih2
-  · intro i h1
-    replace h1 : i ∈ (A • B) := by apply Ty.FV.appl; assumption
-    revert i; apply h
-case all K Δ P _ ih =>
-  have lem : ∀ (x : Nat), x ∈ P → Δr[r x]? = (K :: Δ)[x]? := by
-    intro i x
-
-    sorry
-
-  -- apply Kinding.all
-  sorry
-
-
 
 theorem Kinding.strengthening :
   G&(K' :: Δ) ⊢ T[+1] : K ->
   G&Δ ⊢ T : K := by
 intro j
-have lem := Kinding.strong_rename (G := G) (K := K) (Δ := K' :: Δ) (Δr := Δ) (r := λ x => x - 1) (T := T[+1]) j
+have lem := Kinding.strong_rename (Δ := K' :: Δ) (Δr := Δ) (r := (· - 1)) (T := T[+1]) j
   (by intro x h; simp at *
       induction x <;> simp at *
       case zero => exfalso; apply FV.zero_not_in_succ h)

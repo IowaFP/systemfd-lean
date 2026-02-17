@@ -55,23 +55,25 @@ case var y =>
   induction x generalizing y <;> simp at *
   case zero => cases h
   case succ n ih =>
-    simp [Subst.compose] at *
-    generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
-    cases z
-    case re z =>
-      replace ih := ih y
-      split at h <;> simp at *
-      case _ => cases h
-      case _ k =>
-        sorry
-    case su t =>
-      have lem := lift_iterated_succ_is_re zdef
-      rcases lem with ⟨_, lem⟩; cases lem
-case global => cases h
+  simp [Subst.compose] at *
+  generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
+  cases z
+  · case re z =>
+    replace ih := ih y
+    split at h <;> simp at *
+    case _ => cases h
+    case _ k =>
+      generalize udef : (((Subst.lift (T := Ty))^[n]) +1 k) = u at *
+      have lem := lift_iterated_succ_is_re udef
+      cases u <;> simp at *
+      cases h; apply ih; sorry
+  · case su t =>
+    have lem := lift_iterated_succ_is_re zdef
+    rcases lem with ⟨_, lem⟩; cases lem
 case all P ih =>
   cases h; case _ h =>
-  sorry
-
+  apply @ih (x + 1); simp; apply h
+case global => cases h
 all_goals (
 case _ ih1 ih2 =>
   replace ih1 := @ih1 x
