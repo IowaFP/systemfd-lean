@@ -11,7 +11,7 @@ inductive Ty.FV : Ty -> Nat -> Prop where
 | eql : FV b x -> FV (a ~[K]~ b) x
 | appr : FV a x -> FV (a • b) x
 | appl : FV b x -> FV (a • b) x
-| all : FV p a -> FV (∀[K] p) (a + 1)
+| all : FV p (a + 1) -> FV (∀[K] p) a
 
 
 instance instMembership_Nat_Ty : Membership Nat Ty where
@@ -62,18 +62,15 @@ case var y =>
       replace ih := ih y
       split at h <;> simp at *
       case _ => cases h
-      case _ =>
-        rw[zdef] at ih; apply ih;
-
+      case _ k =>
         sorry
     case su t =>
       have lem := lift_iterated_succ_is_re zdef
       rcases lem with ⟨_, lem⟩; cases lem
 case global => cases h
 case all P ih =>
-  replace ih := @ih (x + 1)
-  cases h <;> simp at *
-  case _ h => apply ih; sorry
+  cases h; case _ h =>
+  sorry
 
 all_goals (
 case _ ih1 ih2 =>

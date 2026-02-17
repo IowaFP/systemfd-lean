@@ -578,11 +578,65 @@ case app => sorry
 --   r = Ren.to (λ x => x < Δ.length then x - 1 else x)
 --   G&(Δ ++ Δ') ⊢ T[r] : κ := by sorry
 
+theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren} K :
+  (∀ x, x + 1 ∈ T -> Δr[r x]? = Δ[x]?) ->
+  ∀ x, x ∈ T -> (K::Δ)[r.lift x]? = Δ[r.lift x]? := by
+intro h1 x h2
+induction x
+sorry
+sorry
+
 
 theorem Kinding.strong_rename {Δ Δr : List Kind} {T : Ty} (r : Ren)  :
   G&Δ ⊢ T : K ->
-  (∀ x : Nat,  x ∈ T -> Δr[x]? = Δ[r x]?) ->
-  G&Δr ⊢ T[r] : K := by sorry
+  (∀ x : Nat,  x ∈ T -> Δr[r x]? = Δ[x]?) ->
+  G&Δr ⊢ T[r] : K := by
+intro j h
+induction j <;> simp at *
+case var x K j =>
+  apply Kinding.var
+  replace h := h x (by apply Ty.FV.var)
+  rw[<-j]; assumption
+case global => apply Kinding.global; assumption
+case arrow A _ B _ _ _ ih1 ih2 =>
+  apply Kinding.arrow
+  apply ih1
+  · intro i h
+    replace h : i ∈ (A -:> B) := by apply Ty.FV.arrowr; assumption
+    revert i; apply h
+  apply ih2
+  · intro i h1
+    replace h1 : i ∈ (A -:> B) := by apply Ty.FV.arrowl; assumption
+    revert i; apply h
+case eq A K B _ _ ih1 ih2 =>
+  apply Kinding.eq
+  apply ih1
+  · intro i h
+    replace h : i ∈ (A ~[K]~ B) := by apply Ty.FV.eqr; assumption
+    revert i; apply h
+  apply ih2
+  · intro i h1
+    replace h1 : i ∈ (A ~[K]~ B) := by apply Ty.FV.eql; assumption
+    revert i; apply h
+case app A _ _ B _ _ ih1 ih2 =>
+  apply Kinding.app
+  apply ih1
+  · intro i h
+    replace h : i ∈ (A • B) := by apply Ty.FV.appr; assumption
+    revert i; apply h
+  apply ih2
+  · intro i h1
+    replace h1 : i ∈ (A • B) := by apply Ty.FV.appl; assumption
+    revert i; apply h
+case all K Δ P _ ih =>
+  have lem : ∀ (x : Nat), x ∈ P → Δr[r x]? = (K :: Δ)[x]? := by
+    intro i x
+
+    sorry
+
+  -- apply Kinding.all
+  sorry
+
 
 
 theorem Kinding.strengthening :
@@ -592,10 +646,5 @@ intro j
 have lem := Kinding.strong_rename (G := G) (K := K) (Δ := K' :: Δ) (Δr := Δ) (r := λ x => x - 1) (T := T[+1]) j
   (by intro x h; simp at *
       induction x <;> simp at *
-      case zero =>
-        exfalso; apply FV.zero_not_in_succ h
-      case succ n ih =>
-
-        sorry
-  )
+      case zero => exfalso; apply FV.zero_not_in_succ h)
 simp at lem; apply lem
