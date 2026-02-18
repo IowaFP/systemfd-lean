@@ -114,7 +114,7 @@ theorem Surface.Spine.apply_subst {t : Term} : (t.apply sp)[σ] = (t[σ]).apply 
     cases hd <;> simp [Term.apply]
     all_goals rw [ih]; simp
 
-macro "spine_app_eq_solve" x:term : tactic => `(tactic| {
+macro "SurfaceSpine_app_eq_solve" x:term : tactic => `(tactic| {
   apply Iff.intro <;> intro h
   case _ =>
     simp [Surface.Term.spine] at h
@@ -134,7 +134,7 @@ macro "spine_app_eq_solve" x:term : tactic => `(tactic| {
 theorem Surface.Spine.app_closed_eq {f a : Surface.Term} :
   (f `• a).spine = some (x, sp)
   <-> ∃ sp', sp = sp' ++ [.term a] ∧ f.spine = some (x, sp')
-:= by spine_app_eq_solve x
+:= by SurfaceSpine_app_eq_solve x
 
 -- @[simp]
 -- theorem Spine.app_open_eq {f a : Term} :
@@ -146,9 +146,9 @@ theorem Surface.Spine.app_closed_eq {f a : Surface.Term} :
 theorem Surface.Spine.appt_eq {f : Term} :
   (f `•[a]).spine = some (x, sp)
   <-> ∃ sp', sp = sp' ++ [.type a] ∧ f.spine = some (x, sp')
-:= by spine_app_eq_solve x
+:= by SurfaceSpine_app_eq_solve x
 
-macro "spine_apply_solve" sp:Lean.Parser.Tactic.elimTarget "," t:term : tactic => `(tactic| {
+macro "SurfaceSpine_apply_solve" sp:Lean.Parser.Tactic.elimTarget "," t:term : tactic => `(tactic| {
   induction $sp generalizing $t <;> simp [Surface.Term.apply]
   case cons hd tl ih _ =>
   cases hd <;> simp [Surface.Term.apply]
@@ -156,15 +156,15 @@ macro "spine_apply_solve" sp:Lean.Parser.Tactic.elimTarget "," t:term : tactic =
 })
 
 theorem Surface.Spine.apply_term {t : Term} : t.apply sp `• a = t.apply (sp ++ [.term a]) := by
-  spine_apply_solve sp, t
+  SurfaceSpine_apply_solve sp, t
 
 -- theorem Surface.Spine.apply_oterm {t : Term} : t.apply sp ∘[a] = t.apply (sp ++ [.oterm a]) := by
 --   spine_apply_solve sp, t
 
 theorem Surface.Spine.apply_type {t : Term} : t.apply sp `•[a] = t.apply (sp ++ [.type a]) := by
-  spine_apply_solve sp, t
+  SurfaceSpine_apply_solve sp, t
 
-macro "spine_apply_eq_case_solve"
+macro "SurfaceSpine_apply_eq_case_solve"
   h:term ","
   ih:term ","
   ap:Lean.Parser.Tactic.rwRule : tactic =>
@@ -186,9 +186,9 @@ theorem Surface.Spine.apply_eq
   case _ y =>
     rcases h with ⟨e1, e2⟩; subst e1 e2
     simp [Term.apply]
-  case _ ih => spine_apply_eq_case_solve h, ih, apply_term
+  case _ ih => SurfaceSpine_apply_eq_case_solve h, ih, apply_term
 --  case _ ih => spine_apply_eq_case_solve h, ih, apply_oterm
-  case _ ih => spine_apply_eq_case_solve h, ih, apply_type
+  case _ ih => SurfaceSpine_apply_eq_case_solve h, ih, apply_type
 
 theorem Surface.Spine.apply_compose {t : Surface.Term}
   : t.spine = some (x, sp1) -> (t.apply sp2).spine = some (x, sp1 ++ sp2)
