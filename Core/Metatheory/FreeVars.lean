@@ -56,20 +56,15 @@ case var y =>
   case zero => cases h
   case succ n ih =>
   simp [Subst.compose] at *
+  cases y <;> simp at *
+  case zero => cases h
+  case succ y =>
+  replace ih := ih y
   generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
-  cases z
-  · case re z =>
-    replace ih := ih y
-    split at h <;> simp at *
-    case _ => cases h
-    case _ k =>
-      generalize udef : (((Subst.lift (T := Ty))^[n]) +1 k) = u at *
-      have lem := lift_iterated_succ_is_re udef
-      cases u <;> simp at *
-      cases h; apply ih; sorry
-  · case su t =>
-    have lem := lift_iterated_succ_is_re zdef
-    rcases lem with ⟨_, lem⟩; cases lem
+  have lem := lift_iterated_succ_is_re zdef
+  rcases lem with ⟨k , lem⟩
+  subst z; rw[lem] at h; simp at h
+  cases h; apply ih; rw[lem]; simp; apply Ty.FV.var
 case all P ih =>
   cases h; case _ h =>
   apply @ih (x + 1); simp; apply h
@@ -81,7 +76,6 @@ case _ ih1 ih2 =>
   cases h <;> simp at *
   case _ h => apply ih1 h
   case _ h => apply ih2 h)
-
 
 
 theorem FV.zero_not_in_succ {T : Ty} : 0 ∉ T[+1] := by
