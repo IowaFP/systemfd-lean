@@ -3,7 +3,6 @@ import Surface.Ty.Definition
 
 open LeanSubst
 
-def Subst.add (k : Nat) : Subst T := λ n => re (n + k)
 
 @[coe]
 def Surface.Ty.from_action : Subst.Action Surface.Ty -> Surface.Ty
@@ -24,7 +23,7 @@ theorem Surface.Ty.from_acton_re {n} : from_action (re n) = t`#n := by simp [fro
 @[simp]
 theorem Surface.Ty.from_action_su {t} : from_action (su t) = t := by simp [from_action]
 
-instance : Coe (Subst.Action Surface.Ty) Surface.Ty where
+instance Surface.Coe_ActionTyTy : Coe (Subst.Action Surface.Ty) Surface.Ty where
   coe := Surface.Ty.from_action
 
 @[simp]
@@ -46,7 +45,7 @@ def Surface.Ty.smap (lf : Endo (Subst Surface.Ty)) (σ : Subst Surface.Ty) : Sur
 | `∀[K] P => `∀[K] smap lf (lf σ) P
 | app f a => smap lf σ f `• smap lf σ a
 
-instance : SubstMap Surface.Ty Surface.Ty where
+instance Surface.instSubstMap_TyTy : SubstMap Surface.Ty Surface.Ty where
   smap := Surface.Ty.smap
 
 @[simp]
@@ -79,20 +78,20 @@ theorem Surface.Ty.from_action_compose {x} {σ τ : Subst Ty}
 
 theorem Surface.Ty.apply_id {t : Surface.Ty} : t[+0] = t := by subst_solve_id Surface.Ty, Surface.Ty, t
 
-instance : SubstMapId Surface.Ty Surface.Ty where
+instance Surface.instSubstMapId_TyTy: SubstMapId Surface.Ty Surface.Ty where
   apply_id := Surface.Ty.apply_id
 
 theorem Surface.Ty.apply_stable (r : Ren) (σ : Subst Surface.Ty)
   : r.to = σ -> Ren.apply (T := Ty) r = Subst.apply σ
 := by subst_solve_stable Ty, r, σ
 
-instance : SubstMapStable Surface.Ty where
+instance Surface.instSubstMapStable_Ty: SubstMapStable Surface.Ty where
   apply_stable := Surface.Ty.apply_stable
 
 theorem Surface.Ty.apply_compose {s : Ty} {σ τ : Subst Ty} : s[σ][τ] = s[σ ∘ τ] := by
   subst_solve_compose Ty, s, σ, τ
 
-instance : SubstMapCompose Surface.Ty Surface.Ty where
+instance Surface.instSubstMapCompose_TyTy : SubstMapCompose Surface.Ty Surface.Ty where
   apply_compose := Surface.Ty.apply_compose
 
 theorem Surface.Ty.rename_preserves_var_shape {r : Ren} : t`#x = T[r] -> ∃ y,  (T = t`#y ∧ x = r y) := by
