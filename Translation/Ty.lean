@@ -7,6 +7,8 @@ def trans_ki : Surface.Kind -> Kind
 | .base .open => .base .open
 | .arrow k1 k2 => .arrow (trans_ki k1) (trans_ki k2)
 
+def trans_kis : List Surface.Kind -> List Kind := List.map (trans_ki ·)
+
 @[simp]
 def trans_ty (G : List Global) (Δ : List Kind) : Surface.Ty -> Option Ty
 | .var x => return .var x
@@ -23,3 +25,5 @@ def trans_ty (G : List Global) (Δ : List Kind) : Surface.Ty -> Option Ty
   let k' := trans_ki k
   let p' <- trans_ty G (k' :: Δ) p
   return .all k' p'
+
+def trans_tys (G : List Global) (Δ : List Kind) : List Surface.Ty -> Option (List Ty) := List.mapM (trans_ty G Δ ·)

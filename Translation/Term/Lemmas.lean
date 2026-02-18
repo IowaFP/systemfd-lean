@@ -8,8 +8,9 @@ import Translation.Term
 
 import Translation.Ty.Lemmas
 
-def trans_tys (G : List Global) (Δ : List Kind) : List Surface.Ty -> Option (List Ty) := by sorry
-
+import Translation.Ty
+import Translation.Term
+import Translation.Global
 
 theorem Translation.Term.Sound :
   G&Δ,Γ ⊢s t : T ->
