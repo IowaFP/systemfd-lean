@@ -15,12 +15,20 @@ have lem := List.map_eq_iff.1 h1 i; rw[h2] at lem; simp at lem
 exists K.translate
 
 theorem Translation.Kind.sound_base {b : Surface.BaseKind}:
-  (Surface.Kind.base b).translate  = K' ->
-  ∃ b', K' = .base b' := by sorry
+  ∃ b', (Surface.Kind.base b).translate = .base b' := by
+cases b <;> simp at *
+all_goals (subst K'; simp)
 
-theorem Translation.Kind.sound_arrow :
-  (Surface.Kind.arrow b1 b2).translate = K' ->
-  ∃ b1' b2', K' = .arrow b1' b2' := by sorry
+theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
+  ∃ b1' b2', (Surface.Kind.arrow b1 b2).translate = .arrow b1' b2' := by simp
+
+theorem Translation.Global.lookup_kind_sound :
+  Surface.Global.translateEnv G = some G' ->
+  Surface.lookup_kind G x = some K ->
+  Core.lookup_kind G' x = some K'  := by
+intro h1 h2
+sorry
+
 
 theorem Translation.Ty.sound :
   ⊢s G ->
@@ -31,27 +39,49 @@ theorem Translation.Ty.sound :
   T.translate G' Δ' = some T' ∧
   G'&Δ' ⊢ T' : K' := by
 intro wf j;
-rcases j with ⟨j, j1, j2⟩
-induction j <;> simp at *
+rcases j with ⟨j, h1, h2⟩
+induction j generalizing Δ' <;> simp at *
 case var Δ i K j =>
-  replace j2 := Translation.KindEnv.sound j2 i K j
+  replace j2 := Translation.KindEnv.sound h2 i K j
   rcases j2 with ⟨K', j', t⟩; rw[<-t] at j'
   constructor; assumption
-case global =>
-
-  sorry
-case all =>
-  sorry
-case arrow ih1 ih2 =>
-  replace ih1 := ih1 j2
-  replace ih2 := ih2 j2
+case global x K Δ h3 =>
+  have lem := Translation.Global.lookup_kind_sound (K' := K.translate) h1 h3
+  apply Core.Kinding.global
+  apply lem
+case all K Δ P j ih =>
+  rcases ih with ⟨P', t, j⟩
+  exists (∀[K.translate] P')
+  rw[Option.bind_eq_some_iff]
+  constructor
+  exists P';
+  constructor;
+  · simp [Surface.Kind.translateEnv] at t h2; rw[h2] at t; assumption
+  · simp
+  constructor; simp [Surface.Kind.translateEnv] at j; subst h2; simp [Surface.Kind.translateEnv]
+  apply j
+case arrow b1 _ b2 _ _ ih1 ih2 =>
   rcases ih1 with ⟨A', t1, j1⟩
   rcases ih2 with ⟨B', t2, j2⟩
-  exists (A' -:> B')
+  exists (A' -:> B'); subst h2
   rw[Option.bind_eq_some_iff]
   constructor
   · exists A'; constructor
     · assumption
-    · sorry
-  · sorry
-case app => sorry
+    · rw[Option.bind_eq_some_iff]; exists B'
+  · have lem1 := Translation.Kind.sound_base (b := b1)
+    rcases lem1 with ⟨b1', lem1⟩
+    have lem2 := Translation.Kind.sound_base (b := b2)
+    rcases lem2 with ⟨b2', lem2⟩
+    rw[lem1] at j1; rw[lem2] at j2
+    apply Core.Kinding.arrow; assumption; assumption
+case app ih1 ih2 =>
+  rcases ih1 with ⟨f', t1, j1⟩
+  rcases ih2 with ⟨a', t2, j2⟩
+  exists (f' • a'); subst h2
+  rw[Option.bind_eq_some_iff]
+  constructor
+  · exists f'; constructor
+    · assumption
+    · rw[Option.bind_eq_some_iff]; exists a'
+  · apply Core.Kinding.app; assumption; assumption
