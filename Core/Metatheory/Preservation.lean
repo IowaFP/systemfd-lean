@@ -15,6 +15,7 @@ import Core.Metatheory.Preservation.Lemmas
 
 open LeanSubst
 
+namespace Core
 
 theorem preservation_lemma :
   ⊢ G ->
@@ -695,3 +696,5 @@ case choice =>
     replace ih := ih r
     apply Typing.choice; assumption; assumption; assumption
   all_goals (case _ h _ _ => simp at h)
+
+end Core

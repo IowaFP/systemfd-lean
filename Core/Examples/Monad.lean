@@ -8,7 +8,7 @@ import Core.Infer.Kind
 
 import Core.Typing
 
-namespace Monad.List
+namespace Core.Examples.Monad
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
   .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
@@ -72,4 +72,4 @@ def ListCtx : List Global := [
 #guard (∀[★ -:> ★] ∀[★] ∀[★] (gt#"Monad" • t#2) -:> (t#1 -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0))).infer_kind ListCtx []
        == some ★
 
-end Monad.List
+end Core.Examples.Monad

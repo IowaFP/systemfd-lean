@@ -9,6 +9,8 @@ import Core.Metatheory.Uniqueness
 
 open LeanSubst
 
+namespace Core
+
 theorem Kinding.invert_eq_kind : (G&Δ ⊢ (A ~[K]~ B) : w) -> w = ★ := by
 intro j; cases j; simp
 
@@ -329,3 +331,5 @@ cases h1
 case refl => cases h2 <;> simp [Ty.spine] at *
 sorry
 sorry
+
+end Core

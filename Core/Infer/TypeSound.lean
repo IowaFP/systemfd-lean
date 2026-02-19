@@ -4,6 +4,8 @@ import Core.Infer.«Type»
 import Core.Ty
 import Core.Typing
 
+namespace Core
+
 theorem valid_data_type_sound :
   Ty.valid_data_type G T = some () ->
   ValidTyHeadVariable T (is_data G) := by
@@ -467,3 +469,4 @@ case _ ih1 ih2 =>
   assumption
   assumption
   assumption
+end Core

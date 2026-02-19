@@ -106,3 +106,33 @@ inductive Surface.Typing (G : List Surface.Global) :
   Typing G Δ Γ (f `•[a]) P'
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " : " A:170 => Surface.Typing G Δ Γ t A
+
+inductive Surface.ValidCtor (x : String) : Ty -> Prop where
+| base :
+  T.spine = some (x, sp) ->
+  ValidCtor x T
+| all :
+  ValidCtor x P ->
+  ValidCtor x (`∀[K] P)
+| arrow :
+  ValidCtor x B ->
+  ValidCtor x (A `-:> B)
+
+
+inductive Surface.GlobalWf : Surface.GlobalEnv -> Surface.Global -> Prop where
+| data {ctors : Vec (String × Ty) n} {ctors' : Vec String n} {G : Surface.GlobalEnv}:
+  (∀ i y T, ctors i = (y, T) ->
+    (.data x K v[]::G)&[] ⊢s T : `★ ∧
+     Surface.ValidCtor x T ∧
+     none = lookup y (.data x K v[]::G)) ->
+  (ctors' = λ i => (ctors i).1) ->
+   ctors'.HasUniqueElems ->
+  lookup x G = none ->
+  GlobalWf G (.data x K ctors)
+
+inductive Surface.ListGlobalWf : Surface.GlobalEnv -> Prop where
+| nil : ListGlobalWf []
+| cons : Surface.GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
+
+
+notation:175 "⊢s " G:175 => Surface.ListGlobalWf G

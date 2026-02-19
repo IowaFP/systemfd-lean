@@ -5,6 +5,7 @@ import Core.Util
 import Core.Metatheory.FreeVars
 
 open LeanSubst
+namespace Core
 
 theorem subst_lift [RenMap T] (σ : Subst T) :
   x < n ->
@@ -626,12 +627,12 @@ apply lem2
 -- | eq _ a b
 -- | app a b
 -- | arrow a b => a.fvs ∪ b.fvs
--- | all _ p => {y | y + 1 ∈ p.fvs }
+-- | all _ p => { y | y + 1 ∈ p.fvs }
 
 -- theorem Kinding.strengthening_lemma {r : Ren} :
 --   G&(Δ ++ [K'] ++ Δ') ⊢ T : κ ->
 --   Δ.length ∉ T.fvs ->
---   r = Ren.to (λ x => x < Δ.length then x - 1 else x)
+--   r = sorry -- Ren.to (λ x => x < Δ.length then x - 1 else x)
 --   G&(Δ ++ Δ') ⊢ T[r] : κ := by sorry
 
 
@@ -644,3 +645,5 @@ have lem := Kinding.strong_rename (Δ := K' :: Δ) (Δr := Δ) (r := (· - 1)) (
       induction x <;> simp at *
       case zero => exfalso; apply FV.zero_not_in_succ h)
 simp at lem; apply lem
+
+end Core

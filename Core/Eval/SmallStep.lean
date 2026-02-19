@@ -9,6 +9,7 @@ import Core.Reduction.Definition
 import Core.Util
 open LeanSubst
 
+namespace Core
 
 @[simp]
 def inline_insts (n : String) (G : List Global) (sp : List SpineElem) :=
@@ -235,3 +236,5 @@ match eval_choice_mapping G t with
   | .none => match eval_const_folding_refl G t with
              | .some t => .some t
              | .none => eval_inst_beta G t
+
+end Core

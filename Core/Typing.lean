@@ -6,6 +6,7 @@ import Core.Global
 
 open LeanSubst
 
+namespace Core
 def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
   ∃ x, Term.spine t = some x ∧ test x.fst
 
@@ -36,6 +37,7 @@ inductive PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
 
 inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 | var :
+  -- ⊢ Δ
   Δ[x]? = some K ->
   Kinding G Δ t#x K
 | global :
@@ -302,3 +304,5 @@ inductive SpineType (G : List Global) (Δ : List Kind) (Γ : List Ty) : List Spi
   P' = P[su a::+0] ->
   SpineType G Δ Γ sp (∀[K]P) T ->
   SpineType G Δ Γ (sp ++ [.type a]) P' T
+
+end Core

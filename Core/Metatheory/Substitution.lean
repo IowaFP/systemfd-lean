@@ -3,7 +3,7 @@ import Core.Typing
 import Core.Metatheory.Rename
 
 open LeanSubst
-
+namespace Core
 theorem Kinding.subst_lift {Δ Δσ : List Kind} {σ : Subst Ty} T :
   (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
   ∀ i K, (T::Δ)[i]? = some K -> G&(T::Δσ) ⊢ σ.lift i : K
@@ -277,12 +277,14 @@ theorem Typing.subst_lift_type {Γ Γσ : List Ty} {σ : Subst Term} T :
   cases i <;> simp at *
   case _ =>
     rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h1 := h1 0 a b e1 (by apply Kinding.strengthening h3)
+    replace h3 := Kinding.strengthening h3
+    replace h1 := h1 0 a b e1 h3
     apply rename_type (T::Δ) (· + 1) wf _ h1
     intro i; cases i <;> simp
   case _ i =>
     rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h1 := h1 (i + 1) a b e1 (by apply Kinding.strengthening h3)
+    replace h3 := Kinding.strengthening h3
+    replace h1 := h1 (i + 1) a b e1 h3
     apply rename_type (T::Δ) (· + 1) wf _ h1
     intro i; cases i <;> simp
 
@@ -394,3 +396,4 @@ theorem Typing.beta :
   cases i <;> simp at *
   case _ => subst h1; exact j2
   case _ i => apply var h1 h2
+end Core

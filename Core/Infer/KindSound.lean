@@ -2,6 +2,8 @@ import Core.Infer.Kind
 import Core.Ty
 import Core.Typing
 
+namespace Core
+
 theorem base_kind_some {k : Kind}:
   k.base_kind = some b ->
   k = .base b := by
@@ -61,3 +63,5 @@ case _ ih1 ih2 =>
   have ih1 := ih1 h1
   have ih2 := ih2 h2
   constructor; assumption; assumption
+
+end Core

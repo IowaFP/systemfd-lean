@@ -34,17 +34,17 @@ instance Surface.instRepr_Global : Repr Global where
   reprPrec a p := Global.repr p a
 
 @[simp]
-def Surface.Globals := List Surface.Global
+def Surface.GlobalEnv := List Surface.Global
 
-@[simp] instance Surface.instHAppend_Globals : Append Globals where
-  append x y := by unfold Globals; unfold Globals at x; unfold Globals at y; apply x ++ y
+@[simp] instance Surface.instHAppend_Globals : Append Surface.GlobalEnv where
+  append x y := by unfold Surface.GlobalEnv; unfold Surface.GlobalEnv at x; unfold Surface.GlobalEnv at y; apply x ++ y
 
-def Surface.Globals.repr (p : Nat) : Globals -> Std.Format
+def Surface.Globals.repr (p : Nat) : Surface.GlobalEnv -> Std.Format
 | .nil => Std.Format.nil
 | .cons g gl => Global.repr 0 g ++ Globals.repr p gl
 
 @[simp]
-instance Surface.instRepr_Globals : Repr Globals where
+instance Surface.instRepr_Globals : Repr Surface.GlobalEnv where
   reprPrec a p := Globals.repr p a
 
 inductive Surface.Entry : Type where
@@ -91,7 +91,7 @@ def Surface.Entry.type : Entry -> Option Ty
 -- | instty _ T => T
 | _ => none
 
-def Surface.lookup (x : String) : List Global -> Option Entry
+def Surface.lookup (x : String) : GlobalEnv -> Option Entry
 | [] => none
 | .cons (.data (n := n) y K ctors) tl =>
   let ctors' : Vec (Option Entry) n := λ i =>
@@ -124,23 +124,23 @@ def Surface.is_data G x := lookup x G |> Option.map Surface.Entry.is_data |> Opt
 -- def Surface.is_openm G x := lookup x G |> Option.map Surface.Entry.is_openm |> Option.get!
 -- def Surface.is_defn G x := lookup x G |> Option.map Surface.Entry.is_defn |> Option.get!
 
-def Surface.ctor_idx (x : String) (G : List Global) : Option Nat := do
+def Surface.ctor_idx (x : String) (G : GlobalEnv) : Option Nat := do
   let t <- lookup x G
   match t with
   | .ctor _ n _ => n
   | _ => none
 
-def Surface.ctor_ty (x : String) (G : List Global) : Option Ty := do
+def Surface.ctor_ty (x : String) (G : GlobalEnv) : Option Ty := do
   let t <- lookup_type G x
   if is_ctor G x then return t else none
 
-def Surface.ctor_count (x : String) (G : List Global) : Option Nat := do
+def Surface.ctor_count (x : String) (G : GlobalEnv) : Option Nat := do
   let t <- lookup x G
   match t with
   | .data _ _ ctors => ctors.length
   | _ => .none
 
-def Surface.is_stable (x : String) (G : List Global) : Bool := is_ctor G x -- ∨ is_instty G x
+def Surface.is_stable (x : String) (G : GlobalEnv) : Bool := is_ctor G x -- ∨ is_instty G x
 
 -- theorem Surface.lookup_entry_openm_exists :
 --   is_openm G x -> ∃ y T, lookup x G = .some (Surface.Entry.openm y T) := by

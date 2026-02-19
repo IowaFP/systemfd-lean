@@ -22,7 +22,7 @@ def Surface.notTerm : Surface.Term := λˢ[ .global "Bool" ]
          g`#"False"
 
 /-  eqBool =
-  λ x. λ y. case x of
+  λ x. λ y. case x ofasdf
               True → case y of
                        True → True
                        False → False

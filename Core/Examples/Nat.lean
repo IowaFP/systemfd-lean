@@ -6,6 +6,7 @@ import Core.Vec
 import Core.Eval.BigStep
 import Core.Infer
 
+namespace Core.Examples.Bool
 def c1 := match! #0 v[ g#"S" ]  v[ λ[gt#"Nat"] g#"False" ] g#"True"
 def c2 := λ[ gt#"Nat"] match! #1
                        v[ g#"S" ]
@@ -28,8 +29,11 @@ def NatCtxFix : List Global := [
      (λ[ gt#"Nat"] λ[gt#"Nat"]
         match! #1
         v[ g#"Z" , g#"S" ]
-        v[ c1
-         , c2
+        v[ match! #0 v[ g#"S" ]  v[ λ[gt#"Nat"] g#"False" ] g#"True"
+         , λ[ gt#"Nat"] match! #1
+                       v[ g#"S" ]
+                       v[ λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
+                       g#"False"
          ]
         g#"False"
     ) ,
@@ -85,3 +89,4 @@ def NatCtxFix : List Global := [
 
 
 #eval NatCtxFix
+namespace Core.Exampes.Bool

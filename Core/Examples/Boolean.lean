@@ -6,6 +6,8 @@ import Core.Vec
 import Core.Eval.BigStep
 import Core.Infer
 
+namespace Core.Examples
+
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
   .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
@@ -112,3 +114,5 @@ def t := (Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
 -- #eval! eval EqBoolCtx t16
 -- def t17 := Option.getD (eval EqBoolCtx t16) `0
 -- #eval! eval EqBoolCtx t17
+
+end Core.Examples

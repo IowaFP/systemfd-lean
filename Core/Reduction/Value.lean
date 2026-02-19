@@ -5,6 +5,8 @@ import Core.Reduction.Congr
 
 open LeanSubst
 
+namespace Core
+
 @[simp]
 theorem Value.not_zero : ¬ Value G `0 := by
   intro j; cases j
@@ -197,3 +199,4 @@ theorem Value.not_zero : ¬ Value G `0 := by
 --     case ctor2_congr2 r _ => apply ih2 _ r
 --   all_goals
 --     cases r <;> simp [Term.spine] at *
+end Core

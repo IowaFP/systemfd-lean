@@ -1,6 +1,7 @@
 import Core.Ty
 import Core.Term.Definition
 
+namespace Core
 def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
 | zero, zero => true
 | refl A, refl B => A == B
@@ -141,3 +142,4 @@ instance instLawfulBEq_Term : LawfulBEq Term where
     sorry
     sorry
     sorry
+end Core

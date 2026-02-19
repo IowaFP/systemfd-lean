@@ -2,6 +2,7 @@ import LeanSubst
 import Core.Term.Definition
 
 open LeanSubst
+namespace Core
 
 def Term.not_choice : Term -> Bool
 | ctor2 .choice _ _ => false
@@ -70,3 +71,4 @@ inductive VariantMissing : List Variant -> Term -> Prop where
   (∀ i, VariantMissing vs (ts i)) ->
   VariantMissing vs c ->
   VariantMissing vs (.match t ps ts c)
+end Core

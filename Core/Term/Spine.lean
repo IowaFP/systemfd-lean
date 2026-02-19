@@ -6,6 +6,8 @@ import Core.Term.BEq
 
 open LeanSubst
 
+namespace Core
+
 inductive SpineElem : Type where
 | type (x : Ty)
 | term (x : Term)
@@ -223,6 +225,7 @@ theorem Spine.apply_spine_compose {t : Term}:
 induction t, s1 using Term.apply.induct generalizing s2 <;> simp [Term.apply] at *
 all_goals (case _ ih => apply ih)
 
+
 theorem Spine.apply_eq_subst {t : Term} (σ : Subst Term) :
   t.spine = some (x, sp) ->
   t[σ:_].spine = some (x, sp.map (·[σ:_]))
@@ -247,3 +250,5 @@ theorem Spine.apply_eq_subst {t : Term} (σ : Subst Term) :
     simp at q2; obtain ⟨e1, e2⟩ := q2; subst e1 e2
     exists zsp.map (·[σ:_]); simp
     apply ih σ q1
+
+end Core

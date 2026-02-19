@@ -6,6 +6,8 @@ import Core.Term
 
 open LeanSubst
 
+namespace Core
+
 def OpenVarVal (G : List Global) (x : String) (sp : List SpineElem) : Prop :=
   is_openm G x ∧ ∀ T, some T = lookup_type G x -> sp.length < T.arity
 
@@ -198,3 +200,5 @@ inductive RedPlus (G : Globals) : Term -> Term -> Prop where
 | step : RedPlus G x y -> Red G y z -> RedPlus G x z
 
 notation:160 G:160 " ⊢ " t:160 " ~>+ " t':160 => RedPlus G t t'
+
+namespace Core

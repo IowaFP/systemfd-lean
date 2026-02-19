@@ -1,7 +1,9 @@
 import Core.Infer.Kind
 import Core.Infer.Type
 
+namespace Core
 
+@[simp]
 def Globals.wf_globals : (G : Globals) -> Option Unit
 | .nil => return ()
 | .cons (.data (n := n) x k ctors) tl => do
@@ -26,3 +28,5 @@ def Globals.wf_globals : (G : Globals) -> Option Unit
 | .cons (.instty _ T) tl => do
   wf_globals tl
   let _ <- T.infer_kind tl []
+
+end Core

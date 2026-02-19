@@ -1,6 +1,7 @@
 import Core.Ty
 import Core.Global
 
+namespace Core
 def Kind.is_arrow : (K : Kind) -> Option (Kind × Kind)
 | .arrow k1 k2 => return (k1 , k2)
 | _ => none
@@ -76,3 +77,5 @@ def Ty.infer_kind (G : List Global) (Δ : List Kind) : Ty -> Option Kind
   let Bk <- infer_kind G Δ B
   let (k1, k2) <- Ak.is_arrow
   if k1 == Bk then return k2 else none
+
+end Core

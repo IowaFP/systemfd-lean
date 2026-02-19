@@ -5,6 +5,7 @@ import Core.Ty.BEq
 
 open LeanSubst
 
+namespace Core
 def Ty.spine : Ty -> Option (String × List Ty)
 | gt#x => return (x, [])
 | app f a => do
@@ -138,3 +139,5 @@ theorem Ty.Spine.apply_compose {t : Ty}
 theorem Ty.Spine.apply_eta : ((gt#x).apply sp).spine = some (x, sp) := by
   have lem := @apply_compose x [] sp gt#x (by simp [Ty.spine])
   simp at lem; exact lem
+
+end Core

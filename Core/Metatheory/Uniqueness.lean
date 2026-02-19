@@ -8,6 +8,8 @@ import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
 import Core.Metatheory.GlobalWf
 
+namespace Core
+
 theorem Typing.unique_var_typing :
   G&Δ,Γ ⊢ g#a : A ->
   G&Δ,Γ ⊢ g#a : T ->
@@ -123,3 +125,5 @@ case all ih =>
       replace ih := ih h1 h2
       have lem : A[+1][-1] = B[+1][-1] := by rw[ih];
       simp at lem; apply lem
+
+namespace Core

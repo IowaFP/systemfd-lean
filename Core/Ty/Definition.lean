@@ -1,4 +1,5 @@
 
+namespace Core
 inductive BaseKind : Type where
 | closed
 | «open»
@@ -60,6 +61,7 @@ instance tyRepr : Repr Ty where
   reprPrec a p := Ty.repr p a
 
 
+end Core
 /-
 
 case var => sorry

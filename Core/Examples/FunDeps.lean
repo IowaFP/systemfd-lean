@@ -5,6 +5,8 @@ import Core.Vec
 
 import Core.Infer.Global
 
+namespace Core
+
 def FunDepsCtx : List Global := [
 
   -- id :: ∀ A B. Equal A B -> A -> B =
@@ -49,3 +51,5 @@ def FunDepsCtx : List Global := [
 ]
 
 #guard Globals.wf_globals FunDepsCtx == .some ()
+
+end Core

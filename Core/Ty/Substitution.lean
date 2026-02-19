@@ -4,6 +4,7 @@ import Core.Ty.Definition
 open LeanSubst
 
 def Subst.add (k : Nat) : Subst T := λ n => re (n + k)
+namespace Core
 
 @[coe]
 def Ty.from_action : Subst.Action Ty -> Ty
@@ -152,3 +153,5 @@ case var => simp [Ren.to] at h
 case all a ih =>
   cases h.1; cases h.2; clear h
   exists a;
+
+end Core

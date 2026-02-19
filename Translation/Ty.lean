@@ -2,28 +2,31 @@ import Surface.Ty
 import Core.Ty
 import Core.Global
 
-def trans_ki : Surface.Kind -> Kind
+@[simp]
+def Surface.Kind.translate : Surface.Kind -> Core.Kind
 | .base .closed => .base .closed
 | .base .open => .base .open
-| .arrow k1 k2 => .arrow (trans_ki k1) (trans_ki k2)
+| .arrow k1 k2 => .arrow (translate k1) (translate k2)
 
-def trans_kis : List Surface.Kind -> List Kind := List.map (trans_ki ·)
+def Surface.Kind.translateEnv : List Surface.Kind -> List Core.Kind := List.map (translate ·)
 
 @[simp]
-def trans_ty (G : List Global) (Δ : List Kind) : Surface.Ty -> Option Ty
+def Surface.Ty.translate (G : List Core.Global) (Δ : List Core.Kind) : Surface.Ty -> Option Core.Ty
 | .var x => return .var x
 | .global x => return .global x
 | .arrow a b => do
-  let a' <- trans_ty G Δ a
-  let b' <- trans_ty G Δ b
+  let a' <-  a.translate G Δ
+  let b' <- b.translate G Δ
   return .arrow  a' b'
 | .app a b => do
-  let a' <- trans_ty G Δ a
-  let b' <- trans_ty G Δ b
+  let a' <- a.translate G Δ
+  let b' <- b.translate G Δ
   return .app a' b'
 | .all k p => do
-  let k' := trans_ki k
-  let p' <- trans_ty G (k' :: Δ) p
+  let k' := k.translate
+  let p' <- p.translate G (k' :: Δ)
   return .all k' p'
 
-def trans_tys (G : List Global) (Δ : List Kind) : List Surface.Ty -> Option (List Ty) := List.mapM (trans_ty G Δ ·)
+def Surface.Ty.translateEnv (G : List Core.Global) (Δ : List Core.Kind) :
+  List Surface.Ty -> Option (List Core.Ty) :=
+  List.mapM (·.translate G Δ)

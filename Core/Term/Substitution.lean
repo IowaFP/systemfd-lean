@@ -3,6 +3,8 @@ import Core.Term.Definition
 
 open LeanSubst
 
+namespace Core
+
 @[coe]
 def Term.from_action : Subst.Action Term -> Term
 | .re y => #y
@@ -375,3 +377,5 @@ def Term.isubst (t : Term) : IteratedSubst -> Term
 | .nil => t
 | .term σ tl => t[σ].isubst tl
 | .type σ tl => t[σ:Ty].isubst tl
+
+end Core

@@ -3,7 +3,7 @@ import Core.Term
 import Core.Reduction.Definition
 
 open LeanSubst
-
+namespace Core
 -- Ctor2 Congr1
 @[simp]
 theorem Ctor2Variant.congr1_app : congr1 (app b) = true := by simp [congr1]
@@ -89,3 +89,4 @@ theorem Red.spine_congr :
   case _ y z h1 h2 ih =>
     apply Star.step ih
     apply spine_congr_step h2
+end Core

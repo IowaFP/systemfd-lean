@@ -12,6 +12,7 @@ inductive Surface.Term : Type where
 | lamt :  Surface.Kind -> Term -> Term
 | lam : Surface.Ty -> Term -> Term
 | «match» : Term -> Vec Term n -> Vec Term n -> Term -> Term
+-- |  hole : Ty  -> Term
 
 
 prefix:max "`#" => Surface.Term.var

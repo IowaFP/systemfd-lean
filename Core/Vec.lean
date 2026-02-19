@@ -284,6 +284,7 @@ theorem Vec.subst_cons {t : Vec S n} {σ : Subst T}
     case _ n =>
     cases i using Fin.cases <;> simp [Vec.map] at *
 
+omit [RenMap T] [SubstMap S T] in
 def Vec.indexOf [BEq Q] (c : Q) {n : Nat} (v :  Vec Q n) : Option (Fin n) :=
 match n with
 | 0 => none

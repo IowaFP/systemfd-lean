@@ -14,6 +14,8 @@ import Core.Metatheory.SpineType
 
 open LeanSubst
 
+namespace Core
+
 theorem instance_type_preservation :
   ⊢ G ->
   G&Δ, Γ ⊢ g#x : T ->
@@ -241,3 +243,5 @@ have h7 := Spine.apply_eq j7; subst h7
 replace j8 := Spine.apply_eq j8; subst j8
 rw [Spine.apply_spine_compose] at j2
 apply preservation_prefix_match_lemma wf j7 j1 j2 j3 j4 j5
+
+end Core

@@ -11,6 +11,8 @@ import Core.Metatheory.GlobalWf
 import Core.Metatheory.Uniqueness
 import Core.Metatheory.Inversion
 
+namespace Core
+
 theorem spine_has_base_type {t : Term} :
   G&Δ,Γ ⊢ t.apply sp : T ->
   ∃ B, G&Δ,Γ ⊢ t : B ∧ TypeMatch B T
@@ -66,3 +68,5 @@ have lem := Typing.inversion_apply_spine wf j4
 rcases lem with ⟨B', h1, h2, h3⟩
 have e := Typing.spine_term_unique_typing j2 h2 j1; cases e
 apply SpineType.apply j3 h1
+
+end Core

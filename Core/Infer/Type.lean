@@ -4,6 +4,7 @@ import Core.Infer.Kind
 import Core.Global
 
 open LeanSubst
+namespace Core
 -- A is the type of the pattern
 -- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
 -- R is the type of the scrutinee
@@ -289,3 +290,5 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let _ <- T1.infer_kind G Δ
   if T1 == T2 then return T1 else none
 | _ => none
+
+namespace Core

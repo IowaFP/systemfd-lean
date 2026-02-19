@@ -3,6 +3,8 @@ import Core.Typing
 
 open LeanSubst
 
+namespace Core
+
 inductive Ty.FV : Ty -> Nat -> Prop where
 | var : FV t#x x
 | arrowr : FV a x -> FV (a -:> b) x
@@ -81,3 +83,5 @@ case _ ih1 ih2 =>
 theorem FV.zero_not_in_succ {T : Ty} : 0 ∉ T[+1] := by
 have lem := @FV.var_not_in_one_more (T := T) 0
 simp at lem; apply lem
+
+end Core

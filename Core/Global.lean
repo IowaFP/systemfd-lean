@@ -5,6 +5,8 @@ import Core.Term
 
 open LeanSubst
 
+namespace Core
+
 inductive Global : Type where
 | data : String -> Kind -> Vec (String × Ty) n -> Global
 | opent : String -> Kind -> Global
@@ -223,3 +225,5 @@ theorem Global.lookup_type_unique :
   t = t' := by
 intro h1 h2
 all_goals (rw[h1] at h2; injection h2)
+
+end Core

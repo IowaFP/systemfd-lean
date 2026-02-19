@@ -6,6 +6,8 @@ import Core.Metatheory.SpineType
 
 open LeanSubst
 
+namespace Core
+
 def Term.Determined (t : Term) : Prop :=
   VariantMissing [.ctor2 .choice, .ctor0 .zero, .guard] t
 
@@ -712,3 +714,4 @@ inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
 --   Star (Red G) (t.apply sp) `0
 -- := by
 --   sorry
+end Core

@@ -1,5 +1,6 @@
 import Core.Ty.Definition
 
+namespace Core
 def BaseKind.beq : BaseKind -> BaseKind -> Bool
 | closed, closed => true
 | .open, .open => true
@@ -89,3 +90,4 @@ instance instLawfulBeq_Ty : LawfulBEq Ty where
       · constructor
         · apply ih1 h.1.2
         · apply ih2 h.2
+end Core

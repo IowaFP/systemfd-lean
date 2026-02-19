@@ -7,6 +7,7 @@ import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
 import Core.Global
 
+namespace Core
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
 intro n wf
 induction wf generalizing n
@@ -205,3 +206,5 @@ exists T; exists b
 constructor
 · sorry
 · sorry
+
+end Core

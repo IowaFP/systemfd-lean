@@ -4,6 +4,7 @@ import Core.Vec
 
 open LeanSubst
 
+namespace Core
 inductive Ctor0Variant : Type where
 | zero
 | refl (A : Ty)
@@ -135,3 +136,4 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 @[simp]
 instance instRepr_Term : Repr Term where
   reprPrec a p := Term.repr p a
+end Core

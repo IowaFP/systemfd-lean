@@ -7,6 +7,8 @@ import Core.Term.BEq
 
 open LeanSubst
 
+namespace Core
+
 def Term.telescope : Term -> Telescope × Term
 | lam A t =>
   let (tl, b) := t.telescope
@@ -113,6 +115,7 @@ theorem telescope_subst_ty {b : Term} :
   case ty hd tl ih =>
     simp [Term.tele_intro, *]
 
+
 theorem telescope_eq_subst {t : Term} (σ : Subst Term) :
   t.telescope = (te, b) ->
   t[σ:_].telescope = (te, b[tele_lift te σ:_])
@@ -131,3 +134,5 @@ theorem telescope_eq_subst {t : Term} (σ : Subst Term) :
     rw [ih]; simp
   case _ t' h1 h2 =>
     sorry
+
+end Core
