@@ -1,6 +1,8 @@
 import Surface.Ty
 import Core.Ty
 import Core.Global
+import Core.Typing
+import Surface.Typing
 
 @[simp]
 def Surface.Kind.translate : Surface.Kind -> Core.Kind
@@ -8,10 +10,10 @@ def Surface.Kind.translate : Surface.Kind -> Core.Kind
 | .base .open => .base .open
 | .arrow k1 k2 => .arrow (translate k1) (translate k2)
 
-def Surface.Kind.translateEnv : List Surface.Kind -> List Core.Kind := List.map (translate ·)
+def Surface.KindEnv.translate : Surface.KindEnv -> Core.KindEnv := List.map (·.translate)
 
 @[simp]
-def Surface.Ty.translate (G : List Core.Global) (Δ : List Core.Kind) : Surface.Ty -> Option Core.Ty
+def Surface.Ty.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) : Surface.Ty -> Option Core.Ty
 | .var x => return .var x
 | .global x => return .global x
 | .arrow a b => do
@@ -27,6 +29,4 @@ def Surface.Ty.translate (G : List Core.Global) (Δ : List Core.Kind) : Surface.
   let p' <- p.translate G (k' :: Δ)
   return .all k' p'
 
-def Surface.Ty.translateEnv (G : List Core.Global) (Δ : List Core.Kind) :
-  List Surface.Ty -> Option (List Core.Ty) :=
-  List.mapM (·.translate G Δ)
+def Surface.Ty.translateEnv (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : TyEnv) : Option (List Core.Ty) := Γ.mapM (·.translate G Δ)

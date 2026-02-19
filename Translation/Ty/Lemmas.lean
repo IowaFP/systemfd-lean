@@ -5,14 +5,14 @@ import Core.Typing
 import Surface.Typing
 -- Translation preservies kinding relation
 
-theorem Translation.KindEnv.sound {Δ : List Surface.Kind}{Δ' : List Core.Kind} :
-  Surface.Kind.translateEnv Δ = Δ' ->
+theorem Translation.KindEnv.sound {Δ : Surface.KindEnv} {Δ' : Core.KindEnv} :
+  Δ.translate = Δ' ->
   (∀ (i : Nat) (K : Surface.Kind),
      (Δ[i]? = some K) -> ∃ K', ((Δ'[i]? = some K') ∧ K.translate = K')) := by
-intro h1 i K h2
-unfold Surface.Kind.translateEnv at h1
-have lem := List.map_eq_iff.1 h1 i; rw[h2] at lem; simp at lem
-exists K.translate
+intro h1 i K h2; simp at *
+unfold Surface.KindEnv.translate at h1
+have lem := List.map_eq_iff.1 h1 i; simp [Surface.inst_getElem?_KindEnv] at *; rw[h2] at lem; simp at lem
+assumption
 
 theorem Translation.Kind.sound_base {b : Surface.BaseKind}:
   ∃ b', (Surface.Kind.base b).translate = .base b' := by
@@ -23,7 +23,7 @@ theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
   ∃ b1' b2', (Surface.Kind.arrow b1 b2).translate = .arrow b1' b2' := by simp
 
 theorem Translation.Global.lookup_kind_sound :
-  Surface.Global.translateEnv G = some G' ->
+  G.translate = some G' ->
   Surface.lookup_kind G x = some K ->
   Core.lookup_kind G' x = some K'  := by
 intro h1 h2
@@ -33,8 +33,8 @@ sorry
 theorem Translation.Ty.sound :
   ⊢s G ->
   G&Δ ⊢s T : K ∧
-  Surface.Global.translateEnv G = some G' ∧
-  Surface.Kind.translateEnv Δ = Δ'  ->
+  G.translate = some G' ∧
+  Δ.translate = Δ'  ->
   ∃ K' T', K.translate = K' ∧
   T.translate G' Δ' = some T' ∧
   G'&Δ' ⊢ T' : K' := by
@@ -56,9 +56,9 @@ case all K Δ P j ih =>
   constructor
   exists P';
   constructor;
-  · simp [Surface.Kind.translateEnv] at t h2; rw[h2] at t; assumption
+  · simp [Surface.KindEnv.translate] at t h2; rw[h2] at t; assumption
   · simp
-  constructor; simp [Surface.Kind.translateEnv] at j; subst h2; simp [Surface.Kind.translateEnv]
+  constructor; simp [Surface.KindEnv.translate] at j; subst h2; simp [Surface.KindEnv.translate]
   apply j
 case arrow b1 _ b2 _ _ ih1 ih2 =>
   rcases ih1 with ⟨A', t1, j1⟩

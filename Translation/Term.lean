@@ -5,7 +5,7 @@ import Surface.Term
 
 import Translation.Ty
 
-def Surface.Term.translate (G : List Core.Global) (Δ : List Core.Kind) (Γ : List Core.Ty) :
+def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
   Surface.Term -> Option Core.Term
 | `#x => #x
 | g`#x => g#x

@@ -5,13 +5,39 @@ import Surface.Ty
 import Surface.Term
 import Surface.Global
 
-def Surface.ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
+namespace Surface
+
+def KindEnv := List Kind
+def TyEnv := List Ty
+
+
+instance inst_getElem_TyEnv : GetElem TyEnv Nat Ty (λ env i => by simp [TyEnv] at env; apply i < env.length) where
+  getElem env i _ := by unfold TyEnv at env; apply env[i]
+
+instance inst_getElem?_TyEnv : GetElem? TyEnv Nat Ty
+         (λ env i => by simp [TyEnv] at env; apply i < env.length) where
+  getElem? env i := by unfold TyEnv at env; apply env[i]?
+
+instance inst_getElem_KindEnv : GetElem KindEnv Nat Kind
+         (λ env i => by simp [KindEnv] at env; apply i < env.length) where
+  getElem env i _ := by unfold KindEnv at env; apply env[i]
+
+instance inst_getElem?_KindEnv : GetElem? KindEnv Nat Kind
+         (λ env i => by simp [KindEnv] at env; apply i < env.length) where
+  getElem? env i := by unfold KindEnv at env; apply env[i]?
+
+def TyEnv.mapM [Monad m] (f : Ty -> m β) (env : TyEnv) := by simp [TyEnv] at env; apply env.mapM f
+
+def KindEnv.map (f : Kind -> β) (env : KindEnv) := by simp [KindEnv] at env; apply env.map f
+
+
+def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
   ∃ x, Term.spine t = some x ∧ test x.fst
 
-def Surface.ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
+def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
   ∃ x, Ty.spine t = some x ∧ test x.fst
 
-inductive Surface.StableTypeMatch : List Kind -> Ty -> Ty -> Prop
+inductive StableTypeMatch : KindEnv -> Ty -> Ty -> Prop
 | refl :
   Ty.spine R = some x ->
   StableTypeMatch Δ R R
@@ -23,7 +49,7 @@ inductive Surface.StableTypeMatch : List Kind -> Ty -> Ty -> Prop
   StableTypeMatch Δ (`∀[K] B) R
 
 
-inductive Surface.PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
+inductive PrefixTypeMatch : KindEnv -> Ty -> Ty -> Ty -> Prop
 | refl :
   Ty.spine B = some x ->
   PrefixTypeMatch Δ B T T
@@ -35,30 +61,30 @@ inductive Surface.PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
   PrefixTypeMatch Δ (`∀[K] B) (`∀[K] V) T
 
 
-inductive Surface.Kinding (G : List Surface.Global) : List Surface.Kind -> Surface.Ty -> Surface.Kind -> Prop
+inductive Kinding (G : GlobalEnv) : KindEnv -> Ty -> Kind -> Prop
 | var :
   Δ[x]? = some K ->
-  Surface.Kinding G Δ t`#x K
+  Kinding G Δ t`#x K
 | global :
-  Surface.lookup_kind G x = some K ->
+  lookup_kind G x = some K ->
   Kinding G Δ gt`#x K
 | arrow :
-  Surface.Kinding G Δ A (.base b1) ->
-  Surface.Kinding G Δ B (.base b2) ->
-  Surface.Kinding G Δ (A `-:> B) `★
+  Kinding G Δ A (.base b1) ->
+  Kinding G Δ B (.base b2) ->
+  Kinding G Δ (A `-:> B) `★
 | all :
-  Surface.Kinding G (K::Δ) P `★ ->
-  Surface.Kinding G Δ (`∀[K] P) `★
+  Kinding G (K::Δ) P `★ ->
+  Kinding G Δ (`∀[K] P) `★
 | app :
-  Surface.Kinding G Δ f (A `-:> B) ->
-  Surface.Kinding G Δ a A ->
-  Surface.Kinding G Δ (f `• a) B
+  Kinding G Δ f (A `-:> B) ->
+  Kinding G Δ a A ->
+  Kinding G Δ (f `• a) B
 
 
-notation:170 G:170 "&" Δ:170 " ⊢s " A:170 " : " K:170 => Surface.Kinding G Δ A K
+notation:170 G:170 "&" Δ:170 " ⊢s " A:170 " : " K:170 => Kinding G Δ A K
 
-inductive Surface.Typing (G : List Surface.Global) :
-  List Surface.Kind -> List Surface.Ty -> Surface.Term -> Surface.Ty -> Prop
+inductive Typing (G : GlobalEnv) :
+  KindEnv -> TyEnv -> Term -> Ty -> Prop
 | var :
   Γ[x]? = some A ->
   G&Δ ⊢s A : .base b ->
@@ -102,12 +128,12 @@ inductive Surface.Typing (G : List Surface.Global) :
 | appt :
   Typing G Δ Γ f (`∀[K] P) ->
   G&Δ ⊢s a : K ->
-  P' = P[.su a :: +0:Surface.Ty] ->
+  P' = P[.su a :: +0:Ty] ->
   Typing G Δ Γ (f `•[a]) P'
 
-notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " : " A:170 => Surface.Typing G Δ Γ t A
+notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " : " A:170 => Typing G Δ Γ t A
 
-inductive Surface.ValidCtor (x : String) : Ty -> Prop where
+inductive ValidCtor (x : String) : Ty -> Prop where
 | base :
   T.spine = some (x, sp) ->
   ValidCtor x T
@@ -119,20 +145,22 @@ inductive Surface.ValidCtor (x : String) : Ty -> Prop where
   ValidCtor x (A `-:> B)
 
 
-inductive Surface.GlobalWf : Surface.GlobalEnv -> Surface.Global -> Prop where
-| data {ctors : Vec (String × Ty) n} {ctors' : Vec String n} {G : Surface.GlobalEnv}:
+inductive GlobalWf : GlobalEnv -> Global -> Prop where
+| data {ctors : Vec (String × Ty) n} {ctors' : Vec String n} {G : GlobalEnv}:
   (∀ i y T, ctors i = (y, T) ->
     (.data x K v[]::G)&[] ⊢s T : `★ ∧
-     Surface.ValidCtor x T ∧
+     ValidCtor x T ∧
      none = lookup y (.data x K v[]::G)) ->
   (ctors' = λ i => (ctors i).1) ->
    ctors'.HasUniqueElems ->
   lookup x G = none ->
   GlobalWf G (.data x K ctors)
 
-inductive Surface.ListGlobalWf : Surface.GlobalEnv -> Prop where
+inductive ListGlobalWf : GlobalEnv -> Prop where
 | nil : ListGlobalWf []
-| cons : Surface.GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
+| cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
 
 
-notation:175 "⊢s " G:175 => Surface.ListGlobalWf G
+notation:175 "⊢s " G:175 => ListGlobalWf G
+
+end Surface

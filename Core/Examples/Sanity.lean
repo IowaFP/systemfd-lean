@@ -6,8 +6,10 @@ import Core.Vec
 import Core.Eval.BigStep
 import Core.Infer
 
+
+namespace Core.Examples
 /- data Bool = True | False -/
-def BoolCtx : Globals := [
+def BoolCtx : Core.GlobalEnv := [
   .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
   ]
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
@@ -20,12 +22,11 @@ not = λ x → case x of
                True → False
                _ → False
 -/
-def notTerm : Term := λ[.global "Bool" ]
+def notTerm : Core.Term := λ[.global "Bool" ]
   match! #0
-         v[ "True",
-            "False" ]
-         v[ g# "False",
-            g# "True" ]
+         v[ g#"True", ]
+         v[ g# "False"]
+         g#"True"
 
 /-  eqBool =
   λ x. λ y. case x of
@@ -46,8 +47,8 @@ def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
     ]
 
 
-def funs : Globals := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool]
-def EqBoolCtx : Globals := funs ++ BoolCtx
+def funs : GlobalEnv := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool]
+def EqBoolCtx : GlobalEnv := funs ++ BoolCtx
 
 #eval! eqBool.infer_type EqBoolCtx [] []
 #guard Globals.wf_globals EqBoolCtx == some ()
@@ -73,3 +74,5 @@ def t2 := Term.match g#"True"
 
 #guard eval EqBoolCtx t1 == g#"True"
 #guard eval EqBoolCtx t2 == g#"True"
+
+end Core.Examples

@@ -7,6 +7,31 @@ import Core.Global
 open LeanSubst
 
 namespace Core
+
+def KindEnv := List Kind
+def TyEnv := List Ty
+
+
+instance inst_getElem_TyEnv : GetElem TyEnv Nat Ty (λ env i => by simp [TyEnv] at env; apply i < env.length) where
+  getElem env i _ := by unfold TyEnv at env; apply env[i]
+
+instance inst_getElem?_TyEnv : GetElem? TyEnv Nat Ty
+         (λ env i => by simp [TyEnv] at env; apply i < env.length) where
+  getElem? env i := by unfold TyEnv at env; apply env[i]?
+
+instance inst_getElem_KindEnv : GetElem KindEnv Nat Kind
+         (λ env i => by simp [KindEnv] at env; apply i < env.length) where
+  getElem env i _ := by unfold KindEnv at env; apply env[i]
+
+instance inst_getElem?_KindEnv : GetElem? KindEnv Nat Kind
+         (λ env i => by simp [KindEnv] at env; apply i < env.length) where
+  getElem? env i := by unfold KindEnv at env; apply env[i]?
+
+def TyEnv.mapM [Monad m] (f : Ty -> m β) (env : TyEnv) := by simp [TyEnv] at env; apply env.mapM f
+
+def KindEnv.map (f : Kind -> β) (env : KindEnv) := by simp [KindEnv] at env; apply env.map f
+
+
 def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
   ∃ x, Term.spine t = some x ∧ test x.fst
 

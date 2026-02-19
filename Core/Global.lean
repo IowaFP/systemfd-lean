@@ -36,18 +36,18 @@ instance instRepr_Global : Repr Global where
   reprPrec a p := Global.repr p a
 
 @[simp]
-def Globals := List Global
+def GlobalEnv := List Global
 
-@[simp] instance instHAppend_Globals : Append Globals where
-  append x y := by unfold Globals; unfold Globals at x; unfold Globals at y; apply x ++ y
+@[simp] instance instHAppend_GlobalEnv : Append GlobalEnv where
+  append x y := by unfold GlobalEnv; unfold GlobalEnv at x; unfold GlobalEnv at y; apply x ++ y
 
-def Globals.repr (p : Nat) : Globals -> Std.Format
+def GlobalEnv.repr (p : Nat) : GlobalEnv -> Std.Format
 | .nil => Std.Format.nil
-| .cons g gl => Global.repr 0 g ++ Globals.repr p gl
+| .cons g gl => Global.repr 0 g ++ GlobalEnv.repr p gl
 
 @[simp]
-instance instRepr_Globals : Repr Globals where
-  reprPrec a p := Globals.repr p a
+instance instRepr_GlobalEnv : Repr GlobalEnv where
+  reprPrec a p := GlobalEnv.repr p a
 
 inductive Entry : Type where
 | data : String -> Kind -> Vec (String × Ty) n -> Entry

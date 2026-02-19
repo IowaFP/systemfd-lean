@@ -4,7 +4,7 @@ import Core.Infer.Type
 namespace Core
 
 @[simp]
-def Globals.wf_globals : (G : Globals) -> Option Unit
+def Globals.wf_globals : (G : GlobalEnv) -> Option Unit
 | .nil => return ()
 | .cons (.data (n := n) x k ctors) tl => do
   wf_globals tl
