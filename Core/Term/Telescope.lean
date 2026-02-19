@@ -112,3 +112,22 @@ theorem telescope_subst_ty {b : Term} :
     rw [ih]
   case ty hd tl ih =>
     simp [Term.tele_intro, *]
+
+theorem telescope_eq_subst {t : Term} (σ : Subst Term) :
+  t.telescope = (te, b) ->
+  t[σ:_].telescope = (te, b[tele_lift te σ:_])
+:= by
+  intro j
+  fun_induction Term.telescope t generalizing te b σ <;> simp at *
+  case _ A t' tl b' h ih =>
+    rcases j with ⟨e1, e2⟩; subst e1 e2
+    simp [tele_lift, Term.telescope]
+    replace ih := ih σ.lift h; simp at ih
+    rw [ih]; simp
+  case _ K t' tl b' h ih =>
+    rcases j with ⟨e1, e2⟩; subst e1 e2
+    simp [tele_lift, Term.telescope]
+    replace ih := ih (σ ◾ +1@Ty) h; simp at ih
+    rw [ih]; simp
+  case _ t' h1 h2 =>
+    sorry

@@ -2,6 +2,8 @@ import LeanSubst
 
 open LeanSubst
 
+def ExistsUnique {α : Sort u} (p : α → Prop) := ∃ x, p x ∧ ∀ y, p y → y = x
+
 @[simp]
 def prefix_equal [BEq T] : List T -> List T -> Option (List T)
 | [], t => .some t

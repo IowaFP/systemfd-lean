@@ -185,6 +185,16 @@ inductive TeleSpineAgree : Telescope -> List SpineElem -> Prop where
   TeleSpineAgree te sp ->
   TeleSpineAgree (.kind K te) (.type A :: sp)
 
+theorem TeleSpineAgree.subst_tele (σ : Subst Ty) :
+  TeleSpineAgree te sp ->
+  TeleSpineAgree te[σ:_] sp
+:= by
+  intro j; induction j generalizing σ <;> simp
+  case nil => apply nil
+  case lam ih => apply lam (ih _)
+  case olam ih => apply olam (ih _)
+  case tlam ih => apply tlam (ih _)
+
 inductive GetGuardTrace (G : List Global) : List Ty -> Term -> GuardTrace -> Prop where
 | base :
   t.Determined ->
@@ -236,22 +246,26 @@ theorem telescope_iterated_apply {b : Term} :
   Star (Red G) ((b.tele_intro te).apply sp) (b.isubst (iter_subst te sp))
 := by
   intro j
-  induction j generalizing b
-  all_goals simp [Term.tele_intro, Term.apply, Term.isubst]
-  case nil => apply Star.refl
-  case lam ih =>
-    apply Star.stepr
-    apply Red.spine_congr_step Red.beta
-    simp; apply ih
-  case olam ih =>
-    apply Star.stepr
-    apply Red.spine_congr_step Red.beta
-    simp; apply ih
-  case tlam te sp K A j ih =>
-    apply Star.stepr
-    apply Red.spine_congr_step Red.betat
-    simp; replace ih := @ih (b[tele_lift_ty te (su A::+0):_])
-    sorry
+  induction sp generalizing te b
+  case nil =>
+    cases j; simp [Term.apply, Term.tele_intro, Term.isubst]
+    apply Star.refl
+  case cons hd sp ih =>
+    cases j
+    case lam j =>
+      apply Star.stepr
+      apply Red.spine_congr_step Red.beta
+      simp; apply ih j
+    case olam j =>
+      apply Star.stepr
+      apply Red.spine_congr_step Red.beta
+      simp; apply ih j
+    case tlam te K A j =>
+      simp [Term.tele_intro, Term.apply]
+      apply Star.stepr
+      apply Red.spine_congr_step Red.betat
+      simp; replace ih := @ih te[su A::+0:_] b[tele_lift_ty te (su A::+0):_] (TeleSpineAgree.subst_tele _ j)
+      simp [Term.isubst]; apply ih
 
 theorem GetGuardTrace.subst :
   GetGuardTrace G Γ t tr ->
@@ -261,14 +275,20 @@ theorem GetGuardTrace.subst :
   induction j generalizing Γ' σ
   case base => sorry
   case guard_bound x A px B Ax spA sp te b tr p t Γ j1 j2 j3 j4 j5 j6 j7 ih =>
+    have lem1 : p[σ:_].spine = some (px, sp.map (·[σ:_])) := Spine.apply_eq_subst σ j5
+    have lem2 : t[σ:_].telescope = (te, b[tele_lift te σ]) := by sorry
     simp; generalize zdef : σ x = z at *
     cases z <;> simp
     case re k =>
-      sorry
+      apply guard_bound sorry j2 j3 j4 lem1 lem2 ih
     case su s =>
-      sorry
-  case guard_applied =>
-    sorry
+      apply guard_applied lem1 sorry lem2 sorry ih
+      sorry; sorry
+  case guard_applied px sp1 sx sp2 te b Γ tr p s t j1 j2 j3 j4 j5 ih =>
+    have lem1 : p[σ:_].spine = some (px, sp1.map (·[σ:_])) := Spine.apply_eq_subst σ j1
+    have lem2 : s[σ:_].spine = some (sx, sp2.map (·[σ:_])) := Spine.apply_eq_subst σ j2
+    have lem3 : t[σ:_].telescope = (te, b[tele_lift te σ]) := by sorry
+    simp; apply guard_applied lem1 lem2 lem3 sorry ih
 
 theorem GetGuardTrace.matched_reduce :
   GetGuardTrace G Γ t tr ->
@@ -277,8 +297,8 @@ theorem GetGuardTrace.matched_reduce :
 := by
   intro h1 h2
   induction h1
-  case base =>
-    sorry
+  case base t j =>
+    exists t; apply And.intro Star.refl j
   case guard_bound => cases h2
   case guard_applied px sp1 x sp2 tele b Γ tr p s t j1 j2 j3 j4 j5 ih =>
     cases h2; case _ sp3 q q1 q2 q3 =>

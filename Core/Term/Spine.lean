@@ -222,3 +222,28 @@ theorem Spine.apply_spine_compose {t : Term}:
   t.apply (s1 ++ s2) = (t.apply s1).apply s2 := by
 induction t, s1 using Term.apply.induct generalizing s2 <;> simp [Term.apply] at *
 all_goals (case _ ih => apply ih)
+
+theorem Spine.apply_eq_subst {t : Term} (σ : Subst Term) :
+  t.spine = some (x, sp) ->
+  t[σ:_].spine = some (x, sp.map (·[σ:_]))
+:= by
+  intro j
+  fun_induction Term.spine t generalizing x sp σ <;> simp at *
+  case _ y =>
+    obtain ⟨e1, e2⟩ := j; subst e1 e2
+    simp [Term.spine]
+  case _ f a ih =>
+    obtain ⟨⟨z, zsp⟩, q1, q2⟩ := Option.bind_eq_some_iff.1 j
+    simp at q2; obtain ⟨e1, e2⟩ := q2; subst e1 e2
+    exists zsp.map (·[σ:_]); simp
+    apply ih σ q1
+  case _ f a ih =>
+    obtain ⟨⟨z, zsp⟩, q1, q2⟩ := Option.bind_eq_some_iff.1 j
+    simp at q2; obtain ⟨e1, e2⟩ := q2; subst e1 e2
+    exists zsp.map (·[σ:_]); simp
+    apply ih σ q1
+  case _ f a ih =>
+    obtain ⟨⟨z, zsp⟩, q1, q2⟩ := Option.bind_eq_some_iff.1 j
+    simp at q2; obtain ⟨e1, e2⟩ := q2; subst e1 e2
+    exists zsp.map (·[σ:_]); simp
+    apply ih σ q1

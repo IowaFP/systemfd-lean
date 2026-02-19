@@ -27,8 +27,14 @@ intro wf e h1 h2
 induction n generalizing G G' t t' <;> simp at *
 case zero => subst e; rw[h1] at h2; assumption
 case succ n ih =>
-  replace ih := @ih G' t t' G wf
-  sorry
+  cases G <;> simp at *
+  case nil =>
+    simp [lookup] at h1 h2
+    subst e h1 h2; simp [lookup]
+  case cons g G =>
+    apply @ih G' t t' G _ e h1 _
+    cases wf; case _ wf _ => exact wf
+    sorry
 
 
 
