@@ -1,4 +1,6 @@
 import LeanSubst
+import Lilac.Vect
+
 import Core.Ty
 import Core.Vec
 
@@ -81,7 +83,7 @@ def Term.size : Term -> Nat
 | tbind _ _ t => size t + 1
 | lam _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
-| .match t1 t2 t3 t4 => size t1 + t2.fold 0 (λ x acc => acc + x.size) + t2.fold 0 (λ x acc => acc + x.size) + size t4 + 1
+| .match t1 t2 t3 t4 => size t1 + Vect.sum ((λ i => (t2 i).size)) + Vect.sum ((λ i => (t3 i).size)) + size t4 + 1
 
 @[simp]
 instance instSizeOf_Term : SizeOf Term where

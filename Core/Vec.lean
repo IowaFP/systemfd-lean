@@ -4,10 +4,13 @@ import Lilac.Vect
 open LeanSubst
 open Vect
 
+def Vect.drop (v : (Vect (n + 1) Q)) : Vect n Q := v.uncons.2
+
+
 protected def Vect.reprPrec [Repr T] : {n : Nat} -> Vect n T -> Nat -> Std.Format
 | 0, _, _ => ""
 | 1, v, _ => repr (v 0)
-| n + 1, v, i =>
+| _ + 1, v, i =>
   let ⟨h , t⟩ := v.uncons
   (repr h) ++ ", " ++ (Vect.reprPrec t i)
 
@@ -65,13 +68,13 @@ theorem Vect.nil_singleton (v1 v2 : Vect 0 T) : v1 = v2 := by
 --   cases i; case _ i p =>
 --   cases i <;> simp [cons, drop]
 
--- theorem Vect.cons_iff_uncons {t : Vect T n} : v = h::t <-> uncons v = ⟨h, t⟩ := by
---   apply Iff.intro
---   case _ => intro e; subst e; simp
---   case _ =>
---     intro e; simp [uncons] at e
---     cases e; case _ e1 e2 =>
---     subst e1; subst e2; simp
+theorem Vect.cons_iff_uncons {t : Vect n T} : v = h::t <-> uncons v = ⟨h, t⟩ := by
+  apply Iff.intro
+  case _ => intro e; subst e; simp
+  case _ =>
+    intro e; simp [uncons] at e
+    cases e; case _ e1 e2 =>
+    subst e1; subst e2; sorry
 
 
 -- def Vect.induction
@@ -204,10 +207,10 @@ theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
 --   let (h2, tl2) := uncons vb
 --   acc h1 h2 (fold2 acc d (by cases h; rfl) tl1 tl2)
 
--- @[simp]
--- def Vect.sum : {n : Nat} -> Vect Nat n -> Nat
--- | 0, _ => 0
--- | _ + 1, ts => ts 0 + ts.drop.sum
+@[simp]
+def Vect.sum : {n : Nat} -> Vect n Nat -> Nat
+| 0, _ => 0
+| _ + 1, ts => ts 0 + ts.drop.sum
 
 -- @[simp]
 -- def Vect.beq (beq : T -> T -> Bool) : {n1 n2 : Nat} -> (n1 = n2) -> Vect T n1 -> Vect T n2 -> Bool
@@ -333,7 +336,7 @@ case _ n ih => sorry
 
 
 
-def Vect.seq_lemma (vs : Vect (Option Q) n) :
+def Vect.seq_lemma (vs : Vect n (Option Q)) :
   (Σ' (i : Fin n), (vs i).isSome = false) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
 := by {
     induction n
@@ -343,7 +346,7 @@ def Vect.seq_lemma (vs : Vect (Option Q) n) :
     case _ n ih =>
       generalize zdef : uncons vs = z at *
       rcases z with ⟨h, t⟩
-      have lem := cons_iff_uncons.2 zdef
+      have lem := Vect.cons_iff_uncons.2 zdef
       cases h
       case none =>
         apply Sum.inl; apply PSigma.mk 0
@@ -362,7 +365,7 @@ def Vect.seq_lemma (vs : Vect (Option Q) n) :
           case _ i => rw [lem]; simp; apply ih i
   }
 
-def Vect.seq (vs : Vect (Option Q) n) : Option (Vect Q n) :=
+def Vect.seq (vs : Vect n (Option Q)) : Option (Vect n Q) :=
   match seq_lemma vs with
   | .inl h => none
   | .inr h => some (λ i => Option.get (vs i) (by {
@@ -371,7 +374,7 @@ def Vect.seq (vs : Vect (Option Q) n) : Option (Vect Q n) :=
     rw [e]; simp
   }))
 
-theorem Vect.seq_sound {vs : Vect (Option Q) n} {vs' : Vect Q n}:
+theorem Vect.seq_sound {vs : Vect n (Option Q)} {vs' : Vect n Q}:
   vs.seq = some vs' ->
   ∀ i, (vs i) = some (vs' i) := by
 intro h i
@@ -396,41 +399,41 @@ match n with
 
 
 -- Returns the 1st element if all the elements are equal
-def Vect.get_elem_if_eq [BEq Q] (vs : Vect Q n) : Option Q :=
+def Vect.get_elem_if_eq [BEq Q] (vs : Vect n Q) : Option Q :=
 match n with
 | 0 => none
 | _ + 1 =>  match vs.uncons with
-  | (h, vs') => do
-    if vs'.fold (λ c acc => c == h && acc) true
+  | ⟨h, vs'⟩ => do
+    if vs'.fold true (λ c acc => c == h && acc)
     then return h else none
 
-theorem Vect.get_elem_if_eq_sound [BEq Q] {vs : Vect Q n} {t : Q} :
+theorem Vect.get_elem_if_eq_sound [BEq Q] {vs : Vect n Q} {t : Q} :
   vs.get_elem_if_eq = some t ->
   ∀ i, vs i = t := by
 intro h i
 induction n <;> simp [Vect.get_elem_if_eq, Vect.uncons] at *
-case _ n ih =>
-  replace ih := @ih vs.drop
-  split at ih <;> simp at *
-  sorry
-  revert i; rcases h with ⟨h1, h2⟩; sorry
+case _ n ih => sorry
+  -- replace ih := @ih vs.drop
+  -- split at ih <;> simp at *
+  -- sorry
+  -- revert i; rcases h with ⟨h1, h2⟩; sorry
 
 
 
-def Vect.elems_eq_to [BEq Q] (e : Q) : {n : Nat} -> (vs : Vect Q n) -> Bool
+def Vect.elems_eq_to [BEq Q] (e : Q) : {n : Nat} -> (vs : Vect n Q) -> Bool
 | 0, _ => true
 | _ + 1, vs =>
   match vs.uncons with
-  | (h, vs') =>
+  | ⟨h, vs'⟩ =>
     if h == e then vs'.elems_eq_to e else false
 
-theorem Vect.elems_eq_to_sound [BEq Q] {e : Q} {vs : Vect Q n} :
+theorem Vect.elems_eq_to_sound [BEq Q] {e : Q} {vs : Vect n Q} :
   vs.elems_eq_to e = true ->
   ∀ i, (vs i) = e := by sorry
 
-theorem vec_size_1 [BEq Q]: Vect Q (0 + 1) = Vect Q 1 := by simp
+theorem vec_size_1: Vect (0 + 1) Q = Vect 1 Q := by simp
 
-theorem Vect.uncons_injective [BEq Q] : Function.Injective (α := Vect Q (n + 1)) (β := Q × Vect Q n) Vect.uncons := by
-intro v1 v2; induction n
-sorry
-sorry
+-- theorem Vect.uncons_injective [BEq Q] : Function.Injective (α := Vect (n + 1) Q) (β := Q × Vect n Q) Vect.uncons := by
+-- intro v1 v2; induction n
+-- sorry
+-- sorry

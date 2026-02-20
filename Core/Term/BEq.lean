@@ -91,9 +91,9 @@ def Term.beq : Term -> Term -> Bool
 | guard a1 b1 c1, guard a2 b2 c2 => beq a1 a2 && beq b1 b2 && beq c1 c2
 | .match (n := n1) a1 b1 c1 d1, .match (n := n2) a2 b2 c2 d2 =>
   if h : n1 = n2 then
-    let c : Vec Bool n1 := λ i => beq (c1 i) (c2 (by rw [h] at i; exact i))
-    let p : Vec Bool n1 := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
-    beq a1 a2 && Vec.fold (·&&·) true c && Vec.fold (·&&·) true p && beq d1 d2
+    let c : Vect n1 Bool := λ i => beq (c1 i) (c2 (by rw [h] at i; exact i))
+    let p : Vect n1 Bool := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
+    beq a1 a2 && Vect.fold true (·&&·) c && Vect.fold true (·&&·) p && beq d1 d2
   else false
 | _, _ => false
 
@@ -110,12 +110,14 @@ instance instReflBEq_Term : ReflBEq Term where
     constructor
     · constructor
       · constructor; assumption;
-        unfold Vec.fold;
+        unfold Vect.fold;
         case _ n _ _ _ _ =>
         induction n
         case _ => simp
-        case _ n ih v1 v2 =>         -- split
-          simp;
+        case _ n ih v1 v2 =>
+
+          -- split
+          -- simp;
         -- case _ => rfl
         -- case _ =>
         --   split; case _ h =>
