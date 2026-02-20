@@ -113,7 +113,8 @@ inductive Typing (G : GlobalEnv) :
 ---- Terms
 --------------------------------------------------------------------------------------
 | lam :
-  G&Δ ⊢s A : .base b ->
+  G&Δ ⊢s A : .base b1 ->
+  G&Δ ⊢s B : .base b2 ->
   Typing G Δ (A::Γ) t B ->
   Typing G Δ Γ (λˢ[A] t) (A `-:> B)
 | app :

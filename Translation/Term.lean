@@ -5,6 +5,7 @@ import Surface.Term
 
 import Translation.Ty
 
+@[simp, grind]
 def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
   Surface.Term -> Option Core.Term
 | `#x => #x

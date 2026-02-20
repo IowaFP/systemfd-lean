@@ -42,6 +42,8 @@ instance : Coe TyBindVariant Variant where
   coe := Variant.from_tbind
 
 inductive VariantMissing : List Variant -> Term -> Prop where
+| var : VariantMissing vs #x
+| global : VariantMissing vs g#x
 | ctor0 {c : Ctor0Variant} :
   ↑c ∉ vs ->
   VariantMissing vs (.ctor0 c)
