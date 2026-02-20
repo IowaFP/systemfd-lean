@@ -6,6 +6,7 @@ import Core.Metatheory.SpineType
 import Core.Metatheory.Determined.Semantic
 
 open LeanSubst
+namespace Core
 
 @[simp]
 abbrev String.rmap (_ : Endo Ren) (_ : Ren) : String -> String := λ x => x
@@ -318,3 +319,4 @@ inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
 | type :
   GetSpineTrace sp tr ->
   GetSpineTrace (.type A :: sp) (.type :: tr)
+end Core

@@ -29,52 +29,52 @@ instance : Coe (Subst.Action Ty) Ty where
   coe := Ty.from_action
 
 @[simp]
-def Ty.rmap (lf : Endo Ren) (r : Ren) : Ty -> Ty
+def Ty.rmap (r : Ren) : Ty -> Ty
 | t#x => t#(r x)
 | gt#x => gt#x
-| A -:> B => rmap lf r A -:> rmap lf r B
-| ∀[K] P => ∀[K] rmap lf (lf r) P
-| app f a => rmap lf r f • rmap lf r a
-| A ~[K]~ B => rmap lf r A ~[K]~ rmap lf r B
+| A -:> B => rmap r A -:> rmap r B
+| ∀[K] P => ∀[K] rmap (r.lift) P
+| app f a => rmap r f • rmap r a
+| A ~[K]~ B => rmap r A ~[K]~ rmap r B
 
 instance : RenMap Ty where
   rmap := Ty.rmap
 
 @[simp]
-def Ty.smap (lf : Endo (Subst Ty)) (σ : Subst Ty) : Ty -> Ty
+def Ty.smap (σ : Subst Ty) : Ty -> Ty
 | t#x => σ x
 | gt#x => gt#x
-| A -:> B => smap lf σ A -:> smap lf σ B
-| ∀[K] P => ∀[K] smap lf (lf σ) P
-| app f a => smap lf σ f • smap lf σ a
-| A ~[K]~ B => smap lf σ A ~[K]~ smap lf σ B
+| A -:> B => smap σ A -:> smap σ B
+| ∀[K] P => ∀[K] smap σ.lift P
+| app f a => smap σ f • smap σ a
+| A ~[K]~ B => smap σ A ~[K]~ smap σ B
 
 instance : SubstMap Ty Ty where
   smap := Ty.smap
 
 @[simp]
 theorem Ty.subst_var : (t#x)[σ:Ty] = σ x := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Ty.subst_global : (gt#x)[σ:Ty] = gt#x := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Ty.subst_arr {A B : Ty} : (A -:> B)[σ:Ty] = A[σ:_] -:> B[σ:_] := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Ty.subst_all : (∀[K] P)[σ:Ty] = ∀[K] P[σ.lift:_] := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Ty.subst_app : (f • a)[σ:Ty] = f[σ:_] • a[σ:_] := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Ty.subst_eq : (A ~[K]~ B)[σ:Ty] = A[σ:_] ~[K]~ B[σ:_] := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Ty.from_action_compose {x} {σ τ : Subst Ty}
@@ -84,14 +84,15 @@ theorem Ty.from_action_compose {x} {σ τ : Subst Ty}
   generalize zdef : σ x = z
   cases z <;> simp [Ty.from_action]
 
-theorem Ty.apply_id {t : Ty} : t[+0] = t := by subst_solve_id Ty, Ty, t
+theorem Ty.apply_id {t : Ty} : t[+0] = t := by
+  induction t; all_goals(simp at *; try simp [*])
 
 instance : SubstMapId Ty Ty where
   apply_id := Ty.apply_id
 
 theorem Ty.apply_stable (r : Ren) (σ : Subst Ty)
-  : r.to = σ -> Ren.apply (T := Ty) r = Subst.apply σ
-:= by subst_solve_stable Ty, r, σ
+  : r = σ -> rmap r = smap σ
+:= by subst_solve_stable  r, σ
 
 instance : SubstMapStable Ty where
   apply_stable := Ty.apply_stable

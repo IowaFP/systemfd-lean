@@ -3,6 +3,7 @@ import Core.Ty
 import Core.Vec
 
 open LeanSubst
+open Vect
 
 namespace Core
 inductive Ctor0Variant : Type where
@@ -37,7 +38,7 @@ inductive Term : Type where
 | tbind : TyBindVariant -> Kind -> Term -> Term
 | lam : Ty -> Term -> Term
 | guard : Term -> Term -> Term -> Term
-| «match» : Term -> Vec Term n -> Vec Term n -> Term -> Term
+| «match» : Term -> Vect n Term -> Vect n Term -> Term -> Term
 
 prefix:max "#" => Term.var
 prefix:max "g#" => Term.global
@@ -80,7 +81,7 @@ def Term.size : Term -> Nat
 | tbind _ _ t => size t + 1
 | lam _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
-| .match t1 t2 t3 t4 => size t1 + Vec.sum (λ i => (t2 i).size) + Vec.sum (λ i => (t3 i).size) + size t4 + 1
+| .match t1 t2 t3 t4 => size t1 + t2.fold 0 (λ x acc => acc + x.size) + t2.fold 0 (λ x acc => acc + x.size) + size t4 + 1
 
 @[simp]
 instance instSizeOf_Term : SizeOf Term where
@@ -120,11 +121,11 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   Repr.addAppParen ("∀c" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
 | .match (n := n) s pats ts allc =>
-  let ts : Vec Std.Format n := λ i =>
+  let ts : Vect n Std.Format := λ i =>
     let t := ts i
     let pat := pats i
     Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " => " ++ Term.repr p t
-  let css := Vec.fold (·++·) Std.Format.nil ts
+  let css := Vect.fold Std.Format.nil (·++·) ts
   Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
     ++ css
     ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)

@@ -6,6 +6,7 @@ import Core.Metatheory.SpineType
 
 open LeanSubst
 
+namespace Core
 def Term.Determined (t : Term) : Prop :=
   VariantMissing [.ctor2 .choice, .ctor0 .zero, .guard] t
 
@@ -36,3 +37,5 @@ theorem determined_progress :
   Value G t ∨ (∃ t', Plus (Red G) t t' ∧ t'.Determined)
 := by
   sorry
+
+end Core

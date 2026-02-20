@@ -8,6 +8,12 @@ scope = "amarmaduke"
 git = "https://github.com/amarmaduke/lean-subst"
 rev = "main"
 
+[[require]]
+name = "lailac"
+scope = "amarmaduke"
+git = "https://github.com/amarmaduke/lilac"
+rev = "main"
+
 [[lean_lib]]
 name = "Core"
 

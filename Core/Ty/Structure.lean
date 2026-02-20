@@ -27,33 +27,33 @@ inductive Telescope where
 | kind : Kind -> Telescope -> Telescope
 | ty : Ty -> Telescope -> Telescope
 
-def Telescope.rmap (lf : Endo Ren) (r : Ren) : Telescope -> Telescope
+def Telescope.rmap (r : Ren) : Telescope -> Telescope
 | nil => nil
-| kind K te => kind K (rmap lf (lf r) te)
-| ty A te => ty A[r] (rmap lf r te)
+| kind K te => kind K (rmap r.lift te)
+| ty A te => ty A[r] (rmap r.lift te)
 
 instance : RenMap Telescope where
   rmap := Telescope.rmap
 
-def Telescope.smap (lf : Endo (Subst Ty)) (σ : Subst Ty) : Telescope -> Telescope
+def Telescope.smap (σ : Subst Ty) : Telescope -> Telescope
 | nil => nil
-| kind K te => kind K (smap lf (lf σ) te)
-| ty A te => ty A[σ] (smap lf σ te)
+| kind K te => kind K (smap σ.lift te)
+| ty A te => ty A[σ] (smap σ te)
 
 instance : SubstMap Telescope Ty where
   smap := Telescope.smap
 
 @[simp]
 theorem Telescope.subst_nil : (nil)[σ:Ty] = nil := by
-  simp [Subst.apply, SubstMap.smap, Telescope.smap]
+  simp [SubstMap.smap, Telescope.smap]
 
 @[simp]
 theorem Telescope.subst_kind : (kind K te)[σ:Ty] = kind K te[σ.lift:_] := by
-  simp [Subst.apply, SubstMap.smap, Telescope.smap]
+  simp [SubstMap.smap, Telescope.smap]
 
 @[simp]
 theorem Telescope.subst_ty : (ty A te)[σ:Ty] = ty A[σ:_] te[σ:_] := by
-  simp [Subst.apply, SubstMap.smap, Telescope.smap]
+  simp [SubstMap.smap, Telescope.smap]
 
 def Telescope.extend (Γ : List Ty) : Telescope -> List Ty
 | nil => Γ
@@ -86,7 +86,7 @@ def Ty.from_telescope : Telescope -> Ty -> Ty
 @[simp]
 theorem Ty.Spine.apply_subst {t : Ty} {sp : List Ty} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ])) := by
   induction sp generalizing t <;> simp [Ty.apply]
-  case cons hd tl ih => rw [ih]; simp
+  case cons hd tl ih => replace ih := @ih (t • hd); simp at ih; rw [ih]
 
 @[simp]
 theorem Ty.Spine.app_eq :

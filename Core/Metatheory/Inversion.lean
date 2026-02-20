@@ -49,9 +49,8 @@ case all ih =>
   cases j1; cases j2
   case _ h1 h2 =>
   replace ih := ih h1 h2
-  cases ih; case _ b _ =>
-  exists b;
-  sorry -- requires strengthening
+  cases ih; case _ b h =>
+  exists b; apply Kinding.strengthening h
 
 
 theorem ValidInstTy.base_kinded :

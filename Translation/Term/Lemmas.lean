@@ -102,7 +102,6 @@ case global x T Δ b Γ h4 j =>
     apply Core.Typing.global;
     assumption
     assumption
-
 case lam Δ A b1 B b2 Γ t j1 j2 j3 ih =>
   have lemA := Translation.Ty.sound wf ⟨j1, h1, h2⟩
   rcases lemA with ⟨aK', A', h4a, h5a, h6a⟩
