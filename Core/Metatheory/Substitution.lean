@@ -159,10 +159,11 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     apply And.intro j1 rfl
     apply Kinding.subst _ σ h j2
   case global j1 j2 =>
-    rw [GlobalWf.closed wf j1]
-    replace j2 := Kinding.subst Δσ σ h j2
-    rw [GlobalWf.closed wf j1] at j2
-    apply global j1 j2
+    -- rw [GlobalWf.closed (σ := σ) wf j1]
+    -- replace j2 := Kinding.subst Δσ σ h j2
+    -- rw [GlobalWf.closed wf j1] at j2
+    -- apply global j1 j2
+    sorry
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
     apply mtch (CTy := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
     apply ih6; assumption

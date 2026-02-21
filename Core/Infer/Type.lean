@@ -25,7 +25,7 @@ namespace Infer.Ty.Test
 
 def G : List Global := [
     .opent "Eq" (★ -:> ◯)
-    , .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
+    , .data "Bool" ★ ([ ("True", gt#"Bool") , (("False"), gt#"Bool") ] : Vect 2 (String × Ty))
   ]
 
 
@@ -137,23 +137,23 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | .match (n := n) s ps cs c => do
   let R <- s.infer_type G Δ Γ
   let _ <- R.valid_data_type G
-  let ps':  Vec (Option (String × List SpineElem)) n := λ i => (ps i).spine
+  let ps':  Vect n (Option (String × List SpineElem)) := λ i => (ps i).spine
   let ps'' <- ps'.seq
-  let vhv_pats : Vec Bool n := λ i => is_ctor G ((ps'' i).fst)
-  let ctor_test := Vec.elems_eq_to true vhv_pats
+  let vhv_pats : Vect n Bool := λ i => is_ctor G ((ps'' i).fst)
+  let ctor_test := Vect.elems_eq_to true vhv_pats
   if ctor_test
   then
-    let cTso : Vec (Option Ty) n :=
+    let cTso : Vect n (Option Ty) :=
       λ i => (cs i).infer_type G Δ Γ
     let cTs <- cTso.seq
-    let pTso : Vec (Option Ty) n :=
+    let pTso : Vect n (Option Ty) :=
       λ i => (ps i).infer_type G Δ Γ
     let pTs <- pTso.seq
-    let stmo : Vec (Option Unit) n := λ i => Ty.stable_type_match Δ (pTs i) R
+    let stmo : Vect n (Option Unit) := λ i => Ty.stable_type_match Δ (pTs i) R
     let _ <- stmo.seq
-    let Tso : Vec (Option Ty) n :=
+    let Tso : Vect n (Option Ty) :=
       λ i => Ty.prefix_type_match Δ (pTs i) (cTs i)
-    let Ts : Vec Ty n <- Tso.seq
+    let Ts : Vect n Ty <- Tso.seq
     let T <- Ts.get_elem_if_eq
     let allT <- c.infer_type G Δ Γ
     if T == allT then T else none

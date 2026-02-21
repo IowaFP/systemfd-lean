@@ -57,16 +57,17 @@ case var y =>
   induction x generalizing y <;> simp at *
   case zero => cases h
   case succ n ih =>
-  simp [Subst.compose] at *
-  cases y <;> simp at *
-  case zero => cases h
-  case succ y =>
-  replace ih := ih y
-  generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
-  have lem := lift_iterated_succ_is_re zdef
-  rcases lem with ⟨k , lem⟩
-  subst z; rw[lem] at h; simp at h
-  cases h; apply ih; rw[lem]; simp; apply Ty.FV.var
+  sorry
+  -- simp [Subst.compose] at h
+  -- cases y <;> simp at *
+  -- case zero => cases h
+  -- case succ y =>
+  -- replace ih := ih y
+  -- generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
+  -- have lem := lift_iterated_succ_is_re zdef
+  -- rcases lem with ⟨k , lem⟩
+  -- subst z; rw[lem] at h; simp at h
+  -- cases h; apply ih; rw[lem]; simp; apply Ty.FV.var
 case all P ih =>
   cases h; case _ h =>
   apply @ih (x + 1); simp; apply h

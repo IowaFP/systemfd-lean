@@ -11,7 +11,7 @@ import Core.Typing
 namespace Core.Examples.Monad
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
-  .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
+  .data "Bool" ★ ([ ("True", gt#"Bool") , (("False"), gt#"Bool")]  : Vect 2 (String × Ty))
   ]
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
@@ -25,8 +25,8 @@ not = λ x → case x of
 -/
 def notTerm : Term := λ[ .global "Bool" ]
   match! #0
-         v[ g#"True", g#"False" ]
-         v[ g# "False", g# "True" ]
+         [ g#"True", g#"False" ]
+         ([ g# "False", g# "True" ] : Vect 2 Term)
          g#"False"
 
 /-  eqBool =
@@ -40,10 +40,10 @@ def notTerm : Term := λ[ .global "Bool" ]
  -/
 def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
   match!  #1
-   v[ g#"True", g#"False" ]
-   v[ match! #0 v[ g#"True", g#"False" ] v[ g#"True", g#"False" ] g#"False",
-      match! #0 v[ g#"True", g#"False" ] v[ g# "False", g# "False"] g#"False"
-    ]
+   [ g#"True", g#"False" ]
+   ([ match! #0 [ g#"True", g#"False" ] ([ g#"True", g#"False" ] : Vect 2 Term) g#"False",
+      match! #0 [ g#"True", g#"False" ] ([ g# "False", g# "False"] : Vect 2 Term) g#"False"
+   ] : Vect 2 Term)
    g#"False"
 
 def EqBoolCtx := [.defn "notTerm" (gt#"Bool" -:> gt#"Bool") notTerm,
@@ -55,8 +55,8 @@ def ListCtx : List Global := [
   -- | Nil : ∀a. List a
   -- | Cons : ∀a. a → List a → List a
   .data "List" (★ -:>  ★)
-  v[ ("Nil", ∀[★] (gt#"List" • t#0))
-   , ("Cons", ∀[★] (t#0 -:> (gt#"List" • t#0) -:> (gt#"List" • t#0))) ],
+  ([ ("Nil", ∀[★] (gt#"List" • t#0))
+   , ("Cons", ∀[★] (t#0 -:> (gt#"List" • t#0) -:> (gt#"List" • t#0))) ] : Vect 2 (String × Ty)),
 
   -- bind : ∀ m a b. Monad m => a → (a -> m b) -> m b
   .openm "bind" (∀[★ -:> ★] ∀[★] ∀[★] (gt#"Monad" • t#2) -:> (t#1 -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0))),

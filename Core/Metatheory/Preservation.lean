@@ -65,12 +65,12 @@ case mtch =>
     apply h3 i
     apply h5 i
     apply (Eq.symm h8)
-    · have lem2 := Vec.seq_sound h6
+    · have lem2 := Vect.seq_sound h6
       replace lem2 := lem2 i
       have lem4 : (pats i).spine  = patshapes' i := by rw[h10]
       rw[lem4]; rw[lem2]
-    · have lem3 := Vec.indexOf_correct (v := Vec.map (λ x => x.1) patshapes) (i := i) (x := x) h7;
-      simp [Vec.map] at lem3; rw[lem3]; apply (Eq.symm h9)
+    · have lem3 := Vect.indexOf_correct (v := Vect.map (λ x => x.1) patshapes) (i := i) (x := x) h7;
+      simp [Vect.map] at lem3; rw[lem3]; apply (Eq.symm h9)
 
   case data_match_default => assumption
   case match_congr ih _ _ _ _ h =>

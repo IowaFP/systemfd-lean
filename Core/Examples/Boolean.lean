@@ -10,7 +10,7 @@ namespace Core.Examples
 
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
-  .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
+  .data "Bool" ★ ([ ("True", gt#"Bool") , (("False"), gt#"Bool") ] : Vect 2 (String × Ty))
   ]
 
 /-
@@ -22,10 +22,8 @@ not = λ x → case x of
 -/
 def notTerm : Term := λ[ .global "Bool" ]
   match! #0
-         v[ g#"True", g#"False" ]
-         v[
-         g# "False",
-         g# "True" ]
+         ([ g#"True", g#"False" ] : Vect 2 Term)
+         [ g# "False", g# "True" ]
          g#"False"
 
 /-  eqBool =
@@ -39,10 +37,10 @@ def notTerm : Term := λ[ .global "Bool" ]
  -/
 def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
   match! #1
-   v[ g#"True", g#"False" ]
-   v[ match! #0 v[ g#"True", g#"False" ] v[ g#"True", g#"False"] g#"False",
-      match! #0 v[ g#"True", g#"False" ] v[ g# "False", g# "False"] g#"False"
-    ]
+   [ g#"True", g#"False" ]
+   ([ match! #0  [ g#"True", g#"False" ] ([ g#"True", g#"False"] : Vect 2 Term) g#"False",
+      match! #0 [ g#"True", g#"False" ] ([ g# "False", g# "False"] : Vect 2 Term) g#"False"
+   ] : Vect 2 Term)
     g#"False"
 
 

@@ -128,7 +128,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 | lam :
   G&Δ ⊢ A : .base b ->
-  Typing G Δ (A::Γ) t B ->
+  Typing G Δ (A::Γ : TyEnv) t B ->
   Typing G Δ Γ (λ[A] t) (A -:> B)
 | app :
   G&Δ ⊢ A : .base b ->
@@ -232,11 +232,11 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
   ValidInstTy G x Δ (A -:> T)
 
 inductive GlobalWf : List Global -> Global -> Prop where
-| data {ctors : Vect (String × Ty) n} {ctors' : Vect String n}:
+| data {G : GlobalEnv} {ctors : Vect n (String × Ty)} {ctors' : Vect n String} :
   (∀ i y T, ctors i = (y, T) ->
-    (.data x K v[]::G)&[] ⊢ T : ★ ∧
+    (.data x K Vect.nil::G)&[] ⊢ T : ★ ∧
      ValidCtor x T ∧
-     none = lookup y (.data x K v[]::G)) ->
+     none = lookup y ((.data x K Vect.nil)::G)) ->
   (ctors' = λ i => (ctors i).1) ->
    ctors'.HasUniqueElems ->
   lookup x G = none ->

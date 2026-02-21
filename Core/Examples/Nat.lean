@@ -7,10 +7,10 @@ import Core.Eval.BigStep
 import Core.Infer
 
 namespace Core.Examples.Bool
-def c1 := match! #0 v[ g#"S" ]  v[ λ[gt#"Nat"] g#"False" ] g#"True"
+def c1 := match! #0 [ g#"S" ]  ([ λ[gt#"Nat"] g#"False" ] : Vect 1 Term) g#"True"
 def c2 := λ[ gt#"Nat"] match! #1
-                       v[ g#"S" ]
-                       v[ λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
+                       [ g#"S" ]
+                       ([ λ[ gt#"Nat"] (g#"eq" • #1) • #0 ] : Vect 1 Term)
                        g#"False"
 
 def NatCtxFix : List Global := [
@@ -28,19 +28,19 @@ def NatCtxFix : List Global := [
   .inst "eq"
      (λ[ gt#"Nat"] λ[gt#"Nat"]
         match! #1
-        v[ g#"Z" , g#"S" ]
-        v[ match! #0 v[ g#"S" ]  v[ λ[gt#"Nat"] g#"False" ] g#"True"
-         , λ[ gt#"Nat"] match! #1
-                       v[ g#"S" ]
-                       v[ λ[ gt#"Nat"] (g#"eq" • #1) • #0 ]
+        ([ g#"Z" , g#"S" ] : Vect 2 Term)
+        ([ match! #0 [ g#"S" ]  ([ λ[gt#"Nat"] g#"False" ] : Vect 1 Term) g#"True"
+         , λ[ gt#"Nat" ] match! #1
+                       [ g#"S" ]
+                       ([ λ[ gt#"Nat"] (g#"eq" • #1) • #0 ] : Vect 1 Term)
                        g#"False"
-         ]
+         ] : Vect 2 Term)
         g#"False"
     ) ,
 
   .openm "eq" (gt#"Nat" -:> gt#"Nat" -:> gt#"Bool"),
   -- Bool = True | False
-  .data "Bool" ★ v[ ("True", gt#"Bool"), ("False", gt#"Bool") ],
+  .data "Bool" ★ ([ ("True", gt#"Bool"), ("False", gt#"Bool") ] : Vect 2 (String × Ty)),
 
   -- two = add (S Z) (S Z)
   .defn "two" gt#"Nat" ((g#"add" • (g#"S" • g#"Z")) • (g#"S" • g#"Z")),
@@ -57,9 +57,9 @@ def NatCtxFix : List Global := [
         (λ[ gt#"Nat" -:> gt#"Nat" -:> gt#"Nat"]
           λ[gt#"Nat"] λ[gt#"Nat"]
             match! #1
-              v[ g#"Z", g#"S" ]
-              v[ #0 ,
-                 λ[ gt#"Nat" ] (g#"S" • ((#3 • #0) • #1)) ]
+              [ g#"Z", g#"S" ]
+              ([ #0 ,
+                 λ[ gt#"Nat" ] (g#"S" • ((#3 • #0) • #1)) ] : Vect 2 Term)
               g#"Z"
          ),
 
@@ -68,7 +68,7 @@ def NatCtxFix : List Global := [
   -- open fix : ∀ a, (a -> a) -> a
   .openm "fix" (∀[★] (t#0 -:> t#0) -:> t#0),
   -- data Nat = Z | Succ Nat
-  .data "Nat" ★ v[ ("Z", gt#"Nat"), ("S", gt#"Nat" -:> gt#"Nat") ]
+  .data "Nat" ★ ([ ("Z", gt#"Nat"), ("S", gt#"Nat" -:> gt#"Nat") ] : Vect 2 (String × Ty))
 
 ]
 

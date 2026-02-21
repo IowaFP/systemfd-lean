@@ -8,7 +8,7 @@ def Globals.wf_globals : (G : GlobalEnv) -> Option Unit
 | .nil => return ()
 | .cons (.data (n := n) x k ctors) tl => do
   wf_globals tl
-  let ctors' : Vec (Option Kind) n := λ i => (ctors i).snd.infer_kind ((.data x k v[]) :: tl) []
+  let ctors' : Vect n (Option Kind) := λ i => (ctors i).snd.infer_kind ((.data x k Vect.nil) :: tl) []
   let _ <- ctors'.seq
 | .cons (.opent _ _) tl => do
   wf_globals tl

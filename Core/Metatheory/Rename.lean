@@ -1,10 +1,13 @@
 import LeanSubst
-import Core.Typing
+import Lilac.Vect
 
+import Core.Typing
 import Core.Util
 import Core.Metatheory.FreeVars
 
 open LeanSubst
+open Vect
+
 namespace Core
 
 theorem subst_lift [RenMap T] (σ : Subst T) :
@@ -62,21 +65,27 @@ theorem GlobalWf.tail {G : List Global} : ⊢ (g :: G) -> ⊢ G := by
 theorem GlobalWf.closed_ctors :
   ((Option.map Entry.type d).get! = some T -> ∀ σ, T[σ] = T) ->
   (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
-  (Option.map Entry.type (Vec.fold Option.or d v)).get! = some T ->
+  (Option.map Entry.type (Vect.fold d Option.or v)).get! = some T ->
   ∀ σ, T[σ] = T
 := by
-  intro h1 h2 h3
-  induction v using Vec.induction <;> simp at h3
-  case nc => apply h1 h3
-  case cc t v ih =>
-    cases t <;> simp at h3
-    case _ =>
-      apply ih _ h3
-      intro i en e1 e2
-      replace h2 := h2 (Fin.succ i) en (by simp; exact e1) e2
-      apply h2
-    case _ en =>
-      apply h2 0 _ _ h3; simp
+  intro h1 h2 h3 σ
+  --apply Vect.induction (motive := ∀ (T : Ty), (n : Nat) -> (Q : Type _) -> (v : Vect n Q) -> T[σ] = T)
+  -- sorry-- <;> simp at h3
+  sorry
+
+
+
+
+  -- case nc => apply h1 h3
+  -- case cc t v ih =>
+  --   cases t <;> simp at h3
+  --   case _ =>
+  --     apply ih _ h3
+  --     intro i en e1 e2
+  --     replace h2 := h2 (Fin.succ i) en (by simp; exact e1) e2
+  --     apply h2
+  --   case _ en =>
+  --     apply h2 0 _ _ h3; simp
 
 theorem GlobalWf.closed {G : List Global} :
   ⊢ G ->
@@ -182,7 +191,7 @@ case all K Δ P _ ih =>
   replace lem := Kinding.strong_rename_lift K lem
   apply Kinding.all
   replace ih := @ih (K :: Δr) r.lift
-  rw[Ren.to_lift (S := Ty) (T := Ty)] at ih; simp at ih;
+  simp at ih;
   apply ih lem;
 
 
@@ -254,7 +263,7 @@ theorem StableTypeMatch.rename Δr (r : Ren) :
   case all K Δ B R j ih =>
     simp; apply all
     replace ih := ih (K::Δr) r.lift
-    rw [Ren.to_lift (S := Ty)] at ih; simp at ih
+    simp at ih
     simp; exact ih
 
 theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty} :
@@ -274,7 +283,7 @@ theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty} :
   case all K Δ B V T j ih =>
     simp; apply all
     replace ih := ih (K::Δr) r.lift
-    rw [Ren.to_lift (S := Ty)] at ih; simp at ih
+    simp at ih
     simp; exact ih
 
 theorem Ty.spine_rename (Δ Δr : List Kind) (r: Ren) (A : Ty) :
@@ -306,10 +315,12 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply And.intro j1 rfl
     apply Kinding.rename _ r h j2
   case global j1 j2 =>
-    rw [GlobalWf.closed wf j1]
+    -- rw [GlobalWf.closed wf j1]
     replace j2 := Kinding.rename Δr r h j2
     rw [GlobalWf.closed wf j1] at j2
-    apply global j1 j2
+    sorry
+    -- apply global
+
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
     apply mtch (CTy := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r])
     apply ih6; assumption
@@ -340,16 +351,16 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply ih2 _ _ h
   case lamt Δ K P t Γ jk j ih =>
     replace ih := ih (K::Δr) r.lift (Kinding.rename_lift K r h)
-    rw [Ren.to_lift (S := Ty)] at ih; simp at ih
+    rw [Ren.to_lift] at ih; simp at ih
     apply lamt;
     case _ => have lem := Kinding.rename _ _ h jk; simp at lem; exact lem
     case _ => simp; unfold Function.comp at *; simp at *;  exact ih
   case appt f K P a P' j1 j2 j3 ih =>
     apply appt (K := K) (P := P[r.lift])
-    rw [Ren.to_lift (S := Ty)]
+    rw [Ren.to_lift]
     apply ih _ _ h
     apply Kinding.rename _ _ h j2
-    rw [Ren.to_lift (S := Ty), j3]; simp
+    rw [Ren.to_lift, j3]; simp
   case cast j1 j2 ih1 ih2 =>
     apply cast
     apply ih1 _ _ h
@@ -384,16 +395,16 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply ih _ _ h
   case allc K Δ t A B Γ j ih =>
     replace ih := ih (K::Δr) r.lift (Kinding.rename_lift K r h)
-    rw [Ren.to_lift (S := Ty)] at ih; simp at ih
+    rw [Ren.to_lift] at ih; simp at ih
     apply allc; simp; unfold Function.comp at *; simp at *
     apply ih
   case apptc Δ Γ f K A B a C D A' B' j1 j2 j3 j4 ih1 ih2 =>
     apply apptc (A := A[r.lift]) (B := B[r.lift]) (C := C[r]) (D := D[r])
-    rw [Ren.to_lift (S := Ty)]
+    rw [Ren.to_lift]
     apply ih1 _ _ h
     apply ih2 _ _ h
-    rw [Ren.to_lift (S := Ty), j3]; simp
-    rw [Ren.to_lift (S := Ty), j4]; simp
+    rw [Ren.to_lift, j3]; simp
+    rw [Ren.to_lift, j4]; simp
   case zero j =>
     apply zero
     apply Kinding.rename _ _ h j
@@ -463,7 +474,7 @@ theorem Typing.rename Γr (r : Ren) :
     apply j5; apply j6; apply j7
   case lam Δ A b Γ t B j1 j2 ih =>
     replace ih := ih (A::Γr) r.lift (rename_lift r A h)
-    rw [Ren.to_lift (S := Term)] at ih; simp at ih
+    rw [Ren.to_lift] at ih; simp at ih
     apply lam j1 ih
   case app j1 j2 j3 ih1 ih2 =>
     apply app j1
