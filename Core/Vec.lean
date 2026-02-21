@@ -121,7 +121,7 @@ theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
 -- @[simp]
 -- theorem get2_1 : v[a, b] 1 = b := by simp [Vect.cons]
 
--- def Vect.map (f : A -> B) (v : Vect A n) : Vect B n := λ i => f (v i)
+def Vect.map (f : A -> B) (v : Vect n A) : Vect n B := λ i => f (v i)
 
 -- @[simp]
 -- def Vect.map2 (v1 : Vect A n) (v2 : Vect B n) (f : A -> B -> C)  : Vect C n := λ i => f (v1 i) (v2 i)
@@ -193,12 +193,12 @@ theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
 -- @[simp]
 -- theorem Vect.fold_cons : fold acc d (hd :: tl) = acc hd (fold acc d tl) := by simp [fold]
 
--- def Vect.length (_ : Vect A n) : Nat := n
+def Vect.length (_ : Vect n A) : Nat := n
 
--- theorem Vect.length_bound : (v : Vect A n) -> v.length == n := by
---   intro v
---   unfold Vect.length
---   induction n <;> (simp at *)
+theorem Vect.length_bound : (v : Vect n A) -> v.length == n := by
+  intro v
+  unfold Vect.length
+  induction n <;> (simp at *)
 
 -- def Vect.fold2 (acc : A -> B -> C -> C) (d : C) : {n1 n2 : Nat} -> (n1 = n2) -> Vect A n1 -> Vect B n2 -> C
 -- | 0, 0, rfl, _, _ => d

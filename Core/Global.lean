@@ -8,7 +8,7 @@ open LeanSubst
 namespace Core
 
 inductive Global : Type where
-| data : String -> Kind -> Vec (String × Ty) n -> Global
+| data : String -> Kind -> Vect n (String × Ty) -> Global
 | opent : String -> Kind -> Global
 | openm : String -> Ty -> Global
 | defn : String -> Ty -> Term -> Global
@@ -17,12 +17,12 @@ inductive Global : Type where
 
 def Global.repr (p : Nat) : (a : Global) -> Std.Format
 | .data (n := n + 1) s K ctors =>
-  let ts : Vec Std.Format (n + 1) := λ i =>
+  let ts : Vect (n + 1) Std.Format := λ i =>
     let (ctorN, ctorTy) := ctors i
     Std.Format.nest 4 <| ctorN ++ " : " ++ Ty.repr max_prec ctorTy
 
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-    ++ "v" ++ Std.Format.sbracket (Vec.fold (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil ts)
+    ++ "v" ++ Std.Format.sbracket (Vect.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) ts)
 | .data s K _ =>
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K
 | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
@@ -50,7 +50,7 @@ instance instRepr_GlobalEnv : Repr GlobalEnv where
   reprPrec a p := GlobalEnv.repr p a
 
 inductive Entry : Type where
-| data : String -> Kind -> Vec (String × Ty) n -> Entry
+| data : String -> Kind -> Vect n (String × Ty) -> Entry
 | ctor : String -> Nat -> Ty -> Entry
 | opent : String -> Kind -> Entry
 | openm : String -> Ty -> Entry
@@ -96,11 +96,11 @@ def Entry.type : Entry -> Option Ty
 def lookup (x : String) : List Global -> Option Entry
 | [] => none
 | .cons (.data (n := n) y K ctors) tl =>
-  let ctors' : Vec (Option Entry) n := λ i =>
+  let ctors' : Vect n (Option Entry) := λ i =>
     let (z, A) := ctors i
     if x == z then return .ctor z i A else none
   if x == y then return .data y K ctors
-  else Vec.fold Option.or (lookup x tl) ctors'
+  else Vect.fold (lookup x tl) Option.or ctors'
 | .cons (.opent y a) tl =>
   if x == y then return .opent y a else lookup x tl
 | .cons (.openm y a) tl =>

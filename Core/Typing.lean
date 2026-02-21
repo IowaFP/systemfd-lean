@@ -100,8 +100,8 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 | mtch (CTy : Fin n -> Ty)
        (PTy : Fin n -> Ty)
-       (pats : Vec Term n)
-       (cs : Vec Term n) :
+       (pats : Vect n Term)
+       (cs : Vect n Term) :
   Typing G Δ Γ s R ->
   ValidTyHeadVariable R (is_data G) ->
   Typing G Δ Γ c T -> -- catch all term is of type T
@@ -232,7 +232,7 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
   ValidInstTy G x Δ (A -:> T)
 
 inductive GlobalWf : List Global -> Global -> Prop where
-| data {ctors : Vec (String × Ty) n} {ctors' : Vec String n}:
+| data {ctors : Vect (String × Ty) n} {ctors' : Vect String n}:
   (∀ i y T, ctors i = (y, T) ->
     (.data x K v[]::G)&[] ⊢ T : ★ ∧
      ValidCtor x T ∧

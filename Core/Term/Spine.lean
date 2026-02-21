@@ -15,7 +15,7 @@ inductive SpineElem : Type where
 deriving Repr
 
 @[simp]
-def SpineElem.rmap (_ : Endo Ren) (r : Ren) : SpineElem -> SpineElem
+def SpineElem.rmap (r : Ren) : SpineElem -> SpineElem
 | type T => type T[r:Ty]
 | term t => term t[r:Term]
 | oterm t => oterm t[r:Term]
@@ -24,7 +24,7 @@ instance : RenMap SpineElem where
   rmap := SpineElem.rmap
 
 @[simp]
-def SpineElem.Ty.smap (_ : Endo (Subst Ty)) (σ : Subst Ty) : SpineElem -> SpineElem
+def SpineElem.Ty.smap (σ : Subst Ty) : SpineElem -> SpineElem
 | type T => type T[σ]
 | term t => term t[σ:Ty]
 | oterm t => oterm t[σ:Ty]
@@ -34,18 +34,18 @@ instance : SubstMap SpineElem Ty where
 
 @[simp]
 theorem SpineElem.Ty.subst_type : (type T)[σ:Ty] = type T[σ] := by
-  simp [Subst.apply, SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem SpineElem.Ty.subst_term : (term T)[σ:Ty] = term T[σ:_] := by
-  simp [Subst.apply, SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem SpineElem.Ty.subst_oterm : (oterm T)[σ:Ty] = oterm T[σ:_] := by
-  simp [Subst.apply, SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
-def SpineElem.Term.smap (_ : Endo (Subst Term)) (σ : Subst Term) : SpineElem -> SpineElem
+def SpineElem.Term.smap (σ : Subst Term) : SpineElem -> SpineElem
 | type T => type T
 | term t => term t[σ]
 | oterm t => oterm t[σ]
@@ -55,15 +55,15 @@ instance : SubstMap SpineElem Term where
 
 @[simp]
 theorem SpineElem.Term.subst_type : (type T)[σ:Term] = type T := by
-  simp [Subst.apply, SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem SpineElem.Term.subst_term : (term T)[σ:Term] = term T[σ:_] := by
-  simp [Subst.apply, SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem SpineElem.Term.subst_oterm : (oterm T)[σ:Term] = oterm T[σ:_] := by
-  simp [Subst.apply, SubstMap.smap]
+  simp [SubstMap.smap]
 
 def SpineElem.beq : SpineElem -> SpineElem -> Bool
 | type A, type B => A == B
@@ -120,7 +120,9 @@ theorem Spine.apply_subst {t : Term} : (t.apply sp)[σ] = (t[σ]).apply (sp.map 
   induction sp generalizing t <;> simp [Term.apply]
   case cons hd tl ih =>
     cases hd <;> simp [Term.apply]
-    all_goals rw [ih]; simp
+    case type hd => apply @ih (t •[hd])
+    case term hd => apply @ih (t • hd)
+    case oterm hd => apply @ih (t ∘[hd])
 
 macro "spine_app_eq_solve" x:term : tactic => `(tactic| {
   apply Iff.intro <;> intro h

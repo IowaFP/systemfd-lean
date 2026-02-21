@@ -69,10 +69,10 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
-| data_match (ps: Vec Term n)
-             (patshapes' : Vec (Option (String × List SpineElem)) n)
-             (patshapes : Vec (String × List SpineElem) n)
-             (cs : Vec Term n) :
+| data_match (ps: Vect n Term)
+             (patshapes' : Vect n (Option (String × List SpineElem)))
+             (patshapes : Vect n (String × List SpineElem))
+             (cs : Vect n Term) :
   some (x, sp) = Term.spine s ->
   (patshapes' = λ i => (ps i).spine) ->
   (patshapes'.seq = some patshapes) ->
@@ -81,10 +81,10 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Red G (.match s ps cs c) ((cs i).apply p)
 
 | data_match_default
-             (ps: Vec Term n)
-             (patshapes' : Vec (Option (String × List SpineElem)) n)
-             (patshapes : Vec (String × List SpineElem) n)
-             (cs : Vec Term n) :
+             (ps: Vect n Term)
+             (patshapes' : Vect n (Option (String × List SpineElem)))
+             (patshapes : Vect n (String × List SpineElem))
+             (cs : Vect n Term) :
   some (x, sp) = Term.spine s ->
   (patshapes' = λ i => (ps i).spine) ->
   (patshapes'.seq = some patshapes) ->
