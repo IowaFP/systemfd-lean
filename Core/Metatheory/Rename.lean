@@ -62,30 +62,39 @@ theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
 theorem GlobalWf.tail {G : List Global} : ⊢ (g :: G) -> ⊢ G := by
   intro j; cases j; case _ j _ => exact j
 
-theorem GlobalWf.closed_ctors :
+theorem GlobalWf.closed_ctors {v : Vect n (Option Entry)} {d : Option Entry} :
   ((Option.map Entry.type d).get! = some T -> ∀ σ, T[σ] = T) ->
   (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
   (Option.map Entry.type (Vect.fold d Option.or v)).get! = some T ->
   ∀ σ, T[σ] = T
 := by
-  intro h1 h2 h3 σ
-  --apply Vect.induction (motive := ∀ (T : Ty), (n : Nat) -> (Q : Type _) -> (v : Vect n Q) -> T[σ] = T)
-  -- sorry-- <;> simp at h3
-  sorry
-
-
-
-
-  -- case nc => apply h1 h3
-  -- case cc t v ih =>
-  --   cases t <;> simp at h3
-  --   case _ =>
-  --     apply ih _ h3
-  --     intro i en e1 e2
-  --     replace h2 := h2 (Fin.succ i) en (by simp; exact e1) e2
-  --     apply h2
-  --   case _ en =>
-  --     apply h2 0 _ _ h3; simp
+  intro h1 h2 h3
+  apply Vect.induction (A := Option Entry)
+    (motive := λ n Q _ =>
+               (∀ (v : Vect n (Option Entry)),
+               (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
+               (Option.map Entry.type (Vect.fold d Option.or v)).get! = some T ->
+               ∀ σ, T[σ] = T ))
+  case nil =>
+    intro v h2 h3; have h := Vect.eta0 (v := v); subst h; simp at *; apply h1 h3
+  case cons =>
+    clear v h2 h3
+    intro n' tl _ ih v h2 h3
+    have lem := v.eta
+    rw[lem] at h3; simp at h3;
+    generalize vdef : v.head = vhd at *
+    cases vhd <;> simp at *
+    case none =>
+      apply ih _ _
+      apply h3
+      intro i en e1 e2
+      replace h2 := h2 (Fin.succ i) en (by rw[lem]; exact e1) e2
+      apply h2
+    case some =>
+      apply h2 0 _ _ h3; simp [Vect.head] at vdef; assumption
+  apply v
+  apply h2
+  apply h3
 
 theorem GlobalWf.closed {G : List Global} :
   ⊢ G ->
@@ -315,11 +324,10 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply And.intro j1 rfl
     apply Kinding.rename _ r h j2
   case global j1 j2 =>
-    -- rw [GlobalWf.closed wf j1]
-    replace j2 := Kinding.rename Δr r h j2
-    rw [GlobalWf.closed wf j1] at j2
-    sorry
-    -- apply global
+    have lem := GlobalWf.closed wf j1; simp at lem
+    rw[lem]
+    replace j2 := Kinding.rename Δr r h j2; simp at j2; rw [lem] at j2
+    apply global j1 j2
 
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
     apply mtch (CTy := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r])
@@ -560,91 +568,6 @@ replace lem1 := lem1 (Ren.to (λ x => x + Δ'.length))
 rw[lem1] at lem2
 apply lem2
 
-
--- def Ty.sup_aux (min_v max_v : Nat) : Ty -> Nat
--- | .var x => if x < min_v then x else max_v
--- | .global _ => max_v
--- | .all _ y => (Ty.sup_aux min_v max_v y) - 1
--- | .arrow x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
--- | .eq _ x y => min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
--- | .app x y =>  min (Ty.sup_aux min_v max_v x) (Ty.sup_aux min_v max_v y)
-
--- -- Support is the greatest lower bound of a variable in the term
--- def Ty.support (Δ : List Kind) (T : Ty) : Nat := T.sup_aux Δ.length Δ.length
-
--- theorem Ty.sup_aux_upper_bound (T : Ty) : min_v ≤ max_v -> T.sup_aux min_v max_v ≤ max_v := by
--- intro h; induction T <;> simp [sup_aux] at *
--- all_goals try (omega)
--- case var h =>
---   split; omega; omega
-
-
--- theorem Ty.support_lemma_upper_bound {Δ : List Kind} {T : Ty} :
---   G&Δ ⊢ T : K ->
---   T.support Δ ≤ Δ.length := by
--- intro j; simp [Ty.support] at *
--- induction j <;> (simp [Ty.sup_aux] at *)
--- case var h =>
---   have lem := List.indexing_length_some h
---   split; omega; omega
--- all_goals try (omega)
--- case all Δ P _ _ =>
---   have lem : Δ.length ≤ Δ.length := by omega
---   replace lem := Ty.sup_aux_upper_bound P lem
---   omega
-
-
--- theorem Ty.support_lemma_lower_bound {Δ : List Kind} {T : Ty} :
---   (T' = T[Ren.to (· + 1)]) ->
---   (Δ' = K' :: Δ) ->
---   G&Δ' ⊢ T' : K ->
---   1 ≤ T'.support Δ' := by
--- intro e1 e2 j; simp [Ty.support] at *
--- induction j generalizing T Δ K'
--- case var h =>
---   subst e2;
---   replace e1 := Ty.rename_preserves_var_shape e1
---   rcases e1 with ⟨_, lem⟩
---   cases lem.1; cases lem.2; clear lem; simp at *
---   replace h := List.indexing_length_some h
---   simp [Ty.sup_aux]; split; omega; omega
--- case global =>
---   simp [Ty.sup_aux]
---   replace e1 := Ty.rename_preserves_global_shape e1
---   subst e1; subst e2; simp
--- case arrow ih1 ih2 =>
---   subst e2
---   replace e1 := Ty.rename_preserves_arrow_shape e1
---   rcases e1 with ⟨a', b', e1, e2, e3, e4⟩
---   subst e1; subst e2; simp [Ty.sup_aux] at *
---   replace ih1 := @ih1 K' Δ a' rfl rfl rfl
---   replace ih2 := @ih2 K' Δ b' rfl rfl rfl
---   simp at *; omega
--- case all K'' Δ'' p _ ih =>
---   subst e2
---   replace e1 := Ty.rename_preserves_all_shape e1
---   rcases e1 with ⟨P, e1, e2⟩; subst e1; subst e2; simp at *
---   replace ih := @ih K'' (K' :: Δ) (P[re 0 :: +1: Ty]) rfl rfl; simp at ih
-
---   sorry
--- case eq => sorry
--- case app => sorry
-
-
-
--- def Ty.fvs : Ty -> Nat -> Prop
--- | var x => λ y => if y = x then ⊤ else ⊥
--- | global _ => λ _ => ⊥
--- | eq _ a b
--- | app a b
--- | arrow a b => a.fvs ∪ b.fvs
--- | all _ p => { y | y + 1 ∈ p.fvs }
-
--- theorem Kinding.strengthening_lemma {r : Ren} :
---   G&(Δ ++ [K'] ++ Δ') ⊢ T : κ ->
---   Δ.length ∉ T.fvs ->
---   r = sorry -- Ren.to (λ x => x < Δ.length then x - 1 else x)
---   G&(Δ ++ Δ') ⊢ T[r] : κ := by sorry
 
 
 theorem Kinding.strengthening :

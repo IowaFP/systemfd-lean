@@ -25,33 +25,6 @@ protected def Vect.reprPrec' (repr : T -> Std.Format) : {n : Nat} -> Vect n T ->
 instance [Repr T] : Repr (Vect n T) where
   reprPrec v n := "v[" ++ Vect.reprPrec v n ++ "]"
 
--- syntax "v[" withoutPosition(term,*,?) "]"  : term
-
--- -- Adapted from Lean Prelude
--- macro_rules
--- | `(v[ $elems,* ]) => do
---   let rec expandVectList (i : Nat) (result : Lean.TSyntax `term) : Lean.MacroM Lean.Syntax := do
---     match i with
---     | 0 => pure result
---     | i + 1 => expandVectList i (<- ``(Vect.cons `$(⟨elems.getElems.get!Internal i⟩) $result))
---   let size := elems.getElems.size
---   expandVectList size (<- ``(Vect.nil))
-
--- -- Adapted from Lean Prelude
--- @[app_unexpander Vect.nil]
--- meta def unexpandVectNil : Lean.PrettyPrinter.Unexpander
--- | `($(_)) => `(v[])
-
--- -- Adapted from Lean Prelude
--- @[app_unexpander Vect.cons]
--- meta def unexpandVectCons : Lean.PrettyPrinter.Unexpander
--- | `($(_) $x $tail) =>
---   match tail with
---   | `(v[])      => `(v[$x])
---   | `(v[$xs,*]) => `(v[$x, $xs,*])
---   | `(⋯)       => `(v[$x, $tail]) -- Unexpands to `[x, y, z, ⋯]` for `⋯ : List α`
---   | _          => throw ()
--- | _ => throw ()
 
 @[simp]
 theorem Vect.nil_singleton (v1 v2 : Vect 0 T) : v1 = v2 := by
@@ -67,35 +40,6 @@ theorem Vect.nil_singleton (v1 v2 : Vect 0 T) : v1 = v2 := by
 --   funext; case _ i =>
 --   cases i; case _ i p =>
 --   cases i <;> simp [cons, drop]
-
-theorem Vect.cons_iff_uncons {t : Vect n T} : v = h::t <-> uncons v = ⟨h, t⟩ := by
-  apply Iff.intro
-  case _ => intro e; subst e; simp
-  case _ =>
-    intro e; simp [uncons] at e
-    cases e; case _ e1 e2 =>
-    subst e1; subst e2; sorry
-
-
--- def Vect.induction
---   {motive : {n : Nat} -> Vect T n -> Sort u}
---   (nc : motive Vect.nil)
---   (cc : ∀ {n t} {v : Vect T n}, motive v -> motive (t::v))
---   (v : Vect T n)
---   : motive v
--- := by
---   induction n
---   case _ => rw [nil_singleton v]; exact nc
---   case _ n ih =>
---     generalize zdef : uncons v = z at *
---     rcases z with ⟨h, t⟩
---     have lem := cons_iff_uncons.2 zdef
---     rw [lem]; apply cc (ih t)
-
-
--- -- theorem Vect.induction1
--- --   {motive : Vect T 1 -> Prop}
--- --   (h : ∀ {t : T}, motive v[t])
 
 @[simp]
 instance : GetElem (Vect n α) (Fin n) α (λ _ _ => True) where
@@ -177,21 +121,16 @@ def Vect.map (f : A -> B) (v : Vect n A) : Vect n B := λ i => f (v i)
 --   intro h1 j h2; simp [update, *]
 --   intro h3; exfalso; apply h2; rw [h3]
 
--- -- def Vect.fold (acc : A -> B -> B) (d : B) : Vect A n -> B :=
--- --   Vect.induction (motive := λ _ => B) d (@fun _ hd _ ih => acc hd ih)
-
--- def Vect.fold (acc : A -> B -> B) (d : B) : {n : Nat} -> Vect A n -> B
--- | 0, _ => d
--- | _ + 1, vs =>
---   let (h, tl) := uncons vs
---   acc h (fold acc d tl)
+theorem Vect.eta {v : Vect (n + 1) T} : v = (((v.head : T):: (v.tail : Vect n T)) : Vect (n + 1) T)  := by
+  -- apply Vect.induction (A := T)
+  --   (motive := λ n Q x => ∀ n', (p : n = n' + 1) ->
+  --       by rw[p] at x; apply
+  --       x = (((x.head : T) :: (x.tail : Vect n T))))
 
 
--- @[simp]
--- theorem Vect.fold_nil : fold acc d Vect.nil = d := by simp [fold]
+  sorry
 
--- @[simp]
--- theorem Vect.fold_cons : fold acc d (hd :: tl) = acc hd (fold acc d tl) := by simp [fold]
+
 
 def Vect.length (_ : Vect n A) : Nat := n
 
@@ -236,7 +175,6 @@ def Vect.sum : {n : Nat} -> Vect n Nat -> Nat
 --   rfl := Vect.rfl
 
 
-variable {S T : Type} [RenMap T] [SubstMap S T]
 
 -- @[simp]
 -- theorem Vect.subst_cons {t : Vect S n} {σ : Subst T}
@@ -248,7 +186,6 @@ variable {S T : Type} [RenMap T] [SubstMap S T]
 --     case _ n =>
 --     cases i using Fin.cases <;> simp [Vect.map] at *
 
-omit [RenMap T] [SubstMap S T] in
 def Vect.indexOf [BEq Q] (c : Q) {n : Nat} (v :  Vect n Q) : Option (Fin n) :=
 match n with
 | 0 => none
@@ -346,7 +283,7 @@ def Vect.seq_lemma (vs : Vect n (Option Q)) :
     case _ n ih =>
       generalize zdef : uncons vs = z at *
       rcases z with ⟨h, t⟩
-      have lem := Vect.cons_iff_uncons.2 zdef
+      have lem := Vect.uncons_iff.1 zdef
       cases h
       case none =>
         apply Sum.inl; apply PSigma.mk 0
