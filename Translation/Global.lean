@@ -9,8 +9,8 @@ import Translation.Ty
 def Surface.Global.translate (gs : Core.GlobalEnv) : Global -> Option Core.Global
 | .data (n := n) x K ctors => do
   let K' := K.translate
-  let octors' : Vec (Option (String × Core.Ty)) n :=  λ i =>
-    do let ty' : Core.Ty <- (ctors i).2.translate ((Core.Global.data x K' v[]) :: gs) []
+  let octors' : Vect n (Option (String × Core.Ty)) :=  λ i =>
+    do let ty' : Core.Ty <- (ctors i).2.translate ((Core.Global.data x K' Vect.nil) :: gs) []
        return ((ctors i).1 , ty')
   let ctors' <- octors'.seq
   return Core.Global.data x K' ctors'

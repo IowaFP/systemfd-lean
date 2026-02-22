@@ -27,46 +27,46 @@ instance Surface.Coe_ActionTyTy : Coe (Subst.Action Surface.Ty) Surface.Ty where
   coe := Surface.Ty.from_action
 
 @[simp]
-def Surface.Ty.rmap (lf : Endo Ren) (r : Ren) : Ty -> Ty
+def Surface.Ty.rmap (r : Ren) : Ty -> Ty
 | t`#x => t`#(r x)
 | gt`#x => gt`#x
-| A `-:> B => rmap lf r A `-:> rmap lf r B
-| `∀[K] P => `∀[K] rmap lf (lf r) P
-| app f a => rmap lf r f `• rmap lf r a
+| A `-:> B => rmap r A `-:> rmap r B
+| `∀[K] P => `∀[K] rmap r.lift P
+| app f a => rmap r f `• rmap r a
 
 instance Surface.instRenMap_SurfaceTy : RenMap Surface.Ty where
   rmap := Surface.Ty.rmap
 
 @[simp]
-def Surface.Ty.smap (lf : Endo (Subst Surface.Ty)) (σ : Subst Surface.Ty) : Surface.Ty -> Surface.Ty
+def Surface.Ty.smap (σ : Subst Surface.Ty) : Surface.Ty -> Surface.Ty
 | t`#x => σ x
 | gt`#x => gt`#x
-| A `-:> B => smap lf σ A `-:> smap lf σ B
-| `∀[K] P => `∀[K] smap lf (lf σ) P
-| app f a => smap lf σ f `• smap lf σ a
+| A `-:> B => smap σ A `-:> smap σ B
+| `∀[K] P => `∀[K] smap σ.lift P
+| app f a => smap σ f `• smap σ a
 
 instance Surface.instSubstMap_TyTy : SubstMap Surface.Ty Surface.Ty where
   smap := Surface.Ty.smap
 
 @[simp]
 theorem Surface.Ty.subst_var : (t`#x)[σ:Ty] = σ x := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Surface.Ty.subst_global : (gt`#x)[σ:Ty] = gt`#x := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Surface.Ty.subst_arr {A B : Ty} : (A `-:> B)[σ:Ty] = A[σ:_] `-:> B[σ:_] := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Surface.Ty.subst_all : (`∀[K] P)[σ:Ty] = `∀[K] P[σ.lift:_] := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Surface.Ty.subst_app : (f `• a)[σ:Ty] = f[σ:_] `• a[σ:_] := by
-  unfold Subst.apply; simp [SubstMap.smap]
+  simp [SubstMap.smap]
 
 @[simp]
 theorem Surface.Ty.from_action_compose {x} {σ τ : Subst Ty}
@@ -76,14 +76,15 @@ theorem Surface.Ty.from_action_compose {x} {σ τ : Subst Ty}
   generalize zdef : σ x = z
   cases z <;> simp [Ty.from_action]
 
-theorem Surface.Ty.apply_id {t : Surface.Ty} : t[+0] = t := by subst_solve_id Surface.Ty, Surface.Ty, t
+theorem Surface.Ty.apply_id {t : Surface.Ty} : t[+0] = t := by
+  induction t; all_goals (simp at *; try simp [*])
 
 instance Surface.instSubstMapId_TyTy: SubstMapId Surface.Ty Surface.Ty where
   apply_id := Surface.Ty.apply_id
 
 theorem Surface.Ty.apply_stable (r : Ren) (σ : Subst Surface.Ty)
-  : r.to = σ -> Ren.apply (T := Ty) r = Subst.apply σ
-:= by subst_solve_stable Ty, r, σ
+  : r.to = σ -> rmap r = smap σ
+:= by subst_solve_stable r, σ
 
 instance Surface.instSubstMapStable_Ty: SubstMapStable Surface.Ty where
   apply_stable := Surface.Ty.apply_stable

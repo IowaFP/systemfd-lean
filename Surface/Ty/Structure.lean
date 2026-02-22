@@ -33,18 +33,18 @@ def Surface.Telescope.extend (Γ : List Surface.Ty) : Telescope -> List Surface.
 | .cons (.kind _) te => extend Γ te
 | .cons (.ty A) te => extend (A::Γ) te
 
-def Surface.Telescope.rmap (lf : Endo Ren) (r : Ren) : Telescope -> Telescope
+def Surface.Telescope.rmap (r : Ren) : Telescope -> Telescope
 | [] => []
-| .cons (.kind K) te => .cons (.kind K) (rmap lf r te)
-| .cons (.ty A) te => .cons (.ty A[r]) (rmap lf (lf r) te)
+| .cons (.kind K) te => .cons (.kind K) (rmap r te)
+| .cons (.ty A) te => .cons (.ty A[r]) (rmap r.lift te)
 
 instance Surface.instRenMap_Telescope : RenMap Surface.Telescope where
   rmap := Surface.Telescope.rmap
 
-def Surface.Telescope.smap (lf : Endo (Subst Surface.Ty)) (σ : Subst Surface.Ty) : Surface.Telescope -> Surface.Telescope
+def Surface.Telescope.smap (σ : Subst Surface.Ty) : Surface.Telescope -> Surface.Telescope
 | [] => []
-| .cons (.kind K) te => .cons (.kind K) (smap lf σ te)
-| .cons (.ty A) te => .cons (.ty A[σ]) (smap lf (lf σ) te)
+| .cons (.kind K) te => .cons (.kind K) (smap σ te)
+| .cons (.ty A) te => .cons (.ty A[σ]) (smap σ.lift te)
 
 instance Surface.instRenMap_TelescopeTy : SubstMap Surface.Telescope Surface.Ty where
   smap := Surface.Telescope.smap
@@ -75,7 +75,7 @@ def Surface.Ty.from_telescope : List Surface.TeleElem -> Ty -> Ty
 @[simp]
 theorem Surface.Ty.Spine.apply_subst {t : Ty} {sp : List Ty} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ])) := by
   induction sp generalizing t <;> simp [Surface.Ty.apply]
-  case cons hd tl ih => rw [ih]; simp
+  case cons hd tl ih => replace ih := @ih (t  `• hd); simp at ih; rw [ih]
 
 @[simp]
 theorem Surface.Ty.Spine.app_eq :

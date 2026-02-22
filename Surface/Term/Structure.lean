@@ -5,81 +5,82 @@ import Surface.Term.Substitution
 import Surface.Term.BEq
 
 open LeanSubst
+namespace Surface
 
-inductive Surface.SpineElem : Type where
-| type (x : Surface.Ty)
-| term (x : Surface.Term)
--- | oterm (x : Surface.Term)
+inductive SpineElem : Type where
+| type (x : Ty)
+| term (x : Term)
+-- | oterm (x : Term)
 deriving Repr
 
 @[simp]
-def Surface.SpineElem.rmap (_ : Endo Ren) (r : Ren) : SpineElem -> SpineElem
+def SpineElem.rmap (r : Ren) : SpineElem -> SpineElem
 | type T => type T[r:Ty]
 | term t => term t[r:Term]
 -- | oterm t => oterm t[r:Term]
 
-instance Surface.instRenMap_SpineElem : RenMap Surface.SpineElem where
-  rmap := Surface.SpineElem.rmap
+instance instRenMap_SpineElem : RenMap SpineElem where
+  rmap := SpineElem.rmap
 
 @[simp]
-def Surface.SpineElem.Ty.smap (_ : Endo (Subst Surface.Ty)) (σ : Subst Surface.Ty) : SpineElem -> SpineElem
+def SpineElem.Ty.smap (σ : Subst Ty) : SpineElem -> SpineElem
 | type T => type T[σ]
 | term t => term t[σ:Ty]
 -- | oterm t => oterm t[σ:Ty]
 
-instance Surface.instSubstMap_SpineElemTy : SubstMap Surface.SpineElem Surface.Ty where
-  smap := Surface.SpineElem.Ty.smap
+instance instSubstMap_SpineElemTy : SubstMap SpineElem Ty where
+  smap := SpineElem.Ty.smap
 
 @[simp]
-theorem Surface.SpineElem.Ty.subst_type : (type T)[σ:Ty] = type T[σ] := by
-  simp [Subst.apply, SubstMap.smap]
+theorem SpineElem.Ty.subst_type : (type T)[σ:Ty] = type T[σ] := by
+  simp [SubstMap.smap]
 
 @[simp]
-theorem Surface.SpineElem.Ty.subst_term : (term T)[σ:Ty] = term T[σ:_] := by
-  simp [Subst.apply, SubstMap.smap]
+theorem SpineElem.Ty.subst_term : (term T)[σ:Ty] = term T[σ:_] := by
+  simp [SubstMap.smap]
 
 -- @[simp]
--- theorem Surface.SpineElem.Ty.subst_oterm : (oterm T)[σ:Ty] = oterm T[σ:_] := by
---   simp [Subst.apply, SubstMap.smap]
+-- theorem SpineElem.Ty.subst_oterm : (oterm T)[σ:Ty] = oterm T[σ:_] := by
+--   simp [SubstMap.smap]
 
 @[simp]
-def Surface.SpineElem.Term.smap (_ : Endo (Subst Term)) (σ : Subst Surface.Term) : Surface.SpineElem -> Surface.SpineElem
+def SpineElem.Term.smap (σ : Subst Term) : SpineElem -> SpineElem
 | type T => type T
 | term t => term t[σ]
 
-instance Surface.instSubstMap_SpineElemTerm : SubstMap Surface.SpineElem Surface.Term where
-  smap := Surface.SpineElem.Term.smap
+instance instSubstMap_SpineElemTerm : SubstMap SpineElem Term where
+  smap := SpineElem.Term.smap
 
 @[simp]
-theorem Surface.SpineElem.Term.subst_type : (type T)[σ:Term] = type T := by
-  simp [Subst.apply, SubstMap.smap]
+theorem SpineElem.Term.subst_type : (type T)[σ:Term] = type T := by
+  simp [SubstMap.smap]
 
 @[simp]
-theorem Surface.SpineElem.Term.subst_term : (term T)[σ:Term] = term T[σ:_] := by
-  simp [Subst.apply, SubstMap.smap]
+theorem SpineElem.Term.subst_term : (term T)[σ:Term] = term T[σ:_] := by
+  simp [SubstMap.smap]
 
 -- @[simp]
--- theorem Surface.SpineElem.Term.subst_oterm : (oterm T)[σ:Term] = oterm T[σ:_] := by
---   simp [Subst.apply, SubstMap.smap]
+-- theorem SpineElem.Term.subst_oterm : (oterm T)[σ:Term] = oterm T[σ:_] := by
+--   simp [SubstMap.smap]
 
-def Surface.SpineElem.beq : Surface.SpineElem -> Surface.SpineElem -> Bool
+def SpineElem.beq : SpineElem -> SpineElem -> Bool
 | .type A, .type B => A == B
 | .term a, .term b => a == b
 | _, _ => false
 
--- instance Surface.instBEq_SpineElem : BEq Surface.SpineElem where
---   beq := Surface.SpineElem.beq
+-- instance instBEq_SpineElem : BEq SpineElem where
+--   beq := SpineElem.beq
 
--- instance Surface.instReflBEq_SpineElem : ReflBEq Surface.SpineElem where
+-- instance instReflBEq_SpineElem : ReflBEq SpineElem where
 --   rfl := by
---     intro a; cases a <;> simp [Surface.SpineElem.beq, Surface.instBEq_SpineElem] at *
+--     intro a; cases a <;> simp [SpineElem.beq, instBEq_SpineElem] at *
 
 -- instance instLawfulBEq_SpineElem : LawfulBEq SpineElem where
 --   eq_of_beq := by
 --     intro a b; cases a <;> simp [instBEq_SpineElem, SpineElem.beq] at *
 --     all_goals (cases b <;> simp at *)
 
-def Surface.Term.spine : Term -> Option (String × List SpineElem)
+def Term.spine : Term -> Option (String × List SpineElem)
 | .global x => return (x, [])
 | .app f a => do
   let (x, sp) <- spine f
@@ -89,35 +90,37 @@ def Surface.Term.spine : Term -> Option (String × List SpineElem)
   (x, sp ++ [.type a])
 | _ => none
 
-def Surface.Term.apply (t : Term) : List SpineElem -> Term
+def Term.apply (t : Term) : List SpineElem -> Term
 | [] => t
 | .cons (.type A) tl => (t `•[A]).apply tl
 | .cons (.term a) tl => (t `• a).apply tl
 
-def Surface.Spine.to_subst : List SpineElem -> IteratedSubst
+def Spine.to_subst : List SpineElem -> IteratedSubst
 | [] => .nil
 | .cons (.term t) tl => .term (su t::+0) (Spine.to_subst tl)
 -- | .cons (.oterm t) tl => .term (su t::+0) (Spine.to_subst tl)
 | .cons (.type t) tl => .type (su t::+0) (Spine.to_subst tl)
 
 @[simp]
-theorem Surface.Spine.apply_subst_type {t : Term} : (t.apply sp)[σ:Ty] = (t[σ:_]).apply (sp.map (·[σ:_])) := by
+theorem Spine.apply_subst_type {t : Term} : (t.apply sp)[σ:Ty] = (t[σ:_]).apply (sp.map (·[σ:_])) := by
   induction sp generalizing t <;> simp [Term.apply]
   case cons hd tl ih =>
     cases hd <;> simp [Term.apply]
     all_goals rw [ih]; simp
 
 @[simp]
-theorem Surface.Spine.apply_subst {t : Term} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ:Term])) := by
+theorem Spine.apply_subst {t : Term} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ:Term])) := by
   induction sp generalizing t <;> simp [Term.apply]
   case cons hd tl ih =>
     cases hd <;> simp [Term.apply]
-    all_goals rw [ih]; simp
+    case type hd => apply @ih (t `•[hd])
+    case term hd => apply @ih (t `• hd)
+    -- case oterm hd => apply @ih (t ∘[hd])
 
 macro "SurfaceSpine_app_eq_solve" x:term : tactic => `(tactic| {
   apply Iff.intro <;> intro h
   case _ =>
-    simp [Surface.Term.spine] at h
+    simp [Term.spine] at h
     rw [Option.bind_eq_some_iff] at h
     rcases h with ⟨q, e1, e2⟩
     rcases q with ⟨y, sp'⟩; simp at e2
@@ -125,13 +128,13 @@ macro "SurfaceSpine_app_eq_solve" x:term : tactic => `(tactic| {
     rw [e1]; exists sp'
   case _ =>
     rcases h with ⟨sp', e1, e2⟩; subst e1
-    simp [Surface.Term.spine]
+    simp [Term.spine]
     rw [Option.bind_eq_some_iff]; apply Exists.intro ($x, sp')
     apply And.intro e2; simp
 })
 
 @[simp]
-theorem Surface.Spine.app_closed_eq {f a : Surface.Term} :
+theorem Spine.app_closed_eq {f a : Term} :
   (f `• a).spine = some (x, sp)
   <-> ∃ sp', sp = sp' ++ [.term a] ∧ f.spine = some (x, sp')
 := by SurfaceSpine_app_eq_solve x
@@ -143,25 +146,25 @@ theorem Surface.Spine.app_closed_eq {f a : Surface.Term} :
 -- := by spine_app_eq_solve x
 
 @[simp]
-theorem Surface.Spine.appt_eq {f : Term} :
+theorem Spine.appt_eq {f : Term} :
   (f `•[a]).spine = some (x, sp)
   <-> ∃ sp', sp = sp' ++ [.type a] ∧ f.spine = some (x, sp')
 := by SurfaceSpine_app_eq_solve x
 
 macro "SurfaceSpine_apply_solve" sp:Lean.Parser.Tactic.elimTarget "," t:term : tactic => `(tactic| {
-  induction $sp generalizing $t <;> simp [Surface.Term.apply]
+  induction $sp generalizing $t <;> simp [Term.apply]
   case cons hd tl ih _ =>
-  cases hd <;> simp [Surface.Term.apply]
+  cases hd <;> simp [Term.apply]
   all_goals rw [ih]
 })
 
-theorem Surface.Spine.apply_term {t : Term} : t.apply sp `• a = t.apply (sp ++ [.term a]) := by
+theorem Spine.apply_term {t : Term} : t.apply sp `• a = t.apply (sp ++ [.term a]) := by
   SurfaceSpine_apply_solve sp, t
 
--- theorem Surface.Spine.apply_oterm {t : Term} : t.apply sp ∘[a] = t.apply (sp ++ [.oterm a]) := by
+-- theorem Spine.apply_oterm {t : Term} : t.apply sp ∘[a] = t.apply (sp ++ [.oterm a]) := by
 --   spine_apply_solve sp, t
 
-theorem Surface.Spine.apply_type {t : Term} : t.apply sp `•[a] = t.apply (sp ++ [.type a]) := by
+theorem Spine.apply_type {t : Term} : t.apply sp `•[a] = t.apply (sp ++ [.type a]) := by
   SurfaceSpine_apply_solve sp, t
 
 macro "SurfaceSpine_apply_eq_case_solve"
@@ -178,7 +181,7 @@ macro "SurfaceSpine_apply_eq_case_solve"
   rw [ih, $ap]
 })
 
-theorem Surface.Spine.apply_eq
+theorem Spine.apply_eq
   : t.spine = some (x, sp) -> t = (g`#x).apply sp
 := by
   intro h
@@ -190,7 +193,7 @@ theorem Surface.Spine.apply_eq
 --  case _ ih => spine_apply_eq_case_solve h, ih, apply_oterm
   case _ ih => SurfaceSpine_apply_eq_case_solve h, ih, apply_type
 
-theorem Surface.Spine.apply_compose {t : Surface.Term}
+theorem Spine.apply_compose {t : Term}
   : t.spine = some (x, sp1) -> (t.apply sp2).spine = some (x, sp1 ++ sp2)
 := by
   intro h; induction sp2 generalizing t x sp1
@@ -208,11 +211,13 @@ theorem Surface.Spine.apply_compose {t : Surface.Term}
   --   replace ih := ih lem; simp at ih; exact ih
 
 @[simp]
-theorem Surface.Spine.apply_eta : ((g`#x).apply sp).spine = some (x, sp) := by
+theorem Spine.apply_eta : ((g`#x).apply sp).spine = some (x, sp) := by
   have lem := @apply_compose x [] sp g`#x (by simp [Term.spine])
   simp at lem; exact lem
 
-theorem Surface.Spine.apply_spine_compose {t : Term}:
+theorem Spine.apply_spine_compose {t : Term}:
   t.apply (s1 ++ s2) = (t.apply s1).apply s2 := by
 induction t, s1 using Term.apply.induct generalizing s2 <;> simp [Term.apply] at *
 all_goals (case _ ih => apply ih)
+
+end Surface

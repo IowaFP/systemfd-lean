@@ -4,33 +4,35 @@ import Core.Vec
 
 open LeanSubst
 
-inductive Surface.Term : Type where
+namespace Surface
+
+inductive Term : Type where
 | var : Nat -> Term
 | global : String -> Term
-| appt : Term -> Surface.Ty -> Term
+| appt : Term -> Ty -> Term
 | app : Term -> Term -> Term
-| lamt :  Surface.Kind -> Term -> Term
-| lam : Surface.Ty -> Term -> Term
-| «match» : Term -> Vec Term n -> Vec Term n -> Term -> Term
+| lamt :  Kind -> Term -> Term
+| lam : Ty -> Term -> Term
+| «match» : Term -> Vect n Term -> Vect n Term -> Term -> Term
 -- |  hole : Ty  -> Term
 
 
-prefix:max "`#" => Surface.Term.var
-prefix:max "g`#" => Surface.Term.global
+prefix:max "`#" => Term.var
+prefix:max "g`#" => Term.global
 
-notation f " `•[" a "]" => Surface.Term.appt f a
+notation f " `•[" a "]" => Term.appt f a
 
-notation:70 f " `• " a:70 => Surface.Term.app f a
--- notation f " ∘[" a "]" => Surface.Term.ctor2 (Ctor2Variant.app BaseKind.open) f a
+notation:70 f " `• " a:70 => Term.app f a
+-- notation f " ∘[" a "]" => Term.ctor2 (Ctor2Variant.app BaseKind.open) f a
 
 -- bind notation
-notation "Λˢ[" K "]" t => Surface.Term.lamt K t
-notation "λˢ[" A "]" t => Surface.Term.lam A t
+notation "Λˢ[" K "]" t => Term.lamt K t
+notation "λˢ[" A "]" t => Term.lam A t
 
-notation "matchˢ!" => Surface.Term.match
+notation "matchˢ!" => Term.match
 
 
-protected def Surface.Term.repr (p : Nat) : (a : Term) -> Std.Format
+protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "`#" ++ Nat.repr n
 | .global n => "g`#" ++ n
 | .app t1 t2 =>
@@ -41,16 +43,18 @@ protected def Surface.Term.repr (p : Nat) : (a : Term) -> Std.Format
   Repr.addAppParen ("Λˢ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λˢ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
 | .match (n := n) s pats ts allc =>
-  let ts : Vec Std.Format n := λ i =>
+  let ts : Vect n Std.Format := λ i =>
     let t := ts i
     let pat := pats i
     Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " => " ++ Term.repr p t
-  let css := Vec.fold (·++·) Std.Format.nil ts
+  let css := Vect.fold Std.Format.nil (·++·) ts
   Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
     ++ css
     ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)
     )
 
 @[simp]
-instance Surface.instRepr_Term : Repr Term where
+instance instRepr_Term : Repr Term where
   reprPrec a p := Term.repr p a
+
+end Surface

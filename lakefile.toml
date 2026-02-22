@@ -23,8 +23,8 @@ name = "Surface"
 [[lean_lib]]
 name = "Translation"
 
-[[lean_lib]]
-name = "SystemFD"
+# [[lean_lib]]
+# name = "SystemFD"
 
 [[lean_exe]]
 name = "systemfd"

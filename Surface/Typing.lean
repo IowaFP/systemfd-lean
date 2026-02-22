@@ -98,8 +98,8 @@ inductive Typing (G : GlobalEnv) :
 --------------------------------------------------------------------------------------
 | mtch (CTy : Fin n -> Ty)
        (PTy : Fin n -> Ty)
-       (pats : Vec Term n)
-       (cs : Vec Term n) :
+       (pats : Vect n Term)
+       (cs : Vect n Term) :
   Typing G Δ Γ s R ->
   ValidTyHeadVariable R (is_data G) ->
   Typing G Δ Γ c T -> -- catch all term is of type T
@@ -147,11 +147,11 @@ inductive ValidCtor (x : String) : Ty -> Prop where
 
 
 inductive GlobalWf : GlobalEnv -> Global -> Prop where
-| data {ctors : Vec (String × Ty) n} {ctors' : Vec String n} {G : GlobalEnv}:
+| data {ctors : Vect n (String × Ty)} {ctors' : Vect n String} {G : GlobalEnv}:
   (∀ i y T, ctors i = (y, T) ->
-    (.data x K v[]::G)&[] ⊢s T : `★ ∧
+    (.data x K Vect.nil::G)&[] ⊢s T : `★ ∧
      ValidCtor x T ∧
-     none = lookup y (.data x K v[]::G)) ->
+     none = lookup y (.data x K Vect.nil::G)) ->
   (ctors' = λ i => (ctors i).1) ->
    ctors'.HasUniqueElems ->
   lookup x G = none ->

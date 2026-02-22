@@ -28,9 +28,9 @@ def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
   return (t1' •[ t2' ])
 | .match (n := n) s ps cs d => do
   let s' <- s.translate G Δ Γ
-  let ops' : Vec (Option Core.Term) n := (λ i => (ps i).translate G Δ Γ)
+  let ops' : Vect n (Option Core.Term) := (λ i => (ps i).translate G Δ Γ)
   let ps' <- ops'.seq
-  let ocs' : Vec (Option Core.Term) n := (λ i => (cs i).translate G Δ Γ)
+  let ocs' : Vect n (Option Core.Term) := (λ i => (cs i).translate G Δ Γ)
   let cs' <- ocs'.seq
   let d' <- d.translate G Δ Γ
   return match! s' ps' cs' d'
