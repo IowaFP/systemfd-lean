@@ -46,9 +46,23 @@ theorem Translation.TyEnv.sound {G : Core.GlobalEnv} {Δ : Core.KindEnv} {Γ : S
   Γ.translate G Δ = some Γ' ->
   (∀ (i : Nat) (T : Surface.Ty),
      (Γ[i]? = some T) -> ∃ T', ((Γ'[i]? = some T') ∧ T.translate G Δ = some T')) := by
-intro h1 i K h2;
+intro h1 i T h2;
+induction Γ using List.mapM'.induct generalizing G Δ Γ' i <;> simp [Surface.TyEnv] at h2
+case _ => cases h2
+case _ hT Γ ih =>
+  simp [Surface.TyEnv.translate, Surface.TyEnv.mapM, List.mapM_cons] at *
+  rw[Option.bind_eq_some_iff] at h1
+  rcases h1 with ⟨T', h1, h2⟩
+  rw[Option.bind_eq_some_iff] at h2
+  rcases h2 with ⟨Γ', h3, h4⟩
+  cases h4
+  cases i <;> simp [Surface.TyEnv, Surface.inst_getElem?_TyEnv, Core.TyEnv, Core.inst_getElem?_TyEnv,] at *
+  case zero => subst h2; assumption
+  case succ n =>
+    replace ih := @ih G Δ Γ' h3 n h2
+    rcases ih with ⟨T', h4, h5⟩
+    exists T'
 
-sorry
 
 
 theorem Translation.GlobalEnv.sound {G : Surface.GlobalEnv} :
@@ -142,10 +156,23 @@ case lamt Δ K P t Γ j1 j2 ih =>
   rw[Option.bind_eq_some_iff]
   constructor
   · simp; assumption
-  · replace ih := @ih (K.translate :: Δ') (Γ'.map (·[+1]))
-    sorry
+  · have lemK := Translation.KindEnv.lift_sound (K := K) (K' := K.translate) h2 rfl
+    have lemT := Translation.TyEnv.kindenv_lift_sound (K := K) (K' := K.translate) (Δ := Δ) (Δ' := Δ') h3 rfl lemK
+    simp at lemT ih;
+    replace ih := @ih (K.translate :: Δ') (Γ'.map (·[+1])) lemK lemT
+    rcases ih with ⟨P', h8, t', h9, h10, h11⟩
+    rw[h7] at h8; cases h8
+    exists (Λ[K.translate]t');
+    apply And.intro
+    · rw[Option.bind_eq_some_iff]; exists t'
+    · apply And.intro
+      · apply Core.VariantMissing.tbind; simp;
+        apply And.intro; sorry; sorry
+        apply h10
+      · apply Core.Typing.lamt; assumption; assumption
 case app =>
   sorry
 case appt =>
   sorry
-case mtch => sorry
+case mtch =>
+  sorry

@@ -9,7 +9,7 @@ open LeanSubst
 namespace Core
 
 @[simp]
-abbrev String.rmap (_ : Endo Ren) (_ : Ren) : String -> String := λ x => x
+abbrev String.rmap (_ : Ren) : String -> String := λ x => x
 
 instance : RenMap String where
   rmap := String.rmap
@@ -20,10 +20,10 @@ inductive GuardTrace where
 | applied : String -> List SpineElem -> Term -> Telescope -> GuardTrace -> GuardTrace
 
 @[simp]
-def GuardTrace.rmap (lf : Endo Ren) (r : Ren) : GuardTrace -> GuardTrace
+def GuardTrace.rmap (r : Ren) : GuardTrace -> GuardTrace
 | nil => nil
-| bound x sp n te tr => bound x (sp.map (·[r:Term])) (r n) te (rmap lf (tele_lift_ren te r) tr)
-| applied x sp t te tr => applied x (sp.map (·[r:Term])) t[r:Term] te (rmap lf (tele_lift_ren te r) tr)
+| bound x sp n te tr => bound x (sp.map (·[r:Term])) (r n) te (rmap (tele_lift_ren te r) tr)
+| applied x sp t te tr => applied x (sp.map (·[r:Term])) t[r:Term] te (rmap (tele_lift_ren te r) tr)
 
 instance : RenMap GuardTrace where
   rmap := GuardTrace.rmap
@@ -35,10 +35,10 @@ def GuardTrace.from_act (a : Subst.Action Term) (x : String) (sp : List SpineEle
   | su y => applied x sp y te tr
 
 @[simp]
-def GuardTrace.smap (lf : Endo (Subst Term)) (σ : Subst Term) : GuardTrace -> GuardTrace
+def GuardTrace.smap (σ : Subst Term) : GuardTrace -> GuardTrace
 | nil => nil
-| bound x sp n te tr => from_act (σ n) x (sp.map (·[σ:Term])) te (smap lf (tele_lift te σ) tr)
-| applied x sp t te tr => applied x (sp.map (·[σ:Term])) t[σ] te (smap lf (tele_lift te σ) tr)
+| bound x sp n te tr => from_act (σ n) x (sp.map (·[σ:Term])) te (smap (tele_lift te σ) tr)
+| applied x sp t te tr => applied x (sp.map (·[σ:Term])) t[σ] te (smap (tele_lift te σ) tr)
 
 instance : SubstMap GuardTrace Term where
   smap := GuardTrace.smap
@@ -46,17 +46,17 @@ instance : SubstMap GuardTrace Term where
 @[simp]
 theorem GuardTrace.subst_nil :
   (GuardTrace.nil)[σ:Term] = .nil
-:= by simp [Subst.apply, SubstMap.smap]
+:= by simp [SubstMap.smap]
 
 @[simp]
 theorem GuardTrace.subst_bound :
   (GuardTrace.bound x sp n te tr)[σ:Term] = from_act (σ n) x (sp.map (·[σ:Term])) te tr[tele_lift te σ:_]
-:= by simp [Subst.apply, SubstMap.smap]
+:= by simp [SubstMap.smap]
 
 @[simp]
 theorem GuardTrace.subst_applied :
   (GuardTrace.applied x sp t te tr)[σ:Term] = .applied x (sp.map (·[σ:Term])) t[σ:_] te tr[tele_lift te σ:_]
-:= by simp [Subst.apply, SubstMap.smap]
+:= by simp [SubstMap.smap]
 
 inductive InstTrace where
 | base : GuardTrace -> InstTrace
@@ -76,19 +76,19 @@ def InstTrace.arity : InstTrace -> Nat
 -- | lam  => false
 
 @[simp]
-def InstTrace.rmap (lf : Endo Ren) (r : Ren) : InstTrace -> InstTrace
+def InstTrace.rmap (r : Ren) : InstTrace -> InstTrace
 | base tr => base tr[r:Term]
-| lam tr => lam (rmap lf (lf r) tr)
-| tlam tr => tlam (rmap lf r tr)
+| lam tr => lam (rmap r.lift tr)
+| tlam tr => tlam (rmap r tr)
 
 instance : RenMap InstTrace where
   rmap := InstTrace.rmap
 
 @[simp]
-def InstTrace.smap (lf : Endo (Subst Term)) (σ : Subst Term) : InstTrace -> InstTrace
+def InstTrace.smap (σ : Subst Term) : InstTrace -> InstTrace
 | base tr => base tr[σ:Term]
-| lam tr => lam (smap lf (lf σ) tr)
-| tlam tr => tlam (smap lf σ tr)
+| lam tr => lam (smap σ.lift tr)
+| tlam tr => tlam (smap σ tr)
 
 instance : SubstMap InstTrace Term where
   smap := InstTrace.smap
@@ -96,17 +96,17 @@ instance : SubstMap InstTrace Term where
 @[simp]
 theorem InstTrace.subst_nil :
   (InstTrace.base tr)[σ:Term] = .base tr[σ:_]
-:= by simp [Subst.apply, SubstMap.smap]
+:= by simp [SubstMap.smap]
 
 @[simp]
 theorem InstTrace.subst_lam :
   (InstTrace.lam tr)[σ:Term] = .lam tr[σ.lift:_]
-:= by simp [Subst.apply, SubstMap.smap]
+:= by simp [SubstMap.smap]
 
 @[simp]
 theorem InstTrace.subst_tlam :
   (InstTrace.tlam tr)[σ:Term] = .tlam tr[σ:_]
-:= by simp [Subst.apply, SubstMap.smap]
+:= by simp [SubstMap.smap]
 
 -- def InstTrace.empty : InstTrace := λ _ => none
 
