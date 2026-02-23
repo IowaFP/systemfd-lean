@@ -96,8 +96,8 @@ inductive Typing (G : GlobalEnv) :
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch (CTy : Fin n -> Ty)
-       (PTy : Fin n -> Ty)
+| mtch (CTy : Vect n Ty)
+       (PTy : Vect n Ty)
        (pats : Vect n Term)
        (cs : Vect n Term) :
   Typing G Δ Γ s R ->
@@ -114,11 +114,10 @@ inductive Typing (G : GlobalEnv) :
 --------------------------------------------------------------------------------------
 | lam :
   G&Δ ⊢s A : .base b1 ->
-  G&Δ ⊢s B : .base b2 ->
   Typing G Δ (A::Γ) t B ->
   Typing G Δ Γ (λˢ[A] t) (A `-:> B)
 | app :
-  G&Δ ⊢s A : .base b ->
+  G&Δ ⊢s A : `★ ->
   Typing G Δ Γ f (A `-:> B) ->
   Typing G Δ Γ a A ->
   Typing G Δ Γ (f `• a) B

@@ -3,6 +3,9 @@ import Translation.Global
 
 import Core.Typing
 import Surface.Typing
+
+open LeanSubst
+
 -- Translation preservies kinding relation
 
 theorem Translation.KindEnv.sound {Δ : Surface.KindEnv} {Δ' : Core.KindEnv} :
@@ -35,6 +38,7 @@ theorem Translation.Ty.sound :
   G&Δ ⊢s T : K ∧
   G.translate = some G' ∧
   Δ.translate = Δ'  ->
+
   ∃ K' T', K.translate = K' ∧
   T.translate G' Δ' = some T' ∧
   G'&Δ' ⊢ T' : K' := by
@@ -85,3 +89,18 @@ case app ih1 ih2 =>
     · assumption
     · rw[Option.bind_eq_some_iff]; exists a'
   · apply Core.Kinding.app; assumption; assumption
+
+
+theorem Translation.Ty.beta :
+  ⊢s G ->
+  G&Δ ⊢s a : K ->
+  G&(K::Δ) ⊢s P : κ ->
+
+  G.translate = some G' ->
+  Δ.translate = Δ'  ->
+  K.translate = K' ->
+
+  a.translate G' Δ' = some a' ->
+  P.translate G' (K'::Δ') = some P' ->
+
+  (P[su a :: +0 :_]).translate G' Δ' = some (P'[su a' :: +0 :_]) := by sorry

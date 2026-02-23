@@ -98,8 +98,8 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 --------------------------------------------------------------------------------------
 ---- Matches
 --------------------------------------------------------------------------------------
-| mtch (CTy : Fin n -> Ty)
-       (PTy : Fin n -> Ty)
+| mtch (CTy : Vect n Ty)
+       (PTy : Vect n Ty)
        (pats : Vect n Term)
        (cs : Vect n Term) :
   Typing G Δ Γ s R ->

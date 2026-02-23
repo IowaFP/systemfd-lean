@@ -70,6 +70,7 @@ inductive VariantMissing : List Variant -> Term -> Prop where
   VariantMissing vs (.guard t1 t2 t3)
 | mtch :
   VariantMissing vs t ->
+  (∀ i, VariantMissing vs (ps i)) ->
   (∀ i, VariantMissing vs (ts i)) ->
   VariantMissing vs c ->
   VariantMissing vs (.match t ps ts c)

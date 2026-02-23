@@ -334,7 +334,6 @@ match n with
     sorry
 
 
-
 -- Returns the 1st element if all the elements are equal
 def Vect.get_elem_if_eq [BEq Q] (vs : Vect n Q) : Option Q :=
 match n with
@@ -374,3 +373,21 @@ theorem vec_size_1: Vect (0 + 1) Q = Vect 1 Q := by simp
 -- intro v1 v2; induction n
 -- sorry
 -- sorry
+
+theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
+  (∀ i, ∃ T, f (v i) = some T) ->
+  ∃ (T' : Vect n Q'), ∀ i, f (v i) = some (T' i) := by
+  intro h
+  generalize T'def : (v.map f).seq = T' at *
+  cases T'
+  case none =>
+    exfalso
+    -- completeness of seq
+    sorry
+  case some T' =>
+  exists T'
+  · intro i;
+    replace h := h i
+    rcases h with ⟨q', h⟩
+    have lem := Vect.seq_sound T'def
+    replace lem := lem i; simp [Vect.map] at lem; assumption
