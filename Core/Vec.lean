@@ -65,7 +65,7 @@ theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
 -- @[simp]
 -- theorem get2_1 : v[a, b] 1 = b := by simp [Vect.cons]
 
-def Vect.map (f : A -> B) (v : Vect n A) : Vect n B := λ i => f (v i)
+-- def Vect.map (f : A -> B) (v : Vect n A) : Vect n B := λ i => f (v i)
 
 -- @[simp]
 -- def Vect.map2 (v1 : Vect A n) (v2 : Vect B n) (f : A -> B -> C)  : Vect C n := λ i => f (v1 i) (v2 i)
@@ -371,17 +371,17 @@ theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
   (∀ i, ∃ T, f (v i) = some T) ->
   ∃ (T' : Vect n Q'), ∀ i, f (v i) = some (T' i) := by
   intro h
-  generalize T'def : (v.map f).seq = T' at *
+  generalize T'def : Vect.seq (f <$> v) = T' at *
   cases T'
   case none =>
     exfalso
     -- completeness of seq
     unfold Vect.seq at T'def;
-    generalize slem : (map f v).seq_lemma = sl at *
+    generalize slem : Vect.seq_lemma (f <$> v)= sl at *
     cases sl <;> simp at *
     case inl i =>
       rcases i with ⟨i, h'⟩
-      unfold Vect.map at h'
+      -- unfold Vect.map at h'
       replace h := h i
       rcases h with ⟨T , h⟩
       rw[h] at h'; simp at h'
@@ -391,4 +391,4 @@ theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
     replace h := h i
     rcases h with ⟨q', h⟩
     have lem := Vect.seq_sound T'def
-    replace lem := lem i; simp [Vect.map] at lem; assumption
+    replace lem := lem i; simp at lem; assumption
