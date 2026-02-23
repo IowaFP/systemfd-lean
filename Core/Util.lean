@@ -4,6 +4,13 @@ open LeanSubst
 
 def ExistsUnique {α : Sort u} (p : α → Prop) := ∃ x, p x ∧ ∀ y, p y → y = x
 
+theorem get!_option2_eq_some {a : Option (Option T)}
+  : a.get! = some t -> a = t
+:= by
+  intro h
+  cases a <;> simp at *
+  exact h
+
 @[simp]
 def prefix_equal [BEq T] : List T -> List T -> Option (List T)
 | [], t => .some t

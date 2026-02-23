@@ -234,9 +234,9 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vect n (String × Ty)} {ctors' : Vect n String} :
   (∀ i y T, ctors i = (y, T) ->
-    (.data x K Vect.nil::G)&[] ⊢ T : ★ ∧
+    (.data x K .nil::G)&[] ⊢ T : ★ ∧
      ValidCtor x T ∧
-     none = lookup y ((.data x K Vect.nil)::G)) ->
+     lookup y (.data (n := 0) x K .nil::G) = none) ->
   (ctors' = λ i => (ctors i).1) ->
    ctors'.HasUniqueElems ->
   lookup x G = none ->
@@ -259,44 +259,42 @@ inductive GlobalWf : List Global -> Global -> Prop where
   G&[],[] ⊢ t : T ->
   GlobalWf G (.inst x t)
 | instty :
-  none = lookup x G ->
   ValidInstTy G x [] T ->
+  lookup x G = none ->
   GlobalWf G (.instty x T)
 
 inductive ListGlobalWf : List Global -> Prop where
 | nil : ListGlobalWf []
 | cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
 
-
 notation:175 "⊢ " G:175 => ListGlobalWf G
 
-
-
 inductive EntryWf : List Global -> Entry -> Prop where
--- | data :
---   GlobalWf G (Global.data x K ctors) ->
---   EntryWf G (Entry.data x K ctors)
--- | ctor :
---   GlobalWf G (Global.data y K ctors) ->
---   (ctors n).fst = x ->
---   (ctors n).snd = T ->
---   EntryWf G (Entry.ctor x n T)
--- | opent :
---   GlobalWf G (.opent x K) ->
---   EntryWf G (.opent x K)
+| data :
+  lookup x G = some (.data x K ctors) ->
+  EntryWf G (.data x K ctors)
+| ctor :
+  G&[] ⊢ T : ★ ->
+  ValidCtor x T ->
+  lookup x G = some (.ctor x i T) ->
+  EntryWf G (.ctor x i T)
+| opent :
+  ValidOpenKind K ->
+  lookup x G = some (.opent x K) ->
+  EntryWf G (.opent x K)
 | openm :
-  (∃ n, n > 0 ∧ lookup_type G x = some K ∧ GlobalWf (G.drop n) (.openm x K)) ->
-  EntryWf G (.openm x K)
+  G&[] ⊢ T : .base b ->
+  lookup x G = some (.openm x T) ->
+  EntryWf G (.openm x T)
 | defn :
-  GlobalWf G (.defn x T t) ->
+  G&[] ⊢ T : .base b ->
+  G&[],[] ⊢ t : T ->
+  lookup x G = some (.defn x T t) ->
   EntryWf G (.defn x T t)
 | instty :
-  GlobalWf G (.instty x T) ->
+  ValidInstTy G x [] T ->
+  lookup x G = some (.instty x T) ->
   EntryWf G (.instty x T)
-
-notation:175 G:175 "⊢e " e => EntryWf G e
-
-
 
 inductive TypeMatch : Ty -> Ty -> Prop
 | refl :

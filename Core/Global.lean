@@ -150,6 +150,15 @@ def ctor_count (x : String) (G : List Global) : Option Nat := do
 
 def is_stable (x : String) (G : List Global) : Bool := (is_ctor G x ∨ is_instty G x)
 
+theorem lookup_type_reconstruct :
+  lookup x G = some e ->
+  e.type = some T ->
+  lookup_type G x = some T
+:= by
+  intro j1 j2
+  simp [lookup_type]; rw [j1]; simp
+  exact j2
+
 theorem lookup_entry_openm_exists :
   is_openm G x -> ∃ y T, lookup x G = .some (Entry.openm y T) := by
 intro h
@@ -213,11 +222,12 @@ all_goals (
 )
 
 theorem Global.lookup_unique :
-  lookup x G = some t ->
-  lookup x G = some t' ->
-  t = t' := by
-intro h1 h2
-all_goals (rw[h1] at h2; injection h2)
+  lookup x G = t ->
+  lookup x G = t' ->
+  t = t'
+:= by
+  intro h1 h2
+  all_goals (rw[h1] at h2; exact h2)
 
 theorem Global.lookup_type_unique :
   lookup_type x G = some t ->
