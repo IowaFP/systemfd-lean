@@ -94,6 +94,55 @@ theorem Translation.GlobalEnv.sound {G : Surface.GlobalEnv} :
 intro h1 i K h2; sorry
 
 
+theorem Translation.ValidTyHeadVariable.sound {G : Surface.GlobalEnv} :
+  ⊢s G ->
+  G.translate = some G' ->
+  T.translate G' Δ' = some T' ->
+  Surface.ValidTyHeadVariable T (Surface.is_data G) ->
+  Core.ValidTyHeadVariable T' (Core.is_data G') := by
+intro wf h1 h2 h3
+induction h3
+
+sorry
+
+theorem Translation.StableTypeMatch.sound :
+  ⊢s G ->
+  G.translate = some G' ->
+  T.translate G' Δ' = some T' ->
+  R.translate G' Δ' = some R' ->
+  Surface.StableTypeMatch Δ T R ->
+  Core.StableTypeMatch Δ' T' R' := by sorry
+
+
+theorem Translation.PrefixTypeMatch.sound :
+  ⊢s G ->
+  G.translate = some G' ->
+  A.translate G' Δ' = some A' ->
+  T.translate G' Δ' = some T' ->
+  R.translate G' Δ' = some R' ->
+  Surface.PrefixTypeMatch Δ A T R ->
+  Core.PrefixTypeMatch Δ' A' T' R' := by sorry
+
+
+
+theorem Translation.ValidHeadVariable.sound
+  {Δ : Surface.KindEnv} {Δ' : Core.KindEnv}
+  {Γ : Surface.TyEnv} {Γ' : Core.TyEnv}
+  {t : Surface.Term} {t' : Core.Term}:
+  ⊢s G ->
+  G.translate = some G' ->
+  Δ.translate = Δ' ->
+  Γ.translate G' Δ' = Γ' ->
+  t.translate G' Δ' Γ' = some t' ->
+  Surface.ValidHeadVariable t (Surface.is_ctor G) ->
+  Core.ValidHeadVariable t' (Core.is_ctor G') := by
+intro wf h1 h2 h3 h4 h5
+induction h5
+sorry
+
+
+
+
 
 theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   ⊢s G ->
@@ -106,9 +155,9 @@ theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   Γ.translate G' Δ' = some Γ' ->
 
   ∃ T', (T.translate G' Δ' = some T' ∧
-  ∃ t', t.translate G' Δ' Γ' = some t' ∧
-  t'.Determined ∧
-  G'&Δ',Γ' ⊢ t' : T') := by
+    ∃ t', t.translate G' Δ' Γ' = some t' ∧
+    t'.Determined ∧
+    G'&Δ',Γ' ⊢ t' : T') := by
 intro wf j h1 wfc h2 h3
 induction j generalizing Δ' Γ' <;> simp at *
 case var Γ x T Δ b h jk =>
@@ -331,14 +380,13 @@ case mtch n Δ Γ s R c T CTy PTy pats cs sj vhvR cj vhvps patsj stmPTys csj ptm
       · apply Core.Term.Determined.match; repeat assumption
       · apply Core.Typing.mtch (CTy := CTy') (PTy := PTy') (pats := ps') (cs := cs')
         assumption
-        sorry
+        apply Translation.ValidTyHeadVariable.sound wf h1 ih1 vhvR
         assumption
-        sorry
-        assumption
-        sorry
-        assumption
-        sorry
-
+        intro i; apply Translation.ValidHeadVariable.sound wf h1 h2 h3 (ih3b i) (vhvps i)
+        apply ih3d
+        intro i; apply Translation.StableTypeMatch.sound wf h1 (ih3a i) ih1 (stmPTys i)
+        apply ih5d
+        intro i;  apply Translation.PrefixTypeMatch.sound wf h1 (ih3a i) (ih4a i) ih2 (ptms i)
 
 theorem quantifier_magic {Δ : Surface.KindEnv} {Γ : Surface.TyEnv} {PTy : Fin n -> Surface.Ty} {pats : Vect n Surface.Term} :
   Δ.translate = Δ' ->
