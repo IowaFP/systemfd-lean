@@ -50,12 +50,12 @@ theorem Vect.uncons_iff : uncons v = ⟨hd, tl⟩ <-> v = hd :: tl := by
   case _ => subst h; simp
 
 def Vect.induction
-  {motive : (n : Nat) -> (A : Sort u1) -> Vect n A -> Sort u2}
   {A : Sort u1}
-  (nil : motive 0 A nil)
+  {motive : (n : Nat) -> Vect n A -> Sort u2}
+  (nil : motive 0 nil)
   (cons : {n : Nat} -> {tl : Vect n A} -> (hd : A) ->
-    motive n A tl -> motive (n + 1) A (cons hd tl))
-  : {n : Nat} -> (v : Vect n A) -> motive n A v
+    motive n tl -> motive (n + 1) (cons hd tl))
+  : {n : Nat} -> (v : Vect n A) -> motive n v
 | 0, v => by simp; exact nil
 | n + 1, v => by {
   generalize zdef : uncons v = z
@@ -75,7 +75,7 @@ theorem Vect.induction_cons :
   simp [induction, uncons]; congr
 
 def Vect.fold {A : Sort u1} (d : B) (f : A -> B -> B) {n : Nat} (v : Vect n A) : B :=
-  induction (motive := λ _ _ _ => B) d f v
+  induction (motive := λ _ _ => B) d f v
 
 @[simp]
 theorem Vect.fold_nil : fold d f nil = d := by rfl
