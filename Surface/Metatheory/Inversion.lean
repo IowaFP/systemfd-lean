@@ -4,26 +4,6 @@ import Surface.Metatheory.Substitution
 namespace Surface
 
 
-theorem PrefixTypeMatch.base_kinding :
-  G&Δ ⊢s A : .base b1 ->
-  G&Δ ⊢s B : .base b2 ->
-  PrefixTypeMatch Δ A B T ->
-  ∃ b, G&Δ ⊢s T : .base b := by
-intro j1 j2 j3
-induction j3 generalizing b1 b2
-case refl => exists b2
-case arrow ih =>
-  cases j1; cases j2
-  case _ h1 _ _ _ h2 =>
-  apply ih h1 h2
-case all ih =>
-  cases j1; cases j2
-  case _ h1 h2 =>
-  replace ih := ih h1 h2
-  cases ih; case _ b h =>
-  exists b; sorry -- apply Kinding.strengthening h
-
-
 
 theorem GlobalWf.extract_kinding :
   ⊢s G ->

@@ -104,3 +104,27 @@ theorem Translation.Ty.beta :
   P.translate G' (K'::Δ') = some P' ->
 
   (P[su a :: +0 :_]).translate G' Δ' = some (P'[su a' :: +0 :_]) := by sorry
+
+
+theorem Translation.Ty.Spine
+  {t : Surface.Ty} {t' : Core.Ty} :
+  t.spine = some (x, sp) ->
+  t.translate G' Δ' = some t' ->
+  ∃ sp', t'.spine = .some (x, sp') := by
+intro h1 h5
+induction t using Surface.Ty.spine.induct generalizing x sp t' <;> simp [Surface.Ty.spine] at *
+case _ => exists []; rw[<-h5]; cases h1.1; cases h1.2; simp [Core.Ty.spine]
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h5;
+  rcases h5 with ⟨f', h5, h6⟩
+  rw[Option.bind_eq_some_iff] at h6
+  rcases h6 with ⟨a', h7, h8⟩
+  cases h8
+  rw[Option.bind_eq_some_iff] at h1
+  rcases h1 with ⟨sp', h1, h8⟩
+  cases h8
+  replace ih := @ih sp'.1 sp'.2 f' h1 h5
+  rcases ih with ⟨sp'', ih⟩
+  simp [Core.Ty.spine]
+  exists (sp'' ++ [a']); rw[Option.bind_eq_some_iff]
+  exists (sp'.fst , sp'')

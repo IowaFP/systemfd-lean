@@ -367,13 +367,6 @@ theorem Vect.elems_eq_to_sound [BEq Q] {e : Q} {vs : Vect n Q} :
   vs.elems_eq_to e = true ->
   ∀ i, (vs i) = e := by sorry
 
-theorem vec_size_1: Vect (0 + 1) Q = Vect 1 Q := by simp
-
--- theorem Vect.uncons_injective [BEq Q] : Function.Injective (α := Vect (n + 1) Q) (β := Q × Vect n Q) Vect.uncons := by
--- intro v1 v2; induction n
--- sorry
--- sorry
-
 theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
   (∀ i, ∃ T, f (v i) = some T) ->
   ∃ (T' : Vect n Q'), ∀ i, f (v i) = some (T' i) := by
@@ -383,7 +376,15 @@ theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
   case none =>
     exfalso
     -- completeness of seq
-    sorry
+    unfold Vect.seq at T'def;
+    generalize slem : (map f v).seq_lemma = sl at *
+    cases sl <;> simp at *
+    case inl i =>
+      rcases i with ⟨i, h'⟩
+      unfold Vect.map at h'
+      replace h := h i
+      rcases h with ⟨T , h⟩
+      rw[h] at h'; simp at h'
   case some T' =>
   exists T'
   · intro i;

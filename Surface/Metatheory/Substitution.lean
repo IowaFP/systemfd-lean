@@ -34,11 +34,8 @@ theorem Kinding.beta :
 := by
   intro j1 j2
   apply Kinding.subst Δ (su t::+0) _ j1
-  intro i K h; cases i <;> simp at *
-  sorry
-  sorry
-  -- simp at h;
-  -- case _ => subst h; exact j2
-  -- case _ i => apply var h
+  intro i K h; cases i <;> simp [Surface.inst_getElem?_KindEnv] at *
+  case _ => subst h; exact j2
+  case _ i => apply var h
 
 end Surface

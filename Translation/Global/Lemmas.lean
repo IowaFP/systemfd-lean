@@ -23,5 +23,12 @@ theorem Translation.ListGlobalWf.sound {G : Surface.GlobalEnv} :
 intro wf; induction G <;> simp at *
 apply Core.ListGlobalWf.nil
 case cons hd tl ih =>
+ cases wf; case _ wftl wfh =>
+ generalize tldef : Surface.GlobalEnv.translate tl = tl' at *;
+ cases tl' <;> simp at *
+ case none => apply ih wftl
+ case some tl' =>
 
- sorry
+   -- generalize gdef : Surface.Ty.translate (Core.Global.data hd.2 hd.3.translate Vect.nil :: tl') [] (hd.4 i).snd = g' at *
+   -- simp [Surface.Ty.translate, List.mapM_cons];
+   sorry
