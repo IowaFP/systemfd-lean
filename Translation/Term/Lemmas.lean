@@ -118,7 +118,7 @@ case _ hd tl ih =>
   rw[Option.bind_eq_some_iff]
   exists T'[+1]
   apply And.intro
-  · apply Translation.Ty.Weaken h1 -- TODO
+  · apply Translation.Ty.Weaken h1
   · rw[Option.bind_eq_some_iff];
     exists Γ'.map (·[+1]);
     apply And.intro;
