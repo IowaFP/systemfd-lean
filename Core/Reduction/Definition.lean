@@ -78,7 +78,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   (patshapes'.seq = some patshapes) ->
   (patshapes.map (·.1)).indexOf x = some i ->
   some p = prefix_equal (patshapes i).2 sp ->
-  Red G (.match s ps cs c) ((cs i).apply p)
+  Red G (.match n s ps cs c) ((cs i).apply p)
 
 | data_match_default
              (ps: Vect n Term)
@@ -89,7 +89,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   (patshapes' = λ i => (ps i).spine) ->
   (patshapes'.seq = some patshapes) ->
   (patshapes.map (·.1)).indexOf x = none ->
-  Red G (.match s ps cs c) c
+  Red G (.match n s ps cs c) c
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -146,7 +146,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Red G (.guard p s b) (.guard p s' b)
 | match_congr :
   Red G s s' ->
-  Red G (.match s ps ts c) (.match s' ps ts c)
+  Red G (.match n s ps ts c) (.match n s' ps ts c)
 ----------------------------------------------------------------
 ---- Absorption Rules
 ----------------------------------------------------------------
@@ -164,7 +164,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | guard_absorb :
   Red G (.guard p `0 b) `0
 | match_absorb :
-  Red G (.match `0 ps ts c) `0
+  Red G (.match n `0 ps ts c) `0
 ----------------------------------------------------------------
 ---- Mapping Rules
 ----------------------------------------------------------------
@@ -185,7 +185,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | guard_map :
   Red G (.guard p (c1 `+ c2) b) (.guard p c1 b `+ .guard p c2 b)
 | match_map :
-  Red G (.match (c1 `+ c2) ps ts c) (.match c1 ps ts c `+ .match c2 ps ts c)
+  Red G (.match n (c1 `+ c2) ps ts c) (.match n c1 ps ts c `+ .match n c2 ps ts c)
 
 notation:160 G:160 " ⊢ " t:160 " ~> " t':160 => Red G t t'
 

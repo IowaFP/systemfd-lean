@@ -10,10 +10,12 @@ import Core.Infer
 namespace Core.Examples
 /- data Bool = True | False -/
 def BoolCtx : Core.GlobalEnv := [
-  .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
+  .data (n := 2) "Bool" ★ [ ("True", gt#"Bool") , ("False", gt#"Bool") ]
   ]
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
+
+#eval! (g#"True").infer_type BoolCtx [] []
 
 /-
 not : Bool -> Bool
@@ -22,10 +24,10 @@ not = λ x → case x of
                True → False
                _ → False
 -/
-def notTerm : Core.Term := λ[.global "Bool" ]
-  match! #0
-         v[ g#"True", ]
-         v[ g# "False"]
+def notTerm : Core.Term := λ[gt#"Bool" ]
+  match! 1 #0
+         [ g#"True" ]
+         [ g# "False"]
          g#"True"
 
 /-  eqBool =
@@ -37,14 +39,14 @@ def notTerm : Core.Term := λ[.global "Bool" ]
                        True → False
                        False → True
  -/
-def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
-  match!  #1
-
-   v[ "True", "False" ]
-
-   v[ match! #0 v[ "True", "False" ] v[ g#"True", g#"False" ] ,
-      match! #0 v[ "True", "False" ] v[ g# "False", g# "False"]
+def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
+  match! 2 #1
+    [ g#"True", g#"False" ]
+    [
+      match! 2 #0 [ g#"True", g#"False" ] [ g#"True", g#"False" ] `0,
+      match! 2  #0 [ g#"True", g#"False" ] [ g# "False", g# "False"] `0
     ]
+    `0
 
 
 def funs : GlobalEnv := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool]

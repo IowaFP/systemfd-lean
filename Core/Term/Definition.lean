@@ -40,7 +40,7 @@ inductive Term : Type where
 | tbind : TyBindVariant -> Kind -> Term -> Term
 | lam : Ty -> Term -> Term
 | guard : Term -> Term -> Term -> Term
-| «match» : Term -> Vect n Term -> Vect n Term -> Term -> Term
+| «match» : (n : Nat) -> Term -> Vect n Term -> Vect n Term -> Term -> Term
 
 prefix:max "#" => Term.var
 prefix:max "g#" => Term.global
@@ -83,7 +83,7 @@ def Term.size : Term -> Nat
 | tbind _ _ t => size t + 1
 | lam _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
-| .match t1 t2 t3 t4 =>
+| .match _ t1 t2 t3 t4 =>
   let t2' : Vect _ _ := size <$> t2
   let t3' : Vect _ _ := size <$> t3
   size t1 + List.sum t2' + List.sum t3' + size t4 + 1

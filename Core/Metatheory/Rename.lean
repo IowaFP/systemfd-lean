@@ -55,7 +55,6 @@ theorem ValidInstTy.closed : ValidInstTy G x Δ T -> ∃ b, G&Δ ⊢ T : .base b
     exists b★
     constructor; assumption; assumption
 
-
 theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
   intro j; cases j; case _ j => exact j
 
@@ -69,32 +68,19 @@ theorem GlobalWf.closed_ctors {v : Vect n (Option Entry)} {d : Option Entry} :
   ∀ σ, T[σ] = T
 := by
   intro h1 h2 h3
-  apply Vect.induction (A := Option Entry)
-    (motive := λ n Q _ =>
-               (∀ (v : Vect n (Option Entry)),
-               (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
-               (Option.map Entry.type (Vect.fold d Option.or v)).get! = some T ->
-               ∀ σ, T[σ] = T ))
-  case nil =>
-    intro v h2 h3; have h := Vect.eta0 (v := v); subst h; simp at *; apply h1 h3
-  case cons =>
-    clear v h2 h3
-    intro n' tl _ ih v h2 h3
-    have lem := v.eta
-    rw[lem] at h3; simp at h3;
-    generalize vdef : v.head = vhd at *
-    cases vhd <;> simp at *
+  induction v using Vect.induction
+  case nil => apply h1 h3
+  case cons hd tl ih =>
+    simp at h3
+    cases hd <;> simp at *
     case none =>
-      apply ih _ _
+      apply ih _
       apply h3
       intro i en e1 e2
-      replace h2 := h2 (Fin.succ i) en (by rw[lem]; exact e1) e2
+      replace h2 := h2 (Fin.succ i) en (by simp; exact e1) e2
       apply h2
     case some =>
-      apply h2 0 _ _ h3; simp [Vect.head] at vdef; assumption
-  apply v
-  apply h2
-  apply h3
+      apply h2 0 _ _ h3; simp
 
 theorem GlobalWf.closed {G : List Global} :
   ⊢ G ->
@@ -139,7 +125,6 @@ theorem GlobalWf.closed {G : List Global} :
     cases lemj; case _ lemj =>
     apply Kinding.closed lemj
 
-
 theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren} K :
   (∀ x, x + 1 ∈ T -> Δr[r x]? = Δ[x]?) ->
   ∀ x, x ∈ T -> (K::Δr)[r.lift x]? = (K ::Δ)[x]? := by
@@ -149,7 +134,6 @@ case _ => simp [Ren.lift] at *
 case succ n ih =>
   replace h1 := h1 n h2
   simp [Ren.lift]; assumption
-
 
 theorem Kinding.strong_rename {Δ Δr : List Kind} {T : Ty} (r : Ren)  :
   G&Δ ⊢ T : K ->
@@ -202,7 +186,6 @@ case all K Δ P _ ih =>
   replace ih := @ih (K :: Δr) r.lift
   simp at ih;
   apply ih lem;
-
 
 theorem Kinding.rename_lift {Δ Δr : List Kind} K (r : Ren) :
   (∀ i, Δ[i]? = Δr[r i]?) ->
@@ -328,7 +311,6 @@ theorem Typing.rename_type Δr (r : Ren) :
     rw[lem]
     replace j2 := Kinding.rename Δr r h j2; simp at j2; rw [lem] at j2
     apply global j1 j2
-
   case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
     apply mtch (CTy := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r])
     apply ih6; assumption
@@ -472,7 +454,6 @@ theorem Typing.rename Γr (r : Ren) :
     intro i; replace ih3 := ih3 i; assumption
     intro i; replace ih9 := ih9 i; apply ih9; assumption
     intro i; replace ih5 := ih5 i; assumption
-
   case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
     apply Typing.guard
     apply ih1 _ _ h
@@ -539,6 +520,58 @@ theorem Typing.rename Γr (r : Ren) :
 theorem Typing.weaken T : ⊢ G -> G&Δ,Γ ⊢ t : A -> G&Δ,(T::Γ) ⊢ t[+1] : A := by
   intro wf j; apply rename (T::Γ) (· + 1) wf _ j; simp
 
+theorem Typing.weaken_list Γ' :
+  ⊢ G ->
+  G&Δ,Γ ⊢ t : A ->
+  G&Δ,(Γ'++Γ) ⊢ t[Ren.to (· + Γ'.length)] : A
+:= by
+  intro wf j; apply rename (Γ'++Γ) (· + Γ'.length) wf _ j
+  intro i A h; simp
+  sorry
+
+theorem Typing.weaken_type_list Δ' :
+  ⊢ G ->
+  G&Δ,Γ ⊢ t : A ->
+  G&(Δ'++Δ),Γ.map (·[Ren.to (· + Δ'.length)]) ⊢ t[Ren.to (· + Δ'.length):Ty] : A[Ren.to (· + Δ'.length)]
+:= by
+  intro wf j; apply rename_type (Δ'++Δ) (· + Δ'.length) wf _ j
+  intro i; simp
+  sorry
+
+theorem Typing.closed_type :
+  G&[],Γ ⊢ t : A ->
+  ∀ (σ : Subst Ty), Γ.map (·[σ]) = Γ ∧ t[σ:Ty] = t ∧ A[σ:_] = A
+:= by
+  sorry
+
+theorem Typing.closed :
+  G&Δ,[] ⊢ t : A ->
+  ∀ (σ : Subst Term), t[σ:_] = t
+:= by
+  sorry
+
+theorem Typing.weaken_type_closed Δ :
+  ⊢ G ->
+  G&[],Γ ⊢ t : A ->
+  G&Δ,Γ ⊢ t : A
+:= by
+  intro wf j
+  have lem1 := weaken_type_list Δ wf j; simp at lem1
+  obtain ⟨q1, q2, q3⟩ := closed_type j (Ren.to (· + Δ.length))
+  rw [q1, q2, q3] at lem1
+  exact lem1
+
+theorem Typing.weaken_closed Γ :
+  ⊢ G ->
+  G&Δ,[] ⊢ t : A ->
+  G&Δ,Γ ⊢ t : A
+:= by
+  intro wf j
+  have lem1 := weaken_list Γ wf j; simp at lem1
+  have lem2 := closed j (Ren.to (· + Γ.length))
+  rw [lem2] at lem1
+  exact lem1
+
 theorem Kinding.closed_lifting_lemma : ∀ Δ', ⊢ G ->  G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K) := by
 intro Δ' wf j
 apply @List.reverse_ind (T := Kind)
@@ -547,7 +580,6 @@ apply @List.reverse_ind (T := Kind)
   (by intro G Δ T K wf j;
       have lem : (Ren.to (λ x => x)) = Subst.id (T := Ty) := by rfl
       simp; rw[lem]; simp; assumption)
-
   (by intro K' Δ' ih G Δ T K wf j
       replace j := Kinding.weaken K' j
       replace ih := ih G ([K'] ++ Δ) T[+1] K wf j
@@ -567,8 +599,6 @@ simp at *
 replace lem1 := lem1 (Ren.to (λ x => x + Δ'.length))
 rw[lem1] at lem2
 apply lem2
-
-
 
 theorem Kinding.strengthening :
   G&(K' :: Δ) ⊢ T[+1] : K ->

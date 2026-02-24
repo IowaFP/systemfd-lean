@@ -63,41 +63,12 @@ case _ h =>
   exists b★; apply Kinding.arrow; assumption
   apply h
 
-theorem GlobalWf.extract_kinding :
-  ⊢ G ->
-  lookup_type G x = some T ->
-  ∃ b, G&Δ ⊢ T : .base b := by
-intro wf h
-induction G generalizing x T Δ
-case _ => simp [lookup_type, lookup] at *
-case _ hd tl ih =>
-  cases wf; case _ wftl wfh =>
-  induction wfh
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  case _ y G T h1 h2 =>
-    simp [lookup_type, lookup] at h
-    split at h
-    case _ e =>
-      subst e
-      simp [Entry.type] at h; cases h
-      have lem := ValidInstTy.base_kinded h2
-      cases lem; case _ b lem =>
-      exists b;
-      sorry -- requires weakening for globals
-
-    sorry
-
-
 theorem Typing.well_typed_terms_have_base_kinds :
   ⊢ G ->
   G&Δ, Γ ⊢ t : A -> ∃ b, G&Δ ⊢ A : .base b := by
 intro wf j; induction j
 case _ => constructor; assumption
-case _ h => apply GlobalWf.extract_kinding wf; assumption
+case _ h => apply GlobalWf.types_have_base_kind wf; assumption
 case _ => assumption
 case _ h1 h2 _ h3 =>
   cases h2; case _ h2 =>

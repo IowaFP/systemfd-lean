@@ -8,7 +8,7 @@ open LeanSubst
 namespace Core
 
 inductive Global : Type where
-| data : String -> Kind -> Vect n (String × Ty) -> Global
+| data : (n : Nat) -> String -> Kind -> Vect n (String × Ty) -> Global
 | opent : String -> Kind -> Global
 | openm : String -> Ty -> Global
 | defn : String -> Ty -> Term -> Global
@@ -23,7 +23,7 @@ def Global.repr (p : Nat) : (a : Global) -> Std.Format
 
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
     ++ "v" ++ Std.Format.sbracket (Vect.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) ts)
-| .data s K _ =>
+| .data _ s K _ =>
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K
 | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
 | .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec

@@ -39,7 +39,7 @@ case global =>
     replace lem := instance_type_preservation wf lem is
     cases is; case _ e =>
     cases e
-    have lem' := GlobalWf.extract_kinding (Δ := Δ) (T := A) wf h1
+    have lem' := GlobalWf.types_have_base_kind (Δ := Δ) (T := A) wf h1
     cases lem'; case _ _ h =>
     replace lem := fix_quantifiers (Δ := Δ) (Γ := Γ) lem
     apply Typing.foldr_preservation

@@ -68,10 +68,10 @@ inductive VariantMissing : List Variant -> Term -> Prop where
   VariantMissing vs t2 ->
   VariantMissing vs t3 ->
   VariantMissing vs (.guard t1 t2 t3)
-| mtch :
+| mtch {ps : Vect n _} :
   VariantMissing vs t ->
   (∀ i, VariantMissing vs (ps i)) ->
   (∀ i, VariantMissing vs (ts i)) ->
   VariantMissing vs c ->
-  VariantMissing vs (.match t ps ts c)
+  VariantMissing vs (.match n t ps ts c)
 end Core

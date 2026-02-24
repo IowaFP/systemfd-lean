@@ -65,7 +65,7 @@ theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
 -- @[simp]
 -- theorem get2_1 : v[a, b] 1 = b := by simp [Vect.cons]
 
--- def Vect.map (f : A -> B) (v : Vect n A) : Vect n B := λ i => f (v i)
+def Vect.map (f : A -> B) (v : Vect n A) : Vect n B := λ i => f (v i)
 
 -- @[simp]
 -- def Vect.map2 (v1 : Vect A n) (v2 : Vect B n) (f : A -> B -> C)  : Vect C n := λ i => f (v1 i) (v2 i)

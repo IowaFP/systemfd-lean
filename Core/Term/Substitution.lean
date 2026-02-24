@@ -37,7 +37,7 @@ def Term.rmap (r : Ren) : Term -> Term
 | tbind v A t => tbind v A (rmap r t)
 | lam A t => lam A (rmap r.lift t)
 | guard t1 t2 t3 => guard (rmap r t1) (rmap r t2) (rmap r t3)
-| .match t1 t2 t3 t4 => .match (rmap r t1) (λ i => rmap r (t2 i)) (λ i => rmap r (t3 i)) (rmap r t4)
+| .match n t1 t2 t3 t4 => .match n (rmap r t1) (λ i => rmap r (t2 i)) (λ i => rmap r (t3 i)) (rmap r t4)
 
 instance : RenMap Term where
   rmap := Term.rmap
@@ -204,7 +204,7 @@ def Term.Ty.smap (σ : Subst Ty) : Term -> Term
 | tbind v A t => tbind v A (smap σ.lift t)
 | lam A t => lam A[σ:_] (smap σ t)
 | guard t1 t2 t3 => guard (smap σ t1) (smap σ t2) (smap σ t3)
-| .match t1 t2 t3 t4  => .match (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
+| .match n t1 t2 t3 t4  => .match n (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
 
 instance : SubstMap Term Ty where
   smap := Term.Ty.smap
@@ -219,7 +219,7 @@ def Term.smap (σ : Subst Term) : Term -> Term
 | tbind v A t => tbind v A (smap (σ ◾ +1@Ty) t)
 | lam A t => lam A (smap σ.lift t)
 | guard t1 t2 t3 => guard (smap σ t1) (smap σ t2) (smap σ t3)
-| .match t1 t2 t3 t4 => .match (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
+| .match n t1 t2 t3 t4 => .match n (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
 
 instance : SubstMap Term Term where
   smap := Term.smap
@@ -258,7 +258,7 @@ theorem Term.subst_guard : (guard t1 t2 t3)[σ:Term] = guard t1[σ:_] t2[σ:_] t
 
 @[simp]
 theorem Term.subst_match
-  : (match! t1 t2 t3 t4)[σ:Term] = match! t1[σ:_] (λ i => (t2 i)[σ:_]) (λ i => (t3 i)[σ:_]) (t4[σ:_])
+  : (match! n t1 t2 t3 t4)[σ:Term] = match! n t1[σ:_] (λ i => (t2 i)[σ:_]) (λ i => (t3 i)[σ:_]) (t4[σ:_])
 := by
   simp [SubstMap.smap]
 
@@ -304,7 +304,7 @@ theorem Term.Ty.subst_guard : (guard t1 t2 t3)[σ:Ty] = guard t1[σ:_] t2[σ:_] 
 
 @[simp]
 theorem Term.Ty.subst_match
-  : (match! t1 ps t2 t3)[σ:Ty] = match! t1[σ:_] (λ i => (ps i)[σ:_]) (λ i => (t2 i)[σ:_]) t3[σ:_]
+  : (match! n t1 ps t2 t3)[σ:Ty] = match! n t1[σ:_] (λ i => (ps i)[σ:_]) (λ i => (t2 i)[σ:_]) t3[σ:_]
 := by
   simp [SubstMap.smap]
 

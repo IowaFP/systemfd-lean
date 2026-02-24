@@ -383,7 +383,7 @@ theorem Term.Determined.match {s d : Term} {ps cs : Vect n Term}:
   d.Determined ->
   (∀ i, (ps i).Determined) ->
   (∀ i, (cs i).Determined) ->
-  (match! s ps cs d).Determined := by
+  (match! n s ps cs d).Determined := by
 intro h1 h2 h3 h4
 unfold Term.Determined; apply VariantMissing.mtch; repeat assumption
 

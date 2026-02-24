@@ -110,7 +110,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
   (∀ i, Typing G Δ Γ (cs i) (CTy i)) -> -- each case match has a type
   (∀ i, PrefixTypeMatch Δ (PTy i) (CTy i) T) -> -- patten type and case type
-  Typing G Δ Γ (match! s pats cs c) T
+  Typing G Δ Γ (match! n s pats cs c) T
 --------------------------------------------------------------------------------------
 ---- Guards
 --------------------------------------------------------------------------------------
@@ -232,15 +232,15 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
   ValidInstTy G x Δ (A -:> T)
 
 inductive GlobalWf : List Global -> Global -> Prop where
-| data {G : GlobalEnv} {ctors : Vect n (String × Ty)} {ctors' : Vect n String} :
+| data {G : GlobalEnv} {ctors : Vect n (String × Ty)} :
   (∀ i y T, ctors i = (y, T) ->
-    (.data x K .nil::G)&[] ⊢ T : ★ ∧
-     ValidCtor x T ∧
-     lookup y (.data (n := 0) x K .nil::G) = none) ->
-  (ctors' = λ i => (ctors i).1) ->
-   ctors'.HasUniqueElems ->
+    (.data n x K ctors::G)&[] ⊢ T : ★
+    ∧ ValidCtor x T
+    ∧ x ≠ y
+    ∧ lookup y G = none) ->
+  (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
   lookup x G = none ->
-  GlobalWf G (.data x K ctors)
+  GlobalWf G (.data n x K ctors)
 | opent :
   ValidOpenKind K ->
   lookup x G = none ->
@@ -273,9 +273,11 @@ inductive EntryWf : List Global -> Entry -> Prop where
 | data :
   lookup x G = some (.data x K ctors) ->
   EntryWf G (.data x K ctors)
-| ctor :
+| ctor z K ctors :
+  lookup z G = some (.data z K ctors) ->
+  ctors i = (x, T) ->
   G&[] ⊢ T : ★ ->
-  ValidCtor x T ->
+  ValidCtor z T ->
   lookup x G = some (.ctor x i T) ->
   EntryWf G (.ctor x i T)
 | opent :

@@ -89,7 +89,7 @@ def Term.beq : Term -> Term -> Bool
 | tbind A1 K1 t1, tbind A2 K2 t2 => A1 == A2 && K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
 | guard a1 b1 c1, guard a2 b2 c2 => beq a1 a2 && beq b1 b2 && beq c1 c2
-| .match (n := n1) a1 b1 c1 d1, .match (n := n2) a2 b2 c2 d2 =>
+| .match n1 a1 b1 c1 d1, .match n2 a2 b2 c2 d2 =>
   if h : n1 = n2 then
     let c : Vect n1 Bool := λ i => beq (c1 i) (c2 (by rw [h] at i; exact i))
     let p : Vect n1 Bool := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))

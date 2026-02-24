@@ -25,7 +25,7 @@ namespace Infer.Ty.Test
 
 def G : List Global := [
     .opent "Eq" (★ -:> ◯)
-    , .data "Bool" ★ ([ ("True", gt#"Bool") , (("False"), gt#"Bool") ] : Vect 2 (String × Ty))
+    , .data 2 "Bool" ★ ([ ("True", gt#"Bool") , (("False"), gt#"Bool") ])
   ]
 
 
@@ -134,7 +134,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Tk <- T.infer_kind G Δ
   let _ <- Tk.base_kind
   return T
-| .match (n := n) s ps cs c => do
+| .match n s ps cs c => do
   let R <- s.infer_type G Δ Γ
   let _ <- R.valid_data_type G
   let ps':  Vect n (Option (String × List SpineElem)) := λ i => (ps i).spine
@@ -158,7 +158,6 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
     let allT <- c.infer_type G Δ Γ
     if T == allT then T else none
   else none
-
 | .guard p s t => do
   let A <- p.infer_type G Δ Γ
   let R <- s.infer_type G Δ Γ
