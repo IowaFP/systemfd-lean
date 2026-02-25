@@ -3,8 +3,10 @@ import Core.Util
 import Core.Global
 import Core.Ty
 import Core.Term
+import Lilac.Vect
 
 open LeanSubst
+
 
 namespace Core
 
@@ -72,11 +74,13 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | data_match (ps: Vect n Term)
              (patshapes' : Vect n (Option (String × List SpineElem)))
              (patshapes : Vect n (String × List SpineElem))
+             (cns : Vect n String)
              (cs : Vect n Term) :
   some (x, sp) = Term.spine s ->
   (patshapes' = λ i => (ps i).spine) ->
   (patshapes'.seq = some patshapes) ->
-  (patshapes.map (·.1)).indexOf x = some i ->
+  (cns = ((λ (x : String × List SpineElem) => x.1) <$> patshapes)) ->
+  cns.indexOf x = some i ->
   some p = prefix_equal (patshapes i).2 sp ->
   Red G (.match n s ps cs c) ((cs i).apply p)
 
@@ -84,11 +88,13 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
              (ps: Vect n Term)
              (patshapes' : Vect n (Option (String × List SpineElem)))
              (patshapes : Vect n (String × List SpineElem))
+             (cns : Vect n String)
              (cs : Vect n Term) :
   some (x, sp) = Term.spine s ->
   (patshapes' = λ i => (ps i).spine) ->
   (patshapes'.seq = some patshapes) ->
-  (patshapes.map (·.1)).indexOf x = none ->
+  (cns = (·.1) <$> patshapes) ->
+  cns.indexOf x = none ->
   Red G (.match n s ps cs c) c
 ----------------------------------------------------------------
 ---- Guard Matching

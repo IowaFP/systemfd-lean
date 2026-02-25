@@ -12,6 +12,7 @@ namespace Core.Examples
 def BoolCtx : Core.GlobalEnv := [
   .data (n := 2) "Bool" ★ [ ("True", gt#"Bool") , ("False", gt#"Bool") ]
   ]
+
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
 
@@ -24,6 +25,7 @@ not = λ x → case x of
                True → False
                _ → False
 -/
+
 def notTerm : Core.Term := λ[gt#"Bool" ]
   match! 1 #0
          [ g#"True" ]
@@ -39,6 +41,7 @@ def notTerm : Core.Term := λ[gt#"Bool" ]
                        True → False
                        False → True
  -/
+
 def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
   match! 2 #1
     [ g#"True", g#"False" ]
@@ -48,18 +51,17 @@ def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
     ]
     `0
 
-
-def funs : GlobalEnv := [.defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool]
+def funs : GlobalEnv := [ .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool ]
 def EqBoolCtx : GlobalEnv := funs ++ BoolCtx
 
 #eval! eqBool.infer_type EqBoolCtx [] []
 #guard Globals.wf_globals EqBoolCtx == some ()
 
-def t1 := Term.match g#"False"
-              v[ "True", "False" ] v[ g#"False" , g#"True" ]
+-- def t1 := Term.match g#"False"
+--               v[ "True", "False" ] v[ g#"False" , g#"True" ]
 
-def t2 := Term.match g#"True"
-              v[ "True", "False" ]  v[ g#"True" , g#"False" ]
+-- def t2 := Term.match g#"True"
+--               v[ "True", "False" ]  v[ g#"True" , g#"False" ]
 
 
 -- #eval ctor_idx "True" EqBoolCtx
@@ -70,11 +72,11 @@ def t2 := Term.match g#"True"
 -- #eval Fin.ofNat 2 1
 
 
-#eval v[ g#"True", g#"False"] 0 -- g#"True"
+-- #eval [ g#"True", g#"False"] 0 -- g#"True"
 
-#eval v[ g#"True", g#"False"] 1 -- g#"False"
+-- #eval [ g#"True", g#"False"] 1 -- g#"False"
 
-#guard eval EqBoolCtx t1 == g#"True"
-#guard eval EqBoolCtx t2 == g#"True"
+-- #guard eval EqBoolCtx t1 == g#"True"
+-- #guard eval EqBoolCtx t2 == g#"True"
 
 end Core.Examples

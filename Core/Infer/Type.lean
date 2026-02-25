@@ -77,51 +77,6 @@ def Term.valid_inst_type (G : List Global)(A : Term) : Option Unit := do
   let (x, _) <- A.spine
   if is_instty G x then return () else none
 
-def Ty.is_all_some : Ty -> Option (Kind × Ty)
-| .all K B => return (K, B)
-| _ => none
-
-def Ty.is_all_some_sound {T : Ty} :
-  T.is_all_some = .some (K, T1) ->
-  T = ∀[K] T1 := by
-intro h
-cases T <;> simp [Ty.is_all_some] at *
-assumption
-
-
-def Ty.is_arrow_some : Ty -> Option (Ty × Ty)
-| .arrow A B => return (A, B)
-| _ => none
-
-def Ty.is_arrow_some_sound {T : Ty} :
-  T.is_arrow_some = .some (T1, T2) ->
-  T = T1 -:> T2 := by
-intro h
-cases T <;> simp [Ty.is_arrow_some] at *
-assumption
-
-def Ty.is_eq_some : Ty -> Option (Kind × Ty × Ty)
-| .eq K A B => return (K, A, B)
-| _ => none
-
-def Ty.is_eq_some_sound {T : Ty} :
-  T.is_eq_some = some (K, A, B) ->
-  T = (A ~[K]~ B) := by
-intro h;
-cases T <;> simp [Ty.is_eq_some] at *
-assumption
-
-def Ty.is_app_some : Ty -> Option (Ty × Ty)
-| .app A B => return (A, B)
-| _ => none
-
-def Ty.is_app_some_sound {T : Ty} :
-  T.is_app_some = some (A, B) ->
-  T = (A • B) := by
-intro h;
-cases T <;> simp [Ty.is_app_some] at *
-assumption
-
 
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x => do

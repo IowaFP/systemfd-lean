@@ -10,7 +10,7 @@ def Surface.Global.translate (gs : Core.GlobalEnv) : Global -> Option Core.Globa
 | .data (n := n) x K ctors => do
   let K' := K.translate
   let octors' : Vect n (Option (String × Core.Ty)) :=  λ i =>
-    do let ty' : Core.Ty <- (ctors i).2.translate ((Core.Global.data x K' Vect.nil) :: gs) []
+    do let ty' : Core.Ty <- (ctors i).2.translate
        return ((ctors i).1 , ty')
   let ctors' <- octors'.seq
   return Core.Global.data x K' ctors'

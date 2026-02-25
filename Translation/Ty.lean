@@ -4,6 +4,9 @@ import Core.Global
 import Core.Typing
 import Surface.Typing
 
+import LeanSubst
+open LeanSubst
+
 @[simp]
 def Surface.Kind.translate : Surface.Kind -> Core.Kind
 | .base .closed => .base .closed
@@ -13,20 +16,29 @@ def Surface.Kind.translate : Surface.Kind -> Core.Kind
 def Surface.KindEnv.translate : Surface.KindEnv -> Core.KindEnv := List.map (·.translate)
 
 @[simp]
-def Surface.Ty.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) : Surface.Ty -> Option Core.Ty
-| .var x => return .var x
-| .global x => return .global x
-| .arrow a b => do
-  let a' <-  a.translate G Δ
-  let b' <- b.translate G Δ
-  return .arrow  a' b'
-| .app a b => do
-  let a' <- a.translate G Δ
-  let b' <- b.translate G Δ
-  return .app a' b'
-| .all k p => do
-  let k' := k.translate
-  let p' <- p.translate G (k' :: Δ)
-  return .all k' p'
+def Surface.Ty.translate: Surface.Ty -> Core.Ty
+| .var x => .var x
+| .global x => .global x
+| .arrow a b => .arrow (a.translate) (b.translate)
+| .app a b => .app (a.translate) (b.translate)
+| .all k p =>
+  .all k.translate (p.translate)
 
-def Surface.Ty.translateEnv (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : TyEnv) : Option (List Core.Ty) := Γ.mapM (·.translate G Δ)
+@[simp]
+def Surface.TyEnv.translate (Γ : TyEnv) : (List Core.Ty) :=
+  Γ.map (·.translate)
+
+@[simp]
+def Subst.Surface.Ty.translate (σ : Subst Surface.Ty) : Subst Core.Ty :=
+  (λ x => match x with
+  | .re x => .re x
+  | .su T => .su (T.translate)) <$> σ
+
+
+theorem Subst.Surface.Ty.translate_compose {σ : Subst Surface.Ty} :
+  Subst.Surface.Ty.translate σ.lift =
+    re 0 :: Subst.Surface.Ty.translate σ ∘ +1 := by
+funext; simp
+case _ x =>
+induction x <;> simp at *
+case _ x ih => sorry

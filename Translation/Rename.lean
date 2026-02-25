@@ -1,63 +1,54 @@
 import Surface.Term
 import Core.Term
 
-import Translation.Term
+-- import Translation.Term
+import Translation.Ty
 import Surface.Metatheory.Rename
 import Core.Metatheory.Rename
+import Core.Metatheory.Substitution
+
 open LeanSubst
 
-theorem Translation.Ty.Rename (r : Ren) {Δ Δr : Core.KindEnv} {T : Surface.Ty}{T' : Core.Ty}:
-  (∀ i, Δ[i]? = Δr[r i]?) ->
-  T.translate G' Δ = some T' ->
-  (T[r]).translate G' Δr = some (T'[r]) := by
-intro h h1
-fun_induction Surface.Ty.translate generalizing T' Δr r <;> simp at *
-case _ Δ x =>
-  replace h := h x
-  simp at h; subst h1;
-  -- coercion bs
-  sorry
-case _ => subst h1; simp
-case _ ih1 ih2 =>
-  rw[Option.bind_eq_some_iff] at h1
-  rcases h1 with ⟨A', h1, h2⟩
-  rw[Option.bind_eq_some_iff] at h2
-  rcases h2 with ⟨B', h2, h3⟩
-  cases h3
-  rw[Option.bind_eq_some_iff]; exists A'[r]
-  apply And.intro
-  · apply @ih1 r _ _ h h1
-  · rw[Option.bind_eq_some_iff]; exists B'[r]
-    apply And.intro
-    · apply @ih2 r _ _ h h2
-    · simp
-case _ ih1 ih2 =>
-  rw[Option.bind_eq_some_iff] at h1
-  rcases h1 with ⟨A', h1, h2⟩
-  rw[Option.bind_eq_some_iff] at h2
-  rcases h2 with ⟨B', h2, h3⟩
-  cases h3
-  rw[Option.bind_eq_some_iff];  exists A'[r]
-  apply And.intro
-  · apply @ih1 r _ _ h h1
-  · rw[Option.bind_eq_some_iff]; exists B'[r]
-    apply And.intro
-    · apply @ih2 r _ _ h h2
-    · simp
-case _ Δ K P K' ih =>
-  rw[Option.bind_eq_some_iff] at h1
-  rcases h1 with ⟨P', h1, h2⟩
-  cases h2
-  replace h := Core.Kinding.rename_lift (Δ := Δ) (Δr := Δr) (K := K') r h
-  replace ih := ih (Δr := K'::Δr) (T' := P') (r := r.lift) h h1
-  simp at *
-  rw[Option.bind_eq_some_iff]
-  exists P'[re 0 :: r ∘ +1]
 
+theorem Translation.Ty.Rename (r : Ren) {T : Surface.Ty}{T' : Core.Ty} :
+  T.translate = T' ->
+  (T[r]).translate = (T'[r]) := by
+intro h1
+fun_induction Surface.Ty.translate generalizing T' r <;> (subst h1 ; simp at *)
+case _ => simp[Ren.to]
+all_goals try (
+case _ ih1 ih2 =>
+  apply And.intro
+  · apply ih1 r
+  · apply ih2 r
+)
+case _ k p ih =>
+  replace ih := @ih r.lift
+  simp at ih; apply ih
 
 theorem Translation.Ty.Weaken {T : Surface.Ty} {T' : Core.Ty} :
-  T.translate G' Δ' = some T' ->
-  (T[+1]).translate G' (K' :: Δ') = some (T'[+1]) := by
-intro h
-apply Translation.Ty.Rename (r := (· + 1)) (Δ := Δ') (Δr := K' :: Δ') _ h
-intro i; simp [Core.KindEnv, Core.inst_getElem?_KindEnv]
+  T.translate = T' ->
+  (T[+1]).translate = (T'[+1]) := by
+intro h; apply Translation.Ty.Rename (λ x => x + 1) h
+
+
+theorem Translation.Ty.Subst (σ : Subst Surface.Ty)
+  {T : Surface.Ty} {T' : Core.Ty} :
+  T.translate = T' ->
+  (T[σ]).translate = T'[Subst.Surface.Ty.translate σ] := by
+intro h1
+fun_induction Surface.Ty.translate generalizing T' σ <;> (subst h1; simp at *)
+case _ x =>
+  generalize zdef : σ x = z at *
+  cases z <;> simp at *
+all_goals try (
+case _ ih1 ih2 =>
+  replace ih1 := ih1 σ
+  replace ih2 := ih2 σ
+  apply And.intro ih1 ih2
+)
+case _ k p ih =>
+  replace ih := ih σ.lift
+  have lem := Subst.Surface.Ty.translate_compose (σ := σ)
+  simp at lem ih
+  rw[ih, lem]

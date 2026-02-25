@@ -57,20 +57,21 @@ case global =>
     apply lookup_defn_type_sound (Γ := Γ) (Δ := Δ) wf lem
 case mtch =>
   cases h
-  case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 _ _ _ _ x _ _ i patshapes' patshapes h6 h7 h8 h9 h10 =>
+  case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 _ _ _ _ x _ _ i patshapes' patshapes cns h6 h7 h8 h9 h10 h11 =>
     apply preservation_prefix_match wf
     apply (h2 i)
     apply j1
     apply h4 i
     apply h3 i
     apply h5 i
-    apply (Eq.symm h8)
+    apply (Eq.symm h9)
     · have lem2 := Vect.seq_sound h6
       replace lem2 := lem2 i
-      have lem4 : (pats i).spine  = patshapes' i := by rw[h10]
+      have lem4 : (pats i).spine = patshapes' i := by rw[h11]
       rw[lem4]; rw[lem2]
-    · have lem3 := Vect.indexOf_correct (v := Vect.map (λ x => x.1) patshapes) (i := i) (x := x) h7;
-      simp [Vect.map] at lem3; rw[lem3]; apply (Eq.symm h9)
+    · have lem3 := Vect.indexOf_correct (v := cns) (i := i) (x := x) h8;
+      have lem4 : (patshapes i).fst = cns i := by rw[h7]
+      rw[lem4, lem3]; apply (Eq.symm h10)
 
   case data_match_default => assumption
   case match_congr ih _ _ _ _ h =>

@@ -356,8 +356,11 @@ inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
   GetSpineTrace sp tr ->
   GetSpineTrace (.type A :: sp) (.type :: tr)
 
+theorem Term.Determined.var : (#x).Determined := by
+unfold Term.Determined; apply VariantMissing.var
 
-
+theorem Term.Determined.global : (g#x).Determined := by
+unfold Term.Determined; apply VariantMissing.global
 
 theorem Term.Determined.lam : t.Determined -> (λ[A] t).Determined := by
 intro h; unfold Term.Determined; apply VariantMissing.lam; apply h

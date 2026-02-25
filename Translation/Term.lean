@@ -15,7 +15,7 @@ def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
   let t' <- t.translate G (K' :: Δ) (Γ.map (·[+1]))
   return (Λ[K'] t')
 | .lam A t => do
-  let A' <- A.translate G Δ
+  let A' <- A.translate
   let t' <- t.translate G Δ (A' :: Γ)
   return λ[A'] t'
 | .app t1 t2 => do
@@ -24,7 +24,7 @@ def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
   return (t1' • t2')
 | .appt t1 t2 => do
   let t1' <- t1.translate G Δ Γ
-  let t2' <- t2.translate G Δ
+  let t2' <- t2.translate
   return (t1' •[ t2' ])
 | .match (n := n) s ps cs d => do
   let s' <- s.translate G Δ Γ

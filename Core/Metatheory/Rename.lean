@@ -142,8 +142,8 @@ theorem Kinding.strong_rename {Δ Δr : List Kind} {T : Ty} (r : Ren)  :
 intro j h
 induction j generalizing Δr r <;> simp at *
 case var x K j =>
-  apply Kinding.var
   replace h := h x (by apply Ty.FV.var)
+  apply Kinding.var
   rw[<-j]; assumption
 case global => apply Kinding.global; assumption
 case arrow A _ B _ _ _ ih1 ih2 =>

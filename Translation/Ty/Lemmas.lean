@@ -3,6 +3,8 @@ import Translation.Global
 
 import Core.Typing
 import Surface.Typing
+import Surface.Metatheory.Inversion
+import Translation.Rename
 
 open LeanSubst
 
@@ -17,7 +19,7 @@ unfold Surface.KindEnv.translate at h1
 have lem := List.map_eq_iff.1 h1 i; simp [Surface.inst_getElem?_KindEnv] at *; rw[h2] at lem; simp at lem
 assumption
 
-theorem Translation.Kind.sound_base {b : Surface.BaseKind}:
+theorem Translation.Kind.sound_base (b : Surface.BaseKind):
   ∃ b', (Surface.Kind.base b).translate = .base b' := by
 cases b <;> simp at *
 all_goals (subst K'; simp)
@@ -25,7 +27,7 @@ all_goals (subst K'; simp)
 theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
   ∃ b1' b2', (Surface.Kind.arrow b1 b2).translate = .arrow b1' b2' := by simp
 
-theorem Translation.Global.lookup_kind_sound :
+theorem Translation.GlobalEnv.lookup_kind_sound :
   G.translate = some G' ->
   Surface.lookup_kind G x = some K ->
   Core.lookup_kind G' x = some K'  := by
@@ -40,7 +42,7 @@ theorem Translation.Ty.sound :
   Δ.translate = Δ'  ->
 
   ∃ K' T', K.translate = K' ∧
-  T.translate G' Δ' = some T' ∧
+  T.translate = T' ∧
   G'&Δ' ⊢ T' : K' := by
 intro wf j;
 rcases j with ⟨j, h1, h2⟩
@@ -50,81 +52,58 @@ case var Δ i K j =>
   rcases j2 with ⟨K', j', t⟩; rw[<-t] at j'
   constructor; assumption
 case global x K Δ h3 =>
-  have lem := Translation.Global.lookup_kind_sound (K' := K.translate) h1 h3
+  have lem := Translation.GlobalEnv.lookup_kind_sound (K' := K.translate) h1 h3
   apply Core.Kinding.global
   apply lem
 case all K Δ P j ih =>
-  rcases ih with ⟨P', t, j⟩
-  exists (∀[K.translate] P')
-  rw[Option.bind_eq_some_iff]
-  constructor
-  exists P';
-  constructor;
-  · simp [Surface.KindEnv.translate] at t h2; rw[h2] at t; assumption
-  · simp
-  constructor; simp [Surface.KindEnv.translate] at j; subst h2; simp [Surface.KindEnv.translate]
-  apply j
+  apply Core.Kinding.all
+  rw[Surface.KindEnv.translate, List.map_cons] at ih
+  subst Δ'; apply ih
+
 case arrow b1 _ b2 _ _ ih1 ih2 =>
-  rcases ih1 with ⟨A', t1, j1⟩
-  rcases ih2 with ⟨B', t2, j2⟩
-  exists (A' -:> B'); subst h2
-  rw[Option.bind_eq_some_iff]
-  constructor
-  · exists A'; constructor
-    · assumption
-    · rw[Option.bind_eq_some_iff]; exists B'
-  · have lem1 := Translation.Kind.sound_base (b := b1)
-    rcases lem1 with ⟨b1', lem1⟩
-    have lem2 := Translation.Kind.sound_base (b := b2)
-    rcases lem2 with ⟨b2', lem2⟩
-    rw[lem1] at j1; rw[lem2] at j2
-    apply Core.Kinding.arrow; assumption; assumption
+  subst h2
+  replace b1 := Translation.Kind.sound_base b1
+  rcases b1 with ⟨b1k, b1⟩
+  rw[b1] at ih1
+  replace b2 := Translation.Kind.sound_base b2
+  rcases b2 with ⟨b2k, b2⟩
+  rw[b2] at ih2
+  apply Core.Kinding.arrow ih1 ih2
+
 case app ih1 ih2 =>
-  rcases ih1 with ⟨f', t1, j1⟩
-  rcases ih2 with ⟨a', t2, j2⟩
-  exists (f' • a'); subst h2
-  rw[Option.bind_eq_some_iff]
-  constructor
-  · exists f'; constructor
-    · assumption
-    · rw[Option.bind_eq_some_iff]; exists a'
-  · apply Core.Kinding.app; assumption; assumption
+  subst h2; apply Core.Kinding.app ih1 ih2
 
+theorem Translation.Ty.beta {a P: Surface.Ty}:
+  a.translate = a' ->
+  P.translate = P' ->
 
-theorem Translation.Ty.beta :
-  ⊢s G ->
-  G&Δ ⊢s a : K ->
-  G&(K::Δ) ⊢s P : κ ->
-
-  G.translate = some G' ->
-  Δ.translate = Δ'  ->
-  K.translate = K' ->
-
-  a.translate G' Δ' = some a' ->
-  P.translate G' (K'::Δ') = some P' ->
-
-  (P[su a :: +0 :_]).translate G' Δ' = some (P'[su a' :: +0 :_]) := by sorry
-
+  (P[su a :: +0 :_]).translate = (P'[su a' :: +0 :_]) := by
+intro h1 h2
+generalize σdef : ((su a :: +0 :_)) = σ at *
+generalize σ'def : ((su a' :: +0 :_)) = σ' at *
+have σe : σ' = Subst.Surface.Ty.translate σ := by
+  funext; case _ x =>
+  cases x <;> simp at *
+  rw[<-σ'def]; simp; rw[<-σdef]; simp; apply Eq.symm h1
+  rw[<-σ'def]; rw[<-σdef]; simp
+rw[σe]
+apply Translation.Ty.Subst σ h2
 
 theorem Translation.Ty.Spine
   {t : Surface.Ty} {t' : Core.Ty} :
   t.spine = some (x, sp) ->
-  t.translate G' Δ' = some t' ->
+  t.translate = t' ->
   ∃ sp', t'.spine = .some (x, sp') := by
 intro h1 h5
 induction t using Surface.Ty.spine.induct generalizing x sp t' <;> simp [Surface.Ty.spine] at *
 case _ => exists []; rw[<-h5]; cases h1.1; cases h1.2; simp [Core.Ty.spine]
-case _ ih =>
-  rw[Option.bind_eq_some_iff] at h5;
-  rcases h5 with ⟨f', h5, h6⟩
-  rw[Option.bind_eq_some_iff] at h6
-  rcases h6 with ⟨a', h7, h8⟩
-  cases h8
+case _ f a ih =>
   rw[Option.bind_eq_some_iff] at h1
-  rcases h1 with ⟨sp', h1, h8⟩
+  rcases h1 with ⟨fsf, h1, h8⟩
   cases h8
-  replace ih := @ih sp'.1 sp'.2 f' h1 h5
-  rcases ih with ⟨sp'', ih⟩
-  simp [Core.Ty.spine]
-  exists (sp'' ++ [a']); rw[Option.bind_eq_some_iff]
-  exists (sp'.fst , sp'')
+  generalize fdef : f.translate = f' at *
+  generalize adef : a.translate = a' at *
+  replace ih := @ih fsf.1 fsf.2 h1
+  rcases ih with ⟨f'sp, ih⟩
+  exists (f'sp ++ [a']); subst h5
+  simp; apply ih
