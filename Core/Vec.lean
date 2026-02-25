@@ -314,23 +314,29 @@ def Vect.seq (vs : Vect n (Option Q)) : Option (Vect n Q) :=
 theorem Vect.seq_sound {vs : Vect n (Option Q)} {vs' : Vect n Q}:
   vs.seq = some vs' ->
   ∀ i, (vs i) = some (vs' i) := by
-intro h i
+intro h i; sorry
+-- induction vs using Vect.induction
+-- case _ => sorry
+-- case _ => sorry
+
+
+
 -- simp [Vect.seq, Vect.seq_lemma] at h
-match n with
-| 0 => simp at *; cases i; omega
-| n + 1 =>
-  apply @Fin.inductionOn n i
-  case _ =>
-    simp [Vect.seq, Vect.seq_lemma] at h; split at h <;> simp at *
-    case _ x h' heq =>
-      cases x
-      case _ =>
-        sorry
-      case _ => sorry
-  case _ =>
-    intro j h; simp at *
-    simp [Fin.succ, Fin.castSucc, Fin.castAdd, Fin.castLE] at *;
-    sorry
+-- match n with
+-- | 0 => simp at *; cases i; omega
+-- | n + 1 =>
+--   apply @Fin.inductionOn n i
+--   case _ =>
+--     simp [Vect.seq, Vect.seq_lemma] at h; split at h <;> simp at *
+--     case _ x h' heq =>
+--       cases x
+--       case _ =>
+--         sorry
+--       case _ => sorry
+--   case _ =>
+--     intro j h; simp at *
+--     simp [Fin.succ, Fin.castSucc, Fin.castAdd, Fin.castLE] at *;
+--     sorry
 
 -- Returns the 1st element if all the elements are equal
 def Vect.get_elem_if_eq [BEq Q] (vs : Vect n Q) : Option Q :=
@@ -347,12 +353,6 @@ theorem Vect.get_elem_if_eq_sound [BEq Q] {vs : Vect n Q} {t : Q} :
 intro h i
 induction n <;> simp [Vect.get_elem_if_eq, Vect.uncons] at *
 case _ n ih => sorry
-  -- replace ih := @ih vs.drop
-  -- split at ih <;> simp at *
-  -- sorry
-  -- revert i; rcases h with ⟨h1, h2⟩; sorry
-
-
 
 def Vect.elems_eq_to [BEq Q] (e : Q) : {n : Nat} -> (vs : Vect n Q) -> Bool
 | 0, _ => true
@@ -390,8 +390,3 @@ theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
     rcases h with ⟨q', h⟩
     have lem := Vect.seq_sound T'def
     replace lem := lem i; simp at lem; assumption
-
-
-theorem quantifier_flip2 {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
-  (∀ i, ∃ T, f (v i) = some T) ->
-  ∃ (T' : Vect n Q'), ∀ i, f (v i) = some (T' i) := by sorry

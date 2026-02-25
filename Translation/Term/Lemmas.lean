@@ -89,15 +89,6 @@ rw[Surface.KindEnv.translate, List.map_cons]
 rw[Surface.KindEnv.translate] at h1
 simp [h1, h2]
 
--- theorem Translation.TyEnv.kindenv_lift_sound
---   {Γ : Surface.TyEnv} :
---   Surface.TyEnv.translate (Γ.map (·[+1])) = Γ.translate.map (·[+1])
---    := by sorry
--- induction Γ <;> simp at *
--- case _ hd tl ih =>
---   apply Translation.Ty.Weaken rfl
---   apply ih
-
 theorem Translation.TyEnv.lift_sound
   {G : Surface.GlobalEnv}
   {Δ : Surface.KindEnv}
@@ -149,8 +140,6 @@ apply And.intro
 
 
 theorem Translation.StableTypeMatch.sound :
-  -- ⊢s G ->
-  -- G.translate = some G' ->
   Δ.translate = Δ' ->
   T.translate = T' ->
   R.translate = R' ->
@@ -410,10 +399,34 @@ case mtch n Δ Γ s R c T CTy PTy pats cs sj vhvR cj vhvps patsj stmPTys csj ptm
     · subst Δ'; subst Γ'; assumption
     · rw[Option.bind_eq_some_iff]; exists ps'
       apply And.intro
-      · sorry -- show seq completeness?
+      · unfold Vect.seq
+        generalize zdef : Vect.seq_lemma (fun i => Surface.Term.translate G' Δ' Γ' (pats i)) = z at *
+        cases z <;> simp at *
+        case _ z =>
+          rcases z with ⟨x, z⟩
+          replace ih3i := ih3i x
+          subst Δ'; subst Γ'
+          rw[ih3i] at z; simp at z
+        case _ z =>
+          funext; case _ x =>
+          replace ih3i := ih3i x
+          subst Δ'; subst Γ';
+          simp at *; simp only [ih3i]; simp
       · rw[Option.bind_eq_some_iff]; exists cs'
         apply And.intro
-        · sorry
+        · unfold Vect.seq
+          generalize zdef : Vect.seq_lemma (fun i => Surface.Term.translate G' Δ' Γ' (cs i)) = z at *
+          cases z <;> simp at *
+          case _ z =>
+            rcases z with ⟨x, z⟩
+            replace ih4i := ih4i x
+            subst Δ'; subst Γ'
+            rw[ih4i] at z; simp at z
+          case _ z =>
+            funext; case _ x =>
+            replace ih4i := ih4i x
+            subst Δ'; subst Γ';
+            simp only [ih4i]; simp
         · rw[Option.bind_eq_some_iff]; exists d'
           apply And.intro
           · subst Δ'; subst Γ'; assumption
