@@ -13,6 +13,8 @@ def Surface.Kind.translate : Surface.Kind -> Core.Kind
 | .base .open => .base .open
 | .arrow k1 k2 => .arrow (translate k1) (translate k2)
 
+notation "⟦" K "⟧" => Surface.Kind.translate K
+
 def Surface.KindEnv.translate : Surface.KindEnv -> Core.KindEnv := List.map (·.translate)
 
 @[simp]
@@ -23,6 +25,8 @@ def Surface.Ty.translate: Surface.Ty -> Core.Ty
 | .app a b => .app (a.translate) (b.translate)
 | .all k p =>
   .all k.translate (p.translate)
+
+notation "⟦" A "⟧" => Surface.Ty.translate A
 
 @[simp]
 def Surface.TyEnv.translate (Γ : TyEnv) : (List Core.Ty) :=

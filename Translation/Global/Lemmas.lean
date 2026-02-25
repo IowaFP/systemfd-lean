@@ -4,15 +4,30 @@ import Core.Global
 import Surface.Typing
 import Core.Typing
 
+theorem Translation.Ty.valid_ctor_ty_sound {G : Core.GlobalEnv} :
+  Core.is_valid_ctor_ty G T == some () -> ∃ x, Core.ValidCtor x T := by
+intro h
+fun_induction Core.is_valid_ctor_ty <;> simp at *
+case _ ih => replace ih := ih h; rcases ih with ⟨x, ih⟩; exists x; apply Core.ValidCtor.all ih
+case _ ih => replace ih := ih h; rcases ih with ⟨x, ih⟩; exists x; apply Core.ValidCtor.arrow ih
+case _ =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨tnf, h1, h2⟩; exists tnf.1; simp at h2;
+  apply Core.ValidCtor.base; apply h1
+
+
 theorem Translation.GlobalWf.sound {G : Surface.GlobalEnv} {g : Surface.Global}:
+  ⊢s G ->
   Surface.GlobalWf G g ->
-  ∃ G' g',
-    G.translate = some G' ∧
+  G.translate = some G' ->
+  ⊢ G' ->
+ ∃ g',
     g.translate G' = some g'  ∧
     Core.GlobalWf G' g' := by
-intro h1; induction g <;> simp at *
+intro wf h1 h2 wfc; induction g <;> simp at *
 cases h1
-
+case _ n x K ctors cns cnsu lk cnsdef ctor_trans =>
+let ctors' : Vect n (String × Core.Ty) := sorry --Vect.seq
+exists Core.Global.data n x ⟦K⟧ ctors'
 sorry
 
 theorem Translation.ListGlobalWf.sound_isSome :

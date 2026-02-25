@@ -4,6 +4,7 @@ import Surface.Ty
 import Surface.Term
 
 import Translation.Ty
+open LeanSubst
 
 @[simp, grind]
 def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
@@ -49,7 +50,6 @@ def Surface.Term.type_directed_translate (G : Core.GlobalEnv) (Δ : Core.KindEnv
   let t' <- t.type_directed_translate G Δ (A.translate :: Γ) B'
   if A' == A.translate
   then return λ[A.translate] t' else none
-
 -- Elimination forms are a little annoying
 | .match (n := n) s ps cs d => do -- also maybe store the type of the scrutinee to eliminate
   let s' <- s.translate G Δ Γ
@@ -59,28 +59,26 @@ def Surface.Term.type_directed_translate (G : Core.GlobalEnv) (Δ : Core.KindEnv
   let cs' <- ocs'.seq
   let d' <- d.type_directed_translate G Δ Γ τ
   return match! n s' ps' cs' d'
--- | .app t1 t2 => do
---   let t1' <- t1.translate G Δ Γ
---   let t2' <- t2.translate G Δ Γ
---   return (t1' • t2')
--- | .appt t1 t2 => do
---   let t1' <- t1.translate G Δ Γ
---   let t2' <- t2.translate
---   return (t1' •[ t2' ])
 | t => do
   let (x, sp) <- t.spine
   let hτ <- Core.lookup_type G x
-  let (argτs, r) := hτ.telescope
-  let app <- List.foldlM (λ (hτ, acct, τ) x =>
-               match τ, sp with
-               | .nil, _ => if sp.isEmpty then return (hτ, acct, τ) else none -- cannot apply more arguments
-               | .kind K te, (.cons (.type t) tl) => do
-                 return (hτ, acct •[t.translate], te)
-               | .ty T te, (.cons (.term t) tl) =>  do
-                 let t' <- t.type_directed_translate G Δ Γ T
-                 return (hτ, acct • t', te)
+  let (t', r) <- List.foldlM (λ (acct, τ) x =>
+               match argh : τ, x with
+               | .all K τ, .type A =>
+                 -- K better be kind of A, but we can't do that yet.
+                 let A' := A.translate
+                 let σ : Subst Core.Ty := (su A')::+0
+                 return (acct •[ A' ], τ[σ])
+               | .arrow A B, .term t => do
+                 let t' <- t.type_directed_translate G Δ Γ A
+                 return (acct • t', B)
                | _ , _ => none)
-               (hτ, g#x, argτs) sp
-  if r == τ then return app.2.1 else none
+               (g#x, hτ) sp
+  if r == τ then return t' else none
 termination_by t => t.size
-decreasing_by (repeat sorry)
+decreasing_by (
+all_goals try (simp at *)
+· omega
+· sorry
+
+)
