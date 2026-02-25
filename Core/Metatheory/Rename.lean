@@ -6,7 +6,6 @@ import Core.Util
 import Core.Metatheory.FreeVars
 
 open LeanSubst
-open Vect
 
 namespace Core
 
@@ -527,7 +526,8 @@ theorem Typing.weaken_list Γ' :
 := by
   intro wf j; apply rename (Γ'++Γ) (· + Γ'.length) wf _ j
   intro i A h; simp
-  sorry
+  rw [List.getElem?_append_right]; simp; exact h
+  simp
 
 theorem Typing.weaken_type_list Δ' :
   ⊢ G ->
@@ -536,69 +536,7 @@ theorem Typing.weaken_type_list Δ' :
 := by
   intro wf j; apply rename_type (Δ'++Δ) (· + Δ'.length) wf _ j
   intro i; simp
-  sorry
-
-theorem Typing.closed_type :
-  G&[],Γ ⊢ t : A ->
-  ∀ (σ : Subst Ty), Γ.map (·[σ]) = Γ ∧ t[σ:Ty] = t ∧ A[σ:_] = A
-:= by
-  sorry
-
-theorem Typing.closed :
-  G&Δ,[] ⊢ t : A ->
-  ∀ (σ : Subst Term), t[σ:_] = t
-:= by
-  sorry
-
-theorem Typing.weaken_type_closed Δ :
-  ⊢ G ->
-  G&[],Γ ⊢ t : A ->
-  G&Δ,Γ ⊢ t : A
-:= by
-  intro wf j
-  have lem1 := weaken_type_list Δ wf j; simp at lem1
-  obtain ⟨q1, q2, q3⟩ := closed_type j (Ren.to (· + Δ.length))
-  rw [q1, q2, q3] at lem1
-  exact lem1
-
-theorem Typing.weaken_closed Γ :
-  ⊢ G ->
-  G&Δ,[] ⊢ t : A ->
-  G&Δ,Γ ⊢ t : A
-:= by
-  intro wf j
-  have lem1 := weaken_list Γ wf j; simp at lem1
-  have lem2 := closed j (Ren.to (· + Γ.length))
-  rw [lem2] at lem1
-  exact lem1
-
-theorem Kinding.closed_lifting_lemma : ∀ Δ', ⊢ G ->  G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K) := by
-intro Δ' wf j
-apply @List.reverse_ind (T := Kind)
-  (motive := λ Δ' => ∀ G Δ T K,  ⊢ G -> G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K))
-  Δ'
-  (by intro G Δ T K wf j;
-      have lem : (Ren.to (λ x => x)) = Subst.id (T := Ty) := by rfl
-      simp; rw[lem]; simp; assumption)
-  (by intro K' Δ' ih G Δ T K wf j
-      replace j := Kinding.weaken K' j
-      replace ih := ih G ([K'] ++ Δ) T[+1] K wf j
-      simp at *
-      have lem : ((+1 ∘ Ren.to (T := Ty) (fun x => x + Δ'.length))) = Ren.to (T := Ty) (fun x => x + Δ'.length + 1) := by
-         clear ih j wf;
-         have e := Ren.add_compose_distributes (T := Ty) (y := Δ'.length) (z := 1); rw[e]; simp;
-         replace e := Ren.add_one_commutes (T := Ty) (y := Δ'.length); simp at e; rw[e]
-      rw[lem] at ih; apply ih)
-  G Δ T K wf j
-
-theorem Kinding.closed_arbitrary_weakening : ∀ Δ',  ⊢ G ->  G&[] ⊢ T : K ->  G&Δ' ⊢ T : K := by
-intro Δ' wf j
-have lem1 := Kinding.closed j
-have lem2 := Kinding.closed_lifting_lemma Δ' wf j
-simp at *
-replace lem1 := lem1 (Ren.to (λ x => x + Δ'.length))
-rw[lem1] at lem2
-apply lem2
+  rw [List.getElem?_append_right]; simp; simp
 
 theorem Kinding.strengthening :
   G&(K' :: Δ) ⊢ T[+1] : K ->

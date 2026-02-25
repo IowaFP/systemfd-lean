@@ -2,10 +2,11 @@ import LeanSubst
 import Core.Term
 import Core.Reduction
 import Core.Typing
+import Core.Global
 
 import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
-import Core.Global
+import Core.Metatheory.Closed
 
 namespace Core
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by

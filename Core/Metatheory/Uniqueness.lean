@@ -19,7 +19,6 @@ cases j1; cases j2
 case _ j1 _ _ j2 =>
 rw[j1] at j2; injection j2
 
-
 theorem ValidTyHeadVariable.no_valid_head_with_all :
   ¬ ValidTyHeadVariable (∀[A]B) test
 := by
@@ -87,8 +86,6 @@ case app jf ja ih1 ih2  =>
   replace ih2 := ih2 j1; cases ih2
   replace ih1 := ih1 j2; cases ih1; rfl
 
-
-
 theorem PrefixTypeMatch.uniqueness :
   PrefixTypeMatch Δ U V A ->
   PrefixTypeMatch Δ U V B ->
@@ -111,7 +108,6 @@ case arrow ih1 ih2 =>
     cases j2
     case _ h => simp [Ty.spine] at h
     case _ h1 h2 => apply ih2 h1 h2
-
 case all ih =>
   cases j1
   case _ =>
