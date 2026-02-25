@@ -57,4 +57,18 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 instance instRepr_Term : Repr Term where
   reprPrec a p := Term.repr p a
 
+@[simp]
+def Term.size : Term -> Nat
+| var _ => 0
+| global _ => 0
+| app t1 t2 => t1.size + t2.size + 1
+| appt t1 _ => size t1 + 1
+| lamt _ t => size t + 1
+| lam _ t => size t + 1
+| «match» t1 t2 t3 t4 =>
+  let t2' : Vect _ _ := size <$> t2
+  let t3' : Vect _ _ := size <$> t3
+  size t1 + List.sum t2' + List.sum t3' + size t4 + 1
+
+
 end Surface
