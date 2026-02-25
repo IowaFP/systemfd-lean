@@ -68,7 +68,7 @@ theorem GlobalWf.closed_ctors {v : Vect n (Option Entry)} {d : Option Entry} :
 := by
   intro h1 h2 h3
   apply Vect.induction (A := Option Entry)
-    (motive := λ n Q _ =>
+    (motive := λ n Q =>
                (∀ (v : Vect n (Option Entry)),
                (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
                (Option.map Entry.type (Vect.fold d Option.or v)).get! = some T ->

@@ -27,6 +27,7 @@ instance inst_getElem?_KindEnv : GetElem? KindEnv Nat Kind
   getElem? env i := by unfold KindEnv at env; apply env[i]?
 
 def TyEnv.mapM [Monad m] (f : Ty -> m β) (env : TyEnv) := by simp [TyEnv] at env; apply env.mapM f
+def TyEnv.map (f : Ty -> β) (env : TyEnv) := by simp [TyEnv] at env; apply env.map f
 
 def KindEnv.map (f : Kind -> β) (env : KindEnv) := by simp [KindEnv] at env; apply env.map f
 

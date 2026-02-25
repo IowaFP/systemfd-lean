@@ -6,14 +6,14 @@ import Surface.Typing
 import Translation.Ty
 
 @[simp]
-def Surface.Global.translate (gs : Core.GlobalEnv) : Global -> Option Core.Global
+def Surface.Global.translate (_ : Core.GlobalEnv) : Global -> Option Core.Global
 | .data (n := n) x K ctors => do
   let K' := K.translate
   let octors' : Vect n (Option (String × Core.Ty)) :=  λ i =>
     do let ty' : Core.Ty <- (ctors i).2.translate
        return ((ctors i).1 , ty')
   let ctors' <- octors'.seq
-  return Core.Global.data x K' ctors'
+  return Core.Global.data n x K' ctors'
 
 @[simp]
 def Surface.GlobalEnv.translate : Surface.GlobalEnv -> Option (Core.GlobalEnv)

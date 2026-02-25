@@ -330,9 +330,7 @@ match n with
   case _ =>
     intro j h; simp at *
     simp [Fin.succ, Fin.castSucc, Fin.castAdd, Fin.castLE] at *;
-
     sorry
-
 
 -- Returns the 1st element if all the elements are equal
 def Vect.get_elem_if_eq [BEq Q] (vs : Vect n Q) : Option Q :=
@@ -392,3 +390,8 @@ theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
     rcases h with ⟨q', h⟩
     have lem := Vect.seq_sound T'def
     replace lem := lem i; simp at lem; assumption
+
+
+theorem quantifier_flip2 {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
+  (∀ i, ∃ T, f (v i) = some T) ->
+  ∃ (T' : Vect n Q'), ∀ i, f (v i) = some (T' i) := by sorry
