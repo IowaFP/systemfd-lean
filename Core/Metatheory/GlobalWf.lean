@@ -408,6 +408,18 @@ theorem EntryWf.from_lookup_vec2 :
       apply Or.inr; apply And.intro _ ih
       apply h2 0; intro h; cases h
 
+theorem EntryWf.from_lookup_vec3 :
+  (∀ i, v i = none) ->
+  Vect.fold d Option.or v = d
+:= by
+  intro h
+  induction v using Vect.induction
+  case nil => simp
+  case cons hd tl ih =>
+    have lem1 := h 0; simp at lem1
+    have lem2 := λ i => h (Fin.succ i); simp at lem2
+    simp; rw [lem1, ih lem2]; simp
+
 theorem Kinding.global_weaken_ctors :
   (∀ x, (lookup_kind G x).isSome -> lookup_kind G x = lookup_kind G' x) ->
   G&Δ ⊢ T : K ->
@@ -415,15 +427,15 @@ theorem Kinding.global_weaken_ctors :
 := by
   intro h j
   induction j generalizing G'
-  case var => sorry
+  case var j => apply var j
   case global x K Δ j =>
     apply global
     rw [<-h x]; apply j
     rw [j]; simp
-  case arrow => sorry
-  case all => sorry
-  case app => sorry
-  case eq => sorry
+  case arrow ih1 ih2 => apply arrow (ih1 h) (ih2 h)
+  case all ih => apply all (ih h)
+  case app ih1 ih2 => apply app (ih1 h) (ih2 h)
+  case eq ih1 ih2 => apply eq (ih1 h) (ih2 h)
 
 theorem EntryWf.from_lookup :
   ⊢ G ->
@@ -460,8 +472,13 @@ theorem EntryWf.from_lookup :
             unfold is_data at h
             simp [lookup_kind, lookup] at *
             split; simp [Entry.kind]
-
-            sorry
+            split at h; case _ h1 h2 => exfalso; apply h1 h2
+            rw [from_lookup_vec3]; intro i
+            generalize wdef : ctors i = w
+            cases w; case _ w wA =>
+            simp; intro h; subst h
+            obtain ⟨w1, w2, w3, w4⟩ := j2 i x wA wdef
+            rw [w4] at h; simp [Option.isSome] at h
           exact q2; simp [lookup]
           split; case _ e => exfalso; apply e1 e
           case _ e =>
