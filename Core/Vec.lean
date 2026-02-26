@@ -25,21 +25,10 @@ protected def Vect.reprPrec' (repr : T -> Std.Format) : {n : Nat} -> Vect n T ->
 instance [Repr T] : Repr (Vect n T) where
   reprPrec v n := "v[" ++ Vect.reprPrec v n ++ "]"
 
-
 @[simp]
 theorem Vect.nil_singleton (v1 v2 : Vect 0 T) : v1 = v2 := by
   funext; case _ i =>
   cases i; case _ i p => cases p
-
--- @[simp]
--- theorem Vect.uncons_cons_cancel : uncons (h::t) = ⟨h, t⟩ := by
---   simp [uncons];
-
--- @[simp]
--- theorem Vect.head_drop_cancel : ((v 0) :: (drop v)) = v := by
---   funext; case _ i =>
---   cases i; case _ i p =>
---   cases i <;> simp [cons, drop]
 
 @[simp]
 instance : GetElem (Vect n α) (Fin n) α (λ _ _ => True) where
@@ -56,82 +45,6 @@ theorem get_cons_head {t : Vect T n} : (h::t) 0 = h := by simp [Vect.cons]
 theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
   simp [Vect.cons];
 
--- @[simp]
--- theorem get1_0 : v[a] 0 = a := by simp
-
--- @[simp]
--- theorem get2_0 : v[a, b] 0 = a := by simp
-
--- @[simp]
--- theorem get2_1 : v[a, b] 1 = b := by simp [Vect.cons]
-
-def Vect.map (f : A -> B) (v : Vect n A) : Vect n B := λ i => f (v i)
-
--- @[simp]
--- def Vect.map2 (v1 : Vect A n) (v2 : Vect B n) (f : A -> B -> C)  : Vect C n := λ i => f (v1 i) (v2 i)
-
--- @[simp]
--- theorem Vect.map_nil : Vect.map f v[] = v[] := by
---   funext; case _ x => apply Fin.elim0 x
-
--- @[simp]
--- theorem Vect.map_cons : Vect.map f (h::t) = (f h)::Vect.map f t := by
---   funext; case _ i =>
---   cases i using Fin.cases <;> simp [Vect.map]
-
--- @[simp]
--- theorem Vect.eta0 (t : Vect T 0) : t = v[] := by apply Vect.nil_singleton
-
--- @[simp]
--- theorem Vect.eta1 (t : Vect T 1) : v[t 0] = t := by
---   funext; case _ i =>
---   cases i using Fin.cases1; simp
-
--- @[simp]
--- theorem Vect.eta2 (t : Vect T 2) : v[t 0, t 1] = t := by
---   funext; case _ i =>
---   cases i using Fin.cases2 <;> simp
-
--- @[simp]
--- theorem Vect.inv1 {a b : Vect T 1} : a = b <-> a 0 = b 0 := by
---   apply Iff.intro; intro h; subst h; rfl
---   intro h; funext; case _ i =>
---   cases i using Fin.cases1; exact h
-
--- @[simp]
--- theorem Vect.inv2 {a b : Vect T 2} : a = b <-> a 0 = b 0 ∧ a 1 = b 1 := by
---   apply Iff.intro; intro h; subst h; simp
---   intro h; funext; case _ i =>
---   cases i using Fin.cases2 <;> simp [*]
-
--- def Vect.update (i : Fin n) (t : T) (ts : Vect T n) : Vect T n
--- | x => if i = x then t else ts x
-
--- @[simp]
--- theorem Vect.update_eq : update i t ts i = t := by simp [update]
-
--- theorem Vect.update_neq : ∀ j ≠ i, update i t ts j = ts j := by
---   simp [update]; intro j h1 h2
---   exfalso; apply h1; rw [h2]
-
--- theorem Vect.update_stable i t {ts ts' : Vect T n} :
---   (∀ j ≠ i, ts j = ts' j) ->
---   ∀ j ≠ i, ts j = update i t ts' j
--- := by
---   intro h1 j h2; simp [update, *]
---   intro h3; exfalso; apply h2; rw [h3]
-
-theorem Vect.eta {v : Vect (n + 1) T} : v = (((v.head : T):: (v.tail : Vect n T)) : Vect (n + 1) T)  := by
-  -- apply Vect.induction (A := T)
-  --   (motive := λ n Q x => ∀ n', (p : n = n' + 1) ->
-  --       by rw[p] at x; apply
-  --       x = (((x.head : T) :: (x.tail : Vect n T))))
-
-
-  sorry
-
-
-
 def Vect.length (_ : Vect n A) : Nat := n
 
 theorem Vect.length_bound : (v : Vect n A) -> v.length == n := by
@@ -139,52 +52,11 @@ theorem Vect.length_bound : (v : Vect n A) -> v.length == n := by
   unfold Vect.length
   induction n <;> (simp at *)
 
--- def Vect.fold2 (acc : A -> B -> C -> C) (d : C) : {n1 n2 : Nat} -> (n1 = n2) -> Vect A n1 -> Vect B n2 -> C
--- | 0, 0, rfl, _, _ => d
--- | _ + 1, _ + 1, h, va, vb =>
---   let (h1, tl1) := uncons va
---   let (h2, tl2) := uncons vb
---   acc h1 h2 (fold2 acc d (by cases h; rfl) tl1 tl2)
-
 @[simp]
 def Vect.sum : {n : Nat} -> Vect n Nat -> Nat
 | 0, _ => 0
 | _ + 1, ts => ts 0 + ts.drop.sum
 
--- @[simp]
--- def Vect.beq (beq : T -> T -> Bool) : {n1 n2 : Nat} -> (n1 = n2) -> Vect T n1 -> Vect T n2 -> Bool
--- | 0, 0, rfl, _, _ => true
--- | _ + 1, _ + 1, h, v1, v2 =>
---   let (h1, t1) := Vect.uncons v1
---   let (h2, t2) := Vect.uncons v2
---   beq h1 h2 && Vect.beq beq (by cases h; rfl) t1 t2
-
--- instance instBEq_Vect [BEq T] : BEq (Vect T n) where
---   beq := Vect.beq BEq.beq rfl
-
--- def Vect.rfl [BEq T] [ReflBEq T] : ∀ {v : Vect T n}, (v == v) = true := by
--- intro v
--- match n, v with
--- | 0, v => simp [instBEq_Vect] at *
--- | n + 1, v =>
---     simp [instBEq_Vect] at *
---     let (x, v') := v.uncons
---     simp at *; apply @Vect.rfl _ n _ _ v'
-
--- instance instReflBEq_Vect [BEq T] [ReflBEq T] : ReflBEq (Vect T n) where
---   rfl := Vect.rfl
-
-
-
--- @[simp]
--- theorem Vect.subst_cons {t : Vect S n} {σ : Subst T}
---   : ((h::t) i)[σ:T] = (h[σ:_]::map (·[σ:_]) t) i
--- := by
---   induction i using Fin.induction <;> simp at *
---   case _ i ih =>
---     cases n; apply Fin.elim0 i
---     case _ n =>
---     cases i using Fin.cases <;> simp [Vect.map] at *
 
 def Vect.indexOf [BEq Q] (c : Q) {n : Nat} (v :  Vect n Q) : Option (Fin n) :=
 match n with
@@ -225,7 +97,6 @@ match n with
 #guard Vect.indexOf' "z" (["x", "y", "p"] : Vect 3 String) == none
 
 def Vect.HasUniqueElems [BEq Q] (v : Vect n Q) := ∀ i j, i ≠ j -> (v i) ≠ (v j)
-
 
 theorem Vect.indexOf_correct [BEq Q] {v : Vect n Q} :
   v.indexOf x = some i ->
@@ -311,32 +182,30 @@ def Vect.seq (vs : Vect n (Option Q)) : Option (Vect n Q) :=
     rw [e]; simp
   }))
 
+
+#eval Vect.seq ([some 1, some 2] : Vect 2 (Option Nat))
+
 theorem Vect.seq_sound {vs : Vect n (Option Q)} {vs' : Vect n Q}:
   vs.seq = some vs' ->
   ∀ i, (vs i) = some (vs' i) := by
-intro h i; sorry
--- induction vs using Vect.induction
--- case _ => sorry
--- case _ => sorry
-
-
-
--- simp [Vect.seq, Vect.seq_lemma] at h
--- match n with
--- | 0 => simp at *; cases i; omega
--- | n + 1 =>
---   apply @Fin.inductionOn n i
---   case _ =>
---     simp [Vect.seq, Vect.seq_lemma] at h; split at h <;> simp at *
---     case _ x h' heq =>
---       cases x
---       case _ =>
---         sorry
---       case _ => sorry
---   case _ =>
---     intro j h; simp at *
---     simp [Fin.succ, Fin.castSucc, Fin.castAdd, Fin.castLE] at *;
---     sorry
+intro h i;
+apply Vect.induction
+  (A := Option Q)
+  (motive := λ x v => ∀ vs' : Vect x Q, ∀ i, v.seq = some vs' -> v i = some (vs' i))
+  (nil := by intro h'; simp)
+  (cons := by
+    intro x hd tl ih vs' j; simp [seq];
+    generalize zdef : (Vect.cons hd tl).seq_lemma = z;
+    cases z <;> simp at *
+    case inr v =>
+    replace v := v j
+    intro h'
+    have jeq : j = j := by rfl
+    replace h' := congrFun h' j;
+    rcases v with ⟨A, v⟩
+    simp only [v] at h'; simp at h'; rw[<-h']; assumption
+    )
+  vs vs' i h
 
 -- Returns the 1st element if all the elements are equal
 def Vect.get_elem_if_eq [BEq Q] (vs : Vect n Q) : Option Q :=

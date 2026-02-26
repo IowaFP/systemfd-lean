@@ -42,7 +42,8 @@ theorem Translation.GlobalEnv.is_data_sound {G: Surface.GlobalEnv} :
   ⊢s G ->
   G.translate = some G' ->
   Surface.is_data G x ->
-  Core.is_data G' x := by sorry
+  Core.is_data G' x := by
+sorry
 
 
 theorem Translation.Term.Spine
@@ -273,6 +274,7 @@ theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
 
   G.translate = some G' ->
   ⊢ G' ->
+
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
 

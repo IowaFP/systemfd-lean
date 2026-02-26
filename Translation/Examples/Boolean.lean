@@ -2,10 +2,13 @@
 import Surface.Term
 import Surface.Global
 import Translation.Global
+import Translation.Term
+import Core.Vec
 
 
-def Surface.BoolCtx : List Surface.Global := [
-  .data "Bool" `★ v[ ("True", gt`#"Bool") , (("False"), gt`#"Bool") ]
+def Surface.BoolCtx : Surface.GlobalEnv := [
+  .data "One" `★ ([ ("1" , gt`#"One")] : Vect 1 (String × Ty)),
+  .data "Bool" `★ ([ ("True", gt`#"Bool") , (("False"), gt`#"Bool") ] : Vect 2 (String × Ty))
  ]
 
 /-
@@ -17,8 +20,8 @@ not = λ x → case x of
 -/
 def Surface.notTerm : Surface.Term := λˢ[ .global "Bool" ]
   matchˢ! `#0
-         v[ g`#"True", g`#"False" ]
-         v[ g`# "False", g`# "True" ]
+         ([ g`#"True", g`#"False" ] : Vect 2 Term)
+         ([ g`# "False", g`# "True" ])
          g`#"False"
 
 /-  eqBool =
@@ -32,13 +35,16 @@ def Surface.notTerm : Surface.Term := λˢ[ .global "Bool" ]
  -/
 def Surface.eqBool : Term := λˢ[ .global "Bool" ] λˢ[ .global "Bool" ]
   matchˢ! `#1
-   v[ g`#"True", g`#"False" ]
-   v[ matchˢ! `#0 v[ g`#"True", g`#"False" ] v[ g`#"True", g`#"False"] g`#"False",
-      matchˢ! `#0 v[ g`#"True", g`#"False" ] v[ g`# "False", g`# "False"] g`#"False"
-    ]
+   ([ g`#"True", g`#"False" ] : Vect 2 Term)
+   ([ matchˢ! `#0 ([ g`#"True", g`#"False" ] : Vect 2 Term) [ g`#"True", g`#"False"] g`#"False",
+      matchˢ! `#0 ([ g`#"True", g`#"False" ] : Vect 2 Term) [ g`# "False", g`# "False"] g`#"False"
+    ])
     g`#"False"
 
-#eval trans_globals Surface.BoolCtx
-#eval do let gs' <- trans_globals Surface.BoolCtx
-         let t' <- trans_term gs' [] [] Surface.eqBool
+
+-- #eval Surface.BoolCtx.infer
+#eval Surface.GlobalEnv.translate Surface.BoolCtx
+
+#eval do let gs' <- Surface.BoolCtx.translate
+         let t' <- Surface.eqBool.translate gs' [] []
          return t'

@@ -73,6 +73,7 @@ case arrow b1 _ b2 _ _ ih1 ih2 =>
 case app ih1 ih2 =>
   subst h2; apply Core.Kinding.app ih1 ih2
 
+
 theorem Translation.Ty.beta {a P: Surface.Ty}:
   a.translate = a' ->
   P.translate = P' ->

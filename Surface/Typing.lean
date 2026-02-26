@@ -157,6 +157,20 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   lookup x G = none ->
   GlobalWf G (.data x K ctors)
 
+
+inductive EntryWf : GlobalEnv -> Entry -> Prop where
+| data :
+  lookup x G = some (.data x K ctors) ->
+  EntryWf G (.data x K ctors)
+| ctor z K ctors :
+  lookup z G = some (.data z K ctors) ->
+  ctors i = (x, T) ->
+  G&[] ⊢s T : `★ ->
+  ValidCtor z T ->
+  lookup x G = some (.ctor x i T) ->
+  EntryWf G (.ctor x i T)
+
+
 inductive ListGlobalWf : GlobalEnv -> Prop where
 | nil : ListGlobalWf []
 | cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)

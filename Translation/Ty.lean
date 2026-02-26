@@ -12,10 +12,10 @@ def Surface.Kind.translate : Surface.Kind -> Core.Kind
 | .base .closed => .base .closed
 | .base .open => .base .open
 | .arrow k1 k2 => .arrow (translate k1) (translate k2)
-
 notation "⟦" K "⟧" => Surface.Kind.translate K
 
 def Surface.KindEnv.translate : Surface.KindEnv -> Core.KindEnv := List.map (·.translate)
+notation "⟦" Δ "⟧" => Surface.KindEnv.translate Δ
 
 @[simp]
 def Surface.Ty.translate: Surface.Ty -> Core.Ty
@@ -25,24 +25,16 @@ def Surface.Ty.translate: Surface.Ty -> Core.Ty
 | .app a b => .app (a.translate) (b.translate)
 | .all k p =>
   .all k.translate (p.translate)
-
 notation "⟦" A "⟧" => Surface.Ty.translate A
 
 @[simp]
 def Surface.TyEnv.translate (Γ : TyEnv) : (List Core.Ty) :=
   Γ.map (·.translate)
+notation "⟦" Γ "⟧" => Surface.TyEnv.translate Γ
 
 @[simp]
 def Subst.Surface.Ty.translate (σ : Subst Surface.Ty) : Subst Core.Ty :=
   (λ x => match x with
   | .re x => .re x
   | .su T => .su (T.translate)) <$> σ
-
-
-theorem Subst.Surface.Ty.translate_compose {σ : Subst Surface.Ty} :
-  Subst.Surface.Ty.translate σ.lift =
-    re 0 :: Subst.Surface.Ty.translate σ ∘ +1 := by
-funext; simp
-case _ x =>
-induction x <;> simp at *
-case _ x ih => sorry
+notation "⟦" σ "⟧" => Subst.Surface.Ty.translate σ
