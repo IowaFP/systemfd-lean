@@ -135,7 +135,7 @@ case _ f a ih1 ih2 => cases j; case _ spf j =>
   assumption
 
 theorem Global.type_subst_noop (G : List Global) (p : String) (σ : Subst Ty) : ⊢ G ->
-  ctor_ty p G = .some B ->
+  ctor_ty G p = .some B ->
   B[σ] = B := by
 intro wf h
 unfold ctor_ty at h;

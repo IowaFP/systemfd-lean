@@ -11,14 +11,14 @@ open LeanSubst
 namespace Core
 
 def OpenVarVal (G : List Global) (x : String) (sp : List SpineElem) : Prop :=
-  is_openm G x ∧ ∀ T, some T = lookup_type G x -> sp.length < T.arity
+  is_openm G x ∧ ∀ T, lookup_type G x = some T -> sp.length < T.arity
 
 inductive Value (G : List Global) : Term -> Prop where
 | app :
-  some (x, sp) = t.spine ->
+  t.spine = some (x, sp) ->
+  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.spine.isSome) ->
   (∀ e ∈ sp, ∀ t, .oterm t = e -> Value G t) ->
-  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.not_choice) ->
-  is_stable x G ∨ OpenVarVal G x sp ->
+  is_stable G x ∨ OpenVarVal G x sp ->
   Value G t
 | choice : Value G t1 -> Value G t2 -> Value G (t1 `+ t2)
 | lam : Value G (λ[A] t)
@@ -83,7 +83,6 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   cns.indexOf x = some i ->
   some p = prefix_equal (patshapes i).2 sp ->
   Red G (.match n s ps cs c) ((cs i).apply p)
-
 | data_match_default
              (ps: Vect n Term)
              (patshapes' : Vect n (Option (String × List SpineElem)))
@@ -100,35 +99,34 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Guard Matching
 ----------------------------------------------------------------
 | guard_matched :
-  some (x, sp) = Term.spine p ->
-  some (x, sp') = Term.spine s ->
-  some q = prefix_equal sp sp' ->
+  Term.spine p = some (x, sp) ->
+  Term.spine s = some (x, sp') ->
+  prefix_equal sp sp' = some q ->
   Red G (.guard p s b) (b.apply q)
 | guard_missed :
-  some (x, sp) = Term.spine p ->
-  some (x', sp') = Term.spine s ->
-  x ≠ x' ∨ none = prefix_equal sp sp' ->
+  Term.spine p = some (x, sp) ->
+  Term.spine s = some (x', sp') ->
+  x ≠ x' ∨ prefix_equal sp sp' = none ->
   Red G (.guard p s b) `0
 ----------------------------------------------------------------
 ---- Instance Instantiation
 ----------------------------------------------------------------
 | inst :
-  some (x, sp) = Term.spine h ->
+  Term.spine h = some (x, sp) ->
   is_openm G x ->
-  (∀ e ∈ sp, ∀ a, .oterm a = e -> ∃ y sp, a.spine = some (y, sp)) ->
-  some T = lookup_type G x ->
+  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.spine.isSome) ->
+  (∀ e ∈ sp, ∀ t, .oterm t = e -> Value G t) ->
+  lookup_type G x = some T ->
   sp.length ≥ T.arity ->
-  tl = instances x G ->
-  h' = (List.foldr (·`+·) `0 tl).apply sp ->
+  h' = (List.foldl (·`+·) `0 (instances x G)).apply sp ->
   Red G h h'
 ----------------------------------------------------------------
 ---- Global Definitions
 ----------------------------------------------------------------
 | defn :
-  some (x, sp) = Term.spine h ->
+  Term.spine h = some (x, sp) ->
   lookup_defn G x = some t ->
   Red G h (t.apply sp)
-
 ----------------------------------------------------------------
 ---- Congruence Rules
 ----------------------------------------------------------------

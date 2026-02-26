@@ -64,11 +64,11 @@ instance tyRepr : Repr Ty where
 end Core
 /-
 
-case var => sorry
-case global => sorry
-case arrow => sorry
-case eq => sorry
-case app => sorry
-case all => sorry
+case var => _
+case global => _
+case arrow => _
+case eq => _
+case app => _
+case all => _
 
 -/

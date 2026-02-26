@@ -20,7 +20,6 @@ def Global.repr (p : Nat) : (a : Global) -> Std.Format
   let ts : Vect (n + 1) Std.Format := λ i =>
     let (ctorN, ctorTy) := ctors i
     Std.Format.nest 4 <| ctorN ++ " : " ++ Ty.repr max_prec ctorTy
-
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
     ++ "v" ++ Std.Format.sbracket (Vect.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) ts)
 | .data _ s K _ =>
@@ -132,23 +131,23 @@ def is_opent G x := lookup x G |> Option.map Entry.is_opent |> Option.get!
 def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!
 def is_defn G x := lookup x G |> Option.map Entry.is_defn |> Option.get!
 
-def ctor_idx (x : String) (G : List Global) : Option Nat := do
+def ctor_idx (G : List Global) (x : String) : Option Nat := do
   let t <- lookup x G
   match t with
   | .ctor _ n _ => n
   | _ => none
 
-def ctor_ty (x : String) (G : List Global) : Option Ty := do
+def ctor_ty (G : List Global) (x : String) : Option Ty := do
   let t <- lookup_type G x
   if is_ctor G x then return t else none
 
-def ctor_count (x : String) (G : List Global) : Option Nat := do
+def ctor_count (G : List Global) (x : String) : Option Nat := do
   let t <- lookup x G
   match t with
   | .data _ _ ctors => ctors.length
   | _ => .none
 
-def is_stable (x : String) (G : List Global) : Bool := (is_ctor G x ∨ is_instty G x)
+def is_stable (G : List Global) (x : String) : Bool := (is_ctor G x ∨ is_instty G x)
 
 theorem lookup_type_reconstruct :
   lookup x G = some e ->
@@ -187,7 +186,6 @@ cases z <;> simp at *
 case _ z =>
 cases z <;> simp [Entry.is_defn] at *
 
-
 theorem lookup_defn_some :
   lookup_defn G x = .some t -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
 intro h1
@@ -195,7 +193,7 @@ replace h1 := lookup_defn_is_defn_sound h1
 apply lookup_entry_defn_exists h1
 
 theorem is_stable_implies_not_is_openm :
-  is_stable G x -> ¬ is_openm x G := by
+  is_stable G x -> ¬ is_openm G x := by
 intro h1 h2
 simp [is_stable] at h1;
 cases h1
@@ -207,9 +205,8 @@ all_goals (
     simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
 )
 
-
 theorem is_stable_implies_not_is_defn :
-  is_stable G x -> ¬ is_defn x G := by
+  is_stable G x -> ¬ is_defn G x := by
 intro h1 h2
 simp [is_stable] at h1;
 cases h1
@@ -220,6 +217,22 @@ all_goals (
     simp [is_ctor, is_instty] at h1; rw[lem] at h1
     simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
 )
+
+theorem not_stable_implies_openm_or_defn :
+  is_stable G x = false ->
+  (lookup_type G x).isSome ->
+  is_defn G x ∨ is_openm G x
+:= by
+  intro h1 h2
+  unfold is_stable at h1
+  unfold is_ctor at h1
+  unfold is_instty at h1
+  unfold lookup_type at h2
+  unfold is_defn; unfold is_openm
+  generalize zdef : lookup x G = z at *
+  cases z; simp [Option.isSome] at h2; case _ z =>
+  cases z <;> simp [Entry.type, Entry.is_ctor, Entry.is_instty] at *
+  all_goals simp [Entry.is_defn, Entry.is_openm]
 
 theorem Global.lookup_unique :
   lookup x G = t ->
@@ -236,4 +249,21 @@ theorem Global.lookup_type_unique :
 intro h1 h2
 all_goals (rw[h1] at h2; injection h2)
 
+theorem Global.get_defn :
+  is_defn G x ->
+  ∃ T t, lookup x G = some (.defn x T t)
+:= by
+  intro h
+  unfold is_defn at h
+  generalize zdef : lookup x G = z at *
+  cases z; simp at h; case _ z =>
+  cases z <;> simp [Entry.is_defn] at h
+  simp
+  sorry
+
+theorem Global.get_openm :
+  is_openm G x ->
+  ∃ T, lookup x G = some (.openm x T)
+:= by
+  sorry
 end Core

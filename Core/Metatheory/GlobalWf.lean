@@ -408,6 +408,23 @@ theorem EntryWf.from_lookup_vec2 :
       apply Or.inr; apply And.intro _ ih
       apply h2 0; intro h; cases h
 
+theorem Kinding.global_weaken_ctors :
+  (∀ x, (lookup_kind G x).isSome -> lookup_kind G x = lookup_kind G' x) ->
+  G&Δ ⊢ T : K ->
+  G'&Δ ⊢ T : K
+:= by
+  intro h j
+  induction j generalizing G'
+  case var => sorry
+  case global x K Δ j =>
+    apply global
+    rw [<-h x]; apply j
+    rw [j]; simp
+  case arrow => sorry
+  case all => sorry
+  case app => sorry
+  case eq => sorry
+
 theorem EntryWf.from_lookup :
   ⊢ G ->
   lookup x G = some e ->
@@ -436,7 +453,15 @@ theorem EntryWf.from_lookup :
           simp at *; subst h1
           obtain ⟨q1, q2, q3, q4⟩ := j2 i x zA zdef
           apply EntryWf.ctor dx K ctors; simp [lookup]
-          exact zdef; exact q1
+          exact zdef
+          apply Kinding.global_weaken_ctors _ q1
+          case _ =>
+            intro x h
+            unfold is_data at h
+            simp [lookup_kind, lookup] at *
+            split; simp [Entry.kind]
+
+            sorry
           exact q2; simp [lookup]
           split; case _ e => exfalso; apply e1 e
           case _ e =>
@@ -547,7 +572,7 @@ theorem GlobalWf.lookup_defn_type_exists {G : List Global} {Δ : List Kind} :
 theorem GlobalWf.lookup_defn_type {G : List Global} {Δ : List Kind} {Γ : List Ty} :
   ⊢ G ->
   lookup_defn G x = some t ->
-  ∃ T b, G&Δ, Γ ⊢ g#x : T ∧ G&Δ, Γ ⊢ t : T ∧ G&Δ ⊢ T : .base b
+  ∃ T b, G&Δ,Γ ⊢ g#x : T ∧ G&Δ,Γ ⊢ t : T ∧ G&Δ ⊢ T : .base b
 := by
   intro wf j
   unfold lookup_defn at j; simp at j

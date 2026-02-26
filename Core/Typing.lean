@@ -235,7 +235,7 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vect n (String × Ty)} :
   (∀ i y T, ctors i = (y, T) ->
-    (.data n x K ctors::G)&[] ⊢ T : ★
+    (.data 0 x K .nil::G)&[] ⊢ T : ★
     ∧ ValidCtor x T
     ∧ x ≠ y
     ∧ lookup y G = none) ->

@@ -356,39 +356,7 @@ inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
   GetSpineTrace sp tr ->
   GetSpineTrace (.type A :: sp) (.type :: tr)
 
-theorem Term.Determined.var : (#x).Determined := by
-unfold Term.Determined; apply VariantMissing.var
 
-theorem Term.Determined.global : (g#x).Determined := by
-unfold Term.Determined; apply VariantMissing.global
-
-theorem Term.Determined.lam : t.Determined -> (λ[A] t).Determined := by
-intro h; unfold Term.Determined; apply VariantMissing.lam; apply h
-
-theorem Term.Determined.lamt : t.Determined -> (Λ[A] t).Determined := by
-intro h; unfold Term.Determined; apply VariantMissing.tbind _ h;
-intro h';
-cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
-
-theorem Term.Determined.app {f a : Term} : f.Determined -> a.Determined -> (f • a).Determined := by
-intro h1 h2
-unfold Term.Determined; apply VariantMissing.ctor2 _ h1 h2
-intro h'; cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
-
-theorem Term.Determined.appt {f: Term} {a : Ty} : f.Determined -> (f •[ a ]).Determined := by
-intro h1
-unfold Term.Determined; apply VariantMissing.ctor1 _ h1
-intro h'; cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
-
-
-theorem Term.Determined.match {s d : Term} {ps cs : Vect n Term}:
-  s.Determined ->
-  d.Determined ->
-  (∀ i, (ps i).Determined) ->
-  (∀ i, (cs i).Determined) ->
-  (match! n s ps cs d).Determined := by
-intro h1 h2 h3 h4
-unfold Term.Determined; apply VariantMissing.mtch; repeat assumption
 
 
 
