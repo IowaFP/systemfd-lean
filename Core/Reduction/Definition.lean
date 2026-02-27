@@ -80,7 +80,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   (patshapes' = λ i => (ps i).spine) ->
   (patshapes'.seq = some patshapes) ->
   (cns = ((λ (x : String × List SpineElem) => x.1) <$> patshapes)) ->
-  cns.indexOf x = some i ->
+  cns.finIdxOf? x = some i ->
   some p = prefix_equal (patshapes i).2 sp ->
   Red G (.match n s ps cs c) ((cs i).apply p)
 | data_match_default
@@ -93,7 +93,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   (patshapes' = λ i => (ps i).spine) ->
   (patshapes'.seq = some patshapes) ->
   (cns = (·.1) <$> patshapes) ->
-  cns.indexOf x = none ->
+  cns.finIdxOf? x = none ->
   Red G (.match n s ps cs c) c
 ----------------------------------------------------------------
 ---- Guard Matching

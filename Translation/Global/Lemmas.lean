@@ -8,49 +8,6 @@ import Translation.Ty.Lemmas
 import Translation.Term.Lemmas
 import Translation.Global
 
-theorem Translation.GlobalEnv.lookup_sound x :
-  G.translate = G' ->
-  Surface.lookup x G = none ->
-  Core.lookup x G' = none := by sorry
-
-theorem Translation.GlobalEnv.lookup_different_impossible x :
-  G.translate = G' ->
-  Surface.lookup x G = some e ->
-  Core.lookup x G' = none ->
-  False
-:= by sorry
-
-theorem Translation.GlobalEnv.lookup_entry_data x :
-  G.translate = G' ->
-  Surface.lookup x G = some (.data x K ctors) ->
-  Core.lookup x G' = .some (.data x K.translate ((λ x => (x.1 , x.2.translate)) <$> ctors)) := by
-intro h1 h2
-
-sorry
-
-theorem Translation.GlobalEnv.lookup_entry_ctor x :
-  G.translate = G' ->
-  Surface.lookup x G = some (.ctor x i K) ->
-  Core.lookup x G' = .some (.ctor x i K.translate) := by
-intro h1 h2
-sorry
-
-
-
-
-
-theorem Translation.Global.is_data_sound x :
-  ⊢s G ->
-  Surface.is_data G x ->
-  G.translate = G' ->
-  Core.is_data G' x := by
-intro wf h1 h2
-fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.is_data, Surface.lookup] at *
-case _ gs g ih =>
-  cases wf; case _ wfgs wfg =>
-  subst G'; subst gs; subst g <;> simp at *
-  sorry
-
 theorem Translation.Ty.ValidCtor :
   Surface.ValidCtor x T -> Core.ValidCtor x ⟦T⟧ := by
 intro h; induction h <;> simp at *
@@ -101,9 +58,9 @@ apply Core.GlobalWf.data
   · apply And.intro
     · apply Translation.Ty.ValidCtor k2
     · apply And.intro; assumption
-      apply Translation.GlobalEnv.lookup_sound _ h2 k4
+      apply Translation.GlobalEnv.lookup_none_sound _ h2 k4
 · assumption
-· apply Translation.GlobalEnv.lookup_sound _ h2 lk
+· apply Translation.GlobalEnv.lookup_none_sound _ h2 lk
 
 
 theorem Translation.GlobalEnv.wf_sound {G : Surface.GlobalEnv} :

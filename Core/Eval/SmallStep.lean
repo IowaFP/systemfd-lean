@@ -207,7 +207,7 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
    | .none => match s.spine with
            | .none => .none -- stuck term, cannot evaluate and not in neutral form
            | .some (s_x, s_sp) => do
-               match (p_pats.indexOf s_x) with
+               match (p_pats.finIdxOf? s_x) with
                | .none => return default -- catch all case
                | .some i => do
                        let pat_sp : List SpineElem := (p_sps i)

@@ -34,7 +34,7 @@ case global =>
   case inst h _ =>
     simp [Term.spine] at h; rcases h with ⟨e1, e2⟩; cases e1; cases e2;
     simp [Term.apply] at *
-    case _ x A Δ K Γ h1 h2 _ tl _ _ is _ _ e =>
+    case _ x A Δ K Γ h1 h2 _ tl _ is _ _ e =>
     have lem : G&Δ, Γ ⊢ g#x : A := by constructor; apply h1; apply h2
     replace lem := instance_type_preservation wf lem is
     cases is; case _ e =>
@@ -69,9 +69,11 @@ case mtch =>
       replace lem2 := lem2 i
       have lem4 : (pats i).spine = patshapes' i := by rw[h11]
       rw[lem4]; rw[lem2]
-    · have lem3 := Vect.indexOf_correct (v := cns) (i := i) (x := x) h8;
+    · have lem3 := Vect.seq_sound h6; replace lem4 := lem3 i
+      rw[h11] at lem3; simp at lem3; rw[<-h10];
+      rw[Vect.finIdxOf?_eq_some_iff] at h8
       have lem4 : (patshapes i).fst = cns i := by rw[h7]
-      rw[lem4, lem3]; apply (Eq.symm h10)
+      simp; rw[lem4, h8.1];
 
   case data_match_default => assumption
   case match_congr ih _ _ _ _ h =>
@@ -99,9 +101,9 @@ case guard =>
     apply h3
     apply h6
     apply h7
-    apply (Eq.symm h8)
-    apply (Eq.symm h9)
-    apply (Eq.symm h10)
+    apply h8
+    apply h9
+    apply h10
 
   case guard_missed j1 _ j2 _ _ _ h _ _ _ _ _ _ _ _ _ _ =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j1; cases lem; case _ lem1 =>
@@ -134,12 +136,12 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
   all_goals (try case _ h _ _ => simp at h)
   case beta =>
     cases j2; apply Typing.beta wf; assumption; assumption
-  case inst Δ _ Γ x sp T _ _ _ h1 h2 h3 h4 h5 =>
+  case inst Δ _ _ _ Γ x sp T h1 h2 h3 h4 h5 =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j2
     rcases lem with ⟨bk, lem⟩
     cases lem; case _ lemj1 lemj2 =>
     have e := Kinding.unique j1 lemj1; cases e
-    have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
+    have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf h1
     cases Tkj; case _ bk Tkj =>
     have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
     have lem2 := instance_type_preservation wf lem1 h3
@@ -176,17 +178,17 @@ case app b _ f B a j1 j2 j3 ih1 ih2  =>
       cases lem; case _ j6 j7 =>
       have lem1 := GlobalWf.lookup_defn_type (G := G) (Δ := Δ) (Γ := Γ) wf h1
       rcases lem1 with ⟨T,_, lem1, lem2, lem3⟩
-      have h8 := Spine.apply_eq (Eq.symm h2)
+      have h8 := Spine.apply_eq h2
       rw[h8] at j4
       cases b
       case _ =>
          have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
-         replace h4 := Spine.apply_eq (Eq.symm h2);
+         replace h4 := Spine.apply_eq h2;
          have lem := Typing.replace_head_regular wf xnf lem1 lem2 j4
          apply lem
       case _ =>
          have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]
-         replace h4 := Spine.apply_eq (Eq.symm h2);
+         replace h4 := Spine.apply_eq h2;
          have lem := Typing.replace_head_regular wf xnf lem1 lem2 j4
          apply lem
   case ctor2_congr1 h =>
@@ -234,13 +236,13 @@ case appt f _ _ a _ j1 j2 _ _ =>
       rw[<-fdef]; simp
     rw[lem2] at lem
     assumption
-  case inst Δ Γ K P P' e _ x sp T _ _ _ h1 h2 h3 h4 h5 =>
+  case inst Δ Γ K P P' e _ x sp T _ h1 h2 h3 h4 h5 h6 =>
     have lem := Typing.well_typed_terms_have_base_kinds wf j1
     rcases lem with ⟨bk, lem⟩
     cases lem; case _ lemj1 =>
-    have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf (Eq.symm h1)
+    have Tkj : ∃ bk, G&Δ ⊢ T : .base bk := GlobalWf.types_have_base_kind wf h1
     cases Tkj; case _ b Tkj =>
-    have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply (Eq.symm h1); assumption
+    have lem1 : G&Δ, Γ ⊢ g#x : T := by apply Typing.global; apply h1; assumption
     have lem2 := instance_type_preservation wf lem1 h3
     replace lem2 := fix_quantifiers (Δ := Δ) (Γ := Γ) lem2
     have zero_typing : G&Δ, Γ ⊢ `0 : T := by apply Typing.zero; assumption
@@ -258,7 +260,7 @@ case appt f _ _ a _ j1 j2 _ _ =>
       cases lem; case _ b j7 =>
       have lem1 := GlobalWf.lookup_defn_type (G := G) (Δ := Δ) (Γ := Γ) wf h1
       rcases lem1 with ⟨T, b, lem1, lem2, lem3⟩
-      have h8 := Spine.apply_eq (Eq.symm h2)
+      have h8 := Spine.apply_eq h2
       rw[h8] at j3
       have app_ty := Typing.appt j1 j2 e
       have xnf : (g#x).spine = .some (x, []) := by simp [Term.spine]

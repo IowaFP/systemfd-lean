@@ -1,4 +1,5 @@
 import Translation.Ty
+import Translation.Entry
 import Translation.Global
 
 import Core.Typing
@@ -10,22 +11,27 @@ open LeanSubst
 
 -- Translation preservies kinding relation
 
-theorem Translation.KindEnv.sound {Δ : Surface.KindEnv} {Δ' : Core.KindEnv} :
-  Δ.translate = Δ' ->
-  (∀ (i : Nat) (K : Surface.Kind),
-     (Δ[i]? = some K) -> ∃ K', ((Δ'[i]? = some K') ∧ K.translate = K')) := by
-intro h1 i K h2; simp at *
-unfold Surface.KindEnv.translate at h1
-have lem := List.map_eq_iff.1 h1 i; simp [Surface.inst_getElem?_KindEnv] at *; rw[h2] at lem; simp at lem
-assumption
+theorem Translation.GlobalEnv.lookup_none_sound x :
+  G.translate = G' ->
+  Surface.lookup x G = none ->
+  Core.lookup x G' = none := by
 
-theorem Translation.Kind.sound_base (b : Surface.BaseKind):
-  ∃ b', (Surface.Kind.base b).translate = .base b' := by
-cases b <;> simp at *
-all_goals (subst K'; simp)
+sorry
 
-theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
-  ∃ b1' b2', (Surface.Kind.arrow b1 b2).translate = .arrow b1' b2' := by simp
+theorem Translation.GlobalEnv.lookup_different_impossible x :
+  G.translate = G' ->
+  Surface.lookup x G = some e ->
+  Core.lookup x G' = none ->
+  False
+:= by sorry
+
+theorem Translation.GlobalEnv.lookup_entry_data x :
+  G.translate = G' ->
+  Surface.lookup x G = some e ->
+  Core.lookup x G' = .some e.translate := by
+intro h1 h2
+
+sorry
 
 theorem Translation.GlobalEnv.lookup_kind_sound :
   G.translate = G' ->
@@ -43,6 +49,35 @@ sorry
 --   · subst y; simp [Surface.Entry.kind] at h2; sorry
 
 
+theorem Translation.Entry.is_data_sound x :
+  ⊢s G ->
+  Surface.is_data G x ->
+  G.translate = G' ->
+  Core.is_data G' x := by
+intro wf h1 h2
+fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.is_data, Surface.lookup] at *
+case _ gs g ih =>
+  cases wf; case _ wfgs wfg =>
+  subst G'; subst gs; subst g <;> simp at *
+  sorry
+
+
+theorem Translation.KindEnv.sound {Δ : Surface.KindEnv} {Δ' : Core.KindEnv} :
+  Δ.translate = Δ' ->
+  (∀ (i : Nat) (K : Surface.Kind),
+     (Δ[i]? = some K) -> ∃ K', ((Δ'[i]? = some K') ∧ K.translate = K')) := by
+intro h1 i K h2; simp at *
+unfold Surface.KindEnv.translate at h1
+have lem := List.map_eq_iff.1 h1 i; simp [Surface.inst_getElem?_KindEnv] at *; rw[h2] at lem; simp at lem
+assumption
+
+theorem Translation.Kind.sound_base (b : Surface.BaseKind):
+  ∃ b', (Surface.Kind.base b).translate = .base b' := by
+cases b <;> simp at *
+all_goals (subst K'; simp)
+
+theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
+  ∃ b1' b2', (Surface.Kind.arrow b1 b2).translate = .arrow b1' b2' := by simp
 
 
 theorem Translation.Ty.sound :

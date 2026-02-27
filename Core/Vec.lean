@@ -14,14 +14,6 @@ protected def Vect.reprPrec [Repr T] : {n : Nat} -> Vect n T -> Nat -> Std.Forma
   let ⟨h , t⟩ := v.uncons
   (repr h) ++ ", " ++ (Vect.reprPrec t i)
 
-protected def Vect.reprPrec' (repr : T -> Std.Format) : {n : Nat} -> Vect n T -> Nat -> Std.Format
-| 0, _, _ => ""
-| 1, v, _ => repr (v 0)
-| _ + 1, v, i =>
-  let ⟨h, t⟩ := uncons v
-  (repr h) ++ ", " ++ (Vect.reprPrec' repr t i)
-
-
 instance [Repr T] : Repr (Vect n T) where
   reprPrec v n := "v[" ++ Vect.reprPrec v n ++ "]"
 
@@ -47,7 +39,7 @@ theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
 
 def Vect.length (_ : Vect n A) : Nat := n
 
-theorem Vect.length_bound : (v : Vect n A) -> v.length == n := by
+theorem Vect.length_bound : (v : Vect n A) -> v.length = n := by
   intro v
   unfold Vect.length
   induction n <;> (simp at *)
@@ -58,90 +50,24 @@ def Vect.sum : {n : Nat} -> Vect n Nat -> Nat
 | _ + 1, ts => ts 0 + ts.drop.sum
 
 
-def Vect.indexOf [BEq Q] (c : Q) {n : Nat} (v :  Vect n Q) : Option (Fin n) :=
-match n with
-| 0 => none
-| n + 1 =>
-    let (found, i, _) := Vect.fold (false, 0, 0) (λ x (found, found_idx, i) =>
-      if not found
-        then if x == c
-                then (true, i, i + 1)
-                else (found, found_idx, i + 1)
-        else (found, found_idx, i + 1)
-    )  v
-    if found then return Fin.ofNat (n + 1) (n - i) else none
 
-def Vect.indexOf_aux [BEq Q][LawfulBEq Q] (c : Q) (n : Nat) : Nat -> (Vect n Q) -> Option Nat := λ i v =>
-match n, v with
-| 0, _ => none
-| n + 1, v' =>
-    match v'.uncons with
-    | ⟨x, v'⟩ => if x == c
-      then i
-      else (Vect.indexOf_aux c n (i + 1) v')
-
-def Vect.indexOf' [BEq Q][LawfulBEq Q] (c : Q) (v : Vect n Q) : Option (Fin n) :=
-match n with
-| 0 => none
-| n + 1 => (Vect.indexOf_aux c (n + 1) 0 v).map (Fin.ofNat (n + 1))
+theorem length_coerce: ∀ n, Vect.length v = n -> (Vect.to_list v).length = n := by
+apply v.induction <;> simp [Vect.length] at *
 
 
-#guard Vect.indexOf "x" (["x", "y", "p"] : Vect 3 String) == some 0
-#guard Vect.indexOf "y" (["x", "y", "p"] : Vect 3 String) == some 1
-#guard Vect.indexOf "p" (["x", "y", "p"] : Vect 3 String) == some 2
-#guard Vect.indexOf "z" (["x", "y", "p"] : Vect 3 String) == none
+def Vect.finIdxOf? [BEq Q] (c : Q) {n : Nat} (v : Vect n Q) : Option (Fin n) := by
+  have lem := List.finIdxOf? c v
+  have lem2 := Vect.length_bound v
+  have lem3 := length_coerce _ lem2
+  rw[lem3] at lem
+  apply lem
 
-#guard Vect.indexOf' "x" (["x", "y", "p"] : Vect 3 String) == some 0
-#guard Vect.indexOf' "y" (["x", "y", "p"] : Vect 3 String) == some 1
-#guard Vect.indexOf' "p" (["x", "y", "p"] : Vect 3 String) == some 2
-#guard Vect.indexOf' "z" (["x", "y", "p"] : Vect 3 String) == none
-
-def Vect.HasUniqueElems [BEq Q] (v : Vect n Q) := ∀ i j, i ≠ j -> (v i) ≠ (v j)
-
-theorem Vect.indexOf_correct [BEq Q] {v : Vect n Q} :
-  v.indexOf x = some i ->
-  (v i) = x := by
-intro h
-induction n <;> simp at *
-case _ =>  cases i; simp [indexOf] at h
-case _ n ih => sorry
-
-theorem Vect.indexOf'_le [BEq Q] [LawfulBEq Q] {v : Vect n Q} :
-  v.indexOf' x = some i ->
-  i < n := by
-intro h
-induction n <;> simp at *
-case _ => cases i; simp [indexOf'] at h
-
-theorem Vect.indexOf'_aux_le [BEq Q] [LawfulBEq Q] {v : Vect n Q} :
-  v.indexOf_aux x n 0 = some i ->
-  i < n := by
-intro j
-induction n generalizing i
-case _ => unfold Vect.indexOf_aux at j; cases j
-case _ ih =>
-  unfold Vect.indexOf_aux at j;
-  split at j; simp at j;
+theorem Vect.finIdxOf?_eq_some_iff [BEq Q] [LawfulBEq Q] {n : Nat} {v : Vect n Q} {i : Fin n} :
+  v.finIdxOf? a = some i ↔ (v i = a) ∧ ∀ (j : Fin n), j < i → ¬ v j = a
+:= by
+  unfold Vect.finIdxOf?; simp;
+  -- rw[List.finIdxOf?_eq_some_iff (a := a) (l := Vect.to_list v)]
   sorry
-
-
-
-theorem Vect.indexOf'_correct [BEq Q] [LawfulBEq Q] {v : Vect n Q} :
-  v.indexOf' x = some i ->
-  v i = x := by
-intro j; induction n
-case _ => simp [indexOf'] at j
-case _ n ih => sorry
-  -- have lem := Vect.indexOf'_le j
-  -- simp [indexOf', indexOf_aux] at *; rcases j with ⟨n, j1, j2⟩
-  -- have ih' := ih (i := i + 1) (v := v.uncons.snd)
-  -- split at j1
-  -- case _ n _ _ =>
-  --   simp [uncons] at *; subst j1;
-  --   rw[Fin.ofNat_zero] at j2; subst j2; assumption
-  -- case _ n _ _ => sorry
-
-
 
 
 def Vect.seq_lemma (vs : Vect n (Option Q)) :
@@ -217,14 +143,22 @@ match n with
 theorem Vect.get_elem_if_eq_sound [BEq Q] {vs : Vect n Q} {t : Q} :
   vs.get_elem_if_eq = some t ->
   ∀ i, vs i = t := by
-intro h i
-induction n <;> simp [Vect.get_elem_if_eq, Vect.uncons] at *
-case _ n ih =>
-  have ih := @ih vs.tail
-  sorry
+apply vs.induction
+case _ => simp
+case _ =>
+  intro n hd tl ih
+  simp [Vect.get_elem_if_eq];
+  intro h1 h2
+  subst t
 
-def Vect.elems_eq_to [BEq Q] {n : Nat} (e : Q) : (vs : Vect n Q) -> Bool := λ vs =>
-vs.fold true (λ c acc => c == e && acc)
+  sorry
+-- induction n <;> simp [Vect.get_elem_if_eq, Vect.uncons] at *
+-- case _ n ih =>
+--   have ih := @ih vs.tail
+--   sorry
+
+def Vect.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vect n Q) : Bool :=
+  vs.fold true (λ c acc => c == e && acc)
 -- :=
 -- | 0, _ => true
 -- | _ + 1, vs =>
@@ -235,18 +169,26 @@ vs.fold true (λ c acc => c == e && acc)
 theorem Vect.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vect n Q} :
   vs.elems_eq_to e = true ->
   ∀ i, (vs i) = e := by
-intro h
-apply Vect.induction (A := Q) (motive := λ x v => v.elems_eq_to e = true -> ∀ i, v i = e)
-  (nil := by simp)
-  (cons := by
-    intro n hd tl ih h x
-    simp [Vect.elems_eq_to] at h
-    rcases h with ⟨e1, e2⟩
-    replace ih := ih e2
+apply vs.induction <;> simp [Vect.elems_eq_to] at *
+case _ =>
+  intro n hd tl ih e h
+  subst hd; replace ih := ih h
 
-    sorry)
-  vs
-  h
+  intro i'
+  sorry
+
+-- intro h
+-- apply Vect.induction (A := Q) (motive := λ x v => v.elems_eq_to e = true -> ∀ i, v i = e)
+--   (nil := by simp)
+--   (cons := by
+--     intro n hd tl ih h x
+--     simp [Vect.elems_eq_to] at h
+--     rcases h with ⟨e1, e2⟩
+--     replace ih := ih e2
+
+--     sorry)
+--   vs
+--   h
 
 
 
