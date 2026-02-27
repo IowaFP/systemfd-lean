@@ -203,16 +203,17 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
 
-inductive ValidCtor (x : String) : Ty -> Prop where
+inductive ValidCtor (G : GlobalEnv) (x : String) : Ty -> Prop where
 | base :
   T.spine = some (x, sp) ->
-  ValidCtor x T
+  is_data G x ->
+  ValidCtor G x T
 | all :
-  ValidCtor x P ->
-  ValidCtor x (∀[K] P)
+  ValidCtor G x P ->
+  ValidCtor G x (∀[K] P)
 | arrow :
-  ValidCtor x B ->
-  ValidCtor x (A -:> B)
+  ValidCtor G x B ->
+  ValidCtor G x (A -:> B)
 
 inductive ValidOpenKind : Kind -> Prop where
 | base : ValidOpenKind ◯
@@ -236,7 +237,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vect n (String × Ty)} :
   (∀ i y T, ctors i = (y, T) ->
     (.data 0 x K .nil::G)&[] ⊢ T : ★
-    ∧ ValidCtor x T
+    ∧ ValidCtor (.data 0 x K .nil::G) x T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
@@ -278,7 +279,7 @@ inductive EntryWf : List Global -> Entry -> Prop where
   lookup z G = some (.data z K ctors) ->
   ctors i = (x, T) ->
   G&[] ⊢ T : ★ ->
-  ValidCtor z T ->
+  ValidCtor G z T ->
   lookup x G = some (.ctor x i T) ->
   EntryWf G (.ctor x i T)
 | opent :

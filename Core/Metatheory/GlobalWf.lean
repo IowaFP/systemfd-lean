@@ -330,6 +330,37 @@ theorem ValidInstTy.drop_weaken_global n :
     apply ih wf e
     apply Kinding.drop_weaken_global n wf e j2
 
+theorem ValidCtor.drop_weaken_global n :
+  ⊢ G ->
+  G' = G.drop n ->
+  ValidCtor G' x A ->
+  ValidCtor G x A
+:= by
+  intro wf e j
+  induction j generalizing G
+  case base j1 j2 =>
+    apply ValidCtor.base j1
+    unfold is_data at *
+    generalize z'def : lookup x G' = z' at *
+    cases z'
+    case none => simp at j2
+    case some z' =>
+      generalize zdef : lookup x G = z at *
+      cases z
+      case none =>
+        simp; apply GlobalWf.drop_lookup_impossible wf e z'def zdef
+      case some z =>
+        obtain e := GlobalWf.drop_lookup n wf e z'def zdef; subst z'
+        exact j2
+  case all j1 j2 ih =>
+    apply ValidCtor.all
+    apply ih wf e
+  case arrow j1 j2 ih =>
+    apply ValidCtor.arrow
+    apply ih wf e
+
+
+
 theorem GlobalWf.lookup_weaken :
   ⊢ (e1::G) ->
   lookup x G = some e2 ->
@@ -354,7 +385,7 @@ theorem EntryWf.weaken :
     apply GlobalWf.lookup_weaken wf j1
     apply j2
     apply Kinding.drop_weaken_global 1 wf (by simp) j3
-    apply j4
+    apply ValidCtor.drop_weaken_global 1 wf (by simp) j4
     apply GlobalWf.lookup_weaken wf j5
   case opent j1 j2 =>
     apply EntryWf.opent j1
@@ -372,6 +403,17 @@ theorem EntryWf.weaken :
     apply EntryWf.instty
     apply ValidInstTy.drop_weaken_global 1 wf (by simp) j1
     apply GlobalWf.lookup_weaken wf j2
+
+theorem ValidCtor.weaken_data_ctors :
+  ListGlobalWf (List.cons (Global.data n x K ctors) G) ->
+  ValidCtor (Global.data 0 x K Vect.nil :: G) x T ->
+  ValidCtor (Global.data n x K ctors :: G) x T
+:= by
+  intro wf h
+  induction h
+  case base => sorry
+  case arrow => sorry
+  case all => sorry
 
 theorem EntryWf.from_lookup_vec1 :
   Vect.fold d Option.or v = some t ->
@@ -479,7 +521,8 @@ theorem EntryWf.from_lookup :
             simp; intro h; subst h
             obtain ⟨w1, w2, w3, w4⟩ := j2 i x wA wdef
             rw [w4] at h; simp [Option.isSome] at h
-          exact q2; simp [lookup]
+          case _ => apply ValidCtor.weaken_data_ctors wf' q2;
+          simp [lookup]
           split; case _ e => exfalso; apply e1 e
           case _ e =>
             rw [q4]
@@ -549,7 +592,7 @@ theorem GlobalWf.types_have_base_kind :
   cases lem <;> simp [Entry.type] at h
   case ctor j1 j2 j3 j4 j5 =>
     apply Exists.intro _; subst h
-    apply Kinding.closed_arbitrary_weakening Δ wf j4
+    apply Kinding.closed_arbitrary_weakening Δ wf j3
   case openm j1 j2 =>
     apply Exists.intro _; subst h
     apply Kinding.closed_arbitrary_weakening Δ wf j1

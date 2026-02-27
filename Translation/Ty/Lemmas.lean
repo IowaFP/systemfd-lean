@@ -44,7 +44,6 @@ case _ g gs ih =>
 
 
 
-
 theorem Translation.Ty.sound :
   ⊢s G ->
   G&Δ ⊢s T : K ∧

@@ -134,23 +134,24 @@ inductive Typing (G : GlobalEnv) :
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " : " A:170 => Typing G Δ Γ t A
 
-inductive ValidCtor (x : String) : Ty -> Prop where
+inductive ValidCtor (G : GlobalEnv) (x : String) : Ty -> Prop where
 | base :
   T.spine = some (x, sp) ->
-  ValidCtor x T
+  is_data G x ->
+  ValidCtor G x T
 | all :
-  ValidCtor x P ->
-  ValidCtor x (`∀[K] P)
+  ValidCtor G x P ->
+  ValidCtor G x (`∀[K] P)
 | arrow :
-  ValidCtor x B ->
-  ValidCtor x (A `-:> B)
+  ValidCtor G x B ->
+  ValidCtor G x (A `-:> B)
 
 
 inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | data {ctors : Vect n (String × Ty)} {ctors' : Vect n String} {G : GlobalEnv}:
   (∀ i y T, ctors i = (y, T) ->
     (Global.data x K Vect.nil :: G)&[] ⊢s T : `★
-    ∧ ValidCtor x T
+    ∧ ValidCtor (Global.data x K Vect.nil :: G) x T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
@@ -166,7 +167,7 @@ inductive EntryWf : GlobalEnv -> Entry -> Prop where
   lookup z G = some (.data z K ctors) ->
   ctors i = (x, T) ->
   G&[] ⊢s T : `★ ->
-  ValidCtor z T ->
+  ValidCtor G z T ->
   lookup x G = some (.ctor x i T) ->
   EntryWf G (.ctor x i T)
 
