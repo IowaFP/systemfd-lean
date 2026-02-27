@@ -28,18 +28,19 @@ theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
   ∃ b1' b2', (Surface.Kind.arrow b1 b2).translate = .arrow b1' b2' := by simp
 
 theorem Translation.GlobalEnv.lookup_kind_sound :
-  G.translate = some G' ->
+  G.translate = G' ->
   Surface.lookup_kind G x = some K ->
   Core.lookup_kind G' x = some K'  := by
 intro h1 h2
-fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup_kind, Surface.lookup] at h2
-case _ g gs ih =>
-  cases g <;> simp at *
-  case _ y _ _ =>
-  generalize zdef : (x == y) = z at *
-  cases z <;> simp at *
-  · sorry
-  · subst y; simp [Surface.Entry.kind] at h2; sorry
+sorry
+-- fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup_kind, Surface.lookup] at h2
+-- case _ g gs ih =>
+--   cases g <;> simp at *
+--   case _ y _ _ =>
+--   generalize zdef : (x == y) = z at *
+--   cases z <;> simp at *
+--   · sorry
+--   · subst y; simp [Surface.Entry.kind] at h2; sorry
 
 
 
@@ -47,7 +48,7 @@ case _ g gs ih =>
 theorem Translation.Ty.sound :
   ⊢s G ->
   G&Δ ⊢s T : K ∧
-  G.translate = some G' ∧
+  G.translate = G' ∧
   Δ.translate = Δ'  ->
 
   ∃ K' T', K.translate = K' ∧

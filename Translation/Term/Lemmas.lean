@@ -25,7 +25,7 @@ open LeanSubst
 
 theorem Translation.GlobalEnv.lookup_ty_sound {G : Surface.GlobalEnv} : -- maybe generalize this to entry lookup?
   ⊢s G ->
-  G.translate = some G' ->
+  G.translate = G' ->
   (∀ (x : String) (T : Surface.Ty) (Δ : Core.KindEnv),
     (Surface.lookup_type G x = some T) ->
     ∃ T' b, (Core.lookup_type G' x = some T' ∧ T.translate = T' ∧ G'&Δ ⊢ T' : .base b)) := by
@@ -34,13 +34,13 @@ sorry
 
 theorem Translation.GlobalEnv.is_ctor_sound {G: Surface.GlobalEnv} :
   ⊢s G ->
-  G.translate = some G' ->
+  G.translate = G' ->
   Surface.is_ctor G x ->
   Core.is_ctor G' x := by sorry
 
 theorem Translation.GlobalEnv.is_data_sound {G: Surface.GlobalEnv} :
   ⊢s G ->
-  G.translate = some G' ->
+  G.translate = G' ->
   Surface.is_data G x ->
   Core.is_data G' x := by
 sorry
@@ -123,7 +123,7 @@ case _ hT Γ ih =>
 
 theorem Translation.ValidTyHeadVariable.sound {G : Surface.GlobalEnv} :
   ⊢s G ->
-  G.translate = some G' ->
+  G.translate = G' ->
   T.translate = T' ->
   Surface.ValidTyHeadVariable T (Surface.is_data G) ->
   Core.ValidTyHeadVariable T' (Core.is_data G') := by
@@ -200,7 +200,7 @@ theorem Translation.ValidHeadVariable.sound
   {Γ : Surface.TyEnv} {Γ' : Core.TyEnv}
   {t : Surface.Term} {t' : Core.Term}:
   ⊢s G ->
-  G.translate = some G' ->
+  G.translate = G' ->
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
   t.translate G' Δ' Γ' = some t' ->
@@ -272,7 +272,7 @@ theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   G&Δ,Γ ⊢s t : T ->
 
 
-  G.translate = some G' ->
+  G.translate = G' ->
   ⊢ G' ->
 
   Δ.translate = Δ' ->

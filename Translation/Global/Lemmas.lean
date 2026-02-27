@@ -8,17 +8,48 @@ import Translation.Ty.Lemmas
 import Translation.Term.Lemmas
 import Translation.Global
 
-theorem Translation.Global.is_data_sound x :
-  ⊢s G ->
-  G.translate = some G' ->
-  Surface.is_data G x ->
-  Core.is_data G' x := by
+theorem Translation.GlobalEnv.lookup_sound x :
+  G.translate = G' ->
+  Surface.lookup x G = none ->
+  Core.lookup x G' = none := by sorry
+
+theorem Translation.GlobalEnv.lookup_different_impossible x :
+  G.translate = G' ->
+  Surface.lookup x G = some e ->
+  Core.lookup x G' = none ->
+  False
+:= by sorry
+
+theorem Translation.GlobalEnv.lookup_entry_data x :
+  G.translate = G' ->
+  Surface.lookup x G = some (.data x K ctors) ->
+  Core.lookup x G' = .some (.data x K.translate ((λ x => (x.1 , x.2.translate)) <$> ctors)) := by
+intro h1 h2
+
 sorry
 
-theorem Translation.GlobalEnv.lookup_sound :
-  G.translate = some G' ->
-  (∀ x, Surface.lookup x G = none -> Core.lookup x G' = none) := by sorry
+theorem Translation.GlobalEnv.lookup_entry_ctor x :
+  G.translate = G' ->
+  Surface.lookup x G = some (.ctor x i K) ->
+  Core.lookup x G' = .some (.ctor x i K.translate) := by
+intro h1 h2
+sorry
 
+
+
+
+
+theorem Translation.Global.is_data_sound x :
+  ⊢s G ->
+  Surface.is_data G x ->
+  G.translate = G' ->
+  Core.is_data G' x := by
+intro wf h1 h2
+fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.is_data, Surface.lookup] at *
+case _ gs g ih =>
+  cases wf; case _ wfgs wfg =>
+  subst G'; subst gs; subst g <;> simp at *
+  sorry
 
 theorem Translation.Ty.ValidCtor :
   Surface.ValidCtor x T -> Core.ValidCtor x ⟦T⟧ := by
@@ -31,10 +62,9 @@ case all ih => apply Core.ValidCtor.all ih
 case arrow ih => apply Core.ValidCtor.arrow ih
 
 theorem Translation.Global.empty_data_wkn {G : Surface.GlobalEnv} {G' : Core.GlobalEnv} (x : String) (K : Surface.Kind) :
-  G.translate = some G' ->
-  Surface.GlobalEnv.translate (.data x K Vect.nil :: G) = some (.data 0 x ⟦K⟧ Vect.nil :: G') := by
-intro h; simp [Surface.GlobalEnv.translate]
-rw[Option.bind_eq_some_iff]; exists G'
+  G.translate = G' ->
+  Surface.GlobalEnv.translate (.data x K Vect.nil :: G) = (.data 0 x ⟦K⟧ Vect.nil :: G') := by
+intro h; simp [Surface.GlobalEnv.translate]; exact h
 
 theorem Surface.GlobalEnvWf.empty_data_wkn x K :
   ⊢s G -> lookup x G = none ->
@@ -45,14 +75,13 @@ theorem Surface.GlobalEnvWf.empty_data_wkn x K :
    apply lk
  · assumption
 
-
 theorem Translation.GlobalWf.sound {G : Surface.GlobalEnv} {g : Surface.Global}:
   ⊢s G ->
   Surface.GlobalWf G g ->
-  G.translate = some G' ->
+  G.translate = G' ->
   ⊢ G' ->
  ∃ g',
-    g.translate G' = some g'  ∧
+    g.translate = g'  ∧
     Core.GlobalWf G' g' := by
 intro wf h1 h2 h3; induction g <;> simp at *
 cases h1
@@ -72,51 +101,23 @@ apply Core.GlobalWf.data
   · apply And.intro
     · apply Translation.Ty.ValidCtor k2
     · apply And.intro; assumption
-      apply Translation.GlobalEnv.lookup_sound h2; apply k4
+      apply Translation.GlobalEnv.lookup_sound _ h2 k4
 · assumption
-· apply Translation.GlobalEnv.lookup_sound h2 _ lk
+· apply Translation.GlobalEnv.lookup_sound _ h2 lk
 
-theorem Translation.ListGlobalWf.wf_preserved :
+
+theorem Translation.GlobalEnv.wf_sound {G : Surface.GlobalEnv} :
   ⊢s G ->
-  G.translate = some G' ->
-  ⊢ G'
-:= by
-  intro wf h1; induction wf generalizing G' <;> simp at *
-  case nil => subst G'; apply Core.ListGlobalWf.nil
-  case cons g wfg wf ih =>
-    rw[Option.bind_eq_some_iff] at h1
-    rcases h1 with ⟨G', h1, h2⟩; cases h2
-    replace ih := ih h1
-    have lem := Translation.GlobalWf.sound wf wfg h1 ih
-    rcases lem with ⟨g', lem1, lem2⟩
-    replace ih := Core.ListGlobalWf.cons lem2 ih
-    cases g; simp at *
-    subst g'; apply ih
-
-
-theorem Translation.ListGlobalWf.sound_isSome :
-  ⊢s G ->
-  G.translate.isSome
+  ⊢ G.translate
 := by
 intro wf
-induction G using Surface.GlobalEnv.translate.induct <;> simp at *
-case _ ih =>
-  cases wf; case _ g gs wftl wfg =>
-  replace ih := ih wftl
-  rw[Option.isSome_iff_exists] at ih
-  rcases ih with ⟨gs', ih⟩
-  rw[Option.isSome_iff_exists]
-  exists (Core.Global.data g.1 g.2 ⟦g.3⟧ (Surface.Ty.translate_ctors g.4) :: gs')
-  rw[ih]; simp
-
-theorem Translation.ListGlobalWf.sound {G : Surface.GlobalEnv} :
-  ⊢s G ->
-  ∃ G', G.translate = some G' ∧
-  ⊢ G'
-:= by
-  intro wf
-  have lem := sound_isSome wf
-  generalize zdef : G.translate = z at *
-  cases z <;> simp at lem; case _ v =>
-  exists v; apply And.intro rfl
-  apply wf_preserved wf zdef
+induction G <;> simp at *
+case _ => apply Core.ListGlobalWf.nil
+case _ g gs ih =>
+cases wf; case _ wfgs wfg =>
+replace ih := ih wfgs
+have lem := Translation.GlobalWf.sound wfgs  wfg rfl ih
+rcases lem with ⟨g', lem1, lem2⟩; subst g'
+cases g; simp [Surface.Global.translate] at lem2;
+apply Core.ListGlobalWf.cons _ ih
+simp; apply lem2
