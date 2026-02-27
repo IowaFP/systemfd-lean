@@ -67,32 +67,19 @@ theorem GlobalWf.closed_ctors {v : Vect n (Option Entry)} {d : Option Entry} :
   ∀ σ, T[σ] = T
 := by
   intro h1 h2 h3
-  apply Vect.induction (A := Option Entry)
-    (motive := λ n Q =>
-               (∀ (v : Vect n (Option Entry)),
-               (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
-               (Option.map Entry.type (Vect.fold d Option.or v)).get! = some T ->
-               ∀ σ, T[σ] = T ))
-  case nil =>
-    intro v h2 h3; have h := Vect.eta0 (v := v); subst h; simp at *; apply h1 h3
-  case cons =>
-    clear v h2 h3
-    intro n' tl _ ih v h2 h3
-    have lem := v.eta
-    rw[lem] at h3; simp at h3;
-    generalize vdef : v.head = vhd at *
-    cases vhd <;> simp at *
+  induction v using Vect.induction
+  case nil => apply h1 h3
+  case cons hd tl ih =>
+    simp at h3
+    cases hd <;> simp at *
     case none =>
-      apply ih _ _
+      apply ih _
       apply h3
       intro i en e1 e2
-      replace h2 := h2 (Fin.succ i) en (by rw[lem]; exact e1) e2
+      replace h2 := h2 (Fin.succ i) en (by simp; exact e1) e2
       apply h2
     case some =>
-      apply h2 0 _ _ h3; simp [Vect.head] at vdef; assumption
-  apply v
-  apply h2
-  apply h3
+      apply h2 0 _ _ h3; simp
 
 theorem GlobalWf.closed {G : List Global} :
   ⊢s G ->

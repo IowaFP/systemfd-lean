@@ -1,6 +1,6 @@
 import Core.Ty
 import Core.Term
-import Core.Metatheory.Determined
+import Core.Metatheory.Determined.Definition
 import Surface.Ty
 import Surface.Term
 
@@ -361,7 +361,7 @@ case app Δ A Γ f B a j1 j2 j3 ih1 ih2 =>
     · apply ih1f
     · rw[Option.bind_eq_some_iff]; exists a'
   · apply And.intro;
-    · apply Core.Term.Determined.app; apply ih2f; apply ih2a
+    · apply Core.Term.Determined.app.1 ⟨ih2f, ih2a⟩
     · have lem := Translation.Ty.sound wf ⟨j1, h1, rfl⟩
       rcases lem with ⟨K', T', e1, e2, jk⟩
       simp at e1; subst K'; subst e2;

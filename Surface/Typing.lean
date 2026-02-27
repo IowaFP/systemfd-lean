@@ -149,11 +149,11 @@ inductive ValidCtor (x : String) : Ty -> Prop where
 inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | data {ctors : Vect n (String × Ty)} {ctors' : Vect n String} {G : GlobalEnv}:
   (∀ i y T, ctors i = (y, T) ->
-    (.data x K Vect.nil::G)&[] ⊢s T : `★ ∧
-     ValidCtor x T ∧
-     none = lookup y (.data x K Vect.nil::G)) ->
-  (ctors' = λ i => (ctors i).1) ->
-   ctors'.HasUniqueElems ->
+    (Global.data x K Vect.nil :: G)&[] ⊢s T : `★
+    ∧ ValidCtor x T
+    ∧ x ≠ y
+    ∧ lookup y G = none) ->
+  (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
   lookup x G = none ->
   GlobalWf G (.data x K ctors)
 

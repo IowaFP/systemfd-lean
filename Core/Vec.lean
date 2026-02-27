@@ -145,7 +145,7 @@ case _ n ih => sorry
 
 
 def Vect.seq_lemma (vs : Vect n (Option Q)) :
-  (Σ' (i : Fin n), (vs i).isSome = false) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
+  (Σ' (i : Fin n), ¬ (vs i).isSome) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
 := by {
     induction n
     case _ =>
@@ -183,8 +183,6 @@ def Vect.seq (vs : Vect n (Option Q)) : Option (Vect n Q) :=
   }))
 
 
-#eval Vect.seq ([some 1, some 2] : Vect 2 (Option Nat))
-
 theorem Vect.seq_sound {vs : Vect n (Option Q)} {vs' : Vect n Q}:
   vs.seq = some vs' ->
   ∀ i, (vs i) = some (vs' i) := by
@@ -221,18 +219,37 @@ theorem Vect.get_elem_if_eq_sound [BEq Q] {vs : Vect n Q} {t : Q} :
   ∀ i, vs i = t := by
 intro h i
 induction n <;> simp [Vect.get_elem_if_eq, Vect.uncons] at *
-case _ n ih => sorry
+case _ n ih =>
+  have ih := @ih vs.tail
+  sorry
 
-def Vect.elems_eq_to [BEq Q] (e : Q) : {n : Nat} -> (vs : Vect n Q) -> Bool
-| 0, _ => true
-| _ + 1, vs =>
-  match vs.uncons with
-  | ⟨h, vs'⟩ =>
-    if h == e then vs'.elems_eq_to e else false
+def Vect.elems_eq_to [BEq Q] {n : Nat} (e : Q) : (vs : Vect n Q) -> Bool := λ vs =>
+vs.fold true (λ c acc => c == e && acc)
+-- :=
+-- | 0, _ => true
+-- | _ + 1, vs =>
+--   match vs.uncons with
+--   | ⟨h, vs'⟩ =>
+--     h == e && vs'.elems_eq_to e
 
-theorem Vect.elems_eq_to_sound [BEq Q] {e : Q} {vs : Vect n Q} :
+theorem Vect.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vect n Q} :
   vs.elems_eq_to e = true ->
-  ∀ i, (vs i) = e := by sorry
+  ∀ i, (vs i) = e := by
+intro h
+apply Vect.induction (A := Q) (motive := λ x v => v.elems_eq_to e = true -> ∀ i, v i = e)
+  (nil := by simp)
+  (cons := by
+    intro n hd tl ih h x
+    simp [Vect.elems_eq_to] at h
+    rcases h with ⟨e1, e2⟩
+    replace ih := ih e2
+
+    sorry)
+  vs
+  h
+
+
+
 
 theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
   (∀ i, ∃ T, f (v i) = some T) ->

@@ -5,11 +5,19 @@ import Surface.Typing
 
 import Translation.Ty
 
-def Core.is_valid_ctor_ty (G : Core.GlobalEnv) : Core.Ty -> Option Unit
+def Core.is_valid_ctor_ty (G : Core.GlobalEnv) : Core.Ty -> Option String
 | .all _ T => is_valid_ctor_ty G T
 | .arrow _ T => is_valid_ctor_ty G T
 | t => do let (x, _) <- t.spine
-          if Core.is_data G x then return () else none
+          if Core.is_data G x then return x else none
+
+
+def Surface.is_valid_ctor_ty (G : Surface.GlobalEnv) : Surface.Ty -> Option String
+| .all _ T => is_valid_ctor_ty G T
+| .arrow _ T => is_valid_ctor_ty G T
+| t => do let (x, _) <- t.spine
+          if Surface.is_data G x then return x else none
+
 
 def Surface.Ty.translate_ctors (G : Core.GlobalEnv) (ctors : Vect n  (String × Surface.Ty)) : Option (Vect n (String × Core.Ty)) := do
   -- check that names are unique
@@ -17,7 +25,7 @@ def Surface.Ty.translate_ctors (G : Core.GlobalEnv) (ctors : Vect n  (String × 
 
   let octors : Vect n (Option (String × Core.Ty)) :=  (λ (x, ty) =>
     do let ty' := ty.translate
-       Core.is_valid_ctor_ty G ty'
+       let _ <- Core.is_valid_ctor_ty G ty'
        return (x , ty')) <$> ctors
   octors.seq
 
@@ -41,10 +49,6 @@ def Surface.GlobalEnv.translate : Surface.GlobalEnv -> Option (Core.GlobalEnv)
 namespace Test.Core.Global
 
 
-def t := ([ ("1" , gt`#"One")] : Vect 1 (String × Surface.Ty))
-
-#eval (gt`#"One").translate
-
--- #eval Surface.Ty.translate_ctors [] t
+#guard (gt`#"One").translate == gt#"One"
 
 end Test.Core.Global
