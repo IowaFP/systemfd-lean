@@ -55,21 +55,6 @@ theorem length_coerce: ∀ n, Vect.length v = n -> (Vect.to_list v).length = n :
 apply v.induction <;> simp [Vect.length] at *
 
 
-def Vect.finIdxOf? [BEq Q] (c : Q) {n : Nat} (v : Vect n Q) : Option (Fin n) := by
-  have lem := List.finIdxOf? c v
-  have lem2 := Vect.length_bound v
-  have lem3 := length_coerce _ lem2
-  rw[lem3] at lem
-  apply lem
-
-theorem Vect.finIdxOf?_eq_some_iff [BEq Q] [LawfulBEq Q] {n : Nat} {v : Vect n Q} {i : Fin n} :
-  v.finIdxOf? a = some i ↔ (v i = a) ∧ ∀ (j : Fin n), j < i → ¬ v j = a
-:= by
-  unfold Vect.finIdxOf?; simp;
-  -- rw[List.finIdxOf?_eq_some_iff (a := a) (l := Vect.to_list v)]
-  sorry
-
-
 def Vect.seq_lemma (vs : Vect n (Option Q)) :
   (Σ' (i : Fin n), ¬ (vs i).isSome) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
 := by {
@@ -131,40 +116,8 @@ apply Vect.induction
     )
   vs vs' i h
 
--- Returns the 1st element if all the elements are equal
-def Vect.get_elem_if_eq [BEq Q] (vs : Vect n Q) : Option Q :=
-match n with
-| 0 => none
-| _ + 1 =>  match vs.uncons with
-  | ⟨h, vs'⟩ => do
-    if vs'.fold true (λ c acc => c == h && acc)
-    then return h else none
-
-theorem Vect.get_elem_if_eq_sound [BEq Q] {vs : Vect n Q} {t : Q} :
-  vs.get_elem_if_eq = some t ->
-  ∀ i, vs i = t := by
-apply vs.induction
-case _ => simp
-case _ =>
-  intro n hd tl ih
-  simp [Vect.get_elem_if_eq];
-  intro h1 h2
-  subst t
-
-  sorry
--- induction n <;> simp [Vect.get_elem_if_eq, Vect.uncons] at *
--- case _ n ih =>
---   have ih := @ih vs.tail
---   sorry
-
 def Vect.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vect n Q) : Bool :=
   vs.fold true (λ c acc => c == e && acc)
--- :=
--- | 0, _ => true
--- | _ + 1, vs =>
---   match vs.uncons with
---   | ⟨h, vs'⟩ =>
---     h == e && vs'.elems_eq_to e
 
 theorem Vect.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vect n Q} :
   vs.elems_eq_to e = true ->
@@ -173,24 +126,9 @@ apply vs.induction <;> simp [Vect.elems_eq_to] at *
 case _ =>
   intro n hd tl ih e h
   subst hd; replace ih := ih h
-
   intro i'
-  sorry
-
--- intro h
--- apply Vect.induction (A := Q) (motive := λ x v => v.elems_eq_to e = true -> ∀ i, v i = e)
---   (nil := by simp)
---   (cons := by
---     intro n hd tl ih h x
---     simp [Vect.elems_eq_to] at h
---     rcases h with ⟨e1, e2⟩
---     replace ih := ih e2
-
---     sorry)
---   vs
---   h
-
-
+  induction i' using Fin.induction <;> simp at *
+  case _ i _ => apply ih i
 
 
 theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
@@ -218,3 +156,41 @@ theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
     rcases h with ⟨q', h⟩
     have lem := Vect.seq_sound T'def
     replace lem := lem i; simp at lem; assumption
+
+
+-- Returns the 1st element if all the elements are equal
+def Vect.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vect n Q) : Option Q :=
+match n with
+| 0 => none
+| _ + 1 => match vs.uncons with
+  | ⟨h, vs'⟩ => if Vect.elems_eq_to h vs' then return h else none
+
+theorem Vect.get_elem_if_eq_sound[BEq Q] [LawfulBEq Q] {vs : Vect n Q} {t : Q} :
+  vs.get_elem_if_eq = some t ->
+  ∀ i, vs i = t := by
+apply vs.induction
+case _ => simp
+case _ =>
+  intro n hd tl ih
+  simp [Vect.get_elem_if_eq];
+  intro h1 h2
+  subst t; intro i
+  induction i using Fin.induction <;> simp at *
+  case _ i h =>
+    have lem := Vect.elems_eq_to_sound h1
+    apply lem i
+
+
+def Vect.finIdxOf? [BEq Q] (c : Q) {n : Nat} (v : Vect n Q) : Option (Fin n) := by
+  have lem := List.finIdxOf? c v
+  have lem2 := Vect.length_bound v
+  have lem3 := length_coerce _ lem2
+  rw[lem3] at lem
+  apply lem
+
+theorem Vect.finIdxOf?_eq_some_iff [BEq Q] [LawfulBEq Q] {n : Nat} {v : Vect n Q} {i : Fin n} :
+  v.finIdxOf? a = some i ↔ (v i = a) ∧ ∀ (j : Fin n), j < i → ¬ v j = a
+:= by
+  unfold Vect.finIdxOf?; simp;
+  -- rw[List.finIdxOf?_eq_some_iff (a := a) (l := Vect.to_list v)]
+  sorry
