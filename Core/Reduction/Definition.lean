@@ -78,12 +78,13 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   some (s_h, s_sp) = Term.spine s ->
   ps' = (λ x => do
     let (m_h, m_sp) <- x.fst.spine
-    if s_h = m_h then return (m_sp, x.2) else none) <$> ps.zip cs ->
-
+    if s_h = m_h then
+      match prefix_equal m_sp s_sp  with
+      | some p => return (p, x.2)
+      | none => none
+      else none) <$> ps.zip cs ->
   ps'.any.getD ([], c) = (sp', t) ->
-  some p = prefix_equal sp' s_sp ->
-
-  Red G (.match n s ps cs c) (t.apply p)
+  Red G (.match n s ps cs c) (t.apply sp')
 
 ----------------------------------------------------------------
 ---- Guard Matching

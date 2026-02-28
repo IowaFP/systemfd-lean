@@ -55,41 +55,53 @@ case global =>
     simp [lookup_type] at h1; rw[lem] at h1; simp [Entry.type] at h1; cases h1
     simp [lookup_defn] at h; rw[lem] at h; simp at h; cases h
     apply lookup_defn_type_sound (Γ := Γ) (Δ := Δ) wf lem
-case mtch => sorry
-  -- cases h
-  -- case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 _ _ _ _ x _ _ i patshapes' patshapes cns h6 h7 h8 h9 h10 h11 =>
-  --   apply preservation_prefix_match wf
-  --   apply (h2 i)
-  --   apply j1
-  --   apply h4 i
-  --   apply h3 i
-  --   apply h5 i
-  --   apply (Eq.symm h9)
-  --   · have lem2 := Vect.seq_sound h6
-  --     replace lem2 := lem2 i
-  --     have lem4 : (pats i).spine = patshapes' i := by rw[h11]
-  --     rw[lem4]; rw[lem2]
-  --   · have lem3 := Vect.seq_sound h6; replace lem4 := lem3 i
-  --     rw[h11] at lem3; simp at lem3; rw[<-h10];
-  --     rw[Vect.finIdxOf?_eq_some_iff] at h8
-  --     have lem4 : (patshapes i).fst = cns i := by rw[h7]
-  --     simp; rw[lem4, h8.1];
+case mtch =>
 
-  -- case match_congr ih _ _ _ _ h =>
-  --   constructor; apply ih h; repeat assumption
-  -- case match_absorb h _ _ _ _ _ _ _ _ _ _  =>
-  --   replace h := Typing.well_typed_terms_have_base_kinds wf h
-  --   cases h; apply Typing.zero; assumption
-  -- case match_map j _ _ _ _ _ _ _ _ _ _ h ih =>
-  --   have lem := Typing.well_typed_terms_have_base_kinds wf j
-  --   cases lem;
-  --   cases h
-  --   apply Typing.choice
-  --   assumption
-  --   · apply Typing.mtch; repeat assumption
-  --   · apply Typing.mtch; repeat assumption
-  -- all_goals (try case _ h => simp [Term.spine] at h)
-  -- all_goals (try case _ h _ => simp [Term.spine] at h)
+  cases h
+  case data_match pats _ j1 vhv j2 h1 h2 h3 h4 h5 h6 h7 h8 h9 _ t sp' _ ps' h11 h12 h13 =>
+    generalize zdef : ps'.any = z at *
+    cases z
+    case none =>
+      simp at h13; cases h13.1; cases h13.2; clear h13;
+      simp [Term.apply]; exact j2
+    case some v =>
+      have lem := Vect.any_returns_first _ zdef
+      simp at h12; rcases lem with ⟨i, lem1, lem2⟩
+      simp at h13; subst v;
+      replace h12 := congrFun h12 i; simp at h12;
+      rw[lem1] at h12; symm at h12
+      rw[Option.bind_eq_some_iff] at h12
+      rcases h12 with ⟨pnf, h12, h13⟩
+      simp at h13; rcases h13 with ⟨e1, h13⟩
+      cases e1; generalize pdef : prefix_equal pnf.snd t = p at *
+      cases p <;> simp at h13
+      cases h13.1; cases h13.2; clear h13
+      rw[Vect.zip_sound]; simp; rw[Vect.zip_sound] at h12 zdef lem1; simp at *
+      apply preservation_prefix_match wf
+      apply (h2 i)
+      apply j1
+      apply h4 i
+      apply h3 i
+      apply h5 i
+      apply pdef
+      apply h12
+      apply (Eq.symm h11)
+
+  case match_congr ih _ _ _ _ h =>
+    constructor; apply ih h; repeat assumption
+  case match_absorb h _ _ _ _ _ _ _ _ _ _  =>
+    replace h := Typing.well_typed_terms_have_base_kinds wf h
+    cases h; apply Typing.zero; assumption
+  case match_map j _ _ _ _ _ _ _ _ _ _ h ih =>
+    have lem := Typing.well_typed_terms_have_base_kinds wf j
+    cases lem;
+    cases h
+    apply Typing.choice
+    assumption
+    · apply Typing.mtch; repeat assumption
+    · apply Typing.mtch; repeat assumption
+  all_goals (try case _ h => simp [Term.spine] at h)
+  all_goals (try case _ h _ => simp [Term.spine] at h)
 
 case guard =>
   cases h
