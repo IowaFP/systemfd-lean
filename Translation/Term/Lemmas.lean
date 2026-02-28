@@ -275,6 +275,7 @@ theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   ∃ t', t.translate G' Δ' Γ' = some t' ∧
         t'.Determined ∧
         G'&Δ',Γ' ⊢ t' : T.translate := by
+
 intro wf j h1 wfc h2 h3
 induction j generalizing Δ' Γ' <;> simp at *
 case var Γ x T Δ b h jk =>
