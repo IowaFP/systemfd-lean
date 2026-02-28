@@ -32,18 +32,11 @@ theorem Translation.GlobalEnv.lookup_ty_sound {G : Surface.GlobalEnv} : -- maybe
 intro wf h1 i K Δ h2
 sorry
 
-theorem Translation.GlobalEnv.is_ctor_sound {G: Surface.GlobalEnv} :
+theorem Translation.Entry.is_ctor_sound {G: Surface.GlobalEnv} :
   ⊢s G ->
   G.translate = G' ->
   Surface.is_ctor G x ->
   Core.is_ctor G' x := by sorry
-
-theorem Translation.GlobalEnv.is_data_sound {G: Surface.GlobalEnv} :
-  ⊢s G ->
-  G.translate = G' ->
-  Surface.is_data G x ->
-  Core.is_data G' x := by
-sorry
 
 
 theorem Translation.Term.Spine
@@ -137,7 +130,7 @@ simp [Core.ValidTyHeadVariable]
 exists (sp.fst)
 apply And.intro
 · exists sp'
-· apply Translation.GlobalEnv.is_data_sound wf h1 h4
+· apply Translation.Entry.is_data_sound _ wf h4 h1
 
 
 theorem Translation.StableTypeMatch.sound :
@@ -216,7 +209,7 @@ simp [Core.ValidHeadVariable]
 exists (sp.fst)
 apply And.intro
 · exists sp'
-· apply Translation.GlobalEnv.is_ctor_sound wf h1 h5
+· apply Translation.Entry.is_ctor_sound wf h1 h5
 
 
 theorem Translation.TyEnv.translation_comm_rename (Γ : Surface.TyEnv):

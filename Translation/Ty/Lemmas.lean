@@ -5,6 +5,7 @@ import Translation.Global
 import Core.Typing
 import Surface.Typing
 import Surface.Metatheory.Inversion
+import Core.Metatheory.GlobalWf
 import Translation.Rename
 
 open LeanSubst
@@ -27,11 +28,37 @@ theorem Translation.GlobalEnv.lookup_different_impossible x :
 
 theorem Translation.GlobalEnv.lookup_entry_data x :
   G.translate = G' ->
-  Surface.lookup x G = some e ->
-  Core.lookup x G' = .some e.translate := by
+  Surface.lookup x G = some en ->
+  Core.lookup x G' = .some en.translate := by
 intro h1 h2
+fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup] at *
 
-sorry
+case _ g gs gs' g' h1 =>
+split at h2;
+case isTrue =>
+  subst G';
+  simp [gs', g'] at *
+  subst x; subst en; simp [Core.lookup, Surface.Entry.translate];
+  cases g; simp at *; unfold Surface.Ty.translate_ctors; simp
+case isFalse =>
+  replace h2 := Core.EntryWf.from_lookup_vec1 h2
+  cases h2
+  case inl h2 =>
+    rcases h2 with ⟨i, h2⟩
+    simp at h2; rcases h2 with ⟨e, h2⟩; subst e; subst en;
+    subst G'; subst g'; subst gs'; simp [Core.lookup]at *;
+    split
+    · contradiction
+    · sorry
+  case inr h =>
+    replace h1 := h1 h; subst G'; simp [g', Core.lookup];
+    split <;> simp at *
+    · contradiction
+    · rw[h1]; apply Core.EntryWf.from_lookup_vec3;
+      intro i; split  <;> simp at *
+      simp [Surface.Ty.translate_ctors] at *; subst x; sorry
+
+
 
 theorem Translation.GlobalEnv.lookup_kind_sound :
   G.translate = G' ->
@@ -39,14 +66,6 @@ theorem Translation.GlobalEnv.lookup_kind_sound :
   Core.lookup_kind G' x = some K'  := by
 intro h1 h2
 sorry
--- fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup_kind, Surface.lookup] at h2
--- case _ g gs ih =>
---   cases g <;> simp at *
---   case _ y _ _ =>
---   generalize zdef : (x == y) = z at *
---   cases z <;> simp at *
---   · sorry
---   · subst y; simp [Surface.Entry.kind] at h2; sorry
 
 
 theorem Translation.Entry.is_data_sound x :
@@ -56,10 +75,22 @@ theorem Translation.Entry.is_data_sound x :
   Core.is_data G' x := by
 intro wf h1 h2
 fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.is_data, Surface.lookup] at *
-case _ gs g ih =>
+case _ g gs gs' g' ih =>
   cases wf; case _ wfgs wfg =>
-  subst G'; subst gs; subst g <;> simp at *
-  sorry
+  subst G'; subst gs'; subst g' <;> simp at *
+  replace ih := ih wfgs
+  split at h1
+  case isTrue =>
+    subst x; simp at h1; simp [Core.is_data, Core.lookup, Core.Entry.is_data]
+  case isFalse =>
+    generalize zdef : Vect.fold (Surface.lookup x gs) Option.or (fun i =>
+          if x = (g.4 i).fst then some (Surface.Entry.ctor (g.4 i).fst (↑i) (g.4 i).snd) else none) = z at *
+    cases z <;> simp at *
+    have lem := Core.EntryWf.from_lookup_vec1 zdef
+    rcases lem with ⟨i, lem⟩
+    simp at lem; rcases lem with ⟨e, lem⟩; subst x;
+    sorry
+    sorry
 
 
 theorem Translation.KindEnv.sound {Δ : Surface.KindEnv} {Δ' : Core.KindEnv} :
