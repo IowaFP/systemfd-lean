@@ -71,30 +71,20 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
-| data_match (ps: Vect n Term)
-             (patshapes' : Vect n (Option (String × List SpineElem)))
-             (patshapes : Vect n (String × List SpineElem))
-             (cns : Vect n String)
-             (cs : Vect n Term) :
-  some (x, sp) = Term.spine s ->
-  (patshapes' = λ i => (ps i).spine) ->
-  (patshapes'.seq = some patshapes) ->
-  (cns = ((λ (x : String × List SpineElem) => x.1) <$> patshapes)) ->
-  cns.finIdxOf? x = some i ->
-  some p = prefix_equal (patshapes i).2 sp ->
-  Red G (.match n s ps cs c) ((cs i).apply p)
-| data_match_default
-             (ps: Vect n Term)
-             (patshapes' : Vect n (Option (String × List SpineElem)))
-             (patshapes : Vect n (String × List SpineElem))
-             (cns : Vect n String)
-             (cs : Vect n Term) :
-  some (x, sp) = Term.spine s ->
-  (patshapes' = λ i => (ps i).spine) ->
-  (patshapes'.seq = some patshapes) ->
-  (cns = (·.1) <$> patshapes) ->
-  cns.finIdxOf? x = none ->
-  Red G (.match n s ps cs c) c
+| data_match {t  : Term}{sp' : List SpineElem}
+             (ps : Vect n Term)
+             (cs : Vect n Term)
+             (ps': Vect n (Option (List SpineElem × Term))) :
+  some (s_h, s_sp) = Term.spine s ->
+  ps' = (λ x => do
+    let (m_h, m_sp) <- x.fst.spine
+    if s_h = m_h then return (m_sp, x.2) else none) <$> ps.zip cs ->
+
+  ps'.any.getD ([], c) = (sp', t) ->
+  some p = prefix_equal sp' s_sp ->
+
+  Red G (.match n s ps cs c) (t.apply p)
+
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------

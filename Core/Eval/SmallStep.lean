@@ -197,23 +197,43 @@ def eval_inst_beta (G : List Global) :  Term -> Option Term
       else .some `0
     | .none => .none
 
-| .match (n := n) s ps' cs default => do
-   let ps : Vect n (Option (String × List SpineElem)) := λ i => (ps' i).spine
-   let ps <- ps.seq -- just fail if patterns are not of the correct shape
-   let p_pats : Vect n String := λ i => (ps i).1
-   let p_sps : Vect n (List SpineElem) := λ i => (ps i).2
+| .match (n := n) s ps cs default =>
    match eval_inst_beta G s with
-   | .some s' => return .match n s' ps' cs default
-   | .none => match s.spine with
-           | .none => .none -- stuck term, cannot evaluate and not in neutral form
-           | .some (s_x, s_sp) => do
-               match (p_pats.finIdxOf? s_x) with
-               | .none => return default -- catch all case
-               | .some i => do
-                       let pat_sp : List SpineElem := (p_sps i)
-                       match prefix_equal pat_sp s_sp with
-                       | .some p => return (cs i).apply p
-                       | .none => none -- stuck term
+   | some s' => return .match n s' ps cs default
+   | none => match s.spine with
+             | some (s_h, s_sp) =>  do
+                    let ps' : Vect n (Option (List SpineElem × Term)) := (λ x => do
+                      let (p_h, p_sp) <- x.fst.spine
+                      if (p_h == s_h) then return (p_sp, x.snd) else none) <$> ps.zip cs
+                    match ps'.any with
+                    | some (sp', t) =>
+                      match prefix_equal sp' s_sp with
+                      | some p => t.apply p
+                      | none => none -- stuck
+                    | none => return default
+             | none => none
+
+
+
+
+   -- let ps : Vect n (Option (String × List SpineElem)) := λ i => (ps' i).spine
+   -- let ps <- ps.seq -- just fail if patterns are not of the correct shape
+   -- let p_pats : Vect n String := λ i => (ps i).1
+   -- let p_sps : Vect n (List SpineElem) := λ i => (ps i).2
+   -- match eval_inst_beta G s with
+   -- | .some s' => return .match n s' ps' cs default
+   -- | .none => match s.spine with
+   --         | .none => .none -- stuck term, cannot evaluate and not in neutral form
+   --         | .some (s_x, s_sp) => do
+
+
+   --             match (p_pats.finIdxOf? s_x) with
+   --             | .none => return default -- catch all case
+   --             | .some i => do
+   --                     let pat_sp : List SpineElem := (p_sps i)
+   --                     match prefix_equal pat_sp s_sp with
+   --                     | .some p => return (cs i).apply p
+   --                     | .none => none -- stuck term
 
 | t => match t.spine with
        | .some (x, sp) =>

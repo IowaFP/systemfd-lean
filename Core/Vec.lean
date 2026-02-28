@@ -180,17 +180,33 @@ case _ =>
     have lem := Vect.elems_eq_to_sound h1
     apply lem i
 
+-- def Vect.any_lemma {n : Nat} (vs : Vect n (Option T)) : Option (Fin n × T) :=
+--   match n with
+--   | 0 => none
+--   | n' + 1 => match vs.uncons with
+--     | ⟨h, tl⟩ => if h.isSome then return (Fin.ofNat (n + 1) n', h) else tl.any
 
-def Vect.finIdxOf? [BEq Q] (c : Q) {n : Nat} (v : Vect n Q) : Option (Fin n) := by
-  have lem := List.finIdxOf? c v
-  have lem2 := Vect.length_bound v
-  have lem3 := length_coerce _ lem2
-  rw[lem3] at lem
-  apply lem
 
-theorem Vect.finIdxOf?_eq_some_iff [BEq Q] [LawfulBEq Q] {n : Nat} {v : Vect n Q} {i : Fin n} :
-  v.finIdxOf? a = some i ↔ (v i = a) ∧ ∀ (j : Fin n), j < i → ¬ v j = a
-:= by
-  unfold Vect.finIdxOf?; simp;
-  -- rw[List.finIdxOf?_eq_some_iff (a := a) (l := Vect.to_list v)]
-  sorry
+
+-- returns the first element that is not none
+def Vect.any {n : Nat} (vs : Vect n (Option T)) : Option T :=
+  match n with
+  | 0 => none
+  | _ + 1 => match vs.uncons with
+    | ⟨h, tl⟩ => if h.isSome then h else tl.any
+
+
+-- TODO : Any actually matches the first element
+theorem Vect.any_returns_first {t : T} {vs : Vect n (Option T)}:
+  vs.any = some t ->
+  ∃ i, vs i = some t ∧ ∀ j, j < i -> vs i = none := by
+intro h
+
+sorry
+
+
+def Vect.zip {n} (ps: Vect n Q) (cs : Vect n Q') : Vect n (Q × Q') := λ i => (ps i , cs i)
+
+theorem Vect.zip_sound {n} {ps: Vect n Q} {cs : Vect n Q'} :
+  ∀ i, (ps.zip cs i) = (ps i , cs i) := by
+intro i; simp [Vect.zip]
