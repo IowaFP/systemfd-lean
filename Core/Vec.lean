@@ -180,13 +180,6 @@ case _ =>
     have lem := Vect.elems_eq_to_sound h1
     apply lem i
 
--- def Vect.any_lemma {n : Nat} (vs : Vect n (Option T)) : Option (Fin n × T) :=
---   match n with
---   | 0 => none
---   | n' + 1 => match vs.uncons with
---     | ⟨h, tl⟩ => if h.isSome then return (Fin.ofNat (n + 1) n', h) else tl.any
-
-
 
 -- returns the first element that is not none
 def Vect.any {n : Nat} (vs : Vect n (Option T)) : Option T :=
@@ -196,13 +189,27 @@ def Vect.any {n : Nat} (vs : Vect n (Option T)) : Option T :=
     | ⟨h, tl⟩ => if h.isSome then h else tl.any
 
 
--- TODO : Any actually matches the first element
-theorem Vect.any_returns_first {t : T} {vs : Vect n (Option T)}:
+-- Proof that Any actually matches the first element
+theorem Vect.any_returns_first {t : T} : ∀ n, {vs : Vect n (Option T)} ->
   vs.any = some t ->
-  ∃ i, vs i = some t ∧ ∀ j, j < i -> vs i = none := by
-intro h
-
-sorry
+  ∃ i, vs i = some t ∧ ∀ j, j < i -> vs j = none := by
+apply Vect.induction <;> simp [Vect.any]
+case _ =>
+  intro n hd tl ih h
+  split at h
+  case _ => exists 0; simp; exact h
+  case _ =>
+    replace ih := ih h;
+    rcases ih with ⟨i, ih1, ih2⟩
+    exists Fin.succ i
+    apply And.intro
+    case _ => simp; exact ih1
+    case _ =>
+      intro j
+      induction j using Fin.induction <;> simp at *
+      case _ h => exact h
+      case _ j ih h =>
+        intro le; replace ih2 := ih2 _ le; exact ih2
 
 
 def Vect.zip {n} (ps: Vect n Q) (cs : Vect n Q') : Vect n (Q × Q') := λ i => (ps i , cs i)
