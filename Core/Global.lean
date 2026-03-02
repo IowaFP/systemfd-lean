@@ -192,31 +192,42 @@ intro h1
 replace h1 := lookup_defn_is_defn_sound h1
 apply lookup_entry_defn_exists h1
 
-theorem is_stable_implies_not_is_openm :
-  is_stable G x -> ¬ is_openm G x := by
-intro h1 h2
-simp [is_stable] at h1;
-cases h1
-all_goals (
-  case _ h1 =>
-    have lem := lookup_entry_openm_exists h2
-    rcases lem with ⟨_, _, lem⟩
-    simp [is_ctor, is_instty] at h1; rw[lem] at h1
-    simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
-)
+theorem is_stable_implies_not_is_openm : is_stable G x -> ¬ is_openm G x := by
+  intro h1 h2
+  simp [is_stable] at h1;
+  cases h1
+  all_goals
+    case _ h1 =>
+      have lem := lookup_entry_openm_exists h2
+      rcases lem with ⟨_, _, lem⟩
+      simp [is_ctor, is_instty] at h1; rw[lem] at h1
+      simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
+grind_pattern is_stable_implies_not_is_openm => is_stable G x, is_openm G x
 
-theorem is_stable_implies_not_is_defn :
-  is_stable G x -> ¬ is_defn G x := by
-intro h1 h2
-simp [is_stable] at h1;
-cases h1
-all_goals (
-  case _ h1 =>
-    have lem := lookup_entry_defn_exists h2
-    rcases lem with ⟨_, _, _, lem⟩
-    simp [is_ctor, is_instty] at h1; rw[lem] at h1
-    simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
-)
+theorem is_stable_implies_not_is_defn : is_stable G x -> ¬ is_defn G x := by
+  intro h1 h2
+  simp [is_stable] at h1;
+  cases h1
+  all_goals
+    case _ h1 =>
+      have lem := lookup_entry_defn_exists h2
+      rcases lem with ⟨_, _, _, lem⟩
+      simp [is_ctor, is_instty] at h1; rw[lem] at h1
+      simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
+grind_pattern is_stable_implies_not_is_defn => is_stable G x, is_defn G x
+
+theorem is_stable_implies_lookup_defn_none : is_stable G x -> lookup_defn G x = none := by
+  intro h
+  have lem := is_stable_implies_not_is_defn h
+  unfold is_defn at lem; unfold lookup_defn; simp
+  intro a h2; rw [h2] at lem; simp at lem
+  cases a <;> simp
+  simp [Entry.is_defn] at lem
+grind_pattern is_stable_implies_lookup_defn_none => is_stable G x
+
+theorem is_openm_implies_lookup_defn_none : is_openm G x -> lookup_defn G x = none := by
+  sorry
+grind_pattern is_openm_implies_lookup_defn_none => is_openm G x
 
 theorem not_stable_implies_openm_or_defn :
   is_stable G x = false ->

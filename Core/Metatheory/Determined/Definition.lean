@@ -33,7 +33,6 @@ def Determined.defn (G : List Global) (x : String) : Prop :=
 def Global.Determined (G : List Global) : Prop :=
   ∀ x, Determined.openm G x ∧ Determined.defn G x
 
-
 theorem Term.Determined.var : (#x).Determined := by
   unfold Term.Determined; apply VariantMissing.var
 

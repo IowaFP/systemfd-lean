@@ -25,6 +25,8 @@ inductive Value (G : List Global) : Term -> Prop where
 | lamt : Value G (Λ[K] t)
 | refl : Value G (refl! A)
 
+attribute [grind .] Value.choice
+
 @[simp]
 def Ctor2Variant.congr1 : Ctor2Variant -> Bool
 | app _ => true

@@ -83,6 +83,7 @@ instance instLawfulBEq_SpineElem : LawfulBEq SpineElem where
     intro a b; cases a <;> simp [instBEq_SpineElem, SpineElem.beq] at *
     all_goals (cases b <;> simp at *)
 
+@[grind]
 def Term.spine : Term -> Option (String × List SpineElem)
 | g#x => return (x, [])
 | ctor2 (.app .closed) f a => do
