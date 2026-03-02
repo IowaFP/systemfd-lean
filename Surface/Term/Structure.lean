@@ -10,14 +10,13 @@ namespace Surface
 inductive SpineElem : Type where
 | type (x : Ty)
 | term (x : Term)
--- | oterm (x : Term)
 deriving Repr
 
 @[simp]
 def SpineElem.rmap (r : Ren) : SpineElem -> SpineElem
 | type T => type T[r:Ty]
 | term t => term t[r:Term]
--- | oterm t => oterm t[r:Term]
+
 
 instance instRenMap_SpineElem : RenMap SpineElem where
   rmap := SpineElem.rmap
@@ -26,7 +25,6 @@ instance instRenMap_SpineElem : RenMap SpineElem where
 def SpineElem.Ty.smap (σ : Subst Ty) : SpineElem -> SpineElem
 | type T => type T[σ]
 | term t => term t[σ:Ty]
--- | oterm t => oterm t[σ:Ty]
 
 instance instSubstMap_SpineElemTy : SubstMap SpineElem Ty where
   smap := SpineElem.Ty.smap
@@ -38,10 +36,6 @@ theorem SpineElem.Ty.subst_type : (type T)[σ:Ty] = type T[σ] := by
 @[simp]
 theorem SpineElem.Ty.subst_term : (term T)[σ:Ty] = term T[σ:_] := by
   simp [SubstMap.smap]
-
--- @[simp]
--- theorem SpineElem.Ty.subst_oterm : (oterm T)[σ:Ty] = oterm T[σ:_] := by
---   simp [SubstMap.smap]
 
 @[simp]
 def SpineElem.Term.smap (σ : Subst Term) : SpineElem -> SpineElem
@@ -59,26 +53,15 @@ theorem SpineElem.Term.subst_type : (type T)[σ:Term] = type T := by
 theorem SpineElem.Term.subst_term : (term T)[σ:Term] = term T[σ:_] := by
   simp [SubstMap.smap]
 
--- @[simp]
--- theorem SpineElem.Term.subst_oterm : (oterm T)[σ:Term] = oterm T[σ:_] := by
---   simp [SubstMap.smap]
-
 def SpineElem.beq : SpineElem -> SpineElem -> Bool
 | .type A, .type B => A == B
 | .term a, .term b => a == b
 | _, _ => false
 
--- instance instBEq_SpineElem : BEq SpineElem where
---   beq := SpineElem.beq
 
--- instance instReflBEq_SpineElem : ReflBEq SpineElem where
---   rfl := by
---     intro a; cases a <;> simp [SpineElem.beq, instBEq_SpineElem] at *
-
--- instance instLawfulBEq_SpineElem : LawfulBEq SpineElem where
---   eq_of_beq := by
---     intro a b; cases a <;> simp [instBEq_SpineElem, SpineElem.beq] at *
---     all_goals (cases b <;> simp at *)
+def SpineElem.size : SpineElem -> Nat
+| .type _ => 0
+| .term a => a.size
 
 def Term.spine : Term -> Option (String × List SpineElem)
 | .global x => return (x, [])
@@ -138,12 +121,6 @@ theorem Spine.app_closed_eq {f a : Term} :
   (f `• a).spine = some (x, sp)
   <-> ∃ sp', sp = sp' ++ [.term a] ∧ f.spine = some (x, sp')
 := by SurfaceSpine_app_eq_solve x
-
--- @[simp]
--- theorem Spine.app_open_eq {f a : Term} :
---   (f ∘[a]).spine = some (x, sp)
---   <-> ∃ sp', sp = sp' ++ [.oterm a] ∧ f.spine = some (x, sp')
--- := by spine_app_eq_solve x
 
 @[simp]
 theorem Spine.appt_eq {f : Term} :
@@ -219,5 +196,91 @@ theorem Spine.apply_spine_compose {t : Term}:
   t.apply (s1 ++ s2) = (t.apply s1).apply s2 := by
 induction t, s1 using Term.apply.induct generalizing s2 <;> simp [Term.apply] at *
 all_goals (case _ ih => apply ih)
+
+theorem Spine.term_spine_extension_exists {t : Term} {x} {a} {sp} :
+t.spine = some (x, sp ++ [.term a]) -> ∃ t', t = t' `• a := by
+intro h
+replace h := Spine.apply_eq h
+rw[Spine.apply_spine_compose] at h; simp [Term.apply] at h
+exists (g`#x).apply sp;
+
+theorem Spine.type_spine_extension_exists {t : Term} {x} {a} {sp} :
+t.spine = some (x, sp ++ [.type a]) -> ∃ t', t = t' `•[ a ] ∧ t' = (g`#x).apply sp := by
+intro h
+replace h := Spine.apply_eq h
+rw[Spine.apply_spine_compose] at h; simp [Term.apply] at h
+exists (g`#x).apply sp;
+
+theorem Spine.size_atleast_one {t : Term} {x} {sp}:
+  t.spine = some (x, sp) -> t.size ≥ 1
+:= by
+induction sp using List.reverse_ind generalizing t x
+case _ =>
+  intro h1
+  replace h1 := Spine.apply_eq h1
+  simp [Term.apply] at h1; subst t; simp
+case _ hd tl ih =>
+  intro h1
+  cases hd
+  case term =>
+    replace h1 := Spine.term_spine_extension_exists h1
+    rcases h1 with ⟨f, h1a, h2a⟩;
+    simp
+  case type =>
+    replace h1 := Spine.type_spine_extension_exists h1
+    rcases h1 with ⟨f, h1a, h2a⟩;
+    subst t; simp
+
+theorem Spine.elem_size_le_term {t : Term} :
+  t.spine = some (x, sp) ->
+  ∀ e, e ∈ sp -> e.size < t.size
+ := by
+  intro h1 e h2
+  cases e <;> simp [SpineElem.size]
+  case type e =>
+    replace h1 := Spine.size_atleast_one h1; omega
+  case term e =>
+  induction t using Term.spine.induct generalizing x sp <;> simp [Term.spine] at h1
+  case _ => cases h1.1; cases h1.2; simp at h2
+  case _ ih =>
+    rw[Option.bind_eq_some_iff] at h1
+    rcases h1 with ⟨sp', h1a, h1b⟩
+    cases h1b
+    simp; replace ih := ih h1a
+    cases sp'; case _ sp' =>
+    revert sp'; intro sp; case _ f a _ =>
+    induction sp using List.reverse_ind generalizing f a
+    case _ =>
+      simp at *; intro h1a e; cases e; omega;
+    case _ hd tl ih =>
+      cases hd
+      case term =>
+        intro h1 h2 h3; simp at *
+        replace h1 := Spine.term_spine_extension_exists h1
+        rcases h1 with ⟨f, h1a, h2a⟩;
+        cases h2;
+        case _ h2 => replace h3 := h3 (Or.inl h2); omega
+        case _ h2 =>
+             cases h2;
+             case _ h2 => replace h3 := h3 (Or.inr h2); omega
+             case _ h2 => subst h2; omega
+      case type =>
+        intro h1 h2 h3; simp at *
+        replace h1 := Spine.type_spine_extension_exists h1
+        rcases h1 with ⟨f, h1a, h2a⟩;
+        cases h2;
+        case _ h2 => replace h3 := h3 h2; omega
+        case _ h2 =>
+             cases h2;
+             case _ h2 => omega
+  case _ ih =>
+    rw[Option.bind_eq_some_iff] at h1
+    rcases h1 with ⟨sp', h1a, h1b⟩
+    cases h1b
+    simp; replace ih := ih h1a
+    cases sp'; case _ sp' =>
+    revert sp'; intro sp; case _ f a _ =>
+    simp;
+    intro h1 h2 ih; replace ih := ih h2; omega
 
 end Surface

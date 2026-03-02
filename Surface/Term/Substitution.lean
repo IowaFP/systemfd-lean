@@ -37,6 +37,8 @@ def Term.rmap (r : Ren) : Term -> Term
 | app t1 t2 => app (rmap r t1) (rmap r t2)
 | appt t1 t2 => appt (rmap r t1) t2
 | .match t1 t2 t3 t4 => .match (rmap r t1) (rmap r <$> t2) (rmap r <$> t3) (rmap r t4)
+| annot t1 A => annot (rmap r t1) A
+| hole τ => hole τ
 
 instance instRenMap_Term : RenMap Term where
   rmap := Term.rmap
@@ -50,6 +52,8 @@ def Term.Ty.smap (σ : Subst Ty) : Term -> Term
 | lamt A t => lamt A (smap σ.lift t)
 | lam A t => lam A[σ:_] (smap σ t)
 | .match t1 t2 t3 t4  => .match (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
+| annot t1 A => annot (smap σ t1) A[σ:_]
+| hole τ => hole τ[σ:_]
 
 instance instSubstMap_TermTy : SubstMap Term Ty where
   smap := Term.Ty.smap
@@ -63,6 +67,10 @@ def Term.smap (σ : Subst Term) : Term -> Term
 | lamt A t => lamt A (smap (σ ◾ +1@Ty) t)
 | lam A t => lam A (smap σ.lift t)
 | .match t1 t2 t3 t4 => .match (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
+| annot t1 A => annot (smap σ t1) A
+| hole τ => hole τ
+
+
 
 instance instSubstMap_TermTerm : SubstMap Term Term where
   smap := Term.smap
@@ -82,6 +90,15 @@ theorem Term.subst_app : (app t1 t2)[σ:Term] = app t1[σ:_] t2[σ:_] := by
 @[simp]
 theorem Term.subst_appt : (appt t1 t2)[σ:Term] = appt t1[σ:_] t2 := by
   simp [SubstMap.smap]
+
+@[simp]
+theorem Term.subst_annoτ : (annot t1 t2)[σ:Term] = annot t1[σ:_] t2 := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Term.subst_hole : (hole t1)[σ:Term] = hole t1 := by
+  simp [SubstMap.smap]
+
 
 @[simp]
 theorem Term.subst_lamt : (lamt A t)[σ:Term] = lamt A t[σ ◾ +1@Ty:_] := by
@@ -129,6 +146,15 @@ theorem Term.Ty.subst_lam : (lam A t)[σ:Ty] = lam A[σ:_] t[σ:_] := by
   simp [SubstMap.smap]
 
 @[simp]
+theorem Term.Ty.subst_annoτ : (annot t A)[σ:Ty] = annot t[σ:_] A[σ:_] := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Term.Ty.subst_hole : (hole τ)[σ:Ty] = hole τ[σ:_] := by
+  simp [SubstMap.smap]
+
+
+@[simp]
 theorem Term.Ty.subst_match
   : (matchˢ! t1 ps t2 t3)[σ:Ty] = matchˢ! t1[σ:_] (λ i => (ps i)[σ:_]) (λ i => (t2 i)[σ:_]) t3[σ:_]
 := by
@@ -166,8 +192,6 @@ theorem Term.apply_ren_commute {s : Term} (r : Ren) (τ : Subst Ty)
     replace ih := ih r.lift
     rw [Ren.to_lift] at ih; simp at ih
     apply ih
-
-
 
 instance instSubstMapRenCommute_Term : SubstMapRenCommute Term Ty where
   apply_ren_commute := Term.apply_ren_commute

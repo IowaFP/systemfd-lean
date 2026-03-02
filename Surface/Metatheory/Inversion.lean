@@ -10,9 +10,17 @@ theorem GlobalWf.extract_kinding :
   lookup_type G x = some T ->
   ∃ b, G&Δ ⊢s T : .base b := by
 intro wf h
-induction G generalizing x T Δ
-case _ => simp [lookup_type, lookup] at *
+simp [lookup_type] at h
+generalize zdef : lookup x G = z at *
+induction G generalizing x T Δ <;> simp [lookup] at *
+case _ => subst zdef; simp at h
 case _ hd tl ih =>
+    cases hd
+    cases wf; case _ wftl wfg =>
+    cases wfg
+    split at zdef <;> simp at *
+    case _ e => subst e; subst z; simp [Entry.type] at h
+
     sorry
 
 
@@ -39,6 +47,7 @@ case appt h =>
   apply Kinding.beta h2 h1
 
 case mtch => assumption
-
+case annot => assumption
+case hole => exists b`◯
 
 end Surface

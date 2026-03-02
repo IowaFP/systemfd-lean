@@ -6,6 +6,14 @@ import Surface.Term
 import Translation.Ty
 open LeanSubst
 
+def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :  Core.Ty -> Option Core.Term
+| _ => none
+
+def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
+  Core.Ty -> Core.Ty -> Option Core.Term
+| _, _ => none
+
+
 @[simp, grind]
 def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
   Surface.Term -> Option Core.Term
@@ -33,7 +41,9 @@ def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
   let cs' <- ocs'.seq
   let d' <- d.translate G Δ Γ
   return match! n s' ps' cs' d'
-
+| .annot t T =>
+  t.translate G Δ Γ -- T.translate
+| .hole T => T.translate.synth_term G Δ Γ
 
 
 -- @[simp, grind]
@@ -51,34 +61,38 @@ def Surface.Term.type_directed_translate (G : Core.GlobalEnv) (Δ : Core.KindEnv
   if A' == A.translate
   then return λ[A.translate] t' else none
 -- Elimination forms are a little annoying
-| .match (n := n) s ps cs d => do -- also maybe store the type of the scrutinee to eliminate
-  let s' <- s.translate G Δ Γ
+| .match (n := n) (annot s sτ) ps cs d => do -- also maybe store the type of the scrutinee to eliminate
+  let s' <- s.type_directed_translate G Δ Γ sτ.translate
   let ops' : Vect n (Option Core.Term) := (λ i => (ps i).translate G Δ Γ)
   let ps' <- ops'.seq
   let ocs' : Vect n (Option Core.Term) := (λ i => (cs i).translate G Δ Γ)
   let cs' <- ocs'.seq
   let d' <- d.type_directed_translate G Δ Γ τ
   return match! n s' ps' cs' d'
-| t => do
-  let (x, sp) <- t.spine
-  let hτ <- Core.lookup_type G x
-  let (t', r) <- List.foldlM (λ (acct, τ) x =>
-               match argh : τ, x with
-               | .all K τ, .type A =>
+| t =>
+  match sp_prf : t.spine with
+  | some (x, sp) => do
+    let sp := sp.attach
+
+    let hτ <- Core.lookup_type G x
+    let (t', r) <- List.foldlM (λ (acct, τ) x =>
+               match τ, x with
+               | .all K τ, ⟨.type A, prf⟩ =>
                  -- K better be kind of A, but we can't do that yet.
                  let A' := A.translate
                  let σ : Subst Core.Ty := (su A')::+0
                  return (acct •[ A' ], τ[σ])
-               | .arrow A B, .term t => do
+               | .arrow A B,⟨.term t, prf⟩ => do
                  let t' <- t.type_directed_translate G Δ Γ A
                  return (acct • t', B)
                | _ , _ => none)
                (g#x, hτ) sp
-  if r == τ then return t' else none
+    if r == τ then return t' else none
+  | none => none
 termination_by t => t.size
 decreasing_by (
 all_goals try (simp at *)
 · omega
-· sorry
-
+· omega
+· have lem := Spine.elem_size_le_term sp_prf (.term t) prf; simp [SpineElem.size] at lem; exact lem
 )

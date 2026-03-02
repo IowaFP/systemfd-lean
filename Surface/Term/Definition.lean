@@ -14,6 +14,8 @@ inductive Term : Type where
 | lamt :  Kind -> Term -> Term
 | lam : Ty -> Term -> Term
 | «match» : Term -> Vect n Term -> Vect n Term -> Term -> Term
+| annot : Term -> Ty -> Term
+| hole : Ty -> Term
 -- |  hole : Ty  -> Term
 
 
@@ -36,7 +38,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "`#" ++ Nat.repr n
 | .global n => "g`#" ++ n
 | .app t1 t2 =>
-  Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++Term.repr p t2) p
+  Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++ Term.repr p t2) p
 | .appt t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " •" ++ Std.Format.sbracket (Ty.repr p t2)) p
 | .lamt K t =>
@@ -52,6 +54,11 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
     ++ css
     ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)
     )
+| annot t ty =>
+  Std.Format.paren (Term.repr p t ++ " : " ++ repr ty)
+| .hole ty =>
+  Std.Format.paren (" __ : " ++repr ty)
+
 
 @[simp]
 instance instRepr_Term : Repr Term where
@@ -59,8 +66,8 @@ instance instRepr_Term : Repr Term where
 
 @[simp]
 def Term.size : Term -> Nat
-| var _ => 0
-| global _ => 0
+| var _ => 1
+| global _ => 1
 | app t1 t2 => t1.size + t2.size + 1
 | appt t1 _ => size t1 + 1
 | lamt _ t => size t + 1
@@ -69,6 +76,7 @@ def Term.size : Term -> Nat
   let t2' : Vect _ _ := size <$> t2
   let t3' : Vect _ _ := size <$> t3
   size t1 + List.sum t2' + List.sum t3' + size t4 + 1
-
+| annot t _ => size t + 1
+| .hole _ => 0
 
 end Surface

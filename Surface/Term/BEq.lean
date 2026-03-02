@@ -16,6 +16,9 @@ def Term.beq : Term -> Term -> Bool
     let p : Vect n1 Bool := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
     beq a1 a2 && Vect.fold true (·&&·) c && Vect.fold true (·&&·) p && beq d1 d2
   else false
+
+| annot t1 A1, annot t2 A2 => beq t1 t2 && A1 == A2
+| hole A, hole B => A == B
 | _, _ => false
 
 instance instBEq_Term : BEq Term where
@@ -30,11 +33,13 @@ instance instReflBEq_Term : ReflBEq Term where
     constructor
     · constructor
       · constructor; assumption;
-        unfold Vect.fold;
-        case _ n _ _ _ _ =>
-        induction n
-        case _ => simp
-        case _ n ih v1 v2 =>
+        -- apply Vect.induction
+          -- (motive := (Vect.fold true (fun x1 x2 => x1 && x2) fun i => (a¹ i).beq (a¹ i)) = true)
+        -- unfold Vect.fold;
+        -- case _ n _ _ _ _ =>
+        -- induction n
+        -- case _ => simp
+        -- case _ n ih v1 v2 =>
         -- case _ => rfl
         -- case _ =>
         --   split; case _ h =>
@@ -50,6 +55,7 @@ instance instLawfulBEq_Term : LawfulBEq Term where
     intro a b; cases a <;> simp [instBEq_Term] at *
     all_goals (induction b <;>
       simp [Term.beq] at *)
+    sorry
     sorry
     sorry
     sorry

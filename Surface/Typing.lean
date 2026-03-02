@@ -131,6 +131,12 @@ inductive Typing (G : GlobalEnv) :
   G&Δ ⊢s a : K ->
   P' = P[.su a :: +0:Ty] ->
   Typing G Δ Γ (f `•[a]) P'
+| annot :
+  Typing G Δ Γ t T ->
+  Typing G Δ Γ (.annot t T) T
+| hole :
+  Kinding G Δ T `◯ ->
+  Typing G Δ Γ (.hole T) T
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " : " A:170 => Typing G Δ Γ t A
 
