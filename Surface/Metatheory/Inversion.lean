@@ -4,6 +4,21 @@ import Surface.Metatheory.Substitution
 namespace Surface
 
 
+theorem EntryWf.kinding :
+  ⊢s G ->
+  EntryWf G e ->
+  e.type = some T ->
+  ∃ b, G&Δ ⊢s T : .base b := by
+intro wf h1 h2
+induction e  <;> simp [Entry.type] at *
+case _ a =>
+  subst a; cases h1
+  case _ h _ _ =>
+  -- arbitrary weakening
+  sorry
+case _ a =>
+  subst a; cases h1
+
 
 theorem GlobalWf.extract_kinding :
   ⊢s G ->
@@ -12,16 +27,19 @@ theorem GlobalWf.extract_kinding :
 intro wf h
 simp [lookup_type] at h
 generalize zdef : lookup x G = z at *
-induction G generalizing x T Δ <;> simp [lookup] at *
-case _ => subst zdef; simp at h
-case _ hd tl ih =>
-    cases hd
-    cases wf; case _ wftl wfg =>
-    cases wfg
-    split at zdef <;> simp at *
-    case _ e => subst e; subst z; simp [Entry.type] at h
+cases z <;> simp [Option.map] at *
+apply EntryWf.kinding wf sorry h
+-- induction G generalizing x T Δ <;> simp [lookup] at *
+-- case _ => subst zdef; simp at h
+-- case _ hd tl ih =>
+--     cases hd
+--     cases wf; case _ wftl wfg =>
+--     cases wfg
+--     split at zdef <;> simp at *
+--     case _ e => subst e; subst z; simp [Entry.type] at h
 
-    sorry
+--     sorry
+
 
 
 theorem Typing.well_typed_terms_have_base_kinds :

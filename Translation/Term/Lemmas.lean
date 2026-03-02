@@ -258,6 +258,21 @@ theorem quantifier_beast_lemma {Δ : Surface.KindEnv} {cs : Vect n Surface.Term}
         have lem := Vect.seq_sound vdef i; rw[h1] at lem; cases lem; assumption
 
 
+theorem Translation.Term.synth_sound (G : Surface.GlobalEnv) :
+  ⊢s G ->
+  G&Δ, Γ ⊢s .hole T : T ->
+  G.translate = G' ->
+  ⊢ G' ->
+
+  Δ.translate = Δ' ->
+  Γ.translate = Γ' ->
+  T.translate.synth_term G' Δ' Γ' = some t ->
+
+  G'&Δ', Γ' ⊢ t : T.translate ∧ t.Determined := by
+intro wf j h1 h2 h3 h4 h5
+sorry
+
+
 
 -- TODO : Type directed translation?
 theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
@@ -439,3 +454,14 @@ case mtch n Δ Γ s R c T CTy PTy pats cs sj vhvR cj vhvps patsj stmPTys csj ptm
       · intro i; apply Translation.StableTypeMatch.sound rfl rfl rfl (stmPTys i)
       · apply ih4iii
       · intro i; apply Translation.PrefixTypeMatch.sound rfl rfl rfl rfl (ptms i)
+case annot ih =>
+  rcases ih with ⟨t', ih1, ih2, ih3⟩
+  exists t'; subst Δ'; subst Γ'
+  apply And.intro
+  · apply ih1
+  · apply And.intro
+    · apply ih2
+    · apply ih3
+case hole =>
+
+  sorry

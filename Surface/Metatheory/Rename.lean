@@ -402,6 +402,11 @@ theorem Typing.rename Γr (r : Ren) :
   case appt j1 j2 j3 ih =>
     apply appt _ j2 j3
     apply ih _ _ h
+  case annot j ih =>
+    apply annot
+    apply ih _ _ h
+  case hole =>
+    apply hole; assumption
 
 theorem Typing.weaken T : ⊢s G -> G&Δ,Γ ⊢s t : A -> G&Δ,(T::Γ) ⊢s t[+1] : A := by
   intro wf j; apply rename (T::Γ) (· + 1) wf _ j; simp
