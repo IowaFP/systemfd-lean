@@ -13,27 +13,26 @@ open LeanSubst
 -- Translation preservies kinding relation
 
 theorem Translation.GlobalEnv.lookup_none_sound x :
-  G.translate = G' ->
+  G.translate = some G' ->
   Surface.lookup x G = none ->
   Core.lookup x G' = none := by
 
 sorry
 
 theorem Translation.GlobalEnv.lookup_different_impossible x :
-  G.translate = G' ->
+  G.translate = some G' ->
   Surface.lookup x G = some e ->
   Core.lookup x G' = none ->
   False
 := by sorry
 
 theorem Translation.GlobalEnv.lookup_entry_data x :
-  G.translate = G' ->
+  G.translate = some G' ->
   Surface.lookup x G = some en ->
   Core.lookup x G' = .some en.translate := by
 intro h1 h2
 fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup] at *
-
-case _ g gs gs' g' h1 => sorry
+case _ => sorry
 -- split at h2;
 -- case isTrue =>
 --   subst G';
@@ -61,7 +60,7 @@ case _ g gs gs' g' h1 => sorry
 
 
 theorem Translation.GlobalEnv.lookup_kind_sound :
-  G.translate = G' ->
+  G.translate = some G' ->
   Surface.lookup_kind G x = some K ->
   Core.lookup_kind G' x = some K'  := by
 intro h1 h2
@@ -71,14 +70,14 @@ sorry
 theorem Translation.Entry.is_data_sound x :
   ⊢s G ->
   Surface.is_data G x ->
-  G.translate = G' ->
+  G.translate = some G' ->
   Core.is_data G' x := by
 intro wf h1 h2
 fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.is_data, Surface.lookup] at *
-case _ g gs gs' g' ih =>
-  cases wf; case _ wfgs wfg =>
-  subst G'; subst gs'; subst g' <;> simp at *
-  replace ih := ih wfgs
+case _  =>
+  -- cases wf; case _ wfgs wfg =>
+  -- subst G'; subst gs'; subst g' <;> simp at *
+  -- replace ih := ih wfgs
   -- split at h1
   -- case isTrue =>
   --   subst x; simp at h1; simp [Core.is_data, Core.lookup, Core.Entry.is_data]
@@ -114,7 +113,7 @@ theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
 theorem Translation.Ty.sound :
   ⊢s G ->
   G&Δ ⊢s T : K ∧
-  G.translate = G' ∧
+  G.translate = some G' ∧
   Δ.translate = Δ'  ->
 
   ∃ K' T', K.translate = K' ∧
@@ -193,8 +192,8 @@ case _ f a ih =>
 
 theorem Translation.Ty.sound2 :
   ⊢s G ->
-  Surface.Translation.Ty G G' Δ T K Δ' T' K' ->
-  G.translate = G' ->
+  Surface.Translation.Ty G Δ T K T' ->
+  G.translate = .some G' ->
   Δ.translate = Δ'  ->
 
   K.translate = K' ∧
@@ -202,8 +201,7 @@ theorem Translation.Ty.sound2 :
   G'&Δ' ⊢ T' : K' := by
 intro wf h1 h2 h3
 induction h1 <;> simp at *
-case var => apply Core.Kinding.var; assumption
-sorry
+case var => sorry
 sorry
 sorry
 sorry

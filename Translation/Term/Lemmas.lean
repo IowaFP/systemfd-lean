@@ -25,7 +25,7 @@ open LeanSubst
 
 theorem Translation.GlobalEnv.lookup_ty_sound {G : Surface.GlobalEnv} : -- maybe generalize this to entry lookup?
   ⊢s G ->
-  G.translate = G' ->
+  G.translate = some G' ->
   (∀ (x : String) (T : Surface.Ty) (Δ : Core.KindEnv),
     (Surface.lookup_type G x = some T) ->
     ∃ T' b, (Core.lookup_type G' x = some T' ∧ T.translate = T' ∧ G'&Δ ⊢ T' : .base b)) := by
@@ -34,7 +34,7 @@ sorry
 
 theorem Translation.Entry.is_ctor_sound {G: Surface.GlobalEnv} :
   ⊢s G ->
-  G.translate = G' ->
+  G.translate = some G' ->
   Surface.is_ctor G x ->
   Core.is_ctor G' x := by sorry
 
@@ -116,7 +116,7 @@ case _ hT Γ ih =>
 
 theorem Translation.ValidTyHeadVariable.sound {G : Surface.GlobalEnv} :
   ⊢s G ->
-  G.translate = G' ->
+  G.translate = some G' ->
   T.translate = T' ->
   Surface.ValidTyHeadVariable T (Surface.is_data G) ->
   Core.ValidTyHeadVariable T' (Core.is_data G') := by
@@ -193,7 +193,7 @@ theorem Translation.ValidHeadVariable.sound
   {Γ : Surface.TyEnv} {Γ' : Core.TyEnv}
   {t : Surface.Term} {t' : Core.Term}:
   ⊢s G ->
-  G.translate = G' ->
+  G.translate = some G' ->
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
   t.translate G' Δ' Γ' = some t' ->
@@ -258,19 +258,19 @@ theorem quantifier_beast_lemma {Δ : Surface.KindEnv} {cs : Vect n Surface.Term}
         have lem := Vect.seq_sound vdef i; rw[h1] at lem; cases lem; assumption
 
 
-theorem Translation.Term.synth_sound (G : Surface.GlobalEnv) :
-  ⊢s G ->
-  G&Δ, Γ ⊢s .hole T : T ->
-  G.translate = G' ->
-  ⊢ G' ->
+-- theorem Translation.Term.synth_sound (G : Surface.GlobalEnv) :
+--   ⊢s G ->
+--   G&Δ, Γ ⊢s .hole T : T ->
+--   G.translate = G' ->
+--   ⊢ G' ->
 
-  Δ.translate = Δ' ->
-  Γ.translate = Γ' ->
-  T.translate.synth_term G' Δ' Γ' = some t ->
+--   Δ.translate = Δ' ->
+--   Γ.translate = Γ' ->
+--   T.translate.synth_term G' Δ' Γ' = some t ->
 
-  G'&Δ', Γ' ⊢ t : T.translate ∧ t.Determined := by
-intro wf j h1 h2 h3 h4 h5
-sorry
+--   G'&Δ', Γ' ⊢ t : T.translate ∧ t.Determined := by
+-- intro wf j h1 h2 h3 h4 h5
+-- sorry
 
 
 
@@ -280,7 +280,7 @@ theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   G&Δ,Γ ⊢s t : T ->
 
 
-  G.translate = G' ->
+  G.translate = some G' ->
   ⊢ G' ->
 
   Δ.translate = Δ' ->
@@ -501,63 +501,99 @@ theorem Translation.synth_term_completeness :
   t.Determined ∧ G&Δ, Γ ⊢ t : T := by sorry
 
 
-
-
-theorem Translation.Term.Sound2
-  {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
-  {Δ : Surface.KindEnv} {Δ' : Core.KindEnv}
-  {Γ : Surface.TyEnv} {Γ' : Core.TyEnv}
-  {t : Surface.Term} {t' : Core.Term} :
+@[simp]
+abbrev ElabSoundnessType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
+  (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) (t : Surface.Term): Mode -> Prop
+| .inf => ∀ Δ' Γ' t' T,
   ⊢s G ->
-  G.translate = G' ->
+  G.translate = some G' ->
   ⊢ G' ->
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
 
-  Surface.Translation.Term G G' m Δ Γ t T Δ' Γ' t' T' ->
+  t.type_inf_translate G G' Δ Γ = some (t', T) ∧
+  t'.Determined ∧
+  G'&Δ',Γ' ⊢ t' : T.translate
 
-  t.type_directed_translate G' Δ' Γ' T = some t' ∧
-   t'.Determined ∧
-   G'&Δ',Γ' ⊢ t' : T' := by
-intro wf h1 wfc h2 h3 h4
-induction h4 <;> simp [Surface.Term.type_directed_translate] at *
-case var x T A T' Δ Δ' m T' j1 j2 j3 => sorry
-  -- have lem := Translation.Ty.sound2 wf j1 h1 h2
-  -- simp at *; cases lem.1; simp at lem
-  -- have lem' := Translation.Ty.sound2 wf j2 h1 h2
-  -- simp at *; cases lem'.1; simp at lem'
-  -- apply And.intro
-  -- · split <;> simp at *
-  --   · sorry
-  --   · sorry
-  -- · apply And.intro
-  --   · sorry
-  --   · sorry; -- apply Core.Typing.var; assumption; apply lem
-sorry
-sorry
-case appP Δ A Δ' A' Γ f B Γ' f' B' t' j1 j2 j3 ih =>
-  replace ih := ih h2 h3
-  rcases ih with ⟨ih1, ih2, ih3⟩
-  sorry
-sorry
-sorry
-case annot Δ Ta Δ' Ta' Tb Tb' Γ' c m1 Γ t t' m2 j1 j2 j3 j4 ih =>
-  replace ih := ih h2 h3
-  rcases ih with ⟨ih1, ih2⟩
-  have lem := Translation.Ty.sound2 wf j1 h1 h2
-  rcases lem with ⟨lem1, lem2, lem3⟩
-  subst lem2
-  have lem' := Translation.Ty.sound2 wf j2 h1 h2
-  rcases lem' with ⟨lem1', lem2', lem3'⟩
-  subst lem2'
-  have lem3 := Translation.synth_term_completeness j3
-  apply And.intro
-  · rw[Option.bind_eq_some_iff]; exists t';
-  · apply And.intro
-    · apply Core.Term.Determined.cast.1; apply And.intro
-      · apply ih2.1
-      · apply lem3.2.1
-    · apply Core.Typing.cast
-      · apply ih2.2
-      · apply lem3.2.2
-sorry
+| .chk =>
+  ∀ Δ' Γ' t' T,
+  ⊢s G ->
+  G.translate = some G' ->
+  ⊢ G' ->
+  Δ.translate = Δ' ->
+  Γ.translate = Γ' ->
+
+  t.type_chk_translate G G' Δ Γ T = some t' ∧
+  t'.Determined ∧
+  G'&Δ',Γ' ⊢ t' : T.translate
+
+
+theorem Translation.Term.Sound2
+  {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
+  {Δ : Surface.KindEnv} {Γ : Surface.TyEnv}
+  {t : Surface.Term} {t' : Core.Term} {m : Mode}:
+  Surface.Term.Elab G G' m Δ Γ t T t' ->
+  ElabSoundnessType G G' Δ Γ t m
+
+:= by
+intro h
+induction h <;> simp at *
+case var =>
+  split <;> simp [Surface.Term.type_chk_translate, Surface.Term.type_inf_translate] at *
+  · intro Δ' Γ' t' _ wf h1 wfc h2 h3
+    case _ T _ _ _ _ _ _ _ =>
+    rw[Option.bind_eq_some_iff]; sorry
+  · intro Δ' Γ' t' T wf h1 wfc h2 h3
+
+    sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+-- intro wf h1 wfc h2 h3 h4
+-- induction h4 <;> simp [Surface.Term.type_directed_translate] at *
+-- case var x T A T' Δ Δ' m T' j1 j2 j3 => sorry
+--   -- have lem := Translation.Ty.sound2 wf j1 h1 h2
+--   -- simp at *; cases lem.1; simp at lem
+--   -- have lem' := Translation.Ty.sound2 wf j2 h1 h2
+--   -- simp at *; cases lem'.1; simp at lem'
+--   -- apply And.intro
+--   -- · split <;> simp at *
+--   --   · sorry
+--   --   · sorry
+--   -- · apply And.intro
+--   --   · sorry
+--   --   · sorry; -- apply Core.Typing.var; assumption; apply lem
+-- sorry
+-- sorry
+-- case appP Δ A Δ' A' Γ f B Γ' f' B' t' j1 j2 j3 ih =>
+--   replace ih := ih h2 h3
+--   rcases ih with ⟨ih1, ih2, ih3⟩
+--   sorry
+-- sorry
+-- sorry
+-- case annot Δ Ta Δ' Ta' Tb Tb' Γ' c m1 Γ t t' m2 j1 j2 j3 j4 ih =>
+--   replace ih := ih h2 h3
+--   rcases ih with ⟨ih1, ih2⟩
+--   have lem := Translation.Ty.sound2 wf j1 h1 h2
+--   rcases lem with ⟨lem1, lem2, lem3⟩
+--   subst lem2
+--   have lem' := Translation.Ty.sound2 wf j2 h1 h2
+--   rcases lem' with ⟨lem1', lem2', lem3'⟩
+--   subst lem2'
+--   have lem3 := Translation.synth_term_completeness j3
+--   apply And.intro
+--   · rw[Option.bind_eq_some_iff]; exists t';
+--   · apply And.intro
+--     · apply Core.Term.Determined.cast.1; apply And.intro
+--       · apply ih2.1
+--       · apply lem3.2.1
+--     · apply Core.Typing.cast
+--       · apply ih2.2
+--       · apply lem3.2.2
+-- sorry

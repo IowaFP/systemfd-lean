@@ -137,6 +137,21 @@ def Surface.ctor_count (x : String) (G : GlobalEnv) : Option Nat := do
 
 def Surface.is_stable (x : String) (G : GlobalEnv) : Bool := is_ctor G x -- ∨ is_instty G x
 
+def Surface.Ty.valid_data_type (G : GlobalEnv) (A : Ty) : Option Unit := do
+  let (x, _) <- A.spine
+  if is_data G x
+  then return () else none
+
+def Surface.Ty.valid_ctor_type (G : GlobalEnv) : (A : Ty) -> Option String
+| .all _ T => T.valid_ctor_type G
+| .arrow _ B => B.valid_ctor_type G
+| t => do
+  let (x, _) <- t.spine
+  if is_data G x then return x else none
+
+
+
+
 -- theorem Surface.lookup_entry_openm_exists :
 --   is_openm G x -> ∃ y T, lookup x G = .some (Surface.Entry.openm y T) := by
 -- intro h

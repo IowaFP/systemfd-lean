@@ -4,34 +4,41 @@ import Core.Global
 import Surface.Typing
 
 import Translation.Ty
-
+import Translation.Term
 
 def Surface.Ty.translate_ctors (ctors : Vect n (String × Surface.Ty)) : (Vect n (String × Core.Ty)) :=
   (λ (x, ty) => (x , ty.translate)) <$> ctors
 
 
 @[simp]
-def Surface.Global.translate : Global -> Core.Global
+def Surface.Global.translate (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Global -> Option Core.Global
 | .data (n := n) x K ctors =>
   let ctors' := Ty.translate_ctors ctors
-  -- Core.Ty.check_ctor_tys x (.data 0 x K.translate Vect.nil :: G) ctors'
   Core.Global.data n x K.translate ctors'
-| _ => sorry
+| instty x K => return .instty x K.translate
+| inst x t => do
+  let T <- Surface.lookup_type G x
+  let t' <- t.type_chk_translate G G' [] [] T
+  return .inst x t'
+| defn x T t => do
+  let t' <- t.type_chk_translate G G' [] [] T
+  return .defn x T.translate t'
+| openm x T => return .openm x T.translate
+| opent x K => return .opent x K.translate
 
 
 @[simp]
-def Surface.GlobalEnv.translate : Surface.GlobalEnv -> Core.GlobalEnv
-| [] => []
+def Surface.GlobalEnv.translate : Surface.GlobalEnv -> Option (Core.GlobalEnv)
+| [] => return []
 | .cons g gs => do
-  let gs' := Surface.GlobalEnv.translate gs
-  let g' := g.translate
-  g' :: gs'
+  let gs' <- Surface.GlobalEnv.translate gs
+  let g' <- g.translate gs gs'
+  return (g' :: gs')
 
 -- def Surface.Entry.translate : Surface.Entry -> Option
 
 
 namespace Test.Core.Global
-
 
 #guard (gt`#"One").translate == gt#"One"
 
