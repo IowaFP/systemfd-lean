@@ -16,6 +16,8 @@ def Surface.Global.translate : Global -> Core.Global
   let ctors' := Ty.translate_ctors ctors
   -- Core.Ty.check_ctor_tys x (.data 0 x K.translate Vect.nil :: G) ctors'
   Core.Global.data n x K.translate ctors'
+| _ => sorry
+
 
 @[simp]
 def Surface.GlobalEnv.translate : Surface.GlobalEnv -> Core.GlobalEnv

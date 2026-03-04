@@ -58,6 +58,13 @@ theorem Term.Determined.appt {f: Term} {a : Ty} : f.Determined -> (f •[ a ]).D
   unfold Term.Determined; apply VariantMissing.ctor1 _ h1
   intro h'; cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
 
+theorem Term.Determined.cast {t c: Term} : t.Determined ∧ c.Determined <-> (t ▹ c).Determined := by
+  apply Iff.intro <;> intro h
+  unfold Term.Determined; apply VariantMissing.ctor2 _ h.1 h.2
+  intro h'; cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
+  cases h; unfold Determined; simp [*]
+
+
 theorem Term.Determined.match {s d : Term} {ps cs : Vect n Term}:
   s.Determined ->
   d.Determined ->

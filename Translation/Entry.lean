@@ -10,5 +10,7 @@ def Surface.Entry.translate : Surface.Entry -> Core.Entry
 | ctor x i T => .ctor x i T.translate
 | opent x K => .opent x K.translate
 | openm x T => .openm x T.translate
+| instty x T => .instty x T.translate
+| defn x T t =>  sorry
 
 notation "⟦" e "⟧" => Surface.Entry.translate e

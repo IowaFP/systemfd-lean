@@ -9,6 +9,8 @@ inductive Ty.FV : Ty -> Nat -> Prop where
 | var : FV t`#x x
 | arrowr : FV a x -> FV (a `-:> b) x
 | arrowl : FV b x -> FV (a `-:> b) x
+| thenr : FV a x -> FV (a `=:> b) x
+| thenl : FV b x -> FV (a `=:> b) x
 | appr : FV a x -> FV (a `• b) x
 | appl : FV b x -> FV (a `• b) x
 | all : FV p (a + 1) -> FV (`∀[K] p) a

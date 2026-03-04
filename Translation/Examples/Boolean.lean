@@ -45,6 +45,6 @@ def Surface.eqBool : Term := λˢ[ .global "Bool" ] λˢ[ .global "Bool" ]
 -- #eval Surface.BoolCtx.infer
 #eval Surface.GlobalEnv.translate Surface.BoolCtx
 
-#eval do let gs' <- Surface.BoolCtx.translate
+#eval do let gs' : Core.GlobalEnv <- Surface.BoolCtx.translate
          let t' <- Surface.eqBool.translate gs' [] []
          return t'

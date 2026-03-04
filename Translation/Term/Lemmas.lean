@@ -286,10 +286,9 @@ theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
 
-
-  ∃ t', t.translate G' Δ' Γ' = some t' ∧
-        t'.Determined ∧
-        G'&Δ',Γ' ⊢ t' : T.translate := by
+  (∃ t', t.translate G' Δ' Γ' = some t' ∧
+   t'.Determined ∧
+   G'&Δ',Γ' ⊢ t' : T.translate) := by
 intro wf j h1 wfc h2 h3
 induction j generalizing Δ' Γ' <;> simp at *
 case var Γ x T Δ b h jk =>
@@ -309,7 +308,7 @@ case global x T Δ b Γ h4 j =>
   apply And.intro
   · apply Core.Term.Determined.global
   · subst h6; apply Core.Typing.global h5 h7
-case lam Δ A b1 Γ t B j1 j2 ih =>
+case lam Δ A Γ t B j1 j2 ih =>
   have lemA := Translation.Ty.sound wf ⟨j1, h1, h2⟩
   rcases lemA with ⟨aK', A', h4a, h5a, h6a⟩
   have lem := Translation.TyEnv.lift_sound h3 j1 h5a
@@ -324,11 +323,26 @@ case lam Δ A b1 Γ t B j1 j2 ih =>
   · exists t'
   · apply And.intro
     · apply Core.Term.Determined.lam; assumption
-    · have h6' := Translation.Kind.sound_base b1
-      rcases h6' with ⟨b1', h6'⟩
-      subst aK'; rw[h6'] at h6a
-      apply Core.Typing.lam (b := b1')
-      assumption
+    · apply Core.Typing.lam (b := b★)
+      · subst h4a; simp at h6a; assumption
+      apply h12
+case lamP Δ A Γ t B j1 j2 ih =>
+  have lemA := Translation.Ty.sound wf ⟨j1, h1, h2⟩
+  rcases lemA with ⟨aK', A', h4a, h5a, h6a⟩
+  have lem := Translation.TyEnv.lift_sound h3 j1 h5a
+  rcases ih with ⟨t', h10, h11, h12⟩
+  have lem := Core.Typing.well_typed_terms_have_base_kinds wfc h12
+  subst A'
+  rcases lem with ⟨_, jB'⟩
+  subst Δ'
+  exists (λ[A.translate] t')
+  rw[Option.bind_eq_some_iff];
+  apply And.intro
+  · exists t'
+  · apply And.intro
+    · apply Core.Term.Determined.lam; assumption
+    · apply Core.Typing.lam (b := b◯)
+      · subst h4a; simp at h6a; assumption
       apply h12
 case lamt Δ K P t Γ j1 j2 ih =>
   have lem := Translation.Ty.sound wf ⟨j1, h1, h2⟩
@@ -374,6 +388,24 @@ case app Δ A Γ f B a j1 j2 j3 ih1 ih2 =>
       rcases lem with ⟨K', T', e1, e2, jk⟩
       simp at e1; subst K'; subst e2;
       apply Core.Typing.app; apply jk; apply ih3f; apply ih3a
+
+-- case appP Δ A Γ f B a j1 j2 j3 ih1 ih2 =>
+--   rcases ih1 with ⟨f', ih1f, ih2f, ih3f⟩
+--   rcases ih2 with ⟨a', ih1a, ih2a, ih3a⟩
+--   subst Γ'; subst Δ'
+--   exists (f' •(b◯) a')
+--   rw[Option.bind_eq_some_iff]
+--   apply And.intro
+--   · exists f';
+--     apply And.intro;
+--     · apply ih1f
+--     · rw[Option.bind_eq_some_iff]; exists a'
+--   · apply And.intro;
+--     · apply Core.Term.Determined.app.1 ⟨ih2f, ih2a⟩
+--     · have lem := Translation.Ty.sound wf ⟨j1, h1, rfl⟩
+--       rcases lem with ⟨K', T', e1, e2, jk⟩
+--       simp at e1; subst K'; subst e2;
+--       apply Core.Typing.app; apply jk; apply ih3f; apply ih3a
 
 case appt Δ Γ f K P a P' j1 j2 e ih =>
   rcases ih with ⟨f', h4, h5, h6⟩
@@ -463,5 +495,68 @@ case annot ih =>
     · apply ih2
     · apply ih3
 case hole =>
-
   sorry
+
+
+
+
+
+
+theorem Translation.Term.Sound2
+  {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
+  {Δ : Surface.KindEnv} {Δ' : Core.KindEnv}
+  {Γ : Surface.TyEnv} {Γ' : Core.TyEnv}
+  {t : Surface.Term} {t' : Core.Term} :
+  ⊢s G ->
+  G.translate = G' ->
+  ⊢ G' ->
+  Δ.translate = Δ' ->
+  Γ.translate = Γ' ->
+
+  Surface.Translation.Term G G' Δ Γ t T Δ' Γ' t' T' ->
+
+  (t.type_directed_translate G' Δ' Γ' T' = some t' ∧
+   t'.Determined ∧
+   G'&Δ',Γ' ⊢ t' : T') := by
+intro wf h1 wfc h2 h3 h4
+induction h4 <;> simp [Surface.Term.type_directed_translate] at *
+case var x τ Γ' T' Δ Δ' Γ j1 j2 j3 =>
+  have lem := Translation.Ty.sound2 wf j3 h1 h2
+  simp at *; cases lem.1; simp at lem
+  apply And.intro
+  · apply j2
+  · apply And.intro
+    apply Core.Term.Determined.var
+    apply Core.Typing.var; assumption; apply lem
+sorry
+sorry
+sorry
+sorry
+sorry
+sorry
+case annot Δ Ta Δ' Ta' Tb Tb' Γ' c Γ t t' j1 j2 j3 j4 j5 =>
+  replace j5 := j5 h2 h3
+  rcases j5 with ⟨j5, j6⟩
+  have lem := Translation.Ty.sound2 wf j1 h1 h2
+  rcases lem with ⟨lem1, lem2, lem3⟩
+  subst lem2
+  have lem' := Translation.Ty.sound2 wf j2 h1 h2
+  rcases lem' with ⟨lem1', lem2', lem3'⟩
+  subst lem2'
+  apply And.intro
+  · rw[Option.bind_eq_some_iff]; exists t';
+    apply And.intro;
+    · apply j5
+    · rw[Option.bind_eq_some_iff]; exists c;
+      apply And.intro
+      · sorry
+      · simp
+  · apply And.intro
+    · apply Core.Term.Determined.cast.1; apply And.intro
+      · apply j6.1
+      sorry
+    · apply Core.Typing.cast;
+      · sorry
+      · sorry
+      · sorry
+      · sorry

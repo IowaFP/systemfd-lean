@@ -5,6 +5,8 @@ import Surface.Ty
 import Surface.Term
 import Surface.Global
 
+
+
 namespace Surface
 
 def KindEnv := List Kind
@@ -70,9 +72,13 @@ inductive Kinding (G : GlobalEnv) : KindEnv -> Ty -> Kind -> Prop
   lookup_kind G x = some K ->
   Kinding G Δ gt`#x K
 | arrow :
-  Kinding G Δ A (.base b1) ->
+  Kinding G Δ A `★ ->
   Kinding G Δ B (.base b2) ->
   Kinding G Δ (A `-:> B) `★
+| «then» :
+  Kinding G Δ A `◯ ->
+  Kinding G Δ B (.base b2) ->
+  Kinding G Δ (A `=:> B) `★
 | all :
   Kinding G (K::Δ) P `★ ->
   Kinding G Δ (`∀[K] P) `★
@@ -114,14 +120,23 @@ inductive Typing (G : GlobalEnv) :
 ---- Terms
 --------------------------------------------------------------------------------------
 | lam :
-  G&Δ ⊢s A : .base b1 ->
+  G&Δ ⊢s A : `★ ->
   Typing G Δ (A::Γ) t B ->
   Typing G Δ Γ (λˢ[A] t) (A `-:> B)
+| lamP :
+  G&Δ ⊢s A : `◯ ->
+  Typing G Δ (A::Γ) t B ->
+  Typing G Δ Γ (λˢ[A] t) (A `=:> B)
 | app :
   G&Δ ⊢s A : `★ ->
   Typing G Δ Γ f (A `-:> B) ->
   Typing G Δ Γ a A ->
   Typing G Δ Γ (f `• a) B
+-- | appP :
+--   G&Δ ⊢s A : `◯ ->
+--   Typing G Δ Γ f (A `=:> B) ->
+--   Typing G Δ Γ a A ->
+--   Typing G Δ Γ (f `• a) B
 | lamt :
   Kinding G Δ (`∀[K]P) `★ ->
   Typing G (K::Δ) (Γ.map (·[+1])) t P ->

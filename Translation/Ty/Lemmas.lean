@@ -33,30 +33,30 @@ theorem Translation.GlobalEnv.lookup_entry_data x :
 intro h1 h2
 fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup] at *
 
-case _ g gs gs' g' h1 =>
-split at h2;
-case isTrue =>
-  subst G';
-  simp [gs', g'] at *
-  subst x; subst en; simp [Core.lookup, Surface.Entry.translate];
-  cases g; simp at *; unfold Surface.Ty.translate_ctors; simp
-case isFalse =>
-  replace h2 := Core.EntryWf.from_lookup_vec1 h2
-  cases h2
-  case inl h2 =>
-    rcases h2 with ⟨i, h2⟩
-    simp at h2; rcases h2 with ⟨e, h2⟩; subst e; subst en;
-    subst G'; subst g'; subst gs'; simp [Core.lookup]at *;
-    split
-    · contradiction
-    · sorry
-  case inr h =>
-    replace h1 := h1 h; subst G'; simp [g', Core.lookup];
-    split <;> simp at *
-    · contradiction
-    · rw[h1]; apply Core.EntryWf.from_lookup_vec3;
-      intro i; split  <;> simp at *
-      simp [Surface.Ty.translate_ctors] at *; subst x; sorry
+case _ g gs gs' g' h1 => sorry
+-- split at h2;
+-- case isTrue =>
+--   subst G';
+--   simp [gs', g'] at *
+--   subst x; subst en; simp [Core.lookup, Surface.Entry.translate];
+--   cases g; simp at *; unfold Surface.Ty.translate_ctors; simp
+-- case isFalse =>
+--   replace h2 := Core.EntryWf.from_lookup_vec1 h2
+--   cases h2
+--   case inl h2 =>
+--     rcases h2 with ⟨i, h2⟩
+--     simp at h2; rcases h2 with ⟨e, h2⟩; subst e; subst en;
+--     subst G'; subst g'; subst gs'; simp [Core.lookup]at *;
+--     split
+--     · contradiction
+--     · sorry
+--   case inr h =>
+--     replace h1 := h1 h; subst G'; simp [g', Core.lookup];
+--     split <;> simp at *
+--     · contradiction
+--     · rw[h1]; apply Core.EntryWf.from_lookup_vec3;
+--       intro i; split  <;> simp at *
+--       simp [Surface.Ty.translate_ctors] at *; subst x; sorry
 
 
 
@@ -79,18 +79,18 @@ case _ g gs gs' g' ih =>
   cases wf; case _ wfgs wfg =>
   subst G'; subst gs'; subst g' <;> simp at *
   replace ih := ih wfgs
-  split at h1
-  case isTrue =>
-    subst x; simp at h1; simp [Core.is_data, Core.lookup, Core.Entry.is_data]
-  case isFalse =>
-    generalize zdef : Vect.fold (Surface.lookup x gs) Option.or (fun i =>
-          if x = (g.4 i).fst then some (Surface.Entry.ctor (g.4 i).fst (↑i) (g.4 i).snd) else none) = z at *
-    cases z <;> simp at *
-    have lem := Core.EntryWf.from_lookup_vec1 zdef
-    rcases lem with ⟨i, lem⟩
-    simp at lem; rcases lem with ⟨e, lem⟩; subst x;
-    sorry
-    sorry
+  -- split at h1
+  -- case isTrue =>
+  --   subst x; simp at h1; simp [Core.is_data, Core.lookup, Core.Entry.is_data]
+  -- case isFalse =>
+  --   generalize zdef : Vect.fold (Surface.lookup x gs) Option.or (fun i =>
+  --         if x = (g.4 i).fst then some (Surface.Entry.ctor (g.4 i).fst (↑i) (g.4 i).snd) else none) = z at *
+  --   cases z <;> simp at *
+  --   have lem := Core.EntryWf.from_lookup_vec1 zdef
+  --   rcases lem with ⟨i, lem⟩
+  --   simp at lem; rcases lem with ⟨e, lem⟩; subst x;
+  --   sorry
+  sorry
 
 
 theorem Translation.KindEnv.sound {Δ : Surface.KindEnv} {Δ' : Core.KindEnv} :
@@ -136,14 +136,18 @@ case all K Δ P j ih =>
   rw[Surface.KindEnv.translate, List.map_cons] at ih
   subst Δ'; apply ih
 
-case arrow b1 _ b2 _ _ ih1 ih2 =>
+case arrow b _ _ ih1 ih2 =>
   subst h2
-  replace b1 := Translation.Kind.sound_base b1
-  rcases b1 with ⟨b1k, b1⟩
-  rw[b1] at ih1
-  replace b2 := Translation.Kind.sound_base b2
-  rcases b2 with ⟨b2k, b2⟩
-  rw[b2] at ih2
+  replace b' := Translation.Kind.sound_base b
+  rcases b' with ⟨b2k, b'⟩
+  rw[b'] at ih2
+  apply Core.Kinding.arrow ih1 ih2
+
+case «then» b _ _ ih1 ih2 =>
+  subst h2
+  replace b' := Translation.Kind.sound_base b
+  rcases b' with ⟨b2k, b'⟩
+  rw[b'] at ih2
   apply Core.Kinding.arrow ih1 ih2
 
 case app ih1 ih2 =>
@@ -184,3 +188,22 @@ case _ f a ih =>
   rcases ih with ⟨f'sp, ih⟩
   exists (f'sp ++ [a']); subst h5
   simp; apply ih
+
+
+
+theorem Translation.Ty.sound2 :
+  ⊢s G ->
+  Surface.Translation.Ty G G' Δ T K Δ' T' K' ->
+  G.translate = G' ->
+  Δ.translate = Δ'  ->
+
+  K.translate = K' ∧
+  T.translate = T' ∧
+  G'&Δ' ⊢ T' : K' := by
+intro wf h1 h2 h3
+induction h1 <;> simp at *
+case var => apply Core.Kinding.var; assumption
+sorry
+sorry
+sorry
+sorry

@@ -18,7 +18,8 @@ case _ a =>
   sorry
 case _ a =>
   subst a; cases h1
-
+case defn =>  sorry
+case instty => sorry
 
 theorem GlobalWf.extract_kinding :
   ⊢s G ->
@@ -51,12 +52,18 @@ case global h => apply GlobalWf.extract_kinding wf; assumption
 case lam h =>
   rcases h with ⟨_, h⟩
   exists b`★; constructor; assumption; assumption
+case lamP h =>
+  rcases h with ⟨_, h⟩
+  exists b`★; constructor; assumption; assumption
 case lamt h => exists b`★
-
 case app h _ =>
   rcases h with ⟨_, h⟩
   cases h; case _ b _ _  =>
   exists b
+-- case appP h _ =>
+--   rcases h with ⟨_, h⟩
+--   cases h; case _ b _ _  =>
+--   exists b
 case appt h =>
   rcases h with ⟨b, h⟩
   cases h; case _ h1 e h2 =>
@@ -67,5 +74,6 @@ case appt h =>
 case mtch => assumption
 case annot => assumption
 case hole => exists b`◯
+
 
 end Surface

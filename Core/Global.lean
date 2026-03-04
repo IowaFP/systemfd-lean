@@ -16,14 +16,12 @@ inductive Global : Type where
 | instty : String -> Ty -> Global
 
 def Global.repr (p : Nat) : (a : Global) -> Std.Format
-| .data (n := n + 1) s K ctors =>
-  let ts : Vect (n + 1) Std.Format := λ i =>
+| .data (n := n) s K ctors =>
+  let ts : Vect n Std.Format := λ i =>
     let (ctorN, ctorTy) := ctors i
     Std.Format.nest 4 <| ctorN ++ " : " ++ Ty.repr max_prec ctorTy
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
     ++ "v" ++ Std.Format.sbracket (Vect.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) ts)
-| .data _ s K _ =>
-  ".data " ++ s ++ " : " ++ Kind.repr max_prec K
 | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
 | .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
@@ -42,7 +40,7 @@ def GlobalEnv := List Global
 
 def GlobalEnv.repr (p : Nat) : GlobalEnv -> Std.Format
 | .nil => Std.Format.nil
-| .cons g gl => Global.repr 0 g ++ GlobalEnv.repr p gl
+| .cons g gl => Global.repr 0 g ++ Std.Format.line ++ GlobalEnv.repr p gl
 
 @[simp]
 instance instRepr_GlobalEnv : Repr GlobalEnv where

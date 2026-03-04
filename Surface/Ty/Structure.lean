@@ -24,19 +24,22 @@ def Surface.Ty.arity : Ty -> Nat
 inductive Surface.TeleElem
 | kind (K : Surface.Kind)
 | ty (A : Surface.Ty)
+| pred (A: Surface.Ty)
 deriving Repr
 
 def Surface.Telescope := List Surface.TeleElem
 
-def Surface.Telescope.extend (Γ : List Surface.Ty) : Telescope -> List Surface.Ty
+def Surface.Telescope.extend (Γ : List Surface.Ty): Telescope -> List Surface.Ty
 | [] => Γ
 | .cons (.kind _) te => extend Γ te
 | .cons (.ty A) te => extend (A::Γ) te
+| .cons (.pred A) te => extend (A::Γ) te
 
 def Surface.Telescope.rmap (r : Ren) : Telescope -> Telescope
 | [] => []
 | .cons (.kind K) te => .cons (.kind K) (rmap r te)
 | .cons (.ty A) te => .cons (.ty A[r]) (rmap r.lift te)
+| .cons (.pred A) te => .cons (.pred A[r]) (rmap r.lift te)
 
 instance Surface.instRenMap_Telescope : RenMap Surface.Telescope where
   rmap := Surface.Telescope.rmap
@@ -45,12 +48,16 @@ def Surface.Telescope.smap (σ : Subst Surface.Ty) : Surface.Telescope -> Surfac
 | [] => []
 | .cons (.kind K) te => .cons (.kind K) (smap σ te)
 | .cons (.ty A) te => .cons (.ty A[σ]) (smap σ.lift te)
+| .cons (.pred A) te => .cons (.pred A[σ]) (smap σ.lift te)
 
 instance Surface.instRenMap_TelescopeTy : SubstMap Surface.Telescope Surface.Ty where
   smap := Surface.Telescope.smap
 
 def Surface.Ty.telescope : Ty -> Telescope  × Ty
 | .arrow A B =>
+  let (tys, b) := B.telescope
+  (.ty A :: tys, b)
+| «then» A B =>
   let (tys, b) := B.telescope
   (.ty A :: tys, b)
 | .all K B =>
@@ -68,6 +75,9 @@ def Surface.Ty.from_telescope : List Surface.TeleElem -> Ty -> Ty
 | .cons (.ty A) tys, t =>
   let r := t.from_telescope tys
   A `-:> r
+| .cons (.pred A) tys, t =>
+  let r := t.from_telescope tys
+  A `=:> r
 | .cons (.kind K) tys, t =>
   let r := t.from_telescope tys
   `∀[K] r

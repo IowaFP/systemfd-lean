@@ -33,6 +33,8 @@ theorem Kinding.closed_rep :
     rw [subst_lift σ lem]; simp
   case arrow ih1 ih2 =>
     rw [ih1 σ, ih2 σ]; simp
+  case «then» ih1 ih2 =>
+    rw [ih1 σ, ih2 σ]; simp
   case all ih =>
     replace ih := ih σ
     simp at ih; exact ih
@@ -102,27 +104,30 @@ theorem GlobalWf.closed {G : List Global} :
     simp [Entry.type] at q2; subst q2
     replace ctors := ctors i x T' (by rw [zdef])
     apply Kinding.closed ctors.1
-  -- case _ y T tl e =>
-  --   replace e := LawfulBEq.eq_of_beq e
-  --   simp [Entry.type] at h; subst e h
-  --   have lem := head j
-  --   cases lem ; case _ j =>
-  --   apply Kinding.closed j
-  -- case _ y T b tl e =>
-  --   replace e := LawfulBEq.eq_of_beq e
-  --   simp [Entry.type] at h; subst e h
-  --   have lem := head j
-  --   cases lem; case _ j1 j2 =>
-  --   apply Kinding.closed j1
-  -- case _ y T tl e =>
-  --   replace e := LawfulBEq.eq_of_beq e
-  --   simp [Entry.type] at h; subst e h
-  --   cases j; case _ wf j =>
-  --   cases j; case _ j =>
-  --   have lemj : ∃ b, (tl&[] ⊢s T : .base b) := by
-  --     apply ValidInstTy.closed j
-  --   cases lemj; case _ lemj =>
-  --   apply Kinding.closed lemj
+  case _ y T tl e =>
+    replace e := LawfulBEq.eq_of_beq e
+    simp [Entry.type] at h; subst e h
+    have lem := head j
+    cases lem ;
+    -- case _ j =>
+    -- apply Kinding.closed j
+  case _ y T b tl e =>
+    replace e := LawfulBEq.eq_of_beq e
+    simp [Entry.type] at h; subst e h
+    have lem := head j
+    cases lem;
+    -- case _ j1 j2 =>
+    -- apply Kinding.closed j1
+  case _ y T tl e =>
+    replace e := LawfulBEq.eq_of_beq e
+    simp [Entry.type] at h; subst e h
+    cases j; case _ wf j =>
+    cases j;
+    -- case _ j =>
+    -- have lemj : ∃ b, (tl&[] ⊢s T : .base b) := by
+    --   apply ValidInstTy.closed j
+    -- cases lemj; case _ lemj =>
+    -- apply Kinding.closed lemj
 
 
 theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren} K :
@@ -147,7 +152,7 @@ case var x K j =>
   replace h := h x (by apply Ty.FV.var)
   rw[<-j]; assumption
 case global => apply Kinding.global; assumption
-case arrow A _ B _ _ _ ih1 ih2 =>
+case arrow A B _ _ _ ih1 ih2 =>
   apply Kinding.arrow
   apply ih1
   · intro i h
@@ -156,6 +161,16 @@ case arrow A _ B _ _ _ ih1 ih2 =>
   apply ih2
   · intro i h1
     replace h1 : i ∈ (A `-:> B) := by apply Ty.FV.arrowl; assumption
+    revert i; apply h
+case «then» A B _ _ _ ih1 ih2 =>
+  apply Kinding.then
+  apply ih1
+  · intro i h
+    replace h : i ∈ (A `=:> B) := by apply Ty.FV.thenr; assumption
+    revert i; apply h
+  apply ih2
+  · intro i h1
+    replace h1 : i ∈ (A `=:> B) := by apply Ty.FV.thenl; assumption
     revert i; apply h
 case app A _ _ B _ _ ih1 ih2 =>
   apply Kinding.app
@@ -367,48 +382,49 @@ theorem Typing.rename_lift {Γ Γr : List Ty} (r : Ren) T :
   case _ => exact h2
   case _ i => apply h1 h2
 
-theorem Typing.rename Γr (r : Ren) :
+def Typing.rename Γr (r : Ren) :
   ⊢s G ->
   (∀ {i A}, Γ[i]? = some A -> Γr[r i]? = some A) ->
   G&Δ,Γ ⊢s t : A ->
   G&Δ,Γr ⊢s t[r] : A
 := by
-  intro wf h j; induction j generalizing Γr r <;> simp
-  case var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
-  case global j1 j2 => apply Typing.global j1 j2
-  case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
-    apply mtch (CTy := A) (PTy := PTy)
-    apply ih6; apply h
-    assumption
-    apply ih7; apply h
-    intro i; replace ih1 := ih1 i; apply ValidHeadVariable.rename; assumption
-    intro i; apply ih8; assumption
-    intro i; replace ih3 := ih3 i; assumption
-    intro i; replace ih9 := ih9 i; apply ih9; assumption
-    intro i; replace ih5 := ih5 i; assumption
+  intro wf h j; sorry
+  -- match j with
+  -- | var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
+  -- | global j1 j2 => apply Typing.global j1 j2
+  -- | mtch PTy pats cs ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 => sorry
+  --   -- apply mtch (CTy := A) (PTy := PTy)
+  --   -- apply ih6; apply h
+  --   -- assumption
+  --   -- apply ih7; apply h
+  --   -- intro i; replace ih1 := ih1 i; apply ValidHeadVariable.rename; assumption
+  --   -- intro i; apply ih8; assumption
+  --   -- intro i; replace ih3 := ih3 i; assumption
+  --   -- intro i; replace ih9 := ih9 i; apply ih9; assumption
+  --   -- intro i; replace ih5 := ih5 i; assumption
 
-  case lam Δ A b Γ t B j1 j2 ih =>
-    replace ih := ih (A::Γr) r.lift (rename_lift r A h)
-    rw [Ren.to_lift] at ih; simp at ih
-    apply lam j1 ih
-  case app j1 j2 j3 ih1 ih2 =>
-    apply app j1
-    apply ih1 _ _ h
-    apply ih2 _ _ h
-  case lamt j h ih =>
-    apply lamt
-    apply j
-    apply ih _ _ (rename_lift_type r h)
-  case appt j1 j2 j3 ih =>
-    apply appt _ j2 j3
-    apply ih _ _ h
-  case annot j ih =>
-    apply annot
-    apply ih _ _ h
-  case hole =>
-    apply hole; assumption
+  -- case lam Δ A b Γ t B j1 j2 ih =>
+  --   replace ih := ih (A::Γr) r.lift (rename_lift r A h)
+  --   rw [Ren.to_lift] at ih; simp at ih
+  --   apply lam j1 ih
+  -- case app j1 j2 j3 ih1 ih2 =>
+  --   apply app j1
+  --   apply ih1 _ _ h
+  --   apply ih2 _ _ h
+  -- case lamt j h ih =>
+  --   apply lamt
+  --   apply j
+  --   apply ih _ _ (rename_lift_type r h)
+  -- case appt j1 j2 j3 ih =>
+  --   apply appt _ j2 j3
+  --   apply ih _ _ h
+  -- case annot j ih =>
+  --   apply annot
+  --   apply ih _ _ h
+  -- case hole =>
+  --   apply hole; assumption
 
-theorem Typing.weaken T : ⊢s G -> G&Δ,Γ ⊢s t : A -> G&Δ,(T::Γ) ⊢s t[+1] : A := by
+def Typing.weaken T : ⊢s G -> G&Δ,Γ ⊢s t : A -> G&Δ,(T::Γ) ⊢s t[+1] : A := by
   intro wf j; apply rename (T::Γ) (· + 1) wf _ j; simp
   intro i A h
   simp [TyEnv, inst_getElem?_TyEnv] at *; assumption

@@ -54,6 +54,7 @@ def Surface.Ty.beq : Ty -> Ty -> Bool
 | var x, var y => x == y
 | global x, global y => x == y
 | arrow A1 B1, arrow A2 B2 => beq A1 A2 && beq B1 B2
+| «then» A1 B1, «then» A2 B2 => beq A1 A2 && beq B1 B2
 | all K1 P1, all K2 P2 => K1 == K2 && beq P1 P2
 | app A1 B1, app A2 B2 => beq A1 A2 && beq B1 B2
 | _, _ => false

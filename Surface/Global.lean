@@ -1,5 +1,6 @@
 import LeanSubst
 import Core.Vec
+import Lilac.Vect
 import Surface.Ty
 import Surface.Term
 
@@ -7,27 +8,21 @@ open LeanSubst
 
 inductive Surface.Global : Type where
 | data : String -> Kind -> Vect n (String × Ty) -> Global
--- | opent : String -> Kind -> Global
--- | openm : String -> Ty -> Global
--- | defn : String -> Ty -> Term -> Global
--- | inst : String -> Term -> Global
--- | instty : String -> Ty -> Global
+| opent : String -> Kind -> Global
+| openm : String -> Ty -> Global
+| defn : String -> Ty -> Term -> Global
+| inst : String -> Term -> Global
+| instty : String -> Ty -> Global
 
 def Surface.Global.repr (_ : Nat) : (a : Surface.Global) -> Std.Format
-| .data (n := n + 1) s K ctors =>
-  let ts : Vect (n + 1) Std.Format := λ i =>
-    let (ctorN, ctorTy) := ctors i
-    Std.Format.nest 4 <| ctorN ++ " : " ++ Surface.Ty.repr max_prec ctorTy
-
-  ".data " ++ s ++ " : " ++ Surface.Kind.repr max_prec K ++ Std.Format.line
-    ++ "v" ++ Std.Format.sbracket (ts.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c))
-| .data s K _ =>
+| .data s K ctors =>
   ".data " ++ s ++ " : " ++ Surface.Kind.repr max_prec K
--- | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
--- | .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
--- | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
--- | .inst n t => ".inst " ++ n ++ " " ++  t.repr max_prec
--- | .instty n T => ".instTy" ++ n ++ " " ++  T.repr max_prec
+    ++ Std.Format.line ++ (ctors.reprPrec 0)
+| .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
+| .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
+| .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
+| .inst n t => ".inst " ++ n ++ " " ++  t.repr max_prec
+| .instty n T => ".instTy" ++ n ++ " " ++  T.repr max_prec
 
 @[simp]
 instance Surface.instRepr_Global : Repr Global where
@@ -52,8 +47,8 @@ inductive Surface.Entry : Type where
 | ctor : String -> Nat -> Ty -> Entry
 | opent : String -> Kind -> Entry
 | openm : String -> Ty -> Entry
--- | defn : String -> Ty -> Term -> Entry
--- | instty : String -> Ty -> Entry
+| defn : String -> Ty -> Term -> Entry
+| instty : String -> Ty -> Entry
 
 def Surface.Entry.is_data : Entry -> Bool
 | data _ _ _ => true
@@ -63,21 +58,21 @@ def Surface.Entry.is_ctor : Entry -> Bool
 | ctor _ _ _ => true
 | _ => false
 
--- def Surface.Entry.is_opent : Entry -> Bool
--- | opent _ _ => true
--- | _ => false
+def Surface.Entry.is_opent : Entry -> Bool
+| opent _ _ => true
+| _ => false
 
--- def Surface.Entry.is_openm : Entry -> Bool
--- | openm _ _ => true
--- | _ => false
+def Surface.Entry.is_openm : Entry -> Bool
+| openm _ _ => true
+| _ => false
 
--- def Surface.Entry.is_defn : Entry -> Bool
--- | defn _ _ _ => true
--- | _ => false
+def Surface.Entry.is_defn : Entry -> Bool
+| defn _ _ _ => true
+| _ => false
 
--- def Surface.Entry.is_instty : Entry -> Bool
--- | instty _ _ => true
--- | _ => false
+def Surface.Entry.is_instty : Entry -> Bool
+| instty _ _ => true
+| _ => false
 
 def Surface.Entry.kind : Entry -> Option Kind
 | data _ K _ => K
@@ -87,8 +82,8 @@ def Surface.Entry.kind : Entry -> Option Kind
 def Surface.Entry.type : Entry -> Option Ty
 | ctor _ _ T => T
 | openm _ T => T
--- | defn _ T _ => T
--- | instty _ T => T
+| defn _ T _ => T
+| instty _ T => T
 | _ => none
 
 def Surface.lookup (x : String) : GlobalEnv -> Option Entry
@@ -99,15 +94,15 @@ def Surface.lookup (x : String) : GlobalEnv -> Option Entry
     if x == z then return .ctor z i A else none
   if x == y then return .data y K ctors
   else Vect.fold (lookup x tl) Option.or ctors'
--- | .cons (.opent y a) tl =>
---   if x == y then return .opent y a else lookup x tl
--- | .cons (.openm y a) tl =>
---   if x == y then return .openm y a else lookup x tl
--- | .cons (.defn y a b) tl =>
---   if x == y then return .defn y a b else lookup x tl
--- | .cons (.inst _ _) tl => lookup x tl
--- | .cons (.instty y a) tl =>
---   if x == y then return .instty y a else lookup x tl
+| .cons (.opent y a) tl =>
+  if x == y then return .opent y a else lookup x tl
+| .cons (.openm y a) tl =>
+  if x == y then return .openm y a else lookup x tl
+| .cons (.defn y a b) tl =>
+  if x == y then return .defn y a b else lookup x tl
+| .cons (.inst _ _) tl => lookup x tl
+| .cons (.instty y a) tl =>
+  if x == y then return .instty y a else lookup x tl
 
 -- def Surface.lookup_defn G x := do
 --   let t <- Surface.lookup x G

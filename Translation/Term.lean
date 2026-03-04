@@ -6,12 +6,68 @@ import Surface.Term
 import Translation.Ty
 open LeanSubst
 
+
 def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :  Core.Ty -> Option Core.Term
 | _ => none
 
 def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
   Core.Ty -> Core.Ty -> Option Core.Term
 | _, _ => none
+
+inductive Core.Translation.SynthTerm (G' : Core.GlobalEnv) (Δ' : Core.KindEnv) (Γ' : Core.TyEnv) :
+  Core.Ty -> Core.Term -> Prop where
+
+
+inductive Surface.Translation.Term (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) :
+  Surface.KindEnv -> Surface.TyEnv -> Surface.Term -> Surface.Ty ->
+  Core.KindEnv -> Core.TyEnv -> Core.Term -> Core.Ty -> Prop where
+| var  {Γ : Surface.TyEnv} :
+  Γ[x]? = some T ->
+  Γ'[x]? = some T' ->
+  Translation.Ty G G' Δ T `★ Δ' T' ★ ->
+  Translation.Term G G' Δ Γ `#x T Δ' Γ' #x T'
+| global :
+  Surface.lookup_type G x = some T ->
+  Core.lookup_type G' x = some T' ->
+  Translation.Ty G G' Δ T `★ Δ' T' ★ ->
+  Translation.Term G G' Δ Γ g`#x T Δ' Γ' g#x T'
+| app :
+  Translation.Ty G G' Δ A `★ Δ' A' ★ ->
+  Translation.Term G G' Δ Γ f (A `-:> B) Δ' Γ' f' (A' -:> B') ->
+  Translation.Term G G' Δ Γ a A Δ' Γ' a' A' ->
+  Translation.Term G G' Δ Γ f (A `-:> B) Δ' Γ' f' B'
+| appP :
+  Translation.Ty G G' Δ A `◯ Δ' A' ◯ ->
+  Translation.Term G G' Δ Γ f (A `=:> B) Δ' Γ' f' (A' -:> B') ->
+  Core.Translation.SynthTerm G' Δ' Γ' A' a' ->
+  Translation.Term G G' Δ Γ f B Δ' Γ' (f' ∘[ a' ]) B'
+| lam :
+  Translation.Ty G G' Δ A `★ Δ' A' ★ ->
+  Translation.Term G G' Δ (A::Γ) t B Δ' (A'::Γ') t' B' ->
+  Translation.Term G G' Δ Γ (λˢ[A] t) (A `-:> B) Δ' Γ' (λ[A'] t') (A' -:> B')
+| mtch (CTy : Vect n Surface.Ty) (CTy' : Vect n Core.Ty)
+       (PTy : Vect n Surface.Ty) (PTy' : Vect n Core.Ty)
+       (pats : Vect n Surface.Term) (pats' : Vect n Core.Term)
+       (cs : Vect n Surface.Term) (cs' : Vect n Core.Term) :
+  Translation.Term G G' Δ Γ s R Δ' Γ' s' R' ->
+  ValidTyHeadVariable R (is_data G) ->
+  Translation.Term G G' Δ Γ c T Δ' Γ' c' T' -> -- catch all term is of type T
+  (∀ i, ValidHeadVariable (pats i) (is_ctor G)) -> -- patterns are of the right shape
+  (∀ i, Translation.Term G G' Δ Γ (pats i) (PTy i) Δ' Γ' (pats' i) (PTy' i)) -> -- each pattern has a type
+  (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
+  (∀ i, Translation.Term G G' Δ Γ (cs i) (PTy i) Δ' Γ' (cs' i) (CTy' i)) -> -- each case match has a type
+  (∀ i, PrefixTypeMatch Δ (PTy i) (CTy i) T) -> -- patten type and case type
+  Translation.Term G G' Δ Γ (matchˢ! s pats cs c) T Δ' Γ' (match! n s' pats' cs' c') T'
+| lamt :
+  Translation.Ty G G' (K::Δ) P `★ (K.translate::Δ') P' ★ ->
+  Translation.Term G G' (K::Δ) (Γ.map (·[+1])) t P (K.translate :: Δ') (Γ'.map (·[+1])) t' P' ->
+  Translation.Term G G' Δ Γ (Λˢ[K] t) (`∀[K] P) Δ' Γ' (Λ[K.translate] t') (∀[K.translate] P')
+| annot :
+  Translation.Ty G G' Δ Ta `★ Δ' Ta' ★ ->
+  Translation.Ty G G' Δ Tb `★ Δ' Tb' ★ ->
+  Core.Translation.SynthTerm G' Δ' Γ' (Ta' ~[★]~ Tb') c ->
+  Translation.Term G G' Δ Γ t Ta Δ' Γ' t' Ta' ->
+  Translation.Term G G' Δ Γ (.annot t Ta) Tb Δ' Γ' (t' ▹ c) Tb'
 
 
 @[simp, grind]
@@ -41,8 +97,8 @@ def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
   let cs' <- ocs'.seq
   let d' <- d.translate G Δ Γ
   return match! n s' ps' cs' d'
-| .annot t T =>
-  t.translate G Δ Γ -- T.translate
+| .annot t _ => do
+  t.translate G Δ Γ
 | .hole T => T.translate.synth_term G Δ Γ
 
 
@@ -69,6 +125,10 @@ def Surface.Term.type_directed_translate (G : Core.GlobalEnv) (Δ : Core.KindEnv
   let cs' <- ocs'.seq
   let d' <- d.type_directed_translate G Δ Γ τ
   return match! n s' ps' cs' d'
+| .annot t τt => do
+  let t' <- t.type_directed_translate G Δ Γ τt.translate
+  let c <- Core.Ty.synth_coercion G Δ Γ τt.translate τ
+  return t' ▹ c
 | t =>
   match sp_prf : t.spine with
   | some (x, sp) => do
@@ -82,7 +142,7 @@ def Surface.Term.type_directed_translate (G : Core.GlobalEnv) (Δ : Core.KindEnv
                  let A' := A.translate
                  let σ : Subst Core.Ty := (su A')::+0
                  return (acct •[ A' ], τ[σ])
-               | .arrow A B,⟨.term t, prf⟩ => do
+               | .arrow A B, ⟨.term t, prf⟩ => do
                  let t' <- t.type_directed_translate G Δ Γ A
                  return (acct • t', B)
                | _ , _ => none)

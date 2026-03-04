@@ -31,6 +31,7 @@ def Surface.Ty.rmap (r : Ren) : Ty -> Ty
 | t`#x => t`#(r x)
 | gt`#x => gt`#x
 | A `-:> B => rmap r A `-:> rmap r B
+| A `=:> B => rmap r A `=:> rmap r B
 | `∀[K] P => `∀[K] rmap r.lift P
 | app f a => rmap r f `• rmap r a
 
@@ -42,6 +43,7 @@ def Surface.Ty.smap (σ : Subst Surface.Ty) : Surface.Ty -> Surface.Ty
 | t`#x => σ x
 | gt`#x => gt`#x
 | A `-:> B => smap σ A `-:> smap σ B
+| A `=:> B => smap σ A `=:> smap σ B
 | `∀[K] P => `∀[K] smap σ.lift P
 | app f a => smap σ f `• smap σ a
 
@@ -58,6 +60,10 @@ theorem Surface.Ty.subst_global : (gt`#x)[σ:Ty] = gt`#x := by
 
 @[simp]
 theorem Surface.Ty.subst_arr {A B : Ty} : (A `-:> B)[σ:Ty] = A[σ:_] `-:> B[σ:_] := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Surface.Ty.subst_then {A B : Ty} : (A `=:> B)[σ:Ty] = A[σ:_] `=:> B[σ:_] := by
   simp [SubstMap.smap]
 
 @[simp]

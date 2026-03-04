@@ -1,5 +1,6 @@
 
 import Surface.Typing
+import Surface.Metatheory.Rename
 
 open LeanSubst
 namespace Surface
@@ -15,6 +16,10 @@ theorem Kinding.subst Δσ (σ : Subst Ty) :
   case global j => apply global j
   case arrow j1 j2 ih1 ih2 =>
     apply arrow
+    apply ih1 _ _ h
+    apply ih2 _ _ h
+  case «then» j1 j2 ih1 ih2 =>
+    apply «then»
     apply ih1 _ _ h
     apply ih2 _ _ h
   case all K Δ P j ih =>

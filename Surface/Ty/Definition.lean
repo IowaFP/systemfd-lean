@@ -18,6 +18,7 @@ inductive Surface.Ty : Type where
 | var : Nat -> Ty
 | global : String -> Ty
 | arrow : Ty -> Ty -> Ty
+| «then» : Ty -> Ty -> Ty
 | all : Kind -> Ty -> Ty
 | app : Ty -> Ty -> Ty
 
@@ -26,6 +27,7 @@ def Surface.Ty.size : Ty -> Nat
 | global _ => 0
 | all _ t => t.size + 1
 | arrow t1 t2 => t1.size + t2.size + 1
+| «then» t1 t2 => t1.size + t2.size + 1
 | app t1 t2 => t1.size + t2.size + 1
 
 instance Surface.instSizeOf_Ty : SizeOf Surface.Ty where
@@ -34,6 +36,7 @@ instance Surface.instSizeOf_Ty : SizeOf Surface.Ty where
 prefix:max "t`#" => Surface.Ty.var
 prefix:max "gt`#" => Surface.Ty.global
 infixr:64 " `-:> " => Surface.Ty.arrow
+infixr:64 " `=:> " => Surface.Ty.then
 notation "`∀[" K "]" B => Surface.Ty.all K B
 infixl:54 " `• " => Surface.Ty.app
 
@@ -49,6 +52,7 @@ protected def Surface.Ty.repr (p : Nat) : (a : Ty) -> Std.Format
 | var n => "t`#" ++ Nat.repr n
 | global s => "gt`#" ++ s
 | arrow t1 t2 => Repr.addAppParen (Ty.repr max_prec t1 ++ " `-:> " ++ Ty.repr p t2) p
+| «then» t1 t2 => Repr.addAppParen (Ty.repr max_prec t1 ++ " `=:> " ++ Ty.repr p t2) p
 | all K t => Repr.addAppParen ("`∀[ " ++ repr K ++ " ] " ++ Ty.repr max_prec t) p
 | app t1 t2 => Repr.addAppParen (Ty.repr p t1 ++ " `• " ++ Ty.repr max_prec t2) p
 
