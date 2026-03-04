@@ -13,10 +13,8 @@ inductive Term : Type where
 | app : Term -> Term -> Term
 | lamt :  Kind -> Term -> Term
 | lam : Ty -> Term -> Term
-| «match» : Term -> Vect n Term -> Vect n Term -> Term -> Term
+| «match» : (n : Nat) -> Ty -> Term -> Vect n Term -> Vect n Term -> Term -> Term
 | annot : Term -> Ty -> Term
-| hole : Ty -> Term
--- |  hole : Ty  -> Term
 
 
 prefix:max "`#" => Term.var
@@ -44,21 +42,18 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .lamt K t =>
   Repr.addAppParen ("Λˢ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λˢ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
-| .match (n := n) s pats ts allc =>
+| .match n _ s pats ts d =>
   let ts : Vect n Std.Format := λ i =>
     let t := ts i
     let pat := pats i
-    Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " => " ++ Term.repr p t
+    Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " -> " ++ Term.repr p t
   let css := Vect.fold Std.Format.nil (·++·) ts
   Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
     ++ css
-    ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)
+    ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ ->> " ++ Term.repr p d)
     )
 | annot t ty =>
   Std.Format.paren (Term.repr p t ++ " : " ++ repr ty)
-| .hole ty =>
-  Std.Format.paren (" __ : " ++repr ty)
-
 
 @[simp]
 instance instRepr_Term : Repr Term where
@@ -72,11 +67,10 @@ def Term.size : Term -> Nat
 | appt t1 _ => size t1 + 1
 | lamt _ t => size t + 1
 | lam _ t => size t + 1
-| «match» t1 t2 t3 t4 =>
+| «match» _ _ t1 t2 t3 t4 =>
   let t2' : Vect _ _ := size <$> t2
   let t3' : Vect _ _ := size <$> t3
   size t1 + List.sum t2' + List.sum t3' + size t4 + 1
 | annot t _ => size t + 1
-| .hole _ => 0
 
 end Surface

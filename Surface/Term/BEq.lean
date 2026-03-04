@@ -10,15 +10,14 @@ def Term.beq : Term -> Term -> Bool
 | app a1 b1, app a2 b2 => beq a1 a2 && beq b1 b2
 | lamt K1 t1, lamt K2 t2 => K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
-| .match (n := n1) a1 b1 c1 d1, .match (n := n2) a2 b2 c2 d2 =>
+| .match (n := n1) t1 a1 b1 c1 d1, .match (n := n2) t2 a2 b2 c2 d2 =>
   if h : n1 = n2 then
     let c : Vect n1 Bool := λ i => beq (c1 i) (c2 (by rw[h] at i; exact i))
     let p : Vect n1 Bool := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
-    beq a1 a2 && Vect.fold true (·&&·) c && Vect.fold true (·&&·) p && beq d1 d2
+    beq a1 a2 && Vect.fold true (·&&·) c && Vect.fold true (·&&·) p && beq d1 d2 && t1 == t2
   else false
 
 | annot t1 A1, annot t2 A2 => beq t1 t2 && A1 == A2
-| hole A, hole B => A == B
 | _, _ => false
 
 instance instBEq_Term : BEq Term where

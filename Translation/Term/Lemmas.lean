@@ -494,8 +494,6 @@ case annot ih =>
   · apply And.intro
     · apply ih2
     · apply ih3
-case hole =>
-  sorry
 
 theorem Translation.synth_term_completeness :
   Core.Translation.SynthTerm G Δ Γ T t ->
@@ -516,38 +514,36 @@ theorem Translation.Term.Sound2
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
 
-  Surface.Translation.Term G G' Δ Γ t T Δ' Γ' t' T' ->
+  Surface.Translation.Term G G' m Δ Γ t T Δ' Γ' t' T' ->
 
   t.type_directed_translate G' Δ' Γ' T = some t' ∧
    t'.Determined ∧
    G'&Δ',Γ' ⊢ t' : T' := by
 intro wf h1 wfc h2 h3 h4
 induction h4 <;> simp [Surface.Term.type_directed_translate] at *
-case var x T A Γ' Δ Δ' A' T' d  Γ _ _ j1 j2 j3 =>
-  have lem := Translation.Ty.sound2 wf j1 h1 h2
-  simp at *; cases lem.1; simp at lem
-  have lem' := Translation.Ty.sound2 wf j2 h1 h2
-  simp at *; cases lem'.1; simp at lem'
-  apply And.intro
-  · split <;> simp at *
-    · sorry
-    · sorry
-  · apply And.intro
-    · sorry
-    · sorry; -- apply Core.Typing.var; assumption; apply lem
+case var x T A T' Δ Δ' m T' j1 j2 j3 => sorry
+  -- have lem := Translation.Ty.sound2 wf j1 h1 h2
+  -- simp at *; cases lem.1; simp at lem
+  -- have lem' := Translation.Ty.sound2 wf j2 h1 h2
+  -- simp at *; cases lem'.1; simp at lem'
+  -- apply And.intro
+  -- · split <;> simp at *
+  --   · sorry
+  --   · sorry
+  -- · apply And.intro
+  --   · sorry
+  --   · sorry; -- apply Core.Typing.var; assumption; apply lem
 sorry
 sorry
 case appP Δ A Δ' A' Γ f B Γ' f' B' t' j1 j2 j3 ih =>
   replace ih := ih h2 h3
   rcases ih with ⟨ih1, ih2, ih3⟩
-
   sorry
 sorry
 sorry
-case lamt => sorry
-case annot Δ Ta Δ' Ta' Tb Tb' Γ' c Γ t t' j1 j2 j3 j4 j5 =>
-  replace j5 := j5 h2 h3
-  rcases j5 with ⟨j5, j6⟩
+case annot Δ Ta Δ' Ta' Tb Tb' Γ' c m1 Γ t t' m2 j1 j2 j3 j4 ih =>
+  replace ih := ih h2 h3
+  rcases ih with ⟨ih1, ih2⟩
   have lem := Translation.Ty.sound2 wf j1 h1 h2
   rcases lem with ⟨lem1, lem2, lem3⟩
   subst lem2
@@ -559,8 +555,9 @@ case annot Δ Ta Δ' Ta' Tb Tb' Γ' c Γ t t' j1 j2 j3 j4 j5 =>
   · rw[Option.bind_eq_some_iff]; exists t';
   · apply And.intro
     · apply Core.Term.Determined.cast.1; apply And.intro
-      · apply j6.1
+      · apply ih2.1
       · apply lem3.2.1
     · apply Core.Typing.cast
-      · apply j6.2
+      · apply ih2.2
       · apply lem3.2.2
+sorry

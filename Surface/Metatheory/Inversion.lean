@@ -73,7 +73,6 @@ case appt h =>
 
 case mtch => assumption
 case annot => assumption
-case hole => exists b`◯
 
 
 end Surface

@@ -115,7 +115,7 @@ inductive Typing (G : GlobalEnv) :
   (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
   (∀ i, Typing G Δ Γ (cs i) (CTy i)) -> -- each case match has a type
   (∀ i, PrefixTypeMatch Δ (PTy i) (CTy i) T) -> -- patten type and case type
-  Typing G Δ Γ (matchˢ! s pats cs c) T
+  Typing G Δ Γ (matchˢ! n R s pats cs c) T
 --------------------------------------------------------------------------------------
 ---- Terms
 --------------------------------------------------------------------------------------
@@ -149,9 +149,7 @@ inductive Typing (G : GlobalEnv) :
 | annot :
   Typing G Δ Γ t T ->
   Typing G Δ Γ (.annot t T) T
-| hole :
-  Kinding G Δ T `◯ ->
-  Typing G Δ Γ (.hole T) T
+
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " : " A:170 => Typing G Δ Γ t A
 
