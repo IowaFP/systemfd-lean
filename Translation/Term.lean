@@ -246,6 +246,14 @@ mutual
       -- ensure a has kind K?
       return (f' •[ a.translate ], T[su a ::+0])
     | _ => none
+  | .app f a => do
+    let (f', T) <- f.type_inf_translate G G' Δ Γ
+    match T with
+    | .arrow A B =>
+      let a' <- a.type_chk_translate G G' Δ Γ A
+      -- ensure a has kind K?
+      return (f' • a', B)
+    | _ => none
   | _ => none
 
 

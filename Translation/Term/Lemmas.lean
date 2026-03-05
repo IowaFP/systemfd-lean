@@ -503,11 +503,8 @@ theorem Translation.synth_term_completeness :
 
 @[simp]
 abbrev ElabSoundnessType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
-  (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) (t : Surface.Term): Mode -> Prop
-| .inf => ∀ Δ' Γ' t' T,
-  ⊢s G ->
-  G.translate = some G' ->
-  ⊢ G' ->
+  (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) (t : Surface.Term) (t' : Core.Term) (T : Surface.Ty) : Mode -> Prop
+| .inf => ∀ Δ' Γ',
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
 
@@ -516,10 +513,7 @@ abbrev ElabSoundnessType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
   G'&Δ',Γ' ⊢ t' : T.translate
 
 | .chk =>
-  ∀ Δ' Γ' t' T,
-  ⊢s G ->
-  G.translate = some G' ->
-  ⊢ G' ->
+  ∀ Δ' Γ',
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
 
@@ -532,29 +526,52 @@ theorem Translation.Term.Sound2
   {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
   {Δ : Surface.KindEnv} {Γ : Surface.TyEnv}
   {t : Surface.Term} {t' : Core.Term} {m : Mode}:
+  ⊢s G ->
+  G.translate = some G' ->
+  ⊢ G' ->
   Surface.Term.Elab G G' m Δ Γ t T t' ->
-  ElabSoundnessType G G' Δ Γ t m
+  ElabSoundnessType G G' Δ Γ t t' T m
 
 := by
-intro h
-induction h <;> simp at *
+intro h1 h2 h3 h
+induction h <;> simp [Surface.Term.type_chk_translate, Surface.Term.type_inf_translate] at *
 case var =>
-  split <;> simp [Surface.Term.type_chk_translate, Surface.Term.type_inf_translate] at *
-  · intro Δ' Γ' t' _ wf h1 wfc h2 h3
-    case _ T _ _ _ _ _ _ _ =>
-    rw[Option.bind_eq_some_iff]; sorry
-  · intro Δ' Γ' t' T wf h1 wfc h2 h3
+  split
+  · case _ T _ _ _ _ _ _ =>
+    rw[Option.bind_eq_some_iff];
+    apply And.intro
+    · exists T
+    · apply And.intro
+      · apply Core.Term.Determined.var
+      · apply Core.Typing.var
+        sorry
+        sorry
+        sorry
+  · sorry
+case _ => sorry
 
+case _ => sorry
+
+case _ => sorry
+
+case _ => sorry
+
+case _ => sorry
+
+case _ => sorry
+
+case _ => sorry
+
+case _ => sorry
+
+case _ ih =>
+  split at ih
+  · split
     sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
-case _ => sorry
+    sorry
+  · split
+    sorry
+    sorry
 -- intro wf h1 wfc h2 h3 h4
 -- induction h4 <;> simp [Surface.Term.type_directed_translate] at *
 -- case var x T A T' Δ Δ' m T' j1 j2 j3 => sorry
