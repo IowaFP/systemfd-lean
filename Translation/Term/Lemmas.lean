@@ -502,7 +502,7 @@ theorem Translation.synth_term_completeness :
 
 
 @[simp]
-abbrev ElabSoundnessType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
+abbrev ElabSoundnessInferType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
   (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) (t : Surface.Term) (t' : Core.Term) (T : Surface.Ty) : Mode -> Prop
 | .inf => ∀ Δ' Γ',
   Δ.translate = Δ' ->
@@ -512,15 +512,7 @@ abbrev ElabSoundnessType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
   t'.Determined ∧
   G'&Δ',Γ' ⊢ t' : T.translate
 
-| .chk =>
-  ∀ Δ' Γ',
-  Δ.translate = Δ' ->
-  Γ.translate = Γ' ->
-
-  t.type_chk_translate G G' Δ Γ T = some t' ∧
-  t'.Determined ∧
-  G'&Δ',Γ' ⊢ t' : T.translate
-
+| .chk => true
 
 theorem Translation.Term.Sound2
   {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
@@ -530,29 +522,37 @@ theorem Translation.Term.Sound2
   G.translate = some G' ->
   ⊢ G' ->
   Surface.Term.Elab G G' m Δ Γ t T t' ->
-  ElabSoundnessType G G' Δ Γ t t' T m
+  ElabSoundnessInferType G G' Δ Γ t t' T m
 
 := by
 intro h1 h2 h3 h
-induction h <;> simp [Surface.Term.type_chk_translate, Surface.Term.type_inf_translate] at *
+induction h <;> simp [Surface.Term.type_inf_translate] at *
 case var =>
   split
-  · case _ T _ _ _ _ _ _ =>
+  · case _ x T _ _ h j _ =>
     rw[Option.bind_eq_some_iff];
     apply And.intro
     · exists T
     · apply And.intro
       · apply Core.Term.Determined.var
       · apply Core.Typing.var
-        sorry
-        sorry
-        sorry
+        apply Translation.TyEnv.sound rfl x T h
+        have lem := Translation.Ty.sound h1 ⟨j, h2, rfl⟩
+        rcases lem with ⟨_, _, lem1, lem2, lem3⟩
+        subst lem1; subst lem2; apply lem3
+  · simp
+case _ => sorry
+
+case _ => sorry
+
+case app_then ih =>
+  split at ih <;> try simp
+  rcases ih with ⟨ih1, ih2, ih3⟩
+  apply And.intro
   · sorry
-case _ => sorry
-
-case _ => sorry
-
-case _ => sorry
+  · apply And.intro
+    · sorry
+    · sorry
 
 case _ => sorry
 
@@ -568,10 +568,26 @@ case _ ih =>
   split at ih
   · split
     sorry
-    sorry
+    simp
   · split
     sorry
-    sorry
+    simp
+
+
+@[simp]
+abbrev ElabSoundnessCheckType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
+  (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) (t : Surface.Term) (t' : Core.Term) (T : Surface.Ty) : Mode -> Prop
+| .inf => true
+| .chk =>
+  ∀ Δ' Γ',
+  Δ.translate = Δ' ->
+  Γ.translate = Γ' ->
+
+  t.type_chk_translate G G' Δ Γ T = some t' ∧
+  t'.Determined ∧
+  G'&Δ',Γ' ⊢ t' : T.translate
+
+
 -- intro wf h1 wfc h2 h3 h4
 -- induction h4 <;> simp [Surface.Term.type_directed_translate] at *
 -- case var x T A T' Δ Δ' m T' j1 j2 j3 => sorry

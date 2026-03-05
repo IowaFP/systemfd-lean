@@ -15,18 +15,23 @@ def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
   Core.Ty -> Core.Ty -> Option Core.Term
 | _, _ => none
 
+
+inductive Core.Translation.SynthCoe (G' : Core.GlobalEnv) (Δ' : Core.KindEnv) (Γ' : Core.TyEnv) :
+  Core.Ty -> Core.Ty -> Core.Term -> Prop where
+| refl :
+  Core.Translation.SynthCoe G' Δ' Γ' T T (refl! T)
+| sym :
+  Core.Translation.SynthCoe G' Δ' Γ' T T' c ->
+  Core.Translation.SynthCoe G' Δ' Γ' T' T (sym! c)
+| trans :
+  Core.Translation.SynthCoe G' Δ' Γ' T  T' c1 ->
+  Core.Translation.SynthCoe G' Δ' Γ' T' T'' c2 ->
+  Core.Translation.SynthCoe G' Δ' Γ' T'  T (c1 `; c2)
+
+
+-- Generate ◯ typed things
 inductive Core.Translation.SynthTerm (G' : Core.GlobalEnv) (Δ' : Core.KindEnv) (Γ' : Core.TyEnv) :
   Core.Ty -> Core.Term -> Prop where
-| refl :
-  Core.Translation.SynthTerm G' Δ' Γ' (T ~[★]~ T) (refl! T)
-| sym :
-  Core.Translation.SynthTerm G' Δ' Γ' (T ~[★]~ T') c ->
-  Core.Translation.SynthTerm G' Δ' Γ' (T' ~[★]~ T) (sym! c)
-| trans :
-  Core.Translation.SynthTerm G' Δ' Γ' (T ~[★]~ T') c1 ->
-  Core.Translation.SynthTerm G' Δ' Γ' (T' ~[★]~ T'') c2 ->
-  Core.Translation.SynthTerm G' Δ' Γ' (T' ~[★]~ T) (c1 `; c2)
-
 
 
 inductive Mode : Type where | chk | inf
@@ -36,34 +41,34 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
   Core.Term -> Prop where
 | var  {Γ : Surface.TyEnv} :
   Γ[x]? = some T ->
-  Translation.Ty G Δ T `★ T' ->
+  G&Δ ⊢s T : `★ ->
   Surface.Term.Elab G G' inf Δ Γ `#x T #x
 | global :
   Surface.lookup_type G x = some T ->
-  Translation.Ty G Δ T `★ T' ->
+  G&Δ ⊢s T : `★ ->
   Surface.Term.Elab G G' inf Δ Γ g`#x T g#x
 | app_arr :
-  Translation.Ty G Δ A `★ A' ->
+  G&Δ ⊢s A : `★ ->
   Surface.Term.Elab G G' inf Δ Γ f (A `-:> B) f' ->
   Surface.Term.Elab G G' chk Δ Γ a A a' ->
   Surface.Term.Elab G G' inf Δ Γ (f `• a) B (f' • a')
 | app_then :
-  Translation.Ty G Δ A `◯ A' ->
+  G&Δ ⊢s A : `◯ ->
   Surface.Term.Elab G G' inf Δ Γ f (A `=:> B) f' ->
   Core.Translation.SynthTerm G' Δ.translate Γ.translate A.translate a' ->
   Surface.Term.Elab G G' inf Δ Γ f B (f' ∘[ a' ])
 | appt :
-  Translation.Ty G Δ A K A' ->
+  G&Δ ⊢s A : K ->
   Surface.Term.Elab G G' inf Δ Γ e (`∀[K]P) e' ->
   P' = P[su A::+0] ->
-  Surface.Term.Elab G G' inf Δ Γ (e `•[ A ]) P' (e' •[ A' ])
+  Surface.Term.Elab G G' inf Δ Γ (e `•[ A ]) P' (e' •[ A.translate ])
 
 | lam :
-  Translation.Ty G Δ A `★ A' ->
+  G&Δ ⊢s A : `★ ->
   Surface.Term.Elab G G' chk Δ (A::Γ) t B t' ->
-  Surface.Term.Elab G G' chk Δ Γ (λˢ[A] t) (A `-:> B) (λ[A'] t')
+  Surface.Term.Elab G G' chk Δ Γ (λˢ[A] t) (A `-:> B) (λ[A.translate] t')
 | lamt :
-  Translation.Ty G (K::Δ) P `★ P' ->
+  G&(K::Δ) ⊢s P : `★ ->
   Surface.Term.Elab G G' chk (K::Δ) (Γ.map (·[+1])) t P t' ->
   Surface.Term.Elab G G' chk Δ Γ (Λˢ[K] t) (`∀[K] P) (Λ[K.translate] t')
 
@@ -87,9 +92,13 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
 
 | subsump :
   Surface.Term.Elab G G' inf Δ Γ t Tinf t' ->
-  Surface.Translation.Ty G Δ T `★ T' ->
-  Core.Translation.SynthTerm G' Δ.translate Γ.translate (Tinf.translate ~[★]~  T') c ->
+  Core.Translation.SynthCoe G' Δ.translate Γ.translate Tinf.translate  T.translate c ->
   Surface.Term.Elab G G' chk Δ Γ t T (t' ▹ c)
+
+notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170  " <= " A:170 " -↪ " G':170 " ⊢ " t':170 => Surface.Term.Elab G G' Mode.chk Δ Γ t A t'
+
+notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " => " A:170 " -↪ " G':170 " ⊢ " t':170  => Surface.Term.Elab G G' Mode.inf Δ Γ t A t'
+
 
 @[simp, grind]
 def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
@@ -245,6 +254,10 @@ mutual
     | .all K T =>
       -- ensure a has kind K?
       return (f' •[ a.translate ], T[su a ::+0])
+    | A `=:> (`∀[K] B) =>
+      let d <- Core.Ty.synth_term G' Δ.translate Γ.translate A.translate
+      -- check that a as kind K?
+      return ((f' ∘[ d ]) •[ a.translate ], T[su a ::+0])
     | _ => none
   | .app f a => do
     let (f', T) <- f.type_inf_translate G G' Δ Γ
@@ -253,6 +266,10 @@ mutual
       let a' <- a.type_chk_translate G G' Δ Γ A
       -- ensure a has kind K?
       return (f' • a', B)
+    | C `=:> (A `-:> T) =>
+      let d <- Core.Ty.synth_term G' Δ.translate Γ.translate C.translate
+      let a' <- a.type_chk_translate G G' Δ Γ A
+      return ((f' ∘[ d ]) • a', T)
     | _ => none
   | _ => none
 

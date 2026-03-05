@@ -187,21 +187,3 @@ case _ f a ih =>
   rcases ih with ⟨f'sp, ih⟩
   exists (f'sp ++ [a']); subst h5
   simp; apply ih
-
-
-
-theorem Translation.Ty.sound2 :
-  ⊢s G ->
-  Surface.Translation.Ty G Δ T K T' ->
-  G.translate = .some G' ->
-  Δ.translate = Δ'  ->
-
-  K.translate = K' ∧
-  T.translate = T' ∧
-  G'&Δ' ⊢ T' : K' := by
-intro wf h1 h2 h3
-induction h1 <;> simp at *
-case var => sorry
-sorry
-sorry
-sorry

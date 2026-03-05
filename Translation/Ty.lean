@@ -39,22 +39,3 @@ def Subst.Surface.Ty.translate (σ : Subst Surface.Ty) : Subst Core.Ty :=
   | .re x => .re x
   | .su T => .su (T.translate)) <$> σ
 notation "⟦" σ "⟧" => Subst.Surface.Ty.translate σ
-
-
-inductive Surface.Translation.Ty (G : Surface.GlobalEnv) :
-  Surface.KindEnv -> Surface.Ty -> Surface.Kind -> Core.Ty -> Prop where
-| var :
-  Δ[i]? = some K ->
-  Translation.Ty G Δ t`#i K t#i
-| arrow :
-  Translation.Ty G Δ A `★ A' ->
-  Translation.Ty G Δ B K B' ->
-  Translation.Ty G Δ (A `-:> B) `★ (A' -:> B')
-| app :
-  Translation.Ty G Δ A (.arrow K1 K2) A' ->
-  Translation.Ty G Δ B K1 B' ->
-  Translation.Ty G Δ (A `• B) K2 (A' • B')
-| all :
-  Translation.Ty G Δ A K A' ->
-  Translation.Ty G (K::Δ) B `★ B' ->
-  Translation.Ty G Δ (`∀[K]B) `★ (∀[K.translate] B')
