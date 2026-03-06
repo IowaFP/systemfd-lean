@@ -500,6 +500,15 @@ theorem Translation.synth_term_completeness :
   T.synth_term G Δ Γ = some t ∧
   t.Determined ∧ G&Δ, Γ ⊢ t : T := by sorry
 
+theorem Translation.synth_term_completeness_lift {is : List Surface.Ty} {ts : List Core.Term} :
+  (∀ (i : Surface.Ty), i ∈ is -> ∃ (t : Core.Term), t ∈ ts ∧ Core.Translation.SynthTerm G' Δ' Γ' i.translate t) ->
+  (∀ (i : Surface.Ty), i ∈ is -> ∃ (t : Core.Term), t ∈ ts ∧
+    i.translate.synth_term G Δ Γ = some t ∧
+    t.Determined ∧ G&Δ, Γ ⊢ t : i.translate) := by
+intro h x T
+replace h := h x T
+rcases h with ⟨t, h1, h2⟩
+exists t
 
 @[simp]
 abbrev ElabSoundnessInferType (G : Surface.GlobalEnv) (G' : Core.GlobalEnv)
@@ -541,18 +550,44 @@ case var =>
         rcases lem with ⟨_, _, lem1, lem2, lem3⟩
         subst lem1; subst lem2; apply lem3
   · simp
-case _ => sorry
+
+case global x T Δ B Δ' Γ' m Γ ts is lk j1 h1' h2' h3' =>
+ replace h3' := Translation.synth_term_completeness_lift (G := G') (Γ := Γ') (Δ := Δ') (ts := ts) (is := is) h3'
+ split
+ · rw[Option.bind_eq_some_iff]
+   apply And.intro
+   · exists T; rw[h1']; simp
+     · apply And.intro
+       · apply lk
+       · rw[Option.bind_eq_some_iff]
+         exists ts
+         simp
+         rw[<-List.mapM'_eq_mapM]
+         fun_induction List.mapM' generalizing ts
+         simp; simp at h2'; apply h2'
+         case _ i is ih =>
+           rw[bind, Monad.toBind, instMonadOption]; simp;
+           rw[Option.bind_eq_some_iff];
+           replace h3' := h3' i (by simp)
+           rcases h3' with ⟨t, h3', h4', h5'⟩;
+           exists t
+   · apply And.intro
+     · sorry
+     · induction is generalizing ts <;> simp at *
+       · subst ts; simp [Core.Term.apply];
+         have e := Surface.Ty.overloaded_type_nil h1'; cases e
+         have lem := Translation.GlobalEnv.lookup_ty_sound h1 h2 x T Δ.translate lk
+         rcases lem with ⟨T', _, lem1, lem2, lem3⟩; subst T'
+         apply Core.Typing.global
+         assumption; assumption
+       · case _ t ts' ih =>
+
+       -- ts = t : ts'
+
+         sorry
+ · simp
 
 case _ => sorry
-
-case app_then ih =>
-  split at ih <;> try simp
-  rcases ih with ⟨ih1, ih2, ih3⟩
-  apply And.intro
-  · sorry
-  · apply And.intro
-    · sorry
-    · sorry
 
 case _ => sorry
 

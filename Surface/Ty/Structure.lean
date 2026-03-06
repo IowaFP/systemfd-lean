@@ -138,3 +138,39 @@ theorem Surface.Ty.Spine.apply_compose {t : Ty}
 theorem Surface.Ty.Spine.apply_eta : ((gt`#x).apply sp).spine = some (x, sp) := by
   have lem := @apply_compose x [] sp gt`#x (by simp [Surface.Ty.spine])
   simp at lem; exact lem
+
+
+
+def Surface.Ty.overloaded_fun_type : Surface.Ty -> Option (List Surface.Ty × Surface.Ty × Surface.Ty)
+| .then A B => do
+  let (is, x, y) <- Surface.Ty.overloaded_fun_type B
+  return ((A :: is), x, y)
+| arrow A B => return ([], A, B)
+| _ => none
+
+def Surface.Ty.overloaded_type : Surface.Ty -> (List Surface.Ty × Surface.Ty)
+| .then A B =>
+  let (is, y) := Surface.Ty.overloaded_type B
+  ((A :: is), y)
+| B => ([], B)
+
+
+
+theorem Surface.Ty.overloaded_type_nil {T B : Surface.Ty} :
+  T.overloaded_type = ([], B) ->
+  T = B
+:= by
+intro h
+fun_induction Surface.Ty.overloaded_type <;> simp at *
+apply h
+
+
+theorem Surface.Ty.overloaded_type_cons {T B t : Surface.Ty} {ts : List Surface.Ty} :
+  T.overloaded_type = (t::ts , B) ->
+  ∃ A, A.overloaded_type = (ts, B) ->
+  T = t `=:> A
+:= by
+intro h
+sorry
+
+-- fun_induction Surface.Ty.overloaded_type <;> simp at *

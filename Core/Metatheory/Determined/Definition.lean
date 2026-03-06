@@ -47,7 +47,7 @@ theorem Term.Determined.lamt : t.Determined -> (Λ[A] t).Determined := by
   intro h';
   cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
 
-theorem Term.Determined.app {f a : Term} : f.Determined ∧ a.Determined <-> (f •(b) a).Determined := by
+theorem Term.Determined.app {b: BaseKind} {f a : Term} : f.Determined ∧ a.Determined <-> (f •(b) a).Determined := by
   apply Iff.intro <;> intro h
   unfold Term.Determined; apply VariantMissing.ctor2 _ h.1 h.2
   intro h'; cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
@@ -64,7 +64,6 @@ theorem Term.Determined.cast {t c: Term} : t.Determined ∧ c.Determined <-> (t 
   intro h'; cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
   cases h; unfold Determined; simp [*]
 
-
 theorem Term.Determined.match {s d : Term} {ps cs : Vect n Term}:
   s.Determined ->
   d.Determined ->
@@ -75,4 +74,39 @@ theorem Term.Determined.match {s d : Term} {ps cs : Vect n Term}:
   intro h1 h2 h3 h4
   unfold Term.Determined; apply VariantMissing.mtch; repeat assumption
 
+theorem Term.Determined.spine {h : Term} {sp : List SpineElem} :
+       h.Determined -> (∀ e ∈ sp, e.Determined) ->
+       (h.apply sp).Determined := by
+intro h1 h2
+induction sp using List.reverse_ind generalizing h <;> simp [Term.apply] at *
+case nil => assumption
+case rcons hd tl ih =>
+cases hd
+case type =>
+  rw[<-Spine.apply_type];
+  apply Determined.appt
+  apply ih h1
+  intro e; replace h2 := h2 e;
+  intro h; replace h2 := h2 (Or.inl h)
+  apply h2
+case term x =>
+  rw[<-Spine.apply_term];
+  apply Determined.app.1
+  apply And.intro
+  · apply ih h1
+    intro e; replace h2 := h2 e;
+    intro h; replace h2 := h2 (Or.inl h)
+    apply h2
+  · replace h2 := h2 (.term x); simp at h2;
+    unfold SpineElem.Determined at h2; simp at h2; apply h2
+case oterm x =>
+  rw[<-Spine.apply_oterm];
+  apply Determined.app.1
+  apply And.intro
+  · apply ih h1
+    intro e; replace h2 := h2 e;
+    intro h; replace h2 := h2 (Or.inl h)
+    apply h2
+  · replace h2 := h2 (.oterm x); simp at h2;
+    unfold SpineElem.Determined at h2; simp at h2; apply h2
 end Core
