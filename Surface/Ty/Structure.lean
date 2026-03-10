@@ -140,13 +140,42 @@ theorem Surface.Ty.Spine.apply_eta : ((gt`#x).apply sp).spine = some (x, sp) := 
   simp at lem; exact lem
 
 
-
 def Surface.Ty.overloaded_fun_type : Surface.Ty -> Option (List Surface.Ty × Surface.Ty × Surface.Ty)
 | .then A B => do
   let (is, x, y) <- Surface.Ty.overloaded_fun_type B
   return ((A :: is), x, y)
 | arrow A B => return ([], A, B)
 | _ => none
+
+inductive Surface.Ty.OverloadedTypePrefix (T : Surface.Ty) : List Surface.Ty -> Surface.Ty -> Prop where
+| nil :
+  ¬ T = A `=:> B ->
+  Surface.Ty.OverloadedTypePrefix T [] T
+| cons :
+  Surface.Ty.OverloadedTypePrefix T is (A `=:> B) ->
+  Surface.Ty.OverloadedTypePrefix T (is ++ [A]) B
+
+theorem Surface.Ty.OverloadedTypePrefix_nil_lemma {T B : Surface.Ty} :
+  is = [] ->
+  OverloadedTypePrefix T is B ->
+  T = B := by
+intro e1 h
+induction h <;> simp at *
+
+theorem Surface.Ty.OverloadedTypePrefix_nil {T B: Surface.Ty} :
+  OverloadedTypePrefix T [] B ->
+  T = B := by
+apply Surface.Ty.OverloadedTypePrefix_nil_lemma rfl
+
+
+theorem Surface.Ty.OverloadedTypePrefix_cons {T A B : Surface.Ty} :
+  OverloadedTypePrefix T (is ++ [A]) B ->
+  OverloadedTypePrefix T is (A `=:> B) := by
+intro h
+generalize zdef : is ++ [A] = z at *
+induction h <;> simp at *
+case _ h1 _ =>
+cases zdef.1; cases zdef.2; assumption
 
 def Surface.Ty.overloaded_type : Surface.Ty -> (List Surface.Ty × Surface.Ty)
 | .then A B =>
@@ -156,21 +185,22 @@ def Surface.Ty.overloaded_type : Surface.Ty -> (List Surface.Ty × Surface.Ty)
 
 
 
-theorem Surface.Ty.overloaded_type_nil {T B : Surface.Ty} :
-  T.overloaded_type = ([], B) ->
-  T = B
-:= by
-intro h
-fun_induction Surface.Ty.overloaded_type <;> simp at *
-apply h
-
-
-theorem Surface.Ty.overloaded_type_cons {T B t : Surface.Ty} {ts : List Surface.Ty} :
-  T.overloaded_type = (t::ts , B) ->
-  ∃ A, A.overloaded_type = (ts, B) ->
-  T = t `=:> A
-:= by
-intro h
-sorry
-
+-- theorem Surface.Ty.overloaded_type_nil {T B : Surface.Ty} :
+--   T.overloaded_type = ([], B) ->
+--   T = B
+-- := by
+-- intro h
 -- fun_induction Surface.Ty.overloaded_type <;> simp at *
+-- apply h
+
+
+-- theorem Surface.Ty.overloaded_type_cons {T B t : Surface.Ty} {ts : List Surface.Ty} :
+--   T.overloaded_type = (t::ts , B) ->
+--   ∃ A, A.overloaded_type = (ts, B) ∧ T = t `=:> A
+-- := by
+-- intro h
+-- induction T  generalizing ts B <;> simp [Surface.Ty.overloaded_type] at *
+-- case «then» a ih1 ih2 =>
+--   rcases h with ⟨h1, h2⟩
+--   rcases h1 with ⟨h0, h1⟩; subst t
+--   simp; rw[<-h2, <-h1]

@@ -36,6 +36,16 @@ inductive Core.Translation.SynthTerm (G' : Core.GlobalEnv) (Δ' : Core.KindEnv) 
 
 inductive Mode : Type where | chk | inf
 
+inductive MatchInstsSynth (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) : List Surface.Ty -> List Core.Term -> Prop where
+| nil : MatchInstsSynth G G' Δ Γ [] []
+| rcons :
+   G&Δ ⊢s i : `◯ ->
+   Core.Translation.SynthTerm G' Δ.translate Γ.translate i.translate t ->
+   MatchInstsSynth G G' Δ Γ is ts ->
+   MatchInstsSynth G G' Δ Γ (is ++ [i]) (ts ++ [t])
+
+
+
 inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode ->
   Surface.KindEnv -> Surface.TyEnv -> Surface.Term -> Surface.Ty ->
   Core.Term -> Prop where
@@ -46,9 +56,8 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
 | global (ts : List Core.Term) (is : List Surface.Ty) :
   Surface.lookup_type G x = some T ->
   G&Δ ⊢s T : `★ ->
-  Surface.Ty.overloaded_type T = (is, B) ->
-  ts.length = is.length ->
-  (∀ (i : Surface.Ty), i ∈ is -> ∃ (t : Core.Term), t ∈ ts ∧ Core.Translation.SynthTerm G' Δ' Γ' i.translate t) ->
+  T.OverloadedTypePrefix is B ->
+  MatchInstsSynth G G' Δ Γ is ts ->
   Surface.Term.Elab G G' inf Δ Γ g`#x B ((g#x).apply (ts.map (Core.SpineElem.oterm ·)))
 | app (ts : List Core.Term) (is : List Surface.Ty):
   G&Δ ⊢s A : `★ ->
