@@ -112,15 +112,14 @@ theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
 
 theorem Translation.Ty.sound :
   ⊢s G ->
-  G&Δ ⊢s T : K ∧
-  G.translate = some G' ∧
+  G&Δ ⊢s T : K ->
+  G.translate = some G' ->
   Δ.translate = Δ'  ->
 
   ∃ K' T', K.translate = K' ∧
   T.translate = T' ∧
   G'&Δ' ⊢ T' : K' := by
-intro wf j;
-rcases j with ⟨j, h1, h2⟩
+intro wf j h1 h2;
 induction j generalizing Δ' <;> simp at *
 case var Δ i K j =>
   replace j2 := Translation.KindEnv.sound h2 i K j

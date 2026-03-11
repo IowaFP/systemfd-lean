@@ -62,9 +62,9 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
 | app (ts : List Core.Term) (is : List Surface.Ty):
   G&Δ ⊢s A : `★ ->
   Surface.Term.Elab G G' inf Δ Γ f Tinf f' ->
-  some (is, A, B) = Surface.Ty.overloaded_fun_type Tinf ->
-  (∀ (x : Nat) (i : Surface.Ty) (t : Core.Term), (is[x]? = some (i : Surface.Ty) ∧ ts[x]? = some t) ->
-    Core.Translation.SynthTerm G' Δ' Γ' i.translate t) ->
+  Tinf.OverloadedTypePrefix is C -> -- TInf = is `=:> A -> B
+  C = A `-:> B ->
+  MatchInstsSynth G G' Δ Γ is ts ->
   Surface.Term.Elab G G' chk Δ Γ a A a' ->
   Surface.Term.Elab G G' inf Δ Γ (f `• a) B (f'.apply (ts.map (Core.SpineElem.oterm ·)) • a')
 | appt :
@@ -82,8 +82,8 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
   Surface.Term.Elab G G' chk (K::Δ) (Γ.map (·[+1])) t P t' ->
   Surface.Term.Elab G G' chk Δ Γ (Λˢ[K] t) (`∀[K] P) (Λ[K.translate] t')
 
-| mtch (CTy : Vect n Surface.Ty) (CTy' : Vect n Core.Ty)
-       (PTy : Vect n Surface.Ty) (PTy' : Vect n Core.Ty)
+| mtch (CTy : Vect n Surface.Ty)
+       (PTy : Vect n Surface.Ty)
        (pats : Vect n Surface.Term) (pats' : Vect n Core.Term)
        (cs : Vect n Surface.Term) (cs' : Vect n Core.Term) :
   Surface.Term.Elab G G' inf Δ Γ s R s' ->
@@ -92,18 +92,18 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
   (∀ i, ValidHeadVariable (pats i) (is_ctor G)) -> -- patterns are of the right shape
   (∀ i, Surface.Term.Elab G G' chk Δ Γ (pats i) (PTy i) (pats' i)) -> -- each pattern has a type
   (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
-  (∀ i, Surface.Term.Elab G G' chk Δ Γ (cs i) (PTy i) (cs' i)) -> -- each case match has a type
+  (∀ i, Surface.Term.Elab G G' chk Δ Γ (cs i) (CTy i) (cs' i)) -> -- each case match has a type
   (∀ i, PrefixTypeMatch Δ (PTy i) (CTy i) T) -> -- patten type and case type
   Surface.Term.Elab G G' chk Δ Γ (matchˢ! n R s pats cs c) T (match! n s' pats' cs' c')
 
-| annot :
-  Surface.Term.Elab G G' inf Δ Γ t T t' ->
-  Surface.Term.Elab G G' chk Δ Γ (.annot t T) T t'
-
-| subsump :
+| sub :
   Surface.Term.Elab G G' inf Δ Γ t Tinf t' ->
-  Core.Translation.SynthCoe G' Δ.translate Γ.translate Tinf.translate  T.translate c ->
+  Core.Translation.SynthCoe G' Δ.translate Γ.translate Tinf.translate T.translate c ->
   Surface.Term.Elab G G' chk Δ Γ t T (t' ▹ c)
+
+| annot :
+  Surface.Term.Elab G G' chk Δ Γ t T t' ->
+  Surface.Term.Elab G G' inf Δ Γ (.annot t T) T t'
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170  " <= " A:170 " -↪ " G':170 " ⊢ " t':170 => Surface.Term.Elab G G' Mode.chk Δ Γ t A t'
 
