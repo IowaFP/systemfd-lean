@@ -488,18 +488,23 @@ theorem Translation.synth_coe_completeness :
 theorem Translation.Term.Spine2
   {t : Surface.Term} {t' : Core.Term} :
   t.spine = some (x, sp) ->
-  Surface.Term.Elab G G' m Δ Γ t T t' ->
+  Surface.Term.Elab G G' .inf Δ Γ t T t' ->
   ∃ sp', t'.spine = .some (x, sp') := by
 intro h1 h2
-fun_induction Surface.Term.spine generalizing x t' <;> simp at *
+fun_induction Surface.Term.spine generalizing x t' T <;> simp at *
 case _ =>
   cases h1.1; cases h1.2; clear h1
   cases h2
   case _ ts _ _ _ _ _ =>
     exists (List.map (Core.SpineElem.oterm ·) ts); simp
-  case _ => simp [Core.Term.spine];  sorry
-case _ =>
-  sorry
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h1
+  rcases h1 with ⟨fsp, k1, k2⟩
+  simp at k2;
+  cases h2; case _ A _ f' C a' ts is _ _ _ _ _ e =>
+  subst e
+  replace ih := @ih x (A `-:> T)
+  simp; sorry
 case _ =>
   sorry
 
@@ -523,7 +528,7 @@ theorem Translation.Term.Sound2
 := by
 intro h1 h2 h3 h
 induction h <;> simp at *
-case var x T _ _ _ h j =>
+case var x T _ _ h j =>
      apply And.intro
      · apply Core.Term.Determined.var
      · apply Core.Typing.var
@@ -532,7 +537,7 @@ case var x T _ _ _ h j =>
        rcases lem with ⟨_, _, lem1, lem2, lem3⟩
        subst lem1; subst lem2; apply lem3
 
-case global x T Δ B Γ _ ts is h1' j2 j3 j4  =>
+case global x T Δ B Γ ts is h1' j2 j3 j4  =>
  · apply And.intro
    · clear h1'; clear j2; clear j3; induction j4
      case nil => simp [Core.Term.apply]; constructor
@@ -563,7 +568,7 @@ case global x T Δ B Γ _ ts is h1' j2 j3 j4  =>
        apply h2'
        apply ih
        apply h2''
-case app Δ A _ Γ f Tinf f' C B _ arg arg' ts is jk ef TinfC Cshape mists af ih1 ih2 =>
+case app Δ A Γ f Tinf f' C B arg arg' ts is jk ef TinfC Cshape mists af ih1 ih2 =>
   apply And.intro
   · apply Core.Term.Determined.app.1;
     · apply And.intro
@@ -606,7 +611,7 @@ case app Δ A _ Γ f Tinf f' C B _ arg arg' ts is jk ef TinfC Cshape mists af ih
 
 case appt => sorry
 
-case lam Δ A _ Γ t B t' Ak _ ih =>
+case lam Δ A  Γ t B t' Ak _ ih =>
   apply And.intro
   · apply Core.Term.Determined.lam; apply ih.1
   · apply Core.Typing.lam
@@ -615,7 +620,7 @@ case lam Δ A _ Γ t B t' Ak _ ih =>
       apply Ak
     · apply ih.2
 
-case lamt K Δ P _ t t' Γ jk _ ih =>
+case lamt K Δ P t t' Γ jk _ ih =>
    rcases ih with ⟨ih1, ih2⟩
    have lem : (Surface.TyEnv.map (fun x => x.translate) (Surface.TyEnv.map (fun x => x[+1]) Γ)) =
     (Core.TyEnv.map (fun x => x[+1]) (Surface.TyEnv.map (fun x => x.translate) Γ)) := by
@@ -630,7 +635,7 @@ case lamt K Δ P _ t t' Γ jk _ ih =>
        subst e2; subst e1; apply h
      · simp at lem; simp; rw[lem] at ih2; apply ih2
 
-case mtch n _ Δ Γ s R s' d T d' _ CTy PTy pats pats' cs cs' _ vhvty _  vhvs _ stms _ ptms sTy dTy pTys cTys =>
+case mtch n Δ Γ s R s' d T d' CTy PTy pats pats' cs cs' _ vhvty _ vhvs _ stms _ ptms sTy dTy pTys cTys =>
   apply And.intro
   · apply Core.Term.Determined.match;
     apply sTy.1
