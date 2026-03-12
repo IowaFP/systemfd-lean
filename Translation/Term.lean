@@ -69,9 +69,12 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
   Surface.Term.Elab G G' .inf Δ Γ (f `• a) B (f'.apply (ts.map (Core.SpineElem.oterm ·)) • a')
 | appt :
   G&Δ ⊢s A : K ->
-  Surface.Term.Elab G G' .inf Δ Γ e (`∀[K]P) e' ->
-  P' = P[su A::+0] ->
-  Surface.Term.Elab G G' .inf Δ Γ (e `•[ A ]) P' (e' •[ A.translate ])
+  Tinf.OverloadedTypePrefix is C -> -- TInf = is `=:> ∀[K] B
+  (C = `∀[K] B) ->
+  MatchInstsSynth G G' Δ Γ is ts ->
+  Surface.Term.Elab G G' .inf Δ Γ e Tinf e' ->
+  C' = B[su A::+0] ->
+  Surface.Term.Elab G G' .inf Δ Γ (e `•[ A ]) C' (e'.apply (ts.map (Core.SpineElem.oterm ·)) •[ A.translate ])
 
 | lam :
   G&Δ ⊢s A : `★ ->
@@ -98,16 +101,18 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
 
 | sub :
   Surface.Term.Elab G G' .inf Δ Γ t Tinf t' ->
-  Core.Translation.SynthCoe G' Δ.translate Γ.translate Tinf.translate T.translate c ->
-  Surface.Term.Elab G G' .chk Δ Γ t T (t' ▹ c)
+  Tinf.OverloadedTypePrefix is C ->
+  MatchInstsSynth G G' Δ Γ is ts ->
+  Core.Translation.SynthCoe G' Δ.translate Γ.translate C.translate T.translate c ->
+  Surface.Term.Elab G G' .chk Δ Γ t T (t'.apply (ts.map (Core.SpineElem.oterm ·)) ▹ c)
 
 | annot :
   Surface.Term.Elab G G' .chk Δ Γ t T t' ->
   Surface.Term.Elab G G' .inf Δ Γ (.annot t T) T t'
 
-notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170  " <= " A:170 " -↪ " G':170 " ⊢ " t':170 => Surface.Term.Elab G G' Mode.chk Δ Γ t A t'
+notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " -↪ " G':170 " ⊢ " t':170  " ∋ " A:170 => Surface.Term.Elab G G' Mode.chk Δ Γ t A t'
 
-notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " => " A:170 " -↪ " G':170 " ⊢ " t':170  => Surface.Term.Elab G G' Mode.inf Δ Γ t A t'
+notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " -↪ " G':170 " ⊢ " t':170 " ∈ " A:170 => Surface.Term.Elab G G' Mode.inf Δ Γ t A t'
 
 
 @[simp, grind]

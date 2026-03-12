@@ -147,7 +147,7 @@ def Surface.Ty.overloaded_fun_type : Surface.Ty -> Option (List Surface.Ty × Su
 | arrow A B => return ([], A, B)
 | _ => none
 
-inductive Surface.Ty.OverloadedTypePrefix : (T : Surface.Ty) -> List Surface.Ty -> Surface.Ty -> Prop where
+inductive Surface.Ty.OverloadedTypePrefix (T : Surface.Ty) : List Surface.Ty -> Surface.Ty -> Prop where
 | nil {A B : Surface.Ty}:
   ¬ (T = A `=:> B) ->
   Surface.Ty.OverloadedTypePrefix T [] T
@@ -159,7 +159,11 @@ inductive Surface.Ty.OverloadedTypePrefix : (T : Surface.Ty) -> List Surface.Ty 
 theorem Surface.Ty.OverloadedTypePrefix_nil {T B: Surface.Ty} :
   OverloadedTypePrefix T [] B ->
   T = B := by
-sorry
+generalize zdef : [] = z at *
+intro h; induction B generalizing T
+case «then» => subst z; cases h; rfl; sorry
+all_goals try (cases h; rfl)
+
 
 
 theorem Surface.Ty.OverloadedTypePrefix_cons {T B : Surface.Ty} :
@@ -167,21 +171,6 @@ theorem Surface.Ty.OverloadedTypePrefix_cons {T B : Surface.Ty} :
   OverloadedTypePrefix T is (i `=:> B) := by
 intro h
 apply OverloadedTypePrefix.rcons h
-
-theorem Surface.Ty.OverloadedTypePrefix_rcons {T B : Surface.Ty} :
-  OverloadedTypePrefix T (i :: is) B ->
-  OverloadedTypePrefix (i `=:> T) is B := by
-intro h
-sorry
-
-
-
--- theorem Surface.Ty.OverloadedArrowTypePrefix_cons {T B : Surface.Ty} :
---   OverloadedArrowTypePrefix T (is ++ [i]) A B ->
---   OverloadedArrowTypePrefix (i `=:> T) is A B := by
--- intro h
--- sorry
-
 
 def Surface.Ty.overloaded_type : Surface.Ty -> (List Surface.Ty × Surface.Ty)
 | .then A B =>
