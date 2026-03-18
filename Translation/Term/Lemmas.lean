@@ -258,23 +258,6 @@ theorem quantifier_beast_lemma {Δ : Surface.KindEnv} {cs : Vect n Surface.Term}
         have lem := Vect.seq_sound vdef i; rw[h1] at lem; cases lem; assumption
 
 
--- theorem Translation.Term.synth_sound (G : Surface.GlobalEnv) :
---   ⊢s G ->
---   G&Δ, Γ ⊢s .hole T : T ->
---   G.translate = G' ->
---   ⊢ G' ->
-
---   Δ.translate = Δ' ->
---   Γ.translate = Γ' ->
---   T.translate.synth_term G' Δ' Γ' = some t ->
-
---   G'&Δ', Γ' ⊢ t : T.translate ∧ t.Determined := by
--- intro wf j h1 h2 h3 h4 h5
--- sorry
-
-
-
--- TODO : Type directed translation?
 theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   ⊢s G ->
   G&Δ,Γ ⊢s t : T ->
@@ -477,14 +460,38 @@ case annot ih =>
     · apply ih2
     · apply ih3
 
+theorem Translation.SynthTermLength :
+  Core.Translation.SynthTerm G Δ Γ Ts ts ->
+  Ts.length = ts.length := by
+intro h; induction h <;> simp at *
+all_goals try assumption
+
+theorem Translation.synth_term_completeness_lemma {Ts : List Core.Ty} {ts : List Core.Term} :
+  Core.Translation.SynthTerm G Δ Γ Ts.reverse ts.reverse ->
+  ∀ i, (p: i < Ts.length) -> (p : i < ts.length) -> ts[i].Determined ∧ G&Δ, Γ ⊢ ts[i] : Ts[i] := by
+intro h i p1 p2
+generalize z1def : Ts.reverse = Tsr at *
+generalize z2def : ts.reverse = tsr at *
+have lem := Translation.SynthTermLength h
+induction h generalizing Ts ts <;> simp at *
+sorry
+case var T ts ηs x lk h ih =>
+  induction i
+  case zero => sorry
+  case succ => sorry
+sorry
+sorry
+sorry
+sorry
+
+
+
+
 theorem Translation.synth_term_completeness :
-  Core.Translation.SynthTerm G Δ Γ T t ->
-  t.Determined ∧ G&Δ, Γ ⊢ t : T := by sorry
-
-theorem Translation.synth_coe_completeness :
-  Core.Translation.SynthCoe G Δ Γ A B t ->
-  t.Determined ∧ G&Δ, Γ ⊢ t : (A ~[★]~ B) := by sorry
-
+  Core.Translation.SynthTerm G Δ Γ [T] [t] ->
+  t.Determined ∧ G&Δ, Γ ⊢ t : T := by
+intro h;
+sorry -- apply Translation.synth_term_completeness_lemma h 0 (by simp) (by simp)
 
 theorem Translation.Term.Spine2
   {t : Surface.Term} {t' : Core.Term} :
@@ -548,7 +555,7 @@ theorem Translation.Term.typing_spine
   ⊢s G ->
   G.translate = some G' ->
   T.OverloadedTypePrefix is C ->
-  MatchInstsSynth G G' Δ Γ is ts ->
+  Surface.Ty.MatchInstsSynth G G' Δ Γ is ts ->
   t.Determined ->
   G'&⟦Δ⟧,⟦Γ⟧ ⊢ t : T.translate ->
   (t.apply (ts.map (Core.SpineElem.oterm ·))).Determined ∧
@@ -693,7 +700,7 @@ case mtch n Δ Γ s R s' d T d' CTy PTy pats pats' cs cs' _ vhvty _ vhvs pelab s
 case sub Δ Γ t Tinf t' is C ts η T h TinfC mists ch ih =>
   have lem := Translation.Term.typing_spine h1 h2 TinfC mists ih.1 ih.2
   rcases lem with ⟨lem1, lem2⟩
-  replace h := Translation.synth_coe_completeness ch
+  replace h := Translation.synth_term_completeness ch
   rcases h with ⟨h1, h2⟩
   · apply And.intro
     · apply Core.Term.Determined.cast.1
