@@ -460,38 +460,58 @@ case annot ih =>
     · apply ih2
     · apply ih3
 
-theorem Translation.SynthTermLength :
-  Core.Translation.SynthTerm G Δ Γ Ts ts ->
-  Ts.length = ts.length := by
-intro h; induction h <;> simp at *
-all_goals try assumption
 
-theorem Translation.synth_term_completeness_lemma {Ts : List Core.Ty} {ts : List Core.Term} :
-  Core.Translation.SynthTerm G Δ Γ Ts.reverse ts.reverse ->
-  ∀ i, (p: i < Ts.length) -> (p : i < ts.length) -> ts[i].Determined ∧ G&Δ, Γ ⊢ ts[i] : Ts[i] := by
-intro h i p1 p2
-generalize z1def : Ts.reverse = Tsr at *
-generalize z2def : ts.reverse = tsr at *
-have lem := Translation.SynthTermLength h
-induction h generalizing Ts ts <;> simp at *
-sorry
-case var T ts ηs x lk h ih =>
-  induction i
-  case zero => sorry
-  case succ => sorry
-sorry
-sorry
-sorry
-sorry
 
+@[simp]
+abbrev Translation.SynthTermCompletenessLemmaType (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
+  (i : SynthTermIdx) -> (SynthTermArgs i) -> Prop
+| .one => λ (T, t) => t.Determined ∧ G&Δ, Γ ⊢ t : T
+| .many => λ ts => ∀ t ∈ ts, t.2.Determined ∧ G&Δ, Γ ⊢ t.2 : t.1
+
+
+
+theorem Translation.synth_term_completeness_lemma :
+  Core.Translation.SynthTerm G Δ Γ m t ->
+  Translation.SynthTermCompletenessLemmaType G Δ Γ m t := by
+intro h
+induction h <;> simp at *
+case rcons =>
+  intro Ty Tm ty_tm_in_list
+  cases ty_tm_in_list
+  case inl ih ty_tm_in_list =>
+    apply ih Ty Tm ty_tm_in_list
+  case inr h =>
+    cases h.1; cases h.2; clear h
+    assumption
+case var =>
+  apply And.intro
+  · constructor
+  · assumption
+case inst σs _ ηs υs _ _ _ synth1 τinst τol leneq synths h1 h2 =>
+  induction ηs using List.reverse_ind <;> simp at *
+  case nil =>
+    subst υs
+    apply And.intro
+    · apply Core.Term.Determined.spine h1.1
+      intro e e_in_sp; simp at e_in_sp
+      rcases e_in_sp with ⟨_, _, s⟩; subst e; unfold Core.SpineElem.Determined; simp
+    sorry
+  case rcons => sorry
+case refl =>
+  apply And.intro
+  apply Core.Term.Determined.refl
+  apply Core.Typing.refl; assumption
+case sym => sorry
+case trans => sorry
 
 
 
 theorem Translation.synth_term_completeness :
-  Core.Translation.SynthTerm G Δ Γ [T] [t] ->
+  Core.Translation.SynthTerm G Δ Γ .one (T ,  t) ->
   t.Determined ∧ G&Δ, Γ ⊢ t : T := by
 intro h;
-sorry -- apply Translation.synth_term_completeness_lemma h 0 (by simp) (by simp)
+apply Translation.synth_term_completeness_lemma h
+
 
 theorem Translation.Term.Spine2
   {t : Surface.Term} {t' : Core.Term} :
@@ -621,7 +641,6 @@ case global x T Δ B Γ ts is h1' j2 j3 j4  =>
  rcases lem with ⟨T', _, lk, e1, _⟩; subst e1
  replace j2 := Translation.Ty.sound h1 j2 h2 rfl
  rcases j2 with ⟨K, T', e1, e2, j2⟩; subst e1; subst e2
-
  have lem := Translation.Term.typing_spine h1 h2 j3 j4
    (Core.Term.Determined.global) (Core.Typing.global lk j2)
  apply lem

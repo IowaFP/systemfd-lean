@@ -2,6 +2,7 @@ import LeanSubst
 import Surface.Ty.Definition
 import Surface.Ty.Substitution
 import Surface.Ty.BEq
+import Core.Util
 
 open LeanSubst
 
@@ -139,31 +140,43 @@ theorem Surface.Ty.Spine.apply_eta : ((gt`#x).apply sp).spine = some (x, sp) := 
   have lem := @apply_compose x [] sp gt`#x (by simp [Surface.Ty.spine])
   simp at lem; exact lem
 
+@[simp]
+def Surface.Ty.mk_then_ty (B : Ty) : List Surface.Ty  -> Surface.Ty
+| [] => B
+| .cons i is => mk_then_ty (i `=:> B) is
 
-inductive Surface.Ty.OverloadedTypePrefix (T : Surface.Ty) : List Surface.Ty -> Surface.Ty -> Prop where
-| nil {A B : Surface.Ty}:
-  ¬ (T = A `=:> B) ->
+inductive Surface.Ty.OverloadedTypePrefix :(T : Surface.Ty) -> List Surface.Ty -> Surface.Ty -> Prop where
+| nil :
   Surface.Ty.OverloadedTypePrefix T [] T
 | rcons :
+  T = (I `=:> B).mk_then_ty is.reverse ->
   Surface.Ty.OverloadedTypePrefix T (is ++ [I]) B ->
   Surface.Ty.OverloadedTypePrefix T is (I `=:> B)
-
 
 theorem Surface.Ty.OverloadedTypePrefix_nil {T B: Surface.Ty} :
   OverloadedTypePrefix T [] B ->
   T = B := by
 generalize zdef : [] = z at *
 intro h; induction B generalizing T
-case «then» => subst z; cases h; rfl; sorry
+case «then» => subst z; cases h; rfl; case _ e _ => simp at e; apply e
 all_goals try (cases h; rfl)
 
+theorem Surface.Ty.mk_then_ty_sound {T B : Ty} :
+  T = B.mk_then_ty is.reverse -> T.OverloadedTypePrefix is B := by
+intro h
+induction is using List.reverse_ind generalizing B T <;> simp at *
+case nil => subst T; apply OverloadedTypePrefix.nil
+case rcons I Is ih =>
+  replace ih := @ih T (I `=:> B) h
+
+  sorry
 
 
 theorem Surface.Ty.OverloadedTypePrefix_cons {T B : Surface.Ty} :
   OverloadedTypePrefix T (is ++ [i]) B ->
   OverloadedTypePrefix T is (i `=:> B) := by
-intro h
-apply OverloadedTypePrefix.rcons h
+intro h; sorry
+--apply OverloadedTypePrefix.rcons h
 
 def Surface.Ty.overloaded_type : Surface.Ty -> (List Surface.Ty × Surface.Ty)
 | .then A B =>
