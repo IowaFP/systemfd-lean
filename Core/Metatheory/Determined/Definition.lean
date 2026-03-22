@@ -106,6 +106,14 @@ theorem Term.Determined.snd : c.Determined -> (snd! c).Determined := by
     case _ h => cases h
     case _ h => cases h
 
+theorem Term.Determined.appc : c1.Determined -> c2.Determined -> (c1 •c c2).Determined := by
+  unfold Term.Determined; apply VariantMissing.ctor2; intro h
+  simp at h; cases h; case _ h => cases h
+  case _ h =>
+    cases h
+    case _ h => cases h
+    case _ h => cases h
+
 
 theorem Term.Determined.match {s d : Term} {ps cs : Vect n Term}:
   s.Determined ->

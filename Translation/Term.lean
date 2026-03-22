@@ -77,7 +77,10 @@ inductive Core.Translation.SynthTerm
   G&Δ ⊢ σ2 : K' ->
   SynthTerm G Δ Γ .one ((τ1 • σ1)  ~[K]~ (τ2 • σ2), η) ->
   SynthTerm G Δ Γ .one (σ1 ~[K']~ σ2, snd! η)
-
+| capp :
+  SynthTerm G Δ Γ .one (τ1 ~[K -:> K']~ τ2, η1) ->
+  SynthTerm G Δ Γ .one (σ1  ~[K]~ σ2, η2) ->
+  SynthTerm G Δ Γ .one ((τ1 • σ1) ~[K']~ (τ2 • σ2), η1 •c η2)
 
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " τ:170 " ⋈ " M:170  => Core.Translation.SynthTerm G Δ Γ SynthTermIdx.one (τ , M)

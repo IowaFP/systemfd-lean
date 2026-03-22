@@ -527,7 +527,10 @@ case snd ih =>
     apply ih.2
     assumption
     assumption
-
+case capp ih1 ih2 =>
+  apply And.intro
+  · apply Core.Term.Determined.appc ih1.1 ih2.1
+  · apply Core.Typing.appc ih1.2 ih2.2
 
 
 theorem Translation.synth_term_completeness :
