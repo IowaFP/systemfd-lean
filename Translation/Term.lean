@@ -16,86 +16,88 @@ def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
 | _, _ => none
 
 
-def Core.Ty.inst : (τ : Ty) -> (σ : List Ty) -> Ty
-| .all _ τ , List.cons σ σs =>
-  inst (τ[.su σ :: +0]) σs
-| τ, _ => τ
-
-
-inductive Core.Ty.OverloadedTypePrefix (G : Core.GlobalEnv)  (Δ : Core.KindEnv) :
-  Ty -> List Ty -> Ty -> Prop where
-| arrow :
-  ¬ (G&Δ ⊢ A : ◯) ->
-  Ty.OverloadedTypePrefix G Δ (A -:> B) [] (A -:> B)
-| all :
-  Ty.OverloadedTypePrefix G Δ (∀[K] P) [] (∀[K] P)
-| eq :
-  Ty.OverloadedTypePrefix G Δ (A ~[K]~ B) [] (A ~[K]~ B)
-| global :
-  Ty.OverloadedTypePrefix G Δ (gt#x) [] (gt#x)
-| rcons :
-  G&Δ ⊢ I : ◯ ->
-  Ty.OverloadedTypePrefix G Δ T (is ++ [I]) B ->
-  Ty.OverloadedTypePrefix G Δ (I -:> T) is (I -:> B)
-
-
 inductive SynthTermIdx : Type where | one | many
 
 @[simp]
 abbrev SynthTermArgs : SynthTermIdx -> Type
 | .one => Core.Ty × Core.Term
-| .many => List (Core.Ty × Core.Term)
+| .many => List (Core.SpineElem) × Core.Ty × Core.Ty
 
 inductive Core.Translation.SynthTerm
   (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) : (i : SynthTermIdx) -> SynthTermArgs i -> Prop where
-  | nil :
-    Core.Translation.SynthTerm G Δ Γ .many []
-  | rcons {ts_ηs : List (Core.Ty × Core.Term)} {t : Ty} {η : Term}:
-    Core.Translation.SynthTerm G Δ Γ .many ts_ηs  ->
-    Core.Translation.SynthTerm G Δ Γ .one (t ,  η) ->
-    Core.Translation.SynthTerm G Δ Γ .many (ts_ηs ++ [(t, η)])
+  --
 
-  | var {x : Nat} :
-    G&Δ,Γ ⊢ #x : T ->
-    Core.Translation.SynthTerm G Δ Γ .one (T , #x)
+| nil :
+  SynthTerm G Δ Γ .many ([], T, T)
 
-  | inst {υs : List Core.Ty} {σ : Subst Surface.Ty} {τ τ' : Core.Ty}:
-    Core.Translation.SynthTerm G Δ Γ .one (τ, M) ->
-    τ' = τ.inst νs ->
-    τ'.OverloadedTypePrefix G Δ υs T ->
-    υs.length = ηs.length ->
-    Core.Translation.SynthTerm G Δ Γ .many (List.zip υs ηs) ->
+| rcons_o {ηs : List (Core.SpineElem)} {η : Term} :
+  G&Δ ⊢ i : ◯ ->
+  SynthTerm G Δ Γ .many (ηs, i -:> R, T)  ->
+  SynthTerm G Δ Γ .one (i ,  η) ->
+  SynthTerm G Δ Γ .many (ηs ++ [(.oterm η)], R, T)
 
-    Core.Translation.SynthTerm G Δ Γ .one
-      (T, (M.apply (νs.map (Core.SpineElem.type ·) ++ ηs.map (Core.SpineElem.oterm ·))))
+| rcons_ty {ηs : List Core.SpineElem} {τ : Ty}:
+  G&Δ ⊢ τ : K -> -- conjure a type
+  G&Δ ⊢ ∀[K]R : ★ ->
+  SynthTerm G Δ Γ .many (ηs, ∀[K]R, T)  ->
+  SynthTerm G Δ Γ .one (t ,  η) ->
+  R' = R[.su τ::+0] ->
+  SynthTerm G Δ Γ .many (ηs ++ [.type τ], R', T)
 
-  | refl :
-    G&Δ ⊢ T : K ->
-    Core.Translation.SynthTerm G Δ Γ .one (T ~[K]~ T, refl! T)
-  | sym :
-    Core.Translation.SynthTerm G Δ Γ .one (τ ~[K]~ σ, c) ->
-    Core.Translation.SynthTerm G Δ Γ .one (σ ~[K]~ τ, sym! c)
-  | trans :
-    Core.Translation.SynthTerm G Δ Γ .one (τ  ~[K]~ ν, c1) ->
-    Core.Translation.SynthTerm G Δ Γ .one (ν ~[K]~ σ, c2) ->
-    Core.Translation.SynthTerm G Δ Γ .one (τ ~[K]~ σ, c1 `; c2)
+
+-- Instance Synthesis
+| var {x : Nat} :
+  G&Δ,Γ ⊢ #x : T ->
+  SynthTerm G Δ Γ .one (T , #x)
+
+| inst {υs σs: List Core.Ty} {T R : Core.Ty}: -- T = ∀αs. νs => R
+  SynthTerm G Δ Γ .many (ηs, R, T) ->
+  SynthTerm G Δ Γ .one (T, M) ->
+  SynthTerm G Δ Γ .one
+    (R, (M.apply ηs))
+
+-- coercions
+| refl :
+  G&Δ ⊢ T : K ->
+  SynthTerm G Δ Γ .one (T ~[K]~ T, refl! T)
+| sym :
+  SynthTerm G Δ Γ .one (τ ~[K]~ σ, c) ->
+  SynthTerm G Δ Γ .one (σ ~[K]~ τ, sym! c)
+| trans :
+  SynthTerm G Δ Γ .one (τ  ~[K]~ ν, c1) ->
+  SynthTerm G Δ Γ .one (ν ~[K]~ σ, c2) ->
+  SynthTerm G Δ Γ .one (τ ~[K]~ σ, c1 `; c2)
+| fst :
+  G&Δ ⊢ σ1 : K ->
+  G&Δ ⊢ σ2 : K ->
+  SynthTerm G Δ Γ .one ((τ1 • σ1)  ~[K']~ (τ2 • σ2), η) ->
+  SynthTerm G Δ Γ .one (τ1 ~[K -:> K']~ τ2, fst! η)
+| snd :
+  G&Δ ⊢ σ1 : K' ->
+  G&Δ ⊢ σ2 : K' ->
+  SynthTerm G Δ Γ .one ((τ1 • σ1)  ~[K]~ (τ2 • σ2), η) ->
+  SynthTerm G Δ Γ .one (σ1 ~[K']~ σ2, snd! η)
+
+
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " τ:170 " ⋈ " M:170  => Core.Translation.SynthTerm G Δ Γ SynthTermIdx.one (τ , M)
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢⋈ " τs:170  => Core.Translation.SynthTerm G Δ Γ SynthTermIdx.many τs
 
 
-
-inductive Surface.Ty.MatchInstsSynth
+inductive Surface.Ty.ImplicitSpineType
   (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) :
-   List Surface.Ty -> List Core.Term -> Prop where
-  | nil : MatchInstsSynth G G' Δ Γ [] []
-  | rcons :
-    G&Δ ⊢s i : `◯ -> -- this should be a base kind?
-    Core.Translation.SynthTerm G' Δ.translate Γ.translate .one (i.translate , t) ->
-    MatchInstsSynth G G' Δ Γ is ts ->
-    MatchInstsSynth G G' Δ Γ (is ++ [i]) (ts ++ [t])
-
+   List Surface.Ty -> -- Predicate
+   List Core.SpineElem ->  -- Synth evidence
+   Surface.Ty ->      -- inferred type
+   Surface.Ty ->      -- output type/all evidences applied
+   Prop where
+  | nil : ImplicitSpineType G G' Δ Γ [] [] T T
+  | rcons_o :
+    G&Δ ⊢s i : `◯ ->
+    Core.Translation.SynthTerm G' Δ.translate Γ.translate .one (i.translate , η) ->
+    ImplicitSpineType G G' Δ Γ is ts T (i `=:> R) ->
+    ImplicitSpineType G G' Δ Γ (is ++ [i]) (ts ++ [Core.SpineElem.oterm η]) T R
 
 
 inductive Mode : Type where | chk | inf
@@ -107,28 +109,25 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
   Γ[x]? = some T ->
   G&Δ ⊢s T : `★ ->
   Surface.Term.Elab G G' .inf Δ Γ `#x T #x
-| global (ts : List Core.Term) (is : List Surface.Ty) :
+| global (ηs : List Core.SpineElem) (is : List Surface.Ty) :
   Surface.lookup_type G x = some T ->
   G&Δ ⊢s T : `★ ->
-  T.OverloadedTypePrefix is B ->
-  Surface.Ty.MatchInstsSynth G G' Δ Γ is ts ->
-  Surface.Term.Elab G G' .inf Δ Γ g`#x B ((g#x).apply (ts.map (Core.SpineElem.oterm ·)))
-| app (ts : List Core.Term) (is : List Surface.Ty):
+  Surface.Ty.ImplicitSpineType G G' Δ Γ is ηs T B ->
+  Surface.Term.Elab G G' .inf Δ Γ g`#x B ((g#x).apply ηs)
+| app {is : List Surface.Ty}:
   G&Δ ⊢s A : `★ ->
   Surface.Term.Elab G G' .inf Δ Γ f Tinf f' ->
-  Tinf.OverloadedTypePrefix is C -> -- TInf = is `=:> A -> B
   C = A `-:> B ->
-  Surface.Ty.MatchInstsSynth G G' Δ Γ is ts ->
+  Surface.Ty.ImplicitSpineType G G' Δ Γ is ηs Tinf C ->
   Surface.Term.Elab G G' .chk Δ Γ a A a' ->
-  Surface.Term.Elab G G' .inf Δ Γ (f `• a) B (f'.apply (ts.map (Core.SpineElem.oterm ·)) • a')
+  Surface.Term.Elab G G' .inf Δ Γ (f `• a) B (f'.apply ηs • a')
 | appt :
   G&Δ ⊢s A : K ->
-  Tinf.OverloadedTypePrefix is C -> -- TInf = is `=:> ∀[K] B
   (C = `∀[K] B) ->
-  Surface.Ty.MatchInstsSynth G G' Δ Γ is ts ->
+  Surface.Ty.ImplicitSpineType G G' Δ Γ is ts Tinf C ->
   Surface.Term.Elab G G' .inf Δ Γ e Tinf e' ->
   C' = B[su A::+0] ->
-  Surface.Term.Elab G G' .inf Δ Γ (e `•[ A ]) C' (e'.apply (ts.map (Core.SpineElem.oterm ·)) •[ A.translate ])
+  Surface.Term.Elab G G' .inf Δ Γ (e `•[ A ]) C' (e'.apply ts •[ A.translate ])
 
 | lam :
   G&Δ ⊢s A : `★ ->
@@ -155,10 +154,9 @@ inductive Surface.Term.Elab (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) : Mode
 
 | sub :
   Surface.Term.Elab G G' .inf Δ Γ t Tinf t' ->
-  Tinf.OverloadedTypePrefix is C ->
-  Surface.Ty.MatchInstsSynth G G' Δ Γ is ts ->
+  Surface.Ty.ImplicitSpineType G G' Δ Γ is ts Tinf C ->
   Core.Translation.SynthTerm G' Δ.translate Γ.translate .one (C.translate ~[★]~ T.translate, c) ->
-  Surface.Term.Elab G G' .chk Δ Γ t T (t'.apply (ts.map (Core.SpineElem.oterm ·)) ▹ c)
+  Surface.Term.Elab G G' .chk Δ Γ t T (t'.apply ts ▹ c)
 
 | annot :
   Surface.Term.Elab G G' .chk Δ Γ t T t' ->

@@ -14,6 +14,7 @@ import Translation.Term
 import Translation.Global
 import Core.Typing
 import Core.Metatheory.Inversion
+import Core.Metatheory.SpineType
 import Core.Term.Spine
 import Surface.Typing
 import Surface.Metatheory.Inversion
@@ -466,7 +467,7 @@ case annot ih =>
 abbrev Translation.SynthTermCompletenessLemmaType (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
   (i : SynthTermIdx) -> (SynthTermArgs i) -> Prop
 | .one => λ (T, t) => t.Determined ∧ G&Δ, Γ ⊢ t : T
-| .many => λ ts => ∀ t ∈ ts, t.2.Determined ∧ G&Δ, Γ ⊢ t.2 : t.1
+| .many => λ (ts , R , T) => Core.SpineType G Δ Γ ts R T ∧ ∀ t ∈ ts, t.Determined
 
 
 
@@ -475,34 +476,57 @@ theorem Translation.synth_term_completeness_lemma :
   Translation.SynthTermCompletenessLemmaType G Δ Γ m t := by
 intro h
 induction h <;> simp at *
-case rcons =>
-  intro Ty Tm ty_tm_in_list
-  cases ty_tm_in_list
-  case inl ih ty_tm_in_list =>
-    apply ih Ty Tm ty_tm_in_list
-  case inr h =>
-    cases h.1; cases h.2; clear h
-    assumption
+case nil => apply Core.SpineType.refl
+case rcons_o  i R T ηs η j iss inst ih h =>
+  rcases ih with ⟨ih1, ih2⟩
+  replace ih1 := Core.SpineType.oterm j h.2 ih1
+  apply And.intro
+  · assumption
+  · intro t t_in_ηs
+    cases t_in_ηs
+    . grind
+    . subst t; unfold Core.SpineElem.Determined; simp; exact h.1
+case rcons_ty j1 j2 _ _ e ih1 ih2 =>
+  apply And.intro
+  · apply Core.SpineType.type j1 j2 e ih1.1
+  · intro t h
+    cases h
+    case _ h => apply ih1.2 t h
+    case _ h => subst h; unfold Core.SpineElem.Determined; simp
 case var =>
   apply And.intro
   · constructor
   · assumption
-case inst σs _ ηs υs _ _ _ synth1 τinst τol leneq synths h1 h2 =>
-  induction ηs using List.reverse_ind <;> simp at *
-  case nil =>
-    subst υs
-    apply And.intro
-    · apply Core.Term.Determined.spine h1.1
-      intro e e_in_sp; simp at e_in_sp
-      rcases e_in_sp with ⟨_, _, s⟩; subst e; unfold Core.SpineElem.Determined; simp
-    sorry
-  case rcons => sorry
+case inst h1 h2 =>
+  apply And.intro
+  · apply Core.Term.Determined.spine h2.1 h1.2
+  · apply Core.SpineType.apply h2.2 h1.1
 case refl =>
   apply And.intro
   apply Core.Term.Determined.refl
   apply Core.Typing.refl; assumption
-case sym => sorry
-case trans => sorry
+case sym ih =>
+  apply And.intro
+  · apply Core.Term.Determined.sym ih.1
+  · apply Core.Typing.sym ih.2
+case trans ih1 ih2 =>
+  apply And.intro
+  · apply Core.Term.Determined.trans; grind; grind
+  · apply Core.Typing.seq; apply ih1.2; apply ih2.2
+case fst ih =>
+  apply And.intro
+  · apply Core.Term.Determined.fst; grind
+  · apply Core.Typing.fst _ _
+    apply ih.2
+    assumption
+    assumption
+case snd ih =>
+  apply And.intro
+  · apply Core.Term.Determined.snd; grind
+  · apply Core.Typing.snd _ _
+    apply ih.2
+    assumption
+    assumption
 
 
 
@@ -522,28 +546,28 @@ intro h1 h2
 generalize mdef : Mode.inf = m at *
 induction h1 generalizing sp <;> simp [Surface.Term.spine, Core.Term.spine] at *
 case global => apply h2.1
-case app a' is _ _ _ _ _ _ _ ih _ =>
+case app ηs _ a' is _ _ _ _ _ ih _ =>
   rw[Option.bind_eq_some_iff] at h2
   rcases h2 with ⟨fsp, h2, h3⟩
   simp at h3; rcases h3 with ⟨e1, h3⟩; subst e1
   replace ih := @ih fsp.snd h2
   rcases ih with ⟨f'sp, ih⟩
   have lem := Core.Spine.apply_eq ih
-  rw[lem]; exists (f'sp ++ is.map (Core.SpineElem.oterm ·) ++ [Core.SpineElem.term a'])
+  rw[lem]; exists (f'sp ++ ηs ++ [Core.SpineElem.term a'])
   rw[Option.bind_eq_some_iff];
-  exists (fsp.fst, f'sp ++ is.map (Core.SpineElem.oterm ·))
+  exists (fsp.fst, f'sp ++ ηs)
   simp; rw[<-Core.Spine.apply_spine_compose]
   rw[Core.Spine.apply_eta]
-case appt A _ _ _ _ _ is _ _ _ _ _ _ _ _ _ e ih =>
+case appt A _ _ _ _ _ ηs _ _ _ _ _ _ _ _ _ ih =>
   rw[Option.bind_eq_some_iff] at h2
   rcases h2 with ⟨fsp, h2, h3⟩
   simp at h3; rcases h3 with ⟨e1, h3⟩; subst e1
   replace ih := @ih fsp.snd h2
   rcases ih with ⟨f'sp, ih⟩
   have lem := Core.Spine.apply_eq ih
-  rw[lem]; exists (f'sp ++ is.map (Core.SpineElem.oterm ·) ++ [Core.SpineElem.type A.translate])
+  rw[lem]; exists (f'sp ++ ηs ++ [Core.SpineElem.type A.translate])
   rw[Option.bind_eq_some_iff];
-  exists (fsp.fst, f'sp ++ is.map (Core.SpineElem.oterm ·))
+  exists (fsp.fst, f'sp ++ ηs)
   simp; rw[<-Core.Spine.apply_spine_compose]
   rw[Core.Spine.apply_eta]
 
@@ -570,44 +594,33 @@ apply And.intro
 · exists sp'
 · apply Translation.Entry.is_ctor_sound wf h1 h5
 
+
 theorem Translation.Term.typing_spine
-  {T : Surface.Ty} {C : Surface.Ty} {ts : List Core.Term} {G : Surface.GlobalEnv} {G' : Core.GlobalEnv}:
+  {T : Surface.Ty} {C : Surface.Ty} {ηs : List Core.SpineElem} {G : Surface.GlobalEnv} {G' : Core.GlobalEnv}:
   ⊢s G ->
   G.translate = some G' ->
-  T.OverloadedTypePrefix is C ->
-  Surface.Ty.MatchInstsSynth G G' Δ Γ is ts ->
+  Surface.Ty.ImplicitSpineType G G' Δ Γ is ηs T C ->
   t.Determined ->
   G'&⟦Δ⟧,⟦Γ⟧ ⊢ t : T.translate ->
-  (t.apply (ts.map (Core.SpineElem.oterm ·))).Determined ∧
-  G'&⟦Δ⟧,⟦Γ⟧ ⊢ t.apply (ts.map (Core.SpineElem.oterm ·)) : C.translate := by
-intro wf h0 h1 h2 h3 h4
-induction h2 generalizing C <;> simp [Core.Term.apply] at *
-case nil =>
-  have e := Surface.Ty.OverloadedTypePrefix_nil h1
-  subst e
-  apply And.intro
-  · apply h3
-  · apply h4
-case rcons i t is ts j sths _ ih =>
-  replace h1 := Surface.Ty.OverloadedTypePrefix_cons h1
-  replace ih := ih h1
-  rcases ih with ⟨ih1, ih2⟩
-  replace sths := Translation.synth_term_completeness sths
-  rcases sths with ⟨ih3, ih4⟩
+  (t.apply ηs).Determined ∧
+  G'&⟦Δ⟧,⟦Γ⟧ ⊢ t.apply ηs : C.translate := by
+intro wf h0 h1 h2 h3
+induction h1 <;> simp [Core.Term.apply] at *
+case nil => grind
+case rcons_o o η os ηs T R j ηj _ ih =>
+  replace ηj := Translation.synth_term_completeness ηj
   replace j := Translation.Ty.sound wf j h0 rfl
   rcases j with ⟨K, T', e1, e2, j⟩
   subst K; subst T'
+  replace ih := ih h3
   rw[<-Core.Spine.apply_oterm]
   apply And.intro
   · apply Core.Term.Determined.app.1
-    apply And.intro
-    · apply ih1
-    · apply ih3
-  · apply Core.Typing.app (A := i.translate)
+    grind
+  · apply Core.Typing.app (A := o.translate)
     apply j
-    apply ih2
-    apply ih4
-
+    apply ih.2
+    apply ηj.2
 
 theorem Translation.Term.Sound2
   {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
@@ -636,17 +649,17 @@ case var x T _ _ h j =>
        rcases lem with ⟨_, _, lem1, lem2, lem3⟩
        subst lem1; subst lem2; apply lem3
 
-case global x T Δ B Γ ts is h1' j2 j3 j4  =>
+case global  x T Δ Γ B ηs is h1' j1 j2 =>
  let lem := Translation.GlobalEnv.lookup_type_sound h1 h2 x T Δ.translate h1'
  rcases lem with ⟨T', _, lk, e1, _⟩; subst e1
- replace j2 := Translation.Ty.sound h1 j2 h2 rfl
- rcases j2 with ⟨K, T', e1, e2, j2⟩; subst e1; subst e2
- have lem := Translation.Term.typing_spine h1 h2 j3 j4
-   (Core.Term.Determined.global) (Core.Typing.global lk j2)
+ replace j1 := Translation.Ty.sound h1 j1 h2 rfl
+ rcases j1 with ⟨K, T', e1, e2, j1⟩; subst e1; subst e2
+ have lem := Translation.Term.typing_spine h1 h2 j2
+   (Core.Term.Determined.global) (Core.Typing.global lk j1)
  apply lem
 
-case app Δ A Γ f Tinf f' C B arg arg' ts is jk ef TinfC Cshape mists af ih1 ih2 =>
-  have lem := Translation.Term.typing_spine h1 h2 TinfC mists ih1.1 ih1.2
+case app jk _ Cshape mists _ ih1 ih2 =>
+  have lem := Translation.Term.typing_spine h1 h2 mists ih1.1 ih1.2
   rcases lem with ⟨lem1, lem2⟩
   replace jk := Translation.Ty.sound h1 jk h2 rfl
   rcases jk with ⟨K, T', e1, e2, jk⟩; subst e1; subst e2
@@ -661,8 +674,8 @@ case app Δ A Γ f Tinf f' C B arg arg' ts is jk ef TinfC Cshape mists af ih1 ih
     apply lem2
     apply ih2.2
 
-case appt Δ A K C B Γ is ts _ _ _ _ jk TinfC e1 mists felab e2 ih =>
-  have lem := Translation.Term.typing_spine h1 h2 TinfC mists ih.1 ih.2
+case appt A _ _ B _ _ _ _ _ _ _ jk e1 mists felab e2 ih =>
+  have lem := Translation.Term.typing_spine h1 h2 mists ih.1 ih.2
   rcases lem with ⟨lem1, lem2⟩
   replace jk := Translation.Ty.sound h1 jk h2 rfl
   rcases jk with ⟨K, T', e1, e2, jk⟩; subst e1; subst e2
@@ -716,8 +729,8 @@ case mtch n Δ Γ s R s' d T d' CTy PTy pats pats' cs cs' _ vhvty _ vhvs pelab s
     intro i; apply (cTys i).2
     intro i; apply Translation.PrefixTypeMatch.sound rfl rfl rfl rfl (ptms i)
 
-case sub Δ Γ t Tinf t' is C ts η T h TinfC mists ch ih =>
-  have lem := Translation.Term.typing_spine h1 h2 TinfC mists ih.1 ih.2
+case sub mists ch ih =>
+  have lem := Translation.Term.typing_spine h1 h2 mists ih.1 ih.2
   rcases lem with ⟨lem1, lem2⟩
   replace h := Translation.synth_term_completeness ch
   rcases h with ⟨h1, h2⟩
