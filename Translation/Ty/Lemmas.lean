@@ -26,6 +26,7 @@ case defn x' _ _ _ h1 ih =>
     exfalso; contradiction
     apply ih _ h2
 case data => sorry
+case classDecl => sorry
 
 theorem Translation.GlobalEnv.lookup_different_impossible x :
   Surface.Global.Elab G G' ->

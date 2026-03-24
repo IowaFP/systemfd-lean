@@ -132,11 +132,6 @@ inductive Typing (G : GlobalEnv) :
   Typing G Δ Γ f (A `-:> B) ->
   Typing G Δ Γ a A ->
   Typing G Δ Γ (f `• a) B
--- | appP :
---   G&Δ ⊢s A : `◯ ->
---   Typing G Δ Γ f (A `=:> B) ->
---   Typing G Δ Γ a A ->
---   Typing G Δ Γ (f `• a) B
 | lamt :
   Kinding G Δ (`∀[K]P) `★ ->
   Typing G (K::Δ) (Γ.map (·[+1])) t P ->
@@ -166,16 +161,21 @@ inductive ValidCtor (x : String) : Ty -> Prop where
 
 -- Valid Class Methods are of the form
 -- ∀αs (x βs) => B
-inductive ValidClassMethod (x : String) : Ty -> Prop where
+inductive ValidClassMethodTy (x : String) : Ty -> Prop where
 | base :
   T.spine = some (x, sp) ->
-  ValidClassMethod x T
+  ValidClassMethodTy x T
 | all :
-  ValidClassMethod x P ->
-  ValidClassMethod x (`∀[K] P)
+  ValidClassMethodTy x P ->
+  ValidClassMethodTy x (`∀[K] P)
 | arrow :
-  ValidClassMethod x A ->
-  ValidClassMethod x (A `=:> B)
+  A.spine = some (x, sp) ->
+  ValidClassMethodTy x (A `=:> B)
+
+inductive ValidOpenKind : Kind -> Prop where
+| base : ValidOpenKind `◯
+| arrow : ValidOpenKind B -> ValidOpenKind (A `-:> B)
+
 
 inductive ValidClassInstTy (x : String) : Ty -> Prop where
 | base :
@@ -185,7 +185,7 @@ inductive ValidClassInstTy (x : String) : Ty -> Prop where
 
 
 inductive GlobalWf : GlobalEnv -> Global -> Prop where
-| data {ctors : Vect n (String × Ty)} {ctors' : Vect n String} {G : GlobalEnv}:
+| data {ctors : Vect n (String × Ty)} {G : GlobalEnv}:
   (∀ i y T, ctors i = (y, T) ->
     (Global.data x K Vect.nil :: G)&[] ⊢s T : `★
     ∧ ValidCtor x T
@@ -201,17 +201,19 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   GlobalWf G (.defn x T t)
 | classDecl :
   lookup s G = none ->
+  ValidOpenKind K ->
   (∀ i j, (ms i).1 ≠ (ms j).1) ->
   (∀ i y T, ms i = (y, T) ->
-    (Global.classDecl x K Vect.nil :: G)&[] ⊢s T : `★
-    ∧ ValidClassMethod x T
-    ∧ x ≠ y
+    (Global.classDecl s K Vect.nil :: G)&[] ⊢s T : `★
+    ∧ ValidClassMethodTy s T
+    ∧ s ≠ y
     ∧ lookup y G = none) ->
   GlobalWf G (.classDecl s K ms)
 | instDecl :
   ValidClassInstTy C T ->
+  -- TODO: Do Non-overlapping check here
   Surface.lookup C G = some (.opent C K ms') ->
-  -- check for method types
+  -- TODO: check for method types
   GlobalWf G (.instDecl T ms)
 
 inductive EntryWf : GlobalEnv -> Entry -> Prop where

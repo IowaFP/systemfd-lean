@@ -52,6 +52,11 @@ inductive Surface.Global.Elab : Surface.GlobalEnv -> Core.GlobalEnv -> Prop
   Surface.Global.Elab G G' ->
   ctors' = (λ i => ((ctors i).1 , (ctors i).2.translate)) ->
   Surface.Global.Elab (.cons (.data (n := n) x K ctors) G) (.cons (.data n x K.translate ctors') G')
+| classDecl {n : Nat} {ms : Vect n (String × Ty)} {ms' : Vect n Core.Global}:
+  Surface.Global.Elab G G' ->
+  ms' = (λ i => Core.Global.openm (ms i).1 (ms i).2.translate) ->
+  Surface.Global.Elab ((.classDecl x K ms) :: G) (ms'.to_list ++ (Core.Global.opent x K.translate :: G'))
+
 
 notation:170 G:170 " -↪ " G':170 => Surface.Global.Elab G G'
 

@@ -79,6 +79,12 @@ import Core.Metatheory.Determined.Semantic
 -- apply Core.ListGlobalWf.cons _ ih
 -- simp; apply lem2
 
+theorem Translation.ValidOpenKind.Sound {K : Surface.Kind}:
+  Surface.ValidOpenKind K -> Core.ValidOpenKind K.translate := by
+  intro h
+  induction h <;> simp at *
+  constructor
+  constructor; assumption
 
 theorem Surface.Global.Elab.sound :
   ⊢s G ->
@@ -104,9 +110,49 @@ case defn t T t' x j0 jdef ih =>
     · apply Translation.GlobalEnv.lookup_none_sound x j0 lk
   · sorry
 case data wf =>
+  cases wf; case _ wfh wftl =>
+  replace wf := wf wfh
+  cases wftl; case _ G G' x K n ctors _ j0 ctors'def lk h1 h2 =>
+  apply And.intro
+  · apply Core.ListGlobalWf.cons _ wf.1;
+    apply Core.GlobalWf.data
+    · intro i y T h1;
+      simp [ctors'def] at h1; rcases h1 with ⟨h1a, h1b⟩
+      replace h2 := h2 i (ctors i).fst (ctors i).snd rfl;
+      rcases h2 with ⟨h2a, h2b, h2c, h2d⟩
+      have wkn_j0 : Elab (.data x K Vect.nil :: G) (.cons (.data 0 x K.translate Vect.nil) G') := by
+        apply Elab.data j0; simp
+      replace h2a := Translation.Ty.sound h2a wkn_j0 rfl
+      rcases h2a with ⟨_, _, e1, e2, h2a⟩; subst e1; subst e2
+      subst y; subst T
+      replace h2d := Translation.GlobalEnv.lookup_none_sound (ctors i).fst j0 h2d
+      grind
+    · intro i j; simp [ctors'def]; apply h1
+    · apply Translation.GlobalEnv.lookup_none_sound x j0 lk
+  · sorry
+case classDecl wf =>
+  cases wf; case _ wfh wftl =>
+  replace wf := wf wfh
+  cases wftl; case _ G G' x K n ms ms' j0 ms'def lk h1 h2 h3 =>
+  have wkn_j0 : Elab (.cons (.classDecl x K Vect.nil) G) (.cons (.opent x K.translate) G') := by
+    apply Elab.classDecl (x := x) (K := K) (ms := Vect.nil) (ms' := Vect.nil) j0; simp
+  apply And.intro
+  · simp;
+    revert ms'; revert ms; intro ms; apply ms.induction
+    case _ =>
+      simp; intro ms'
+      apply Core.ListGlobalWf.cons _ wf.1;
+      apply Core.GlobalWf.opent
+      apply Translation.ValidOpenKind.Sound h1
+      apply Translation.GlobalEnv.lookup_none_sound x j0 lk
+    case _ =>
+      simp; intro n mthname mthTy ms ih1 ih2 ih3
+      generalize mdef : (Vect.fold [] List.cons fun i =>
+        Core.Global.openm ( Vect.cons (mthname, mthTy) ms i).fst ⟦(Vect.cons (mthname, mthTy) ms i).snd⟧) = ms' at *
+
+
+    --   intro n hd tl wftl
+    --   simp; apply Core.ListGlobalWf.cons _ wftl;
+
+      sorry
   sorry
-  -- apply Core.ListGlobalWf.cons _ wf
-  -- apply Core.GlobalWf.data
-  -- sorry
-  -- sorry
-  -- sorry

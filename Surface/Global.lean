@@ -160,7 +160,6 @@ case _ => sorry
 case _ ih => simp [lookup] at h; apply ih h edef
 
 
-
 -- theorem lookup_entry_defn_exists :
 --   is_defn G x -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
 -- intro h
