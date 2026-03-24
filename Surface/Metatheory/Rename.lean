@@ -105,29 +105,21 @@ theorem GlobalWf.closed {G : List Global} :
     replace ctors := ctors i x T' (by rw [zdef])
     apply Kinding.closed ctors.1
   case _ y T tl e =>
-    replace e := LawfulBEq.eq_of_beq e
-    simp [Entry.type] at h; subst e h
-    have lem := head j
-    cases lem ;
-    -- case _ j =>
-    -- apply Kinding.closed j
-  case _ y T b tl e =>
-    replace e := LawfulBEq.eq_of_beq e
-    simp [Entry.type] at h; subst e h
-    have lem := head j
-    cases lem;
-    -- case _ j1 j2 =>
-    -- apply Kinding.closed j1
-  case _ y T tl e =>
-    replace e := LawfulBEq.eq_of_beq e
-    simp [Entry.type] at h; subst e h
-    cases j; case _ wf j =>
-    cases j;
-    -- case _ j =>
-    -- have lemj : ∃ b, (tl&[] ⊢s T : .base b) := by
-    --   apply ValidInstTy.closed j
-    -- cases lemj; case _ lemj =>
-    -- apply Kinding.closed lemj
+    replace e := LawfulBEq.eq_of_beq e; subst e
+    have lem := head j; cases lem
+    case _ h _ h1 _ =>
+      simp [Entry.type] at h; subst h
+      apply Kinding.closed h1
+  case _ y T b tl e => sorry
+    -- replace e := LawfulBEq.eq_of_beq e
+    -- simp [Entry.type] at h; subst e h
+    -- have lem := head j
+    -- cases lem;
+  -- case _ y T tl e =>
+  --   replace e := LawfulBEq.eq_of_beq e
+  --   simp [Entry.type] at h; subst e h
+  --   cases j; case _ wf j =>
+  --   cases j;
 
 
 theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren} K :

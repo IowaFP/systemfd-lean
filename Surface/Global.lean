@@ -6,87 +6,86 @@ import Surface.Term
 
 open LeanSubst
 
-inductive Surface.Global : Type where
-| data : String -> Kind -> Vect n (String × Ty) -> Global
-| opent : String -> Kind -> Global
-| openm : String -> Ty -> Global
-| defn : String -> Ty -> Term -> Global
-| inst : String -> Term -> Global
-| instty : String -> Ty -> Global
+namespace Surface
 
-def Surface.Global.repr (_ : Nat) : (a : Surface.Global) -> Std.Format
+inductive Global : Type where
+| data : {n : Nat} -> String -> Kind -> Vect n (String × Ty) -> Global
+| defn : String -> Ty -> Term -> Global
+| classDecl : {n : Nat} -> String -> Kind -> /- Fundeps -> Vect k (Nat × Nat) -/  Vect n (String × Ty) -> Global
+| instDecl : {n : Nat} -> Ty -> Vect n (String × Term) -> Global
+
+
+def Global.repr (_ : Nat) : (a : Global) -> Std.Format
 | .data s K ctors =>
-  ".data " ++ s ++ " : " ++ Surface.Kind.repr max_prec K
-    ++ Std.Format.line ++ (ctors.reprPrec 0)
-| .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
-| .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
+  (Std.Format.text ".data ") ++ (Std.Format.text s) ++ " : "
+    ++ (Kind.repr max_prec K) ++ (Std.Format.text "where") ++
+    Std.Format.line ++ Std.Format.nest 4 (ctors.reprPrec 0)
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
-| .inst n t => ".inst " ++ n ++ " " ++  t.repr max_prec
-| .instty n T => ".instTy" ++ n ++ " " ++  T.repr max_prec
+| classDecl s K methods =>
+  ".class " ++ s ++ " : " ++ Kind.repr max_prec K
+    ++ Std.Format.line ++ (methods.reprPrec 0)
+| instDecl t methods =>
+  (Std.Format.text ".class ") ++ (Ty.repr max_prec t) ++ " : "
+    ++ Std.Format.line ++ Std.Format.nest 4 (methods.reprPrec 0)
 
 @[simp]
-instance Surface.instRepr_Global : Repr Global where
+instance instRepr_Global : Repr Global where
   reprPrec a p := Global.repr p a
 
 @[simp]
-def Surface.GlobalEnv := List Surface.Global
+def GlobalEnv := List Global
 
-@[simp] instance Surface.instHAppend_Globals : Append Surface.GlobalEnv where
-  append x y := by unfold Surface.GlobalEnv; unfold Surface.GlobalEnv at x; unfold Surface.GlobalEnv at y; apply x ++ y
+@[simp] instance instHAppend_Globals : Append GlobalEnv where
+  append x y := by unfold GlobalEnv; unfold GlobalEnv at x; unfold GlobalEnv at y; apply x ++ y
 
-def Surface.Globals.repr (p : Nat) : Surface.GlobalEnv -> Std.Format
+def Globals.repr (p : Nat) : GlobalEnv -> Std.Format
 | .nil => Std.Format.nil
 | .cons g gl => Global.repr 0 g ++ Globals.repr p gl
 
 @[simp]
-instance Surface.instRepr_Globals : Repr Surface.GlobalEnv where
+instance instRepr_Globals : Repr GlobalEnv where
   reprPrec a p := Globals.repr p a
 
-inductive Surface.Entry : Type where
+inductive Entry : Type where
 | data : String -> Kind -> Vect n (String × Ty) -> Entry
 | ctor : String -> Nat -> Ty -> Entry
-| opent : String -> Kind -> Entry
-| openm : String -> Ty -> Entry
 | defn : String -> Ty -> Term -> Entry
-| instty : String -> Ty -> Entry
+| opent : String -> Kind -> Vect n (String × Ty) -> Entry
+| openm : String -> Nat -> Ty -> Entry
 
-def Surface.Entry.is_data : Entry -> Bool
+def Entry.is_data : Entry -> Bool
 | data _ _ _ => true
 | _ => false
 
-def Surface.Entry.is_ctor : Entry -> Bool
+def Entry.is_ctor : Entry -> Bool
 | ctor _ _ _ => true
 | _ => false
 
-def Surface.Entry.is_opent : Entry -> Bool
-| opent _ _ => true
+def Entry.is_opent : Entry -> Bool
+| opent _ _ _ => true
 | _ => false
 
-def Surface.Entry.is_openm : Entry -> Bool
-| openm _ _ => true
+def Entry.is_openm : Entry -> Bool
+| openm _ _ _ => true
 | _ => false
 
-def Surface.Entry.is_defn : Entry -> Bool
+def Entry.is_defn : Entry -> Bool
 | defn _ _ _ => true
 | _ => false
 
-def Surface.Entry.is_instty : Entry -> Bool
-| instty _ _ => true
-| _ => false
-
-def Surface.Entry.kind : Entry -> Option Kind
+def Entry.kind : Entry -> Option Kind
 | data _ K _ => K
-| opent _ K => K
+| opent _ K _ => K
 | _ => none
 
-def Surface.Entry.type : Entry -> Option Ty
+def Entry.type : Entry -> Option Ty
 | ctor _ _ T => T
-| openm _ T => T
+| openm _ _ T => T
 | defn _ T _ => T
-| instty _ T => T
 | _ => none
 
-def Surface.lookup (x : String) : GlobalEnv -> Option Entry
+
+def lookup (x : String) : GlobalEnv -> Option Entry
 | [] => none
 | .cons (.data (n := n) y K ctors) tl =>
   let ctors' : Vect n (Option Entry) := λ i =>
@@ -94,55 +93,49 @@ def Surface.lookup (x : String) : GlobalEnv -> Option Entry
     if x == z then return .ctor z i A else none
   if x == y then return .data y K ctors
   else Vect.fold (lookup x tl) Option.or ctors'
-| .cons (.opent y a) tl =>
-  if x == y then return .opent y a else lookup x tl
-| .cons (.openm y a) tl =>
-  if x == y then return .openm y a else lookup x tl
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.inst _ _) tl => lookup x tl
-| .cons (.instty y a) tl =>
-  if x == y then return .instty y a else lookup x tl
+| .cons (.classDecl (n := n) y K ms) tl =>
+  let ms' : Vect n (Option Entry) := λ i =>
+    let (z, A) := ms i
+    if x == z then return .openm z i A else none
+  if x == y then return .opent y K ms
+  else Vect.fold (lookup x tl) Option.or ms'
+| .cons (.instDecl _ _) tl => lookup x tl
 
--- def Surface.lookup_defn G x := do
---   let t <- Surface.lookup x G
---   match t with
---   | .defn _ _ t => return t
---   | _ => none
+def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.get!
+def lookup_type G x := lookup x G |> Option.map Entry.type |> Option.get!
 
-def Surface.lookup_kind G x := lookup x G |> Option.map Surface.Entry.kind |> Option.get!
-def Surface.lookup_type G x := lookup x G |> Option.map Surface.Entry.type |> Option.get!
-def Surface.is_ctor G x := lookup x G |> Option.map Surface.Entry.is_ctor |> Option.get!
-def Surface.is_data G x := lookup x G |> Option.map Surface.Entry.is_data |> Option.get!
--- def Surface.is_instty G x := lookup x G |> Option.map Surface.Entry.is_instty |> Option.get!
--- def Surface.is_opent G x := lookup x G |> Option.map Surface.Entry.is_opent |> Option.get!
--- def Surface.is_openm G x := lookup x G |> Option.map Surface.Entry.is_openm |> Option.get!
--- def Surface.is_defn G x := lookup x G |> Option.map Surface.Entry.is_defn |> Option.get!
+def is_ctor G x := lookup x G |> Option.map Entry.is_ctor |> Option.get!
+def is_data G x := lookup x G |> Option.map Entry.is_data |> Option.get!
+def is_opent G x := lookup x G |> Option.map Entry.is_opent |> Option.get!
+def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!
+def is_defn G x := lookup x G |> Option.map Entry.is_defn |> Option.get!
 
-def Surface.ctor_idx (x : String) (G : GlobalEnv) : Option Nat := do
+def ctor_idx (x : String) (G : GlobalEnv) : Option Nat := do
   let t <- lookup x G
   match t with
   | .ctor _ n _ => n
   | _ => none
 
-def Surface.ctor_ty (x : String) (G : GlobalEnv) : Option Ty := do
+def ctor_ty (x : String) (G : GlobalEnv) : Option Ty := do
   let t <- lookup_type G x
   if is_ctor G x then return t else none
 
-def Surface.ctor_count (x : String) (G : GlobalEnv) : Option Nat := do
+def ctor_count (x : String) (G : GlobalEnv) : Option Nat := do
   let t <- lookup x G
   match t with
   | .data _ _ ctors => ctors.length
   | _ => .none
 
-def Surface.is_stable (x : String) (G : GlobalEnv) : Bool := is_ctor G x -- ∨ is_instty G x
+def is_stable (x : String) (G : GlobalEnv) : Bool := is_ctor G x
 
-def Surface.Ty.valid_data_type (G : GlobalEnv) (A : Ty) : Option Unit := do
+def Ty.valid_data_type (G : GlobalEnv) (A : Ty) : Option Unit := do
   let (x, _) <- A.spine
   if is_data G x
   then return () else none
 
-def Surface.Ty.valid_ctor_type (G : GlobalEnv) : (A : Ty) -> Option String
+def Ty.valid_ctor_type (G : GlobalEnv) : (A : Ty) -> Option String
 | .all _ T => T.valid_ctor_type G
 | .arrow _ B => B.valid_ctor_type G
 | t => do
@@ -152,52 +145,58 @@ def Surface.Ty.valid_ctor_type (G : GlobalEnv) : (A : Ty) -> Option String
 
 
 
--- theorem Surface.lookup_entry_openm_exists :
---   is_openm G x -> ∃ y T, lookup x G = .some (Surface.Entry.openm y T) := by
--- intro h
--- simp [is_openm] at h
--- generalize edef : lookup x G = e at *
--- cases e <;> simp at h
--- case _ e =>
--- cases e <;> simp [Surface.Entry.is_openm] at h
--- case _ x T => exists x; exists T
+theorem lookup_entry_openm_exists :
+  is_openm G x -> ∃ k T, lookup x G = .some (Entry.openm x k T) := by
+intro h
+generalize edef : lookup x G = e at *
+fun_induction lookup <;> simp [is_openm] at *
+case _ => simp [lookup] at h
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ => sorry
+case _ ih => simp [lookup] at h; apply ih h edef
 
--- theorem Surface.lookup_entry_defn_exists :
---   is_defn G x -> ∃ y T t, lookup x G = .some (Surface.Entry.defn y T t) := by
+
+
+-- theorem lookup_entry_defn_exists :
+--   is_defn G x -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
 -- intro h
 -- simp [is_defn] at h
 -- generalize edef : lookup x G = e at *
 -- cases e <;> simp at h
 -- case _ e =>
--- cases e <;> simp [Surface.Entry.is_defn] at h
+-- cases e <;> simp [Entry.is_defn] at h
 -- case _ y T t => exists y; exists T; exists t
 
--- theorem Surface.lookup_defn_is_defn_sound :
+-- theorem lookup_defn_is_defn_sound :
 --   lookup_defn G x = .some t -> is_defn G x := by
 -- intro h; rw[is_defn]; rw[lookup_defn] at h; simp [Option.bind] at h
 -- generalize zdef : lookup x G = z at *
 -- cases z <;> simp at *
 -- case _ z =>
--- cases z <;> simp [Surface.Entry.is_defn] at *
+-- cases z <;> simp [Entry.is_defn] at *
 
 
 -- theorem lookup_defn_some :
---   lookup_defn G x = .some t -> ∃ y T t, lookup x G = .some (Surface.Entry.defn y T t) := by
+--   lookup_defn G x = .some t -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
 -- intro h1
 -- replace h1 := lookup_defn_is_defn_sound h1
 -- apply lookup_entry_defn_exists h1
 
--- theorem Surface.is_stable_implies_not_is_openm :
+-- theorem is_stable_implies_not_is_openm :
 --   is_stable G x -> ¬ is_openm x G := by
 -- intro h1 h2
--- simp [Surface.is_stable] at h1;
+-- simp [is_stable] at h1;
 -- cases h1
 -- all_goals (
 --   case _ h1 =>
 --     have lem := lookup_entry_openm_exists h2
 --     rcases lem with ⟨_, _, lem⟩
 --     simp [is_ctor, is_instty] at h1; rw[lem] at h1
---     simp at h1; simp [Surface.Entry.is_ctor, Surface.Entry.is_instty] at h1
+--     simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
 -- )
 
 
@@ -211,26 +210,28 @@ def Surface.Ty.valid_ctor_type (G : GlobalEnv) : (A : Ty) -> Option String
 --     have lem := lookup_entry_defn_exists h2
 --     rcases lem with ⟨_, _, _, lem⟩
 --     simp [is_ctor, is_instty] at h1; rw[lem] at h1
---     simp at h1; simp [Surface.Entry.is_ctor, Surface.Entry.is_instty] at h1
+--     simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
 -- )
 
-theorem Surface.Global.lookup_unique :
+theorem Global.lookup_unique :
   lookup x G = some t ->
   lookup x G = some t' ->
   t = t' := by
 intro h1 h2
 all_goals (rw[h1] at h2; injection h2)
 
-theorem Surface.Global.lookup_type_unique :
+theorem Global.lookup_type_unique :
   lookup_type x G = some t ->
   lookup_type x G = some t' ->
   t = t' := by
 intro h1 h2
 all_goals (rw[h1] at h2; injection h2)
 
-theorem Surface.Global.lookup_kind_unique :
+theorem Global.lookup_kind_unique :
   lookup_kind x G = some t ->
   lookup_kind x G = some t' ->
   t = t' := by
 intro h1 h2
 all_goals (rw[h1] at h2; injection h2)
+
+end Surface

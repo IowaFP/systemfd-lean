@@ -8,18 +8,18 @@ theorem EntryWf.kinding :
   ⊢s G ->
   EntryWf G e ->
   e.type = some T ->
-  ∃ b, G&Δ ⊢s T : .base b := by
-intro wf h1 h2
-induction e  <;> simp [Entry.type] at *
-case _ a =>
-  subst a; cases h1
-  case _ h _ _ =>
-  -- arbitrary weakening
-  sorry
-case _ a =>
-  subst a; cases h1
-case defn =>  sorry
-case instty => sorry
+  ∃ b, G&Δ ⊢s T : .base b := by sorry
+-- intro wf h1 h2
+-- induction e  <;> simp [Entry.type] at *
+-- case _ a =>
+--   subst a; cases h1
+--   case _ h _ _ =>
+--   -- arbitrary weakening
+--   sorry
+-- case _ a =>
+--   subst a; cases h1
+-- case defn =>  sorry
+-- case instty => sorry
 
 theorem GlobalWf.extract_kinding :
   ⊢s G ->

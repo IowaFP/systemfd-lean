@@ -164,6 +164,25 @@ inductive ValidCtor (x : String) : Ty -> Prop where
   ValidCtor x B ->
   ValidCtor x (A `-:> B)
 
+-- Valid Class Methods are of the form
+-- ∀αs (x βs) => B
+inductive ValidClassMethod (x : String) : Ty -> Prop where
+| base :
+  T.spine = some (x, sp) ->
+  ValidClassMethod x T
+| all :
+  ValidClassMethod x P ->
+  ValidClassMethod x (`∀[K] P)
+| arrow :
+  ValidClassMethod x A ->
+  ValidClassMethod x (A `=:> B)
+
+inductive ValidClassInstTy (x : String) : Ty -> Prop where
+| base :
+  T.spine = some (x, sp) ->
+  ValidClassInstTy x T
+
+
 
 inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | data {ctors : Vect n (String × Ty)} {ctors' : Vect n String} {G : GlobalEnv}:
@@ -175,7 +194,25 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
   lookup x G = none ->
   GlobalWf G (.data x K ctors)
-
+| defn :
+  lookup x G = none ->
+  G&[] ⊢s T : `★ ->
+  G&[], [] ⊢s t : T ->
+  GlobalWf G (.defn x T t)
+| classDecl :
+  lookup s G = none ->
+  (∀ i j, (ms i).1 ≠ (ms j).1) ->
+  (∀ i y T, ms i = (y, T) ->
+    (Global.classDecl x K Vect.nil :: G)&[] ⊢s T : `★
+    ∧ ValidClassMethod x T
+    ∧ x ≠ y
+    ∧ lookup y G = none) ->
+  GlobalWf G (.classDecl s K ms)
+| instDecl :
+  ValidClassInstTy C T ->
+  Surface.lookup C G = some (.opent C K ms') ->
+  -- check for method types
+  GlobalWf G (.instDecl T ms)
 
 inductive EntryWf : GlobalEnv -> Entry -> Prop where
 | data :

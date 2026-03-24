@@ -13,26 +13,38 @@ open LeanSubst
 -- Translation preservies kinding relation
 
 theorem Translation.GlobalEnv.lookup_none_sound x :
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Surface.lookup x G = none ->
   Core.lookup x G' = none := by
-
-sorry
+intro h1 h2
+induction h1 generalizing x <;> simp [Surface.lookup, Core.lookup] at *
+case defn x' _ _ _ h1 ih =>
+  split at h2
+  case _ e => subst e; cases h2
+  case _ e =>
+    split
+    exfalso; contradiction
+    apply ih _ h2
+case data => sorry
 
 theorem Translation.GlobalEnv.lookup_different_impossible x :
-  G.translate = some G' ->
-  Surface.lookup x G = some e ->
-  Core.lookup x G' = none ->
+  Surface.Global.Elab G G' ->
+  Surface.lookup x G = none ->
+  Core.lookup x G' = some e ->
   False
-:= by sorry
+:= by
+  intro h1 h2 h3
+  have lem := Translation.GlobalEnv.lookup_none_sound x h1 h2
+  rw[lem] at h3; cases h3
 
-theorem Translation.GlobalEnv.lookup_entry_data x :
-  G.translate = some G' ->
-  Surface.lookup x G = some en ->
-  Core.lookup x G' = .some en.translate := by
-intro h1 h2
-fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup] at *
-case _ => sorry
+
+-- theorem Translation.GlobalEnv.lookup_entry_data x :
+--   Surface.Global.Elab G G' ->
+--   Surface.lookup x G = some en ->
+--   Core.lookup x G' = .some en.translate := by
+-- intro h1 h2
+-- fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.lookup] at *
+-- case _ => sorry
 -- split at h2;
 -- case isTrue =>
 --   subst G';
@@ -60,21 +72,21 @@ case _ => sorry
 
 
 theorem Translation.GlobalEnv.lookup_kind_sound :
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Surface.lookup_kind G x = some K ->
-  Core.lookup_kind G' x = some K'  := by
+  Core.lookup_kind G' x = some K.translate  := by
 intro h1 h2
+
 sorry
 
 
 theorem Translation.Entry.is_data_sound x :
-  ⊢s G ->
   Surface.is_data G x ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Core.is_data G' x := by
-intro wf h1 h2
-fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.is_data, Surface.lookup] at *
-case _  =>
+intro h1 h2
+-- fun_induction Surface.GlobalEnv.translate generalizing G' <;> simp [Surface.is_data, Surface.lookup] at *
+-- case _  =>
   -- cases wf; case _ wfgs wfg =>
   -- subst G'; subst gs'; subst g' <;> simp at *
   -- replace ih := ih wfgs
@@ -89,7 +101,7 @@ case _  =>
   --   rcases lem with ⟨i, lem⟩
   --   simp at lem; rcases lem with ⟨e, lem⟩; subst x;
   --   sorry
-  sorry
+sorry
 
 
 theorem Translation.KindEnv.sound {Δ : Surface.KindEnv} {Δ' : Core.KindEnv} :
@@ -111,22 +123,21 @@ theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
 
 
 theorem Translation.Ty.sound :
-  ⊢s G ->
   G&Δ ⊢s T : K ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Δ.translate = Δ'  ->
 
   ∃ K' T', K.translate = K' ∧
   T.translate = T' ∧
   G'&Δ' ⊢ T' : K' := by
-intro wf j h1 h2;
+intro j h1 h2;
 induction j generalizing Δ' <;> simp at *
 case var Δ i K j =>
   replace j2 := Translation.KindEnv.sound h2 i K j
   rcases j2 with ⟨K', j', t⟩; rw[<-t] at j'
   constructor; assumption
 case global x K Δ h3 =>
-  have lem := Translation.GlobalEnv.lookup_kind_sound (K' := K.translate) h1 h3
+  have lem := Translation.GlobalEnv.lookup_kind_sound h1 h3
   apply Core.Kinding.global
   apply lem
 case all K Δ P j ih =>

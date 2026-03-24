@@ -25,17 +25,15 @@ open LeanSubst
 
 
 theorem Translation.GlobalEnv.lookup_type_sound {G : Surface.GlobalEnv} : -- maybe generalize this to entry lookup?
-  ⊢s G ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   (∀ (x : String) (T : Surface.Ty) (Δ : Core.KindEnv),
     (Surface.lookup_type G x = some T) ->
     ∃ T' b, (Core.lookup_type G' x = some T' ∧ T.translate = T' ∧ G'&Δ ⊢ T' : .base b)) := by
-intro wf h1 i K Δ h2
+intro h1 i K Δ h2
 sorry
 
 theorem Translation.Entry.is_ctor_sound {G: Surface.GlobalEnv} :
-  ⊢s G ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Surface.is_ctor G x ->
   Core.is_ctor G' x := by sorry
 
@@ -116,12 +114,11 @@ case _ hT Γ ih =>
 
 
 theorem Translation.ValidTyHeadVariable.sound {G : Surface.GlobalEnv} :
-  ⊢s G ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   T.translate = T' ->
   Surface.ValidTyHeadVariable T (Surface.is_data G) ->
   Core.ValidTyHeadVariable T' (Core.is_data G') := by
-intro wf h1 h2 h3
+intro h1 h2 h3
 induction h3
 case _ sp h4 =>
 rcases h4 with ⟨tnf, h4⟩
@@ -131,7 +128,7 @@ simp [Core.ValidTyHeadVariable]
 exists (sp.fst)
 apply And.intro
 · exists sp'
-· apply Translation.Entry.is_data_sound _ wf h4 h1
+· apply Translation.Entry.is_data_sound _ h4 h1
 
 
 theorem Translation.StableTypeMatch.sound :
@@ -194,7 +191,7 @@ theorem Translation.ValidHeadVariable.sound
   {Γ : Surface.TyEnv} {Γ' : Core.TyEnv}
   {t : Surface.Term} {t' : Core.Term}:
   ⊢s G ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
   t.translate G' Δ' Γ' = some t' ->
@@ -210,7 +207,7 @@ simp [Core.ValidHeadVariable]
 exists (sp.fst)
 apply And.intro
 · exists sp'
-· apply Translation.Entry.is_ctor_sound wf h1 h5
+· apply Translation.Entry.is_ctor_sound h1 h5
 
 
 theorem Translation.TyEnv.translation_comm_rename (Γ : Surface.TyEnv):
@@ -264,7 +261,7 @@ theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
   G&Δ,Γ ⊢s t : T ->
 
 
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   ⊢ G' ->
 
   Δ.translate = Δ' ->
@@ -278,7 +275,7 @@ induction j generalizing Δ' Γ' <;> simp at *
 case var Γ x T Δ b h jk =>
   have lem := Translation.TyEnv.sound h3
   replace lem := lem x T h
-  replace jk := Translation.Ty.sound wf jk h1 h2
+  replace jk := Translation.Ty.sound jk h1 h2
   rcases jk with ⟨K', T', h6, h7, h8⟩
   have h6' := Translation.Kind.sound_base (b := b);
   rcases h6' with ⟨b', h6'⟩;
@@ -287,13 +284,13 @@ case var Γ x T Δ b h jk =>
   · apply Core.Term.Determined.var
   · subst h7; apply Core.Typing.var lem h8
 case global x T Δ b Γ h4 j =>
-  have lem := Translation.GlobalEnv.lookup_type_sound wf h1 x T Δ' h4
+  have lem := Translation.GlobalEnv.lookup_type_sound h1 x T Δ' h4
   rcases lem with ⟨T', h4, h5, h6, h7⟩
   apply And.intro
   · apply Core.Term.Determined.global
   · subst h6; apply Core.Typing.global h5 h7
 case lam Δ A Γ t B j1 j2 ih =>
-  have lemA := Translation.Ty.sound wf j1 h1 h2
+  have lemA := Translation.Ty.sound j1 h1 h2
   rcases lemA with ⟨aK', A', h4a, h5a, h6a⟩
   have lem := Translation.TyEnv.lift_sound h3 j1 h5a
   rcases ih with ⟨t', h10, h11, h12⟩
@@ -311,7 +308,7 @@ case lam Δ A Γ t B j1 j2 ih =>
       · subst h4a; simp at h6a; assumption
       apply h12
 case lamP Δ A Γ t B j1 j2 ih =>
-  have lemA := Translation.Ty.sound wf j1 h1 h2
+  have lemA := Translation.Ty.sound j1 h1 h2
   rcases lemA with ⟨aK', A', h4a, h5a, h6a⟩
   have lem := Translation.TyEnv.lift_sound h3 j1 h5a
   rcases ih with ⟨t', h10, h11, h12⟩
@@ -329,7 +326,7 @@ case lamP Δ A Γ t B j1 j2 ih =>
       · subst h4a; simp at h6a; assumption
       apply h12
 case lamt Δ K P t Γ j1 j2 ih =>
-  have lem := Translation.Ty.sound wf j1 h1 h2
+  have lem := Translation.Ty.sound j1 h1 h2
   rcases lem with ⟨K', T', h4, h5, h6⟩
   rcases ih with ⟨t', ih1, ih2, ih3⟩
   simp at *
@@ -368,14 +365,14 @@ case app Δ A Γ f B a j1 j2 j3 ih1 ih2 =>
     · rw[Option.bind_eq_some_iff]; exists a'
   · apply And.intro;
     · apply Core.Term.Determined.app.1 ⟨ih2f, ih2a⟩
-    · have lem := Translation.Ty.sound wf j1 h1 rfl
+    · have lem := Translation.Ty.sound j1 h1 rfl
       rcases lem with ⟨K', T', e1, e2, jk⟩
       simp at e1; subst K'; subst e2;
       apply Core.Typing.app; apply jk; apply ih3f; apply ih3a
 
 case appt Δ Γ f K P a P' j1 j2 e ih =>
   rcases ih with ⟨f', h4, h5, h6⟩
-  have lem := Translation.Ty.sound wf j2 h1 h2
+  have lem := Translation.Ty.sound j2 h1 h2
   rcases lem with ⟨K', a', e1, lem1, lem2⟩
   subst K'; subst a'; subst Γ'; subst Δ'; subst P'
   exists (f' •[a.translate])
@@ -445,7 +442,7 @@ case mtch n Δ Γ s R c T CTy PTy pats cs sj vhvR cj vhvps patsj stmPTys csj ptm
       apply Core.Typing.mtch
             (CTy := λ i => (CTy i).translate) (PTy := λ i => (PTy i).translate) (pats := ps') (cs := cs')
       · apply ih3s
-      · apply Translation.ValidTyHeadVariable.sound wf h1 rfl vhvR
+      · apply Translation.ValidTyHeadVariable.sound h1 rfl vhvR
       · assumption
       · intro i; apply Translation.ValidHeadVariable.sound wf h1 rfl rfl (ih3i i) (vhvps i)
       · apply ih3iii
@@ -579,13 +576,12 @@ theorem Translation.ValidHeadVariable.sound2
   {Δ : Surface.KindEnv} {Δ' : Core.KindEnv}
   {Γ : Surface.TyEnv}
   {t : Surface.Term} {t' : Core.Term}:
-  ⊢s G ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Δ.translate = Δ' ->
   Surface.Term.Elab G G' .inf Δ Γ t T t' ->
   Surface.ValidHeadVariable t (Surface.is_ctor G) ->
   Core.ValidHeadVariable t' (Core.is_ctor G') := by
-intro wf h1 h2 h4 h5
+intro h1 h2 h4 h5
 induction h5
 case _ sp h5 =>
 rcases h5 with ⟨tnf, h5⟩
@@ -595,24 +591,23 @@ simp [Core.ValidHeadVariable]
 exists (sp.fst)
 apply And.intro
 · exists sp'
-· apply Translation.Entry.is_ctor_sound wf h1 h5
+· apply Translation.Entry.is_ctor_sound h1 h5
 
 
 theorem Translation.Term.typing_spine
   {T : Surface.Ty} {C : Surface.Ty} {ηs : List Core.SpineElem} {G : Surface.GlobalEnv} {G' : Core.GlobalEnv}:
-  ⊢s G ->
-  G.translate = some G' ->
+  Surface.Global.Elab G G' ->
   Surface.Ty.ImplicitSpineType G G' Δ Γ is ηs T C ->
   t.Determined ->
   G'&⟦Δ⟧,⟦Γ⟧ ⊢ t : T.translate ->
   (t.apply ηs).Determined ∧
   G'&⟦Δ⟧,⟦Γ⟧ ⊢ t.apply ηs : C.translate := by
-intro wf h0 h1 h2 h3
+intro h0 h1 h2 h3
 induction h1 <;> simp [Core.Term.apply] at *
 case nil => grind
 case rcons_o o η os ηs T R j ηj _ ih =>
   replace ηj := Translation.synth_term_completeness ηj
-  replace j := Translation.Ty.sound wf j h0 rfl
+  replace j := Translation.Ty.sound j h0 rfl
   rcases j with ⟨K, T', e1, e2, j⟩
   subst K; subst T'
   replace ih := ih h3
@@ -629,9 +624,7 @@ theorem Translation.Term.Sound2
   {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
   {Δ : Surface.KindEnv} {Γ : Surface.TyEnv}
   {t : Surface.Term} {t' : Core.Term} {m : Mode}:
-  ⊢s G ->
-  G.translate = some G' ->
-  ⊢ G' ->
+  Surface.Global.Elab G G' ->
   Surface.Term.Elab G G' m Δ Γ t T t' ->
   ∀ Δ' Γ',
   Δ.translate = Δ' ->
@@ -641,30 +634,30 @@ theorem Translation.Term.Sound2
   G'&Δ',Γ' ⊢ t' : T.translate
 
 := by
-intro h1 h2 h3 h
+intro h2 h
 induction h <;> simp at *
 case var x T _ _ h j =>
      apply And.intro
      · apply Core.Term.Determined.var
      · apply Core.Typing.var
        apply Translation.TyEnv.sound rfl x T h
-       have lem := Translation.Ty.sound h1 j h2 rfl
+       have lem := Translation.Ty.sound j h2 rfl
        rcases lem with ⟨_, _, lem1, lem2, lem3⟩
        subst lem1; subst lem2; apply lem3
 
 case global  x T Δ Γ B ηs is h1' j1 j2 =>
- let lem := Translation.GlobalEnv.lookup_type_sound h1 h2 x T Δ.translate h1'
+ let lem := Translation.GlobalEnv.lookup_type_sound h2 x T Δ.translate h1'
  rcases lem with ⟨T', _, lk, e1, _⟩; subst e1
- replace j1 := Translation.Ty.sound h1 j1 h2 rfl
+ replace j1 := Translation.Ty.sound j1 h2 rfl
  rcases j1 with ⟨K, T', e1, e2, j1⟩; subst e1; subst e2
- have lem := Translation.Term.typing_spine h1 h2 j2
+ have lem := Translation.Term.typing_spine h2 j2
    (Core.Term.Determined.global) (Core.Typing.global lk j1)
  apply lem
 
 case app jk _ Cshape mists _ ih1 ih2 =>
-  have lem := Translation.Term.typing_spine h1 h2 mists ih1.1 ih1.2
+  have lem := Translation.Term.typing_spine h2 mists ih1.1 ih1.2
   rcases lem with ⟨lem1, lem2⟩
-  replace jk := Translation.Ty.sound h1 jk h2 rfl
+  replace jk := Translation.Ty.sound jk h2 rfl
   rcases jk with ⟨K, T', e1, e2, jk⟩; subst e1; subst e2
   apply And.intro
   · apply Core.Term.Determined.app.1
@@ -678,9 +671,9 @@ case app jk _ Cshape mists _ ih1 ih2 =>
     apply ih2.2
 
 case appt A _ _ B _ _ _ _ _ _ _ jk e1 mists felab e2 ih =>
-  have lem := Translation.Term.typing_spine h1 h2 mists ih.1 ih.2
+  have lem := Translation.Term.typing_spine h2 mists ih.1 ih.2
   rcases lem with ⟨lem1, lem2⟩
-  replace jk := Translation.Ty.sound h1 jk h2 rfl
+  replace jk := Translation.Ty.sound jk h2 rfl
   rcases jk with ⟨K, T', e1, e2, jk⟩; subst e1; subst e2
   have e3 := Translation.Ty.beta (a := A) (P := B) rfl rfl; simp at e3
   subst e2; rw[e3]; subst e1; simp at lem2
@@ -695,7 +688,7 @@ case lam Δ A  Γ t B t' Ak _ ih =>
   apply And.intro
   · apply Core.Term.Determined.lam; apply ih.1
   · apply Core.Typing.lam
-    · replace Ak := Translation.Ty.sound h1 Ak h2 rfl;
+    · replace Ak := Translation.Ty.sound Ak h2 rfl;
       rcases Ak with ⟨_,_,e1,e2,Ak⟩; subst e1; subst e2
       apply Ak
     · apply ih.2
@@ -710,7 +703,7 @@ case lamt K Δ P t t' Γ jk _ ih =>
    · apply Core.Term.Determined.lamt ih1
    · apply Core.Typing.lamt
      · apply Core.Kinding.all
-       replace jk := Translation.Ty.sound h1 jk h2 rfl
+       replace jk := Translation.Ty.sound jk h2 rfl
        rcases jk with ⟨_,T,e1, e2, h⟩
        subst e2; subst e1; apply h
      · simp at lem; simp; rw[lem] at ih2; apply ih2
@@ -724,16 +717,16 @@ case mtch n Δ Γ s R s' d T d' CTy PTy pats pats' cs cs' _ vhvty _ vhvs pelab s
     intro i; apply (cTys i).1
   · apply Core.Typing.mtch
     apply sTy.2
-    apply Translation.ValidTyHeadVariable.sound h1 h2 rfl vhvty
+    apply Translation.ValidTyHeadVariable.sound h2 rfl vhvty
     apply dTy.2
-    intro i; apply Translation.ValidHeadVariable.sound2 h1 h2 rfl (pelab i) (vhvs i)
+    intro i; apply Translation.ValidHeadVariable.sound2 h2 rfl (pelab i) (vhvs i)
     intro i; apply (pTys i).2
     intro i; apply Translation.StableTypeMatch.sound rfl rfl rfl (stms i)
     intro i; apply (cTys i).2
     intro i; apply Translation.PrefixTypeMatch.sound rfl rfl rfl rfl (ptms i)
 
 case sub mists ch ih =>
-  have lem := Translation.Term.typing_spine h1 h2 mists ih.1 ih.2
+  have lem := Translation.Term.typing_spine h2 mists ih.1 ih.2
   rcases lem with ⟨lem1, lem2⟩
   replace h := Translation.synth_term_completeness ch
   rcases h with ⟨h1, h2⟩
