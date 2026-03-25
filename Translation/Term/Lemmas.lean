@@ -17,7 +17,6 @@ import Core.Metatheory.Inversion
 import Core.Metatheory.SpineType
 import Core.Term.Spine
 import Surface.Typing
-import Surface.Metatheory.Inversion
 import Translation.Rename
 
 open LeanSubst
@@ -190,14 +189,13 @@ theorem Translation.ValidHeadVariable.sound
   {Δ : Surface.KindEnv} {Δ' : Core.KindEnv}
   {Γ : Surface.TyEnv} {Γ' : Core.TyEnv}
   {t : Surface.Term} {t' : Core.Term}:
-  ⊢s G ->
   Surface.Global.Elab G G' ->
   Δ.translate = Δ' ->
   Γ.translate = Γ' ->
   t.translate G' Δ' Γ' = some t' ->
   Surface.ValidHeadVariable t (Surface.is_ctor G) ->
   Core.ValidHeadVariable t' (Core.is_ctor G') := by
-intro wf h1 h2 h3 h4 h5
+intro h1 h2 h3 h4 h5
 induction h5
 case _ sp h5 =>
 rcases h5 with ⟨tnf, h5⟩
@@ -254,210 +252,6 @@ theorem quantifier_beast_lemma {Δ : Surface.KindEnv} {cs : Vect n Surface.Term}
         have lem := Vect.seq_sound vdef i; rw[h1] at lem; cases lem; assumption
       · intro i; replace h := h i; rcases h with ⟨t, h1, h2, h3⟩;
         have lem := Vect.seq_sound vdef i; rw[h1] at lem; cases lem; assumption
-
-
-theorem Translation.Term.Sound (G : Surface.GlobalEnv) :
-  ⊢s G ->
-  G&Δ,Γ ⊢s t : T ->
-
-
-  Surface.Global.Elab G G' ->
-  ⊢ G' ->
-
-  Δ.translate = Δ' ->
-  Γ.translate = Γ' ->
-
-  (∃ t', t.translate G' Δ' Γ' = some t' ∧
-   t'.Determined ∧
-   G'&Δ',Γ' ⊢ t' : T.translate) := by
-intro wf j h1 wfc h2 h3
-induction j generalizing Δ' Γ' <;> simp at *
-case var Γ x T Δ b h jk =>
-  have lem := Translation.TyEnv.sound h3
-  replace lem := lem x T h
-  replace jk := Translation.Ty.sound jk h1 h2
-  rcases jk with ⟨K', T', h6, h7, h8⟩
-  have h6' := Translation.Kind.sound_base (b := b);
-  rcases h6' with ⟨b', h6'⟩;
-  rw[h6'] at h6; subst h6
-  apply And.intro
-  · apply Core.Term.Determined.var
-  · subst h7; apply Core.Typing.var lem h8
-case global x T Δ b Γ h4 j =>
-  have lem := Translation.GlobalEnv.lookup_type_sound h1 x T Δ' h4
-  rcases lem with ⟨T', h4, h5, h6, h7⟩
-  apply And.intro
-  · apply Core.Term.Determined.global
-  · subst h6; apply Core.Typing.global h5 h7
-case lam Δ A Γ t B j1 j2 ih =>
-  have lemA := Translation.Ty.sound j1 h1 h2
-  rcases lemA with ⟨aK', A', h4a, h5a, h6a⟩
-  have lem := Translation.TyEnv.lift_sound h3 j1 h5a
-  rcases ih with ⟨t', h10, h11, h12⟩
-  have lem := Core.Typing.well_typed_terms_have_base_kinds wfc h12
-  subst A'
-  rcases lem with ⟨_, jB'⟩
-  subst Δ'
-  exists (λ[A.translate] t')
-  rw[Option.bind_eq_some_iff];
-  apply And.intro
-  · exists t'
-  · apply And.intro
-    · apply Core.Term.Determined.lam; assumption
-    · apply Core.Typing.lam (b := b★)
-      · subst h4a; simp at h6a; assumption
-      apply h12
-case lamP Δ A Γ t B j1 j2 ih =>
-  have lemA := Translation.Ty.sound j1 h1 h2
-  rcases lemA with ⟨aK', A', h4a, h5a, h6a⟩
-  have lem := Translation.TyEnv.lift_sound h3 j1 h5a
-  rcases ih with ⟨t', h10, h11, h12⟩
-  have lem := Core.Typing.well_typed_terms_have_base_kinds wfc h12
-  subst A'
-  rcases lem with ⟨_, jB'⟩
-  subst Δ'
-  exists (λ[A.translate] t')
-  rw[Option.bind_eq_some_iff];
-  apply And.intro
-  · exists t'
-  · apply And.intro
-    · apply Core.Term.Determined.lam; assumption
-    · apply Core.Typing.lam (b := b◯)
-      · subst h4a; simp at h6a; assumption
-      apply h12
-case lamt Δ K P t Γ j1 j2 ih =>
-  have lem := Translation.Ty.sound j1 h1 h2
-  rcases lem with ⟨K', T', h4, h5, h6⟩
-  rcases ih with ⟨t', ih1, ih2, ih3⟩
-  simp at *
-  exists (Λ[K.translate]t');
-  apply And.intro
-  · rw[Option.bind_eq_some_iff]; exists t'; simp[Surface.KindEnv.translate] at ih1;
-    apply And.intro
-    · subst Δ'; subst Γ'
-      have lem : (Surface.TyEnv.map (fun x => x.translate) (Surface.TyEnv.map (fun x => x[+1]) Γ)) =
-         (Core.TyEnv.map (fun x => x[+1]) (Surface.TyEnv.map (fun x => x.translate) Γ)) := by
-         simp[Surface.TyEnv.map, Core.TyEnv.map];
-         intros; apply Translation.Ty.Weaken rfl
-      rw[lem] at ih1; apply ih1
-    · rfl
-  · apply And.intro;
-    · apply Core.Term.Determined.lamt; assumption
-    · subst T'; subst K'; apply Core.Typing.lamt; assumption;
-      subst Γ'; simp; rw[Surface.TyEnv.map] at *;
-      simp [Surface.KindEnv.translate, Surface.TyEnv.map] at ih3;
-      have lem : List.map ((fun x => x.translate) ∘ fun x => x[+1]) Γ =
-                 List.map (fun x => x[+1]) (List.map (fun x => x.translate) Γ) := by
-        simp; intros; apply Translation.Ty.Weaken rfl
-      rw[lem] at ih3; simp at ih3; simp; subst Δ'; apply ih3;
-
-
-case app Δ A Γ f B a j1 j2 j3 ih1 ih2 =>
-  rcases ih1 with ⟨f', ih1f, ih2f, ih3f⟩
-  rcases ih2 with ⟨a', ih1a, ih2a, ih3a⟩
-  subst Γ'; subst Δ'
-  exists (f' • a')
-  rw[Option.bind_eq_some_iff]
-  apply And.intro
-  · exists f';
-    apply And.intro;
-    · apply ih1f
-    · rw[Option.bind_eq_some_iff]; exists a'
-  · apply And.intro;
-    · apply Core.Term.Determined.app.1 ⟨ih2f, ih2a⟩
-    · have lem := Translation.Ty.sound j1 h1 rfl
-      rcases lem with ⟨K', T', e1, e2, jk⟩
-      simp at e1; subst K'; subst e2;
-      apply Core.Typing.app; apply jk; apply ih3f; apply ih3a
-
-case appt Δ Γ f K P a P' j1 j2 e ih =>
-  rcases ih with ⟨f', h4, h5, h6⟩
-  have lem := Translation.Ty.sound j2 h1 h2
-  rcases lem with ⟨K', a', e1, lem1, lem2⟩
-  subst K'; subst a'; subst Γ'; subst Δ'; subst P'
-  exists (f' •[a.translate])
-  apply And.intro
-  · rw[Option.bind_eq_some_iff]; exists f'
-  · apply And.intro
-    · apply Core.Term.Determined.appt; assumption
-    · apply Core.Typing.appt
-      apply h6
-      apply lem2
-      apply Translation.Ty.beta rfl rfl
-
-case mtch n Δ Γ s R c T CTy PTy pats cs sj vhvR cj vhvps patsj stmPTys csj ptms ih1 ih2 ih3 ih4 =>
-  rcases ih1 with ⟨s', ih1s, ih2s, ih3s⟩
-  rcases ih2 with ⟨d', ih1c, ih2c, ih3c⟩
-
-  replace ih3 := quantifier_beast_lemma ih3
-  replace ih4 := quantifier_beast_lemma ih4
-
-  rcases ih3 with ⟨ps', ih3i, ih3ii, ih3iii⟩
-  rcases ih4 with ⟨cs', ih4i, ih4ii, ih4iii⟩
-
-  exists (match! n s' ps' cs' d')
-
-  rw[Option.bind_eq_some_iff]
-  apply And.intro
-  · exists s'
-    apply And.intro
-    · subst Δ'; subst Γ'; assumption
-    · rw[Option.bind_eq_some_iff]; exists ps'
-      apply And.intro
-      · unfold Vect.seq
-        generalize zdef : Vect.seq_lemma (fun i => Surface.Term.translate G' Δ' Γ' (pats i)) = z at *
-        cases z <;> simp at *
-        case _ z =>
-          rcases z with ⟨x, z⟩
-          replace ih3i := ih3i x
-          subst Δ'; subst Γ'
-          rw[ih3i] at z; simp at z
-        case _ z =>
-          funext; case _ x =>
-          replace ih3i := ih3i x
-          subst Δ'; subst Γ';
-          simp at *; simp only [ih3i]; simp
-      · rw[Option.bind_eq_some_iff]; exists cs'
-        apply And.intro
-        · unfold Vect.seq
-          generalize zdef : Vect.seq_lemma (fun i => Surface.Term.translate G' Δ' Γ' (cs i)) = z at *
-          cases z <;> simp at *
-          case _ z =>
-            rcases z with ⟨x, z⟩
-            replace ih4i := ih4i x
-            subst Δ'; subst Γ'
-            rw[ih4i] at z; simp at z
-          case _ z =>
-            funext; case _ x =>
-            replace ih4i := ih4i x
-            subst Δ'; subst Γ';
-            simp only [ih4i]; simp
-        · rw[Option.bind_eq_some_iff]; exists d'
-          apply And.intro
-          · subst Δ'; subst Γ'; assumption
-          · rfl
-  · apply And.intro
-    · apply Core.Term.Determined.match ih2s ih2c ih3ii ih4ii
-    · subst Δ'; subst Γ'
-      apply Core.Typing.mtch
-            (CTy := λ i => (CTy i).translate) (PTy := λ i => (PTy i).translate) (pats := ps') (cs := cs')
-      · apply ih3s
-      · apply Translation.ValidTyHeadVariable.sound h1 rfl vhvR
-      · assumption
-      · intro i; apply Translation.ValidHeadVariable.sound wf h1 rfl rfl (ih3i i) (vhvps i)
-      · apply ih3iii
-      · intro i; apply Translation.StableTypeMatch.sound rfl rfl rfl (stmPTys i)
-      · apply ih4iii
-      · intro i; apply Translation.PrefixTypeMatch.sound rfl rfl rfl rfl (ptms i)
-case annot ih =>
-  rcases ih with ⟨t', ih1, ih2, ih3⟩
-  exists t'; subst Δ'; subst Γ'
-  apply And.intro
-  · apply ih1
-  · apply And.intro
-    · apply ih2
-    · apply ih3
-
 
 
 @[simp]
@@ -620,7 +414,7 @@ case rcons_o o η os ηs T R j ηj _ ih =>
     apply ih.2
     apply ηj.2
 
-theorem Translation.Term.Sound2
+theorem Translation.Term.Sound
   {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}
   {Δ : Surface.KindEnv} {Γ : Surface.TyEnv}
   {t : Surface.Term} {t' : Core.Term} {m : Mode}:

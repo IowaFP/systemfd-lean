@@ -90,64 +90,6 @@ inductive Kinding (G : GlobalEnv) : KindEnv -> Ty -> Kind -> Prop
 
 notation:170 G:170 "&" Δ:170 " ⊢s " A:170 " : " K:170 => Kinding G Δ A K
 
-inductive Typing (G : GlobalEnv) :
-  KindEnv -> TyEnv -> Term -> Ty -> Prop
-| var :
-  Γ[x]? = some A ->
-  G&Δ ⊢s A : .base b ->
-  Typing G Δ Γ `#x A
-| global :
-  lookup_type G x = some A ->
-  G&Δ ⊢s A : .base b ->
-  Typing G Δ Γ g`#x A
---------------------------------------------------------------------------------------
----- Matches
---------------------------------------------------------------------------------------
-| mtch (CTy : Vect n Ty)
-       (PTy : Vect n Ty)
-       (pats : Vect n Term)
-       (cs : Vect n Term) :
-  Typing G Δ Γ s R ->
-  ValidTyHeadVariable R (is_data G) ->
-  Typing G Δ Γ c T -> -- catch all term is of type T
-  (∀ i, ValidHeadVariable (pats i) (is_ctor G)) -> -- patterns are of the right shape
-  (∀ i, Typing G Δ Γ (pats i) (PTy i)) -> -- each pattern has a type
-  (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
-  (∀ i, Typing G Δ Γ (cs i) (CTy i)) -> -- each case match has a type
-  (∀ i, PrefixTypeMatch Δ (PTy i) (CTy i) T) -> -- patten type and case type
-  Typing G Δ Γ (matchˢ! n R s pats cs c) T
---------------------------------------------------------------------------------------
----- Terms
---------------------------------------------------------------------------------------
-| lam :
-  G&Δ ⊢s A : `★ ->
-  Typing G Δ (A::Γ) t B ->
-  Typing G Δ Γ (λˢ[A] t) (A `-:> B)
-| lamP :
-  G&Δ ⊢s A : `◯ ->
-  Typing G Δ (A::Γ) t B ->
-  Typing G Δ Γ (λˢ[A] t) (A `=:> B)
-| app :
-  G&Δ ⊢s A : `★ ->
-  Typing G Δ Γ f (A `-:> B) ->
-  Typing G Δ Γ a A ->
-  Typing G Δ Γ (f `• a) B
-| lamt :
-  Kinding G Δ (`∀[K]P) `★ ->
-  Typing G (K::Δ) (Γ.map (·[+1])) t P ->
-  Typing G Δ Γ (Λˢ[K] t) (`∀[K] P)
-| appt :
-  Typing G Δ Γ f (`∀[K] P) ->
-  G&Δ ⊢s a : K ->
-  P' = P[.su a :: +0:Ty] ->
-  Typing G Δ Γ (f `•[a]) P'
-| annot :
-  Typing G Δ Γ t T ->
-  Typing G Δ Γ (.annot t T) T
-
-
-notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " : " A:170 => Typing G Δ Γ t A
-
 inductive ValidCtor (x : String) : Ty -> Prop where
 | base :
   T.spine = some (x, sp) ->
@@ -181,59 +123,5 @@ inductive ValidClassInstTy (x : String) : Ty -> Prop where
 | base :
   T.spine = some (x, sp) ->
   ValidClassInstTy x T
-
-
-
-inductive GlobalWf : GlobalEnv -> Global -> Prop where
-| data {ctors : Vect n (String × Ty)} {G : GlobalEnv}:
-  (∀ i y T, ctors i = (y, T) ->
-    (Global.data x K Vect.nil :: G)&[] ⊢s T : `★
-    ∧ ValidCtor x T
-    ∧ x ≠ y
-    ∧ lookup y G = none) ->
-  (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
-  lookup x G = none ->
-  GlobalWf G (.data x K ctors)
-| defn :
-  lookup x G = none ->
-  G&[] ⊢s T : `★ ->
-  G&[], [] ⊢s t : T ->
-  GlobalWf G (.defn x T t)
-| classDecl :
-  lookup s G = none ->
-  ValidOpenKind K ->
-  (∀ i j, (ms i).1 ≠ (ms j).1) ->
-  (∀ i y T, ms i = (y, T) ->
-    (Global.classDecl s K Vect.nil :: G)&[] ⊢s T : `★
-    ∧ ValidClassMethodTy s T
-    ∧ s ≠ y
-    ∧ lookup y G = none) ->
-  GlobalWf G (.classDecl s K ms)
-| instDecl :
-  ValidClassInstTy C T ->
-  -- TODO: Do Non-overlapping check here
-  Surface.lookup C G = some (.opent C K ms') ->
-  -- TODO: check for method types
-  GlobalWf G (.instDecl T ms)
-
-inductive EntryWf : GlobalEnv -> Entry -> Prop where
-| data :
-  lookup x G = some (.data x K ctors) ->
-  EntryWf G (.data x K ctors)
-| ctor z K ctors :
-  lookup z G = some (.data z K ctors) ->
-  ctors i = (x, T) ->
-  G&[] ⊢s T : `★ ->
-  ValidCtor z T ->
-  lookup x G = some (.ctor x i T) ->
-  EntryWf G (.ctor x i T)
-
-
-inductive ListGlobalWf : GlobalEnv -> Prop where
-| nil : ListGlobalWf []
-| cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
-
-
-notation:175 "⊢s " G:175 => ListGlobalWf G
 
 end Surface

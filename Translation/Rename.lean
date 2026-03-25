@@ -1,9 +1,8 @@
 import Surface.Term
 import Core.Term
 
--- import Translation.Term
+
 import Translation.Ty
-import Surface.Metatheory.Rename
 import Core.Metatheory.Rename
 import Core.Metatheory.Substitution
 

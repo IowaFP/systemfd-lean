@@ -217,3 +217,17 @@ def Vect.zip {n} (ps: Vect n Q) (cs : Vect n Q') : Vect n (Q × Q') := λ i => (
 theorem Vect.zip_sound {n} {ps: Vect n Q} {cs : Vect n Q'} :
   ∀ i, (ps.zip cs i) = (ps i , cs i) := by
 intro i; simp [Vect.zip]
+
+
+theorem Vect.map_cons {f : Q -> P} {v : Vect n Q} {v' : Vect (n + 1) P} {q : Q} :
+  v' = (λ i => f ((Vect.cons q v) i)) ->
+  v' = Vect.cons (f q) (λ i => (f (v i))) := by
+intro h
+revert v' v;
+intro v
+apply v.induction
+case nil => simp
+case cons =>
+  intro n hd tl ih1
+  intro v' ih2
+  sorry

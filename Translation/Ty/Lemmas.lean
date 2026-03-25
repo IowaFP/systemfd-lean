@@ -4,7 +4,6 @@ import Translation.Global
 
 import Core.Typing
 import Surface.Typing
-import Surface.Metatheory.Inversion
 import Core.Metatheory.GlobalWf
 import Translation.Rename
 

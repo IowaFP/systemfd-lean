@@ -74,11 +74,10 @@ theorem Term.Determined.refl : (refl! T).Determined := by
 
 theorem Term.Determined.sym : c.Determined -> (sym! c).Determined := by
   unfold Term.Determined; apply VariantMissing.ctor1; intro h
-  simp at h; cases h; case _ h => cases h -- TODO: Macro this?
-  case _ h =>
-    cases h
-    case _ h => cases h
-    case _ h => cases h
+  simp at h;
+  rcases h with h | h | h
+  all_goals (injection h)
+
 
 theorem Term.Determined.trans : c1.Determined -> c2.Determined -> (c1 `; c2).Determined := by
   unfold Term.Determined; apply VariantMissing.ctor2; intro h
