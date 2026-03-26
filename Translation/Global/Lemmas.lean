@@ -29,7 +29,7 @@ case nil lk vk =>
     apply Core.GlobalWf.opent (Translation.ValidOpenKind.Sound vk)
     · apply Translation.GlobalEnv.lookup_none_sound x h1 lk
   · sorry
-case cons Δ m τ n ms h1 h2 lk h3 ih =>
+case cons Δ m τ n ms h1 h2 lk h3 h4 ih =>
   apply And.intro
   · apply Core.ListGlobalWf.cons
     apply Core.GlobalWf.openm
@@ -51,9 +51,8 @@ case nil =>
   · apply Core.ListGlobalWf.nil;
   · simp [Core.Global.Determined, Core.Determined.openm, Core.Determined.defn, Core.lookup];
 case defn x T t t' j0 lk j1 j2 ih =>
-  replace j1 := Translation.Ty.sound j1 j0 rfl
-  rcases j1 with ⟨K, T', e1, e2, j1⟩; subst e1; subst e2
-  replace j2 := Translation.Term.Sound j0 j2 [] [] rfl rfl
+  replace j1 := Translation.Ty.sound j1 j0
+  replace j2 := Translation.Term.Sound j0 j2
   apply And.intro
   · apply Core.ListGlobalWf.cons _ ih.1
     apply Core.GlobalWf.defn j1 j2.2
@@ -71,8 +70,7 @@ case data G G' x K n ctors ctors' j0 h1 h2 h3 ctors'def ih  =>
       have wkn_j0 : Elab (.data x K Vect.nil :: G) (.cons (.data 0 x K.translate Vect.nil) G') := by
         apply Elab.data j0; simp; simp; apply h3; simp
 
-      replace h2a := Translation.Ty.sound h2a wkn_j0 rfl
-      rcases h2a with ⟨_, _, e1, e2, h2a⟩; subst e1; subst e2
+      replace h2a := Translation.Ty.sound h2a wkn_j0
       subst y; subst T
       replace h2d := Translation.GlobalEnv.lookup_none_sound (ctors i).fst j0 h2d
       grind

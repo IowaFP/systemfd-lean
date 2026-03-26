@@ -125,59 +125,50 @@ theorem Translation.Kind.sound_arrow {b1 b2 : Surface.Kind}:
 theorem Translation.Ty.sound :
   G&Δ ⊢s T : K ->
   Surface.Global.Elab G G' ->
-  Δ.translate = Δ'  ->
 
-  ∃ K' T', K.translate = K' ∧
-  T.translate = T' ∧
-  G'&Δ' ⊢ T' : K' := by
-intro j h1 h2;
-induction j generalizing Δ' <;> simp at *
+  G'&⟦Δ⟧ ⊢ ⟦T⟧ : ⟦K⟧ := by
+intro j j0;
+induction j <;> simp at *
 case var Δ i K j =>
-  replace j2 := Translation.KindEnv.sound h2 i K j
+  replace j2 := Translation.KindEnv.sound rfl i K j
   rcases j2 with ⟨K', j', t⟩; rw[<-t] at j'
   constructor; assumption
 case global x K Δ h3 =>
-  have lem := Translation.GlobalEnv.lookup_kind_sound h1 h3
+  have lem := Translation.GlobalEnv.lookup_kind_sound j0 h3
   apply Core.Kinding.global
   apply lem
 case all K Δ P j ih =>
   apply Core.Kinding.all
   rw[Surface.KindEnv.translate, List.map_cons] at ih
-  subst Δ'; apply ih
+  apply ih
 
 case arrow b _ _ ih1 ih2 =>
-  subst h2
   replace b' := Translation.Kind.sound_base b
   rcases b' with ⟨b2k, b'⟩
   rw[b'] at ih2
   apply Core.Kinding.arrow ih1 ih2
 
 case «then» b _ _ ih1 ih2 =>
-  subst h2
   replace b' := Translation.Kind.sound_base b
   rcases b' with ⟨b2k, b'⟩
   rw[b'] at ih2
   apply Core.Kinding.arrow ih1 ih2
 
-case app ih1 ih2 =>
-  subst h2; apply Core.Kinding.app ih1 ih2
+case app ih1 ih2 => apply Core.Kinding.app ih1 ih2
 
 
 theorem Translation.Ty.beta {a P: Surface.Ty}:
-  a.translate = a' ->
-  P.translate = P' ->
-
-  (P[su a :: +0 :_]).translate = (P'[su a' :: +0 :_]) := by
-intro h1 h2
+  (P[su a :: +0 :_]).translate = (⟦P⟧[su ⟦a⟧ :: +0 :_]) := by
 generalize σdef : ((su a :: +0 :_)) = σ at *
-generalize σ'def : ((su a' :: +0 :_)) = σ' at *
+generalize σ'def : ((su ⟦a⟧ :: +0 :_)) = σ' at *
 have σe : σ' = Subst.Surface.Ty.translate σ := by
   funext; case _ x =>
   cases x <;> simp at *
-  rw[<-σ'def]; simp; rw[<-σdef]; simp; apply Eq.symm h1
+  rw[<-σ'def]; simp; rw[<-σdef]; simp;
   rw[<-σ'def]; rw[<-σdef]; simp
 rw[σe]
-apply Translation.Ty.Subst σ h2
+apply Translation.Ty.Subst σ
+rfl
 
 theorem Translation.Ty.Spine
   {t : Surface.Ty} {t' : Core.Ty} :

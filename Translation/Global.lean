@@ -48,7 +48,7 @@ inductive ValidClassDecl (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (x : Stri
   Surface.lookup x G = none ->
   Surface.ValidOpenKind K ->
   ValidClassDecl G G' x K Vect.nil (List.cons (.opent x K.translate) G')
-| cons {n : Nat} {ms : Vect n (String × Surface.Ty)} :
+| cons {n : Nat} {ms : Vect n (String × Surface.Ty)} {m : String} {τ : Surface.Ty} :
   ms' = ms.to_list.map (λ (x, τ) => Core.Global.openm x τ.translate) ->
   ValidClassDecl G G' x K ms (ms' ++ List.cons (.opent x K.translate) G')  ->
 
@@ -57,8 +57,12 @@ inductive ValidClassDecl (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (x : Stri
 
   -- method type is okay
   Surface.ValidClassMethodTy x τ ->
+  (.classDecl x K ms :: G)&[] ⊢s τ : `★ ->
 
-  ValidClassDecl G G' x K (n := n + 1) (Vect.cons (m , τ) ms) (List.cons (Core.Global.openm m τ.translate) (ms' ++ List.cons (.opent x K.translate) G'))
+  ValidClassDecl G G' x K (n := n + 1)
+                 (Vect.cons (m , τ) ms)
+                 (List.cons (Core.Global.openm m τ.translate)
+                 (ms' ++ List.cons (.opent x K.translate) G'))
 
 
 
@@ -89,10 +93,10 @@ inductive Surface.Global.Elab : Surface.GlobalEnv -> Core.GlobalEnv -> Prop
 
   Surface.Global.Elab (.cons (.data (n := n) x K ctors) G) (.cons (.data n x K.translate ctors') G')
 
-| classDecl {n : Nat} {ms : Vect n (String × Ty)} {ms' : Core.GlobalEnv} :
+| classDecl {n : Nat} {ms : Vect n (String × Ty)} {Δ : Core.GlobalEnv} :
   Surface.Global.Elab G G' ->
 
-  ValidClassDecl G G' x K ms ms' ->
+  ValidClassDecl G G' x K ms Δ ->
   -- (∀ i j, (ms i).1 ≠ (ms j).1) ->
   -- (∀ i y T, ms i = (y, T) ->
   --   (Surface.Global.classDecl x K Vect.nil :: G)&[] ⊢s T : `★
@@ -103,7 +107,7 @@ inductive Surface.Global.Elab : Surface.GlobalEnv -> Core.GlobalEnv -> Prop
   --       List.cons (Core.Global.openm mth.1 mth.2.translate) acc)
   --       (List.cons (Core.Global.opent x K.translate) G') ->
 
-  Surface.Global.Elab ((.classDecl x K ms) :: G) ms'
+  Surface.Global.Elab ((.classDecl x K ms) :: G) Δ
 
 
 notation:170 G:170 " -↪ " G':170 => Surface.Global.Elab G G'

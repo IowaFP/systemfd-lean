@@ -177,22 +177,22 @@ theorem Typing.weaken_closed Γ :
 
 theorem Kinding.closed_lifting_lemma : ∀ Δ', ⊢ G ->  G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K) := by
 intro Δ' wf j
-apply @List.reverse_ind (T := Kind)
-  (motive := λ Δ' => ∀ G Δ T K,  ⊢ G -> G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K))
-  Δ'
-  (by intro G Δ T K wf j;
-      have lem : (Ren.to (λ x => x)) = Subst.id (T := Ty) := by rfl
-      simp; rw[lem]; simp; assumption)
-  (by intro K' Δ' ih G Δ T K wf j
-      replace j := Kinding.weaken K' j
-      replace ih := ih G ([K'] ++ Δ) T[+1] K wf j
-      simp at *
-      have lem : ((+1 ∘ Ren.to (T := Ty) (fun x => x + Δ'.length))) = Ren.to (T := Ty) (fun x => x + Δ'.length + 1) := by
-         clear ih j wf;
-         have e := Ren.add_compose_distributes (T := Ty) (y := Δ'.length) (z := 1); rw[e]; simp;
-         replace e := Ren.add_one_commutes (T := Ty) (y := Δ'.length); simp at e; rw[e]
-      rw[lem] at ih; apply ih)
-  G Δ T K wf j
+revert Δ K T wf
+apply Δ'.reverse_ind <;> simp at *
+case nil =>
+  intro Δ T K wf j
+  have lem : (Ren.to (λ x => x)) = Subst.id (T := Ty) := by rfl
+  rw[lem]; simp; assumption
+case rcons =>
+  intro K' Δ' ih Δ T K wf j
+  replace j := Kinding.weaken K' j
+  replace ih := @ih ([K'] ++ Δ) T[+1] K wf j
+  simp at *
+  have lem : ((+1 ∘ Ren.to (T := Ty) (fun x => x + Δ'.length))) = Ren.to (T := Ty) (fun x => x + Δ'.length + 1) := by
+    clear ih j wf;
+    have e := Ren.add_compose_distributes (T := Ty) (y := Δ'.length) (z := 1); rw[e]; simp;
+    replace e := Ren.add_one_commutes (T := Ty) (y := Δ'.length); simp at e; rw[e]
+  rw[lem] at ih; apply ih
 
 theorem Kinding.closed_arbitrary_weakening : ∀ Δ',  ⊢ G ->  G&[] ⊢ T : K ->  G&Δ' ⊢ T : K := by
 intro Δ' wf j
