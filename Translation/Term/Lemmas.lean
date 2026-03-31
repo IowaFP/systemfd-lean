@@ -27,7 +27,7 @@ theorem Translation.GlobalEnv.lookup_type_sound {G : Surface.GlobalEnv} : -- may
   Surface.Global.Elab G G' ->
   (∀ (x : String) (T : Surface.Ty) (Δ : Core.KindEnv),
     (Surface.lookup_type G x = some T) ->
-    ∃ T' b, (Core.lookup_type G' x = some T' ∧ T.translate = T' ∧ G'&Δ ⊢ T' : .base b)) := by
+    ∃ b, (Core.lookup_type G' x = some ⟦T⟧ ∧ G'&Δ ⊢ ⟦T⟧ : .base b)) := by
 intro h1 i K Δ h2
 sorry
 
@@ -434,7 +434,7 @@ case var x T _ _ h j =>
 
 case global  x T Δ Γ B ηs is h1' j1 j2 =>
  have lem := Translation.GlobalEnv.lookup_type_sound h2 x T Δ.translate h1'
- rcases lem with ⟨T', _, lk, e1, _⟩; subst e1
+ rcases lem with ⟨_, lk, _⟩;
  replace j1 := Translation.Ty.sound j1 h2
  have lem := Translation.Term.typing_spine h2 j2
    (Core.Term.Determined.global) (Core.Typing.global lk j1)

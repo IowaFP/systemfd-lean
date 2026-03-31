@@ -29,12 +29,14 @@ case nil lk vk =>
     apply Core.GlobalWf.opent (Translation.ValidOpenKind.Sound vk)
     · apply Translation.GlobalEnv.lookup_none_sound x h1 lk
   · sorry
-case cons Δ m τ n ms h1 h2 lk h3 h4 ih =>
+case cons Δ oms τ ms m T k2 lk k3 k4 k5 ih =>
   apply And.intro
   · apply Core.ListGlobalWf.cons
     apply Core.GlobalWf.openm
     · sorry
-    · sorry
+    · rw[k2]; simp
+
+      sorry
     · sorry
     apply ih.1
   sorry

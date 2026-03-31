@@ -74,7 +74,7 @@ theorem Translation.GlobalEnv.lookup_different_impossible x :
 theorem Translation.GlobalEnv.lookup_kind_sound :
   Surface.Global.Elab G G' ->
   Surface.lookup_kind G x = some K ->
-  Core.lookup_kind G' x = some K.translate  := by
+  Core.lookup_kind G' x = some ⟦K⟧  := by
 intro h1 h2
 
 sorry
@@ -131,7 +131,7 @@ intro j j0;
 induction j <;> simp at *
 case var Δ i K j =>
   replace j2 := Translation.KindEnv.sound rfl i K j
-  rcases j2 with ⟨K', j', t⟩; rw[<-t] at j'
+  rcases j2 with ⟨K', j2, t⟩; rw[<-t] at j2
   constructor; assumption
 case global x K Δ h3 =>
   have lem := Translation.GlobalEnv.lookup_kind_sound j0 h3

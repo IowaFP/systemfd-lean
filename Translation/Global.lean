@@ -97,15 +97,7 @@ inductive Surface.Global.Elab : Surface.GlobalEnv -> Core.GlobalEnv -> Prop
   Surface.Global.Elab G G' ->
 
   ValidClassDecl G G' x K ms Δ ->
-  -- (∀ i j, (ms i).1 ≠ (ms j).1) ->
-  -- (∀ i y T, ms i = (y, T) ->
-  --   (Surface.Global.classDecl x K Vect.nil :: G)&[] ⊢s T : `★
-  --   ∧ Surface.ValidClassMethodTy x T
-  --   ∧ x ≠ y
-  --   ∧ Surface.lookup y G = none) ->
-  -- ms' = ms.to_list.foldr (λ (mth : String × Ty) acc =>
-  --       List.cons (Core.Global.openm mth.1 mth.2.translate) acc)
-  --       (List.cons (Core.Global.opent x K.translate) G') ->
+
 
   Surface.Global.Elab ((.classDecl x K ms) :: G) Δ
 
