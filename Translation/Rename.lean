@@ -31,9 +31,9 @@ theorem Translation.Ty.Weaken {T : Surface.Ty} {T' : Core.Ty} :
 intro h; apply Translation.Ty.Rename (λ x => x + 1) h
 
 
-theorem Subst.Surface.Ty.translate_commute_lift {σ : Subst Surface.Ty} :
-  Subst.Surface.Ty.translate σ.lift =
-    re 0 :: Subst.Surface.Ty.translate σ ∘ +1 := by
+theorem Surface.Subst.Ty.translate_commute_lift {σ : Subst Surface.Ty} :
+  Surface.Subst.Ty.translate σ.lift =
+    re 0 :: Surface.Subst.Ty.translate σ ∘ +1 := by
 funext; case _ x =>
 induction x generalizing σ
 case zero => simp
@@ -67,6 +67,6 @@ case _ ih1 ih2 =>
 )
 case _ k p ih =>
   replace ih := ih σ.lift
-  have lem := Subst.Surface.Ty.translate_commute_lift (σ := σ)
+  have lem := Surface.Subst.Ty.translate_commute_lift (σ := σ)
   simp at lem ih
   rw[ih, lem]

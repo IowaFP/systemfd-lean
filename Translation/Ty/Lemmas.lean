@@ -26,6 +26,7 @@ case defn x' _ _ _ h1 ih =>
     apply ih _ h2
 case data => sorry
 case classDecl => sorry
+case instDecl => sorry
 
 theorem Translation.GlobalEnv.lookup_different_impossible x :
   Surface.Global.Elab G G' ->
@@ -161,7 +162,7 @@ theorem Translation.Ty.beta {a P: Surface.Ty}:
   (P[su a :: +0 :_]).translate = (⟦P⟧[su ⟦a⟧ :: +0 :_]) := by
 generalize σdef : ((su a :: +0 :_)) = σ at *
 generalize σ'def : ((su ⟦a⟧ :: +0 :_)) = σ' at *
-have σe : σ' = Subst.Surface.Ty.translate σ := by
+have σe : σ' = Surface.Subst.Ty.translate σ := by
   funext; case _ x =>
   cases x <;> simp at *
   rw[<-σ'def]; simp; rw[<-σdef]; simp;

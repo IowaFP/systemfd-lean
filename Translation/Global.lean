@@ -55,7 +55,7 @@ inductive ValidClassDecl (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (x : Stri
   -- method names are unique
   Surface.lookup m (.classDecl x K ms :: G) = none ->
 
-  -- method type is okay
+  -- method type is okayg
   Surface.ValidClassMethodTy x τ ->
   (.classDecl x K ms :: G)&[] ⊢s τ : `★ ->
 
@@ -63,6 +63,10 @@ inductive ValidClassDecl (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (x : Stri
                  (Vect.cons (m , τ) ms)
                  (List.cons (Core.Global.openm m τ.translate)
                  (ms' ++ List.cons (.opent x K.translate) G'))
+
+
+inductive ValidInstDecl (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) :
+          Ty -> Vect n (String × Surface.Term) -> Core.GlobalEnv -> Prop where
 
 
 
@@ -95,17 +99,13 @@ inductive Surface.Global.Elab : Surface.GlobalEnv -> Core.GlobalEnv -> Prop
 
 | classDecl {n : Nat} {ms : Vect n (String × Ty)} {Δ : Core.GlobalEnv} :
   Surface.Global.Elab G G' ->
-
   ValidClassDecl G G' x K ms Δ ->
-
-
   Surface.Global.Elab ((.classDecl x K ms) :: G) Δ
+
+| instDecl {n} {ms : Vect n (String × Term)} {Δ : Core.GlobalEnv} :
+  Surface.Global.Elab G G' ->
+  ValidInstDecl G G' τ ms Δ ->
+  Surface.Global.Elab G Δ
 
 
 notation:170 G:170 " -↪ " G':170 => Surface.Global.Elab G G'
-
-namespace Test.Core.Global
-
-#guard (gt`#"One").translate == gt#"One"
-
-end Test.Core.Global

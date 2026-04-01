@@ -40,11 +40,15 @@ def Subst.Ty.translate (σ : Subst Surface.Ty) : Subst Core.Ty :=
   (λ x => match x with
   | .re x => .re x
   | .su T => .su (T.translate)) <$> σ
-notation "⟦" σ "⟧" => Subst.Surface.Ty.translate σ
+notation "⟦" σ "⟧" => Subst.Ty.translate σ
 
 end Surface
 
 namespace Core
+
+def Ty.monoty : Ty -> Bool
+| .all _ _ => false
+| _ => true
 
 @[simp]
 def Ty.fresh_vars : Nat -> List Nat
@@ -74,6 +78,20 @@ def Ty.InstEncode (τ : Ty) : Option Ty :=
   | _ => none
 
 #eval Ty.InstEncode ((gt#"C").apply [gt#"a", gt#"b"] )
+
+
+def Ty.Apart : Ty -> Ty -> Bool
+| t#_, _ => false
+| _ , t#_ => false
+| gt#x , gt#y => x != y
+| gt#_, _ => true
+| .app τ1 a , .app τ2 b => τ1.Apart τ2 && a.Apart b
+| .app _ _, _ => true
+| .arrow τa1 τb1, .arrow τa2 τb2 => τa1.Apart τa2 && τb1.Apart τb2
+| .arrow _ _, _ => true
+| _ , _ => true
+
+#eval Ty.Apart ((gt#"C").apply [gt#"a", gt#"b"] ) ((gt#"C").apply [gt#"a", gt#"b"] )
 
 
 
