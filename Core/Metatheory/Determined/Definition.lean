@@ -47,11 +47,13 @@ theorem Term.Determined.lamt : t.Determined -> (Λ[A] t).Determined := by
   intro h';
   cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
 
-theorem Term.Determined.app {f a : Term} : f.Determined ∧ a.Determined <-> (f •(b) a).Determined := by
+@[simp]
+theorem Term.Determined.app {f a : Term} : (f •(b) a).Determined <-> f.Determined ∧ a.Determined := by
   apply Iff.intro <;> intro h
-  unfold Term.Determined; apply VariantMissing.ctor2 _ h.1 h.2
-  intro h'; cases h'; case _ h => cases h; case _ h => cases h; case _ h => cases h
-  cases h; unfold Determined; simp [*]
+  case _ => unfold Term.Determined at *; cases h <;> grind
+  case _ =>
+    apply VariantMissing.ctor2 _ h.1 h.2
+    cases b <;> simp [Variant.from_ctor2]
 
 theorem Term.Determined.appt {f: Term} {a : Ty} : f.Determined -> (f •[ a ]).Determined := by
   intro h1

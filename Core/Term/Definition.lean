@@ -31,16 +31,23 @@ inductive TyBindVariant : Type where
 | lamt
 | allc
 
+abbrev Pattern m := Vect m (String × Nat)
+
+def Pattern.bind : Pattern m -> Nat := Vect.fold 0 (λ (_, n) acc => n + acc)
+
 inductive Term : Type where
 | var : Nat -> Term
 | global : String -> Term
+| dctor n : String -> List Ty -> Vect n Term -> Term
 | ctor0 : Ctor0Variant -> Term
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
 | tbind : TyBindVariant -> Kind -> Term -> Term
 | lam : Ty -> Term -> Term
 | guard : Term -> Term -> Term -> Term
-| «match» : (n : Nat) -> Term -> Vect n Term -> Vect n Term -> Term -> Term
+| mtch m n : Vect m Term -> Vect n (Pattern m) -> Vect n Term -> Term
+
+def Constructor := String × List Ty × List Term
 
 prefix:max "#" => Term.var
 prefix:max "g#" => Term.global
@@ -77,16 +84,19 @@ notation "match!" => Term.match
 def Term.size : Term -> Nat
 | var _ => 0
 | global _ => 0
+| dctor _ _ _ t2 =>
+  let t2' : Vect _ _ := size <$> t2
+  List.sum t2' + 1
 | ctor0 _ => 0
 | ctor1 _ t => size t + 1
 | ctor2 _ t1 t2 => size t1 + size t2 + 1
 | tbind _ _ t => size t + 1
 | lam _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
-| .match _ t1 t2 t3 t4 =>
-  let t2' : Vect _ _ := size <$> t2
+| mtch _ _ t1 _ t3 =>
+  let t1' : Vect _ _ := size <$> t1
   let t3' : Vect _ _ := size <$> t3
-  size t1 + List.sum t2' + List.sum t3' + size t4 + 1
+  List.sum t1' + List.sum t3' + 1
 
 @[simp]
 instance instSizeOf_Term : SizeOf Term where
@@ -95,6 +105,7 @@ instance instSizeOf_Term : SizeOf Term where
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .global n => "g#" ++ n
+| dctor n x tys ts => "don't care"
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
 | .ctor0 .zero => "`0"
 | .ctor1 .sym t => "(sym! " ++ Term.repr p t ++ ")"
@@ -125,16 +136,16 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .tbind .allc K t =>
   Repr.addAppParen ("∀c" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
-| .match (n := n) s pats ts allc =>
-  let ts : Vect n Std.Format := λ i =>
-    let t := ts i
-    let pat := pats i
-    Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " => " ++ Term.repr p t
-  let css := Vect.fold Std.Format.nil (·++·) ts
-  Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
-    ++ css
-    ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)
-    )
+| .mtch n m s pats ts => "don't care"
+  -- let ts : Vect n Std.Format := λ i =>
+  --   let t := ts i
+  --   let pat := pats i
+  --   Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " => " ++ Term.repr p t
+  -- let css := Vect.fold Std.Format.nil (·++·) ts
+  -- Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
+  --   ++ css
+  --   ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)
+  --   )
 | .guard pat s t =>
   Std.Format.nest 4 <| ("guard " ++ Term.repr p pat ++ " ← " ++ Term.repr p s) ++
   Std.Format.line ++ Term.repr p t

@@ -53,6 +53,32 @@ def TyBindVariant.congr : TyBindVariant -> Bool
 | lamt => false
 | allc => true
 
+def Sequ.append : List α -> Sequ α -> Sequ α
+| [], s => s
+| .cons hd tl, s => hd :: (append tl s)
+
+def Fin.nat? : (n : Nat) -> Nat -> Option (Fin n)
+| 0, _ => none
+| n + 1, i => some $ Fin.ofNat (n + 1) i
+
+def Constructor.from_scrutinee : Term -> Option Constructor
+| .dctor _ c t1 t2 => some (c, t1, t2)
+| _ => none
+
+def Constructor.from_scrutinees (ss : Vect m Term) : Option $ List Constructor :=
+  List.mapM Constructor.from_scrutinee ss.to_list
+
+def Pattern.match : (Constructor × (String × Nat)) -> Option (List $ Subst.Action Term)
+| ((c1, _, t2), (c2, _)) => if c1 == c2 then some $ t2.map su else none
+
+def Pattern.parallel_match n (ss : List Constructor) : Pattern m × Nat -> Option (Subst Term × Fin n)
+| (p, i) => do
+  let ℓ : List (Constructor × (String × Nat)) := List.zip ss p
+  let σs <- List.mapM Pattern.match ℓ
+  let i <- Fin.nat? n i
+  let σ := List.foldr (Sequ.append) +0 σs
+  return (σ, i)
+
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
@@ -68,51 +94,40 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | snd : Red G (snd! (refl! (A • B))) (refl! B)
 | allc : Red G (∀c[A] refl! B) (refl! (∀[A] B))
 | arrowc : Red G ((refl! A) -c> (refl! B)) (refl! (A -:> B))
-| choice1 : Red G (`0 `+ t) t
-| choice2 : Red G (t `+ `0) t
+-- | choice1 : Red G (`0 `+ t) t
+-- | choice2 : Red G (t `+ `0) t
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
-| data_match {t  : Term}{sp' : List SpineElem}
-             (ps : Vect n Term)
-             (cs : Vect n Term)
-             (ps': Vect n (Option (List SpineElem × Term))) :
-  some (s_h, s_sp) = Term.spine s ->
-  ps' = (λ x => do
-    let (m_h, m_sp) <- x.fst.spine
-    if s_h = m_h then
-      match prefix_equal m_sp s_sp  with
-      | some p => return (p, x.2)
-      | none => none
-      else none) <$> ps.zip cs ->
-  ps'.any.getD ([], c) = (sp', t) ->
-  Red G (.match n s ps cs c) (t.apply sp')
-
+| data_match {ss : Vect m Term} {ps : Vect n (Pattern m)} :
+  Constructor.from_scrutinees ss = some ctors ->
+  List.firstM (Pattern.parallel_match n ctors) (List.zipIdx ps.to_list) = some (σ, i) ->
+  Red G (.mtch m n ss ps bs) (bs i)[σ]
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
-| guard_matched :
-  Term.spine p = some (x, sp) ->
-  Term.spine s = some (x, sp') ->
-  prefix_equal sp sp' = some q ->
-  Red G (.guard p s b) (b.apply q)
-| guard_missed :
-  Term.spine p = some (x, sp) ->
-  Term.spine s = some (x', sp') ->
-  x ≠ x' ∨ prefix_equal sp sp' = none ->
-  Red G (.guard p s b) `0
+-- | guard_matched :
+--   Term.spine p = some (x, sp) ->
+--   Term.spine s = some (x, sp') ->
+--   prefix_equal sp sp' = some q ->
+--   Red G (.guard p s b) (b.apply q)
+-- | guard_missed :
+--   Term.spine p = some (x, sp) ->
+--   Term.spine s = some (x', sp') ->
+--   x ≠ x' ∨ prefix_equal sp sp' = none ->
+--   Red G (.guard p s b) `0
 ----------------------------------------------------------------
 ---- Instance Instantiation
 ----------------------------------------------------------------
-| inst :
-  Term.spine h = some (x, sp) ->
-  is_openm G x ->
-  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.spine.isSome) ->
-  (∀ e ∈ sp, ∀ t, .oterm t = e -> Value G t) ->
-  lookup_type G x = some T ->
-  sp.length ≥ T.arity ->
-  h' = (List.foldl (·`+·) `0 (instances x G)).apply sp ->
-  Red G h h'
+-- | inst :
+--   Term.spine h = some (x, sp) ->
+--   is_openm G x ->
+--   (∀ e ∈ sp, ∀ t, .oterm t = e -> t.spine.isSome) ->
+--   (∀ e ∈ sp, ∀ t, .oterm t = e -> Value G t) ->
+--   lookup_type G x = some T ->
+--   sp.length ≥ T.arity ->
+--   h' = (List.foldl (·`+·) `0 (instances x G)).apply sp ->
+--   Red G h h'
 ----------------------------------------------------------------
 ---- Global Definitions
 ----------------------------------------------------------------
@@ -138,12 +153,13 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   v.congr ->
   Red G t t' ->
   Red G (.tbind v K t) (.tbind v K t')
-| guard_congr :
-  Red G s s' ->
-  Red G (.guard p s b) (.guard p s' b)
-| match_congr :
-  Red G s s' ->
-  Red G (.match n s ps ts c) (.match n s' ps ts c)
+-- | guard_congr :
+--   Red G s s' ->
+--   Red G (.guard p s b) (.guard p s' b)
+| match_congr {ss : Vect m Term} i :
+  Red G (ss i) (ss' i) ->
+  (∀ j ≠ i, ss j = ss' j) ->
+  Red G (.mtch m n ss ps bs) (.mtch m n ss' ps bs)
 ----------------------------------------------------------------
 ---- Absorption Rules
 ----------------------------------------------------------------
@@ -158,31 +174,32 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | tbind_absorb :
   v.congr ->
   Red G (.tbind v K `0) `0
-| guard_absorb :
-  Red G (.guard p `0 b) `0
-| match_absorb :
-  Red G (.match n `0 ps ts c) `0
+-- | guard_absorb :
+--   Red G (.guard p `0 b) `0
+| match_absorb {ss : Vect m Term} i :
+  ss i = `0 ->
+  Red G (.mtch m n ss ps bs) `0
 ----------------------------------------------------------------
 ---- Mapping Rules
 ----------------------------------------------------------------
-| ctor1_map :
-  Red G t t' ->
-  Red G (.ctor1 v (c1 `+ c2)) (.ctor1 v c1 `+ .ctor1 v c2)
-| ctor2_map1 :
-  v.congr1 ->
-  v ≠ .choice ->
-  Red G (.ctor2 v (c1 `+ c2) t2) (.ctor2 v c1 t2 `+ .ctor2 v c2 t2)
-| ctor2_map2 :
-  v.congr2 ->
-  v ≠ .choice ->
-  Red G (.ctor2 v t1 (c1 `+ c2)) (.ctor2 v t1 c1 `+ .ctor2 v t1 c2)
-| tbind_map :
-  v.congr ->
-  Red G (.tbind v K (c1 `+ c2)) (.tbind v K c1 `+ .tbind v K c2)
-| guard_map :
-  Red G (.guard p (c1 `+ c2) b) (.guard p c1 b `+ .guard p c2 b)
-| match_map :
-  Red G (.match n (c1 `+ c2) ps ts c) (.match n c1 ps ts c `+ .match n c2 ps ts c)
+-- | ctor1_map :
+--   Red G t t' ->
+--   Red G (.ctor1 v (c1 `+ c2)) (.ctor1 v c1 `+ .ctor1 v c2)
+-- | ctor2_map1 :
+--   v.congr1 ->
+--   v ≠ .choice ->
+--   Red G (.ctor2 v (c1 `+ c2) t2) (.ctor2 v c1 t2 `+ .ctor2 v c2 t2)
+-- | ctor2_map2 :
+--   v.congr2 ->
+--   v ≠ .choice ->
+--   Red G (.ctor2 v t1 (c1 `+ c2)) (.ctor2 v t1 c1 `+ .ctor2 v t1 c2)
+-- | tbind_map :
+--   v.congr ->
+--   Red G (.tbind v K (c1 `+ c2)) (.tbind v K c1 `+ .tbind v K c2)
+-- | guard_map :
+--   Red G (.guard p (c1 `+ c2) b) (.guard p c1 b `+ .guard p c2 b)
+-- | match_map :
+--   Red G (.match n (c1 `+ c2) ps ts c) (.match n c1 ps ts c `+ .match n c2 ps ts c)
 
 notation:160 G:160 " ⊢ " t:160 " ~> " t':160 => Red G t t'
 

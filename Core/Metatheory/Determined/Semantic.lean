@@ -62,9 +62,13 @@ theorem determined_progress :
   case guard => sorry
   case lam => sorry
   case app Δ A b Γ f B a j1 j2 j3 ih1 ih2 =>
-    obtain ⟨df, da⟩ := Term.Determined.app.2 h1
+    simp at h1; obtain ⟨df, da⟩ := h1
     replace ih1 := ih1 df Δdef Γdef
-    sorry
+    cases ih1
+    case _ ih1 =>
+      sorry
+    case _ ih1 =>
+      sorry
   case lamt => sorry
   case appt => sorry
   case cast => sorry
