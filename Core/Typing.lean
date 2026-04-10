@@ -8,62 +8,62 @@ open LeanSubst
 
 namespace Core
 
-def KindEnv := List Kind
-def TyEnv := List Ty
+abbrev KindEnv := List Kind
+abbrev TyEnv := List Ty
 
 
-instance inst_getElem_TyEnv : GetElem TyEnv Nat Ty (λ env i => by simp [TyEnv] at env; apply i < env.length) where
-  getElem env i _ := by unfold TyEnv at env; apply env[i]
+-- None of this should be needed...
+-- instance inst_getElem_TyEnv : GetElem TyEnv Nat Ty (λ env i => by simp [TyEnv] at env; apply i < env.length) where
+--   getElem env i _ := by unfold TyEnv at env; apply env[i]
 
-instance inst_getElem?_TyEnv : GetElem? TyEnv Nat Ty
-         (λ env i => by simp [TyEnv] at env; apply i < env.length) where
-  getElem? env i := by unfold TyEnv at env; apply env[i]?
+-- instance inst_getElem?_TyEnv : GetElem? TyEnv Nat Ty
+--          (λ env i => by simp [TyEnv] at env; apply i < env.length) where
+--   getElem? env i := by unfold TyEnv at env; apply env[i]?
 
-instance inst_getElem_KindEnv : GetElem KindEnv Nat Kind
-         (λ env i => by simp [KindEnv] at env; apply i < env.length) where
-  getElem env i _ := by unfold KindEnv at env; apply env[i]
+-- instance inst_getElem_KindEnv : GetElem KindEnv Nat Kind
+--          (λ env i => by simp [KindEnv] at env; apply i < env.length) where
+--   getElem env i _ := by unfold KindEnv at env; apply env[i]
 
-instance inst_getElem?_KindEnv : GetElem? KindEnv Nat Kind
-         (λ env i => by simp [KindEnv] at env; apply i < env.length) where
-  getElem? env i := by unfold KindEnv at env; apply env[i]?
+-- instance inst_getElem?_KindEnv : GetElem? KindEnv Nat Kind
+--          (λ env i => by simp [KindEnv] at env; apply i < env.length) where
+--   getElem? env i := by unfold KindEnv at env; apply env[i]?
 
-def TyEnv.mapM [Monad m] (f : Ty -> m β) (env : TyEnv) := by simp [TyEnv] at env; apply env.mapM f
-def TyEnv.map (f : Ty -> β) (env : TyEnv) := by simp [TyEnv] at env; apply env.map f
+-- def TyEnv.mapM [Monad m] (f : Ty -> m β) (env : TyEnv) := by simp [TyEnv] at env; apply env.mapM f
+-- def TyEnv.map (f : Ty -> β) (env : TyEnv) := by simp [TyEnv] at env; apply env.map f
 
-def KindEnv.map (f : Kind -> β) (env : KindEnv) := by simp [KindEnv] at env; apply env.map f
+-- def KindEnv.map (f : Kind -> β) (env : KindEnv) := by simp [KindEnv] at env; apply env.map f
 
 
-def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
-  ∃ x, Term.spine t = some x ∧ test x.fst
+-- def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
+--   ∃ x, Term.spine t = some x ∧ test x.fst
 
-def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
-  ∃ x, Ty.spine t = some x ∧ test x.fst
+-- def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
+--   ∃ x, Ty.spine t = some x ∧ test x.fst
 
-inductive StableTypeMatch : List Kind -> Ty -> Ty -> Prop
-| refl :
-  Ty.spine R = some x ->
-  StableTypeMatch Δ R R
-| arrow :
-  StableTypeMatch Δ B R ->
-  StableTypeMatch Δ (A -:> B) R
-| all :
-  StableTypeMatch (K::Δ) B R[+1] ->
-  StableTypeMatch Δ (∀[K] B) R
+-- inductive StableTypeMatch : List Kind -> Ty -> Ty -> Prop
+-- | refl :
+--   Ty.spine R = some x ->
+--   StableTypeMatch Δ R R
+-- | arrow :
+--   StableTypeMatch Δ B R ->
+--   StableTypeMatch Δ (A -:> B) R
+-- | all :
+--   StableTypeMatch (K::Δ) B R[+1] ->
+--   StableTypeMatch Δ (∀[K] B) R
 
-inductive PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
-| refl :
-  Ty.spine B = some x ->
-  PrefixTypeMatch Δ B T T
-| arrow :
-  PrefixTypeMatch Δ B V T ->
-  PrefixTypeMatch Δ (A -:> B) (A -:> V) T
-| all :
-  PrefixTypeMatch (K::Δ) B V T[+1] ->
-  PrefixTypeMatch Δ (∀[K] B) (∀[K] V) T
+-- inductive PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
+-- | refl :
+--   Ty.spine B = some x ->
+--   PrefixTypeMatch Δ B T T
+-- | arrow :
+--   PrefixTypeMatch Δ B V T ->
+--   PrefixTypeMatch Δ (A -:> B) (A -:> V) T
+-- | all :
+--   PrefixTypeMatch (K::Δ) B V T[+1] ->
+--   PrefixTypeMatch Δ (∀[K] B) (∀[K] V) T
 
 inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 | var :
-  -- ⊢ Δ
   Δ[x]? = some K ->
   Kinding G Δ t#x K
 | global :
@@ -87,6 +87,42 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 
 notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
+inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
+| done : KindingPreamble G Δ [] T T
+| cons {Ty : List Ty} :
+  G&Δ ⊢ A : K ->
+  KindingPreamble G Δ Ty T1[su A::+0] T2 ->
+  KindingPreamble G Δ (A::Ty) (∀[K] T1) T2
+
+inductive PatternBinders : (m : Nat) -> Vect m Ty -> Pattern m -> List Ty -> Prop
+| zero : PatternBinders 0 ss ps []
+| succ :
+  lookup_type G c = some D1 ->
+  KindingPreamble G Δ ts D1 D2 ->
+  Ty.typescope n D2 = some (Ts, A) ->
+  PatternBinders n S p ℓ ->
+  PatternBinders (n + 1) (A::S) ((c, ts, n)::p) (Ts ++ ℓ)
+
+inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
+| fst_app :
+  G&Δ ⊢ C : K1 ->
+  G&Δ ⊢ D : K1 ->
+  CoercionProject G Δ 0 ((A • C) ~[K2]~ (B • D)) (A ~[K1 -:> K2]~ D)
+| snd_app :
+  G&Δ ⊢ C : K1 ->
+  G&Δ ⊢ D : K1 ->
+  CoercionProject G Δ 1 ((A • C) ~[K2]~ (B • D)) (C ~[K1]~ D)
+| fst_arrow :
+  CoercionProject G Δ 0 (A -:> C ~[★]~ B -:> D) (A ~[★]~ B)
+| snd_arrow :
+  CoercionProject G Δ 1 (A -:> C ~[★]~ B -:> D) (C ~[★]~ D)
+
+def Narray (dim : Vect n Nat) (A : Sort u) : Sort u := Hect n (λ i => Fin (dim i)) -> A
+
+def test : Narray ([2, 2] : Vect 2 _) Nat := λ i => sorry
+
+inductive MatchExhaustive (S : Vect m Ty) : Vect n (Pattern m) -> Prop where
+
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
   Γ[x]? = some A ->
@@ -96,40 +132,39 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   lookup_type G x = some A ->
   G&Δ ⊢ A : .base b ->
   Typing G Δ Γ g#x A
---------------------------------------------------------------------------------------
----- Matches
---------------------------------------------------------------------------------------
-| mtch (CTy : Vect n Ty)
-       (PTy : Vect n Ty)
-       (pats : Vect n Term)
-       (cs : Vect n Term) :
-  Typing G Δ Γ s R ->
-  ValidTyHeadVariable R (is_data G) ->
-  Typing G Δ Γ c T -> -- catch all term is of type T
-  (∀ i, ValidHeadVariable (pats i) (is_ctor G)) -> -- patterns are of the right shape
-  (∀ i, Typing G Δ Γ (pats i) (PTy i)) -> -- each pattern has a type
-  (∀ i, StableTypeMatch Δ (PTy i) R) -> -- the pattern type has a return type that matches datatype
-  (∀ i, Typing G Δ Γ (cs i) (CTy i)) -> -- each case match has a type
-  (∀ i, PrefixTypeMatch Δ (PTy i) (CTy i) T) -> -- patten type and case type
-  Typing G Δ Γ (match! n s pats cs c) T
---------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+---- Closed Data
+----------------------------------------------------------------------------------------------------
+| dctor {ts : Vect n Term} :
+  lookup_type G ctor = some D1 ->
+  KindingPreamble G Δ As D1 D2 ->
+  Ty.typescope n D2 = some (Ts, D3) ->
+  (∀ i, Typing G Δ Γ (ts i) (Ts i)) ->
+  Typing G Δ Γ (.dctor n ctor As ts) D3
+| mtch {ss S : Vect m _} {ps ts ξ : Vect n _} :
+  (∀ i, Typing G Δ Γ (ss i) (S i)) ->
+  (∀ i, PatternBinders m S (ps i) (ξ i)) ->
+  (∀ i, Typing G Δ (ξ i ++ Γ) (ts i) T) ->
+  MatchExhaustive S ps ->
+  Typing G Δ Γ (.mtch m n ss ps ts) T
+----------------------------------------------------------------------------------------------------
 ---- Guards
---------------------------------------------------------------------------------------
-| guard :
-  Typing G Δ Γ p A ->
-  Typing G Δ Γ s R ->
-  Typing G Δ Γ t B ->
-  ValidHeadVariable p (is_instty G) ->
-  ValidTyHeadVariable R (is_opent G) ->
-  StableTypeMatch Δ A R ->
-  PrefixTypeMatch Δ A B T ->
-  Typing G Δ Γ (.guard p s t) T
---------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
+-- | guard :
+--   Typing G Δ Γ p A ->
+--   Typing G Δ Γ s R ->
+--   Typing G Δ Γ t B ->
+--   ValidHeadVariable p (is_instty G) ->
+--   ValidTyHeadVariable R (is_opent G) ->
+--   StableTypeMatch Δ A R ->
+--   PrefixTypeMatch Δ A B T ->
+--   Typing G Δ Γ (.guard p s t) T
+----------------------------------------------------------------------------------------------------
 ---- Terms
---------------------------------------------------------------------------------------
-| lam :
+----------------------------------------------------------------------------------------------------
+| lam {Γ : List Ty} :
   G&Δ ⊢ A : .base b ->
-  Typing G Δ (A::Γ : TyEnv) t B ->
+  Typing G Δ (A::Γ) t B ->
   Typing G Δ Γ (λ[A] t) (A -:> B)
 | app :
   G&Δ ⊢ A : .base b ->
@@ -145,41 +180,47 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   G&Δ ⊢ a : K ->
   P' = P[su a::+0] ->
   Typing G Δ Γ (f •[a]) P'
-| cast :
-  Typing G Δ Γ t A ->
-  Typing G Δ Γ c (A ~[K]~ B) ->
-  Typing G Δ Γ (t ▹ c) B
---------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 ---- Coercions
---------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 | refl :
   G&Δ ⊢ A : K ->
   Typing G Δ Γ (refl! A) (A ~[K]~ A)
-| sym :
-  Typing G Δ Γ t (A ~[K]~ B) ->
-  Typing G Δ Γ (sym! t) (B ~[K]~ A)
-| seq :
-  Typing G Δ Γ t1 (A ~[K]~ B) ->
-  Typing G Δ Γ t2 (B ~[K]~ C) ->
-  Typing G Δ Γ (t1 `; t2) (A ~[K]~ C)
-| appc :
-  Typing G Δ Γ f (A ~[K1 -:> K2]~ B) ->
-  Typing G Δ Γ a (C ~[K1]~ D) ->
-  Typing G Δ Γ (f •c a) ((A • C) ~[K2]~ (B • D))
-| arrowc :
-  Typing G Δ Γ t1 (A ~[.base b1]~ B) ->
-  Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
-  Typing G Δ Γ (t1 -c> t2) ((A -:> C) ~[★]~ (B -:> D))
-| fst :
-  G&Δ ⊢ C : K1 ->
-  G&Δ ⊢ D : K1 ->
-  Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
-  Typing G Δ Γ (fst! t) (A ~[K1 -:> K2]~ B)
-| snd :
-  G&Δ ⊢ C : K1 ->
-  G&Δ ⊢ D : K1 ->
-  Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
-  Typing G Δ Γ (snd! t) (C ~[K1]~ D)
+| cast :
+  G&(K::Δ) ⊢ R : (.base b) ->
+  Typing G Δ Γ c (A ~[K]~ B) ->
+  Typing G Δ Γ t R[su A::+0] ->
+  R' = R[su B::+0] ->
+  Typing G Δ Γ (.cast R c t) R'
+| prj :
+  Typing G Δ Γ c T ->
+  CoercionProject G Δ n T R ->
+  Typing G Δ Γ (prj[n] c) R
+-- | sym :
+--   Typing G Δ Γ t (A ~[K]~ B) ->
+--   Typing G Δ Γ (sym! t) (B ~[K]~ A)
+-- | seq :
+--   Typing G Δ Γ t1 (A ~[K]~ B) ->
+--   Typing G Δ Γ t2 (B ~[K]~ C) ->
+--   Typing G Δ Γ (t1 `; t2) (A ~[K]~ C)
+-- | appc :
+--   Typing G Δ Γ f (A ~[K1 -:> K2]~ B) ->
+--   Typing G Δ Γ a (C ~[K1]~ D) ->
+--   Typing G Δ Γ (f •c a) ((A • C) ~[K2]~ (B • D))
+-- | arrowc :
+--   Typing G Δ Γ t1 (A ~[.base b1]~ B) ->
+--   Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
+--   Typing G Δ Γ (t1 -c> t2) ((A -:> C) ~[★]~ (B -:> D))
+-- | fst :
+--   G&Δ ⊢ C : K1 ->
+--   G&Δ ⊢ D : K1 ->
+--   Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
+--   Typing G Δ Γ (fst! t) (A ~[K1 -:> K2]~ B)
+-- | snd :
+--   G&Δ ⊢ C : K1 ->
+--   G&Δ ⊢ D : K1 ->
+--   Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
+--   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
   Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[★]~ B) ->
   Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
@@ -189,17 +230,17 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   A' = A[su C::+0] ->
   B' = B[su D::+0] ->
   Typing G Δ Γ (f •c[a]) (A' ~[★]~ B')
---------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 ---- Non-determinism
---------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------------------
 | zero :
   G&Δ ⊢ A : .base b ->
   Typing G Δ Γ `0 A
-| choice :
-  G&Δ ⊢ A : K ->
-  Typing G Δ Γ t1 A ->
-  Typing G Δ Γ t2 A ->
-  Typing G Δ Γ (t1 `+ t2) A
+-- | choice :
+--   G&Δ ⊢ A : K ->
+--   Typing G Δ Γ t1 A ->
+--   Typing G Δ Γ t2 A ->
+--   Typing G Δ Γ (t1 `+ t2) A
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
 

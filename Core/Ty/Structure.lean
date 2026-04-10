@@ -27,6 +27,15 @@ inductive Telescope where
 | kind : Kind -> Telescope -> Telescope
 | ty : Ty -> Telescope -> Telescope
 
+def Ty.typescope : (n : Nat) -> Ty -> Option (Vect n Ty × Ty)
+| n + 1, .arrow A B => do
+  let (tys, b) <- B.typescope n
+  return (.cons A tys, b)
+| _ + 1, _ => none
+| 0, .arrow _ _ => none
+| 0, .all _ _ => none
+| 0, t => some (.nil, t)
+
 def Telescope.rmap (r : Ren) : Telescope -> Telescope
 | nil => nil
 | kind K te => kind K (rmap r.lift te)

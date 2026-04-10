@@ -37,6 +37,7 @@ def Term.rmap (r : Ren) : Term -> Term
 | ctor2 c t1 t2 => ctor2 c (rmap r t1) (rmap r t2)
 | tbind v A t => tbind v A (rmap r t)
 | lam A t => lam A (rmap r.lift t)
+| cast T c t => cast T (rmap r c) (rmap r t)
 | guard t1 t2 t3 => guard (rmap r t1) (rmap r t2) (rmap r t3)
 | mtch m n t1 t2 t3 => mtch m n (rmap r <$> t1) t2 (λ i => rmap (r.lift (t2 i).bind) (t3 i))
 
@@ -75,6 +76,10 @@ theorem Term.ren_tbind : (tbind v A t)⟨r⟩ = tbind v A t⟨r⟩ := by
 
 @[simp]
 theorem Term.ren_lam : (lam A t)⟨r⟩ = lam A t⟨r.lift⟩ := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Term.ren_cast : (cast T c t)⟨r⟩ = cast T c⟨r⟩ t⟨r⟩ := by
   simp [RenMap.rmap]
 
 @[simp]
@@ -170,8 +175,7 @@ instance : SubstMapCompose Ctor1Variant Ctor1Variant where
 @[simp]
 def Ctor1Variant.Ty.smap (σ : Subst Ty) : Ctor1Variant -> Ctor1Variant
 | sym => sym
-| fst => fst
-| snd => snd
+| prj n => prj n
 | appt a => appt a[σ:_]
 
 instance : SubstMap Ctor1Variant Ty where
@@ -182,11 +186,7 @@ theorem Ctor1Variant.subst_sym : sym[σ:Ty] = sym := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Ctor1Variant.subst_fst : (fst)[σ:Ty] = fst := by
-  simp [SubstMap.smap]
-
-@[simp]
-theorem Ctor1Variant.subst_snd : (snd)[σ:Ty] = snd := by
+theorem Ctor1Variant.subst_fst : (prj n)[σ:Ty] = prj n := by
   simp [SubstMap.smap]
 
 @[simp]
@@ -256,6 +256,7 @@ def Term.Ty.smap (σ : Subst Ty) : Term -> Term
 | ctor2 c t1 t2 => ctor2 c[σ:Ty] (smap σ t1) (smap σ t2)
 | tbind v A t => tbind v A (smap σ.lift t)
 | lam A t => lam A[σ:_] (smap σ t)
+| cast T c t => cast T[σ.lift:_] (smap σ c) (smap σ t)
 | guard t1 t2 t3 => guard (smap σ t1) (smap σ t2) (smap σ t3)
 | mtch m n t1 t2 t3 => mtch m n (smap σ <$> t1) t2 (smap σ <$> t3)
 
@@ -272,6 +273,7 @@ def Term.smap (σ : Subst Term) : Term -> Term
 | ctor2 c t1 t2 => ctor2 c (smap σ t1) (smap σ t2)
 | tbind v A t => tbind v A (smap (σ ◾ +1@Ty) t)
 | lam A t => lam A (smap σ.lift t)
+| cast T c t => cast T (smap σ c) (smap σ t)
 | guard t1 t2 t3 => guard (smap σ t1) (smap σ t2) (smap σ t3)
 | mtch m n t1 t2 t3 => mtch m n (smap σ <$> t1) t2 (λ i => smap (σ.lift (t2 i).bind) (t3 i))
 
@@ -310,6 +312,10 @@ theorem Term.subst_tbind : (tbind v A t)[σ:Term] = tbind v A t[σ ◾ +1@Ty:_] 
 
 @[simp]
 theorem Term.subst_lam : (lam A t)[σ:Term] = lam A t[σ.lift:_] := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Term.subst_cast : (cast T c t)[σ:Term] = cast T c[σ:_] t[σ:_] := by
   simp [SubstMap.smap]
 
 @[simp]
@@ -363,6 +369,10 @@ theorem Term.Ty.subst_tbind : (tbind b A t)[σ:Ty] = tbind b A t[σ.lift:_] := b
 
 @[simp]
 theorem Term.Ty.subst_lam : (lam A t)[σ:Ty] = lam A[σ:_] t[σ:_] := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Term.Ty.cast_lam : (cast T c t)[σ:Ty] = cast T[σ.lift:_] c[σ:_] t[σ:_] := by
   simp [SubstMap.smap]
 
 @[simp]

@@ -68,12 +68,12 @@ def Constructor.from_scrutinee : Term -> Option Constructor
 def Constructor.from_scrutinees (ss : Vect m Term) : Option $ List Constructor :=
   List.mapM Constructor.from_scrutinee ss.to_list
 
-def Pattern.match : (Constructor × (String × Nat)) -> Option (List $ Subst.Action Term)
+def Pattern.match : (Constructor × (String × List Ty × Nat)) -> Option (List $ Subst.Action Term)
 | ((c1, _, t2), (c2, _)) => if c1 == c2 then some $ t2.map su else none
 
 def Pattern.parallel_match n (ss : List Constructor) : Pattern m × Nat -> Option (Subst Term × Fin n)
 | (p, i) => do
-  let ℓ : List (Constructor × (String × Nat)) := List.zip ss p
+  let ℓ : List (Constructor × (String × List Ty × Nat)) := List.zip ss p
   let σs <- List.mapM Pattern.match ℓ
   let i <- Fin.nat? n i
   let σ := List.foldr (Sequ.append) +0 σs
@@ -85,15 +85,17 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 | beta : Red G ((λ[A] b) •(s) t) b[su t::+0]
 | betat : Red G ((Λ[A] b) •[t]) b[su t::+0:Ty]
-| cast : Red G (t ▹ refl! A) t
-| sym : Red G (sym! (refl! A)) (refl! A)
-| seq : Red G ((refl! A) `; (refl! A)) (refl! A)
-| appc : Red G ((refl! A) •c (refl! B)) (refl! (A • B))
+| cast : Red G (.cast R (refl! A) t) t
+-- | sym : Red G (sym! (refl! A)) (refl! A)
+-- | seq : Red G ((refl! A) `; (refl! A)) (refl! A)
+-- | appc : Red G ((refl! A) •c (refl! B)) (refl! (A • B))
 | apptc : Red G ((refl! (∀[K] A)) •c[refl! B]) (refl! A[su B::+0])
-| fst : Red G (fst! (refl! (A • B))) (refl! A)
-| snd : Red G (snd! (refl! (A • B))) (refl! B)
+| prj_fst_app : Red G (prj[0] refl! (A • B)) (refl! A)
+| prj_snd_app : Red G (prj[0] refl! (A • B)) (refl! B)
+| prj_fst_arr: Red G (prj[0] refl! (A -:> B)) (refl! A)
+| prj_snd_arr : Red G (prj[0] refl! (A -:> B)) (refl! B)
 | allc : Red G (∀c[A] refl! B) (refl! (∀[A] B))
-| arrowc : Red G ((refl! A) -c> (refl! B)) (refl! (A -:> B))
+-- | arrowc : Red G ((refl! A) -c> (refl! B)) (refl! (A -:> B))
 -- | choice1 : Red G (`0 `+ t) t
 -- | choice2 : Red G (t `+ `0) t
 ----------------------------------------------------------------

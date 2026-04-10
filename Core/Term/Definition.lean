@@ -14,8 +14,7 @@ inductive Ctor0Variant : Type where
 
 inductive Ctor1Variant : Type where
 | sym
-| fst
-| snd
+| prj (n : Nat)
 | appt (a : Ty)
 
 inductive Ctor2Variant : Type where
@@ -31,9 +30,9 @@ inductive TyBindVariant : Type where
 | lamt
 | allc
 
-abbrev Pattern m := Vect m (String × Nat)
+abbrev Pattern m := Vect m (String × List Ty × Nat)
 
-def Pattern.bind : Pattern m -> Nat := Vect.fold 0 (λ (_, n) acc => n + acc)
+def Pattern.bind : Pattern m -> Nat := Vect.fold 0 (λ (_, _, n) acc => n + acc)
 
 inductive Term : Type where
 | var : Nat -> Term
@@ -45,6 +44,7 @@ inductive Term : Type where
 | tbind : TyBindVariant -> Kind -> Term -> Term
 | lam : Ty -> Term -> Term
 | guard : Term -> Term -> Term -> Term
+| cast : Ty -> Term -> Term -> Term
 | mtch m n : Vect m Term -> Vect n (Pattern m) -> Vect n Term -> Term
 
 def Constructor := String × List Ty × List Term
@@ -58,7 +58,7 @@ notation "refl! " A => Term.ctor0 (Ctor0Variant.refl A)
 
 -- ctor1 notation
 prefix:max "sym!" => Term.ctor1 Ctor1Variant.sym
-notation "fst!" t => Term.ctor1 Ctor1Variant.fst t
+notation "prj[" n "]" t => Term.ctor1 (Ctor1Variant.prj n) t
 notation "snd!" t => Term.ctor1 Ctor1Variant.snd t
 notation f " •[" a "]" => Term.ctor1 (Ctor1Variant.appt a) f
 
@@ -93,6 +93,7 @@ def Term.size : Term -> Nat
 | tbind _ _ t => size t + 1
 | lam _ t => size t + 1
 | guard t1 t2 t3 => size t1 + size t2 + size t3 + 1
+| cast _ t1 t2 => size t1 + size t2 + 1
 | mtch _ _ t1 _ t3 =>
   let t1' : Vect _ _ := size <$> t1
   let t3' : Vect _ _ := size <$> t3
@@ -105,12 +106,11 @@ instance instSizeOf_Term : SizeOf Term where
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .global n => "g#" ++ n
-| dctor n x tys ts => "don't care"
+| dctor _ _ _ _ => "don't care"
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
 | .ctor0 .zero => "`0"
 | .ctor1 .sym t => "(sym! " ++ Term.repr p t ++ ")"
-| .ctor1 .fst t => "(fst! " ++ Term.repr p t ++ ")"
-| .ctor1 .snd t => "(snd! " ++ Term.repr p t ++ ")"
+| .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"
 | .ctor1 (.appt τ) t => Repr.addAppParen (Term.repr max_prec t ++ " •[" ++ repr τ ++ "]") p
 | .ctor2 (.app .closed) t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++Term.repr p t2) p
@@ -136,7 +136,8 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .tbind .allc K t =>
   Repr.addAppParen ("∀c" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
-| .mtch n m s pats ts => "don't care"
+| .cast _ _ _ => "don't care"
+| .mtch _ _ _ _ _ => "don't care"
   -- let ts : Vect n Std.Format := λ i =>
   --   let t := ts i
   --   let pat := pats i
