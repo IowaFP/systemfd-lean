@@ -117,11 +117,21 @@ inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -
 | snd_arrow :
   CoercionProject G Δ 1 (A -:> C ~[★]~ B -:> D) (C ~[★]~ D)
 
-def Narray (dim : Vect n Nat) (A : Sort u) : Sort u := Hect n (λ i => Fin (dim i)) -> A
+def Ty.ctor? (G : List Global) (ctor : String) (A : Ty) : Prop :=
+  ∃ D sp, A.spine = some (D, sp) ∧ Global.ctor? G ctor D
 
-def test : Narray ([2, 2] : Vect 2 _) Nat := λ i => sorry
+inductive Query (G : List Global) : Vect m String -> Vect m Ty -> Prop where
+| nil : Query G .nil .nil
+| cons :
+  A.ctor? G q ->
+  Query G qs As ->
+  Query G (q::qs) (A::As)
 
-inductive MatchExhaustive (S : Vect m Ty) : Vect n (Pattern m) -> Prop where
+inductive Query.Match : Vect m String -> Pattern m -> Prop where
+| nil : Query.Match .nil .nil
+| cons :
+  Query.Match qs ps ->
+  Query.Match (q::qs) ((q, ts, n)::ps)
 
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
@@ -136,16 +146,18 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ---- Closed Data
 ----------------------------------------------------------------------------------------------------
 | dctor {ts : Vect n Term} :
-  lookup_type G ctor = some D1 ->
+  lookup_datatype G ctor = some D1 ->
   KindingPreamble G Δ As D1 D2 ->
   Ty.typescope n D2 = some (Ts, D3) ->
   (∀ i, Typing G Δ Γ (ts i) (Ts i)) ->
+  D3.spine.isSome ->
   Typing G Δ Γ (.dctor n ctor As ts) D3
 | mtch {ss S : Vect m _} {ps ts ξ : Vect n _} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
+  (∀ i, G&Δ ⊢ S i : ★) ->
   (∀ i, PatternBinders m S (ps i) (ξ i)) ->
   (∀ i, Typing G Δ (ξ i ++ Γ) (ts i) T) ->
-  MatchExhaustive S ps ->
+  (∀ {q}, Query G q S -> ∃ i, Query.Match q (ps i)) ->
   Typing G Δ Γ (.mtch m n ss ps ts) T
 ----------------------------------------------------------------------------------------------------
 ---- Guards

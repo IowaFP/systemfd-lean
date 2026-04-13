@@ -89,12 +89,12 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 -- | sym : Red G (sym! (refl! A)) (refl! A)
 -- | seq : Red G ((refl! A) `; (refl! A)) (refl! A)
 -- | appc : Red G ((refl! A) •c (refl! B)) (refl! (A • B))
-| apptc : Red G ((refl! (∀[K] A)) •c[refl! B]) (refl! A[su B::+0])
 | prj_fst_app : Red G (prj[0] refl! (A • B)) (refl! A)
-| prj_snd_app : Red G (prj[0] refl! (A • B)) (refl! B)
+| prj_snd_app : Red G (prj[1] refl! (A • B)) (refl! B)
 | prj_fst_arr: Red G (prj[0] refl! (A -:> B)) (refl! A)
-| prj_snd_arr : Red G (prj[0] refl! (A -:> B)) (refl! B)
+| prj_snd_arr : Red G (prj[1] refl! (A -:> B)) (refl! B)
 | allc : Red G (∀c[A] refl! B) (refl! (∀[A] B))
+| apptc : Red G ((refl! (∀[K] A)) •c[refl! B]) (refl! A[su B::+0])
 -- | arrowc : Red G ((refl! A) -c> (refl! B)) (refl! (A -:> B))
 -- | choice1 : Red G (`0 `+ t) t
 -- | choice2 : Red G (t `+ `0) t
@@ -134,9 +134,8 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Global Definitions
 ----------------------------------------------------------------
 | defn :
-  Term.spine h = some (x, sp) ->
   lookup_defn G x = some t ->
-  Red G h (t.apply sp)
+  Red G g#x t
 ----------------------------------------------------------------
 ---- Congruence Rules
 ----------------------------------------------------------------

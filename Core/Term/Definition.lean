@@ -78,8 +78,6 @@ notation "Λ[" K "]" t => Term.tbind TyBindVariant.lamt K t
 notation "λ[" A "]" t => Term.lam A t
 notation "∀c[" K "]" P => Term.tbind TyBindVariant.allc K P
 
-notation "match!" => Term.match
-
 @[simp]
 def Term.size : Term -> Nat
 | var _ => 0

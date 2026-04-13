@@ -92,6 +92,11 @@ def Entry.type : Entry -> Option Ty
 | instty _ T => T
 | _ => none
 
+def Entry.datatype : Entry -> Option Ty
+| ctor _ _ T => T
+| instty _ T => T
+| _ => none
+
 def lookup (x : String) : List Global -> Option Entry
 | [] => none
 | .cons (.data (n := n) y K ctors) tl =>
@@ -110,6 +115,11 @@ def lookup (x : String) : List Global -> Option Entry
 | .cons (.instty y a) tl =>
   if x == y then return .instty y a else lookup x tl
 
+def Global.ctor? (G : List Global) (ctor : String) (datatype : String) : Bool :=
+  match lookup datatype G with
+  | some (.data _ _ ctors) => List.contains (List.map Prod.fst ctors.to_list) ctor
+  | _ => false
+
 def instances (x : String) : List Global -> List Term
 | [] => []
 | .cons (.inst y t) tl =>
@@ -124,6 +134,7 @@ def lookup_defn G x := do
 
 def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.get!
 def lookup_type G x := lookup x G |> Option.map Entry.type |> Option.get!
+def lookup_datatype G x := lookup x G |> Option.map Entry.datatype |> Option.get!
 def is_ctor G x := lookup x G |> Option.map Entry.is_ctor |> Option.get!
 def is_data G x := lookup x G |> Option.map Entry.is_data |> Option.get!
 def is_instty G x := lookup x G |> Option.map Entry.is_instty |> Option.get!

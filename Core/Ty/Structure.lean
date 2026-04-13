@@ -32,8 +32,6 @@ def Ty.typescope : (n : Nat) -> Ty -> Option (Vect n Ty × Ty)
   let (tys, b) <- B.typescope n
   return (.cons A tys, b)
 | _ + 1, _ => none
-| 0, .arrow _ _ => none
-| 0, .all _ _ => none
 | 0, t => some (.nil, t)
 
 def Telescope.rmap (r : Ren) : Telescope -> Telescope
