@@ -1,6 +1,8 @@
 
 import Lilac.Sequ.Definition
 
+namespace Lilac.Fun
+
 def Hequ (A : Sequ (Sort u)) := (i : Nat) -> A i
 
 def Hequ.cons (head : A) (tail : Hequ T) : Hequ (A::T)
@@ -8,3 +10,5 @@ def Hequ.cons (head : A) (tail : Hequ T) : Hequ (A::T)
 | n + 1 => tail n
 
 infixr:67 (name := hequ_cons) " ::: " => Hequ.cons
+
+end Lilac.Fun

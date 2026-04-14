@@ -2,6 +2,6 @@
 -- Import modules here that should be built as part of the library.
 import Lilac.Map
 import Lilac.Sequ
-import Lilac.Vect
+import Lilac.Vec
 import Lilac.Hequ
 import Lilac.Hect

@@ -1,6 +1,8 @@
 
 import Lilac.Map
 
+namespace Lilac.Fun
+
 def Sequ (A : Sort u) := Nat -> A
 
 def Sequ.cons (head : A) (tail : Sequ A) : Sequ A
@@ -56,3 +58,5 @@ theorem Sequ.iter_tail : tail (coiter hd tl x) = coiter hd tl (tl x) := by
 theorem Sequ.fold_id {v : Sequ A} : id <$> v = v := by rfl
 
 theorem Sequ.map_compose {v : Sequ A} : f <$> (g <$> v) = (f ∘ g) <$> v := by rfl
+
+end Lilac.Fun
