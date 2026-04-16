@@ -37,6 +37,9 @@ abbrev TyEnv := List Ty
 -- def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
 --   ∃ x, Term.spine t = some x ∧ test x.fst
 
+def Ty.HeadVariable (A : Ty) (test : String -> Bool) : Prop :=
+  ∃ x sp, A.spine = some (x, sp) ∧ test x
+
 -- def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
 --   ∃ x, Ty.spine t = some x ∧ test x.fst
 
@@ -105,20 +108,22 @@ inductive PatternBinders : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
 
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :
-  G&Δ ⊢ C : K1 ->
-  G&Δ ⊢ D : K1 ->
-  CoercionProject G Δ 0 ((A • C) ~[K2]~ (B • D)) (A ~[K1 -:> K2]~ D)
+  G&Δ ⊢ A : (K1 -:> K2) ->
+  CoercionProject G Δ 0 ((A • C) ~[K2]~ (B • D)) (A ~[K1 -:> K2]~ B)
 | snd_app :
   G&Δ ⊢ C : K1 ->
-  G&Δ ⊢ D : K1 ->
   CoercionProject G Δ 1 ((A • C) ~[K2]~ (B • D)) (C ~[K1]~ D)
 | fst_arrow :
-  CoercionProject G Δ 0 (A -:> C ~[★]~ B -:> D) (A ~[★]~ B)
+  G&Δ ⊢ A : .base b ->
+  CoercionProject G Δ 0 (A -:> C ~[★]~ B -:> D) (A ~[.base b]~ B)
 | snd_arrow :
-  CoercionProject G Δ 1 (A -:> C ~[★]~ B -:> D) (C ~[★]~ D)
+  G&Δ ⊢ C : .base b ->
+  CoercionProject G Δ 1 (A -:> C ~[★]~ B -:> D) (C ~[.base b]~ D)
 
 def Ty.ctor? (G : List Global) (ctor : String) (A : Ty) : Prop :=
   ∃ D sp, A.spine = some (D, sp) ∧ Global.ctor? G ctor D
+
+abbrev Ty.datatype? (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data G)
 
 inductive Query (G : List Global) : Vec String m -> Vec Ty m -> Prop where
 | nil : Query G .nil .nil
@@ -150,11 +155,11 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   KindingPreamble G Δ As D1 D2 ->
   Ty.typescope n D2 = some (Ts, D3) ->
   (∀ i, Typing G Δ Γ (ts i) Ts[i]) ->
-  D3.spine.isSome ->
+  D3.datatype? G ->
   Typing G Δ Γ (.dctor n ctor As ts) D3
 | mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
-  (∀ i, G&Δ ⊢ S i : ★) ->
+  (∀ i, (S i).datatype? G) ->
   (∀ i, PatternBinders m S (ps i) (ξ i)) ->
   (∀ i, Typing G Δ (ξ i ++ Γ) (ts i) T) ->
   (∀ {q}, Query G q S -> ∃ i, Query.Match q (ps i)) ->

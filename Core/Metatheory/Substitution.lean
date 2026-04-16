@@ -53,32 +53,32 @@ theorem Kinding.beta :
   case _ => subst h; exact j2
   case _ i => apply var h
 
-theorem ValidHeadVariable.subst_type (σ : Subst Ty)
-  : ValidHeadVariable t test -> ValidHeadVariable t[σ:Ty] test
-:= by
-  intro j
-  rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
-  apply Exists.intro (x, sp.map (·[σ:Ty])); simp [*]
-  have lem := Spine.apply_eq e1; rw [lem]
-  simp
+-- theorem ValidHeadVariable.subst_type (σ : Subst Ty)
+--   : ValidHeadVariable t test -> ValidHeadVariable t[σ:Ty] test
+-- := by
+--   intro j
+--   rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
+--   apply Exists.intro (x, sp.map (·[σ:Ty])); simp [*]
+--   have lem := Spine.apply_eq e1; rw [lem]
+--   simp
 
-theorem ValidHeadVariable.subst (σ : Subst Term)
-  : ValidHeadVariable t test -> ValidHeadVariable t[σ] test
-:= by
-  intro j
-  rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
-  apply Exists.intro (x, sp.map (·[σ:Term])); simp [*]
-  have lem := Spine.apply_eq e1; rw [lem]
-  simp
+-- theorem ValidHeadVariable.subst (σ : Subst Term)
+--   : ValidHeadVariable t test -> ValidHeadVariable t[σ] test
+-- := by
+--   intro j
+--   rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
+--   apply Exists.intro (x, sp.map (·[σ:Term])); simp [*]
+--   have lem := Spine.apply_eq e1; rw [lem]
+--   simp
 
-theorem ValidTyHeadVariable.subst (σ : Subst Ty)
-  : Ty.HeadVariable t test -> Ty.HeadVariable t[σ] test
-:= by
-  intro j
-  rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
-  apply Exists.intro (x, sp.map (·[σ:Ty])); simp [*]
-  have lem := Ty.Spine.apply_eq e1; rw [lem]
-  simp
+-- theorem ValidTyHeadVariable.subst (σ : Subst Ty)
+--   : Ty.HeadVariable t test -> Ty.HeadVariable t[σ] test
+-- := by
+--   intro j
+--   rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
+--   apply Exists.intro (x, sp.map (·[σ:Ty])); simp [*]
+--   have lem := Ty.Spine.apply_eq e1; rw [lem]
+--   simp
 
 -- theorem StableTypeMatch.subst Δσ (σ : Subst Ty) :
 --   StableTypeMatch Δ A B ->

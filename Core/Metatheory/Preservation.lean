@@ -4,8 +4,8 @@ import Core.Reduction
 import Core.Typing
 import Core.Util
 
--- import Core.Metatheory.Rename
--- import Core.Metatheory.Substitution
+import Core.Metatheory.Rename
+import Core.Metatheory.Substitution
 -- import Core.Metatheory.GlobalWf
 -- import Core.Metatheory.Uniqueness
 -- import Core.Metatheory.Inversion
@@ -37,11 +37,11 @@ def List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : Nat)
   exists (k + 1); apply Exists.intro; apply q2
   simp; exact q1
 
-def PatternBinders.subst {ss S : Vect m _} {ps : Vect n (Pattern m)} :
+def PatternBinders.subst {ss S : Fun.Vec _ m} {ps : Fun.Vec (Pattern m) n} :
   (∀ i, G&Δ,Γ ⊢ ss i : S i) ->
   PatternBinders m S (ps i) ξ ->
-  Constructor.from_scrutinees ss = some ctors ->
-  List.firstM (Pattern.parallel_match n ctors) ps.to_list.zipIdx = some (σ, i) ->
+  Constructor.from_scrutinees ss.to = some ctors ->
+  List.firstM (Pattern.parallel_match n ctors) (Vec.to_list ps.to).zipIdx = some (σ, i) ->
   ∀ j A b, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γ ⊢ σ j : A
 := by
   intro h1 h2 h3 h4 j A b j1 j2
@@ -58,15 +58,15 @@ def PatternBinders.subst {ss S : Vect m _} {ps : Vect n (Pattern m)} :
   case _ =>
     simp at lem3
     replace j1 : ξ[j]? = some A := by grind
-    have lem4 : List.foldr Sequ.cons +0 ℓ.flatten j = ℓ.flatten[j] := sorry
+    have lem4 : List.foldr Fun.Sequ.cons +0 ℓ.flatten j = ℓ.flatten[j] := sorry
     rw [lem4]
     sorry
   case _ =>
     replace j1 : Γ[j]? = some A := by sorry
-    have lem4 : List.foldr Sequ.cons +0 ℓ.flatten j = +0 j := sorry
+    have lem4 : List.foldr Fun.Sequ.cons +0 ℓ.flatten j = +0 j := sorry
     rw [lem4]; simp; apply Typing.var j1 j2
 
-set_option maxHeartbeats 800000
+-- set_option maxHeartbeats 800000
 def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
 -- | var j1 j2, r => sorry
 | .global j1 j2, r => sorry
@@ -75,7 +75,6 @@ def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,
   let lem := PatternBinders.subst j1 (j3 i) h1 h2
   Typing.subst Γ σ wf lem (j4 i)
 | .mtch j1 j2 j3 j4 j5, .match_congr i h1 h2 => sorry
-| .mtch j1 j2 j3 j4 j5, .match_absorb i h1 => sorry
 -- | .lam j1 j2, r => sorry
 | .app j1 j2 j3, r => sorry
 -- | .lamt j1 j2, r => sorry
@@ -89,9 +88,9 @@ def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,
 | .prj j1 j2, (.ctor1_congr r) =>
   let j1' := preservation_step wf j1 r
   .prj j1' j2
-| .prj j1 j2, (.ctor1_absorb) => sorry
 | .allc j, r => sorry
 | .apptc j1 j2 e1 e2, r => sorry
+| _, _ => sorry
 -- | _, _ => sorry
 -- | .zero j, r => sorry
 

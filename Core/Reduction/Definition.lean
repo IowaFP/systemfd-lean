@@ -12,18 +12,18 @@ def OpenVarVal (G : List Global) (x : String) (sp : List SpineElem) : Prop :=
   is_openm G x ∧ ∀ T, lookup_type G x = some T -> sp.length < T.arity
 
 inductive Value (G : List Global) : Term -> Prop where
-| app :
-  t.spine = some (x, sp) ->
-  (∀ e ∈ sp, ∀ t, .oterm t = e -> t.spine.isSome) ->
-  (∀ e ∈ sp, ∀ t, .oterm t = e -> Value G t) ->
-  is_stable G x ∨ OpenVarVal G x sp ->
-  Value G t
-| choice : Value G t1 -> Value G t2 -> Value G (t1 `+ t2)
+-- | var : Value G #x
+| dctor : Value G (.dctor n s tys ts)
+-- | app : Value G f -> Value G (f •(b) a)
+-- | app :
+--   t.spine = some (x, sp) ->
+--   (∀ e ∈ sp, ∀ t, .oterm t = e -> t.spine.isSome) ->
+--   (∀ e ∈ sp, ∀ t, .oterm t = e -> Value G t) ->
+--   is_stable G x ∨ OpenVarVal G x sp ->
+--   Value G t
 | lam : Value G (λ[A] t)
 | lamt : Value G (Λ[K] t)
 | refl : Value G (refl! A)
-
-attribute [grind .] Value.choice
 
 @[simp]
 def Ctor2Variant.congr1 : Ctor2Variant -> Bool
@@ -74,7 +74,7 @@ def Pattern.parallel_match n (ss : List Constructor) : Pattern m × Nat -> Optio
   let ℓ : List (Constructor × (String × List Ty × Nat)) := List.zip ss (Vec.to_list p)
   let σs <- List.mapM Pattern.match ℓ
   let i <- Fin.nat? n i
-  let σ := List.foldr Sequ.cons +0 (List.flatten σs)
+  let σ := List.foldr Fun.Sequ.cons +0 (List.flatten σs)
   return (σ, i)
 
 inductive Red (G : List Global) : Term -> Term -> Prop where
@@ -162,22 +162,22 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Absorption Rules
 ----------------------------------------------------------------
-| ctor1_absorb :
-  Red G (.ctor1 v `0) `0
-| ctor2_absorb1 :
-  v.congr1 ->
-  Red G (.ctor2 v `0 t2) `0
-| ctor2_absorb2 :
-  v.congr2 ->
-  Red G (.ctor2 v t1 `0) `0
-| tbind_absorb :
-  v.congr ->
-  Red G (.tbind v K `0) `0
--- | guard_absorb :
---   Red G (.guard p `0 b) `0
-| match_absorb {ss : Fun.Vec Term m} i :
-  ss i = `0 ->
-  Red G (.mtch m n ss ps bs) `0
+-- | ctor1_absorb :
+--   Red G (.ctor1 v `0) `0
+-- | ctor2_absorb1 :
+--   v.congr1 ->
+--   Red G (.ctor2 v `0 t2) `0
+-- | ctor2_absorb2 :
+--   v.congr2 ->
+--   Red G (.ctor2 v t1 `0) `0
+-- | tbind_absorb :
+--   v.congr ->
+--   Red G (.tbind v K `0) `0
+-- -- | guard_absorb :
+-- --   Red G (.guard p `0 b) `0
+-- | match_absorb {ss : Fun.Vec Term m} i :
+--   ss i = `0 ->
+--   Red G (.mtch m n ss ps bs) `0
 ----------------------------------------------------------------
 ---- Mapping Rules
 ----------------------------------------------------------------

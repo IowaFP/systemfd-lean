@@ -4,6 +4,14 @@ import Lilac
 open LeanSubst
 open Lilac
 
+def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
+| k => if i == k then a else v i
+
+@[simp]
+theorem Fun.Vec.update_eq : update v a i i = a := sorry
+
+theorem Fun.Vec.update_neq : ∀ j ≠ i, v j = update v a i j := sorry
+
 @[simp]
 def Vec.fold (d : B) (f : A -> B -> B) : Vec A n -> B
 | .nil => d

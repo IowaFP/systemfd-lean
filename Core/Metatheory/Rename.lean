@@ -61,69 +61,71 @@ theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
 theorem GlobalWf.tail {G : List Global} : ⊢ (g :: G) -> ⊢ G := by
   intro j; cases j; case _ j _ => exact j
 
-theorem GlobalWf.closed_ctors {v : Vect n (Option Entry)} {d : Option Entry} :
+theorem GlobalWf.closed_ctors {v : Fun.Vec (Option Entry) n} {d : Option Entry} :
   ((Option.map Entry.type d).get! = some T -> ∀ σ, T[σ] = T) ->
   (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
-  (Option.map Entry.type (Vect.fold d Option.or v)).get! = some T ->
+  (Option.map Entry.type (Vec.fold d Option.or v.to)).get! = some T ->
   ∀ σ, T[σ] = T
 := by
-  intro h1 h2 h3
-  induction v using Vect.induction
-  case nil => apply h1 h3
-  case cons hd tl ih =>
-    simp at h3
-    cases hd <;> simp at *
-    case none =>
-      apply ih _
-      apply h3
-      intro i en e1 e2
-      replace h2 := h2 (Fin.succ i) en (by simp; exact e1) e2
-      apply h2
-    case some =>
-      apply h2 0 _ _ h3; simp
+  sorry
+  -- intro h1 h2 h3
+  -- induction v using Vec.induction
+  -- case nil => apply h1 h3
+  -- case cons hd tl ih =>
+  --   simp at h3
+  --   cases hd <;> simp at *
+  --   case none =>
+  --     apply ih _
+  --     apply h3
+  --     intro i en e1 e2
+  --     replace h2 := h2 (Fin.succ i) en (by simp; exact e1) e2
+  --     apply h2
+  --   case some =>
+  --     apply h2 0 _ _ h3; simp
 
 theorem GlobalWf.closed {G : List Global} :
   ⊢ G ->
   lookup_type G x = some T ->
   ∀ σ, T[σ] = T
 := by
-  intro j h
-  unfold lookup_type at h
-  fun_induction lookup
-  all_goals try solve | simp [Entry.type] at h
-  all_goals try solve | case _ ih => apply ih (tail j) h
-  case _ n y K cs1 tl cs2 e ih =>
-    have lem := head j
-    cases lem; case _ ctors =>
-    apply closed_ctors (ih (tail j)) _ h
-    intro i e q1 q2
-    subst cs2; simp at q1; rcases q1 with ⟨e1, e2⟩
-    generalize zdef : cs1 i = z at *
-    rcases z with ⟨y, T'⟩; simp at *; subst e1 e2
-    simp [Entry.type] at q2; subst q2
-    replace ctors := ctors i x T' (by rw [zdef])
-    apply Kinding.closed ctors.1
-  case _ y T tl e =>
-    replace e := LawfulBEq.eq_of_beq e
-    simp [Entry.type] at h; subst e h
-    have lem := head j
-    cases lem ; case _ j =>
-    apply Kinding.closed j
-  case _ y T b tl e =>
-    replace e := LawfulBEq.eq_of_beq e
-    simp [Entry.type] at h; subst e h
-    have lem := head j
-    cases lem; case _ j1 j2 =>
-    apply Kinding.closed j1
-  case _ y T tl e =>
-    replace e := LawfulBEq.eq_of_beq e
-    simp [Entry.type] at h; subst e h
-    cases j; case _ wf j =>
-    cases j; case _ j =>
-    have lemj : ∃ b, (tl&[] ⊢ T : .base b) := by
-      apply ValidInstTy.closed j
-    cases lemj; case _ lemj =>
-    apply Kinding.closed lemj
+  sorry
+  -- intro j h
+  -- unfold lookup_type at h
+  -- fun_induction lookup
+  -- all_goals try solve | simp [Entry.type] at h
+  -- all_goals try solve | case _ ih => apply ih (tail j) h
+  -- case _ n y K cs1 tl cs2 e ih =>
+  --   have lem := head j
+  --   cases lem; case _ ctors =>
+  --   apply closed_ctors (ih (tail j)) _ h
+  --   intro i e q1 q2
+  --   subst cs2; simp at q1; rcases q1 with ⟨e1, e2⟩
+  --   generalize zdef : cs1 i = z at *
+  --   rcases z with ⟨y, T'⟩; simp at *; subst e1 e2
+  --   simp [Entry.type] at q2; subst q2
+  --   replace ctors := ctors i x T' (by rw [zdef])
+  --   apply Kinding.closed ctors.1
+  -- case _ y T tl e =>
+  --   replace e := LawfulBEq.eq_of_beq e
+  --   simp [Entry.type] at h; subst e h
+  --   have lem := head j
+  --   cases lem ; case _ j =>
+  --   apply Kinding.closed j
+  -- case _ y T b tl e =>
+  --   replace e := LawfulBEq.eq_of_beq e
+  --   simp [Entry.type] at h; subst e h
+  --   have lem := head j
+  --   cases lem; case _ j1 j2 =>
+  --   apply Kinding.closed j1
+  -- case _ y T tl e =>
+  --   replace e := LawfulBEq.eq_of_beq e
+  --   simp [Entry.type] at h; subst e h
+  --   cases j; case _ wf j =>
+  --   cases j; case _ j =>
+  --   have lemj : ∃ b, (tl&[] ⊢ T : .base b) := by
+  --     apply ValidInstTy.closed j
+  --   cases lemj; case _ lemj =>
+  --   apply Kinding.closed lemj
 
 theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren} K :
   (∀ x, x + 1 ∈ T -> Δr[r x]? = Δ[x]?) ->
@@ -207,35 +209,35 @@ theorem Kinding.weaken T : G&Δ ⊢ A : K -> G&(T::Δ) ⊢ A[+1] : K := by
   intro j; apply rename (T::Δ) (· + 1) _ j
   intro i; cases i <;> simp
 
-theorem ValidHeadVariable.rename_type (r : Ren)
-  : ValidHeadVariable t test -> ValidHeadVariable t[r:Ty] test
-:= by
-  intro j; cases j; case _ u e =>
-  rcases u with ⟨x, sp⟩
-  rcases e with ⟨e1, e2⟩; simp at e2
-  apply Exists.intro (x, sp.map (·[r:Ty])); rw [e2]; simp
-  have lem := Spine.apply_eq e1
-  rw [lem]; simp
+-- theorem ValidHeadVariable.rename_type (r : Ren)
+--   : ValidHeadVariable t test -> ValidHeadVariable t[r:Ty] test
+-- := by
+--   intro j; cases j; case _ u e =>
+--   rcases u with ⟨x, sp⟩
+--   rcases e with ⟨e1, e2⟩; simp at e2
+--   apply Exists.intro (x, sp.map (·[r:Ty])); rw [e2]; simp
+--   have lem := Spine.apply_eq e1
+--   rw [lem]; simp
 
-theorem ValidHeadVariable.rename (r : Ren)
-  : ValidHeadVariable t test -> ValidHeadVariable t[r:Term] test
-:= by
-  intro j; cases j; case _ u e =>
-  rcases u with ⟨x, sp⟩
-  rcases e with ⟨e1, e2⟩; simp at e2
-  apply Exists.intro (x, sp.map (·[r:Term])); rw [e2]; simp
-  have lem := Spine.apply_eq e1
-  rw [lem]; simp
+-- theorem ValidHeadVariable.rename (r : Ren)
+--   : ValidHeadVariable t test -> ValidHeadVariable t[r:Term] test
+-- := by
+--   intro j; cases j; case _ u e =>
+--   rcases u with ⟨x, sp⟩
+--   rcases e with ⟨e1, e2⟩; simp at e2
+--   apply Exists.intro (x, sp.map (·[r:Term])); rw [e2]; simp
+--   have lem := Spine.apply_eq e1
+--   rw [lem]; simp
 
-theorem ValidTyHeadVariable.rename (r : Ren) :
-  Ty.HeadVariable t test -> Ty.HeadVariable t[r] test
-:= by
-  intro j; cases j; case _ u e =>
-  rcases u with ⟨x, sp⟩
-  rcases e with ⟨e1, e2⟩; simp at e2
-  apply Exists.intro (x, sp.map (·[r])); rw [e2]; simp
-  have lem := Ty.Spine.apply_eq e1
-  rw [lem]; simp
+-- theorem ValidTyHeadVariable.rename (r : Ren) :
+--   Ty.HeadVariable t test -> Ty.HeadVariable t[r] test
+-- := by
+--   intro j; cases j; case _ u e =>
+--   rcases u with ⟨x, sp⟩
+--   rcases e with ⟨e1, e2⟩; simp at e2
+--   apply Exists.intro (x, sp.map (·[r])); rw [e2]; simp
+--   have lem := Ty.Spine.apply_eq e1
+--   rw [lem]; simp
 
 -- theorem StableTypeMatch.rename Δr (r : Ren) :
 --   StableTypeMatch Δ A B ->
