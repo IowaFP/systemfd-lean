@@ -1,18 +1,18 @@
-import LeanSubst
 import Core.Term
 import Core.Term.Spine
 import Core.Reduction
 import Core.Typing
 import Core.Util
 
-import Core.Metatheory.Rename
-import Core.Metatheory.Substitution
-import Core.Metatheory.GlobalWf
+-- import Core.Metatheory.Rename
+-- import Core.Metatheory.Substitution
+-- import Core.Metatheory.GlobalWf
 -- import Core.Metatheory.Uniqueness
 -- import Core.Metatheory.Inversion
 -- import Core.Metatheory.SpineType
 -- import Core.Metatheory.Preservation.Lemmas
 
+open Lilac
 open LeanSubst
 
 namespace Core
@@ -28,24 +28,25 @@ namespace Core
 -- h1 : Constructor.from_scrutinees ss✝ = some ctors✝
 -- h2 : List.firstM (Pattern.parallel_match n✝ ctors✝) (↑ps✝).zipIdx = some (σ, i)
 
-def PatternBinders.subst {ps : Vect n (Pattern m)} :
-  (∀ i, G&Δ,Γ ⊢ ss i : S i) ->
-  PatternBinders S (ps i) ξ ->
-  Constructor.from_scrutinees ss = some ctors ->
-  List.firstM (Pattern.parallel_match n ctors) ps.to_list.zipIdx = some (σ, i) ->
-  ∀ j A b, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γ ⊢ σ j : A
-:= by
-  sorry
+-- def PatternBinders.subst {ps : Fun.Vec (Pattern m) n} :
+--   (∀ i, G&Δ,Γ ⊢ ss i : S i) ->
+--   PatternBinders S (ps i) ξ ->
+--   Constructor.from_scrutinees ss = some ctors ->
+--   List.firstM (Pattern.parallel_match n ctors) ps.to_list.zipIdx = some (σ, i) ->
+--   ∀ j A b, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γ ⊢ σ j : A
+-- := by
+--   sorry
 
 def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
 -- | var j1 j2, r => sorry
 | .global j1 j2, r => sorry
 -- | .dctor j1 j2 j3 j4, r => sorry
-| .mtch (ξ := ξ) j1 j2 j3, .data_match (σ := σ) (i := i) h1 h2 =>
-  let lem := PatternBinders.subst j1 (j2 i) h1 h2
-  Typing.subst Γ σ wf lem (j3 i)
-| .mtch j1 j2 j3, .match_congr i h1 h2 => sorry
-| .mtch j1 j2 j3, .match_absorb i h1 => sorry
+| .mtch (ξ := ξ) j1 j2 j3 j4 j5, .data_match (σ := σ) (i := i) h1 h2 => sorry
+| .mtch j1 j2 j3 j4 j5, .match_congr i h1 h2 => sorry
+| .mtch j1 j2 j3 j4 j5, .match_absorb i h1 => sorry
+| .prj j1 (.fst_app j2 j3), .prj_fst_app => sorry
+-- | .prj j1 (.snd_app j2 j3), .prj_snd_app => sorry
+| .prj j1 j2, r => sorry
 -- | .lam j1 j2, r => sorry
 | .app j1 j2 j3, r => sorry
 -- | .lamt j1 j2, r => sorry
@@ -54,6 +55,7 @@ def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,
 | .cast j1 (.refl j2) j3 e, .cast => j3 |> cast (by rw [e])
 | .allc j, r => sorry
 | .apptc j1 j2 e1 e2, r => sorry
+-- | _, _ => sorry
 -- | .zero j, r => sorry
 
 

@@ -76,11 +76,11 @@ instance instBEq_SpineElem : BEq SpineElem where
 
 instance instReflBEq_SpineElem : ReflBEq SpineElem where
   rfl := by
-    intro a; cases a <;> simp [SpineElem.beq, instBEq_SpineElem] at *
+    intro a; cases a <;> simp +instances [SpineElem.beq, instBEq_SpineElem] at *
 
 instance instLawfulBEq_SpineElem : LawfulBEq SpineElem where
   eq_of_beq := by
-    intro a b; cases a <;> simp [instBEq_SpineElem, SpineElem.beq] at *
+    intro a b; cases a <;> simp +instances [instBEq_SpineElem, SpineElem.beq] at *
     all_goals (cases b <;> simp at *)
 
 @[grind]

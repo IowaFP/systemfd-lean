@@ -1,9 +1,9 @@
-import LeanSubst
 import Core.Vec
 import Core.Ty
 import Core.Term
 import Core.Global
 
+open Lilac
 open LeanSubst
 
 namespace Core
@@ -94,14 +94,14 @@ inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> 
   KindingPreamble G Δ Ty T1[su A::+0] T2 ->
   KindingPreamble G Δ (A::Ty) (∀[K] T1) T2
 
-inductive PatternBinders : (m : Nat) -> Vect m Ty -> Pattern m -> List Ty -> Prop
+inductive PatternBinders : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
 | zero : PatternBinders 0 ss ps []
 | succ :
   lookup_type G c = some D1 ->
   KindingPreamble G Δ ts D1 D2 ->
   Ty.typescope n D2 = some (Ts, A) ->
   PatternBinders n S p ℓ ->
-  PatternBinders (n + 1) (A::S) ((c, ts, n)::p) (Ts ++ ℓ)
+  PatternBinders (n + 1) (A::S) ((c, ts, n)::p) ((Vec.to_list Ts) ++ ℓ)
 
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :
@@ -120,14 +120,14 @@ inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -
 def Ty.ctor? (G : List Global) (ctor : String) (A : Ty) : Prop :=
   ∃ D sp, A.spine = some (D, sp) ∧ Global.ctor? G ctor D
 
-inductive Query (G : List Global) : Vect m String -> Vect m Ty -> Prop where
+inductive Query (G : List Global) : Vec String m -> Vec Ty m -> Prop where
 | nil : Query G .nil .nil
 | cons :
   A.ctor? G q ->
   Query G qs As ->
   Query G (q::qs) (A::As)
 
-inductive Query.Match : Vect m String -> Pattern m -> Prop where
+inductive Query.Match : Vec String m -> Pattern m -> Prop where
 | nil : Query.Match .nil .nil
 | cons :
   Query.Match qs ps ->
@@ -145,14 +145,14 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ----------------------------------------------------------------------------------------------------
 ---- Closed Data
 ----------------------------------------------------------------------------------------------------
-| dctor {ts : Vect n Term} :
+| dctor {ts : Fun.Vec Term n} :
   lookup_datatype G ctor = some D1 ->
   KindingPreamble G Δ As D1 D2 ->
   Ty.typescope n D2 = some (Ts, D3) ->
-  (∀ i, Typing G Δ Γ (ts i) (Ts i)) ->
+  (∀ i, Typing G Δ Γ (ts i) Ts[i]) ->
   D3.spine.isSome ->
   Typing G Δ Γ (.dctor n ctor As ts) D3
-| mtch {ss S : Vect m _} {ps ts ξ : Vect n _} :
+| mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
   (∀ i, G&Δ ⊢ S i : ★) ->
   (∀ i, PatternBinders m S (ps i) (ξ i)) ->
@@ -286,7 +286,7 @@ inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop w
   ValidInstTy G x Δ (A -:> T)
 
 inductive GlobalWf : List Global -> Global -> Prop where
-| data {G : GlobalEnv} {ctors : Vect n (String × Ty)} :
+| data {G : GlobalEnv} {ctors : Fun.Vec (String × Ty) n} :
   (∀ i y T, ctors i = (y, T) ->
     (.data 0 x K .nil::G)&[] ⊢ T : ★
     ∧ ValidCtor x T
@@ -327,9 +327,9 @@ inductive EntryWf : List Global -> Entry -> Prop where
 | data :
   lookup x G = some (.data x K ctors) ->
   EntryWf G (.data x K ctors)
-| ctor z K ctors :
+| ctor z K (ctors : Vec _ n) (i : Fin n) :
   lookup z G = some (.data z K ctors) ->
-  ctors i = (x, T) ->
+  ctors[i] = (x, T) ->
   G&[] ⊢ T : ★ ->
   ValidCtor z T ->
   lookup x G = some (.ctor x i T) ->

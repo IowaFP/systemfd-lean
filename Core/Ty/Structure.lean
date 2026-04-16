@@ -1,9 +1,9 @@
-import LeanSubst
 import Core.Ty.Definition
 import Core.Ty.Substitution
 import Core.Ty.BEq
 
 open LeanSubst
+open Lilac
 
 namespace Core
 def Ty.spine : Ty -> Option (String × List Ty)
@@ -27,7 +27,7 @@ inductive Telescope where
 | kind : Kind -> Telescope -> Telescope
 | ty : Ty -> Telescope -> Telescope
 
-def Ty.typescope : (n : Nat) -> Ty -> Option (Vect n Ty × Ty)
+def Ty.typescope : (n : Nat) -> Ty -> Option (Vec Ty n × Ty)
 | n + 1, .arrow A B => do
   let (tys, b) <- B.typescope n
   return (.cons A tys, b)

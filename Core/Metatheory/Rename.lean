@@ -1,10 +1,10 @@
-import LeanSubst
-import Lilac.Vect
+
 
 import Core.Typing
 import Core.Util
 import Core.Metatheory.FreeVars
 
+open Lilac
 open LeanSubst
 
 namespace Core

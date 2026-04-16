@@ -1,12 +1,10 @@
-import LeanSubst
 import Core.Util
 import Core.Global
 import Core.Ty
 import Core.Term
-import Lilac.Vect
 
+open Lilac
 open LeanSubst
-
 
 namespace Core
 
@@ -53,7 +51,7 @@ def TyBindVariant.congr : TyBindVariant -> Bool
 | lamt => false
 | allc => true
 
-def Sequ.append : List α -> Sequ α -> Sequ α
+def Sequ.append : List α -> Fun.Sequ α -> Fun.Sequ α
 | [], s => s
 | .cons hd tl, s => hd :: (append tl s)
 
@@ -62,18 +60,18 @@ def Fin.nat? : (n : Nat) -> Nat -> Option (Fin n)
 | n + 1, i => some $ Fin.ofNat (n + 1) i
 
 def Constructor.from_scrutinee : Term -> Option Constructor
-| .dctor _ c t1 t2 => some (c, t1, t2)
+| .dctor _ c t1 t2 => some (c, t1, (Vec.to_list t2.to))
 | _ => none
 
-def Constructor.from_scrutinees (ss : Vect m Term) : Option $ List Constructor :=
-  List.mapM Constructor.from_scrutinee ss.to_list
+def Constructor.from_scrutinees (ss : Vec Term m) : Option $ List Constructor :=
+  List.mapM Constructor.from_scrutinee (Vec.to_list ss)
 
 def Pattern.match : (Constructor × (String × List Ty × Nat)) -> Option (List $ Subst.Action Term)
 | ((c1, _, t2), (c2, _)) => if c1 == c2 then some $ t2.map su else none
 
 def Pattern.parallel_match n (ss : List Constructor) : Pattern m × Nat -> Option (Subst Term × Fin n)
 | (p, i) => do
-  let ℓ : List (Constructor × (String × List Ty × Nat)) := List.zip ss p
+  let ℓ : List (Constructor × (String × List Ty × Nat)) := List.zip ss (Vec.to_list p)
   let σs <- List.mapM Pattern.match ℓ
   let i <- Fin.nat? n i
   let σ := List.foldr (Sequ.append) +0 σs
@@ -101,9 +99,9 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
-| data_match {ss : Vect m Term} {ps : Vect n (Pattern m)} :
-  Constructor.from_scrutinees ss = some ctors ->
-  List.firstM (Pattern.parallel_match n ctors) (List.zipIdx ps.to_list) = some (σ, i) ->
+| data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
+  Constructor.from_scrutinees ss.to = some ctors ->
+  List.firstM (Pattern.parallel_match n ctors) (List.zipIdx (Vec.to_list ps.to)) = some (σ, i) ->
   Red G (.mtch m n ss ps bs) (bs i)[σ]
 ----------------------------------------------------------------
 ---- Guard Matching
@@ -157,7 +155,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 -- | guard_congr :
 --   Red G s s' ->
 --   Red G (.guard p s b) (.guard p s' b)
-| match_congr {ss : Vect m Term} i :
+| match_congr {ss : Fun.Vec Term m} i :
   Red G (ss i) (ss' i) ->
   (∀ j ≠ i, ss j = ss' j) ->
   Red G (.mtch m n ss ps bs) (.mtch m n ss' ps bs)
@@ -177,7 +175,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Red G (.tbind v K `0) `0
 -- | guard_absorb :
 --   Red G (.guard p `0 b) `0
-| match_absorb {ss : Vect m Term} i :
+| match_absorb {ss : Fun.Vec Term m} i :
   ss i = `0 ->
   Red G (.mtch m n ss ps bs) `0
 ----------------------------------------------------------------

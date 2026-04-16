@@ -1,14 +1,14 @@
-import LeanSubst
 import Core.Vec
 import Core.Ty
 import Core.Term
 
+open Lilac
 open LeanSubst
 
 namespace Core
 
 inductive Global : Type where
-| data : (n : Nat) -> String -> Kind -> Vect n (String × Ty) -> Global
+| data : (n : Nat) -> String -> Kind -> Vec (String × Ty) n -> Global
 | opent : String -> Kind -> Global
 | openm : String -> Ty -> Global
 | defn : String -> Ty -> Term -> Global
@@ -16,12 +16,12 @@ inductive Global : Type where
 | instty : String -> Ty -> Global
 
 def Global.repr (p : Nat) : (a : Global) -> Std.Format
-| .data (n := n + 1) s K ctors =>
-  let ts : Vect (n + 1) Std.Format := λ i =>
-    let (ctorN, ctorTy) := ctors i
-    Std.Format.nest 4 <| ctorN ++ " : " ++ Ty.repr max_prec ctorTy
-  ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-    ++ "v" ++ Std.Format.sbracket (Vect.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) ts)
+| .data (n := n + 1) s K ctors => "don't care"
+  -- let ts : Vec Std.Format (n + 1) := λ i =>
+  --   let (ctorN, ctorTy) := ctors i
+  --   Std.Format.nest 4 <| ctorN ++ " : " ++ Ty.repr max_prec ctorTy
+  -- ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
+  --   ++ "v" ++ Std.Format.sbracket (Vec.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) ts)
 | .data _ s K _ =>
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K
 | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
@@ -49,7 +49,7 @@ instance instRepr_GlobalEnv : Repr GlobalEnv where
   reprPrec a p := GlobalEnv.repr p a
 
 inductive Entry : Type where
-| data : String -> Kind -> Vect n (String × Ty) -> Entry
+| data : String -> Kind -> Vec (String × Ty) n -> Entry
 | ctor : String -> Nat -> Ty -> Entry
 | opent : String -> Kind -> Entry
 | openm : String -> Ty -> Entry
@@ -99,12 +99,12 @@ def Entry.datatype : Entry -> Option Ty
 
 def lookup (x : String) : List Global -> Option Entry
 | [] => none
-| .cons (.data (n := n) y K ctors) tl =>
-  let ctors' : Vect n (Option Entry) := λ i =>
-    let (z, A) := ctors i
-    if x == z then return .ctor z i A else none
+| .cons (.data _ y K ctors) tl =>
+  let ctors' := Vec.map
+    (λ (i, (z, A)) => if x == z then some (Entry.ctor z i A) else none)
+    (Vec.enumerate ctors)
   if x == y then return .data y K ctors
-  else Vect.fold (lookup x tl) Option.or ctors'
+  else Vec.fold (lookup x tl) Option.or ctors'
 | .cons (.opent y a) tl =>
   if x == y then return .opent y a else lookup x tl
 | .cons (.openm y a) tl =>
@@ -117,7 +117,7 @@ def lookup (x : String) : List Global -> Option Entry
 
 def Global.ctor? (G : List Global) (ctor : String) (datatype : String) : Bool :=
   match lookup datatype G with
-  | some (.data _ _ ctors) => List.contains (List.map Prod.fst ctors.to_list) ctor
+  | some (.data _ _ ctors) => List.contains (List.map Prod.fst (Vec.to_list ctors)) ctor
   | _ => false
 
 def instances (x : String) : List Global -> List Term
@@ -155,7 +155,7 @@ def ctor_ty (G : List Global) (x : String) : Option Ty := do
 def ctor_count (G : List Global) (x : String) : Option Nat := do
   let t <- lookup x G
   match t with
-  | .data _ _ ctors => ctors.length
+  | .data _ _ ctors => Vec.length ctors
   | _ => .none
 
 def is_stable (G : List Global) (x : String) : Bool := (is_ctor G x ∨ is_instty G x)

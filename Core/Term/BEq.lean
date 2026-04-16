@@ -12,11 +12,11 @@ instance instBEq_Ctor0Variant : BEq Ctor0Variant where
 
 instance instReflBEq_Ctor0Variant : ReflBEq Ctor0Variant where
   rfl := by
-    intro x; induction x <;> simp [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
+    intro x; induction x <;> simp +instances [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
 
 instance instLawfulBEq_CtorVariant : LawfulBEq Ctor0Variant where
   eq_of_beq := by
-    intro x b; induction x <;> simp [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
+    intro x b; induction x <;> simp +instances [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
     all_goals (induction b <;> simp at *)
 
 def Ctor1Variant.beq : Ctor1Variant -> Ctor1Variant -> Bool
@@ -30,11 +30,11 @@ instance instBEq_Ctor1Variant : BEq Ctor1Variant where
 
 instance instReflBEq_Ctor1Variant : ReflBEq Ctor1Variant where
   rfl := by
-    intro x; induction x <;> simp [instBEq_Ctor1Variant, Ctor1Variant.beq] at *
+    intro x; induction x <;> simp +instances [instBEq_Ctor1Variant, Ctor1Variant.beq] at *
 
 instance instLawfulBEq_Ctor1Variant : LawfulBEq Ctor1Variant where
   eq_of_beq := by
-    intro x b; induction x <;> simp [instBEq_Ctor1Variant, Ctor1Variant.beq] at *
+    intro x b; induction x <;> simp +instances [instBEq_Ctor1Variant, Ctor1Variant.beq] at *
     all_goals (induction b <;> simp at *)
 
 
@@ -54,11 +54,11 @@ instance instBEq_Ctor2Variant : BEq Ctor2Variant where
 
 instance instReflBEq_Ctor2Variant : ReflBEq Ctor2Variant where
   rfl := by
-    intro x; induction x <;> simp [instBEq_Ctor2Variant, Ctor2Variant.beq] at *
+    intro x; induction x <;> simp +instances [instBEq_Ctor2Variant, Ctor2Variant.beq] at *
 
 instance instLawfulBEq_Ctor2Variant : LawfulBEq Ctor2Variant where
   eq_of_beq := by
-    intro x b; induction x <;> simp [instBEq_Ctor2Variant, Ctor2Variant.beq] at *
+    intro x b; induction x <;> simp +instances [instBEq_Ctor2Variant, Ctor2Variant.beq] at *
     all_goals (induction b <;> simp at *)
 
 def TyBindVariant.beq : TyBindVariant -> TyBindVariant -> Bool
@@ -71,11 +71,11 @@ instance instBEq_TyBindVariant : BEq TyBindVariant where
 
 instance instReflBEq_TyBindVariant : ReflBEq TyBindVariant where
   rfl := by
-    intro x; induction x <;> simp [instBEq_TyBindVariant, TyBindVariant.beq] at *
+    intro x; induction x <;> simp +instances [instBEq_TyBindVariant, TyBindVariant.beq] at *
 
 instance instLawfulBEq_TyBindVariant : LawfulBEq TyBindVariant where
   eq_of_beq := by
-    intro x b; induction x <;> simp [instBEq_TyBindVariant, TyBindVariant.beq] at *
+    intro x b; induction x <;> simp +instances [instBEq_TyBindVariant, TyBindVariant.beq] at *
     all_goals (induction b <;> simp at *)
 
 
