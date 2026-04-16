@@ -72,7 +72,7 @@ theorem ValidHeadVariable.subst (σ : Subst Term)
   simp
 
 theorem ValidTyHeadVariable.subst (σ : Subst Ty)
-  : ValidTyHeadVariable t test -> ValidTyHeadVariable t[σ] test
+  : Ty.HeadVariable t test -> Ty.HeadVariable t[σ] test
 := by
   intro j
   rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
@@ -80,43 +80,43 @@ theorem ValidTyHeadVariable.subst (σ : Subst Ty)
   have lem := Ty.Spine.apply_eq e1; rw [lem]
   simp
 
-theorem StableTypeMatch.subst Δσ (σ : Subst Ty) :
-  StableTypeMatch Δ A B ->
-  StableTypeMatch Δσ A[σ] B[σ]
-:= by
-  intro j
-  induction j generalizing Δσ σ
-  case refl R x Δ j =>
-    rcases x with ⟨x, sp⟩
-    apply refl (x := (x, sp.map (·[σ])))
-    have lem := Ty.Spine.apply_eq j
-    rw [lem]; simp
-  case arrow j ih =>
-    simp; apply arrow
-    apply ih _ _
-  case all K Δ B R j ih =>
-    simp; apply all
-    replace ih := ih (K::Δσ) σ.lift
-    simp at ih; simp; exact ih
+-- theorem StableTypeMatch.subst Δσ (σ : Subst Ty) :
+--   StableTypeMatch Δ A B ->
+--   StableTypeMatch Δσ A[σ] B[σ]
+-- := by
+--   intro j
+--   induction j generalizing Δσ σ
+--   case refl R x Δ j =>
+--     rcases x with ⟨x, sp⟩
+--     apply refl (x := (x, sp.map (·[σ])))
+--     have lem := Ty.Spine.apply_eq j
+--     rw [lem]; simp
+--   case arrow j ih =>
+--     simp; apply arrow
+--     apply ih _ _
+--   case all K Δ B R j ih =>
+--     simp; apply all
+--     replace ih := ih (K::Δσ) σ.lift
+--     simp at ih; simp; exact ih
 
-theorem PrefixTypeMatch.subst Δσ (σ : Subst Ty) :
-  PrefixTypeMatch Δ A B C ->
-  PrefixTypeMatch Δσ A[σ] B[σ] C[σ]
-:= by
-  intro j
-  induction j generalizing Δσ σ
-  case refl B x Δ T j =>
-    rcases x with ⟨x, sp⟩
-    apply refl (x := (x, sp.map (·[σ])))
-    have lem := Ty.Spine.apply_eq j
-    rw [lem]; simp
-  case arrow j ih =>
-    simp; apply arrow
-    apply ih _ _
-  case all K Δ B V T j ih =>
-    simp; apply all
-    replace ih := ih (K::Δσ) σ.lift
-    simp at ih; simp; exact ih
+-- theorem PrefixTypeMatch.subst Δσ (σ : Subst Ty) :
+--   PrefixTypeMatch Δ A B C ->
+--   PrefixTypeMatch Δσ A[σ] B[σ] C[σ]
+-- := by
+--   intro j
+--   induction j generalizing Δσ σ
+--   case refl B x Δ T j =>
+--     rcases x with ⟨x, sp⟩
+--     apply refl (x := (x, sp.map (·[σ])))
+--     have lem := Ty.Spine.apply_eq j
+--     rw [lem]; simp
+--   case arrow j ih =>
+--     simp; apply arrow
+--     apply ih _ _
+--   case all K Δ B V T j ih =>
+--     simp; apply all
+--     replace ih := ih (K::Δσ) σ.lift
+--     simp at ih; simp; exact ih
 
 theorem Ty.spine_subst (Δ Δσ : List Kind) (σ: Subst Ty) (A : Ty) :
   (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
@@ -209,6 +209,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
   case refl j =>
     apply refl
     apply Kinding.subst _ _ h j
+  case prj => sorry
   -- case sym j ih =>
   --   apply sym
   --   apply ih _ _ h
@@ -349,6 +350,7 @@ theorem Typing.subst Γσ (σ : Subst Term) :
   case cast j1 j2 ih1 ih2 =>
     sorry
   case refl j => apply refl j
+  case prj => sorry
   -- case sym j ih =>
   --   apply sym
   --   apply ih _ _ h

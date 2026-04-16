@@ -51,9 +51,9 @@ def TyBindVariant.congr : TyBindVariant -> Bool
 | lamt => false
 | allc => true
 
-def Sequ.append : List α -> Fun.Sequ α -> Fun.Sequ α
-| [], s => s
-| .cons hd tl, s => hd :: (append tl s)
+-- def Sequ.append : List α -> Sequ α -> Sequ α
+-- | [], s => s
+-- | .cons hd tl, s => hd :: (append tl s)
 
 def Fin.nat? : (n : Nat) -> Nat -> Option (Fin n)
 | 0, _ => none
@@ -74,7 +74,7 @@ def Pattern.parallel_match n (ss : List Constructor) : Pattern m × Nat -> Optio
   let ℓ : List (Constructor × (String × List Ty × Nat)) := List.zip ss (Vec.to_list p)
   let σs <- List.mapM Pattern.match ℓ
   let i <- Fin.nat? n i
-  let σ := List.foldr (Sequ.append) +0 σs
+  let σ := List.foldr Sequ.cons +0 (List.flatten σs)
   return (σ, i)
 
 inductive Red (G : List Global) : Term -> Term -> Prop where

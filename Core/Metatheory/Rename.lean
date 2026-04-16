@@ -228,7 +228,7 @@ theorem ValidHeadVariable.rename (r : Ren)
   rw [lem]; simp
 
 theorem ValidTyHeadVariable.rename (r : Ren) :
-  ValidTyHeadVariable t test -> ValidTyHeadVariable t[r] test
+  Ty.HeadVariable t test -> Ty.HeadVariable t[r] test
 := by
   intro j; cases j; case _ u e =>
   rcases u with ⟨x, sp⟩
@@ -237,45 +237,45 @@ theorem ValidTyHeadVariable.rename (r : Ren) :
   have lem := Ty.Spine.apply_eq e1
   rw [lem]; simp
 
-theorem StableTypeMatch.rename Δr (r : Ren) :
-  StableTypeMatch Δ A B ->
-  StableTypeMatch Δr A[r] B[r]
-:= by
-  intro j
-  induction j generalizing Δr r
-  case refl R x Δ j =>
-    rcases x with ⟨x, sp⟩
-    apply refl (x := (x, sp.map (·[r])))
-    have lem := Ty.Spine.apply_eq j
-    rw [lem]; simp
-  case arrow j ih =>
-    simp; apply arrow
-    apply ih _ _
-  case all K Δ B R j ih =>
-    simp; apply all
-    replace ih := ih (K::Δr) r.lift
-    simp at ih
-    simp; grind
+-- theorem StableTypeMatch.rename Δr (r : Ren) :
+--   StableTypeMatch Δ A B ->
+--   StableTypeMatch Δr A[r] B[r]
+-- := by
+--   intro j
+--   induction j generalizing Δr r
+--   case refl R x Δ j =>
+--     rcases x with ⟨x, sp⟩
+--     apply refl (x := (x, sp.map (·[r])))
+--     have lem := Ty.Spine.apply_eq j
+--     rw [lem]; simp
+--   case arrow j ih =>
+--     simp; apply arrow
+--     apply ih _ _
+--   case all K Δ B R j ih =>
+--     simp; apply all
+--     replace ih := ih (K::Δr) r.lift
+--     simp at ih
+--     simp; grind
 
-theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty} :
-  PrefixTypeMatch Δ A B C ->
-  PrefixTypeMatch Δr A[r] B[r] C[r]
-:= by
-  intro j
-  induction j generalizing Δr r
-  case refl B x Δ T j =>
-    rcases x with ⟨x, sp⟩
-    apply refl (x := (x, sp.map (·[r])))
-    have lem := Ty.Spine.apply_eq j
-    rw [lem]; simp
-  case arrow j ih =>
-    simp; apply arrow
-    apply ih _ _
-  case all K Δ B V T j ih =>
-    simp; apply all
-    replace ih := ih (K::Δr) r.lift
-    simp at ih
-    simp; grind
+-- theorem PrefixTypeMatch.rename Δr (r : Ren) {A : Ty} :
+--   PrefixTypeMatch Δ A B C ->
+--   PrefixTypeMatch Δr A[r] B[r] C[r]
+-- := by
+--   intro j
+--   induction j generalizing Δr r
+--   case refl B x Δ T j =>
+--     rcases x with ⟨x, sp⟩
+--     apply refl (x := (x, sp.map (·[r])))
+--     have lem := Ty.Spine.apply_eq j
+--     rw [lem]; simp
+--   case arrow j ih =>
+--     simp; apply arrow
+--     apply ih _ _
+--   case all K Δ B V T j ih =>
+--     simp; apply all
+--     replace ih := ih (K::Δr) r.lift
+--     simp at ih
+--     simp; grind
 
 theorem Ty.spine_rename (Δ Δr : List Kind) (r: Ren) (A : Ty) :
   (∀ i, Δ[i]? = Δr[r i]?) ->
@@ -357,6 +357,7 @@ theorem Typing.rename_type Δr (r : Ren) :
   case refl j =>
     apply refl
     apply Kinding.rename _ _ h j
+  case prj _ => sorry
   -- case sym j ih =>
   --   apply sym
   --   apply ih _ _ h
@@ -480,6 +481,7 @@ theorem Typing.rename Γr (r : Ren) :
   case cast j1 j2 ih1 ih2 =>
     sorry
   case refl j => apply refl j
+  case prj => sorry
   -- case sym j ih =>
   --   apply sym
   --   apply ih _ _ h
