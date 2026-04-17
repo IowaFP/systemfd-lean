@@ -51,31 +51,30 @@ def TyBindVariant.congr : TyBindVariant -> Bool
 | lamt => false
 | allc => true
 
--- def Sequ.append : List α -> Sequ α -> Sequ α
--- | [], s => s
--- | .cons hd tl, s => hd :: (append tl s)
+def Sequ.append : List α -> Fun.Sequ α -> Fun.Sequ α
+| [], s => s
+| .cons hd tl, s => hd :: (append tl s)
 
-def Fin.nat? : (n : Nat) -> Nat -> Option (Fin n)
-| 0, _ => none
-| n + 1, i => some $ Fin.ofNat (n + 1) i
+inductive Term.IsData : Vec Term m -> Vec Constructor m -> Prop where
+| nil : Term.IsData .nil .nil
+| cons :
+  Term.IsData ts cs ->
+  Vec.to_list t2.to = t2' ->
+  Term.IsData (Vec.cons (.dctor n c t1 t2) ts) (Vec.cons (c, t1, t2') cs)
 
-def Constructor.from_scrutinee : Term -> Option Constructor
-| .dctor _ c t1 t2 => some (c, t1, (Vec.to_list t2.to))
-| _ => none
+def Constructor.subst : Vec Constructor m -> Subst Term
+| .nil => +0
+| .cons (_, _, ts) v => Sequ.append (ts.map su) (Constructor.subst v)
 
-def Constructor.from_scrutinees (ss : Vec Term m) : Option $ List Constructor :=
-  List.mapM Constructor.from_scrutinee (Vec.to_list ss)
+def Pattern.match_component : Constructor -> (String × List Ty × Nat) -> Option (List $ Subst.Action Term)
+| (c1, _, t2), (c2, _) => if c1 == c2 then some $ t2.map su else none
 
-def Pattern.match : (Constructor × (String × List Ty × Nat)) -> Option (List $ Subst.Action Term)
-| ((c1, _, t2), (c2, _)) => if c1 == c2 then some $ t2.map su else none
-
-def Pattern.parallel_match n (ss : List Constructor) : Pattern m × Nat -> Option (Subst Term × Fin n)
-| (p, i) => do
-  let ℓ : List (Constructor × (String × List Ty × Nat)) := List.zip ss (Vec.to_list p)
-  let σs <- List.mapM Pattern.match ℓ
-  let i <- Fin.nat? n i
-  let σ := List.foldr Fun.Sequ.cons +0 (List.flatten σs)
-  return (σ, i)
+inductive Pattern.Match : Vec Constructor m -> Pattern m -> Prop
+| nil : Pattern.Match .nil .nil
+| cons :
+  (Pattern.match_component c p).isSome ->
+  Pattern.Match cs ps ->
+  Pattern.Match (Vec.cons c cs) (Vec.cons p ps)
 
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
@@ -100,8 +99,9 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Data Matching
 ----------------------------------------------------------------
 | data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
-  Constructor.from_scrutinees ss.to = some ctors ->
-  List.firstM (Pattern.parallel_match n ctors) (List.zipIdx (Vec.to_list ps.to)) = some (σ, i) ->
+  Term.IsData ss.to ctors ->
+  Pattern.Match ctors (ps i) ->
+  Constructor.subst ctors = σ ->
   Red G (.mtch m n ss ps bs) (bs i)[σ]
 ----------------------------------------------------------------
 ---- Guard Matching
