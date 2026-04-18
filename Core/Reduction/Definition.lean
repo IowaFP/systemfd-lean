@@ -72,9 +72,8 @@ def Pattern.match_component : Constructor -> (String × List Ty × Nat) -> Optio
 inductive Pattern.Match : Vec Constructor m -> Pattern m -> Prop
 | nil : Pattern.Match .nil .nil
 | cons :
-  (Pattern.match_component c p).isSome ->
   Pattern.Match cs ps ->
-  Pattern.Match (Vec.cons c cs) (Vec.cons p ps)
+  Pattern.Match ((q, As, ts)::cs) ((q, Bs, n)::ps)
 
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------

@@ -17,17 +17,6 @@ open LeanSubst
 
 namespace Core
 
-
--- ξ : Vect n✝ (List Ty)
--- j1 : ∀ (i : Fin m✝), G&Δ,Γ ⊢ ss✝ i : S✝ i
--- j2 : ∀ (i : Fin n✝), PatternBinders S✝ (ps✝ i) (ξ i)
--- j3 : ∀ (i : Fin n✝), G&Δ,(ξ i ++ Γ) ⊢ ts✝ i : T
--- ctors✝ : List Constructor
--- σ : Subst Term
--- i : Fin n✝
--- h1 : Constructor.from_scrutinees ss✝ = some ctors✝
--- h2 : List.firstM (Pattern.parallel_match n✝ ctors✝) (↑ps✝).zipIdx = some (σ, i)
-
 def List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : Nat) (h : k < ℓ.length), f ℓ[k] = some t
 | .nil, h => by injection h
 | .cons hd tl, h => by
@@ -40,39 +29,41 @@ def List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : Nat)
 def PatternBinders.subst {ss S : Fun.Vec _ m} {ps : Fun.Vec (Pattern m) n} :
   (∀ i, G&Δ,Γ ⊢ ss i : S i) ->
   PatternBinders m S (ps i) ξ ->
-  Constructor.from_scrutinees ss.to = some ctors ->
-  List.firstM (Pattern.parallel_match n ctors) (Vec.to_list ps.to).zipIdx = some (σ, i) ->
+  Term.IsData ss.to ctors ->
+  Pattern.Match ctors (ps i) ->
+  Constructor.subst ctors = σ ->
   ∀ j A b, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γ ⊢ σ j : A
 := by
-  intro h1 h2 h3 h4 j A b j1 j2
-  replace h4 := List.firstM_eq_some h4
-  rcases h4 with ⟨k, h, h4⟩
-  unfold Pattern.parallel_match at h4; simp at h4
-  replace h4 := Option.bind_eq_some_iff.1 h4; rcases h4 with ⟨ℓ, q1, q2⟩
-  replace q2 := Option.bind_eq_some_iff.1 q2; rcases q2 with ⟨i, q2, q3⟩
-  simp at q3; rcases q3 with ⟨e1, e2⟩; subst e1 e2
-  have lem1 : ℓ.length = ctors.length := by sorry
-  have lem2 : ℓ.flatten.length = ξ.length := by sorry
-  have lem3 := Nat.decLe ξ.length j
-  rcases lem3 with lem3 | lem3
-  case _ =>
-    simp at lem3
-    replace j1 : ξ[j]? = some A := by grind
-    have lem4 : List.foldr Fun.Sequ.cons +0 ℓ.flatten j = ℓ.flatten[j] := sorry
-    rw [lem4]
-    sorry
-  case _ =>
-    replace j1 : Γ[j]? = some A := by sorry
-    have lem4 : List.foldr Fun.Sequ.cons +0 ℓ.flatten j = +0 j := sorry
-    rw [lem4]; simp; apply Typing.var j1 j2
+  sorry
+  -- intro h1 h2 h3 h4 j A b j1 j2
+  -- replace h4 := List.firstM_eq_some h4
+  -- rcases h4 with ⟨k, h, h4⟩
+  -- unfold Pattern.parallel_match at h4; simp at h4
+  -- replace h4 := Option.bind_eq_some_iff.1 h4; rcases h4 with ⟨ℓ, q1, q2⟩
+  -- replace q2 := Option.bind_eq_some_iff.1 q2; rcases q2 with ⟨i, q2, q3⟩
+  -- simp at q3; rcases q3 with ⟨e1, e2⟩; subst e1 e2
+  -- have lem1 : ℓ.length = ctors.length := by sorry
+  -- have lem2 : ℓ.flatten.length = ξ.length := by sorry
+  -- have lem3 := Nat.decLe ξ.length j
+  -- rcases lem3 with lem3 | lem3
+  -- case _ =>
+  --   simp at lem3
+  --   replace j1 : ξ[j]? = some A := by grind
+  --   have lem4 : List.foldr Fun.Sequ.cons +0 ℓ.flatten j = ℓ.flatten[j] := sorry
+  --   rw [lem4]
+  --   sorry
+  -- case _ =>
+  --   replace j1 : Γ[j]? = some A := by sorry
+  --   have lem4 : List.foldr Fun.Sequ.cons +0 ℓ.flatten j = +0 j := sorry
+  --   rw [lem4]; simp; apply Typing.var j1 j2
 
 -- set_option maxHeartbeats 800000
 def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
 -- | var j1 j2, r => sorry
 | .global j1 j2, r => sorry
 -- | .dctor j1 j2 j3 j4, r => sorry
-| .mtch (ξ := ξ) j1 j2 j3 j4 j5, .data_match (σ := σ) (i := i) h1 h2 =>
-  let lem := PatternBinders.subst j1 (j3 i) h1 h2
+| .mtch (ξ := ξ) j1 j2 j3 j4 j5, .data_match (σ := σ) (i := i) h1 h2 h3 =>
+  let lem := PatternBinders.subst j1 (j3 i) h1 h2 h3
   Typing.subst Γ σ wf lem (j4 i)
 | .mtch j1 j2 j3 j4 j5, .match_congr i h1 h2 => sorry
 -- | .lam j1 j2, r => sorry

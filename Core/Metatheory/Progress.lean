@@ -2,6 +2,7 @@ import Core.Term
 import Core.Reduction
 import Core.Typing
 
+open Lilac
 open LeanSubst
 
 namespace Core
@@ -18,13 +19,63 @@ theorem split_all_or_left : ∀ {n} {A B : Fin n -> Prop}, (∀ i, A i ∨ B i) 
     | Or.inr h2 => Or.inr ⟨0, h2⟩
   | Or.inr ⟨k, lem'⟩ => Or.inr ⟨k.succ, lem'⟩
 
+-- ∀ (i : Fin m✝), G&Δ,Γ ⊢ ss i : S✝ i
+-- j2 : ∀ (i : Fin m✝), Ty.datatype? G (S✝ i)
+
+@[simp]
+def Constructor.query : Vec Constructor n -> Vec String n
+| .nil => .nil
+| .cons (s, _, _) tl => .cons s (Constructor.query tl)
+
+theorem Constructor.query_nil : {c : Vec Constructor 0} -> query c = .nil -> c = .nil
+| .nil, _ => rfl
+
+theorem Constructor.query_cons {qs : Vec _ _} :
+  {c : Vec Constructor (n + 1)} ->
+  query c = q::qs ->
+  ∃ As ts, ∃ (cs : Vec _ _), c = (q,As,ts)::cs ∧ query cs = qs
+| .cons (s, As, ts) tl, e =>
+  have lem : s = q ∧ query tl = qs := by simp at e; exact e
+  ⟨As, ts, tl, by rw [lem.1]; rfl, lem.2⟩
+
+theorem progress_match_ctors {S ss : Fun.Vec _ _} :
+  (∀ (i : Fin m), G&Δ,Γ ⊢ ss i : S i) ->
+  (∀ (i : Fin m), Ty.datatype? G (S i)) ->
+  (∀ (i : Fin m), Value G (ss i)) ->
+  ∃ ctors, Term.IsData ss.to ctors ∧ Query G (Constructor.query ctors) S.to
+:= by
+  intro h1 h2 h3
+  generalize zdef : ss.to = z at *
+  induction z
+  case nil => sorry
+  case cons n hd tl ih =>
+    have lem1 := h1 0
+    have lem2 := h2 0
+    have lem3 := h3 0
+
+    sorry
+
+theorem query_match_implies_pattern_match :
+  Constructor.query c = q ->
+  Query.Match q p ->
+  Pattern.Match c p
+| e, .nil => Pattern.Match.nil |> cast (by rw [Constructor.query_nil e])
+| e, .cons (ts := Bs) (n := n) tl =>
+  let ⟨As, ts, cs, h1, h2⟩ := Constructor.query_cons e
+  let tl' := query_match_implies_pattern_match h2 tl
+  by rw [h1]; apply Pattern.Match.cons tl'
+
 theorem progress : G&Δ,Γ ⊢ t : T -> Γ = [] -> Value G t ∨ ∃ t', G ⊢ t ~> t'
 | .dctor j1 j2 j3 j4 j5, e => Or.inl Value.dctor
 | .mtch (ss := ss) j1 j2 j3 j4 j5, e =>
   let j1' := λ i => progress (j1 i) e
   match split_all_or_left j1' with
   | Or.inl vs =>
-    sorry
+    let ⟨ctors, h1, h2⟩ := progress_match_ctors j1 j2 vs
+    let ⟨i, h3⟩ := j5 h2
+    let lem1 := query_match_implies_pattern_match rfl h3
+    let σ := Constructor.subst ctors
+    Or.inr ⟨_, .data_match (σ := σ) h1 lem1 rfl⟩
   | Or.inr ⟨i, t', r⟩ =>
     let ss' := Fun.Vec.update ss t' i
     let r' : G ⊢ ss i ~> ss' i := by subst ss'; simp; exact r
