@@ -3,7 +3,7 @@ import Core.Term.Definition
 
 namespace Core
 def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
-| zero, zero => true
+| fail, fail => true
 | refl A, refl B => A == B
 | _, _ => false
 
@@ -20,7 +20,6 @@ instance instLawfulBEq_CtorVariant : LawfulBEq Ctor0Variant where
     all_goals (induction b <;> simp at *)
 
 def Ctor1Variant.beq : Ctor1Variant -> Ctor1Variant -> Bool
-| sym, sym => true
 | prj n1, prj n2 => n1 == n2
 | appt a, appt b => a == b
 | _, _ => false
@@ -41,11 +40,7 @@ instance instLawfulBEq_Ctor1Variant : LawfulBEq Ctor1Variant where
 def Ctor2Variant.beq : Ctor2Variant -> Ctor2Variant -> Bool
 | app b1, app b2 => b1 == b2
 | cast, cast => true
-| seq, seq => true
-| appc, appc => true
 | apptc, apptc => true
-| arrowc, arrowc => true
-| choice, choice => true
 | _, _ => false
 
 instance instBEq_Ctor2Variant : BEq Ctor2Variant where
@@ -81,13 +76,12 @@ instance instLawfulBEq_TyBindVariant : LawfulBEq TyBindVariant where
 
 def Term.beq : Term -> Term -> Bool
 | var x, var y => x == y
-| global x, global y => x == y
+| defn x, defn y => x == y
 | ctor0 c1, ctor0 c2 => c1 == c2
 | ctor1 c1 a1, ctor1 c2 a2 => c1 == c2 && beq a1 a2
 | ctor2 c1 a1 b1, ctor2 c2 a2 b2 => c1 == c2 && beq a1 a2 && beq b1 b2
 | tbind A1 K1 t1, tbind A2 K2 t2 => A1 == A2 && K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
-| guard a1 b1 c1, guard a2 b2 c2 => beq a1 a2 && beq b1 b2 && beq c1 c2
 -- | .mtch n1 a1 b1 c1 d1, .mtch n2 a2 b2 c2 d2 => true -- TODO: Fix
   -- if h : n1 = n2 then
   --   let c : Vect n1 Bool := λ i => beq (c1 i) (c2 (by rw [h] at i; exact i))

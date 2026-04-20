@@ -12,7 +12,7 @@ inductive Global : Type where
 | opent : String -> Kind -> Global
 | openm : String -> Ty -> Global
 | defn : String -> Ty -> Term -> Global
-| inst : String -> Term -> Global
+| inst : String -> Pattern m -> Term -> Global
 | instty : String -> Ty -> Global
 
 def Global.repr (p : Nat) : (a : Global) -> Std.Format

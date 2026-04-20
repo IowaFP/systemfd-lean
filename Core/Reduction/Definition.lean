@@ -13,7 +13,9 @@ def OpenVarVal (G : List Global) (x : String) (sp : List SpineElem) : Prop :=
 
 inductive Value (G : List Global) : Term -> Prop where
 -- | var : Value G #x
-| dctor : Value G (.dctor n s tys ts)
+| spctor :
+  v ≠ .openm ->
+  Value G (.spctor v s tys ts)
 -- | app : Value G f -> Value G (f •(b) a)
 -- | app :
 --   t.spine = some (x, sp) ->
@@ -29,22 +31,14 @@ inductive Value (G : List Global) : Term -> Prop where
 def Ctor2Variant.congr1 : Ctor2Variant -> Bool
 | app _ => true
 | cast => false
-| seq => true
-| appc => true
 | apptc => true
-| arrowc => true
-| choice => true
 
 @[simp]
 def Ctor2Variant.congr2 : Ctor2Variant -> Bool
 | app .closed => false
 | app .open => true
 | cast => true
-| seq => true
-| appc => true
 | apptc => true
-| arrowc => true
-| choice => true
 
 @[simp]
 def TyBindVariant.congr : TyBindVariant -> Bool
@@ -55,12 +49,12 @@ def Sequ.append : List α -> Fun.Sequ α -> Fun.Sequ α
 | [], s => s
 | .cons hd tl, s => hd :: (append tl s)
 
-inductive Term.IsData : Vec Term m -> Vec Constructor m -> Prop where
-| nil : Term.IsData .nil .nil
+inductive Term.IsData v : Vec Term m -> Vec Constructor m -> Prop where
+| nil : Term.IsData v .nil .nil
 | cons :
-  Term.IsData ts cs ->
   Vec.to_list t2.to = t2' ->
-  Term.IsData (Vec.cons (.dctor n c t1 t2) ts) (Vec.cons (c, t1, t2') cs)
+  Term.IsData v ts cs ->
+  Term.IsData v (Vec.cons (.spctor v c t1 t2) ts) (Vec.cons (c, t1, t2') cs)
 
 def Constructor.subst : Vec Constructor m -> Subst Term
 | .nil => +0
@@ -98,10 +92,13 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Data Matching
 ----------------------------------------------------------------
 | data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
-  Term.IsData ss.to ctors ->
+  Term.IsData .cdata ss.to ctors ->
   Pattern.Match ctors (ps i) ->
   Constructor.subst ctors = σ ->
   Red G (.mtch m n ss ps bs) (bs i)[σ]
+| openm_match {ss : Fun.Vec Term m} :
+  Term.IsData .odata ss.to ctors ->
+  Red G (openm! x Ts ss) (ss i)
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -132,7 +129,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 | defn :
   lookup_defn G x = some t ->
-  Red G g#x t
+  Red G d#x t
 ----------------------------------------------------------------
 ---- Congruence Rules
 ----------------------------------------------------------------
@@ -154,6 +151,10 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 -- | guard_congr :
 --   Red G s s' ->
 --   Red G (.guard p s b) (.guard p s' b)
+| openm_congr {ss : Fun.Vec Term n} i :
+  Red G (ss i) (ss' i) ->
+  (∀ j ≠ i, ss j = ss' j) ->
+  Red G (openm! x Ts ss) (openm! x Ts ss')
 | match_congr {ss : Fun.Vec Term m} i :
   Red G (ss i) (ss' i) ->
   (∀ j ≠ i, ss j = ss' j) ->
