@@ -153,18 +153,18 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
   G&Δσ,Γ.map (·[σ]) ⊢ t[σ:Ty] : A[σ]
 := by
   intro wf h j; induction j generalizing Δσ σ <;> simp
-  case var Γ x A Δ K j1 j2 =>
-    apply var; simp
-    apply Exists.intro _
-    apply And.intro j1 rfl
-    apply Kinding.subst _ σ h j2
+  case var => sorry
+    -- apply var; simp
+    -- apply Exists.intro _
+    -- apply And.intro j1 rfl
+    -- apply Kinding.subst _ σ h j2
   case global j1 j2 =>
     have lem := GlobalWf.closed (σ := σ) wf j1; simp at lem
     rw[lem]
     replace j2 := Kinding.subst Δσ σ h j2; simp at j2;
     rw [lem] at j2;
     apply global j1 j2
-  case dctor => sorry
+  case spctor => sorry
   case mtch => sorry
   -- case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
   --   apply mtch (CTy := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
@@ -246,9 +246,9 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     apply ih2 _ _ h
     rw [j3]; simp
     rw [j4]; simp
-  case zero j =>
-    apply zero
-    apply Kinding.subst _ _ h j
+  -- case zero j =>
+  --   apply zero
+  --   apply Kinding.subst _ _ h j
   -- case choice j1 j2 j3 ih1 ih2 =>
   --   apply choice
   --   apply Kinding.subst _ _ h j1
@@ -270,51 +270,51 @@ theorem Typing.beta_type :
 
 theorem Typing.subst_lift_type {Γ Γσ : List Ty} {σ : Subst Term} T :
   ⊢ G ->
-  (∀ i A b, Γ[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γσ ⊢ σ i : A) ->
-  ∀ i A b, (Γ.map (·[+1]))[i]? = some A ->
-    G&(T::Δ) ⊢ A : .base b ->
+  (∀ i A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ i : A) ->
+  ∀ i A, (Γ.map (·[+1]))[i]? = some A ->
+    G&(T::Δ) ⊢ A : ★ ->
     G&(T::Δ),(Γσ.map (·[+1])) ⊢ (σ ◾ +1@Ty) i : A
-:= by
-  intro wf h1 i A b h2 h3
-  cases i <;> simp at *
-  case _ =>
-    rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h3 := Kinding.strengthening h3
-    replace h1 := h1 0 a b e1 h3
-    apply rename_type (T::Δ) (· + 1) wf _ h1
-    intro i; cases i <;> simp
-  case _ i =>
-    rcases h2 with ⟨a, e1, e2⟩; subst e2
-    replace h3 := Kinding.strengthening h3
-    replace h1 := h1 (i + 1) a b e1 h3
-    apply rename_type (T::Δ) (· + 1) wf _ h1
-    intro i; cases i <;> simp
+:= by sorry
+  -- intro wf h1 i A b h2 h3
+  -- cases i <;> simp at *
+  -- case _ =>
+  --   rcases h2 with ⟨a, e1, e2⟩; subst e2
+  --   replace h3 := Kinding.strengthening h3
+  --   replace h1 := h1 0 a b e1 h3
+  --   apply rename_type (T::Δ) (· + 1) wf _ h1
+  --   intro i; cases i <;> simp
+  -- case _ i =>
+  --   rcases h2 with ⟨a, e1, e2⟩; subst e2
+  --   replace h3 := Kinding.strengthening h3
+  --   replace h1 := h1 (i + 1) a b e1 h3
+  --   apply rename_type (T::Δ) (· + 1) wf _ h1
+  --   intro i; cases i <;> simp
 
 theorem Typing.subst_lift {Γ Γσ : List Ty} {σ : Subst Term} T :
   ⊢ G ->
-  (∀ i A b, Γ[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γσ ⊢ σ i : A) ->
-  ∀ i A b, (T::Γ)[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,(T::Γσ) ⊢ σ.lift 1 i : A
-:= by
-  intro wf h1 i A K h2 h3
-  cases i <;> simp at *
-  case _ =>
-    subst h2; apply var
-    simp; apply h3
-  case _ i =>
-    replace h1 := h1 i A K h2 h3
-    replace h1 := weaken T wf h1
-    simp at h1; exact h1
+  (∀ i A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ i : A) ->
+  ∀ i A, (T::Γ)[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,(T::Γσ) ⊢ σ.lift 1 i : A
+:= by sorry
+  -- intro wf h1 i A K h2 h3
+  -- cases i <;> simp at *
+  -- case _ =>
+  --   subst h2; apply var
+  --   simp; apply h3
+  -- case _ i =>
+  --   replace h1 := h1 i A K h2 h3
+  --   replace h1 := weaken T wf h1
+  --   simp at h1; exact h1
 
 theorem Typing.subst Γσ (σ : Subst Term) :
   ⊢ G ->
-  (∀ i A b, Γ[i]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γσ ⊢ σ i : A) ->
+  (∀ i A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ i : A) ->
   G&Δ,Γ ⊢ t : A ->
   G&Δ,Γσ ⊢ t[σ] : A
 := by
   intro wf h j; induction j generalizing Γσ σ <;> simp
-  case var Γ x A Δ K j1 j2 => apply h x A K j1 j2
+  case var => sorry
   case global j1 j2 => apply global j1 j2
-  case dctor => sorry
+  case spctor => sorry
   case mtch => sorry
   -- case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
   --   apply mtch (CTy := A) (PTy := PTy)
@@ -333,9 +333,9 @@ theorem Typing.subst Γσ (σ : Subst Term) :
   --   apply ih3 _ _ h
   --   apply ValidHeadVariable.subst σ j4
   --   apply j5; apply j6; apply j7
-  case lam Δ A b Γ t B j1 j2 ih =>
-    replace ih := ih (A::Γσ) σ.lift (subst_lift A wf h)
-    simp at ih; apply lam j1 ih
+  case lam => sorry
+    -- replace ih := ih (A::Γσ) σ.lift (subst_lift A wf h)
+    -- simp at ih; apply lam j1 ih
   case app j1 j2 j3 ih1 ih2 =>
     apply app
     assumption
@@ -381,7 +381,7 @@ theorem Typing.subst Γσ (σ : Subst Term) :
     apply ih2 _ _ h
     apply j3
     apply j4
-  case zero j => apply zero j
+  -- case zero j => apply zero j
   -- case choice j1 j2 j3 ih1 ih2 =>
   --   apply choice j1
   --   apply ih1 _ _ h
@@ -393,10 +393,11 @@ theorem Typing.beta :
   G&Δ,Γ ⊢ a : A ->
   G&Δ,Γ ⊢ t[su a::+0] : T
 := by
-  intro wf j1 j2
-  apply subst Γ (su a::+0) wf _ j1
-  intro i B K h1 h2
-  cases i <;> simp at *
-  case _ => subst h1; exact j2
-  case _ i => apply var h1 h2
+  sorry
+  -- intro wf j1 j2
+  -- apply subst Γ (su a::+0) wf _ j1
+  -- intro i B K h1 h2
+  -- cases i <;> simp at *
+  -- case _ => subst h1; exact j2
+  -- case _ i => apply var h1 h2
 end Core

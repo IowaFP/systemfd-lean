@@ -27,10 +27,16 @@ inductive Telescope where
 | kind : Kind -> Telescope -> Telescope
 | ty : Ty -> Telescope -> Telescope
 
+def Ty.kindscope : Ty -> List Kind × Ty
+| .all K T =>
+  let (Ks, R) := T.kindscope
+  (K::Ks, R)
+| T => (.nil, T)
+
 def Ty.typescope : (n : Nat) -> Ty -> Option (Vec Ty n × Ty)
 | n + 1, .arrow A B => do
   let (tys, b) <- B.typescope n
-  return (.cons A tys, b)
+  return (A::tys, b)
 | _ + 1, _ => none
 | 0, t => some (.nil, t)
 

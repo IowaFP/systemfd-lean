@@ -29,15 +29,12 @@ inductive Value (G : List Global) : Term -> Prop where
 
 @[simp]
 def Ctor2Variant.congr1 : Ctor2Variant -> Bool
-| app _ => true
-| cast => false
+| app => true
 | apptc => true
 
 @[simp]
 def Ctor2Variant.congr2 : Ctor2Variant -> Bool
-| app .closed => false
-| app .open => true
-| cast => true
+| app => false
 | apptc => true
 
 @[simp]
@@ -73,7 +70,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
 ----------------------------------------------------------------
-| beta : Red G ((λ[A] b) •(s) t) b[su t::+0]
+| beta : Red G ((λ[A] b) • t) b[su t::+0]
 | betat : Red G ((Λ[A] b) •[t]) b[su t::+0:Ty]
 | cast : Red G (.cast R (refl! A) t) t
 -- | sym : Red G (sym! (refl! A)) (refl! A)
@@ -98,7 +95,10 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Red G (.mtch m n ss ps bs) (bs i)[σ]
 | openm_match {ss : Fun.Vec Term m} :
   Term.IsData .odata ss.to ctors ->
-  Red G (openm! x Ts ss) (ss i)
+  get_instance x i G = some ⟨m, p, b⟩ ->
+  Pattern.Match ctors p ->
+  Constructor.subst ctors = σ ->
+  Red G (openm! x Ts ss) b[σ]
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -136,18 +136,21 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | ctor1_congr :
   Red G t t' ->
   Red G (.ctor1 v t) (.ctor1 v t')
-| ctor2_congr1 :
-  v.congr1 ->
-  Red G t1 t1' ->
-  Red G (.ctor2 v t1 t2) (.ctor2 v t1' t2)
-| ctor2_congr2 :
-  v.congr2 ->
-  Red G t2 t2' ->
-  Red G (.ctor2 v t1 t2) (.ctor2 v t1 t2')
-| tbind_congr :
-  v.congr ->
+| apptc_congr1 :
+  Red G f f' ->
+  Red G (f •c[a]) (f' •c[a])
+| apptc_congr2 :
+  Red G a a' ->
+  Red G (f •c[a]) (f •c[a'])
+| app_congr :
+  Red G f f' ->
+  Red G (f • a) (f' • a)
+| allc_congr :
   Red G t t' ->
-  Red G (.tbind v K t) (.tbind v K t')
+  Red G (∀c[K] t) (∀c[K] t')
+| cast_congr :
+  Red G c c' ->
+  Red G (.cast R c t) (.cast R c' t)
 -- | guard_congr :
 --   Red G s s' ->
 --   Red G (.guard p s b) (.guard p s' b)

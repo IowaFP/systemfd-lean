@@ -44,16 +44,16 @@ theorem Kinding.closed_rep :
 theorem Kinding.closed : G&[] ⊢ A : K -> ∀ σ, A[σ] = A := by
   intro j; apply closed_rep j
 
-theorem ValidInstTy.closed : ValidInstTy G x Δ T -> ∃ b, G&Δ ⊢ T : .base b := by
-  intro h; induction h <;> simp at *
-  case _ => exists b◯
-  case _ ih =>
-    exists b★
-    constructor; assumption
-  case _ ih =>
-    cases ih; case _ b ih =>
-    exists b★
-    constructor; assumption; assumption
+theorem ValidInstTy.closed : ValidInstTy G x Δ T -> G&Δ ⊢ T : ★ := by sorry
+  -- intro h; induction h <;> simp at *
+  -- case _ => exists b◯
+  -- case _ ih =>
+  --   exists b★
+  --   constructor; assumption
+  -- case _ ih =>
+  --   cases ih; case _ b ih =>
+  --   exists b★
+  --   constructor; assumption; assumption
 
 theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
   intro j; cases j; case _ j => exact j
@@ -148,16 +148,16 @@ case var x K j =>
   apply Kinding.var
   rw[<-j]; assumption
 case global => apply Kinding.global; assumption
-case arrow A _ B _ _ _ ih1 ih2 =>
-  apply Kinding.arrow
-  apply ih1
-  · intro i h
-    replace h : i ∈ (A -:> B) := by apply Ty.FV.arrowr; assumption
-    revert i; apply h
-  apply ih2
-  · intro i h1
-    replace h1 : i ∈ (A -:> B) := by apply Ty.FV.arrowl; assumption
-    revert i; apply h
+case arrow => sorry
+  -- apply Kinding.arrow
+  -- apply ih1
+  -- · intro i h
+  --   replace h : i ∈ (A -:> B) := by apply Ty.FV.arrowr; assumption
+  --   revert i; apply h
+  -- apply ih2
+  -- · intro i h1
+  --   replace h1 : i ∈ (A -:> B) := by apply Ty.FV.arrowl; assumption
+  --   revert i; apply h
 case eq A K B _ _ ih1 ih2 =>
   apply Kinding.eq
   apply ih1
@@ -312,7 +312,7 @@ theorem Typing.rename_type Δr (r : Ren) :
     rw[lem]
     replace j2 := Kinding.rename Δr r h j2; simp at j2; rw [lem] at j2
     apply global j1 j2
-  case dctor => sorry
+  case spctor => sorry
   case mtch => sorry
   -- case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
   --   apply mtch (CTy := λ i => (A i)[r]) (PTy := λ i => (PTy i)[r])
@@ -397,9 +397,9 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply ih2 _ _ h
     rw [Ren.to_lift, j3]; simp
     rw [Ren.to_lift, j4]; simp
-  case zero j =>
-    apply zero
-    apply Kinding.rename _ _ h j
+  -- case zero j =>
+  --   apply zero
+  --   apply Kinding.rename _ _ h j
   -- case choice j1 j2 j3 ih1 ih2 =>
   --   apply choice
   --   apply Kinding.rename _ _ h j1
@@ -446,7 +446,7 @@ theorem Typing.rename Γr (r : Ren) :
   intro wf h j; induction j generalizing Γr r <;> simp
   case var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
   case global j1 j2 => apply Typing.global j1 j2
-  case dctor => sorry
+  case spctor => sorry
   case mtch => sorry
   -- case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
   --   apply mtch (CTy := A) (PTy := PTy)
@@ -465,10 +465,10 @@ theorem Typing.rename Γr (r : Ren) :
   --   apply ih3 _ _ h
   --   apply ValidHeadVariable.rename r j4
   --   apply j5; apply j6; apply j7
-  case lam Δ A b Γ t B j1 j2 ih =>
-    replace ih := ih (A::Γr) r.lift (rename_lift r A h)
-    rw [Ren.to_lift] at ih; simp at ih
-    apply lam j1 ih
+  case lam => sorry
+    -- replace ih := ih (A::Γr) r.lift (rename_lift r A h)
+    -- rw [Ren.to_lift] at ih; simp at ih
+    -- apply lam j1 ih
   case app j1 j2 j3 ih1 ih2 =>
     apply app j1
     apply ih1 _ _ h
@@ -514,7 +514,7 @@ theorem Typing.rename Γr (r : Ren) :
     apply ih2 _ _ h
     apply j3
     apply j4
-  case zero j => apply zero j
+  -- case zero j => apply zero j
   -- case choice j1 j2 j3 ih1 ih2 =>
   --   apply choice j1
   --   apply ih1 _ _ h

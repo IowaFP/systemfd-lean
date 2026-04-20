@@ -21,8 +21,7 @@ inductive Ctor1Variant : Type where
 | appt (a : Ty)
 
 inductive Ctor2Variant : Type where
-| app (b : BaseKind)
-| cast
+| app
 | apptc
 
 inductive TyBindVariant : Type where
@@ -67,8 +66,8 @@ notation f " •[" a "]" => Term.ctor1 (Ctor1Variant.appt a) f
 
 -- ctor2 notation
 notation:70 f " •(" b ") " a:70 => Term.ctor2 (Ctor2Variant.app b) f a
-notation:70 f " • " a:70 => Term.ctor2 (Ctor2Variant.app BaseKind.closed) f a
-notation f " ∘[" a "]" => Term.ctor2 (Ctor2Variant.app BaseKind.open) f a
+notation:70 f " • " a:70 => Term.ctor2 Ctor2Variant.app f a
+-- notation f " ∘[" a "]" => Term.ctor2 (Ctor2Variant.app BaseKind.open) f a
 notation t " ▹ " c => Term.ctor2 Ctor2Variant.cast t c
 notation f " •c[" a "]" => Term.ctor2 Ctor2Variant.apptc f a
 
@@ -107,12 +106,12 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .ctor0 .fail => "fail!"
 | .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"
 | .ctor1 (.appt τ) t => Repr.addAppParen (Term.repr max_prec t ++ " •[" ++ repr τ ++ "]") p
-| .ctor2 (.app .closed) t1 t2 =>
+| .ctor2 .app t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++Term.repr p t2) p
-| .ctor2 (.app .open) t1 t2 =>
-  Repr.addAppParen (Term.repr max_prec t1 ++ " ∘" ++ Std.Format.sbracket (Term.repr p t2)) p
-| .ctor2 .cast t1 t2 =>
-  Repr.addAppParen ((Term.repr max_prec t1 ++ " • " ++ Term.repr p t2)) p
+-- | .ctor2 (.app .open) t1 t2 =>
+--   Repr.addAppParen (Term.repr max_prec t1 ++ " ∘" ++ Std.Format.sbracket (Term.repr p t2)) p
+-- | .ctor2 .cast t1 t2 =>
+--   Repr.addAppParen ((Term.repr max_prec t1 ++ " • " ++ Term.repr p t2)) p
 | .ctor2 .apptc t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++
   Std.Format.line ++ " •c" ++ Std.Format.sbracket (Term.repr p t2)) p

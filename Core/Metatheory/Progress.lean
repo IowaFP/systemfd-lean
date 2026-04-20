@@ -42,12 +42,15 @@ theorem progress_match_ctors {S ss : Fun.Vec _ _} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss i : S i) ->
   (∀ (i : Fin m), Ty.datatype? G (S i)) ->
   (∀ (i : Fin m), Value G (ss i)) ->
-  ∃ ctors, Term.IsData ss.to ctors ∧ Query G (Constructor.query ctors) S.to
+  ∃ ctors, Term.IsData .cdata ss.to ctors ∧ Query G (Constructor.query ctors) S.to
 := by
   intro h1 h2 h3
   generalize zdef : ss.to = z at *
   induction z
-  case nil => sorry
+  case nil =>
+    exists Vec.nil; apply And.intro
+    apply Term.IsData.nil
+    simp; apply Query.nil
   case cons n hd tl ih =>
     have lem1 := h1 0
     have lem2 := h2 0
@@ -65,8 +68,21 @@ theorem query_match_implies_pattern_match :
   let tl' := query_match_implies_pattern_match h2 tl
   by rw [h1]; apply Pattern.Match.cons tl'
 
-theorem progress : G&Δ,Γ ⊢ t : T -> Γ = [] -> Value G t ∨ ∃ t', G ⊢ t ~> t'
-| .dctor j1 j2 j3 j4 j5, e => Or.inl Value.dctor
+theorem progress :
+  G&Δ,Γ ⊢ t : T ->
+  Γ = [] ->
+  Value G t ∨ ∃ t', G ⊢ t ~> t'
+| .spctor (v := .cdata) j1 j2 j3 j4 j5 j6, e => Or.inl $ Value.spctor (by simp)
+| .spctor (v := .odata) j1 j2 j3 j4 j5 j6, e => Or.inl $ Value.spctor (by simp)
+| .spctor (v := .openm) (ts := ts) j1 j2 j3 j4 j5 j6, e =>
+  let j4' := λ i => progress (j4 i) e
+  match split_all_or_left j4' with
+  | Or.inl vs =>
+    sorry
+  | Or.inr ⟨i, t', r⟩ =>
+    let ts' := Fun.Vec.update ts t' i
+    let r' : G ⊢ ts i ~> ts' i := by subst ts'; simp; exact r
+    Or.inr ⟨_, .openm_congr i r' Fun.Vec.update_neq⟩
 | .mtch (ss := ss) j1 j2 j3 j4 j5, e =>
   let j1' := λ i => progress (j1 i) e
   match split_all_or_left j1' with
@@ -85,11 +101,16 @@ theorem progress : G&Δ,Γ ⊢ t : T -> Γ = [] -> Value G t ∨ ∃ t', G ⊢ t
 | .lamt j1 j2, e => Or.inl Value.lamt
 | .appt j1 j2 j3, e => sorry
 | .refl j, e => Or.inl Value.refl
-| .cast j1 j2 j3 e1, e2 => sorry
+| .cast (R := R) (t := t) j1 j2 j3 e1, e2 =>
+  match progress j2 e2 with
+  | Or.inl v =>
+    match v, j2 with
+    | .refl, .refl j4 => Or.inr ⟨t, .cast⟩
+    | .spctor h, j4 => sorry -- by inversion on j4
+  | Or.inr ⟨c', r⟩ => Or.inr ⟨.cast R c' t, .cast_congr r⟩
 | .prj j1 j2, e => sorry
 | .allc j1, e => sorry
 | .apptc j1 j2 e1 e2, e3 => sorry
-| .zero j, e => sorry
 | _, _ => sorry
 
 -- theorem progress_lemma :

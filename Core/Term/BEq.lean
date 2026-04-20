@@ -38,8 +38,7 @@ instance instLawfulBEq_Ctor1Variant : LawfulBEq Ctor1Variant where
 
 
 def Ctor2Variant.beq : Ctor2Variant -> Ctor2Variant -> Bool
-| app b1, app b2 => b1 == b2
-| cast, cast => true
+| app, app => true
 | apptc, apptc => true
 | _, _ => false
 

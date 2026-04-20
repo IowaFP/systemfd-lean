@@ -29,10 +29,10 @@ def List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : Nat)
 def PatternBinders.subst {ss S : Fun.Vec _ m} {ps : Fun.Vec (Pattern m) n} :
   (∀ i, G&Δ,Γ ⊢ ss i : S i) ->
   PatternBinders m S (ps i) ξ ->
-  Term.IsData ss.to ctors ->
+  Term.IsData .cdata ss.to ctors ->
   Pattern.Match ctors (ps i) ->
   Constructor.subst ctors = σ ->
-  ∀ j A b, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : .base b -> G&Δ,Γ ⊢ σ j : A
+  ∀ j A, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γ ⊢ σ j : A
 := by
   sorry
   -- intro h1 h2 h3 h4 j A b j1 j2
@@ -57,21 +57,21 @@ def PatternBinders.subst {ss S : Fun.Vec _ m} {ps : Fun.Vec (Pattern m) n} :
   --   have lem4 : List.foldr Fun.Sequ.cons +0 ℓ.flatten j = +0 j := sorry
   --   rw [lem4]; simp; apply Typing.var j1 j2
 
--- set_option maxHeartbeats 800000
+set_option maxHeartbeats 800000
 def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
--- | var j1 j2, r => sorry
 | .global j1 j2, r => sorry
--- | .dctor j1 j2 j3 j4, r => sorry
 | .mtch (ξ := ξ) j1 j2 j3 j4 j5, .data_match (σ := σ) (i := i) h1 h2 h3 =>
   let lem := PatternBinders.subst j1 (j3 i) h1 h2 h3
   Typing.subst Γ σ wf lem (j4 i)
 | .mtch j1 j2 j3 j4 j5, .match_congr i h1 h2 => sorry
--- | .lam j1 j2, r => sorry
-| .app j1 j2 j3, r => sorry
--- | .lamt j1 j2, r => sorry
-| .appt j1 j2 e, r => sorry
--- | .refl j, r => sorry
+| .spctor j1 j2 j3 j4 j5 j6, .openm_match h1 h2 h3 h4 => sorry
+| .spctor j1 j2 j3 j4 j5 j6, .openm_congr i h1 h2 => sorry
+| .app j1 j2 j3, .beta => sorry
+| .app j1 j2 j3, .app_congr r => sorry
+| .appt j1 j2 e, .betat => sorry
+| .appt j1 j2 e, .ctor1_congr r => sorry
 | .cast j1 (.refl j2) j3 e, .cast => j3 |> cast (by rw [e])
+| .cast j1 j2 j3 e, .cast_congr r => sorry
 | .prj (.refl $ .app j1 j2) (.fst_app j3), .prj_fst_app => .refl j3
 | .prj (.refl $ .app j1 j2) (.snd_app j3), .prj_snd_app => .refl j3
 | .prj (.refl $ .arrow j1 j2) (.fst_arrow j3), .prj_fst_arr => .refl j3
@@ -79,12 +79,12 @@ def preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,
 | .prj j1 j2, (.ctor1_congr r) =>
   let j1' := preservation_step wf j1 r
   .prj j1' j2
-| .allc j, r => sorry
-| .apptc j1 j2 e1 e2, r => sorry
+| .allc j, .allc => sorry
+| .allc j, .allc_congr r => sorry
+| .apptc j1 j2 e1 e2, .apptc => sorry
+| .apptc j1 j2 e1 e2, .apptc_congr1 r => sorry
+| .apptc j1 j2 e1 e2, .apptc_congr2 r => sorry
 | _, _ => sorry
--- | _, _ => sorry
--- | .zero j, r => sorry
-
 
 
 -- theorem preservation_lemma :

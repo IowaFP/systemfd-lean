@@ -27,7 +27,7 @@ def Global.repr (p : Nat) : (a : Global) -> Std.Format
 | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
 | .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
-| .inst n t => ".inst " ++ n ++ " " ++  t.repr max_prec
+| .inst n _ t => ".inst " ++ n ++ " " ++  t.repr max_prec
 | .instty n T => ".instTy" ++ n ++ " " ++  T.repr max_prec
 
 @[simp]
@@ -92,6 +92,12 @@ def Entry.type : Entry -> Option Ty
 | instty _ T => T
 | _ => none
 
+def Entry.spctor_type : Entry -> Option Ty
+| ctor _ _ T => T
+| instty _ T => T
+| openm _ T => T
+| _ => none
+
 def Entry.datatype : Entry -> Option Ty
 | ctor _ _ T => T
 | instty _ T => T
@@ -111,7 +117,7 @@ def lookup (x : String) : List Global -> Option Entry
   if x == y then return .openm y a else lookup x tl
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.inst _ _) tl => lookup x tl
+| .cons (.inst _ _ _) tl => lookup x tl
 | .cons (.instty y a) tl =>
   if x == y then return .instty y a else lookup x tl
 
@@ -120,11 +126,20 @@ def Global.ctor? (G : List Global) (ctor : String) (datatype : String) : Bool :=
   | some (.data _ _ ctors) => List.contains (List.map Prod.fst (Vec.to_list ctors)) ctor
   | _ => false
 
-def instances (x : String) : List Global -> List Term
-| [] => []
-| .cons (.inst y t) tl =>
-  if x == y then t :: instances x tl else instances x tl
-| .cons _ tl => instances x tl
+def get_instance (x : String) : Nat -> List Global -> Option ((m : Nat) × Pattern m × Term)
+| _, .nil => none
+| 0, .cons (.inst (m := m) y p b) _ =>
+  if x == y then some ⟨m, p, b⟩ else none
+| n + 1, .cons (.inst y _ _) G =>
+  if x == y then get_instance x n G
+  else get_instance x (n + 1) G
+| n, .cons _ G => get_instance x n G
+
+-- def instances (x : String) : List Global -> List Term
+-- | [] => []
+-- | .cons (.inst y t) tl =>
+--   if x == y then t :: instances x tl else instances x tl
+-- | .cons _ tl => instances x tl
 
 def lookup_defn G x := do
   let t <- lookup x G
@@ -134,7 +149,7 @@ def lookup_defn G x := do
 
 def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.get!
 def lookup_type G x := lookup x G |> Option.map Entry.type |> Option.get!
-def lookup_datatype G x := lookup x G |> Option.map Entry.datatype |> Option.get!
+def lookup_spctor_type G x := lookup x G |> Option.map Entry.spctor_type |> Option.get!
 def is_ctor G x := lookup x G |> Option.map Entry.is_ctor |> Option.get!
 def is_data G x := lookup x G |> Option.map Entry.is_data |> Option.get!
 def is_instty G x := lookup x G |> Option.map Entry.is_instty |> Option.get!
