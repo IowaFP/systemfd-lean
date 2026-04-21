@@ -30,7 +30,7 @@ cases h; case _ h1 h2 =>
 theorem ValidTyHeadVariable.no_valid_head_with_arrow :
   ¬ Ty.HeadVariable (A -:> B) test
 := by
-intro h; unfold Ty.HeadVariable at h
+intro h; unfold Ty.HeadVariable at h P
 cases h; case _ x h =>
 cases h; case _ h1 h2 =>
   simp [Ty.spine] at h1

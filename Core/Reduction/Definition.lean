@@ -154,10 +154,10 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 -- | guard_congr :
 --   Red G s s' ->
 --   Red G (.guard p s b) (.guard p s' b)
-| openm_congr {ss : Fun.Vec Term n} i :
-  Red G (ss i) (ss' i) ->
-  (∀ j ≠ i, ss j = ss' j) ->
-  Red G (openm! x Ts ss) (openm! x Ts ss')
+| openm_congr {ts : Fun.Vec Term n} i :
+  Red G (ts i) (ts' i) ->
+  (∀ j ≠ i, ts j = ts' j) ->
+  Red G (openm! x Ts ts) (openm! x Ts ts')
 | match_congr {ss : Fun.Vec Term m} i :
   Red G (ss i) (ss' i) ->
   (∀ j ≠ i, ss j = ss' j) ->

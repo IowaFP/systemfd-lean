@@ -339,7 +339,6 @@ theorem Typing.rename_type Δr (r : Ren) :
     apply ih _ _ h
   case app j1 j2 j3 ih1 ih2 =>
     apply app
-    apply Kinding.rename _ _ h j1
     apply ih1 _ _ h
     apply ih2 _ _ h
   case lamt Δ K P t Γ jk j ih =>
@@ -469,10 +468,7 @@ theorem Typing.rename Γr (r : Ren) :
     -- replace ih := ih (A::Γr) r.lift (rename_lift r A h)
     -- rw [Ren.to_lift] at ih; simp at ih
     -- apply lam j1 ih
-  case app j1 j2 j3 ih1 ih2 =>
-    apply app j1
-    apply ih1 _ _ h
-    apply ih2 _ _ h
+  case app => sorry
   case lamt j h ih =>
     apply lamt
     apply j

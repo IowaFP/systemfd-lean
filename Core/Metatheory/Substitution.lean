@@ -191,7 +191,6 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     apply ih _ _ h
   case app j1 j2 j3 ih1 ih2 =>
     apply app
-    apply Kinding.subst _ _ h j1
     apply ih1 _ _ h
     apply ih2 _ _ h
   case lamt Δ K P t Γ jk j ih =>
@@ -338,7 +337,6 @@ theorem Typing.subst Γσ (σ : Subst Term) :
     -- simp at ih; apply lam j1 ih
   case app j1 j2 j3 ih1 ih2 =>
     apply app
-    assumption
     apply ih1 _ _ h
     apply ih2 _ _ h
   case lamt j jk ih =>

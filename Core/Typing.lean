@@ -186,7 +186,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ (A::Γ) t B ->
   Typing G Δ Γ (λ[A] t) (A -:> B)
 | app :
-  G&Δ ⊢ A : ★ ->
   Typing G Δ Γ f (A -:> B) ->
   Typing G Δ Γ a A ->
   Typing G Δ Γ (f • a) B
