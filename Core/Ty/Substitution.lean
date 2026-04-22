@@ -41,6 +41,36 @@ instance : RenMap Ty where
   rmap := Ty.rmap
 
 @[simp]
+theorem Ty.ren_var : (t#x)⟨r⟩ = t#(r x) := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Ty.ren_global : (gt#x)⟨r⟩ = gt#x := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Ty.ren_arr {A B : Ty} : (A -:> B)⟨r⟩ = A⟨r⟩ -:> B⟨r⟩ := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Ty.ren_all : (∀[K] P)⟨r⟩ = ∀[K] P⟨r.lift⟩ := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Ty.ren_app : (f • a)⟨r⟩ = f⟨r⟩ • a⟨r⟩ := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Ty.ren_eq : (A ~[K]~ B)⟨r⟩ = A⟨r⟩ ~[K]~ B⟨r⟩ := by
+  simp [RenMap.rmap]
+
+instance : RenMapId Ty where
+  apply_id := by subst_solve_id
+
+instance : RenMapCompose Ty where
+  apply_compose := by subst_solve_compose
+
+@[simp]
 def Ty.smap (σ : Subst Ty) : Ty -> Ty
 | t#x => σ x
 | gt#x => gt#x
@@ -84,24 +114,20 @@ theorem Ty.from_action_compose {x} {σ τ : Subst Ty}
   generalize zdef : σ x = z
   cases z <;> simp [Ty.from_action]
 
-theorem Ty.apply_id {t : Ty} : t[+0] = t := by
-  induction t; all_goals(simp at *; try simp [*])
-
 instance : SubstMapId Ty Ty where
-  apply_id := Ty.apply_id
-
-theorem Ty.apply_stable (r : Ren) (σ : Subst Ty)
-  : r = σ -> rmap r = smap σ
-:= by subst_solve_stable  r, σ
+  apply_id := by subst_solve_id
 
 instance : SubstMapStable Ty where
-  apply_stable := Ty.apply_stable
+  apply_stable := by subst_solve_stable
 
-theorem Ty.apply_compose {s : Ty} {σ τ : Subst Ty} : s[σ][τ] = s[σ ∘ τ] := by
-  subst_solve_compose Ty, s, σ, τ
+instance : SubstMapRenComposeLeft Ty Ty where
+  apply_ren_compose_left := by subst_solve_compose
+
+instance : SubstMapRenComposeRight Ty Ty where
+  apply_ren_compose_right := by subst_solve_compose
 
 instance : SubstMapCompose Ty Ty where
-  apply_compose := Ty.apply_compose
+  apply_compose := by subst_solve_compose
 
 theorem Ty.rename_preserves_var_shape {r : Ren} : t#x = T[r] -> ∃ y,  (T = t#y ∧ x = r y) := by
 intro h

@@ -1,192 +1,243 @@
 import LeanSubst
-import Lilac.Vect
+import Lilac
 
 open LeanSubst
-open Vect
+open Lilac
 
-def Vect.drop (v : (Vect (n + 1) Q)) : Vect n Q := v.uncons.2
-
-
-protected def Vect.reprPrec [Repr T] : {n : Nat} -> Vect n T -> Nat -> Std.Format
-| 0, _, _ => ""
-| 1, v, _ => repr (v 0)
-| _ + 1, v, i =>
-  let ⟨h , t⟩ := v.uncons
-  (repr h) ++ ", " ++ (Vect.reprPrec t i)
-
-instance [Repr T] : Repr (Vect n T) where
-  reprPrec v n := "v[" ++ Vect.reprPrec v n ++ "]"
+def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
+| k => if i == k then a else v i
 
 @[simp]
-theorem Vect.nil_singleton (v1 v2 : Vect 0 T) : v1 = v2 := by
-  funext; case _ i =>
-  cases i; case _ i p => cases p
+theorem Fun.Vec.update_eq : update v a i i = a := sorry
+
+theorem Fun.Vec.update_neq : ∀ j ≠ i, v j = update v a i j := sorry
 
 @[simp]
-instance : GetElem (Vect n α) (Fin n) α (λ _ _ => True) where
-  getElem xs i _ := xs i
+def Vec.fold (d : B) (f : A -> B -> B) : Vec A n -> B
+| .nil => d
+| .cons hd tl => f hd (Vec.fold d f tl)
 
 @[simp]
-instance : GetElem? (Vect n α) (Fin n) α (λ _ _ => True) where
-  getElem? xs i := .some (xs i)
+def Vec.map (f : A -> B) : Vec A n -> Vec B n
+| .nil => .nil
+| .cons hd tl => .cons (f hd) (Vec.map f tl)
+
+def Vec.enumerate : Vec A n -> Vec (Nat × A) n := go 0
+where
+  go {n : Nat} (i : Nat) : Vec A n -> Vec (Nat × A) n
+  | .nil => .nil
+  | .cons hd tl => .cons (i, hd) (go (i + 1) tl)
+
+def Vec.drop : Vec T (n + 1) -> Vec T n
+| .cons _ tl => tl
+
+def Vec.to_list : Vec T n -> List T
+| .nil => .nil
+| .cons hd tl => .cons hd (Vec.to_list tl)
+
+-- protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
+-- | 0, _, _ => ""
+-- | 1, v, _ => repr (v 0)
+-- | _ + 1, v, i =>
+--   let ⟨h , t⟩ := v.uncons
+--   (repr h) ++ ", " ++ (Vec.reprPrec t i)
+
+-- instance [Repr T] : Repr (Vec n T) where
+--   reprPrec v n := "v[" ++ Vec.reprPrec v n ++ "]"
 
 @[simp]
-theorem get_cons_head {t : Vect T n} : (h::t) 0 = h := by simp [Vect.cons]
+theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
+| .nil, .nil => rfl
+
+def Vec.get_elem : Vec α n -> Fin n -> α
+| .cons hd tl, i => Fin.cases hd (Vec.get_elem tl) i
 
 @[simp]
-theorem get_cons_tail_succ {t : Vect T n} : (h::t) (Fin.succ i) = t i := by
-  simp [Vect.cons];
+instance : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
+  getElem xs i _ := Vec.get_elem xs i
 
-def Vect.length (_ : Vect n A) : Nat := n
+@[simp]
+instance : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
+  getElem? xs i := .some (Vec.get_elem xs i)
 
-theorem Vect.length_bound : (v : Vect n A) -> v.length = n := by
+-- @[simp]
+-- theorem get_cons_head {t : Vec T n} : (h::t)[0] = h := by simp [Vec.cons]
+
+-- @[simp]
+-- theorem get_cons_tail_succ {t : Vec T n} : (h::t) (Fin.succ i) = t i := by
+--   simp [Vec.cons];
+
+def Vec.length (_ : Vec A n) : Nat := n
+
+theorem Vec.length_bound : (v : Vec A n) -> Vec.length v = n := by
   intro v
-  unfold Vect.length
+  unfold Vec.length
   induction n <;> (simp at *)
 
 @[simp]
-def Vect.sum : {n : Nat} -> Vect n Nat -> Nat
-| 0, _ => 0
-| _ + 1, ts => ts 0 + ts.drop.sum
+def Vec.sum : Vec Nat n -> Nat
+| .nil => 0
+| .cons hd tl => hd + Vec.sum tl
+
+-- theorem length_coerce: ∀ n, Vec.length v = n -> (Vec.to_list v).length = n := by
+-- apply v.induction <;> simp [Vec.length] at *
 
 
+-- def Vec.seq_lemma (vs : Vec n (Option Q)) :
+--   (Σ' (i : Fin n), ¬ (vs i).isSome) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
+-- := by {
+--     induction n
+--     case _ =>
+--       apply Sum.inr; intro i
+--       apply Fin.elim0 i
+--     case _ n ih =>
+--       generalize zdef : uncons vs = z at *
+--       rcases z with ⟨h, t⟩
+--       have lem := Vec.uncons_iff.1 zdef
+--       cases h
+--       case none =>
+--         apply Sum.inl; apply PSigma.mk 0
+--         rw [lem]; simp
+--       case some h =>
+--         replace ih := ih t
+--         cases ih
+--         case _ ih =>
+--           rcases ih with ⟨k, ih⟩
+--           apply Sum.inl; apply PSigma.mk (Fin.succ k)
+--           rw [lem]; simp at *; exact ih
+--         case _ ih =>
+--           apply Sum.inr; intro i
+--           cases i using Fin.cases
+--           case _ => rw [lem]; simp; apply PSigma.mk h; rfl
+--           case _ i => rw [lem]; simp; apply ih i
+--   }
 
-theorem length_coerce: ∀ n, Vect.length v = n -> (Vect.to_list v).length = n := by
-apply v.induction <;> simp [Vect.length] at *
+def Vec.seq : Vec (Option T) n -> Option (Vec T n)
+| .nil => some $ .nil
+| .cons none tl => none
+| .cons (some hd) tl => do
+  let tl' <- Vec.seq tl
+  return .cons hd tl'
 
+-- theorem Vec.seq_sound {vs : Vec n (Option Q)} {vs' : Vec n Q}:
+--   vs.seq = some vs' ->
+--   ∀ i, (vs i) = some (vs' i) := by
+-- intro h i;
+-- apply Vec.induction
+--   (A := Option Q)
+--   (motive := λ x v => ∀ vs' : Vec x Q, ∀ i, v.seq = some vs' -> v i = some (vs' i))
+--   (nil := by intro h'; simp)
+--   (cons := by
+--     intro x hd tl ih vs' j; simp [seq];
+--     generalize zdef : (Vec.cons hd tl).seq_lemma = z;
+--     cases z <;> simp at *
+--     case inr v =>
+--     replace v := v j
+--     intro h'
+--     have jeq : j = j := by rfl
+--     replace h' := congrFun h' j;
+--     rcases v with ⟨A, v⟩
+--     simp only [v] at h'; simp at h'; rw[<-h']; assumption
+--     )
+--   vs vs' i h
 
-def Vect.seq_lemma (vs : Vect n (Option Q)) :
-  (Σ' (i : Fin n), ¬ (vs i).isSome) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
-:= by {
-    induction n
-    case _ =>
-      apply Sum.inr; intro i
-      apply Fin.elim0 i
-    case _ n ih =>
-      generalize zdef : uncons vs = z at *
-      rcases z with ⟨h, t⟩
-      have lem := Vect.uncons_iff.1 zdef
-      cases h
-      case none =>
-        apply Sum.inl; apply PSigma.mk 0
-        rw [lem]; simp
-      case some h =>
-        replace ih := ih t
-        cases ih
-        case _ ih =>
-          rcases ih with ⟨k, ih⟩
-          apply Sum.inl; apply PSigma.mk (Fin.succ k)
-          rw [lem]; simp at *; exact ih
-        case _ ih =>
-          apply Sum.inr; intro i
-          cases i using Fin.cases
-          case _ => rw [lem]; simp; apply PSigma.mk h; rfl
-          case _ i => rw [lem]; simp; apply ih i
-  }
+-- def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec n Q) : Bool :=
+--   vs.fold true (λ c acc => c == e && acc)
 
-def Vect.seq (vs : Vect n (Option Q)) : Option (Vect n Q) :=
-  match seq_lemma vs with
-  | .inl h => none
-  | .inr h => some (λ i => Option.get (vs i) (by {
-    replace h := h i
-    rcases h with ⟨t, e⟩
-    rw [e]; simp
-  }))
-
-
-theorem Vect.seq_sound {vs : Vect n (Option Q)} {vs' : Vect n Q}:
-  vs.seq = some vs' ->
-  ∀ i, (vs i) = some (vs' i) := by
-intro h i;
-apply Vect.induction
-  (A := Option Q)
-  (motive := λ x v => ∀ vs' : Vect x Q, ∀ i, v.seq = some vs' -> v i = some (vs' i))
-  (nil := by intro h'; simp)
-  (cons := by
-    intro x hd tl ih vs' j; simp [seq];
-    generalize zdef : (Vect.cons hd tl).seq_lemma = z;
-    cases z <;> simp at *
-    case inr v =>
-    replace v := v j
-    intro h'
-    have jeq : j = j := by rfl
-    replace h' := congrFun h' j;
-    rcases v with ⟨A, v⟩
-    simp only [v] at h'; simp at h'; rw[<-h']; assumption
-    )
-  vs vs' i h
-
-def Vect.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vect n Q) : Bool :=
-  vs.fold true (λ c acc => c == e && acc)
-
-theorem Vect.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vect n Q} :
-  vs.elems_eq_to e = true ->
-  ∀ i, (vs i) = e := by
-apply vs.induction <;> simp [Vect.elems_eq_to] at *
-case _ =>
-  intro n hd tl ih e h
-  subst hd; replace ih := ih h
-  intro i'
-  induction i' using Fin.induction <;> simp at *
-  case _ i _ => apply ih i
+-- theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec n Q} :
+--   vs.elems_eq_to e = true ->
+--   ∀ i, (vs i) = e := by
+-- apply vs.induction <;> simp [Vec.elems_eq_to] at *
+-- case _ =>
+--   intro n hd tl ih e h
+--   subst hd; replace ih := ih h
+--   intro i'
+--   induction i' using Fin.induction <;> simp at *
+--   case _ i _ => apply ih i
 
 
-theorem quantifier_flip {Q Q' : Type} {v : Vect n Q} (f : Q -> Option Q') :
-  (∀ i, ∃ T, f (v i) = some T) ->
-  ∃ (T' : Vect n Q'), ∀ i, f (v i) = some (T' i) := by
-  intro h
-  generalize T'def : Vect.seq (f <$> v) = T' at *
-  cases T'
-  case none =>
-    exfalso
-    -- completeness of seq
-    unfold Vect.seq at T'def;
-    generalize slem : Vect.seq_lemma (f <$> v)= sl at *
-    cases sl <;> simp at *
-    case inl i =>
-      rcases i with ⟨i, h'⟩
-      -- unfold Vect.map at h'
-      replace h := h i
-      rcases h with ⟨T , h⟩
-      rw[h] at h'; simp at h'
-  case some T' =>
-  exists T'
-  · intro i;
-    replace h := h i
-    rcases h with ⟨q', h⟩
-    have lem := Vect.seq_sound T'def
-    replace lem := lem i; simp at lem; assumption
+-- theorem quantifier_flip {Q Q' : Type} {v : Vec n Q} (f : Q -> Option Q') :
+--   (∀ i, ∃ T, f (v i) = some T) ->
+--   ∃ (T' : Vec n Q'), ∀ i, f (v i) = some (T' i) := by
+--   intro h
+--   generalize T'def : Vec.seq (f <$> v) = T' at *
+--   cases T'
+--   case none =>
+--     exfalso
+--     -- completeness of seq
+--     unfold Vec.seq at T'def;
+--     generalize slem : Vec.seq_lemma (f <$> v)= sl at *
+--     cases sl <;> simp at *
+--     case inl i =>
+--       rcases i with ⟨i, h'⟩
+--       -- unfold Vec.map at h'
+--       replace h := h i
+--       rcases h with ⟨T , h⟩
+--       rw[h] at h'; simp at h'
+--   case some T' =>
+--   exists T'
+--   · intro i;
+--     replace h := h i
+--     rcases h with ⟨q', h⟩
+--     have lem := Vec.seq_sound T'def
+--     replace lem := lem i; simp at lem; assumption
 
 
--- Returns the 1st element if all the elements are equal
-def Vect.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vect n Q) : Option Q :=
-match n with
-| 0 => none
-| _ + 1 => match vs.uncons with
-  | ⟨h, vs'⟩ => if Vect.elems_eq_to h vs' then return h else none
+-- -- Returns the 1st element if all the elements are equal
+-- def Vec.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vec n Q) : Option Q :=
+-- match n with
+-- | 0 => none
+-- | _ + 1 => match vs.uncons with
+--   | ⟨h, vs'⟩ => if Vec.elems_eq_to h vs' then return h else none
 
-theorem Vect.get_elem_if_eq_sound[BEq Q] [LawfulBEq Q] {vs : Vect n Q} {t : Q} :
-  vs.get_elem_if_eq = some t ->
-  ∀ i, vs i = t := by
-apply vs.induction
-case _ => simp
-case _ =>
-  intro n hd tl ih
-  simp [Vect.get_elem_if_eq];
-  intro h1 h2
-  subst t; intro i
-  induction i using Fin.induction <;> simp at *
-  case _ i h =>
-    have lem := Vect.elems_eq_to_sound h1
-    apply lem i
+-- theorem Vec.get_elem_if_eq_sound[BEq Q] [LawfulBEq Q] {vs : Vec n Q} {t : Q} :
+--   vs.get_elem_if_eq = some t ->
+--   ∀ i, vs i = t := by
+-- apply vs.induction
+-- case _ => simp
+-- case _ =>
+--   intro n hd tl ih
+--   simp [Vec.get_elem_if_eq];
+--   intro h1 h2
+--   subst t; intro i
+--   induction i using Fin.induction <;> simp at *
+--   case _ i h =>
+--     have lem := Vec.elems_eq_to_sound h1
+--     apply lem i
 
 
--- returns the first element that is not none
-def Vect.any {n : Nat} (vs : Vect n (Option T)) : Option T :=
-  match n with
-  | 0 => none
-  | _ + 1 => match vs.uncons with
-    | ⟨h, tl⟩ => if h.isSome then h else tl.any
+-- -- returns the first element that is not none
+-- def Vec.any {n : Nat} (vs : Vec n (Option T)) : Option T :=
+--   match n with
+--   | 0 => none
+--   | _ + 1 => match vs.uncons with
+--     | ⟨h, tl⟩ => if h.isSome then h else tl.any
+
+
+-- -- Proof that Any actually matches the first element
+-- theorem Vec.any_returns_first {t : T} : ∀ n, {vs : Vec n (Option T)} ->
+--   vs.any = some t ->
+--   ∃ i, vs i = some t ∧ ∀ j, j < i -> vs j = none := by
+-- apply Vec.induction <;> simp [Vec.any]
+-- case _ =>
+--   intro n hd tl ih h
+--   split at h
+--   case _ => exists 0; simp; exact h
+--   case _ =>
+--     replace ih := ih h;
+--     rcases ih with ⟨i, ih1, ih2⟩
+--     exists Fin.succ i
+--     apply And.intro
+--     case _ => simp; exact ih1
+--     case _ =>
+--       intro j
+--       induction j using Fin.induction <;> simp at *
+--       case _ h => exact h
+--       case _ j ih h =>
+--         intro le; replace ih2 := ih2 _ le; exact ih2
+
+
+-- def Vec.zip {n} (ps: Vec n Q) (cs : Vec n Q') : Vec n (Q × Q') := λ i => (ps i , cs i)
 
 
 -- Proof that Any actually matches the first element

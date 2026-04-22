@@ -1,18 +1,18 @@
 
 namespace Core
-inductive BaseKind : Type where
-| closed
-| «open»
+-- inductive BaseKind : Type where
+-- | closed
+-- | «open»
 
-notation "b★" => BaseKind.closed
-notation "b◯" => BaseKind.open
+-- notation "b★" => BaseKind.closed
+-- notation "b◯" => BaseKind.open
 
 inductive Kind : Type where
-| base : BaseKind -> Kind
+| base : Kind
 | arrow : Kind -> Kind -> Kind
 
-notation "★" => Kind.base BaseKind.closed
-notation "◯" => Kind.base BaseKind.open
+notation "★" => Kind.base
+-- notation "◯" => Kind.base BaseKind.open
 infixr:64 " -:> " => Kind.arrow
 
 inductive Ty : Type where
@@ -42,8 +42,8 @@ infixl:54 " • " => Ty.app
 notation:55 A:55 " ~[" K "]~ " B => Ty.eq K A B
 
 protected def Kind.repr (p : Nat) : (a : Kind) -> Std.Format
-| base .closed => "★"
-| base .open => "◯"
+| base => "★"
+-- | base .open => "◯"
 | arrow k1 k2 => Repr.addAppParen ((Kind.repr max_prec k1) ++ " -:> " ++ Kind.repr p k2) p
 
 instance kindRepr : Repr Kind where

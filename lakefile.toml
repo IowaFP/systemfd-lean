@@ -6,13 +6,13 @@ defaultTargets = ["systemfd"]
 name = "lean-subst"
 scope = "amarmaduke"
 git = "https://github.com/amarmaduke/lean-subst"
-rev = "49a61b2"
+rev = "756ee4749c33589b09fb38c453d8f3f1ef18371a"
 
 [[require]]
-name = "lailac"
+name = "lilac"
 scope = "amarmaduke"
 git = "https://github.com/amarmaduke/lilac"
-rev = "951dadc"
+rev = "fa045188b1b8b2b4667808e268d4638bab389211"
 
 [[lean_lib]]
 name = "Core"

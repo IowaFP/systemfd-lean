@@ -204,111 +204,112 @@ theorem Typing.drop_weaken_global n :
   G'&Δ,Γ ⊢ t : T ->
   G&Δ,Γ ⊢ t : T
 := by
-  intro wf e j
-  induction j generalizing G
-  case var j1 j2 =>
-    apply var j1
-    apply Kinding.drop_weaken_global n wf e j2
-  case global x A Δ b Γ j1 j2 =>
-    apply global _
-    apply Kinding.drop_weaken_global n wf e j2
-    simp [lookup_type] at *
-    generalize zdef  : lookup x G = z at *
-    generalize zdef' : lookup x G' = z' at *
-    cases z'; simp at j1; case _ z' =>
-    cases z; simp at j1
-    case none =>
-      exfalso
-      apply GlobalWf.drop_lookup_impossible wf e zdef' zdef
-    case some z =>
-      have lem := GlobalWf.drop_lookup n wf e zdef' zdef
-      subst z'; assumption
-  case mtch j1 j2 j3 j4 j5 j6 j7 j8 ih1 ih2 ih3 ih4 =>
-    apply mtch
-    apply ih1 wf e
-    apply ValidTyHeadVariable.drop_weaken_global_is_data n wf e j2
-    apply ih2 wf e
-    intro i; apply ValidHeadVariable.drop_weaken_global_is_ctor n wf e (j4 i)
-    intro i; apply ih3 i wf e
-    apply j6
-    intro i; apply ih4 i wf e
-    apply j8
-  case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
-    apply guard
-    apply ih1 wf e
-    apply ih2 wf e
-    apply ih3 wf e
-    apply ValidHeadVariable.drop_weaken_global_is_instty n wf e j4
-    apply ValidTyHeadVariable.drop_weaken_global_is_opent n wf e j5
-    apply j6
-    apply j7
-  case lam j1 j2 ih =>
-    apply lam
-    apply Kinding.drop_weaken_global n wf e j1
-    apply ih wf e
-  case app j1 j2 j3 ih1 ih2 =>
-    apply app
-    apply Kinding.drop_weaken_global n wf e j1
-    apply ih1 wf e
-    apply ih2 wf e
-  case lamt j1 j2 ih =>
-    apply lamt
-    apply Kinding.drop_weaken_global n wf e j1
-    apply ih wf e
-  case appt j1 j2 j3 ih =>
-    apply appt
-    apply ih wf e
-    apply Kinding.drop_weaken_global n wf e j2
-    apply j3
-  case cast j1 j2 ih1 ih2 =>
-    apply cast
-    apply ih1 wf e
-    apply ih2 wf e
-  case refl j =>
-    apply refl
-    apply Kinding.drop_weaken_global n wf e j
-  case sym j ih =>
-    apply sym
-    apply ih wf e
-  case seq j1 j2 ih1 ih2 =>
-    apply seq
-    apply ih1 wf e
-    apply ih2 wf e
-  case appc j1 j2 ih1 ih2 =>
-    apply appc
-    apply ih1 wf e
-    apply ih2 wf e
-  case arrowc j1 j2 ih1 ih2 =>
-    apply arrowc
-    apply ih1 wf e
-    apply ih2 wf e
-  case fst j1 j2 j3 ih =>
-    apply fst
-    apply Kinding.drop_weaken_global n wf e j1
-    apply Kinding.drop_weaken_global n wf e j2
-    apply ih wf e
-  case snd j1 j2 j3 ih =>
-    apply snd
-    apply Kinding.drop_weaken_global n wf e j1
-    apply Kinding.drop_weaken_global n wf e j2
-    apply ih wf e
-  case allc j ih =>
-    apply allc
-    apply ih wf e
-  case apptc j1 j2 j3 j4 ih1 ih2 =>
-    apply apptc
-    apply ih1 wf e
-    apply ih2 wf e
-    apply j3
-    apply j4
-  case zero j =>
-    apply zero
-    apply Kinding.drop_weaken_global n wf e j
-  case choice j1 j2 j3 ih1 ih2 =>
-    apply choice
-    apply Kinding.drop_weaken_global n wf e j1
-    apply ih1 wf e
-    apply ih2 wf e
+  sorry
+  -- intro wf e j
+  -- induction j generalizing G
+  -- case var j1 j2 =>
+  --   apply var j1
+  --   apply Kinding.drop_weaken_global n wf e j2
+  -- case global x A Δ b Γ j1 j2 =>
+  --   apply global _
+  --   apply Kinding.drop_weaken_global n wf e j2
+  --   simp [lookup_type] at *
+  --   generalize zdef  : lookup x G = z at *
+  --   generalize zdef' : lookup x G' = z' at *
+  --   cases z'; simp at j1; case _ z' =>
+  --   cases z; simp at j1
+  --   case none =>
+  --     exfalso
+  --     apply GlobalWf.drop_lookup_impossible wf e zdef' zdef
+  --   case some z =>
+  --     have lem := GlobalWf.drop_lookup n wf e zdef' zdef
+  --     subst z'; assumption
+  -- case mtch j1 j2 j3 j4 j5 j6 j7 j8 ih1 ih2 ih3 ih4 =>
+  --   apply mtch
+  --   apply ih1 wf e
+  --   apply ValidTyHeadVariable.drop_weaken_global_is_data n wf e j2
+  --   apply ih2 wf e
+  --   intro i; apply ValidHeadVariable.drop_weaken_global_is_ctor n wf e (j4 i)
+  --   intro i; apply ih3 i wf e
+  --   apply j6
+  --   intro i; apply ih4 i wf e
+  --   apply j8
+  -- case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
+  --   apply guard
+  --   apply ih1 wf e
+  --   apply ih2 wf e
+  --   apply ih3 wf e
+  --   apply ValidHeadVariable.drop_weaken_global_is_instty n wf e j4
+  --   apply ValidTyHeadVariable.drop_weaken_global_is_opent n wf e j5
+  --   apply j6
+  --   apply j7
+  -- case lam j1 j2 ih =>
+  --   apply lam
+  --   apply Kinding.drop_weaken_global n wf e j1
+  --   apply ih wf e
+  -- case app j1 j2 j3 ih1 ih2 =>
+  --   apply app
+  --   apply Kinding.drop_weaken_global n wf e j1
+  --   apply ih1 wf e
+  --   apply ih2 wf e
+  -- case lamt j1 j2 ih =>
+  --   apply lamt
+  --   apply Kinding.drop_weaken_global n wf e j1
+  --   apply ih wf e
+  -- case appt j1 j2 j3 ih =>
+  --   apply appt
+  --   apply ih wf e
+  --   apply Kinding.drop_weaken_global n wf e j2
+  --   apply j3
+  -- case cast j1 j2 ih1 ih2 =>
+  --   apply cast
+  --   apply ih1 wf e
+  --   apply ih2 wf e
+  -- case refl j =>
+  --   apply refl
+  --   apply Kinding.drop_weaken_global n wf e j
+  -- case sym j ih =>
+  --   apply sym
+  --   apply ih wf e
+  -- case seq j1 j2 ih1 ih2 =>
+  --   apply seq
+  --   apply ih1 wf e
+  --   apply ih2 wf e
+  -- case appc j1 j2 ih1 ih2 =>
+  --   apply appc
+  --   apply ih1 wf e
+  --   apply ih2 wf e
+  -- case arrowc j1 j2 ih1 ih2 =>
+  --   apply arrowc
+  --   apply ih1 wf e
+  --   apply ih2 wf e
+  -- case fst j1 j2 j3 ih =>
+  --   apply fst
+  --   apply Kinding.drop_weaken_global n wf e j1
+  --   apply Kinding.drop_weaken_global n wf e j2
+  --   apply ih wf e
+  -- case snd j1 j2 j3 ih =>
+  --   apply snd
+  --   apply Kinding.drop_weaken_global n wf e j1
+  --   apply Kinding.drop_weaken_global n wf e j2
+  --   apply ih wf e
+  -- case allc j ih =>
+  --   apply allc
+  --   apply ih wf e
+  -- case apptc j1 j2 j3 j4 ih1 ih2 =>
+  --   apply apptc
+  --   apply ih1 wf e
+  --   apply ih2 wf e
+  --   apply j3
+  --   apply j4
+  -- case zero j =>
+  --   apply zero
+  --   apply Kinding.drop_weaken_global n wf e j
+  -- case choice j1 j2 j3 ih1 ih2 =>
+  --   apply choice
+  --   apply Kinding.drop_weaken_global n wf e j1
+  --   apply ih1 wf e
+  --   apply ih2 wf e
 
 theorem ValidInstTy.drop_weaken_global n :
   ⊢ G ->

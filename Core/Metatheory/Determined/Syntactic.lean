@@ -300,12 +300,12 @@ inductive GetInstTrace (G : List Global) : List Ty -> Term -> InstTrace -> Prop 
   GetInstTrace G Γ t tr ->
   GetInstTrace G Γ (Λ[K] t) (.tlam tr)
 
-inductive SpineTraceElem where
-| term : SpineTraceElem
-| oterm : String -> SpineTraceElem
-| type : SpineTraceElem
+inductive TraceElem T where
+| term : TraceElem T
+| oterm : String -> List T -> TraceElem T
+| type : TraceElem T
 
-abbrev SpineTrace := List SpineTraceElem
+abbrev SpineTrace := List (TraceElem SpineElem)
 
 inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
 | nil : GetSpineTrace [] []
@@ -315,8 +315,24 @@ inductive GetSpineTrace : List SpineElem -> SpineTrace -> Prop where
 | oterm :
   GetSpineTrace sp tr ->
   a.spine = some (x, spa) ->
-  GetSpineTrace (.oterm a :: sp) (.oterm x :: tr)
+  GetSpineTrace (.oterm a :: sp) (.oterm x spa :: tr)
 | type :
   GetSpineTrace sp tr ->
   GetSpineTrace (.type A :: sp) (.type :: tr)
+
+abbrev OpenTypeTrace := List (TraceElem Ty)
+
+def instances_of_open_type (G : List Global) : String -> List String := sorry
+
+def enumerate_spine_trace (G : List Global) : OpenTypeTrace -> List SpineTrace
+| [] => []
+| .cons .term tl => List.map (.term :: ·) (enumerate_spine_trace G tl)
+| .cons (.oterm x sp) tl => sorry
+| .cons .type tl => List.map (.type :: ·) (enumerate_spine_trace G tl)
+
+
+
+
+
+
 end Core
