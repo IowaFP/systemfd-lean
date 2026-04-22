@@ -96,9 +96,10 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | openm_match {ss : Fun.Vec Term m} :
   Term.IsData .odata ss.to ctors ->
   get_instance x i G = some ⟨m, p, b⟩ ->
+  Sequ.append (Ts.map su) +0 = τ ->
   Pattern.Match ctors p ->
   Constructor.subst ctors = σ ->
-  Red G (openm! x Ts ss) b[σ]
+  Red G (openm! x Ts ss) b[τ:Ty][σ]
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------

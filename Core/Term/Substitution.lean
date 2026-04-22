@@ -2,6 +2,7 @@ import LeanSubst
 import Core.Term.Definition
 
 open LeanSubst
+open Lilac
 
 namespace Core
 
@@ -417,14 +418,30 @@ instance : SubstMapRenComposeRight Term Term where
 instance : SubstMapCompose Term Term where
   apply_compose := by subst_solve_compose
 
-inductive IteratedSubst where
-| nil : IteratedSubst
-| term : Subst Term -> IteratedSubst -> IteratedSubst
-| type : Subst Ty -> IteratedSubst -> IteratedSubst
+-- inductive IteratedSubst where
+-- | nil : IteratedSubst
+-- | term : Subst Term -> IteratedSubst -> IteratedSubst
+-- | type : Subst Ty -> IteratedSubst -> IteratedSubst
 
-def Term.isubst (t : Term) : IteratedSubst -> Term
-| .nil => t
-| .term σ tl => t[σ].isubst tl
-| .type σ tl => t[σ:Ty].isubst tl
+-- def Term.isubst (t : Term) : IteratedSubst -> Term
+-- | .nil => t
+-- | .term σ tl => t[σ].isubst tl
+-- | .type σ tl => t[σ:Ty].isubst tl
+
+@[simp]
+def Pattern.smap (σ : Subst Ty) : Pattern m -> Pattern m
+| .nil => .nil
+| .cons (s, ℓ, n) tl => (s, ℓ[σ:Ty], n)::(smap σ tl)
+
+instance : SubstMap (Pattern m) Ty where
+  smap := Pattern.smap
+
+@[simp]
+theorem Pattern.subst_nil : (.nil : Pattern 0)[σ:Ty] = .nil := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Pattern.subst_cons {tl : Pattern m} : ((s, ℓ, n)::tl)[σ:Ty] = (s, ℓ[σ:Ty], n)::tl[σ:_] := by
+  simp [SubstMap.smap]
 
 end Core

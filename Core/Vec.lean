@@ -52,20 +52,29 @@ theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
 def Vec.get_elem : Vec α n -> Fin n -> α
 | .cons hd tl, i => Fin.cases hd (Vec.get_elem tl) i
 
-@[simp]
 instance : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
   getElem xs i _ := Vec.get_elem xs i
 
-@[simp]
 instance : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
   getElem? xs i := .some (Vec.get_elem xs i)
 
--- @[simp]
--- theorem get_cons_head {t : Vec T n} : (h::t)[0] = h := by simp [Vec.cons]
+@[simp]
+theorem get_cons_head {t : Vec T n} : (h::t)[(0 : Fin (n + 1))] = h := by
+  simp [getElem, Vec.get_elem]
 
--- @[simp]
--- theorem get_cons_tail_succ {t : Vec T n} : (h::t) (Fin.succ i) = t i := by
---   simp [Vec.cons];
+@[simp]
+theorem get_cons_tail_succ {t : Vec T n} {i : Fin n} : (h::t)[Fin.succ i] = t[i] := by
+  simp [getElem, Vec.get_elem]
+
+@[simp]
+theorem Vec.to_index {v : Fun.Vec α _} : v.to[i] = v i := by
+  induction v using Fun.Vec.induction
+  case nil => apply Fin.elim0 i
+  case cons hd tl ih =>
+    simp [Fun.Vec.to_cons]
+    cases i using Fin.cases
+    case zero => simp [Fun.Vec.cons_zero]
+    case succ i => simp [Fun.Vec.cons_succ, ih]
 
 def Vec.length (_ : Vec A n) : Nat := n
 

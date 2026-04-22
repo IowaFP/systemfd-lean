@@ -139,6 +139,14 @@ inductive Query.Match : Vec String m -> Pattern m -> Prop where
   Query.Match qs ps ->
   Query.Match (q::qs) ((q, ts, n)::ps)
 
+def OpenExhaustive (x : String) (G : List Global) : Prop :=
+  ∀ {m} {q : Vec _ m} {D1 D2 D3 As Ts},
+  lookup_spctor_type G x = some D1 ->
+  KindingPreamble G [] As D1 D2 ->
+  Ty.typescope m D2 = some (Ts, D3) ->
+  Query G q Ts ->
+  ∃ i b p, get_instance x i G = some ⟨m, p, b⟩ ∧ Query.Match q p
+
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
   Γ[x]? = some A ->
@@ -306,6 +314,9 @@ inductive GlobalWf : List Global -> Global -> Prop where
   lookup x G = none ->
   GlobalWf G (.opent x K)
 | openm :
+  T.kindscope = (Δ, T') ->
+  T'.typescope 0 = some (Γ, R) ->
+  (∀ A ∈ (Vec.to_list Γ), A.opentype? G) ->
   G&[] ⊢ T : ★ ->
   lookup x G = none ->
   GlobalWf G (.openm x T)
