@@ -59,7 +59,10 @@ case defn x T t t' j0 lk j1 j2 ih =>
   · apply Core.ListGlobalWf.cons _ ih.1
     apply Core.GlobalWf.defn j1 j2.2
     apply Translation.GlobalEnv.lookup_none_sound x j0 lk
-  · sorry
+  · simp[Core.Global.Determined]; intro x
+    apply And.intro
+    sorry
+    sorry
 
 case data G G' x K n ctors ctors' j0 h1 h2 h3 ctors'def ih  =>
   apply And.intro
@@ -81,78 +84,4 @@ case data G G' x K n ctors ctors' j0 h1 h2 h3 ctors'def ih  =>
   · sorry
 case classDecl G G' x K n ms Δ j0 h1 h2 =>
   apply Surface.Global.ValidClassDecl.sound j0 h2.1 h1
-
-
-  -- have wkn_j0 : Elab (.cons (.classDecl x K Vect.nil) G) (.cons (.opent x K.translate) G') := by
-  --   apply Elab.classDecl (x := x) (K := K) (ms := Vect.nil) (ms' := Vect.nil) _ _
-  --   apply h2
-  --   simp
-  --   simp
-  --   simp
-  --   apply j0
-  --   apply h1
-  -- apply And.intro
-  -- · simp; revert ms'; revert ms; intro ms
-  --   apply ms.induction
-  --   case nil =>
-  --     simp; intro ms'
-  --     apply Core.ListGlobalWf.cons _ ih.1
-  --     apply Core.GlobalWf.opent
-  --     apply Translation.ValidOpenKind.Sound h2
-  --     apply Translation.GlobalEnv.lookup_none_sound x j0 h1
-  --   case cons =>
-  --     intro n hd tl h1 h2 h3 ms' ms'def
-  --     replace ms'def := Vect.map_cons ms'def (f := λ (x : String × Ty) => Core.Global.openm x.1 x.2.translate)
-  --     rw[ms'def]; simp;
-  --     have lem1 : ∀ (i j : Fin n), (tl i).fst ≠ (tl j).fst := by
-  --       intro i j; replace h2 := h2 i.succ j.succ; simp at h2; apply h2
-  --     have lem2 : ∀ (i : Fin n) (y : String) (T : Ty), tl i = (y, T) ->
-  --          (List.cons (Global.classDecl x K Vect.nil) G)&[] ⊢s T : Kind.base b`★ ∧ ValidClassMethodTy x T ∧ x ≠ y ∧ lookup y G = none := by intro i y T k1; replace h3 := h3 i.succ; simp at h3; replace h3 := h3 y T k1; apply h3
-  --     apply Core.ListGlobalWf.cons _ _
-  --     · replace h1 := h1 lem1
-  --       replace h1 := @h1 lem2 (fun i => Core.Global.openm (tl i).fst ⟦(tl i).snd⟧) rfl
-  --       apply Core.GlobalWf.openm
-  --       sorry
-  --       sorry
-  --       sorry
-
-  --     · apply h1
-  --       · apply lem1
-  --       · apply lem2
-  --       rfl
-
-
-    -- apply Core.ListGlobalWf.cons _ ih.1
-    -- · apply Core.GlobalWf.classDecl
-    --   · sorry
-    --   · sorry
-    --   · sorry
-    --   · sorry
-
---   cases wf; case _ wfh wftl =>
---   replace wf := wf wfh
---   cases wftl; case _ G G' x K n ms ms' j0 ms'def lk h1 h2 h3 =>
---   have wkn_j0 : Elab (.cons (.classDecl x K Vect.nil) G) (.cons (.opent x K.translate) G') := by
---     apply Elab.classDecl (x := x) (K := K) (ms := Vect.nil) (ms' := Vect.nil) j0; simp
---   apply And.intro
---   · simp;
---     revert ms'; revert ms; intro ms; apply ms.induction
---     case _ =>
---       simp; intro ms'
---       apply Core.ListGlobalWf.cons _ wf.1;
---       apply Core.GlobalWf.opent
---       apply Translation.ValidOpenKind.Sound h1
---       apply Translation.GlobalEnv.lookup_none_sound x j0 lk
---     case _ =>
---       simp; intro n mthname mthTy ms ih1 ih2 ih3
---       generalize mdef : (Vect.fold [] List.cons fun i =>
---        Core.Global.openm ( Vect.cons (mthname, mthTy) ms i).fst ⟦(Vect.cons (mthname, mthTy) ms i).snd⟧) = ms' at *
---       have lem :
---         (Vect.fold [] List.cons fun i => Core.Global.openm (Vect.cons (mthname, mthTy) ms i).fst ⟦(Vect.cons (mthname, mthTy) ms i).snd⟧) =
---           List.cons (Core.Global.openm mthname mthTy.translate) (Vect.fold [] List.cons (fun i => Core.Global.openm (ms i).fst ⟦(ms i).snd⟧)) := by sorry
-
---     --   intro n hd tl wftl
---     --   simp; apply Core.ListGlobalWf.cons _ wftl;
-
---       sorry
---   sorry
+case instDecl => sorry
