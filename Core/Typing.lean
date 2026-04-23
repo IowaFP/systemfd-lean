@@ -141,7 +141,7 @@ inductive Query.Match : Vec String m -> Pattern m -> Prop where
 
 def OpenExhaustive (x : String) (G : List Global) : Prop :=
   ∀ {m} {q : Vec _ m} {D1 D2 D3 As Ts},
-  lookup_spctor_type G x = some D1 ->
+  lookup x G = some (.openm m x D1) ->
   KindingPreamble G [] As D1 D2 ->
   Ty.typescope m D2 = some (Ts, D3) ->
   Query G q Ts ->
@@ -313,20 +313,20 @@ inductive GlobalWf : List Global -> Global -> Prop where
   ValidOpenKind K ->
   lookup x G = none ->
   GlobalWf G (.opent x K)
-| openm :
+| openm {Γ : Vec Ty n} :
   T.kindscope = (Δ, T') ->
-  T'.typescope 0 = some (Γ, R) ->
+  T'.typescope n = some (Γ, R) ->
   (∀ A ∈ (Vec.to_list Γ), A.opentype? G) ->
   G&[] ⊢ T : ★ ->
   lookup x G = none ->
-  GlobalWf G (.openm x T)
+  GlobalWf G (.openm n x T)
 | defn :
   G&[] ⊢ T : ★ ->
   G&[],[] ⊢ t : T ->
   lookup x G = none ->
   GlobalWf G (.defn x T t)
 | inst :
-  lookup x G = some (.openm x T1) ->
+  lookup x G = some (.openm m x T1) ->
   T1.kindscope = (Δ, T2) ->
   T2.typescope m = some (Γv, T3) ->
   Vec.to_list Γv = Γ ->
@@ -360,8 +360,8 @@ inductive EntryWf : List Global -> Entry -> Prop where
   EntryWf G (.opent x K)
 | openm :
   G&[] ⊢ T : ★ ->
-  lookup x G = some (.openm x T) ->
-  EntryWf G (.openm x T)
+  lookup x G = some (.openm n x T) ->
+  EntryWf G (.openm n x T)
 | defn :
   G&[] ⊢ T : ★ ->
   G&[],[] ⊢ t : T ->

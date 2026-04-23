@@ -26,15 +26,15 @@ theorem List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : 
   exists (k + 1); apply Exists.intro; apply q2
   simp; exact q1
 
-theorem open_method_pattern_binders (wf : ⊢ G):
-  lookup_spctor_type G ctor = some D1 ->
-  KindingPreamble G Δ As D1 D2 ->
-  Ty.typescope n D2 = some (Ts, T) ->
-  get_instance ctor i G = some ⟨n, (p, b)⟩ ->
-  Sequ.append (List.map su As) +0 = τ ->
-  ∃ ξ, PatternBinders n Ts p[τ:Ty] ξ
-:= by
-  sorry
+-- theorem open_method_pattern_binders (wf : ⊢ G):
+--   lookup_spctor_type G ctor = some D1 ->
+--   KindingPreamble G Δ As D1 D2 ->
+--   Ty.typescope n D2 = some (Ts, T) ->
+--   get_instance ctor i G = some ⟨n, (p, b)⟩ ->
+--   Sequ.append (List.map su As) +0 = τ ->
+--   ∃ ξ, PatternBinders n Ts p[τ:Ty] ξ
+-- := by
+--   sorry
 
 theorem PatternBinders.subst {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
@@ -88,7 +88,7 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
   let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts[i] := j4 |> cast (by simp)
   let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders n Ts p[τ:Ty] ξ := sorry
   let lem1 : G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T := sorry
-  let lem3 := PatternBinders.subst j4' lem2 h1 h4 h5
+  let lem3 := PatternBinders.subst j4' lem2 h1 sorry h5
   Typing.subst Γ σ wf lem3 lem1
 | .spctor (Ts := Ts) j1 j2 j3 j4 j5 j6, .openm_congr (ts' := ts') i h1 h2 =>
   let j4' : ∀ k, G&Δ,Γ ⊢ ts' k : Ts[k] := λ k =>

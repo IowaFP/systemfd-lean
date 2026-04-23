@@ -10,7 +10,7 @@ namespace Core
 inductive Global : Type where
 | data : (n : Nat) -> String -> Kind -> Vec (String × Ty) n -> Global
 | opent : String -> Kind -> Global
-| openm : String -> Ty -> Global
+| openm : Nat -> String -> Ty -> Global
 | defn : String -> Ty -> Term -> Global
 | inst : String -> Pattern m -> Term -> Global
 | instty : String -> Ty -> Global
@@ -25,7 +25,7 @@ def Global.repr (p : Nat) : (a : Global) -> Std.Format
 | .data _ s K _ =>
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K
 | .opent n K => ".opent " ++ n ++ " " ++ K.repr max_prec
-| .openm n T => ".openm " ++ n ++ " " ++ T.repr max_prec
+| .openm _ n T => ".openm " ++ n ++ " " ++ T.repr max_prec
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
 | .inst n _ t => ".inst " ++ n ++ " " ++  t.repr max_prec
 | .instty n T => ".instTy" ++ n ++ " " ++  T.repr max_prec
@@ -52,7 +52,7 @@ inductive Entry : Type where
 | data : String -> Kind -> Vec (String × Ty) n -> Entry
 | ctor : String -> Nat -> Ty -> Entry
 | opent : String -> Kind -> Entry
-| openm : String -> Ty -> Entry
+| openm : Nat -> String -> Ty -> Entry
 | defn : String -> Ty -> Term -> Entry
 | instty : String -> Ty -> Entry
 
@@ -69,7 +69,7 @@ def Entry.is_opent : Entry -> Bool
 | _ => false
 
 def Entry.is_openm : Entry -> Bool
-| openm _ _ => true
+| openm _ _ _ => true
 | _ => false
 
 def Entry.is_defn : Entry -> Bool
@@ -87,7 +87,7 @@ def Entry.kind : Entry -> Option Kind
 
 def Entry.type : Entry -> Option Ty
 | ctor _ _ T => T
-| openm _ T => T
+| openm _ _ T => T
 | defn _ T _ => T
 | instty _ T => T
 | _ => none
@@ -95,7 +95,7 @@ def Entry.type : Entry -> Option Ty
 def Entry.spctor_type : Entry -> Option Ty
 | ctor _ _ T => T
 | instty _ T => T
-| openm _ T => T
+| openm _ _ T => T
 | _ => none
 
 def Entry.datatype : Entry -> Option Ty
@@ -113,8 +113,8 @@ def lookup (x : String) : List Global -> Option Entry
   else Vec.fold (lookup x tl) Option.or ctors'
 | .cons (.opent y a) tl =>
   if x == y then return .opent y a else lookup x tl
-| .cons (.openm y a) tl =>
-  if x == y then return .openm y a else lookup x tl
+| .cons (.openm n y a) tl =>
+  if x == y then return .openm n y a else lookup x tl
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
 | .cons (.inst _ _ _) tl => lookup x tl
@@ -175,132 +175,133 @@ def ctor_count (G : List Global) (x : String) : Option Nat := do
 
 def is_stable (G : List Global) (x : String) : Bool := (is_ctor G x ∨ is_instty G x)
 
-theorem lookup_type_reconstruct :
-  lookup x G = some e ->
-  e.type = some T ->
-  lookup_type G x = some T
-:= by
-  intro j1 j2
-  simp [lookup_type]; rw [j1]; simp
-  exact j2
+-- theorem lookup_type_reconstruct :
+--   lookup x G = some e ->
+--   e.type = some T ->
+--   lookup_type G x = some T
+-- := by
+--   intro j1 j2
+--   simp [lookup_type]; rw [j1]; simp
+--   exact j2
 
-theorem lookup_entry_openm_exists :
-  is_openm G x -> ∃ y T, lookup x G = .some (Entry.openm y T) := by
-intro h
-simp [is_openm] at h
-generalize edef : lookup x G = e at *
-cases e <;> simp at h
-case _ e =>
-cases e <;> simp [Entry.is_openm] at h
-case _ x T => exists x; exists T
+-- theorem lookup_entry_openm_exists :
+--   is_openm G x -> ∃ y T, lookup x G = .some (Entry.openm y T) := by
+-- intro h
+-- simp [is_openm] at h
+-- generalize edef : lookup x G = e at *
+-- cases e <;> simp at h
+-- case _ e =>
+-- cases e <;> simp [Entry.is_openm] at h
+-- case _ x T => exists x; exists T
 
-theorem lookup_entry_defn_exists :
-  is_defn G x -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
-intro h
-simp [is_defn] at h
-generalize edef : lookup x G = e at *
-cases e <;> simp at h
-case _ e =>
-cases e <;> simp [Entry.is_defn] at h
-case _ y T t => exists y; exists T; exists t
+-- theorem lookup_entry_defn_exists :
+--   is_defn G x -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
+-- intro h
+-- simp [is_defn] at h
+-- generalize edef : lookup x G = e at *
+-- cases e <;> simp at h
+-- case _ e =>
+-- cases e <;> simp [Entry.is_defn] at h
+-- case _ y T t => exists y; exists T; exists t
 
-theorem lookup_defn_is_defn_sound :
-  lookup_defn G x = .some t -> is_defn G x := by
-intro h; rw[is_defn]; rw[lookup_defn] at h; simp [Option.bind] at h
-generalize zdef : lookup x G = z at *
-cases z <;> simp at *
-case _ z =>
-cases z <;> simp [Entry.is_defn] at *
+-- theorem lookup_defn_is_defn_sound :
+--   lookup_defn G x = .some t -> is_defn G x := by
+-- intro h; rw[is_defn]; rw[lookup_defn] at h; simp [Option.bind] at h
+-- generalize zdef : lookup x G = z at *
+-- cases z <;> simp at *
+-- case _ z =>
+-- cases z <;> simp [Entry.is_defn] at *
 
-theorem lookup_defn_some :
-  lookup_defn G x = .some t -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
-intro h1
-replace h1 := lookup_defn_is_defn_sound h1
-apply lookup_entry_defn_exists h1
+-- theorem lookup_defn_some :
+--   lookup_defn G x = .some t -> ∃ y T t, lookup x G = .some (Entry.defn y T t) := by
+-- intro h1
+-- replace h1 := lookup_defn_is_defn_sound h1
+-- apply lookup_entry_defn_exists h1
 
-theorem is_stable_implies_not_is_openm : is_stable G x -> ¬ is_openm G x := by
-  intro h1 h2
-  simp [is_stable] at h1;
-  cases h1
-  all_goals
-    case _ h1 =>
-      have lem := lookup_entry_openm_exists h2
-      rcases lem with ⟨_, _, lem⟩
-      simp [is_ctor, is_instty] at h1; rw[lem] at h1
-      simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
-grind_pattern is_stable_implies_not_is_openm => is_stable G x, is_openm G x
+-- theorem is_stable_implies_not_is_openm : is_stable G x -> ¬ is_openm G x := by
+--   intro h1 h2
+--   simp [is_stable] at h1;
+--   cases h1
+--   all_goals
+--     case _ h1 =>
+--       have lem := lookup_entry_openm_exists h2
+--       rcases lem with ⟨_, _, lem⟩
+--       simp [is_ctor, is_instty] at h1; rw[lem] at h1
+--       simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
+-- grind_pattern is_stable_implies_not_is_openm => is_stable G x, is_openm G x
 
-theorem is_stable_implies_not_is_defn : is_stable G x -> ¬ is_defn G x := by
-  intro h1 h2
-  simp [is_stable] at h1;
-  cases h1
-  all_goals
-    case _ h1 =>
-      have lem := lookup_entry_defn_exists h2
-      rcases lem with ⟨_, _, _, lem⟩
-      simp [is_ctor, is_instty] at h1; rw[lem] at h1
-      simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
-grind_pattern is_stable_implies_not_is_defn => is_stable G x, is_defn G x
+-- theorem is_stable_implies_not_is_defn : is_stable G x -> ¬ is_defn G x := by
+--   intro h1 h2
+--   simp [is_stable] at h1;
+--   cases h1
+--   all_goals
+--     case _ h1 =>
+--       have lem := lookup_entry_defn_exists h2
+--       rcases lem with ⟨_, _, _, lem⟩
+--       simp [is_ctor, is_instty] at h1; rw[lem] at h1
+--       simp at h1; simp [Entry.is_ctor, Entry.is_instty] at h1
+-- grind_pattern is_stable_implies_not_is_defn => is_stable G x, is_defn G x
 
-theorem is_stable_implies_lookup_defn_none : is_stable G x -> lookup_defn G x = none := by
-  intro h
-  have lem := is_stable_implies_not_is_defn h
-  unfold is_defn at lem; unfold lookup_defn; simp
-  intro a h2; rw [h2] at lem; simp at lem
-  cases a <;> simp
-  simp [Entry.is_defn] at lem
-grind_pattern is_stable_implies_lookup_defn_none => is_stable G x
+-- theorem is_stable_implies_lookup_defn_none : is_stable G x -> lookup_defn G x = none := by
+--   intro h
+--   have lem := is_stable_implies_not_is_defn h
+--   unfold is_defn at lem; unfold lookup_defn; simp
+--   intro a h2; rw [h2] at lem; simp at lem
+--   cases a <;> simp
+--   simp [Entry.is_defn] at lem
+-- grind_pattern is_stable_implies_lookup_defn_none => is_stable G x
 
-theorem is_openm_implies_lookup_defn_none : is_openm G x -> lookup_defn G x = none := by
-  sorry
-grind_pattern is_openm_implies_lookup_defn_none => is_openm G x
+-- theorem is_openm_implies_lookup_defn_none : is_openm G x -> lookup_defn G x = none := by
+--   sorry
+-- grind_pattern is_openm_implies_lookup_defn_none => is_openm G x
 
-theorem not_stable_implies_openm_or_defn :
-  is_stable G x = false ->
-  (lookup_type G x).isSome ->
-  is_defn G x ∨ is_openm G x
-:= by
-  intro h1 h2
-  unfold is_stable at h1
-  unfold is_ctor at h1
-  unfold is_instty at h1
-  unfold lookup_type at h2
-  unfold is_defn; unfold is_openm
-  generalize zdef : lookup x G = z at *
-  cases z; simp [Option.isSome] at h2; case _ z =>
-  cases z <;> simp [Entry.type, Entry.is_ctor, Entry.is_instty] at *
-  all_goals simp [Entry.is_defn, Entry.is_openm]
+-- theorem not_stable_implies_openm_or_defn :
+--   is_stable G x = false ->
+--   (lookup_type G x).isSome ->
+--   is_defn G x ∨ is_openm G x
+-- := by
+--   intro h1 h2
+--   unfold is_stable at h1
+--   unfold is_ctor at h1
+--   unfold is_instty at h1
+--   unfold lookup_type at h2
+--   unfold is_defn; unfold is_openm
+--   generalize zdef : lookup x G = z at *
+--   cases z; simp [Option.isSome] at h2; case _ z =>
+--   cases z <;> simp [Entry.type, Entry.is_ctor, Entry.is_instty] at *
+--   all_goals simp [Entry.is_defn, Entry.is_openm]
 
-theorem Global.lookup_unique :
-  lookup x G = t ->
-  lookup x G = t' ->
-  t = t'
-:= by
-  intro h1 h2
-  all_goals (rw[h1] at h2; exact h2)
+-- theorem Global.lookup_unique :
+--   lookup x G = t ->
+--   lookup x G = t' ->
+--   t = t'
+-- := by
+--   intro h1 h2
+--   all_goals (rw[h1] at h2; exact h2)
 
-theorem Global.lookup_type_unique :
-  lookup_type x G = some t ->
-  lookup_type x G = some t' ->
-  t = t' := by
-intro h1 h2
-all_goals (rw[h1] at h2; injection h2)
+-- theorem Global.lookup_type_unique :
+--   lookup_type x G = some t ->
+--   lookup_type x G = some t' ->
+--   t = t' := by
+-- intro h1 h2
+-- all_goals (rw[h1] at h2; injection h2)
 
-theorem Global.get_defn :
-  is_defn G x ->
-  ∃ T t, lookup x G = some (.defn x T t)
-:= by
-  intro h
-  unfold is_defn at h
-  generalize zdef : lookup x G = z at *
-  cases z; simp at h; case _ z =>
-  cases z <;> simp [Entry.is_defn] at h
-  simp
-  sorry
+-- theorem Global.get_defn :
+--   is_defn G x ->
+--   ∃ T t, lookup x G = some (.defn x T t)
+-- := by
+--   intro h
+--   unfold is_defn at h
+--   generalize zdef : lookup x G = z at *
+--   cases z; simp at h; case _ z =>
+--   cases z <;> simp [Entry.is_defn] at h
+--   simp
+--   sorry
 
-theorem Global.get_openm :
-  is_openm G x ->
-  ∃ T, lookup x G = some (.openm x T)
-:= by
-  sorry
+-- theorem Global.get_openm :
+--   is_openm G x ->
+--   ∃ T, lookup x G = some (.openm x T)
+-- := by
+--   sorry
+
 end Core

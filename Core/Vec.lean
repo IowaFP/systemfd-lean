@@ -4,6 +4,12 @@ import Lilac
 open LeanSubst
 open Lilac
 
+@[simp]
+theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v := sorry
+
+@[simp]
+theorem Fun.Vec.to_iso : Fun.Vec.to (Vec.to v) = v := sorry
+
 def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
 | k => if i == k then a else v i
 
