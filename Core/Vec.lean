@@ -10,6 +10,8 @@ namespace Lilac
 def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
 | k => if i == k then a else v i
 
+def Fun.Vec.length (_ : Fun.Vec A n) : Nat := n
+
 @[simp]
 theorem Fun.Vec.update_eq : update v a i i = a := sorry
 

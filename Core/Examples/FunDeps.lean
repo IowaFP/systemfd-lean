@@ -21,8 +21,8 @@ def FunDepsCtx : List Global := [
   --     guard EqualTT[t', u] <- i2 then λ c2.
   --         c1 ; sym c2
   .inst "fdBwk" (Λ[★]Λ[★]Λ[★] λ[(gt#"Equal" • t#2) • t#0] λ[(gt#"Equal" • t#1) • t#0 ]
-    .guard ((g#"EqualTT" •[t#2]) •[t#0]) #1 (λ[ t#2 ~[★]~ t#0]
-      .guard ((g#"EqualTT" •[t#1]) •[t#0]) #1 (λ[t#1 ~[★]~ t#0]
+    -- .guard ((g#"EqualTT" •[t#2]) •[t#0]) #1 (λ[ t#2 ~[★]~ t#0]
+    --   .guard ((g#"EqualTT" •[t#1]) •[t#0]) #1 (λ[t#1 ~[★]~ t#0]
             #1 `; sym! #0)
     )
   ),
