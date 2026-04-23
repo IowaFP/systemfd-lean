@@ -1,8 +1,11 @@
+import Core.Util
 import LeanSubst
 import Lilac
 
 open LeanSubst
-open Lilac
+
+
+namespace Lilac
 
 def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
 | k => if i == k then a else v i
@@ -112,6 +115,7 @@ def Vec.sum : Vec Nat n -> Nat
 --           case _ i => rw [lem]; simp; apply ih i
 --   }
 
+@[simp]
 def Vec.seq : Vec (Option T) n -> Option (Vec T n)
 | .nil => some $ .nil
 | .cons none tl => none
@@ -119,27 +123,20 @@ def Vec.seq : Vec (Option T) n -> Option (Vec T n)
   let tl' <- Vec.seq tl
   return .cons hd tl'
 
--- theorem Vec.seq_sound {vs : Vec n (Option Q)} {vs' : Vec n Q}:
---   vs.seq = some vs' ->
---   ∀ i, (vs i) = some (vs' i) := by
--- intro h i;
--- apply Vec.induction
---   (A := Option Q)
---   (motive := λ x v => ∀ vs' : Vec x Q, ∀ i, v.seq = some vs' -> v i = some (vs' i))
---   (nil := by intro h'; simp)
---   (cons := by
---     intro x hd tl ih vs' j; simp [seq];
---     generalize zdef : (Vec.cons hd tl).seq_lemma = z;
---     cases z <;> simp at *
---     case inr v =>
---     replace v := v j
---     intro h'
---     have jeq : j = j := by rfl
---     replace h' := congrFun h' j;
---     rcases v with ⟨A, v⟩
---     simp only [v] at h'; simp at h'; rw[<-h']; assumption
---     )
---   vs vs' i h
+theorem Vec.seq_sound {vs : Vec (Option Q) n} {vs' : Vec Q n} :
+  vs.seq = some vs' ->
+  ∀ i, (vs.get_elem i) = some (vs'.get_elem i) := by
+intro h i
+induction vs <;> simp [Vec.get_elem, Vec.seq] at *
+case _ => subst h; cases i; omega
+case _ v vs ih =>
+  cases v <;> simp at *
+  case _ v' =>
+  rw[Option.bind_eq_some_iff] at h;
+  rcases h with ⟨vs', h1, h2⟩
+  cases h2;
+  induction i using Fin.induction <;> simp [get_elem] at *
+  case _ i h => apply ih h1 i
 
 -- def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec n Q) : Bool :=
 --   vs.fold true (λ c acc => c == e && acc)
@@ -206,79 +203,51 @@ def Vec.seq : Vec (Option T) n -> Option (Vec T n)
 --     apply lem i
 
 
--- -- returns the first element that is not none
--- def Vec.any {n : Nat} (vs : Vec n (Option T)) : Option T :=
---   match n with
---   | 0 => none
---   | _ + 1 => match vs.uncons with
---     | ⟨h, tl⟩ => if h.isSome then h else tl.any
-
-
--- -- Proof that Any actually matches the first element
--- theorem Vec.any_returns_first {t : T} : ∀ n, {vs : Vec n (Option T)} ->
---   vs.any = some t ->
---   ∃ i, vs i = some t ∧ ∀ j, j < i -> vs j = none := by
--- apply Vec.induction <;> simp [Vec.any]
--- case _ =>
---   intro n hd tl ih h
---   split at h
---   case _ => exists 0; simp; exact h
---   case _ =>
---     replace ih := ih h;
---     rcases ih with ⟨i, ih1, ih2⟩
---     exists Fin.succ i
---     apply And.intro
---     case _ => simp; exact ih1
---     case _ =>
---       intro j
---       induction j using Fin.induction <;> simp at *
---       case _ h => exact h
---       case _ j ih h =>
---         intro le; replace ih2 := ih2 _ le; exact ih2
-
-
--- def Vec.zip {n} (ps: Vec n Q) (cs : Vec n Q') : Vec n (Q × Q') := λ i => (ps i , cs i)
-
+-- returns the first element that is not none
+@[simp]
+def Vec.any {n : Nat} : (vs : Vec (Option T) n) -> Option T
+| .nil => none
+| .cons (some x) xs => some x
+| .cons _ xs => xs.any
 
 -- Proof that Any actually matches the first element
-theorem Vect.any_returns_first {t : T} : ∀ n, {vs : Vect n (Option T)} ->
+theorem Vec.any_returns_first {t : T} {n : Nat} : (vs : Vec (Option T) n) ->
   vs.any = some t ->
-  ∃ i, vs i = some t ∧ ∀ j, j < i -> vs j = none := by
-apply Vect.induction <;> simp [Vect.any]
-case _ =>
-  intro n hd tl ih h
-  split at h
-  case _ => exists 0; simp; exact h
-  case _ =>
-    replace ih := ih h;
-    rcases ih with ⟨i, ih1, ih2⟩
-    exists Fin.succ i
-    apply And.intro
-    case _ => simp; exact ih1
-    case _ =>
-      intro j
-      induction j using Fin.induction <;> simp at *
-      case _ h => exact h
-      case _ j ih h =>
-        intro le; replace ih2 := ih2 _ le; exact ih2
+  ∃ i, vs.get_elem i = some t ∧ ∀ j, j < i -> vs.get_elem j = none
+| .nil, p => by simp at p
+| .cons (some x) xs, p => ⟨0, ⟨p , by simp⟩⟩
+| .cons none xs, p =>
+  match xs.any_returns_first (t := t) p with
+  | ⟨i', ⟨p1', p2'⟩⟩ => ⟨i'.succ, ⟨by simp[Vec.get_elem]; apply p1',
+    by simp[Vec.get_elem];
+       intro j; induction j using Fin.induction <;> simp at *
+       case _ j ih => apply p2'⟩⟩
+
+@[simp]
+def Vec.zip {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> Vec (Q × Q') n
+| .nil , .nil => .nil
+| .cons p ps, .cons q qs => (p , q) :: ps.zip qs
+
+theorem Vec.zip_sound {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> (i : Fin n) ->
+  ((ps.zip cs).get_elem i) = (ps.get_elem i , cs.get_elem i)
+| .nil, .nil, i => match i with
+  | ⟨v , v_le_zero⟩ => by omega
+| .cons p ps, .cons q qs, i => by
+  induction i using Fin.induction <;> simp [Vec.get_elem] at *
+  case _ i ih => apply Vec.zip_sound ps qs i
 
 
-def Vect.zip {n} (ps: Vect n Q) (cs : Vect n Q') : Vect n (Q × Q') := λ i => (ps i , cs i)
+-- theorem Vect.map_cons {f : Q -> P} {v : Vect n Q} {v' : Vect (n + 1) P} {q : Q} :
+--   v' = (λ i => f ((Vect.cons q v) i)) ->
+--   v' = Vect.cons (f q) (λ i => (f (v i))) := by
+-- intro h
+-- revert v' v;
+-- intro v
+-- apply v.induction
+-- case nil => simp
+-- case cons =>
+--   intro n hd tl ih1
+--   intro v' ih2
+--   sorry
 
-theorem Vect.zip_sound {n} {ps: Vect n Q} {cs : Vect n Q'} :
-  ∀ i, (ps.zip cs i) = (ps i , cs i) := by
-intro i; simp [Vect.zip]
-
-
-theorem Vect.map_cons {f : Q -> P} {v : Vect n Q} {v' : Vect (n + 1) P} {q : Q} :
-  v' = (λ i => f ((Vect.cons q v) i)) ->
-  v' = Vect.cons (f q) (λ i => (f (v i))) := by
-intro h
-revert v' v;
-intro v
-apply v.induction
-case nil => simp
-case cons =>
-  intro n hd tl ih1
-  intro v' ih2
-  sorry
+end Lilac

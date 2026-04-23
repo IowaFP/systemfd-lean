@@ -6,22 +6,13 @@ namespace Core
 
 theorem base_kind_some {k : Kind}:
   k.base_kind = some b ->
-  k = .base b := by
-intro h
-induction k <;> simp at *
-case _ a =>
-  cases a
-  · unfold Kind.base_kind at h; simp at *; assumption
-  · unfold Kind.base_kind at h; simp at *; assumption
-case _ => unfold Kind.base_kind at h; simp at h
+  k = .base := Core.Kind.base_kind_sound k
 
-theorem is_arrow_some {k : Kind} :
+theorem is_arrow_some : (k : Kind) ->
   k.is_arrow = some b ->
-  k = b.1 -:> b.2 := by
-intro h
-induction k <;> simp at *
-all_goals (unfold Kind.is_arrow at h; simp at h)
-rw[<-h]; simp
+  k = b.1 -:> b.2
+| .base => by simp[Kind.is_arrow]
+| .arrow k1 k2 => by simp[Kind.is_arrow]; grind
 
 
 theorem infer_kind_sound :
@@ -59,7 +50,7 @@ case _ ih1 ih2 =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h2, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h3, h⟩
   simp at h; cases h.1; cases h.2; clear h
-  replace h3 := is_arrow_some h3; rw[h3] at h1
+  replace h3 := is_arrow_some _ h3; rw[h3] at h1
   have ih1 := ih1 h1
   have ih2 := ih2 h2
   constructor; assumption; assumption

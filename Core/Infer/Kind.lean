@@ -13,42 +13,38 @@ intro h
 cases K <;> simp [Kind.is_arrow] at *
 assumption
 
-def Kind.base_kind : (K : Kind) -> Option BaseKind
-| ★ => return b★
-| ◯ => return b◯
+def Kind.base_kind : (K : Kind) -> Option Unit
+| .base => some ()
 | _ => none
 
-theorem Kind.base_kind_sound {K : Kind} :
+theorem Kind.base_kind_sound : (K : Kind) ->
   K.base_kind = some b ->
-  K = .base b := by
-intro h
-cases K <;> simp [Kind.base_kind] at *
-case _ a =>
-  cases a <;> simp at *
-  assumption; assumption
+  K = .base
+| base => by intro; rfl
+| arrow _ _ => by simp [Kind.base_kind]
 
 
-def Kind.is_open_kind : (K : Kind) -> Option Unit
-| ◯ => return ()
-| _ => none
+-- def Kind.is_open_kind : (K : Kind) -> Option Unit
+-- | ◯ => return ()
+-- | _ => none
 
-def Kind.is_closed_kind : (K : Kind) -> Option Unit
-| ★ => return ()
-| _ => none
+-- def Kind.is_closed_kind : (K : Kind) -> Option Unit
+-- | ★ => return ()
+-- | _ => none
 
-theorem Kind.is_open_kind_sound :
-  k.is_open_kind = some () ->
-  k = ◯ := by
-intro h
-cases k; case _ k => cases k <;> simp [Kind.is_open_kind] at *
-simp [Kind.is_open_kind] at *
+-- theorem Kind.is_open_kind_sound :
+--   k.is_open_kind = some () ->
+--   k = ◯ := by
+-- intro h
+-- cases k; case _ k => cases k <;> simp [Kind.is_open_kind] at *
+-- simp [Kind.is_open_kind] at *
 
-theorem Kind.is_closed_kind_sound :
-  k.is_closed_kind = some () ->
-  k = ★ := by
-intro h
-cases k; case _ k => cases k <;> simp [Kind.is_closed_kind] at *
-simp [Kind.is_closed_kind] at *
+-- theorem Kind.is_closed_kind_sound :
+--   k.is_closed_kind = some () ->
+--   k = ★ := by
+-- intro h
+-- cases k; case _ k => cases k <;> simp [Kind.is_closed_kind] at *
+-- simp [Kind.is_closed_kind] at *
 
 
 @[simp]

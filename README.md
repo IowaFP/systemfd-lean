@@ -114,3 +114,10 @@ $ lake build
 ```
 
 - The `lake build` command builds all the files from `Hs` and `SystemFD` directories via `Main.lean` file
+
+
+- [ ] Examples, Booleans, Nats, Fundep examples, Injective and Maybe
+- [ ] Type inference
+- [ ] Evaluator
+- [ ] Type inference sound
+- [ ] Evaluator sound
