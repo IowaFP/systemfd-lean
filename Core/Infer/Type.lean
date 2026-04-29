@@ -6,6 +6,8 @@ import Core.Vec
 import Lilac
 
 open LeanSubst
+open Lilac
+
 namespace Core
 -- A is the type of the pattern
 -- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
@@ -70,10 +72,10 @@ def Ty.valid_open_type (G : List Global) (A : Ty) : Option Unit := do
   if is_opent G x
   then return () else none
 
-def Ty.valid_data_type (G : List Global) (A : Ty) : Option Unit := do
+def Ty.valid_data_type (G : List Global) (A : Ty) : Option String := do
   let (x, _) <- A.spine
   if is_data G x
-  then return () else none
+  then return x else none
 
 -- def Term.valid_inst_type (G : List Global)(A : Term) : Option Unit := do
 --   let (x, _) <- A.spine
@@ -103,12 +105,20 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let D1 <- lookup_spctor_type G x
   let D2 <- D1.kind_preamble G Δ τs
   let (Ts, D3) <- Ty.typescope n D2
-  let mτs : Lilac.Vec (Option Ty) n := Lilac.Fun.Vec.to ((λ t => infer_type G Δ Γ t) <$> ts)
+  let mτs : Vec (Option Ty) n := Lilac.Fun.Vec.to ((λ t => infer_type G Δ Γ t) <$> ts)
   let τs <- mτs.seq
   let mbs := (Ts.zip τs).fold true (λ p acc => p.fst == p.snd && acc)
   if mbs then return D3 else none
-| .mtch m n _ _ _  => do
-
+| .mtch m n ss ps ts => do
+  -- infer the type of scrutinees
+  let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
+  let sτs <- smτs.to.seq
+  -- infer (sτs i) is datatype
+  let mTs : Vec (Option String) m := sτs.map (Ty.valid_data_type G)
+  let T <- mTs.get_elem_if_eq
+  -- infer each of patten type
+  -- infer each of the branches with added pattern variables
+  --
   none
 | .cast τ c t => do
   let e <- c.infer_type G Δ Γ

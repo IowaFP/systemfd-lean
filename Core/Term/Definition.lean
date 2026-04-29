@@ -76,6 +76,12 @@ notation "Λ[" K "]" t => Term.tbind TyBindVariant.lamt K t
 notation "λ[" A "]" t => Term.lam A t
 notation "∀c[" K "]" P => Term.tbind TyBindVariant.allc K P
 
+def mtch' (sts : Vec Term m) (pat_cube : Vec (Pattern m × Term) n) : Term :=
+  let p := Vec.map (·.1) pat_cube
+  let x := Vec.map (·.2) pat_cube
+  .mtch m n sts.to p.to x.to
+
+
 @[simp]
 def Term.size : Term -> Nat
 | var _ => 0

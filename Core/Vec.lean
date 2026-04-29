@@ -183,11 +183,13 @@ case _ v vs ih =>
 
 
 -- -- Returns the 1st element if all the elements are equal
--- def Vec.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vec n Q) : Option Q :=
--- match n with
--- | 0 => none
--- | _ + 1 => match vs.uncons with
---   | ⟨h, vs'⟩ => if Vec.elems_eq_to h vs' then return h else none
+def Vec.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vec Q n) : Option Q :=
+match vs with
+| .nil => none
+| .cons x .nil => return x
+| .cons x xs => do
+  let e <- xs.get_elem_if_eq
+  if e == x then return x else none
 
 -- theorem Vec.get_elem_if_eq_sound[BEq Q] [LawfulBEq Q] {vs : Vec n Q} {t : Q} :
 --   vs.get_elem_if_eq = some t ->
