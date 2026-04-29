@@ -120,13 +120,13 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   -- infer each of the branches with added pattern variables
   --
   none
-| .cast τ c t => do
+| .cast R c t => do
   let e <- c.infer_type G Δ Γ
   let (K, A, B) <- e.is_eq_some
-  let τK <- τ.infer_kind G (K :: Δ)
-  let _ <- τK.base_kind
+  let RK <- R.infer_kind G (K :: Δ)
+  let _ <- RK.base_kind
   let tA <- t.infer_type G Δ Γ
-  if τ[su A::+0] == tA then return τ[su B::+0] else .none
+  if R[su A::+0] == tA then return R[su B::+0] else none
 | .lam A t => do
   let Ak <- A.infer_kind G Δ
   let _ <- Ak.base_kind
@@ -204,6 +204,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let (Tk, A, B) <- T1.is_eq_some
   let _ <- Tk.base_kind
   return ((∀[K]A) ~[Tk]~ (∀[K]B))
+
 | _ => none
 
 namespace Core
