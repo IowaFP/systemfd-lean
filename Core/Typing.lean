@@ -170,7 +170,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ (i : Fin m), G&Δ ⊢ As[i] : Ks[i]) ->
   Sequ.append_vec (Vec.map su As) +0 = τ ->
   (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts[i][τ]) ->
-  (∃ c, v = .data c -> lookup_ctor? G x R) ->
+  (∀ c, v = .data c -> lookup_ctor? G x R) ->
   (v = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
   R' = R[τ] ->
   Typing G Δ Γ (.spctor v x As ts) R'

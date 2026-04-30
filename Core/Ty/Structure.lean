@@ -6,12 +6,22 @@ open LeanSubst
 open Lilac
 
 namespace Core
+
 def Ty.spine : Ty -> Option (String × List Ty)
 | gt#x => return (x, [])
 | app f a => do
   let (x, sp) <- spine f
   (x, sp ++ [a])
 | _ => none
+
+@[simp, grind =]
+theorem Ty.spine_arrow {A B : Ty} : (A -:> B).spine = none := by simp [spine]
+
+@[simp, grind =]
+theorem Ty.spine_all : (∀[K] A).spine = none := by simp [spine]
+
+@[simp, grind =]
+theorem Ty.spine_eq : (A ~[K]~ B).spine = none := by simp [spine]
 
 def Ty.apply (t : Ty) : List Ty -> Ty
 | [] => t

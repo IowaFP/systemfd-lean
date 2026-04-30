@@ -7,6 +7,14 @@ open LeanSubst
 
 namespace Core
 
+@[grind →]
+theorem spctor_inversion :
+  ¬ v = .openm ->
+  G&Δ,Γ ⊢ Term.spctor v s tys ts : T ->
+  T.spine.isSome
+:= by
+  sorry
+
 theorem split_all_or_left : ∀ {n} {A B : Fin n -> Prop}, (∀ i, A i ∨ B i) -> (∀ i, A i) ∨ (∃ i, B i)
 | 0, _, _, _ => Or.inl (Fin.elim0 ·)
 | n + 1, _, _, h =>
@@ -121,7 +129,7 @@ theorem progress :
   | Or.inl v =>
     match v, j1 with
     | .lam, .lam j3 j4 => Or.inr ⟨_, .beta⟩
-    | .spctor h, j3 => sorry
+    | .spctor h, j3 => by grind
   | Or.inr ⟨f', r⟩ => Or.inr ⟨_, .app_congr r⟩
 | .lamt j1 j2, e => Or.inl Value.lamt
 | .appt j1 j2 j3, e =>
@@ -129,7 +137,7 @@ theorem progress :
   | Or.inl v =>
     match v, j1 with
     | .lamt, .lamt j3 j4 => Or.inr ⟨_, .betat⟩
-    | .spctor h, j3 => sorry
+    | .spctor h, j3 => by grind
   | Or.inr ⟨f', r⟩ => Or.inr ⟨_, .ctor1_congr r⟩
 | .refl j, e => Or.inl Value.refl
 | .cast (R := R) (t := t) j1 j2 j3 e1, e2 =>
@@ -137,7 +145,7 @@ theorem progress :
   | Or.inl v =>
     match v, j2 with
     | .refl, .refl j4 => Or.inr ⟨t, .cast⟩
-    | .spctor h, j4 => sorry -- by inversion on j4
+    | .spctor h, j4 => by grind
   | Or.inr ⟨c', r⟩ => Or.inr ⟨.cast R c' t, .cast_congr r⟩
 | .prj j1 j2, e =>
   match progress j1 e with
@@ -147,22 +155,25 @@ theorem progress :
     | .refl, .refl j3, .snd_app h => Or.inr ⟨_, .prj_snd_app⟩
     | .refl, .refl j3, .fst_arrow h => Or.inr ⟨_, .prj_fst_arr⟩
     | .refl, .refl j3, .snd_arrow h => Or.inr ⟨_, .prj_snd_arr⟩
-    | .spctor h, j3, j4 => sorry
+    | .spctor h, j3, .fst_app _
+    | .spctor h, j3, .snd_app _
+    | .spctor h, j3, .fst_arrow _
+    | .spctor h, j3, .snd_arrow _ => by grind
   | Or.inr ⟨t', r⟩ => Or.inr ⟨_, .ctor1_congr r⟩
 | .allc j1, e =>
   match progress j1 (e |> cast (by grind)) with
   | Or.inl v =>
     match v, j1 with
     | .refl, .refl j2 => Or.inr ⟨_, .allc⟩
-    | .spctor h, j2 => sorry
+    | .spctor h, j2 => by grind
   | Or.inr ⟨c', r⟩ => Or.inr ⟨_, .allc_congr r⟩
 | .apptc j1 j2 e1 e2, e3 =>
   match progress j1 e3, progress j2 e3 with
   | Or.inl v1, Or.inl v2 =>
     match v1, v2, j1, j2 with
     | .refl, .refl, .refl j3, .refl j4 => Or.inr ⟨_, .apptc⟩
-    | .spctor h, _, j3, j4 => sorry
-    | _, .spctor h, j3, j4 => sorry
+    | .spctor h, _, j3, j4 => by grind
+    | _, .spctor h, j3, j4 => by grind
   | Or.inr ⟨f', r⟩, _ => Or.inr ⟨_, .apptc_congr1 r⟩
   | _, Or.inr ⟨a', r⟩ => Or.inr ⟨_, .apptc_congr2 r⟩
 -- | _, _ => sorry
