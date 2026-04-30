@@ -5,6 +5,7 @@ import Core.Vec
 
 -- import Core.Eval.BigStep
 import Core.Infer.Type
+import Core.Infer.Global
 import Lilac
 open Lilac
 namespace Core.Examples
@@ -21,12 +22,13 @@ not : Bool -> Bool
 not = λ x → case x of
                False → True
                True → False
-               _ → False
 -/
-def notTerm : Term := λ[ .global "Bool" ]
+def notTerm : Core.Term := λ[  gt#"Bool" ]
   mtch' #𝓋[#0]
      #𝓋[ (#𝓋[("True" , [] , 0)]  , ctor! "False" [] .nil)
        , (#𝓋[("False" , [] , 0)] , ctor! "True" [] .nil) ]
+
+#guard Term.infer_type BoolCtx [] [] notTerm == some (gt#"Bool" -:> gt#"Bool")
 
 /-  eqBool =
   λ x. λ y. case x of
@@ -51,8 +53,25 @@ def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
                    , (#𝓋[ ("False" , [], 0) ] , ctor! "True" [] .nil)
                    ]))])
 
+#guard Term.infer_type BoolCtx [] [] eqBool == some (gt#"Bool" -:> (gt#"Bool" -:> gt#"Bool"))
 
-def EqBoolCtx : List Global := [
+#guard (((Λ[★]Λ[★] λ[t#1 ~[★]~ t#0] (.cast (t#0 ~[★]~ t#2) #0 (refl! t#1)))).infer_type [] [] []) == some ((∀[★] ∀[★] (t#1 ~[★]~ t#0) -:> (t#0 ~[★]~ t#1)))
+
+
+#guard (Λ[★]Λ[★]Λ[★] λ[t#2 ~[★]~ t#1] λ[t#1 ~[★]~ t#0] .cast (t#3 ~[★]~ t#0) #0 #1).infer_type [] [] [] == some (∀[★] ∀[★] ∀[★] (t#2 ~[★]~ t#1) -:> ((t#1 ~[★]~ t#0) -:> (t#2 ~[★]~ t#0)))
+
+#guard (Λ[★]Λ[★]Λ[★]Λ[★] λ[t#3 ~[★]~ t#2] λ[t#1 ~[★]~ t#0]
+                    (.cast ((t#4 -:> t#2) ~[★]~ (t#0 -:> t#1)) #1
+                      (.cast ((t#4 -:> t#2) ~[★]~ (t#4 -:> t#0)) #0 (refl! (t#3 -:> t#1))))).infer_type [] [] []
+                == some (∀[★]∀[★]∀[★]∀[★] (t#3 ~[★]~ t#2) -:> ((t#1 ~[★]~ t#0) -:> ((t#3 -:> t#1) ~[★]~ (t#2 -:> t#0))))
+
+#guard (Λ[★ -:> ★]Λ[★ -:> ★]Λ[★]Λ[★] λ[t#3 ~[★ -:> ★]~ t#2] λ[t#1 ~[★]~ t#0]
+                    (.cast ((t#4 • t#2) ~[★]~ (t#0 • t#1)) #1                           -- A • C ~ B • D
+                      (.cast ((t#4 • t#2) ~[★]~ (t#4 • t#0)) #0 (refl! (t#3 • t#1))))).infer_type [] [] []
+           == some (∀[★ -:> ★]∀[★ -:> ★]∀[★]∀[★] (t#3 ~[★ -:> ★]~ t#2) -:> (t#1 ~[★]~ t#0) -:> ((t#3 • t#1) ~[★]~ (t#2 • t#0)))
+
+
+def EqBoolCtx : GlobalEnv := [
   -- instance (==)[t] i
   --    If EqBool[t] tBool ← i
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
@@ -93,20 +112,6 @@ def EqBoolCtx : List Global := [
 
   ] ++ BoolCtx
 
-#guard (((Λ[★]Λ[★] λ[t#1 ~[★]~ t#0] (.cast (t#0 ~[★]~ t#2) #0 (refl! t#1)))).infer_type [] [] []) == some ((∀[★] ∀[★] (t#1 ~[★]~ t#0) -:> (t#0 ~[★]~ t#1)))
-
-
-#guard (Λ[★]Λ[★]Λ[★] λ[t#2 ~[★]~ t#1] λ[t#1 ~[★]~ t#0] .cast (t#3 ~[★]~ t#0) #0 #1).infer_type [] [] [] == some (∀[★] ∀[★] ∀[★] (t#2 ~[★]~ t#1) -:> ((t#1 ~[★]~ t#0) -:> (t#2 ~[★]~ t#0)))
-
-#guard (Λ[★]Λ[★]Λ[★]Λ[★] λ[t#3 ~[★]~ t#2] λ[t#1 ~[★]~ t#0]
-                    (.cast ((t#4 -:> t#2) ~[★]~ (t#0 -:> t#1)) #1
-                      (.cast ((t#4 -:> t#2) ~[★]~ (t#4 -:> t#0)) #0 (refl! (t#3 -:> t#1))))).infer_type [] [] []
-                == some (∀[★]∀[★]∀[★]∀[★] (t#3 ~[★]~ t#2) -:> ((t#1 ~[★]~ t#0) -:> ((t#3 -:> t#1) ~[★]~ (t#2 -:> t#0))))
-
-#guard (Λ[★ -:> ★]Λ[★ -:> ★]Λ[★]Λ[★] λ[t#3 ~[★ -:> ★]~ t#2] λ[t#1 ~[★]~ t#0]
-                    (.cast ((t#4 • t#2) ~[★]~ (t#0 • t#1)) #1                           -- A • C ~ B • D
-                      (.cast ((t#4 • t#2) ~[★]~ (t#4 • t#0)) #0 (refl! (t#3 • t#1))))).infer_type [] [] []
-           == some (∀[★ -:> ★]∀[★ -:> ★]∀[★]∀[★] (t#3 ~[★ -:> ★]~ t#2) -:> (t#1 ~[★]~ t#0) -:> ((t#3 • t#1) ~[★]~ (t#2 • t#0)))
 
 -- def t1 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"False"
 -- def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
@@ -119,7 +124,7 @@ def EqBoolCtx : List Global := [
 --            (λ[t#0 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool"))))
 
 
--- #guard Globals.wf_globals EqBoolCtx == .some ()
+#guard EqBoolCtx.wf_globals  == some ()
 -- #guard t1.eval_loop EqBoolCtx == g#"False"
 -- #guard t2.eval_loop EqBoolCtx == g#"True"
 

@@ -97,14 +97,14 @@ inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> 
   KindingPreamble G Δ Ty T1[su A::+0] T2 ->
   KindingPreamble G Δ (A::Ty) (∀[K] T1) T2
 
-inductive PatternBinders : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
-| zero : PatternBinders 0 ss ps []
+inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
+| zero : PatternBinders G Δ 0 ss ps []
 | succ :
   lookup_type G c = some D1 ->
   KindingPreamble G Δ ts D1 D2 ->
   Ty.typescope n D2 = some (Ts, A) ->
-  PatternBinders n S p ℓ ->
-  PatternBinders (n + 1) (A::S) ((c, ts, n)::p) ((Vec.to_list Ts) ++ ℓ)
+  PatternBinders G Δ n S p ℓ ->
+  PatternBinders G Δ (n + 1) (A::S) ((c, ts, n)::p) ((Vec.to_list Ts) ++ ℓ)
 
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :
@@ -162,7 +162,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
   (∀ i, (S i).datatype? G) ->
-  (∀ i, PatternBinders m S (ps i) (ξ i)) ->
+  (∀ i, PatternBinders G Δ m S (ps i) (ξ i)) ->
   (∀ i, Typing G Δ (ξ i ++ Γ) (ts i) T) ->
   (∀ {q}, Query G q S -> ∃ i, Query.Match q (ps i)) ->
   Typing G Δ Γ (.mtch m n ss ps ts) T

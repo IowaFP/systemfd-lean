@@ -2,21 +2,23 @@ import Core.Ty
 import Core.Term
 import Core.Global
 import Core.Vec
-
-import Core.Eval.BigStep
 import Core.Infer
 
-def c1  := match! #0 v[ g#"Nothing" •[t#0] , g#"Just" •[t#0] ]
-                     v[ g#"True" , λ[t#0] g#"False" ]
-                     g#"False"
+import Lilac
+open Lilac
+-- import Core.Eval.BigStep
 
-def c2 := λ[t#0] match! #1
-              v[ g#"Nothing" •[t#0], g#"Just" •[t#0]]
-              v[ g#"False", λ[t#0] ((((g#"eq" •[ t#0 ]) •(.open) #4) • #1) •#0) ]
-              g#"False"
+-- def c1  := mtch' #0 #𝓋[ g#"Nothing" •[t#0] , g#"Just" •[t#0] ]
+--                      v[ g#"True" , λ[t#0] g#"False" ]
+--                      g#"False"
 
-def MaybeBoolCtx : List Global := [
+-- def c2 := λ[t#0] match! #1
+--               v[ g#"Nothing" •[t#0], g#"Just" •[t#0]]
+--               v[ g#"False", λ[t#0] ((((g#"eq" •[ t#0 ]) •(.open) #4) • #1) •#0) ]
+--               g#"False"
 
+namespace Core.Examples
+def MaybeBoolCtx : GlobalEnv := [
 
    /- Λ t. λ (i : Eq t).
         If EqMaybe[t] <- i.
@@ -24,46 +26,53 @@ def MaybeBoolCtx : List Global := [
             eqMaybe ▹ sym (<t ~ Maybe u> → <t ~ Maybe u> → <Bool>)
     -/
 
-  .inst "eq" (Λ[★] λ[gt#"Eq" • t#0]
-       .guard (g#"EqMaybe" •[t#0]) #0
-         (Λ[★] λ[t#1 ~[★]~ (gt#"Maybe" • t#0)] λ[ gt#"Eq" • t#0]
-     ((g#"eq@Maybe" •[t#0]) •(.open) #0) ▹ sym! (#1 -c> #1 -c> refl! gt#"Bool"))
-   ),
+  -- .inst "eq" (Λ[★] λ[gt#"Eq" • t#0]
+  --      .guard (g#"EqMaybe" •[t#0]) #0
+  --        (Λ[★] λ[t#1 ~[★]~ (gt#"Maybe" • t#0)] λ[ gt#"Eq" • t#0]
+  --    ((g#"eq@Maybe" •[t#0]) •(.open) #0) ▹ sym! (#1 -c> #1 -c> refl! gt#"Bool"))
+  --  ),
 
 
-  -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
-  .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
-        (Λ[★] λ[gt#"Eq" • t#0] λ[ gt#"Maybe" • t#0] λ[gt#"Maybe" • t#0]
-          match! #1 v[ g#"Nothing" •[t#0] , g#"Just"•[t#0] ]
-                    v[ c1 , c2 ]
-                    g#"False"
+  -- -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
+  -- .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
+  --       (Λ[★] λ[gt#"Eq" • t#0] λ[ gt#"Maybe" • t#0] λ[gt#"Maybe" • t#0]
+  --         match! #1 v[ g#"Nothing" •[t#0] , g#"Just"•[t#0] ]
+  --                   v[ c1 , c2 ]
+  --                   g#"False"
 
-        ),
+  --       ),
 
   -- EqMaybe : ∀ t u. (t ~ Maybe u) → Eq u -> Eq t
-  .instty "EqMaybe" (∀[★] ∀[★] (t#1 ~[★]~ (gt#"Maybe" • t#0)) -:> (gt#"Eq" • t#0) -:>  (gt#"Eq" • t#1)),
+  -- .instty "EqMaybe" (∀[★] ∀[★] (t#1 ~[★]~ (gt#"Maybe" • t#0)) -:> (gt#"Eq" • t#0) -:>  (gt#"Eq" • t#1)),
 
   -- data Maybe a = Nothing | Just a
-  .data "Maybe" (★ -:> ★) v[ ("Nothing", ∀[★] gt#"Maybe" • t#0), ("Just", ∀[★] t#0 -:> (gt#"Maybe" • t#0)) ],
+   .data 2 "Maybe" (★ -:> ★) ( #𝓋[("Nothing", ∀[★] gt#"Maybe" • t#0) ,
+                               ("Just", ∀[★] t#0 -:> (gt#"Maybe" • t#0)) ] : Vec (String × Ty) 2),
 
 
   -- instance (==)[t] i
   --    If EqBool[t] tBool ← i
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. ==@Bool ▹ sym c
-  .inst "eq" (Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
-        .guard (g#"EqBool" •[ t#0 ]) #0
-           (λ[t#0 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
-   ),
+  -- .inst "eq" (Λ[ ★ ] λ[ gt#"Eq" • t#0 ]
+  --       .guard (g#"EqBool" •[ t#0 ]) #0
+  --          (λ[t#0 ~[★]~ gt#"Bool"] (g#"eqBool" ▹ sym! (#0 -c> #0 -c> refl! gt#"Bool")))
+  --  ),
 
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool")
-    (λ[ .global "Bool" ] λ[ .global "Bool" ]
-      match! #1
-      v[ g#"True", g#"False" ]
-      v[ match! #0 v[ g#"True", g#"False" ] v[ g#"True", g#"False"] g#"False" ,
-         match! #0 v[ g#"True", g#"False" ] v[ g# "False", g# "False"] g#"False"]
-      g#"False"
-    ),
+    (λ[ gt#"Bool" ] λ[ gt#"Bool" ]
+    (mtch' #𝓋[#0]
+     #𝓋[ (#𝓋[("True" , [] , 0)]  ,
+          (mtch' #𝓋[#1]
+                 #𝓋[ (#𝓋[ ("True" , [], 0) ], ctor! "True" [] .nil)
+                   , (#𝓋[ ("False" , [], 0) ] , ctor! "False" [] .nil)
+                   ]))
+
+       , (#𝓋[("False" , [] , 0)]  ,
+          (mtch' #𝓋[#1]
+                 #𝓋[ (#𝓋[ ("True" , [], 0) ], ctor! "False" [] .nil)
+                   , (#𝓋[ ("False" , [], 0) ] , ctor! "True" [] .nil)
+                   ]))])),
 
   -- EqBool : ∀ t. t ~ Bool → Eq t
   .instty "EqBool" (∀[★] (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)) ,
@@ -72,66 +81,65 @@ def MaybeBoolCtx : List Global := [
   .openm "eq" (∀[★] (gt#"Eq" • t#0) -:> t#0 -:> t#0 -:> gt#"Bool") ,
 
   -- class Eq a
-  .opent "Eq" (★ -:> ◯),
+  .opent "Eq" (★ -:> ★),
+
   -- data Bool = True | False
-  .data "Bool" ★ v[ ("True", gt#"Bool") , (("False"), gt#"Bool") ]
+  .data 2 "Bool" ★ ((("True", gt#"Bool") :: (("False"), gt#"Bool") :: .nil) : Vec (String × Ty) 2) ]
 
-]
-
-#guard Globals.wf_globals MaybeBoolCtx == .some ()
+#guard MaybeBoolCtx.wf_globals == .some ()
 
 
 
-def t0 := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
-                          • (g#"Nothing" •[gt#"Bool"] ))
-                          • (g#"Nothing" •[gt#"Bool"])
+-- def t0 := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
+--                           • (g#"Nothing" •[gt#"Bool"] ))
+--                           • (g#"Nothing" •[gt#"Bool"])
 
--- #eval! eval_loop MaybeBoolCtx t0 -- True
+-- -- #eval! eval_loop MaybeBoolCtx t0 -- True
 
-def t0' := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
-                           • (g#"Nothing" •[gt#"Bool"]) )
-                           • ((g#"Just" •[gt#"Bool"]) • g#"True")
--- #eval! eval_loop MaybeBoolCtx t0' -- False
-
-
-def t1 : Term := (((g#"eq@Maybe" •[gt#"Bool"]) •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
-                         • ((g#"Just" •[gt#"Bool"]) • g#"True"))
-                         • ((g#"Just" •[gt#"Bool"]) • g#"True")
--- #eval! eval_loop MaybeBoolCtx t1 -- True
--- #eval (g#"eq@Maybe").infer_type MaybeBoolCtx [] []
--- #eval (g#"eq@Maybe" •[gt#"Bool"]).infer_type MaybeBoolCtx [] []
--- #eval (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
--- #eval ((g#"eq@Maybe" •[gt#"Bool"]) •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
-
-def t := ((((g#"eq@Maybe" •[gt#"Bool"])
-       •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
-       • (g#"Just" •[gt#"Bool"] • g#"True")))
-       • (g#"Just" •[gt#"Bool"] • g#"True")
-
-#guard t.eval_loop MaybeBoolCtx == g#"True"
+-- def t0' := (((g#"eq@Maybe" •[gt#"Bool"]) • ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
+--                            • (g#"Nothing" •[gt#"Bool"]) )
+--                            • ((g#"Just" •[gt#"Bool"]) • g#"True")
+-- -- #eval! eval_loop MaybeBoolCtx t0' -- False
 
 
+-- def t1 : Term := (((g#"eq@Maybe" •[gt#"Bool"]) •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
+--                          • ((g#"Just" •[gt#"Bool"]) • g#"True"))
+--                          • ((g#"Just" •[gt#"Bool"]) • g#"True")
+-- -- #eval! eval_loop MaybeBoolCtx t1 -- True
+-- -- #eval (g#"eq@Maybe").infer_type MaybeBoolCtx [] []
+-- -- #eval (g#"eq@Maybe" •[gt#"Bool"]).infer_type MaybeBoolCtx [] []
+-- -- #eval (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
+-- -- #eval ((g#"eq@Maybe" •[gt#"Bool"]) •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool")).infer_type MaybeBoolCtx [] []
 
--- eq : ∀ t -> Eq t -> t -> t -> Bool
-def t2 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"Bool" ])
-                                       • (refl! (gt#"Maybe" • gt#"Bool")))
-                                       • (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"));
-          ((((g#"eq" •[ gt#"Maybe" • gt#"Bool" ])
-                     •(.open) eqt)
-                     • ((g#"Just" •[gt#"Bool"]) • g#"True")))
-                     • ((g#"Just" •[gt#"Bool"]) • g#"True")
+-- def t := ((((g#"eq@Maybe" •[gt#"Bool"])
+--        •(.open) ((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"))
+--        • (g#"Just" •[gt#"Bool"] • g#"True")))
+--        • (g#"Just" •[gt#"Bool"] • g#"True")
 
-#guard t2.eval_loop MaybeBoolCtx == g#"True"
+-- #guard t.eval_loop MaybeBoolCtx == g#"True"
 
-def t3 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"Bool" ])
-                                       • (refl! (gt#"Maybe" • gt#"Bool")))
-                                       • (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"));
-          ((((g#"eq" •[ gt#"Maybe" • gt#"Bool" ])
-                     • eqt)
-                     • ((g#"Just" •[gt#"Bool"]) • g#"True")))
-                     • ((g#"Nothing" •[gt#"Bool"]))
 
-#guard t3.eval_loop MaybeBoolCtx == g#"False"
+
+-- -- eq : ∀ t -> Eq t -> t -> t -> Bool
+-- def t2 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"Bool" ])
+--                                        • (refl! (gt#"Maybe" • gt#"Bool")))
+--                                        • (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"));
+--           ((((g#"eq" •[ gt#"Maybe" • gt#"Bool" ])
+--                      •(.open) eqt)
+--                      • ((g#"Just" •[gt#"Bool"]) • g#"True")))
+--                      • ((g#"Just" •[gt#"Bool"]) • g#"True")
+
+-- #guard t2.eval_loop MaybeBoolCtx == g#"True"
+
+-- def t3 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"Bool" ])
+--                                        • (refl! (gt#"Maybe" • gt#"Bool")))
+--                                        • (((g#"EqBool" •[gt#"Bool"]) • refl! gt#"Bool"));
+--           ((((g#"eq" •[ gt#"Maybe" • gt#"Bool" ])
+--                      • eqt)
+--                      • ((g#"Just" •[gt#"Bool"]) • g#"True")))
+--                      • ((g#"Nothing" •[gt#"Bool"]))
+
+-- #guard t3.eval_loop MaybeBoolCtx == g#"False"
 
 
 
@@ -191,3 +199,5 @@ def t3 := let eqt := ((((g#"EqMaybe") •[ gt#"Maybe" • gt#"Bool" ]) •[ gt#"
 -- #eval! eval MaybeBoolCtx t28
 -- def t29 := Option.getD (eval MaybeBoolCtx t28) `0
 -- #eval! eval MaybeBoolCtx t29
+
+end Core.Examples

@@ -72,10 +72,12 @@ def Ty.valid_open_type (G : List Global) (A : Ty) : Option Unit := do
   if is_opent G x
   then return () else none
 
-def Ty.valid_data_type (G : List Global) (A : Ty) : Option String := do
+def Ty.valid_data_type (G : List Global) : Ty -> Option Unit
+| .arrow _ A => A.valid_data_type G
+| A => do
   let (x, _) <- A.spine
   if is_data G x
-  then return x else none
+  then return () else none
 
 -- def Term.valid_inst_type (G : List Global)(A : Term) : Option Unit := do
 --   let (x, _) <- A.spine
@@ -89,6 +91,16 @@ def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Optio
     (τ[su a :: +0]).kind_preamble G Δ as
   else none
 | _ , _ => none
+
+def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> Option (List Ty)
+| 0, _, _ => some []
+| m + 1, .cons A' Ss, .cons (c, ts, k) ps => do
+  let ℓ <- pattern_binders G Δ m Ss ps
+  let D1 <- lookup_type G c
+  let D2 <- D1.kind_preamble G Δ ts
+  let (Ts, A) <- Ty.typescope k D2
+  if A == A' then return (Ts.to_list ++ ℓ) else none
+
 
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x => do
@@ -112,14 +124,18 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | .mtch m n ss ps ts => do
   -- infer the type of scrutinees
   let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
-  let sτs <- smτs.to.seq
-  -- infer (sτs i) is datatype
-  let mTs : Vec (Option String) m := sτs.map (Ty.valid_data_type G)
-  let T <- mTs.get_elem_if_eq
-  -- infer each of patten type
-  -- infer each of the branches with added pattern variables
-  --
-  none
+  let Ss <- smτs.to.seq
+
+  let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data_type G)
+  let _ <- mTs.seq
+
+  let mξs : Lilac.Fun.Vec (Option (List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
+  let ξs <- mξs.to.seq
+  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs.get_elem i) ++ Γ)
+  -- TODO: Query business to make sure matches are exhaustive
+  let Ts' <- mTs'.to.seq
+  let T <- Ts'.get_elem_if_eq
+  return T
 | .cast R c t => do
   let e <- c.infer_type G Δ Γ
   let (K, A, B) <- e.is_eq_some
