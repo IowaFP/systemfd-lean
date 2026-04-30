@@ -1,4 +1,5 @@
 import Core.Util
+import Core.Vec
 import Core.Global
 import Core.Ty
 import Core.Term
@@ -8,8 +9,8 @@ open LeanSubst
 
 namespace Core
 
-def OpenVarVal (G : List Global) (x : String) (sp : List SpineElem) : Prop :=
-  is_openm G x ∧ ∀ T, lookup_type G x = some T -> sp.length < T.arity
+-- def OpenVarVal (G : List Global) (x : String) (sp : List SpineElem) : Prop :=
+--   is_openm G x ∧ ∀ T, lookup_type G x = some T -> sp.length < T.arity
 
 inductive Value (G : List Global) : Term -> Prop where
 -- | var : Value G #x
@@ -46,25 +47,24 @@ def Sequ.append : List α -> Fun.Sequ α -> Fun.Sequ α
 | [], s => s
 | .cons hd tl, s => hd :: (append tl s)
 
-inductive Term.IsData v : Vec Term m -> Vec Constructor m -> Prop where
+inductive Term.IsData (v : DataConst) : Vec Term m -> Vec Constructor m -> Prop where
 | nil : Term.IsData v .nil .nil
-| cons :
-  Vec.to_list t2.to = t2' ->
+| cons {t1 : Vec _ m} {t2 : Fun.Vec _ n}:
   Term.IsData v ts cs ->
-  Term.IsData v (Vec.cons (.spctor v c t1 t2) ts) (Vec.cons (c, t1, t2') cs)
+  Term.IsData v ((.spctor (.data v) c t1 t2)::ts) (⟨c, m, t1, n, t2.to⟩::cs)
 
 def Constructor.subst : Vec Constructor m -> Subst Term
 | .nil => +0
-| .cons (_, _, ts) v => Sequ.append (ts.map su) (Constructor.subst v)
+| .cons ⟨_, _, _, _, ts⟩ v => Sequ.append_vec (Vec.map su ts) (Constructor.subst v)
 
-def Pattern.match_component : Constructor -> (String × List Ty × Nat) -> Option (List $ Subst.Action Term)
-| (c1, _, t2), (c2, _) => if c1 == c2 then some $ t2.map su else none
+-- def Pattern.match_component : Constructor -> (String × List Ty × Nat) -> Option (List $ Subst.Action Term)
+-- | ⟨c1, _, _, _, t2⟩, (c2, _) => if c1 == c2 then some $ Vec.map su t2 else none
 
 inductive Pattern.Match : Vec Constructor m -> Pattern m -> Prop
 | nil : Pattern.Match .nil .nil
 | cons :
   Pattern.Match cs ps ->
-  Pattern.Match ((q, As, ts)::cs) ((q, Bs, n)::ps)
+  Pattern.Match (⟨q, m, As, n, ts⟩::cs) (⟨q, m, Bs, n⟩::ps)
 
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
@@ -89,14 +89,14 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Data Matching
 ----------------------------------------------------------------
 | data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
-  Term.IsData .cdata ss.to ctors ->
+  Term.IsData .cls ss.to ctors ->
   Pattern.Match ctors (ps i) ->
   Constructor.subst ctors = σ ->
   Red G (.mtch m n ss ps bs) (bs i)[σ]
 | openm_match {ss : Fun.Vec Term m} :
-  Term.IsData .odata ss.to ctors ->
+  Term.IsData .opn ss.to ctors ->
   get_instance x i G = some ⟨m, p, b⟩ ->
-  Sequ.append (Ts.map su) +0 = τ ->
+  Sequ.append_vec (Vec.map su Ts) +0 = τ ->
   Pattern.Match ctors p ->
   Constructor.subst ctors = σ ->
   Red G (openm! x Ts ss) b[τ:Ty][σ]
@@ -129,7 +129,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Global Definitions
 ----------------------------------------------------------------
 | defn :
-  lookup_defn G x = some t ->
+  lookup_defn G x = some (A, t) ->
   Red G d#x t
 ----------------------------------------------------------------
 ---- Congruence Rules

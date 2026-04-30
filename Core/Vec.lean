@@ -41,6 +41,10 @@ def Vec.to_list : Vec T n -> List T
 | .nil => .nil
 | .cons hd tl => .cons hd (Vec.to_list tl)
 
+def Sequ.append_vec : Vec α n -> Fun.Sequ α -> Fun.Sequ α
+| #𝓋[], s => s
+| .cons hd tl, s => hd :: (append_vec tl s)
+
 -- protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 -- | 0, _, _ => ""
 -- | 1, v, _ => repr (v 0)
@@ -82,6 +86,9 @@ theorem Vec.to_index {v : Fun.Vec α _} : v.to[i] = v i := by
     case zero => simp [Fun.Vec.cons_zero]
     case succ i => simp [Fun.Vec.cons_succ, ih]
 
+@[simp, grind =]
+theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by sorry
+
 def Vec.length (_ : Vec A n) : Nat := n
 
 theorem Vec.length_bound : (v : Vec A n) -> Vec.length v = n := by
@@ -93,6 +100,41 @@ theorem Vec.length_bound : (v : Vec A n) -> Vec.length v = n := by
 def Vec.sum : Vec Nat n -> Nat
 | .nil => 0
 | .cons hd tl => hd + Vec.sum tl
+
+
+def Vec.rmap [i : RenMap S] (r : Ren) : Vec S n -> Vec S n
+| .nil => .nil
+| .cons x tl => (i.rmap r x) :: rmap r tl
+
+instance [RenMap S] : RenMap (Vec S n) where
+  rmap := Vec.rmap
+
+def Vec.smap [SubstMap S T] (σ : Subst T) : Vec S n -> Vec S n
+| .nil => .nil
+| .cons x tl => x[σ:_] :: smap σ tl
+
+instance [SubstMap S T] : SubstMap (Vec S n) T where
+  smap := Vec.smap
+
+@[simp, grind =]
+theorem Vec.smap_nil [SubstMap S T] {σ : Subst T} : (@Vec.nil S)[σ:_] = #𝓋[] := by
+  simp [SubstMap.smap, Vec.smap]
+
+@[simp, grind =]
+theorem Vec.smap_cons [SubstMap S T] {x} {tl : Vec S n} {σ : Subst T}
+  : (x :: tl)[σ:_] = x[σ:_] :: tl[σ:_]
+:= by
+  simp [SubstMap.smap, Vec.smap]
+
+instance [RenMap T] [SubstMap S T] [SubstMapId S T]
+  : SubstMapId (Vec S n) T
+where
+  apply_id := by intro t; induction t <;> simp [*]
+
+instance [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] [SubstMapCompose S T]
+  : SubstMapCompose (Vec S n) T
+where
+  apply_compose := by intro s σ τ; induction s <;> simp [*]
 
 -- theorem length_coerce: ∀ n, Vec.length v = n -> (Vec.to_list v).length = n := by
 -- apply v.induction <;> simp [Vec.length] at *

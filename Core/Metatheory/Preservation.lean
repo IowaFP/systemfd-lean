@@ -1,5 +1,5 @@
 import Core.Term
-import Core.Term.Spine
+import Core.Vec
 import Core.Reduction
 import Core.Typing
 import Core.Util
@@ -59,21 +59,22 @@ theorem PatternBinders.subst {ss S : Vec _ m} :
     cases h2; case _ q1 q2 v1 p1 q5 h2 =>
     cases h3; case _ x t2 w1 w2 =>
     cases h4; case _ Bs n1 ξ h4 =>
-    unfold Constructor.subst at h5; subst w1
-    have lem2 := Nat.decLe (Vec.to_list v1).length j
-    rcases lem2 with lem2 | lem2
-    case _ =>
-      replace h6 : (Vec.to_list v1)[j]? = some A := by grind
-      cases h1; case _ D1 D2 Ts j1 j2 j3 j4 j5 j6 =>
-      sorry
-    case _ =>
-      replace h6 : (ξ ++ Γ)[j]? = some A := sorry
-      replace ih := @ih p1 ξ _ sstl Stl lem1 h2 w2 h4 rfl h6
-      sorry
+    sorry
+    -- unfold Constructor.subst at h5; subst w1
+    -- have lem2 := Nat.decLe (Vec.to_list v1).length j
+    -- rcases lem2 with lem2 | lem2
+    -- case _ =>
+    --   replace h6 : (Vec.to_list v1)[j]? = some A := by grind
+    --   cases h1; case _ D1 D2 Ts j1 j2 j3 j4 j5 j6 =>
+    --   sorry
+    -- case _ =>
+    --   replace h6 : (ξ ++ Γ)[j]? = some A := sorry
+    --   replace ih := @ih p1 ξ _ sstl Stl lem1 h2 w2 h4 rfl h6
+    --   sorry
 
 set_option maxHeartbeats 800000
 theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
-| .global j1 j2, r => sorry
+| .defn j1 j2, r => sorry
 | .mtch (ξ := ξ) j1 j2 j3 j4 j5, .data_match (σ := σ) (i := i) h1 h2 h3 =>
   let lem := PatternBinders.subst (cast (by simp) j1) (j3 i) h1 h2 h3
   Typing.subst Γ σ wf lem (j4 i)
@@ -83,19 +84,20 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
     | isTrue h => preservation_step wf (j1 k) (h1 |> cast (by rw [h]))
     | isFalse h => j1 k |> cast (by rw [h2 k h])
   .mtch j1' j2 j3 j4 j5
-| .spctor (n := n) (ts := ts) (Ts := Ts) j1 j2 j3 j4 j5 j6,
-  .openm_match (p := p) (b := b) (τ := τ) (σ := σ) h1 h2 h3 h4 h5 =>
-  let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts[i] := j4 |> cast (by simp)
+| .spctor (n := n) (ts := ts) (τ := τ) (Ts := Ts) j1 j2 j3 j4 j5 j6 j7,
+  .openm_match (p := p) (b := b) (σ := σ) h1 h2 h3 h4 h5 =>
+  let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
+  let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
   let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders n Ts p[τ:Ty] ξ := sorry
   let lem1 : G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T := sorry
   let lem3 := PatternBinders.subst j4' lem2 h1 sorry h5
-  Typing.subst Γ σ wf lem3 lem1
-| .spctor (Ts := Ts) j1 j2 j3 j4 j5 j6, .openm_congr (ts' := ts') i h1 h2 =>
-  let j4' : ∀ k, G&Δ,Γ ⊢ ts' k : Ts[k] := λ k =>
+  Typing.subst Γ σ wf lem3 (cast (by grind) lem1)
+| .spctor (Ts := Ts) (τ := τ) j1 j2 j3 j4 j5 j6 j7, .openm_congr (ts' := ts') i h1 h2 =>
+  let j4' : ∀ k, G&Δ,Γ ⊢ ts' k : Ts[k][τ] := λ k =>
     match decEq k i with
     | isTrue h => preservation_step wf (j4 k) (h1 |> cast (by rw [h]))
     | isFalse h => j4 k |> cast (by rw [h2 k h])
-  .spctor j1 j2 j3 j4' j5 j6
+  .spctor j1 j2 j3 j4' j5 j6 j7
 | .app (.lam j2 j4) j3, .beta => Typing.beta wf j4 j3
 | .app j1 j2, .app_congr r =>
   let j1' := preservation_step wf j1 r

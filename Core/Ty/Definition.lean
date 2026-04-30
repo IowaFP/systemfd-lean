@@ -1,3 +1,5 @@
+import Lilac
+open Lilac
 
 namespace Core
 -- inductive BaseKind : Type where
@@ -22,6 +24,8 @@ inductive Ty : Type where
 | all : Kind -> Ty -> Ty
 | app : Ty -> Ty -> Ty
 | eq : Kind -> Ty -> Ty -> Ty
+
+def SpineTy := (m : Nat) × Vec Kind m × (n : Nat) × Vec Ty n × Ty
 
 def Ty.size : Ty -> Nat
 | var _ => 0

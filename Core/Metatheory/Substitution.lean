@@ -134,16 +134,16 @@ case _ f a ih1 ih2 => cases j; case _ spf j =>
   simp
   assumption
 
-theorem Global.type_subst_noop (G : List Global) (p : String) (σ : Subst Ty) : ⊢ G ->
-  ctor_ty G p = .some B ->
-  B[σ] = B := by
-intro wf h
-unfold ctor_ty at h;
-generalize ludef : lookup_type G p = lu at *
-cases lu <;> simp at *
-rcases h with ⟨h1, h2⟩
-cases h2
-apply GlobalWf.closed wf ludef
+-- theorem Global.type_subst_noop (G : List Global) (p : String) (σ : Subst Ty) : ⊢ G ->
+--   ctor_ty G p = .some B ->
+--   B[σ] = B := by
+-- intro wf h
+-- unfold ctor_ty at h;
+-- generalize ludef : lookup_type G p = lu at *
+-- cases lu <;> simp at *
+-- rcases h with ⟨h1, h2⟩
+-- cases h2
+-- apply GlobalWf.closed wf ludef
 
 
 theorem Typing.subst_type Δσ (σ : Subst Ty) :
@@ -158,12 +158,12 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) :
     -- apply Exists.intro _
     -- apply And.intro j1 rfl
     -- apply Kinding.subst _ σ h j2
-  case global j1 j2 =>
-    have lem := GlobalWf.closed (σ := σ) wf j1; simp at lem
-    rw[lem]
-    replace j2 := Kinding.subst Δσ σ h j2; simp at j2;
-    rw [lem] at j2;
-    apply global j1 j2
+  case defn j1 j2 => sorry
+    -- have lem := GlobalWf.closed (σ := σ) wf j1; simp at lem
+    -- rw[lem]
+    -- replace j2 := Kinding.subst Δσ σ h j2; simp at j2;
+    -- rw [lem] at j2;
+    -- apply global j1 j2
   case spctor => sorry
   case mtch => sorry
   -- case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
@@ -312,7 +312,7 @@ theorem Typing.subst Γσ (σ : Subst Term) :
 := by
   intro wf h j; induction j generalizing Γσ σ <;> simp
   case var => sorry
-  case global j1 j2 => apply global j1 j2
+  case defn j1 j2 => apply defn j1 j2
   case spctor => sorry
   case mtch => sorry
   -- case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
