@@ -64,7 +64,9 @@ inductive Pattern.Match : Vec Constructor m -> Pattern m -> Prop
 | nil : Pattern.Match .nil .nil
 | cons :
   Pattern.Match cs ps ->
-  Pattern.Match (⟨q, m, As, n, ts⟩::cs) (⟨q, m, Bs, n⟩::ps)
+  c = ⟨q, m, As, n, ts⟩ ->
+  p = ⟨q, m, Bs, n⟩ ->
+  Pattern.Match (c::cs) (p::ps)
 
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------

@@ -88,7 +88,7 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
   .openm_match (p := p) (b := b) (σ := σ) h1 h2 h3 h4 h5 =>
   let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
   let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
-  let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders n Ts p[τ:Ty] ξ := sorry
+  let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders n Ts' p[τ:Ty] ξ := sorry
   let lem1 : G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T := sorry
   let lem3 := PatternBinders.subst j4' lem2 h1 sorry h5
   Typing.subst Γ σ wf lem3 (cast (by grind) lem1)

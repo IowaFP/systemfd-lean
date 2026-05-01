@@ -145,10 +145,11 @@ inductive Query.Match : Vec String m -> Pattern m -> Prop where
 | nil : Query.Match .nil .nil
 | cons :
   Query.Match qs ps ->
-  Query.Match (q::qs) (⟨q, na, As, nb⟩::ps)
+  p = ⟨q, na, As, nb⟩ ->
+  Query.Match (q::qs) (p::ps)
 
-def OpenExhaustive (x : String) (G : List Global) : Prop :=
-  ∀ {na nb} {Ks : Vec _ na} {Ts : Vec _ nb} {R q},
+def OpenExhaustive (G : List Global) : Prop :=
+  ∀ {x na nb} {Ks : Vec _ na} {Ts : Vec _ nb} {R q},
   lookup x G = some (.openm x ⟨na, Ks, nb, Ts, R⟩) ->
   Query G q Ts ->
   ∃ i b p, get_instance x i G = some ⟨nb, p, b⟩ ∧ Query.Match q p
