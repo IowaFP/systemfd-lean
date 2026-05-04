@@ -58,8 +58,11 @@ theorem progress_match_ctors_head {ctors : Vec _ n} :
   Term.IsData cv ss ctors ->
   Query G (Constructor.query ctors) SS ->
   ∃ ctors, Term.IsData cv (s :: ss) ctors ∧ Query G (Constructor.query ctors) (S :: SS)
-| .spctor (v := .data .cls) (As := As) (ts := ts) j1 j2 j3 j4 j5 j6 j7, h2, .spctor h, h4, h5 =>
-  sorry
+| .spctor (x := x) (v := .data cv') (As := As) (ts := ts) j1 j2 j3 j4 j5 j6 j7, h2, .spctor h, h4, h5 =>
+  have lem1 : cv = cv' := sorry
+  let lem2 := @Term.IsData.cons cv _ _ _ ss ctors x As ts h4
+  let lem4 := @Query.cons G x S _ (Constructor.query ctors) SS sorry h5
+  ⟨⟨x, _, As, _, ts.to⟩::ctors, lem2 |> cast (by rw [lem1]), lem4⟩
   -- let ts' := Vec.to_list ts.to
   -- let lem1 := @Term.IsData.cons .cdata ts' n ss ctors c As _ ts rfl h4
   -- let lem2 : Ty.ctor? G c S := by {
@@ -69,8 +72,8 @@ theorem progress_match_ctors_head {ctors : Vec _ n} :
   -- }
   -- let lem3 := @Query.cons G _ (Constructor.query ctors) SS c S lem2 h5
   -- ⟨⟨c, As, ts'⟩::ctors, lem1, lem3⟩
-| .spctor (v := .data .opn) (As := As) (ts := ts) j1 j2 j3 j4 j5 j6 j7, h2, .spctor h, h4, h5 =>
-  sorry
+-- | .spctor (v := .data .opn) (As := As) (ts := ts) j1 j2 j3 j4 j5 j6 j7, h2, .spctor h, h4, h5 =>
+--   sorry
 | .refl j, h2, .refl, h4, h5 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
 | .lam j1 j2, h2, .lam, h4, h5 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
 | .lamt j1 j2, h2, .lamt, h4, h5 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
