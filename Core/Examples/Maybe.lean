@@ -43,7 +43,7 @@ def MaybeBoolCtx : GlobalEnv := [
   --       ),
 
   -- EqMaybe : ∀ t u. (t ~ Maybe u) → Eq u -> Eq t
-  -- .instty "EqMaybe" (∀[★] ∀[★] (t#1 ~[★]~ (gt#"Maybe" • t#0)) -:> (gt#"Eq" • t#0) -:>  (gt#"Eq" • t#1)),
+  .instty "EqMaybe" (∀[★] ∀[★] (t#1 ~[★]~ (gt#"Maybe" • t#0)) -:> (gt#"Eq" • t#0) -:>  (gt#"Eq" • t#1)),
 
   -- data Maybe a = Nothing | Just a
    .data 2 "Maybe" (★ -:> ★) ( #𝓋[("Nothing", ∀[★] gt#"Maybe" • t#0) ,
