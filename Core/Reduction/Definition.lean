@@ -51,7 +51,9 @@ inductive Term.IsData (v : DataConst) : Vec Term m -> Vec Constructor m -> Prop 
 | nil : Term.IsData v .nil .nil
 | cons {t1 : Vec _ m} {t2 : Fun.Vec _ n}:
   Term.IsData v ts cs ->
-  Term.IsData v ((.spctor (.data v) c t1 t2)::ts) (⟨c, m, t1, n, t2.to⟩::cs)
+  Term.spctor (.data v) c t1 t2 = t ->
+  ⟨c, m, t1, n, t2.to⟩ = ct ->
+  Term.IsData v (t::ts) (ct::cs)
 
 def Constructor.subst : Vec Constructor m -> Subst Term
 | .nil => +0

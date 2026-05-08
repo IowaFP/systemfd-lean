@@ -19,10 +19,6 @@ theorem spctor_inversion :
   replace j4 := j4 c rfl; subst j8
   sorry
 
-theorem Query.subst_invariant {T : Vec Ty n} (σ : Subst Ty)
-  : Query G q (Vec.map (·[σ]) T) -> Query G q T
-:= sorry
-
 theorem split_all_or_left : ∀ {n} {A B : Fin n -> Prop}, (∀ i, A i ∨ B i) -> (∀ i, A i) ∨ (∃ i, B i)
 | 0, _, _, _ => Or.inl (Fin.elim0 ·)
 | n + 1, _, _, h =>
@@ -34,6 +30,18 @@ theorem split_all_or_left : ∀ {n} {A B : Fin n -> Prop}, (∀ i, A i ∨ B i) 
     | Or.inl h2 => Or.inl (Fin.cases h2 lem')
     | Or.inr h2 => Or.inr ⟨0, h2⟩
   | Or.inr ⟨k, lem'⟩ => Or.inr ⟨k.succ, lem'⟩
+
+theorem PatternBinders.implies_pattern_typing :
+  PatternBinders G Δ m S p ξ ->
+  PatternTyping G Δ p S
+| .zero => by
+  rw [Vec.nil_singleton S .nil]
+  rw [Vec.nil_singleton p .nil]
+  exact VecTyping.nil
+| .succ h1 h2 h3 h4 h5 tl =>
+  let tl' := tl.implies_pattern_typing
+  let lem := .valid h1 h3 h2 h5
+  .cons lem tl'
 
 @[simp]
 def Constructor.query : Vec Constructor n -> Vec String n
@@ -55,28 +63,27 @@ theorem progress_match_ctors_head {ctors : Vec _ n} :
   G&Δ,Γ ⊢ s : S ->
   Ty.data? cv G S ->
   Value G s ->
+  VecConstructorTyping G Δ Γ ctors SS ->
   Term.IsData cv ss ctors ->
-  Query G (Constructor.query ctors) SS ->
-  ∃ ctors, Term.IsData cv (s :: ss) ctors ∧ Query G (Constructor.query ctors) (S :: SS)
-| .spctor (x := x) (v := .data cv') (As := As) (ts := ts) j1 j2 j3 j4 j5 j6 j7, h2, .spctor h, h4, h5 =>
+  Query G cv (Constructor.query ctors) SS ->
+  ∃ ctors, VecConstructorTyping G Δ Γ ctors (S::SS)
+    ∧ Term.IsData cv (s::ss) ctors
+    ∧ Query G cv (Constructor.query ctors) (S::SS)
+| .spctor (x := x) (v := .data cv') (m := na) (As := As) (n := nt) (ts := ts) j1 j2 j3 j4 j5 j6 j7
+  , h2, .spctor h, h4, h5, h6 =>
   have lem1 : cv = cv' := sorry
-  let lem2 := @Term.IsData.cons cv _ _ _ ss ctors x As ts h4
-  let lem4 := @Query.cons G x S _ (Constructor.query ctors) SS sorry h5
-  ⟨⟨x, _, As, _, ts.to⟩::ctors, lem2 |> cast (by rw [lem1]), lem4⟩
-  -- let ts' := Vec.to_list ts.to
-  -- let lem1 := @Term.IsData.cons .cdata ts' n ss ctors c As _ ts rfl h4
-  -- let lem2 : Ty.ctor? G c S := by {
-  --   simp [Ty.datatype?, Ty.HeadVariable] at h2
-  --   simp [Ty.ctor?]
-  --   sorry -- obvious, should rework global stuff so that we can just grind this
-  -- }
-  -- let lem3 := @Query.cons G _ (Constructor.query ctors) SS c S lem2 h5
-  -- ⟨⟨c, As, ts'⟩::ctors, lem1, lem3⟩
--- | .spctor (v := .data .opn) (As := As) (ts := ts) j1 j2 j3 j4 j5 j6 j7, h2, .spctor h, h4, h5 =>
---   sorry
-| .refl j, h2, .refl, h4, h5 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
-| .lam j1 j2, h2, .lam, h4, h5 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
-| .lamt j1 j2, h2, .lamt, h4, h5 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
+  let ctors' := ⟨x, na, As, nt, ts.to⟩::ctors
+  let lem2hd : ConstructorTyping G Δ Γ (x, ⟨na, (As, ⟨nt, ts.to⟩)⟩) S :=
+    .valid j1 j2 j3 (j4 |> cast (by simp)) j7
+  let lem2 : VecConstructorTyping G Δ Γ ctors' (S :: SS) := VecTyping.cons lem2hd h4
+  let lem3 : Term.IsData cv (.spctor (.data cv') x As ts::ss) ctors' :=
+    Term.IsData.cons h5 (by simp [lem1]) rfl
+  let lem4 : Query G cv (Constructor.query ctors') (S::SS) :=
+    VecTyping.cons (by simp; sorry) h6
+  ⟨ctors', lem2, lem3, lem4⟩
+| .refl j, h2, .refl, h4, h5, h6 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
+| .lam j1 j2, h2, .lam, h4, h5, h6 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
+| .lamt j1 j2, h2, .lamt, h4, h5, h6 => by simp [Ty.data?, Ty.HeadVariable, Ty.spine] at h2
 
 theorem progress_match_ctors :
   {m : Nat} ->
@@ -84,29 +91,38 @@ theorem progress_match_ctors :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
   (∀ (i : Fin m), Ty.data? c G S[i]) ->
   (∀ (i : Fin m), Value G ss[i]) ->
-  ∃ ctors, Term.IsData c ss ctors ∧ Query G (Constructor.query ctors) S
-| 0, .nil, .nil, h1, h2, h3 => ⟨.nil, Term.IsData.nil, Query.nil⟩
+  ∃ ctors, VecConstructorTyping G Δ Γ ctors S
+    ∧ Term.IsData c ss ctors
+    ∧ Query G c (Constructor.query ctors) S
+| 0, .nil, .nil, h1, h2, h3 => ⟨.nil, .nil, Term.IsData.nil, .nil⟩
 | m + 1, .cons Shd S, .cons shd s, h1, h2, h3 =>
   let h1' : ∀ (i : Fin m), G&Δ,Γ ⊢ s[i] : S[i] := λ i => h1 i.succ
   let h2' : ∀ (i : Fin m), Ty.data? c G S[i] := λ i => h2 i.succ
   let h3' : ∀ (i : Fin m), Value G s[i] := λ i => h3 i.succ
-  let ⟨ctors, q1, q2⟩ := progress_match_ctors h1' h2' h3'
-  progress_match_ctors_head (h1 0) (h2 0) (h3 0) q1 q2
+  let ⟨ctors, q1, q2, q3⟩ := progress_match_ctors h1' h2' h3'
+  progress_match_ctors_head (h1 0) (h2 0) (h3 0) q1 q2 q3
 
-theorem query_match_implies_pattern_match :
-  {n : Nat} ->
-  {c : Vec Constructor n} ->
-  {q : Vec String n} ->
-  {p : Pattern n} ->
+theorem query_match_implies_pattern_match (G : List Global) {n : Nat} {c q p Ts : Vec _ n} :
+  VecConstructorTyping G Δ Γ c Ts ->
+  PatternTyping G Δ p Ts ->
   Constructor.query c = q ->
   Query.Match q p ->
   Pattern.Match c p
-| 0, .nil, .nil, .nil, e, .nil => Pattern.Match.nil |> cast (by rw [Constructor.query_nil e])
-| n + 1, .cons c cs, .cons q qs, .cons ⟨q', na, As, nb⟩ ps, e, .cons tl e2 =>
-  let ⟨na, nt, As, ts, cs, h1, h2⟩ := Constructor.query_cons e
-  let tl' := query_match_implies_pattern_match h2 tl
-  sorry
-  -- by rw [h1]; apply Pattern.Match.cons tl';
+| .nil, .nil, e, .nil => .nil
+| .cons ctj cttl, .cons ptj pttl, e, .cons e1 qmtl =>
+  let ⟨na, nt, As, ts', ctl', h1, h2⟩ := Constructor.query_cons e
+  by {
+    injection h1 with he0 he1 he2; clear he0; subst he1 he2
+    rcases e1 with ⟨na', As', nb', he0⟩; subst he0
+    cases ctj; case _ e1 _ _ =>
+    cases ptj; case _ e2 _ =>
+    rw [e2] at e1
+    injection e1 with e1
+    cases e1
+    apply Pattern.Match.cons
+    apply query_match_implies_pattern_match G cttl pttl h2 qmtl
+    rfl; rfl
+  }
 
 theorem progress (oe : OpenExhaustive G) :
   G&Δ,Γ ⊢ t : T ->
@@ -120,15 +136,16 @@ theorem progress (oe : OpenExhaustive G) :
   match split_all_or_left j4' with
   | Or.inl vs =>
     let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
-    let j1' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := sorry
-    let j2' : ∀ (i : Fin n), Ty.data? .opn G Ts'[i] := sorry
+    let j1' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
+    let j2' : ∀ (i : Fin n), Ty.data? .opn G Ts'[i] := (j6 rfl) |> cast (by subst Ts'; simp)
     let vs' : ∀ (i : Fin n), Value G ts.to[i] := vs |> cast (by simp)
-    let ⟨ctors, h1, h2⟩ := progress_match_ctors j1' j2' vs'
+    let ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
     let lem1 : lookup x G = some (.openm x ⟨m, Ks, n, Ts, R⟩) := sorry
-    let ⟨i, b, p, lem2, lem3⟩ := oe lem1 (h2.subst_invariant τ)
-    let lem4 := query_match_implies_pattern_match rfl lem3
+    let ⟨i, b, p, lem2, lem3⟩ := oe (q := Constructor.query ctors) lem1 j2 j3 (by congr) (h3 |> cast (by congr))
+    let lem4 : PatternTyping G Δ p Ts' := sorry
+    let lem5 := query_match_implies_pattern_match G h1 lem4 rfl lem3
     let σ := Constructor.subst ctors
-    Or.inr ⟨_, .openm_match (σ := σ) h1 lem2 j3 lem4 rfl⟩
+    Or.inr ⟨_, .openm_match (σ := σ) h2 lem2 j3 lem5 rfl⟩
   | Or.inr ⟨i, t', r⟩ =>
     let ts' := Fun.Vec.update ts t' i
     let r' : G ⊢ ts i ~> ts' i := by subst ts'; simp; exact r
@@ -140,11 +157,12 @@ theorem progress (oe : OpenExhaustive G) :
     let j1' : ∀ (i : Fin m), G&Δ,Γ ⊢ ss.to[i] : S.to[i] := j1 |> cast (by simp)
     let j2' : ∀ (i : Fin m), Ty.data? .cls G S.to[i] := j2 |> cast (by simp)
     let vs' : ∀ (i : Fin m), Value G ss.to[i] := vs |> cast (by simp)
-    let ⟨ctors, h1, h2⟩ := progress_match_ctors j1' j2' vs'
-    let ⟨i, h3⟩ := j5 h2
-    let lem1 := query_match_implies_pattern_match rfl h3
+    let ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
+    let ⟨i, h4⟩ := j5 h3
+    let h5 := PatternBinders.implies_pattern_typing (j3 i)
+    let lem1 := query_match_implies_pattern_match G h1 h5 rfl h4
     let σ := Constructor.subst ctors
-    Or.inr ⟨_, .data_match (σ := σ) h1 lem1 rfl⟩
+    Or.inr ⟨_, .data_match (σ := σ) h2 lem1 rfl⟩
   | Or.inr ⟨i, t', r⟩ =>
     let ss' := Fun.Vec.update ss t' i
     let r' : G ⊢ ss i ~> ss' i := by subst ss'; simp; exact r
