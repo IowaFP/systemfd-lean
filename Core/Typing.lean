@@ -97,6 +97,14 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 
 notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
+theorem Kinding.extend : G&Δ₁ ⊢ A : K -> G&(Δ₁ ++ Δ₂) ⊢ A : K
+| var h => var sorry
+| global h => global h
+| arrow j1 j2 => arrow j1.extend j2.extend
+| all j => all j.extend
+| app j1 j2 => app j1.extend j2.extend
+| eq j1 j2 => eq j1.extend j2.extend
+
 abbrev Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data c G)
 
 inductive SpineKinding (sv : SpCtorVariant) (G : List Global) : SpineTy -> Prop where
@@ -374,7 +382,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
 | inst :
   lookup x G = some (.openm x ⟨m, Ks, n, Ts, R⟩) ->
   Vec.to_list Ks = Δ ->
-  Vec.to_list Ts = Γ ->
+  PatternBinders G Δ n Ts p Γ ->
   G&Δ,Γ ⊢ t : R ->
   GlobalWf G (.inst x p t)
 | instty :
