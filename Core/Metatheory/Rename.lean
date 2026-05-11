@@ -44,7 +44,7 @@ theorem Kinding.closed_rep :
 theorem Kinding.closed : G&[] ⊢ A : K -> ∀ σ, A[σ] = A := by
   intro j; apply closed_rep j
 
-theorem ValidInstTy.closed : ValidInstTy G x Δ T -> G&Δ ⊢ T : ★ := by sorry
+-- theorem ValidInstTy.closed : ValidInstTy G x Δ T -> G&Δ ⊢ T : ★ := by sorry
   -- intro h; induction h <;> simp at *
   -- case _ => exists b◯
   -- case _ ih =>
@@ -61,13 +61,13 @@ theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
 theorem GlobalWf.tail {G : List Global} : ⊢ (g :: G) -> ⊢ G := by
   intro j; cases j; case _ j _ => exact j
 
-theorem GlobalWf.closed_ctors {v : Fun.Vec (Option Entry) n} {d : Option Entry} :
-  ((Option.map Entry.type d).get! = some T -> ∀ σ, T[σ] = T) ->
-  (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
-  (Option.map Entry.type (Vec.fold d Option.or v.to)).get! = some T ->
-  ∀ σ, T[σ] = T
-:= by
-  sorry
+-- theorem GlobalWf.closed_ctors {v : Fun.Vec (Option Entry) n} {d : Option Entry} :
+--   ((Option.map Entry.type d).get! = some T -> ∀ σ, T[σ] = T) ->
+--   (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
+--   (Option.map Entry.type (Vec.fold d Option.or v.to)).get! = some T ->
+--   ∀ σ, T[σ] = T
+-- := by
+--   sorry
   -- intro h1 h2 h3
   -- induction v using Vec.induction
   -- case nil => apply h1 h3
@@ -83,12 +83,12 @@ theorem GlobalWf.closed_ctors {v : Fun.Vec (Option Entry) n} {d : Option Entry} 
   --   case some =>
   --     apply h2 0 _ _ h3; simp
 
-theorem GlobalWf.closed {G : List Global} :
-  ⊢ G ->
-  lookup_type G x = some T ->
-  ∀ σ, T[σ] = T
-:= by
-  sorry
+-- theorem GlobalWf.closed {G : List Global} :
+--   ⊢ G ->
+--   lookup_type G x = some T ->
+--   ∀ σ, T[σ] = T
+-- := by
+--   sorry
   -- intro j h
   -- unfold lookup_type at h
   -- fun_induction lookup
@@ -307,11 +307,11 @@ theorem Typing.rename_type Δr (r : Ren) :
     simp; apply Exists.intro _
     apply And.intro j1 rfl
     apply Kinding.rename _ r h j2
-  case global j1 j2 =>
-    have lem := GlobalWf.closed wf j1; simp at lem
-    rw[lem]
-    replace j2 := Kinding.rename Δr r h j2; simp at j2; rw [lem] at j2
-    apply global j1 j2
+  case defn j1 j2 => sorry
+    -- have lem := GlobalWf.closed wf j1; simp at lem
+    -- rw[lem]
+    -- replace j2 := Kinding.rename Δr r h j2; simp at j2; rw [lem] at j2
+    -- apply global j1 j2
   case spctor => sorry
   case mtch => sorry
   -- case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
@@ -444,7 +444,7 @@ theorem Typing.rename Γr (r : Ren) :
 := by
   intro wf h j; induction j generalizing Γr r <;> simp
   case var j1 j2 => simp [Ren.to]; apply Typing.var (h j1) j2
-  case global j1 j2 => apply Typing.global j1 j2
+  case defn j1 j2 => apply Typing.defn j1 j2
   case spctor => sorry
   case mtch => sorry
   -- case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>

@@ -7,14 +7,17 @@ open Lilac
 
 namespace Core
 
+inductive DataConst where
+| opn
+| cls
+
 inductive Ctor0Variant : Type where
 | fail
 | refl (A : Ty)
 
 inductive SpCtorVariant : Type where
 | openm
-| odata
-| cdata
+| data (c : DataConst)
 
 inductive Ctor1Variant : Type where
 | prj (n : Nat)
@@ -28,16 +31,16 @@ inductive TyBindVariant : Type where
 | lamt
 | allc
 
-abbrev Pattern m := Vec (String × List Ty × Nat) m
+abbrev Pattern m := Vec (String × (n : Nat) × Vec Ty n × Nat) m
 
 def Pattern.bind : Pattern m -> Nat
 | .nil => 0
-| .cons (_, _, n) tl => n + Pattern.bind tl
+| .cons ⟨_, _, _, n⟩ tl => n + Pattern.bind tl
 
 inductive Term : Type where
 | var : Nat -> Term
 | defn : String -> Term
-| spctor : SpCtorVariant -> String -> List Ty -> Fun.Vec Term n -> Term
+| spctor : SpCtorVariant -> String -> Vec Ty m -> Fun.Vec Term n -> Term
 | ctor0 : Ctor0Variant -> Term
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
@@ -46,14 +49,14 @@ inductive Term : Type where
 | cast : Ty -> Term -> Term -> Term
 | mtch m n : Fun.Vec Term m -> Fun.Vec (Pattern m) n -> Fun.Vec Term n -> Term
 
-def Constructor := String × List Ty × List Term
+def Constructor := String × (m : Nat) × Vec Ty m × (n : Nat) × Vec Term n
 
 prefix:max "#" => Term.var
 prefix:max "d#" => Term.defn
 
 -- spctor notation
-notation "ctor!" => Term.spctor SpCtorVariant.cdata
-notation "inst!" => Term.spctor SpCtorVariant.odata
+notation "ctor!" => Term.spctor (SpCtorVariant.data DataConst.cls)
+notation "inst!" => Term.spctor (SpCtorVariant.data DataConst.opn)
 notation "openm!" => Term.spctor SpCtorVariant.openm
 
 -- ctor0 notation

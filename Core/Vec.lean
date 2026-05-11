@@ -7,6 +7,12 @@ open LeanSubst
 
 namespace Lilac
 
+@[simp]
+theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v := sorry
+
+@[simp]
+theorem Fun.Vec.to_iso : Fun.Vec.to (Vec.to v) = v := sorry
+
 def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
 | k => if i == k then a else v i
 
@@ -40,6 +46,10 @@ def Vec.to_list : Vec T n -> List T
 | .nil => .nil
 | .cons hd tl => .cons hd (Vec.to_list tl)
 
+def Sequ.append_vec : Vec α n -> Fun.Sequ α -> Fun.Sequ α
+| #𝓋[], s => s
+| .cons hd tl, s => hd :: (append_vec tl s)
+
 -- protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 -- | 0, _, _ => ""
 -- | 1, v, _ => repr (v 0)
@@ -57,20 +67,32 @@ theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
 def Vec.get_elem : Vec α n -> Fin n -> α
 | .cons hd tl, i => Fin.cases hd (Vec.get_elem tl) i
 
-@[simp]
 instance : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
   getElem xs i _ := Vec.get_elem xs i
 
-@[simp]
 instance : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
   getElem? xs i := .some (Vec.get_elem xs i)
 
--- @[simp]
--- theorem get_cons_head {t : Vec T n} : (h::t)[0] = h := by simp [Vec.cons]
+@[simp]
+theorem get_cons_head {t : Vec T n} : (h::t)[(0 : Fin (n + 1))] = h := by
+  simp [getElem, Vec.get_elem]
 
--- @[simp]
--- theorem get_cons_tail_succ {t : Vec T n} : (h::t) (Fin.succ i) = t i := by
---   simp [Vec.cons];
+@[simp]
+theorem get_cons_tail_succ {t : Vec T n} {i : Fin n} : (h::t)[Fin.succ i] = t[i] := by
+  simp [getElem, Vec.get_elem]
+
+@[simp]
+theorem Vec.to_index {v : Fun.Vec α _} : v.to[i] = v i := by
+  induction v using Fun.Vec.induction
+  case nil => apply Fin.elim0 i
+  case cons hd tl ih =>
+    simp [Fun.Vec.to_cons]
+    cases i using Fin.cases
+    case zero => simp [Fun.Vec.cons_zero]
+    case succ i => simp [Fun.Vec.cons_succ, ih]
+
+@[simp, grind =]
+theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by sorry
 
 def Vec.length (_ : Vec A n) : Nat := n
 
@@ -83,6 +105,41 @@ theorem Vec.length_bound : (v : Vec A n) -> Vec.length v = n := by
 def Vec.sum : Vec Nat n -> Nat
 | .nil => 0
 | .cons hd tl => hd + Vec.sum tl
+
+
+def Vec.rmap [i : RenMap S] (r : Ren) : Vec S n -> Vec S n
+| .nil => .nil
+| .cons x tl => (i.rmap r x) :: rmap r tl
+
+instance [RenMap S] : RenMap (Vec S n) where
+  rmap := Vec.rmap
+
+def Vec.smap [SubstMap S T] (σ : Subst T) : Vec S n -> Vec S n
+| .nil => .nil
+| .cons x tl => x[σ:_] :: smap σ tl
+
+instance [SubstMap S T] : SubstMap (Vec S n) T where
+  smap := Vec.smap
+
+@[simp, grind =]
+theorem Vec.smap_nil [SubstMap S T] {σ : Subst T} : (@Vec.nil S)[σ:_] = #𝓋[] := by
+  simp [SubstMap.smap, Vec.smap]
+
+@[simp, grind =]
+theorem Vec.smap_cons [SubstMap S T] {x} {tl : Vec S n} {σ : Subst T}
+  : (x :: tl)[σ:_] = x[σ:_] :: tl[σ:_]
+:= by
+  simp [SubstMap.smap, Vec.smap]
+
+instance [RenMap T] [SubstMap S T] [SubstMapId S T]
+  : SubstMapId (Vec S n) T
+where
+  apply_id := by intro t; induction t <;> simp [*]
+
+instance [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] [SubstMapCompose S T]
+  : SubstMapCompose (Vec S n) T
+where
+  apply_compose := by intro s σ τ; induction s <;> simp [*]
 
 -- theorem length_coerce: ∀ n, Vec.length v = n -> (Vec.to_list v).length = n := by
 -- apply v.induction <;> simp [Vec.length] at *
