@@ -57,6 +57,14 @@ inductive Entry : Type where
 | defn : String -> Ty -> Term -> Entry
 | octor : String -> SpineTy -> Entry
 
+def Entry.name : Entry -> String
+| data x _ _ => x
+| ctor x _ _ => x
+| odata x _ => x
+| openm x _ => x
+| defn x _ _ => x
+| octor x _ => x
+
 def Entry.is_data : DataConst -> Entry -> Bool
 | .cls, data _ _ _ => true
 | .opn, odata _ _ => true

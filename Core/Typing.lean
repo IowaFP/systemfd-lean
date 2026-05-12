@@ -97,14 +97,6 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 
 notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
-theorem Kinding.extend : G&Δ₁ ⊢ A : K -> G&(Δ₁ ++ Δ₂) ⊢ A : K
-| var h => var sorry
-| global h => global h
-| arrow j1 j2 => arrow j1.extend j2.extend
-| all j => all j.extend
-| app j1 j2 => app j1.extend j2.extend
-| eq j1 j2 => eq j1.extend j2.extend
-
 abbrev Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data c G)
 
 inductive SpineKinding (sv : SpCtorVariant) (G : List Global) : SpineTy -> Prop where
@@ -367,7 +359,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
   lookup x G = none ->
   GlobalWf G (.data n x K ctors)
-| opent :
+| odata :
   lookup x G = none ->
   GlobalWf G (.odata x K)
 | openm {Γ : Vec Ty n} :
@@ -385,7 +377,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
   PatternBinders G Δ n Ts p Γ ->
   G&Δ,Γ ⊢ t : R ->
   GlobalWf G (.inst x p t)
-| instty :
+| octor :
   SpineKinding (.data .opn) G T ->
   lookup x G = none ->
   GlobalWf G (.octor x T)
@@ -396,34 +388,32 @@ inductive ListGlobalWf : List Global -> Prop where
 
 notation:175 "⊢ " G:175 => ListGlobalWf G
 
--- inductive EntryWf : List Global -> Entry -> Prop where
--- | data :
---   lookup x G = some (.data x K ctors) ->
---   EntryWf G (.data x K ctors)
--- | ctor z K (ctors : Vec _ n) (i : Fin n) :
---   lookup z G = some (.data z K ctors) ->
---   ctors[i] = (x, T) ->
---   G&[] ⊢ T : ★ ->
---   ValidCtor z T ->
---   lookup x G = some (.ctor x i T) ->
---   EntryWf G (.ctor x i T)
--- | opent :
---   ValidOpenKind K ->
---   lookup x G = some (odata x K) ->
---   EntryWf G (odata x K)
--- | openm :
---   G&[] ⊢ T : ★ ->
---   lookup x G = some (.openm n x T) ->
---   EntryWf G (.openm n x T)
--- | defn :
---   G&[] ⊢ T : ★ ->
---   G&[],[] ⊢ t : T ->
---   lookup x G = some (.defn x T t) ->
---   EntryWf G (.defn x T t)
--- | instty :
---   ValidInstTy G x [] T ->
---   lookup x G = some (octor x T) ->
---   EntryWf G (octor x T)
+inductive EntryWf : List Global -> Entry -> Prop where
+| data :
+  lookup x G = some (.data x K ctors) ->
+  EntryWf G (.data x K ctors)
+| ctor z K (ctors : Vec _ n) (i : Fin n) :
+  lookup z G = some (.data z K ctors) ->
+  ctors[i] = (x, T) ->
+  SpineKinding (.data .cls) G T ->
+  lookup x G = some (.ctor x i T) ->
+  EntryWf G (.ctor x i T)
+| odata :
+  lookup x G = some (.odata x K) ->
+  EntryWf G (.odata x K)
+| openm :
+  SpineKinding .openm G T ->
+  lookup x G = some (.openm x T) ->
+  EntryWf G (.openm x T)
+| defn :
+  G&[] ⊢ T : ★ ->
+  G&[],[] ⊢ t : T ->
+  lookup x G = some (.defn x T t) ->
+  EntryWf G (.defn x T t)
+| octor :
+  SpineKinding (.data .opn) G T ->
+  lookup x G = some (.octor x T) ->
+  EntryWf G (.octor x T)
 
 -- inductive TypeMatch : Ty -> Ty -> Prop
 -- | refl :
