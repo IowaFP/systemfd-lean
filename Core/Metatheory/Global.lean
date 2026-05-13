@@ -1,15 +1,13 @@
 
+import Core.Vec
 import Core.Term
 import Core.Reduction
 import Core.Typing
 import Core.Global
 
--- import Core.Metatheory.Substitution
--- import Core.Metatheory.Rename
--- import Core.Metatheory.Closed
+open Lilac
 
 namespace Core
-
 
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
   intro n wf
@@ -20,407 +18,144 @@ theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
   case _ => simp; constructor; assumption; assumption
   case _ => simp; apply ih
 
--- theorem GlobalWf.drop_lookup_unique_vec :
---   (∀ i, v i = none) ->
---   Vect.fold (lookup x G) Option.or v = lookup x G
--- := by
---   intro h
---   induction v using Vect.induction
---   case _ => simp
---   case _ hd tl ih =>
---     simp; have lem := h 0; simp at lem
---     subst lem; simp
---     rw [ih]; intro i
---     apply h (Fin.succ i)
+theorem GlobalWf.drop_lookup_unique_vec :
+  {v : Vec (Option Entry) n} ->
+  (∀ (i : Fin n), v[i] = none) ->
+  Vec.fold (lookup x G) Option.or v = lookup x G
+| .nil, h => by simp
+| .cons e tl, h =>
+  have lem := h 0
+  by
+    simp at lem; simp_all
+    apply drop_lookup_unique_vec (v := tl)
+    intro i; apply h (Fin.succ i)
 
 theorem GlobalWf.drop_lookup_unique {G : List Global} n :
   ⊢ G ->
   lookup x (G.drop n) = some t ->
   lookup x G = some t
 := by
-  sorry
-  -- intro wf j
-  -- induction wf generalizing n <;> simp at *
-  -- case nil => exact j
-  -- case cons G j1 j2 wf ih =>
-  --   cases n <;> simp at *
-  --   case zero => exact j
-  --   case succ n =>
-  --     replace ih := ih n j
-  --     cases j2
-  --     case data n y K ctors j1 j2 j3 =>
-  --       simp [lookup]; split
-  --       case _ e => subst e; rw [ih] at j3; injection j3
-  --       case _ e =>
-  --         rw [drop_lookup_unique_vec]; exact ih
-  --         intro i
-  --         generalize endef : ctors i = en at *
-  --         rcases en with ⟨z, A⟩; simp; intro e2; subst e2
-  --         replace j2 := j2 i x A endef
-  --         rcases j2 with ⟨q1, q2, q3, q4⟩
-  --         rw [ih] at q4; injection q4
-  --     case openm T b y j1 j2 =>
-  --       simp [lookup]; split
-  --       case _ e => subst e; rw [ih] at j2; injection j2
-  --       case _ e => exact ih
-  --     case opent y j1 j2 =>
-  --       simp [lookup]; split
-  --       case _ e => subst e; rw [ih] at j2; injection j2
-  --       case _ e => exact ih
-  --     case defn T b t' y j1 j2 j3 =>
-  --       simp [lookup]; split
-  --       case _ e => subst e; rw [ih] at j3; injection j3
-  --       case _ e => exact ih
-  --     case inst y T t' j1 j2 => simp [lookup]; exact ih
-  --     case instty y T j1 j2 =>
-  --       simp [lookup]; split
-  --       case _ e => subst e; rw [ih] at j2; injection j2
-  --       case _ e => exact ih
+  intro wf j
+  induction wf generalizing n <;> simp at *
+  case nil => exact j
+  case cons G j1 j2 wf ih =>
+    cases n <;> simp at *
+    case zero => exact j
+    case succ n =>
+      replace ih := ih n j
+      cases j2
+      case data n y K ctors j1 j2 j3 =>
+        simp [lookup]; split
+        case _ e => subst e; rw [ih] at j3; injection j3
+        case _ e =>
+          rw [drop_lookup_unique_vec]; exact ih
+          intro i
+          generalize endef : ctors i = en at *
+          rcases en with ⟨z, A⟩; simp; intro e2
+          replace j2 := j2 i z A endef
+          rcases j2 with ⟨q1, q2, q3⟩
+          cases q1; case _ w1 w2 w3 w4 w5 =>
+          clear w5; replace w4 := w4 _ rfl
+          simp [lookup_ctor?] at w4; split at w4
+          case _ =>
+            have lem : lookup z (Global.data 0 y K #𝓋[] :: G) = none := by
+              simp [lookup]; split; simp_all; apply q3
+            simp [Option.map, Option.getD] at w4
+            rw [lem] at w4; simp at w4
+          case _ => cases w4
+      case openm T b y j1 j2 =>
+        simp [lookup]; split
+        case _ e => subst e; rw [ih] at j2; injection j2
+        case _ e => exact ih
+      case odata y j1 j2 =>
+        simp [lookup]; split
+        case _ e => subst e; rw [ih] at j2; injection j2
+        case _ e => exact ih
+      case defn T b t' y j1 j2 j3 =>
+        simp [lookup]; split
+        case _ e => subst e; rw [ih] at j3; injection j3
+        case _ e => exact ih
+      case inst y T t' j1 j2 => simp [lookup]; exact ih
+      case octor y T j1 j2 =>
+        simp [lookup]; split
+        case _ e => subst e; rw [ih] at j2; injection j2
+        case _ e => exact ih
 
-theorem GlobalWf.drop_lookup_impossible {G : List Global} :
-  ⊢ G ->
-  G' = G.drop n ->
-  lookup x G' = some t ->
-  lookup x G = none ->
-  False
-:= by
-  intro wf e h1 h2
-  subst e; replace h1 := drop_lookup_unique n wf h1
-  rw [h2] at h1; injection h1
-
-theorem GlobalWf.drop_lookup {G : List Global} n :
-  ⊢ G ->
-  G' = G.drop n ->
-  lookup x G' = some t ->
-  lookup x G = some t' ->
-  t = t'
-:= by
-  sorry
-  -- intro wf e h1 h2
-  -- subst e; replace h1 := drop_lookup_unique n wf h1
-  -- have lem := Global.lookup_unique h1 h2
-  -- injection lem
-
-theorem Kinding.drop_weaken_global n :
-  ⊢ G ->
-  G' = G.drop n ->
-  G'& Δ ⊢ T : K ->
-  G&Δ ⊢ T : K
-:= by
-  intro wf e j
-  induction j generalizing G
-  case var =>
-    apply Kinding.var; assumption
-  case global x K Δ h =>
-    apply Kinding.global
-    simp [lookup_kind] at *;
-    generalize zdef  : lookup x G = z at *
-    generalize zdef' : lookup x G' = z' at *
-    cases z'; simp at h; case _ z' =>
-    cases z; simp at h
-    case none =>
-      exfalso
-      apply GlobalWf.drop_lookup_impossible wf e zdef' zdef
-    case some z =>
-      have lem := GlobalWf.drop_lookup n wf e zdef' zdef
-      subst z'; assumption
-  case all j ih =>
-    replace ih := @ih G wf e
-    apply Kinding.all; assumption
-  all_goals (case _ ih1 ih2 =>
-    replace ih1 := @ih1 G wf e
-    replace ih2 := @ih2 G wf e
-    constructor; assumption; assumption)
-
-theorem GlobalWf.drop_weaken_global_lookup_map (f : Entry -> Bool) n :
-  ⊢ G ->
-  G' = G.drop n ->
-  (Option.map f (lookup x G')).get! ->
-  (Option.map f (lookup x G)).get!
-:= by
-  intro wf e j
-  generalize zpdef : lookup x G' = z' at *
-  generalize zdef : lookup x G = z at *
-  cases z' <;> simp at j; case _ z' =>
-  cases z
-  case none =>
-    have lem := GlobalWf.drop_lookup_impossible wf e zpdef zdef
-    cases lem
-  case some z =>
-    have lem := GlobalWf.drop_lookup n wf e zpdef zdef; subst lem
-    simp; exact j
-
-
-theorem Typing.drop_weaken_global n :
-  ⊢ G ->
-  G' = G.drop n ->
-  G'&Δ,Γ ⊢ t : T ->
-  G&Δ,Γ ⊢ t : T
-:= by
-  sorry
-  -- intro wf e j
-  -- induction j generalizing G
-  -- case var j1 j2 =>
-  --   apply var j1
-  --   apply Kinding.drop_weaken_global n wf e j2
-  -- case global x A Δ b Γ j1 j2 =>
-  --   apply global _
-  --   apply Kinding.drop_weaken_global n wf e j2
-  --   simp [lookup_type] at *
-  --   generalize zdef  : lookup x G = z at *
-  --   generalize zdef' : lookup x G' = z' at *
-  --   cases z'; simp at j1; case _ z' =>
-  --   cases z; simp at j1
-  --   case none =>
-  --     exfalso
-  --     apply GlobalWf.drop_lookup_impossible wf e zdef' zdef
-  --   case some z =>
-  --     have lem := GlobalWf.drop_lookup n wf e zdef' zdef
-  --     subst z'; assumption
-  -- case mtch j1 j2 j3 j4 j5 j6 j7 j8 ih1 ih2 ih3 ih4 =>
-  --   apply mtch
-  --   apply ih1 wf e
-  --   apply ValidTyHeadVariable.drop_weaken_global_is_data n wf e j2
-  --   apply ih2 wf e
-  --   intro i; apply ValidHeadVariable.drop_weaken_global_is_ctor n wf e (j4 i)
-  --   intro i; apply ih3 i wf e
-  --   apply j6
-  --   intro i; apply ih4 i wf e
-  --   apply j8
-  -- case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
-  --   apply guard
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-  --   apply ih3 wf e
-  --   apply ValidHeadVariable.drop_weaken_global_is_instty n wf e j4
-  --   apply ValidTyHeadVariable.drop_weaken_global_is_opent n wf e j5
-  --   apply j6
-  --   apply j7
-  -- case lam j1 j2 ih =>
-  --   apply lam
-  --   apply Kinding.drop_weaken_global n wf e j1
-  --   apply ih wf e
-  -- case app j1 j2 j3 ih1 ih2 =>
-  --   apply app
-  --   apply Kinding.drop_weaken_global n wf e j1
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-  -- case lamt j1 j2 ih =>
-  --   apply lamt
-  --   apply Kinding.drop_weaken_global n wf e j1
-  --   apply ih wf e
-  -- case appt j1 j2 j3 ih =>
-  --   apply appt
-  --   apply ih wf e
-  --   apply Kinding.drop_weaken_global n wf e j2
-  --   apply j3
-  -- case cast j1 j2 ih1 ih2 =>
-  --   apply cast
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-  -- case refl j =>
-  --   apply refl
-  --   apply Kinding.drop_weaken_global n wf e j
-  -- case sym j ih =>
-  --   apply sym
-  --   apply ih wf e
-  -- case seq j1 j2 ih1 ih2 =>
-  --   apply seq
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-  -- case appc j1 j2 ih1 ih2 =>
-  --   apply appc
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-  -- case arrowc j1 j2 ih1 ih2 =>
-  --   apply arrowc
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-  -- case fst j1 j2 j3 ih =>
-  --   apply fst
-  --   apply Kinding.drop_weaken_global n wf e j1
-  --   apply Kinding.drop_weaken_global n wf e j2
-  --   apply ih wf e
-  -- case snd j1 j2 j3 ih =>
-  --   apply snd
-  --   apply Kinding.drop_weaken_global n wf e j1
-  --   apply Kinding.drop_weaken_global n wf e j2
-  --   apply ih wf e
-  -- case allc j ih =>
-  --   apply allc
-  --   apply ih wf e
-  -- case apptc j1 j2 j3 j4 ih1 ih2 =>
-  --   apply apptc
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-  --   apply j3
-  --   apply j4
-  -- case zero j =>
-  --   apply zero
-  --   apply Kinding.drop_weaken_global n wf e j
-  -- case choice j1 j2 j3 ih1 ih2 =>
-  --   apply choice
-  --   apply Kinding.drop_weaken_global n wf e j1
-  --   apply ih1 wf e
-  --   apply ih2 wf e
-
--- theorem GlobalWf.lookup_weaken :
---   ⊢ (e1::G) ->
---   lookup x G = some e2 ->
---   lookup x (e1::G) = some e2
+-- theorem GlobalWf.drop_lookup_impossible {G : List Global} :
+--   ⊢ G ->
+--   G' = G.drop n ->
+--   lookup x G' = some t ->
+--   lookup x G = none ->
+--   False
 -- := by
---   intro wf j
---   apply drop_lookup_unique 1 wf
---   simp; exact j
+--   intro wf e h1 h2
+--   subst e; replace h1 := drop_lookup_unique n wf h1
+--   rw [h2] at h1; injection h1
 
--- theorem EntryWf.weaken :
---   ⊢ (e1::G) ->
---   EntryWf G e2 ->
---   EntryWf (e1::G) e2
+-- theorem GlobalWf.drop_lookup {G : List Global} n :
+--   ⊢ G ->
+--   G' = G.drop n ->
+--   lookup x G' = some t ->
+--   lookup x G = some t' ->
+--   t = t'
 -- := by
---   intro wf j
---   induction j
---   case data j =>
---     apply EntryWf.data
---     apply GlobalWf.lookup_weaken wf j
---   case ctor j1 j2 j3 j4 j5 =>
---     apply EntryWf.ctor
---     apply GlobalWf.lookup_weaken wf j1
---     apply j2
---     apply Kinding.drop_weaken_global 1 wf (by simp) j3
---     exact j4
---     apply GlobalWf.lookup_weaken wf j5
---   case opent j1 j2 =>
---     apply EntryWf.opent j1
---     apply GlobalWf.lookup_weaken wf j2
---   case openm j1 j2 =>
---     apply EntryWf.openm
---     apply Kinding.drop_weaken_global 1 wf (by simp) j1
---     apply GlobalWf.lookup_weaken wf j2
---   case defn j1 j2 j3 j4 =>
---     apply EntryWf.defn
---     apply Kinding.drop_weaken_global 1 wf (by simp) j2
---     apply Typing.drop_weaken_global 1 wf (by simp) j3
---     apply GlobalWf.lookup_weaken wf j4
---   case instty j1 j2 =>
---     apply EntryWf.instty
---     apply ValidInstTy.drop_weaken_global 1 wf (by simp) j1
---     apply GlobalWf.lookup_weaken wf j2
+--   sorry
+--   -- intro wf e h1 h2
+--   -- subst e; replace h1 := drop_lookup_unique n wf h1
+--   -- have lem := Global.lookup_unique h1 h2
+--   -- injection lem
 
--- theorem EntryWf.from_lookup_vec1 :
---   Vect.fold d Option.or v = some t ->
---   (∃ i, v i = some t) ∨ d = some t
+-- theorem Kinding.drop_weaken_global n :
+--   ⊢ G ->
+--   G' = G.drop n ->
+--   G'& Δ ⊢ T : K ->
+--   G&Δ ⊢ T : K
 -- := by
---   intro h
---   induction v using Vect.induction
---   case nil => simp at *; exact h
---   case cons hd tl ih =>
---     simp at h; rcases h with h | ⟨h1, h2⟩
---     subst h; apply Or.inl; exists 0
---     subst h1; replace ih := ih h2
---     cases ih
---     case _ ih =>
---       obtain ⟨i, ih⟩ := ih
---       apply Or.inl; exists (Fin.succ i)
---     case _ ih => apply Or.inr ih
+--   intro wf e j
+--   induction j generalizing G
+--   case var =>
+--     apply Kinding.var; assumption
+--   case global x K Δ h =>
+--     apply Kinding.global
+--     simp [lookup_kind] at *;
+--     generalize zdef  : lookup x G = z at *
+--     generalize zdef' : lookup x G' = z' at *
+--     cases z'; simp at h; case _ z' =>
+--     cases z; simp at h
+--     case none =>
+--       exfalso
+--       apply GlobalWf.drop_lookup_impossible wf e zdef' zdef
+--     case some z =>
+--       have lem := GlobalWf.drop_lookup n wf e zdef' zdef
+--       subst z'; assumption
+--   case all j ih =>
+--     replace ih := @ih G wf e
+--     apply Kinding.all; assumption
+--   all_goals (case _ ih1 ih2 =>
+--     replace ih1 := @ih1 G wf e
+--     replace ih2 := @ih2 G wf e
+--     constructor; assumption; assumption)
 
--- theorem EntryWf.from_lookup_vec2 :
---   (∃ i, v i = some t ∧ (∀ j ≠ i, v j = none)) ->
---   Vect.fold none Option.or v = some t
+-- theorem GlobalWf.drop_weaken_global_lookup_map (f : Entry -> Bool) n :
+--   ⊢ G ->
+--   G' = G.drop n ->
+--   (Option.map f (lookup x G')).get! ->
+--   (Option.map f (lookup x G)).get!
 -- := by
---   intro h
---   obtain ⟨i, h1, h2⟩ := h
---   induction v using Vect.induction
---   case nil =>
---     exfalso; apply Fin.elim0 i
---   case cons hd tl ih =>
---     cases i using Fin.cases <;> simp at *
---     case zero => apply Or.inl h1
---     case succ i =>
---       have h3 := λ j => h2 (Fin.succ j); simp at h3
---       replace ih := ih i h1 h3
---       apply Or.inr; apply And.intro _ ih
---       apply h2 0; intro h; cases h
+--   intro wf e j
+--   generalize zpdef : lookup x G' = z' at *
+--   generalize zdef : lookup x G = z at *
+--   cases z' <;> simp at j; case _ z' =>
+--   cases z
+--   case none =>
+--     have lem := GlobalWf.drop_lookup_impossible wf e zpdef zdef
+--     cases lem
+--   case some z =>
+--     have lem := GlobalWf.drop_lookup n wf e zpdef zdef; subst lem
+--     simp; exact j
 
--- theorem EntryWf.from_lookup_vec3 :
---   (∀ i, v i = none) ->
---   Vect.fold d Option.or v = d
--- := by
---   intro h
---   induction v using Vect.induction
---   case nil => simp
---   case cons hd tl ih =>
---     have lem1 := h 0; simp at lem1
---     have lem2 := λ i => h (Fin.succ i); simp at lem2
---     simp; rw [lem1, ih lem2]; simp
-
--- theorem Kinding.global_weaken_ctors :
---   (∀ x, (lookup_kind G x).isSome -> lookup_kind G x = lookup_kind G' x) ->
---   G&Δ ⊢ T : K ->
---   G'&Δ ⊢ T : K
--- := by
---   intro h j
---   induction j generalizing G'
---   case var j => apply var j
---   case global x K Δ j =>
---     apply global
---     rw [<-h x]; apply j
---     rw [j]; simp
---   case arrow ih1 ih2 => apply arrow (ih1 h) (ih2 h)
---   case all ih => apply all (ih h)
---   case app ih1 ih2 => apply app (ih1 h) (ih2 h)
---   case eq ih1 ih2 => apply eq (ih1 h) (ih2 h)
-
--- theorem lookup_head_eq :
---   lookup x (e1::G) = some e2 ->
-
-theorem lookup_weaken_list (wf : ⊢ (G₁ ++ G₂))
-  : lookup x G₂ = some e -> lookup x (G₁ ++ G₂) = some e
-:= by
-  intro h
-  fun_induction lookup generalizing G₁
-  case _ => cases h
-  case _ =>
-    cases h
-    sorry
-  case _ => sorry
-  case _ => sorry
-  case _ y K _ _ ih =>
-    have lem := ih (G₁ := G₁ ++ [.odata y K])
-    simp at lem; replace lem := lem wf h
-    apply lem
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-
-theorem lookup_weaken (wf : ⊢ (g::G))
-  : lookup x G = some e -> lookup x (g::G) = some e
-:= by
-  intro h
-  fun_induction lookup
-  case _ => cases h
-  case _ =>
-    have wf' := wf
-    cases h; cases wf; case _ wf gwf =>
-
-    sorry
-  case _ => sorry
-  case _ =>
-    have wf' := wf
-    cases h; cases wf; case _ wf gwf =>
-    sorry
-  case _ ih => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
+theorem lookup_weaken (wf : ⊢ (g::G)) : lookup x G = some e -> lookup x (g::G) = some e := by
+  intro h; apply GlobalWf.drop_lookup_unique 1 wf h
 
 theorem lookup_kind_weaken (wf : ⊢ (g::G))
   : lookup_kind G x = some K -> lookup_kind (g::G) x = some K
@@ -432,14 +167,26 @@ theorem lookup_kind_weaken (wf : ⊢ (g::G))
   cases w
   case _ =>
     simp_all
-    sorry
+    replace zdef := lookup_weaken wf zdef
+    rw [wdef] at zdef; cases zdef
   case _ w =>
     simp_all
     have lem := lookup_weaken wf zdef
     rw [wdef] at lem; cases lem; exact h
 
+theorem lookup_kind_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G))
+  : lookup_kind (Global.data 0 y D #𝓋[] :: G) x = some K ->
+    lookup_kind (Global.data n y D ctors :: G) x = some K
+:= by
+  sorry
+
 theorem lookup_ctor_weaken (wf : ⊢ (g::G))
   : lookup_ctor? G c x D -> lookup_ctor? (g::G) c x D
+:= by sorry
+
+theorem lookup_ctor_weaken_ctors (wf : ⊢ (Global.data n y K ctors :: G))
+  : lookup_ctor? (Global.data 0 y K #𝓋[] :: G) c x D ->
+    lookup_ctor? (Global.data n y K ctors :: G) c x D
 := by sorry
 
 theorem lookup_ctor_strengthen (wf : ⊢ (g::G))
@@ -458,6 +205,10 @@ theorem Ty.data?_global_weaken (wf : ⊢ (g::G))
   : Ty.data? c G A -> Ty.data? c (g::G) A
 := by sorry
 
+theorem Ty.data?_global_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G))
+  : Ty.data? c (Global.data 0 y D #𝓋[] :: G) A -> Ty.data? c (Global.data n y D ctors :: G) A
+:= by sorry
+
 theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢ A : K -> (g::G)&Δ ⊢ A : K
 | var h => var h
 | global h => global $ lookup_kind_weaken wf h
@@ -466,14 +217,29 @@ theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢ A : K -> (g::G)&Δ �
 | app j1 j2 => app (j1.weaken_global wf) (j2.weaken_global wf)
 | eq j1 j2 => eq (j1.weaken_global wf) (j2.weaken_global wf)
 
+theorem Kinding.weaken_global_ctors (wf : ⊢ (Global.data n y D ctors :: G))
+  : (Global.data 0 y D #𝓋[] :: G)&Δ ⊢ A : K -> (Global.data n y D ctors :: G)&Δ ⊢ A : K
+| var h => var h
+| global h => global $ lookup_kind_weaken_ctors wf h
+| arrow j1 j2 => arrow (j1.weaken_global_ctors wf) (j2.weaken_global_ctors wf)
+| all j1 => all (j1.weaken_global_ctors wf)
+| app j1 j2 => app (j1.weaken_global_ctors wf) (j2.weaken_global_ctors wf)
+| eq j1 j2 => eq (j1.weaken_global_ctors wf) (j2.weaken_global_ctors wf)
+
 theorem SpineKinding.weaken_global (wf : ⊢ (g::G))
-  : {T : SpineTy} -> SpineKinding v G T -> SpineKinding v (g::G) T
-| ⟨m, Ks, n, Ts, R⟩, valid (x := x) (τ := τ) e j1 j2 j3 j4 =>
+  : {T : SpineTy} -> SpineKinding v x G T -> SpineKinding v x (g::G) T
+| ⟨m, Ks, n, Ts, R⟩, valid (τ := τ) e j1 j2 j3 j4 =>
   have lem1 : ∀ c, v = .data c → lookup_ctor? (g::G) c x R :=
     λ c e => lookup_ctor_weaken wf (j3 c e)
   have lem2 : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn (g::G) Ts[i][τ] :=
     λ e i => Ty.data?_global_weaken wf (j4 e i)
   valid e (λ i => (j1 i).weaken_global wf) (j2.weaken_global wf) lem1 lem2
+
+theorem SpineKinding.weaken_global_ctors (wf : ⊢ (Global.data n y K ctors :: G))
+  : {T : SpineTy} ->
+    SpineKinding v x (Global.data 0 y K #𝓋[] :: G) T ->
+    SpineKinding v x (Global.data n y K ctors :: G) T
+| ⟨m, Ks, n, Ts, R⟩, valid (τ := τ) e j1 j2 j3 j4 => sorry
 
 theorem PatternBinders.weaken_global (wf : ⊢ (g::G))
   : PatternBinders G Δ m S p ξ -> PatternBinders (g::G) Δ m S p ξ
@@ -536,6 +302,37 @@ theorem EntryWf.weaken (wf : ⊢ (g::G))
 | defn j1 j2 j3 => defn (j1.weaken_global wf) (j2.weaken_global wf) (lookup_weaken wf j3)
 | octor j1 j2 => octor (j1.weaken_global wf) (lookup_weaken wf j2)
 
+theorem EntryWf.from_lookup_ctor1 :
+  {v : Vec _ n} ->
+  Vec.fold (lookup x G) Option.or v = some e ->
+  lookup x G = some e ∨ (∃ (i : Fin n), v[i] = some e)
+| .nil, eq => Or.inl eq
+| .cons a tl, eq => by
+  simp at eq; cases eq
+  case _ eq => apply Or.inr; exists 0
+  case _ eq =>
+    have lem := from_lookup_ctor1 eq.2
+    cases lem
+    case _ lem => apply Or.inl lem
+    case _ lem =>
+      rcases lem with ⟨i, lem⟩
+      apply Or.inr; exists (Fin.succ i)
+
+-- TODO: need decidable equality of Entry
+theorem EntryWf.from_lookup_ctor2 :
+  {v : Vec (Option Entry) n} ->
+  (∃ (i : Fin n), v[i].isSome) ->
+  Vec.fold none Option.or v = some e
+| .nil, ⟨i, h⟩ => Fin.elim0 i
+| .cons a tl, ⟨i, h⟩ => by
+  cases i using Fin.cases
+  case zero => sorry
+  case succ i =>
+    simp at h; simp
+    apply Or.inr
+    have lem := EntryWf.from_lookup_ctor2 (e := e) (v := tl) ⟨i, h⟩
+    sorry
+
 theorem EntryWf.from_lookup :
   ⊢ G ->
   lookup x G = some e ->
@@ -555,7 +352,27 @@ theorem EntryWf.from_lookup :
     simp [lookup]
   case _ n y K ctors tl ctors' h1 ih1 =>
     have wf' := wf
-    sorry
+    cases wf; case _ wf gwf =>
+    cases gwf; case _ ctors2 h2 h3 h4 =>
+    cases (EntryWf.from_lookup_ctor1 h)
+    case _ lem => apply EntryWf.weaken wf' (ih1 wf lem)
+    case _ lem =>
+      rcases lem with ⟨i, lem⟩
+      clear h; subst ctors'; simp at lem
+      generalize zdef : ctors2 i = z
+      rcases z with ⟨z, A⟩
+      replace h4 := h4 i z A zdef
+      rw [zdef] at lem; simp at lem
+      rcases h4 with ⟨q1, q2, q3⟩
+      rw [<-lem.2]; apply EntryWf.ctor y K ctors2
+      simp [lookup]
+      simp; exact zdef
+      apply SpineKinding.weaken_global_ctors wf' q1
+      simp [lookup]; split; simp_all; rw [q3]
+      apply EntryWf.from_lookup_ctor2; simp
+      exists i; rw [zdef]
+      -- apply EntryWf.from_lookup_ctor3; simp
+      -- exists i; rw [zdef]; simp
   case _ =>
     cases h; apply EntryWf.odata
     simp [lookup]
@@ -581,86 +398,6 @@ theorem EntryWf.from_lookup :
     apply EntryWf.octor
     apply SpineKinding.weaken_global wf' j2
     simp [lookup]
---   intro wf h
---   induction wf generalizing e
---   case nil => simp [lookup] at h
---   case cons G g gwf wf ih =>
---     have gwf' := gwf
---     have wf' := ListGlobalWf.cons gwf' wf
---     cases gwf <;> simp [lookup] at h
---     case data dx K ctors j1 j2 j3 =>
---       split at h
---       case _ e1 =>
---         subst e1; injection h with e; subst e
---         apply EntryWf.data; simp [lookup]
---       case _ e1 =>
---         replace h := from_lookup_vec1 h
---         rcases h with ⟨i, h⟩ | h
---         case _ =>
---           simp at h; obtain ⟨h1, h2⟩ := h
---           rw [<-h2]
---           generalize zdef : ctors i = z at *
---           rcases z with ⟨z, zA⟩
---           simp at *; subst h1
---           obtain ⟨q1, q2, q3, q4⟩ := j2 i x zA zdef
---           apply EntryWf.ctor dx K ctors; simp [lookup]
---           exact zdef
---           apply Kinding.global_weaken_ctors _ q1
---           case _ =>
---             intro x h
---             unfold is_data at h
---             simp [lookup_kind, lookup] at *
---             split; simp [Entry.kind]
---             split at h; case _ h1 h2 => exfalso; apply h1 h2
---             rw [from_lookup_vec3]; intro i
---             generalize wdef : ctors i = w
---             cases w; case _ w wA =>
---             simp; intro h; subst h
---             obtain ⟨w1, w2, w3, w4⟩ := j2 i x wA wdef
---             rw [w4] at h; simp [Option.isSome] at h
---           exact q2; simp [lookup]
---           split; case _ e => exfalso; apply e1 e
---           case _ e =>
---             rw [q4]
---             apply from_lookup_vec2
---             exists i; rw [zdef]; simp
---             intro j w1 w2; apply j1 i j
---             rw [<-w2, zdef]
---         case _ => apply weaken wf' (ih h)
---     case opent j1 j2 =>
---       split at h
---       case _ e1 =>
---         subst e1; injection h with e; subst e
---         apply EntryWf.opent j1; simp [lookup]
---       case _ e1 => apply weaken wf' (ih h)
---     case openm j1 j2 =>
---       split at h
---       case _ e1 =>
---         subst e1; injection h with e; subst e
---         apply EntryWf.openm
---         apply Kinding.drop_weaken_global 1 wf' (by simp) j1
---         simp [lookup]
---       case _ e1 => apply weaken wf' (ih h)
---     case defn j1 j2 j3 =>
---       split at h
---       case _ e1 =>
---         subst e1; injection h with e; subst e
---         apply EntryWf.defn
---         apply Kinding.drop_weaken_global 1 wf' (by simp) j1
---         apply Typing.drop_weaken_global 1 wf' (by simp) j2
---         simp [lookup]
---       case _ e1 => apply weaken wf' (ih h)
---     case inst y T t j1 j2 =>
---       replace ih := ih h
---       apply weaken wf' ih
---     case instty j1 j2 =>
---       split at h
---       case _ e1 =>
---         subst e1; injection h with e; subst e
---         apply EntryWf.instty
---         apply ValidInstTy.drop_weaken_global 1 wf' (by simp) j1
---         simp [lookup]
---       case _ e1 => apply weaken wf' (ih h)
 
 -- theorem EntryWf.get_openm {G} {Δ} {Γ} :
 --   ⊢ G ->

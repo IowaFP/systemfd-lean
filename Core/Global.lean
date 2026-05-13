@@ -137,11 +137,11 @@ def lookup (x : String) : List Global -> Option Entry
 | .cons (.octor y a) tl =>
   if x == y then return .octor y a else lookup x tl
 
-def lookup_spine_type G c := lookup c G |> Option.map Entry.spine_type |> Option.get!
+def lookup_spine_type G c := lookup c G |> Option.map Entry.spine_type |> Option.getD (dflt := none)
 
 def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) : Bool :=
   match data.spine with
-  | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.get!
+  | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
 -- def Global.ctor? (c : DataConst) (G : List Global) (ctor : String) (datatype : String) : Bool :=

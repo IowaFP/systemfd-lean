@@ -99,14 +99,14 @@ notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
 abbrev Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data c G)
 
-inductive SpineKinding (sv : SpCtorVariant) (G : List Global) : SpineTy -> Prop where
+inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : SpineTy -> Prop where
 | valid {Ks : Vec Kind m} {Ts : Vec _ n} :
   Vec.to_list Ks = Δ ->
   (∀ (i : Fin n), G&Δ ⊢ Ts[i] : ★) ->
   G&Δ ⊢ R : ★ ->
   (∀ c, sv = .data c -> lookup_ctor? G c x R) ->
   (sv = .openm -> ∀ (i : Fin n), Ts[i][τ].data? .opn G) ->
-  SpineKinding sv G ⟨m, Ks, n, Ts, R⟩
+  SpineKinding sv x G ⟨m, Ks, n, Ts, R⟩
 
 -- inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
 -- | done : KindingPreamble G Δ [] T T
@@ -305,7 +305,7 @@ def VecConstructorTyping (G : List Global) (Δ : List Kind) (Γ : List Ty) (cs :
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Fun.Vec (String × SpineTy) n} :
   (∀ i y T, ctors i = (y, T) ->
-    SpineKinding (.data .cls) (.data 0 x K .nil::G) T
+    SpineKinding (.data .cls) y (.data 0 x K .nil::G) T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
@@ -315,7 +315,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
   lookup x G = none ->
   GlobalWf G (.odata x K)
 | openm {Γ : Vec Ty n} :
-  SpineKinding .openm G T ->
+  SpineKinding .openm x G T ->
   lookup x G = none ->
   GlobalWf G (.openm x T)
 | defn :
@@ -330,7 +330,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
   G&Δ,Γ ⊢ t : R ->
   GlobalWf G (.inst x p t)
 | octor :
-  SpineKinding (.data .opn) G T ->
+  SpineKinding (.data .opn) x G T ->
   lookup x G = none ->
   GlobalWf G (.octor x T)
 
@@ -347,14 +347,14 @@ inductive EntryWf : List Global -> Entry -> Prop where
 | ctor z K (ctors : Vec _ n) (i : Fin n) :
   lookup z G = some (.data z K ctors) ->
   ctors[i] = (x, T) ->
-  SpineKinding (.data .cls) G T ->
+  SpineKinding (.data .cls) x G T ->
   lookup x G = some (.ctor x i T) ->
   EntryWf G (.ctor x i T)
 | odata :
   lookup x G = some (.odata x K) ->
   EntryWf G (.odata x K)
 | openm :
-  SpineKinding .openm G T ->
+  SpineKinding .openm x G T ->
   lookup x G = some (.openm x T) ->
   EntryWf G (.openm x T)
 | defn :
@@ -363,7 +363,7 @@ inductive EntryWf : List Global -> Entry -> Prop where
   lookup x G = some (.defn x T t) ->
   EntryWf G (.defn x T t)
 | octor :
-  SpineKinding (.data .opn) G T ->
+  SpineKinding (.data .opn) x G T ->
   lookup x G = some (.octor x T) ->
   EntryWf G (.octor x T)
 
