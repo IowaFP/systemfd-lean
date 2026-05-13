@@ -374,46 +374,213 @@ theorem Typing.drop_weaken_global n :
 -- theorem lookup_head_eq :
 --   lookup x (e1::G) = some e2 ->
 
+theorem lookup_weaken_list (wf : ⊢ (G₁ ++ G₂))
+  : lookup x G₂ = some e -> lookup x (G₁ ++ G₂) = some e
+:= by
+  intro h
+  fun_induction lookup generalizing G₁
+  case _ => cases h
+  case _ =>
+    cases h
+    sorry
+  case _ => sorry
+  case _ => sorry
+  case _ y K _ _ ih =>
+    have lem := ih (G₁ := G₁ ++ [.odata y K])
+    simp at lem; replace lem := lem wf h
+    apply lem
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
 
-theorem EntryWf.lookup_defn
-  : lookup x G = some (.defn x A t) -> ⊢ G -> EntryWf G (.defn x A t)
-| h, .nil => sorry
-| h, .cons (.data j1 j2 j3) wf => sorry
-| h, .cons (.odata j1) wf => sorry
-| h, .cons (.openm j1 j2) wf =>
-  .defn sorry sorry h
-| h, .cons (.defn j1 j2 j3) wf => sorry
-| h, .cons (.inst j1 e j2 j3) wf => sorry
-| h, .cons (.octor j1 j2) wf => sorry
+theorem lookup_weaken (wf : ⊢ (g::G))
+  : lookup x G = some e -> lookup x (g::G) = some e
+:= by
+  intro h
+  fun_induction lookup
+  case _ => cases h
+  case _ =>
+    have wf' := wf
+    cases h; cases wf; case _ wf gwf =>
 
-theorem EntryWf.from_lookup (h : lookup x G = some e) : ⊢ G -> EntryWf G e
-| .nil => sorry
-| .cons (.data j1 j2 j3) wf => sorry
-| .cons (.odata j1) wf => sorry
-| .cons (.openm j1 j2) wf => sorry
-| .cons (.defn j1 j2 j3) wf => sorry
-| .cons (.inst j1 e j2 j3) wf => sorry
-| .cons (.octor j1 j2) wf => sorry
+    sorry
+  case _ => sorry
+  case _ =>
+    have wf' := wf
+    cases h; cases wf; case _ wf gwf =>
+    sorry
+  case _ ih => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
 
-theorem EntryWf.from_lookup2 :
+theorem lookup_kind_weaken (wf : ⊢ (g::G))
+  : lookup_kind G x = some K -> lookup_kind (g::G) x = some K
+:= by
+  intro h; simp_all [lookup_kind, Option.map]
+  generalize zdef : lookup x G = z at *
+  generalize wdef : lookup x (g::G) = w at *
+  cases z; simp at h; case _ z =>
+  cases w
+  case _ =>
+    simp_all
+    sorry
+  case _ w =>
+    simp_all
+    have lem := lookup_weaken wf zdef
+    rw [wdef] at lem; cases lem; exact h
+
+theorem lookup_ctor_weaken (wf : ⊢ (g::G))
+  : lookup_ctor? G c x D -> lookup_ctor? (g::G) c x D
+:= by sorry
+
+theorem lookup_ctor_strengthen (wf : ⊢ (g::G))
+  : lookup_ctor? (g::G) c x D -> lookup_ctor? G c x D
+:= by sorry
+
+theorem lookup_defn_weaken (wf : ⊢ (g::G))
+  : lookup_defn G x = some e -> lookup_defn (g::G) x = some e
+:= by sorry
+
+theorem lookup_spine_type_weaken (wf : ⊢ (g::G))
+  : lookup_spine_type G x = some e -> lookup_spine_type (g::G) x = some e
+:= by sorry
+
+theorem Ty.data?_global_weaken (wf : ⊢ (g::G))
+  : Ty.data? c G A -> Ty.data? c (g::G) A
+:= by sorry
+
+theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢ A : K -> (g::G)&Δ ⊢ A : K
+| var h => var h
+| global h => global $ lookup_kind_weaken wf h
+| arrow j1 j2 => arrow (j1.weaken_global wf) (j2.weaken_global wf)
+| all j1 => all (j1.weaken_global wf)
+| app j1 j2 => app (j1.weaken_global wf) (j2.weaken_global wf)
+| eq j1 j2 => eq (j1.weaken_global wf) (j2.weaken_global wf)
+
+theorem SpineKinding.weaken_global (wf : ⊢ (g::G))
+  : {T : SpineTy} -> SpineKinding v G T -> SpineKinding v (g::G) T
+| ⟨m, Ks, n, Ts, R⟩, valid (x := x) (τ := τ) e j1 j2 j3 j4 =>
+  have lem1 : ∀ c, v = .data c → lookup_ctor? (g::G) c x R :=
+    λ c e => lookup_ctor_weaken wf (j3 c e)
+  have lem2 : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn (g::G) Ts[i][τ] :=
+    λ e i => Ty.data?_global_weaken wf (j4 e i)
+  valid e (λ i => (j1 i).weaken_global wf) (j2.weaken_global wf) lem1 lem2
+
+theorem PatternBinders.weaken_global (wf : ⊢ (g::G))
+  : PatternBinders G Δ m S p ξ -> PatternBinders (g::G) Δ m S p ξ
+| zero => zero
+| succ j1 j2 e1 e2 e3 j4 =>
+  let j1' := lookup_spine_type_weaken wf j1
+  let j2' := λ i => (j2 i).weaken_global wf
+  let j4' := j4.weaken_global wf
+  succ j1' j2' e1 e2 e3 j4'
+
+theorem CoercionProject.weaken_global (wf : ⊢ (g::G))
+  : CoercionProject G Δ n T R -> CoercionProject (g::G) Δ n T R
+| fst_app j => fst_app (j.weaken_global wf)
+| snd_app j => snd_app (j.weaken_global wf)
+| fst_arrow j => fst_arrow (j.weaken_global wf)
+| snd_arrow j => snd_arrow (j.weaken_global wf)
+
+-- TODO: fix, only try if `g` is not data
+theorem Query.global_strengthen (wf : ⊢ (g::G))
+  : Query (g::G) .cls q S -> Query G .cls q S
+:= sorry
+
+theorem Typing.weaken_global (wf : ⊢ (g::G)) : G&Δ,Γ ⊢ t : A -> (g::G)&Δ,Γ ⊢ t : A
+| var j1 j2 => var j1 (j2.weaken_global wf)
+| defn j1 j2 => defn (lookup_defn_weaken wf j1) (j2.weaken_global wf)
+| spctor e1 j1 e2 j2 j3 j4 e3 =>
+  let e1' := lookup_spine_type_weaken wf e1
+  let j1' := λ i => (j1 i).weaken_global wf
+  let j2' := λ i => (j2 i).weaken_global wf
+  let j3' := λ c e => lookup_ctor_weaken wf (j3 c e)
+  let j4' := λ e i => Ty.data?_global_weaken wf (j4 e i)
+  spctor e1' j1' e2 j2' j3' j4' e3
+| mtch j1 j2 j3 j4 j5 =>
+  let j1' := λ i => (j1 i).weaken_global wf
+  let j2' := λ i => Ty.data?_global_weaken wf (j2 i)
+  let j3' := λ i => (j3 i).weaken_global wf
+  let j4' := λ i => (j4 i).weaken_global wf
+  let j5' := λ {q} q' => j5 (q := q) (Query.global_strengthen wf q')
+  mtch j1' j2' j3' j4' j5'
+| lam j1 j2 => lam (j1.weaken_global wf) (j2.weaken_global wf)
+| app j1 j2 => app (j1.weaken_global wf) (j2.weaken_global wf)
+| lamt j1 j2 => lamt (j1.weaken_global wf) (j2.weaken_global wf)
+| appt j1 j2 e => appt (j1.weaken_global wf) (j2.weaken_global wf) e
+| refl j1 => refl (j1.weaken_global wf)
+| cast j1 j2 j3 e => cast (j1.weaken_global wf) (j2.weaken_global wf) (j3.weaken_global wf) e
+| prj j1 j2 => prj (j1.weaken_global wf) (j2.weaken_global wf)
+| allc j1 => allc (j1.weaken_global wf)
+| apptc j1 j2 e1 e2 => apptc (j1.weaken_global wf) (j2.weaken_global wf) e1 e2
+
+theorem EntryWf.weaken (wf : ⊢ (g::G))
+  : EntryWf G e -> EntryWf (g::G) e
+| data j => data (lookup_weaken wf j)
+| ctor z K ctors i j1 e1 j2 j3 =>
+  let j1' := lookup_weaken wf j1
+  let j2' := j2.weaken_global wf
+  let j3' := lookup_weaken wf j3
+  ctor z K ctors i j1' e1 j2' j3'
+| odata j => odata (lookup_weaken wf j)
+| openm j1 j2 => openm (j1.weaken_global wf) (lookup_weaken wf j2)
+| defn j1 j2 j3 => defn (j1.weaken_global wf) (j2.weaken_global wf) (lookup_weaken wf j3)
+| octor j1 j2 => octor (j1.weaken_global wf) (lookup_weaken wf j2)
+
+theorem EntryWf.from_lookup :
   ⊢ G ->
   lookup x G = some e ->
   EntryWf G e
 := by
   intro wf h
   fun_induction lookup
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
+  any_goals try
+    case _ ih =>
+      cases wf; case _ h2 wf =>
+      apply weaken
+      apply ListGlobalWf.cons wf h2
+      apply ih h2 h
+  case _ => cases h
+  case _ =>
+    cases h; apply EntryWf.data
+    simp [lookup]
+  case _ n y K ctors tl ctors' h1 ih1 =>
+    have wf' := wf
+    sorry
+  case _ =>
+    cases h; apply EntryWf.odata
+    simp [lookup]
+  case _ =>
+    have wf' := wf
+    cases h; cases wf; case _ wf h =>
+    cases h; case _ j1 j2 =>
+    apply EntryWf.openm
+    apply SpineKinding.weaken_global wf' j2
+    simp [lookup]
+  case _ =>
+    have wf' := wf
+    cases h; cases wf; case _ wf h =>
+    cases h; case _ j1 j2 =>
+    apply EntryWf.defn
+    apply Kinding.weaken_global wf' j1
+    apply Typing.weaken_global wf' j2
+    simp [lookup]
+  case _ =>
+    have wf' := wf
+    cases h; cases wf; case _ wf h =>
+    cases h; case _ j1 j2 =>
+    apply EntryWf.octor
+    apply SpineKinding.weaken_global wf' j2
+    simp [lookup]
 --   intro wf h
 --   induction wf generalizing e
 --   case nil => simp [lookup] at h

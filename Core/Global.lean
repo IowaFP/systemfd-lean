@@ -173,11 +173,11 @@ def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
   | .defn _ T t => return ⟨T, t⟩
   | _ => none
 
-def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.get!
+def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.join
 -- def lookup_type G x := lookup x G |> Option.map Entry.type |> Option.get!
 -- def lookup_spctor_type G x := lookup x G |> Option.map Entry.spctor_type |> Option.get!
 -- def is_ctor G x := lookup x G |> Option.map Entry.is_ctor |> Option.get!
-def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.get!
+def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 -- def is_instty G x := lookup x G |> Option.map Entry.is_instty |> Option.get!
 -- def is_opent G x := lookup x G |> Option.map Entry.is_opent |> Option.get!
 -- def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!

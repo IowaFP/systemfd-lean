@@ -182,7 +182,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   G&Δ ⊢ A : ★ ->
   Typing G Δ Γ d#x A
 ----------------------------------------------------------------------------------------------------
----- Closed Data
+---- Data
 ----------------------------------------------------------------------------------------------------
 | spctor {As : Vec Ty m} {ts : Fun.Vec Term n} :
   lookup_spine_type G x = some ⟨m, Ks, n, Ts, R⟩ ->
@@ -200,18 +200,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ i, Typing G Δ (ξ i ++ Γ) (ts i) T) ->
   (∀ {q}, Query G .cls q S -> ∃ i, Query.Match q (ps i)) ->
   Typing G Δ Γ (.mtch m n ss ps ts) T
-----------------------------------------------------------------------------------------------------
----- Guards
-----------------------------------------------------------------------------------------------------
--- | guard :
---   Typing G Δ Γ p A ->
---   Typing G Δ Γ s R ->
---   Typing G Δ Γ t B ->
---   ValidHeadVariable p (is_instty G) ->
---   ValidTyHeadVariable R (is_opent G) ->
---   StableTypeMatch Δ A R ->
---   PrefixTypeMatch Δ A B T ->
---   Typing G Δ Γ (.guard p s t) T
 ----------------------------------------------------------------------------------------------------
 ---- Terms
 ----------------------------------------------------------------------------------------------------
@@ -248,31 +236,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ c T ->
   CoercionProject G Δ n T R ->
   Typing G Δ Γ (prj[n] c) R
--- | sym :
---   Typing G Δ Γ t (A ~[K]~ B) ->
---   Typing G Δ Γ (sym! t) (B ~[K]~ A)
--- | seq :
---   Typing G Δ Γ t1 (A ~[K]~ B) ->
---   Typing G Δ Γ t2 (B ~[K]~ C) ->
---   Typing G Δ Γ (t1 `; t2) (A ~[K]~ C)
--- | appc :
---   Typing G Δ Γ f (A ~[K1 -:> K2]~ B) ->
---   Typing G Δ Γ a (C ~[K1]~ D) ->
---   Typing G Δ Γ (f •c a) ((A • C) ~[K2]~ (B • D))
--- | arrowc :
---   Typing G Δ Γ t1 (A ~[.base b1]~ B) ->
---   Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
---   Typing G Δ Γ (t1 -c> t2) ((A -:> C) ~[★]~ (B -:> D))
--- | fst :
---   G&Δ ⊢ C : K1 ->
---   G&Δ ⊢ D : K1 ->
---   Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
---   Typing G Δ Γ (fst! t) (A ~[K1 -:> K2]~ B)
--- | snd :
---   G&Δ ⊢ C : K1 ->
---   G&Δ ⊢ D : K1 ->
---   Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
---   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
   Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[★]~ B) ->
   Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
@@ -282,17 +245,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   A' = A[su C::+0] ->
   B' = B[su D::+0] ->
   Typing G Δ Γ (f •c[a]) (A' ~[★]~ B')
-----------------------------------------------------------------------------------------------------
----- Non-determinism
-----------------------------------------------------------------------------------------------------
--- | zero :
---   G&Δ ⊢ A : .base b ->
---   Typing G Δ Γ `0 A
--- | choice :
---   G&Δ ⊢ A : K ->
---   Typing G Δ Γ t1 A ->
---   Typing G Δ Γ t2 A ->
---   Typing G Δ Γ (t1 `+ t2) A
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
 
