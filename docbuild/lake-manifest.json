@@ -77,19 +77,6 @@
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
    "inherited": true,
-<<<<<<< HEAD
-   "configFile": "lakefile.toml"},
-  {"url": "https://github.com/amarmaduke/lilac",
-   "type": "git",
-   "subDir": null,
-   "scope": "amarmaduke",
-   "rev": "fa045188b1b8b2b4667808e268d4638bab389211",
-   "name": "lilac",
-   "manifestFile": "lake-manifest.json",
-   "inputRev": "fa045188b1b8b2b4667808e268d4638bab389211",
-   "inherited": true,
-=======
->>>>>>> 7f09876 (put ren and subst in structures)
    "configFile": "lakefile.toml"}],
  "name": "docbuild",
  "lakeDir": ".lake"}
