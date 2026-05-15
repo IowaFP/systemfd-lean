@@ -1,6 +1,7 @@
 
 import Init.WF
-import LeanSubst.Basic
+import LeanSubst.Ren
+import LeanSubst.Subst
 import LeanSubst.Reduction
 
 namespace LeanSubst

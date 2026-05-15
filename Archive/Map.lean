@@ -1,4 +1,4 @@
-import LeanSubst.Basic
+-- import LeanSubst.Basic
 
 -- namespace LeanSubst.Subst
 --   section

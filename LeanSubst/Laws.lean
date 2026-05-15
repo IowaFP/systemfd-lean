@@ -1,14 +1,9 @@
-import LeanSubst.Basic
+import LeanSubst.Ren
+import LeanSubst.Subst
 
 namespace LeanSubst
   universe u
   variable {S T : Type}
-
-  class RenMapId (S : Type) [RenMap S] where
-    apply_id {t : S} : t⟨Ren.id⟩ = t
-
-  class RenMapCompose (S : Type) [RenMap S] where
-    apply_compose {s : S} {r1 r2 : Ren} : s⟨r1⟩⟨r2⟩ = s⟨r1 >> r2⟩
 
   class SubstMapId (S T : Type) [RenMap T] [SubstMap S T] where
     apply_id {t : S} : t[+0:T] = t
@@ -17,7 +12,7 @@ namespace LeanSubst
     apply_stable (r : Ren) (σ : Subst S) : r = σ -> rmap (T := S) r = smap σ
 
   class SubstMapRenCommute (S T : Type) [RenMap S] [RenMap T] [SubstMap S T] where
-    apply_ren_commute {s : S} (r : Ren) (τ : Subst T) : s⟨r⟩[τ: T] = s[τ:T]⟨r⟩
+    apply_ren_commute {s : S} (r : Ren) (τ : Subst T) : s⟨r⟩[τ:T] = s[τ:T]⟨r⟩
 
   class SubstMapRenComposeLeft (S T : Type) [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] where
     apply_ren_compose_left {s : S} {r : Ren} {τ : Subst T} : s[r.to:T][τ:_] = s[r.to ∘ τ:T]
@@ -38,14 +33,6 @@ namespace LeanSubst
     export SubstMapRenComposeRight (apply_ren_compose_right)
   end Subst
 
-  @[simp, grind =]
-  theorem Ren.apply_id [RenMap T] [RenMapId T] {t : T} : t⟨id⟩ = t := RenMapId.apply_id
-
-  @[simp, grind =]
-  theorem Ren.apply_compose [RenMap T] [RenMapCompose T] {t : T} {r1 r2 : Ren}
-    : t⟨r1⟩⟨r2⟩ = t⟨r1 >> r2⟩
-  := RenMapCompose.apply_compose
-
   theorem Ren.lift_eq_from_eq [RenMap T] [SubstMap S T] {r : Ren} {σ : Subst T}
     : r = σ -> r.lift = σ.lift
   := by intro h; rw [<-h, to_lift]
@@ -54,8 +41,9 @@ namespace LeanSubst
     section
       @[simp, grind =]
       theorem rewrite1 : re 0 :: +1 = +0@T := by
+        simp [Subst.cons, Subst.id]
         funext; case _ x =>
-        cases x; all_goals (simp [Subst.id, Subst.succ])
+        cases x; all_goals simp
 
       open SubstMap
       variable [RenMap T]
@@ -75,27 +63,29 @@ namespace LeanSubst
       theorem rewrite3_replace [SubstMap T T] {σ τ : Subst T} {s : T}
         : (su s :: σ) ∘ τ = su s[τ] :: (σ ∘ τ)
       := by
+        simp [Subst.cons, Subst.compose]
         funext; case _ x =>
-        cases x; all_goals (simp [Subst.compose])
+        cases x; all_goals simp
 
       @[simp, grind =]
       theorem rewrite3_rename [SubstMap T T] {s} {σ τ : Subst T}
-        : (re s :: σ) ∘ τ = (τ s) :: (σ ∘ τ)
+        : (re s :: σ) ∘ τ = (τ.act s) :: (σ ∘ τ)
       := by
+        simp [Subst.cons, Subst.compose]
         funext; case _ x =>
-        cases x; all_goals (simp [Subst.compose])
+        cases x; all_goals simp
 
       @[simp, grind =]
       theorem rewrite4 [SubstMap T T]  {s} {σ : Subst T} : +1 ∘ (s :: σ) = σ := by
+        simp [Subst.cons]
         funext; case _ x =>
         cases x; all_goals (simp [Subst.compose, Subst.succ])
 
       @[simp, grind =]
-      theorem rewrite5 [SubstMap T T] {σ : Subst T} : σ 0 :: (+1 ∘ σ) = σ := by
+      theorem rewrite5 [SubstMap T T] {σ : Subst T} : σ.act 0 :: (+1 ∘ σ) = σ := by
+        simp [Subst.cons, Subst.compose]; congr
         funext; case _ x =>
-        cases x
-        case _ => simp
-        case _ => simp [Subst.succ, Subst.compose]
+        cases x <;> simp
     end
 
     @[simp, grind =]
@@ -107,24 +97,27 @@ namespace LeanSubst
     theorem rewrite_lift [RenMap T] [SubstMap T T] [SubstMapStable T] {σ : Subst T}
       : σ.lift = re 0 :: (σ ∘ +1)
     := by
+      simp [Subst.cons, Subst.lift, Subst.compose]
       funext; case _ x =>
-      cases x
-      case _ => simp [Subst.lift]
+      cases x; simp
       case _ n =>
-        simp [Subst.lift, Subst.succ, Subst.compose]
-        generalize tdef : σ n = t
+        simp [Subst.succ]
+        generalize tdef : σ.act n = t
         cases t <;> simp at *
         case _ y =>
           rw [apply_stable (σ := +1)]
-          funext; case _ i => simp [Ren.to, Subst.succ]
+          simp [Subst.succ]
+          rw [Ren.to_succ]
 
     @[simp, grind =]
     theorem rewrite_lift_zero [RenMap S] [RenMapId S] {σ : Subst S}
       : σ.lift 0 = σ
     := by
-      unfold Subst.lift; funext; case _ i =>
-      simp; generalize zdef : σ i = z
-      cases z <;> simp
+      simp [Subst.lift]; congr; funext; case _ i =>
+      generalize zdef : σ.act i = z
+      cases z <;> simp [Ren.add]; case _ s =>
+      have lem := RenMapId.apply_id (t := s)
+      simp [Ren.id] at lem; exact lem
 
     @[grind =]
     theorem rewrite_lift_succ
@@ -134,16 +127,17 @@ namespace LeanSubst
     := by
       induction k; simp
       case _ n ih =>
-        replace ih i : σ.lift (n + 1) i = (σ.lift n).lift 1 i := by rw [ih]
+        replace ih i : (σ.lift (n + 1)).act i = ((σ.lift n).lift 1).act i := by rw [ih]
+        simp [Subst.lift]
         funext; case _ i =>
         have lem := ih i
-        cases i <;> simp [Subst.lift]
+        cases i <;> simp
         case _ i =>
-          unfold Subst.lift at lem; simp at lem
+          simp [Subst.lift] at lem
           split; simp; case _ h1 =>
           simp at h1
           have lem2 : n ≤ i := by omega
-          generalize zdef : σ (i - (n + 1)) = z
+          generalize zdef : σ.act (i - (n + 1)) = z
           cases z <;> simp; omega
           congr
 
@@ -151,10 +145,12 @@ namespace LeanSubst
     theorem rewrite6 [RenMap T] [SubstMap T T] [SubstMapId T T] {σ : Subst T}
       : σ ∘ +0 = σ
     := by
+      simp [Subst.compose, Subst.id]; congr
       funext; case _ x =>
-      simp [Subst.compose, Subst.id]
-      generalize zdef : σ x = z
-      cases z <;> simp at *;
+      generalize zdef : σ.act x = z
+      cases z <;> simp at *; case _ s =>
+      have lem := SubstMapId.apply_id (T := T) (t := s)
+      simp [Subst.id] at lem; exact lem
 
     @[simp, grind =]
     theorem apply_compose
@@ -169,9 +165,9 @@ namespace LeanSubst
       {σ τ μ : Subst T}
       : (σ ∘ τ) ∘ μ = σ ∘ τ ∘ μ
     := by
-      funext; case _ x =>
       simp [Subst.compose]
-      cases σ x <;> simp
+      funext; case _ x =>
+      cases σ.act x <;> simp [Subst.compose]
 
     @[simp, grind =]
     theorem hrewrite1
@@ -179,9 +175,9 @@ namespace LeanSubst
       {σ : Subst S}
       : σ ◾ (+0@T) = σ
     := by
+      simp [Subst.hcompose]; congr
       funext; case _ x =>
-      simp [Subst.hcompose]
-      generalize zdef : σ x = z
+      generalize zdef : σ.act x = z
       cases z <;> simp
 
     @[simp, grind =]
@@ -199,7 +195,7 @@ namespace LeanSubst
       {σ : Subst T}
       : (+0@S) ◾ σ = +0
     := by
-      apply hcomp_ren_left (S := S) (T := T) (λ x => x) σ
+      apply hcomp_ren_left (S := S) (T := T) Ren.id σ
 
     @[simp, grind =]
     theorem hrewrite3
@@ -207,7 +203,7 @@ namespace LeanSubst
       {σ : Subst T}
       : (+1@S) ◾ σ = +1
     := by
-      have lem := hcomp_ren_left (S := S) (T := T) (· + 1) σ
+      have lem := hcomp_ren_left (S := S) (T := T) (Ren.add 1) σ
       simp at lem; exact lem
 
     @[simp, grind =]
@@ -216,8 +212,9 @@ namespace LeanSubst
       {x} {σ : Subst S} {τ : Subst T}
       : (re x :: σ) ◾ τ = re x :: (σ ◾ τ)
     := by
+      simp [Subst.hcompose]; congr
       funext; case _ i =>
-      cases i <;> simp [Subst.hcompose]
+      cases i <;> simp [Subst.cons]
 
     @[grind =]
     theorem hcomp_dist_ren_left
@@ -234,9 +231,9 @@ namespace LeanSubst
       {σ : Subst S} {τ μ : Subst T}
       : (σ ◾ τ) ◾ μ = σ ◾ (τ ∘ μ)
     := by
-      funext; case _ x =>
       simp [Subst.hcompose]
-      generalize zdef : σ x = z
+      funext; case _ x =>
+      generalize zdef : σ.act x = z
       cases z <;> simp
 
     @[grind =]
@@ -246,11 +243,11 @@ namespace LeanSubst
       (r : Ren) (σ : Subst S) (μ : Subst T)
       : (σ ∘ r.to) ◾ μ = (σ ◾ μ) ∘ r.to
     := by
-      funext; case _ x =>
       simp [Subst.hcompose, Subst.compose, Ren.to]
-      generalize zdef : σ x = z
+      funext; case _ x =>
+      generalize zdef : σ.act x = z
       cases z <;> simp
-      rw [<-apply_stable r _ rfl]
+      rw [<-apply_stable r ⟨λ n => re (r.act n)⟩ rfl]
       rw [SubstMapRenCommute.apply_ren_commute r μ]
 
     @[grind =]
@@ -260,7 +257,7 @@ namespace LeanSubst
       (σ : Subst S) (μ : Subst T)
       : (σ ∘ +1) ◾ μ = (σ ◾ μ) ∘ +1
     := by
-      have lem : @Subst.succ S = Ren.to (· + 1) := by simp
+      have lem : @Subst.succ S = Ren.to (Ren.add 1) := by simp
       rw [lem, hcomp_distr_ren_right]
 
     @[simp, grind =]
@@ -286,20 +283,20 @@ namespace LeanSubst
       {σ τ : Subst S} (μ : Subst T)
       : (σ ∘ τ) ◾ μ = (σ ◾ μ) ∘ τ ◾ μ
     := by
-      funext; case _ x =>
       simp [Subst.hcompose, Subst.compose]
-      generalize zdef : σ x = z
-      cases z <;> simp
+      funext; case _ x =>
+      generalize zdef : σ.act x = z
+      cases z <;> simp [Subst.hcompose]
 
     theorem hrewrite_lift1
       [RenMap S] [RenMap T] [SubstMap S T] [SubstMapRenCommute S T]
       {σ : Subst S} {τ : Subst T}
       : (σ ◾ τ).lift = σ.lift ◾ τ
     := by
-      unfold Subst.lift; funext; case _ i =>
+      simp [Subst.lift]; congr; funext; case _ i =>
       cases i <;> simp [hcompose]
       case _ n =>
-        generalize zdef : σ n = z
+        generalize zdef : σ.act n = z
         cases z <;> simp; case _ t =>
         rw [SubstMapRenCommute.apply_ren_commute]
 
@@ -322,12 +319,13 @@ namespace LeanSubst
   theorem Subst.Compose.lemma1
     [RenMap S] [SubstMap S S] [RenMapId S] [RenMapCompose S] [SubstMapStable S]
     {k} {τ : Subst S}
-    : (Ren.to (· + 1)) ∘ τ.lift (k + 1) = τ.lift k ∘ (Ren.to (· + 1))
+    : (Ren.to (Ren.add 1)) ∘ τ.lift (k + 1) = τ.lift k ∘ (Ren.to (Ren.add 1))
   := by
+    simp [Subst.compose]
     funext; case _ x =>
-    cases x <;> simp
+    cases x
     all_goals
-      unfold Subst.lift; simp [Subst.compose]
+      unfold Subst.lift; simp
       split; simp; split
     any_goals solve | congr 1
     all_goals
@@ -340,7 +338,7 @@ namespace LeanSubst
     {k} {τ : Subst S}
     : +1 ∘ τ.lift (k + 1) = τ.lift k ∘ +1
   := by
-    have lem : @Subst.succ S = Ren.to (· + 1) := by simp
+    have lem : @Subst.succ S = Ren.to (Ren.add 1) := by simp
     rw [lem]; grind
 
   @[grind =]
@@ -349,8 +347,9 @@ namespace LeanSubst
     {σ : Subst S} {r : Ren}
     : (r ∘ σ).lift = (Ren.to r).lift ∘ σ.lift
   := by
+    simp [Subst.lift, Subst.compose, Ren.to]
     funext; case _ x =>
-    cases x <;> simp [Subst.lift, Subst.compose, Ren.to]
+    cases x <;> simp
 
   @[grind =]
   theorem Subst.Compose.lemma2
@@ -372,7 +371,7 @@ namespace LeanSubst
     {k} {σ : Subst S}
     : (+1 ∘ σ).lift k = +1.lift k ∘ σ.lift k
   := by
-    have lem : @Subst.succ S = Ren.to (· + 1) := by simp
+    have lem : @Subst.succ S = Ren.to (Ren.add 1) := by simp
     rw [lem]; grind
 
   @[grind =]
@@ -381,7 +380,7 @@ namespace LeanSubst
     {s : S} {σ : Subst T}
     : s[+1:T][σ:_] = s[+1 ∘ σ:_]
   := by
-    have lem : @Subst.succ T = Ren.to (· + 1) := by simp
+    have lem : @Subst.succ T = Ren.to (Ren.add 1) := by simp
     rw [lem, apply_ren_compose_left]
 
   @[grind =]
@@ -399,12 +398,13 @@ namespace LeanSubst
     {r1 r2 : Ren} {τ : Subst T}
     : (τ ∘ r2.to) ∘ r1.to = τ ∘ r2.to ∘ r1.to
   := by
+    simp [Subst.compose]
     funext; case _ x =>
-    unfold Subst.compose; simp
-    cases τ x <;> simp [*]
+    cases τ.act x <;> simp [*]
     simp [Ren.to]
-    rw [<-apply_stable _ r2 rfl, <-apply_stable _ r1 rfl]
-    simp [HAndThen.hAndThen]
+    rw [<-apply_stable r2 ⟨λ n => re (r2.act n)⟩ rfl]
+    rw [<-apply_stable r1 ⟨λ n => re (r1.act n)⟩ rfl]
+    simp
     rw [apply_stable _ _ rfl]
     rw [Ren.to_compose]
     unfold Subst.compose; simp [Ren.to]
@@ -415,14 +415,15 @@ namespace LeanSubst
     {σ : Subst S} {r : Ren}
     : (σ ∘ r.to).lift = σ.lift ∘ (Ren.to r).lift
   := by
+    simp [Subst.lift, Subst.compose]
     funext; case _ x =>
-    cases x <;> simp [Subst.lift, Subst.compose, Ren.to]
+    cases x <;> simp
     case _ x =>
-      cases σ x <;> simp
-      rw [apply_stable (· + 1) _ rfl]
+      cases σ.act x <;> simp
+      rw [apply_stable (Ren.add 1) _ rfl]
       rw [apply_ren_compose_left]
       rw [apply_ren_compose_left]
-      simp
+      simp [Ren.to, Subst.compose, Ren.add]
 
   @[grind =]
   theorem Subst.Compose.lemma6
@@ -446,7 +447,7 @@ namespace LeanSubst
     {k} {σ : Subst S}
     : (σ ∘ +1).lift k = σ.lift k ∘ +1.lift k
   := by
-    have lem : @Subst.succ S = Ren.to (· + 1) := by simp
+    have lem : @Subst.succ S = Ren.to (Ren.add 1) := by simp
     rw [lem]; grind
 
   @[grind =]
@@ -455,7 +456,7 @@ namespace LeanSubst
     {s : S} {τ : Subst T}
     : s[τ:_][+1:T] = s[τ ∘ +1:_]
   := by
-    have lem : @Subst.succ T = Ren.to (· + 1) := by simp
+    have lem : @Subst.succ T = Ren.to (Ren.add 1) := by simp
     rw [lem, apply_ren_compose_right]
 
   @[grind =]
@@ -464,9 +465,9 @@ namespace LeanSubst
     {σ τ : Subst T}
     : (σ ∘ +1) ∘ τ = σ ∘ +1 ∘ τ
   := by
+    simp [Subst.compose]
     funext; case _ x =>
-    unfold Subst.compose; simp
-    cases σ x <;> simp at *
+    cases σ.act x <;> simp at *
     rw [lemma3]
     unfold Subst.compose; simp
 
@@ -476,9 +477,9 @@ namespace LeanSubst
     {σ τ : Subst T}
     : ((σ ∘ τ) ∘ +1) = σ ∘ τ ∘ +1
   := by
+    simp [Subst.compose]
     funext; case _ x =>
-    unfold Subst.compose; simp
-    cases σ x <;> simp at *
+    cases σ.act x <;> simp at *
     rw [lemma7]
     unfold Subst.compose; simp
 
@@ -489,11 +490,11 @@ namespace LeanSubst
     {σ : Subst S} {μ : Subst T} {r : Ren}
     : (σ ∘ r.to) ◾ μ = (σ ◾ μ) ∘ r.to
   := by
-    funext; case _ x =>
     simp [Subst.hcompose, Subst.compose]
-    generalize zdef : σ x = z
+    funext; case _ x =>
+    generalize zdef : σ.act x = z
     cases z <;> simp [Ren.to]
-    rw [<-apply_stable _ r.to rfl]
+    rw [<-apply_stable r ⟨λ n => re (r.act n)⟩ rfl]
     rw [Subst.apply_ren_commute]
 
   @[grind =]
@@ -503,7 +504,7 @@ namespace LeanSubst
     {σ : Subst S} {μ : Subst T}
     : (σ ∘ +1) ◾ μ = (σ ◾ μ) ∘ +1
   := by
-    have lem := lemma10 (σ := σ) (μ := μ) (r := (· + 1))
+    have lem := lemma10 (σ := σ) (μ := μ) (r := (Ren.add 1))
     simp at lem; exact lem
 
   theorem Subst.rewrite_lift_compose_k1
@@ -512,13 +513,14 @@ namespace LeanSubst
     {σ τ : Subst T}
     : (σ ∘ τ).lift = σ.lift ∘ τ.lift
   := by
+    simp [Subst.lift, Subst.compose]
     funext; case _ x =>
-    cases x <;> simp [Subst.lift, Subst.compose]
+    cases x <;> simp
     case _ x =>
-    cases σ x <;> simp
-    rw [apply_stable (· + 1) _ rfl]; simp
+    cases σ.act x <;> simp
+    rw [apply_stable _ (Ren.add 1) rfl]; simp
     rw [Compose.lemma7, Compose.lemma3]
-    grind
+    simp [Subst.compose]
 
   @[simp, grind =]
   theorem Subst.rewrite_lift_compose

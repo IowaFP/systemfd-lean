@@ -16,11 +16,11 @@ namespace LeanSubst.Examples.LambdaCalc
   | su t => t
 
   @[simp, grind =]
-  theorem Term.from_action_id {n} : from_action (+0 n) = var n := by
+  theorem Term.from_action_id {n} : from_action (+0.act n) = var n := by
     simp [from_action, Subst.id]
 
   @[simp, grind =]
-  theorem Term.from_action_succ {n} : from_action (+1 n) = var (n + 1) := by
+  theorem Term.from_action_succ {n} : from_action (+1.act n) = var (n + 1) := by
     simp [from_action, Subst.succ]
 
   @[simp, grind =]
@@ -34,7 +34,7 @@ namespace LeanSubst.Examples.LambdaCalc
 
   @[simp]
   def rmap (r : Ren) : Term -> Term
-  | .var x => .var (r x)
+  | .var x => .var (r.act x)
   | t1 :@ t2 => rmap r t1 :@ rmap r t2
   | :λ t => :λ rmap r.lift t
 
@@ -42,7 +42,7 @@ namespace LeanSubst.Examples.LambdaCalc
     rmap := rmap
 
   @[simp, grind =]
-  theorem ren_var {x} {r : Ren} : (Term.var x)⟨r⟩ = .var (r x) := by
+  theorem ren_var {x} {r : Ren} : (Term.var x)⟨r⟩ = .var (r.act x) := by
     simp [RenMap.rmap]
 
   @[simp, grind =]
@@ -54,14 +54,14 @@ namespace LeanSubst.Examples.LambdaCalc
     simp [RenMap.rmap]
 
   instance : RenMapId Term where
-    apply_id := by intro t; induction t <;> simp [*]
+    apply_id := by subst_solve_id
 
   instance : RenMapCompose Term where
-    apply_compose := by intro t r1 r2; induction t generalizing r1 r2 <;> simp [*]
+    apply_compose := by subst_solve_compose
 
   @[simp]
   def smap (σ : Subst Term) : Term -> Term
-  | .var x => σ x
+  | .var x => σ.act x
   | t1 :@ t2 => smap σ t1 :@ smap σ t2
   | :λ t => :λ smap σ.lift t
 
@@ -69,7 +69,7 @@ namespace LeanSubst.Examples.LambdaCalc
     smap := smap
 
   @[simp, grind =]
-  theorem subst_var {x} {σ : Subst Term} : (Term.var x)[σ] = σ x := by
+  theorem subst_var {x} {σ : Subst Term} : (Term.var x)[σ] = σ.act x := by
     simp [SubstMap.smap]
 
   @[simp, grind =]
@@ -82,10 +82,10 @@ namespace LeanSubst.Examples.LambdaCalc
 
   @[simp]
   theorem Term.from_action_compose {x} {σ τ : Subst Term}
-    : (from_action (σ x))[τ] = from_action ((σ ∘ τ) x)
+    : (from_action (σ.act x))[τ] = from_action ((σ ∘ τ).act x)
   := by
     simp [Term.from_action, Subst.compose]
-    generalize zdef : σ x = z
+    generalize zdef : σ.act x = z
     cases z <;> simp [Term.from_action]
 
   instance : SubstMapId Term Term where

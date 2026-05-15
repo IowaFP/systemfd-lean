@@ -1,5 +1,6 @@
 {"version": "1.1.0",
  "packagesDir": ".lake/packages",
+<<<<<<< HEAD
  "packages":
  [{"url": "https://github.com/amarmaduke/lilac",
    "type": "git",
@@ -11,5 +12,8 @@
    "inputRev": "fa045188b1b8b2b4667808e268d4638bab389211",
    "inherited": false,
    "configFile": "lakefile.toml"}],
+=======
+ "packages": [],
+>>>>>>> 7f09876 (put ren and subst in structures)
  "name": "«lean-subst»",
  "lakeDir": ".lake"}

@@ -1,5 +1,6 @@
 
-import LeanSubst.Basic
+import LeanSubst.Ren
+import LeanSubst.Subst
 
 namespace LeanSubst
   universe u
