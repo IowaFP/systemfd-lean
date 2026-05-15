@@ -326,7 +326,7 @@ theorem Typing.rename_type Δr (r : Ren) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r
 | allc j1 => sorry
 | apptc j1 j2 e1 e2 => sorry
 
-theorem Typing.rename_type Δr (r : Ren) :
+theorem Typing.rename_type2 Δr (r : Ren) :
   ⊢ G ->
   (∀ i, Δ[i]? = Δr[r i]?) ->
   G&Δ,Γ ⊢ t : A ->

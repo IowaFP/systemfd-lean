@@ -97,9 +97,9 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Pattern.Match ctors (ps i) ->
   Constructor.subst ctors = σ ->
   Red G (.mtch m n ss ps bs) (bs i)[σ]
-| openm_match {ss : Fun.Vec Term m} :
+| openm_match {i : Nat} {ss : Fun.Vec Term m} :
   Term.IsData .opn ss.to ctors ->
-  get_instance x i G = some ⟨m, p, b⟩ ->
+  G[i]? = some (.inst x p b) ->
   Sequ.append_vec (Vec.map su Ts) +0 = τ ->
   Pattern.Match ctors p ->
   Constructor.subst ctors = σ ->

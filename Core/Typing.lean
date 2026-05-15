@@ -170,7 +170,7 @@ def OpenExhaustive (G : List Global) : Prop :=
   Sequ.append_vec (Vec.map su As) +0 = τ ->
   Vec.map (·[τ]) Ts = Ts' ->
   Query G .opn q Ts' ->
-  ∃ i b p, get_instance x i G = some ⟨nb, p, b⟩ ∧ Query.Match q p
+  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Query.Match q p
 
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :

@@ -4,6 +4,7 @@ import Core.Reduction
 import Core.Typing
 import Core.Util
 
+import Core.Metatheory.Global
 import Core.Metatheory.Rename
 import Core.Metatheory.Substitution
 -- import Core.Metatheory.GlobalWf
@@ -68,12 +69,24 @@ theorem PatternBinders.subst {ss S : Vec _ m} :
     case _ =>
       replace h6 : (v1 ++ Γ)[j]? = some A := sorry
       replace ih := @ih q5 v1 _ sstl Stl lem1 q7 w2 h4 rfl h6
-      rw [<-h5]; simp
+      rw [<-h5]
       sorry
+
+theorem PatternBinders.from_instance {i : Nat} {p : Pattern n} (wf : ⊢ G) :
+  G[i]? = some (Global.inst x p b) ->
+  Sequ.append_vec (Vec.map su As) +0 = τ ->
+  ∃ ξ, PatternBinders G Δ n Ts' p[τ:Ty] ξ ∧ G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T
+:= by
+  intro h1 h2
+  replace h1 := GlobalWf.index_instance wf h1
+  cases h1; case _ e _ j1 j2 j3 =>
+  sorry
 
 set_option maxHeartbeats 800000
 theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
-| .defn j1 j2, r => sorry
+| .defn j1 j2, r =>
+  let lem := EntryWf.from_lookup_defn wf j1
+  sorry
 | .mtch (ξ := ξ) j1 j2 j3 j4 j5, .data_match (σ := σ) (i := i) h1 h2 h3 =>
   let lem := PatternBinders.subst (cast (by simp) j1) (j3 i) h1 h2 h3
   Typing.subst Γ σ wf lem (j4 i)
@@ -87,8 +100,8 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
   .openm_match (p := p) (b := b) (σ := σ) h1 h2 h3 h4 h5 =>
   let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
   let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
-  let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders G Δ n Ts' p[τ:Ty] ξ := sorry
-  let lem1 : G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T := sorry
+  let ⟨ξ, lem2, lem1⟩ : ∃ ξ, PatternBinders G Δ n Ts' p[τ:Ty] ξ ∧ G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T :=
+    sorry
   let lem3 := PatternBinders.subst j4' lem2 h1 sorry h5
   Typing.subst Γ σ wf lem3 (cast (by grind) lem1)
 | .spctor (Ts := Ts) (τ := τ) j1 j2 j3 j4 j5 j6 j7, .openm_congr (ts' := ts') i h1 h2 =>

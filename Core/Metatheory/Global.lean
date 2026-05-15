@@ -9,6 +9,13 @@ open Lilac
 
 namespace Core
 
+theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
+  intro h; fun_induction lookup <;> simp_all
+  all_goals try solve | subst h; simp [Entry.name]
+  case _ n y K ctors tl ctors' h2 ih =>
+  generalize zdef : lookup x tl = z at *
+  sorry
+
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
   intro n wf
   induction wf generalizing n
@@ -512,6 +519,52 @@ theorem EntryWf.from_lookup :
     apply EntryWf.octor
     apply SpineKinding.weaken_global wf' j2
     simp [lookup]
+
+theorem EntryWf.from_lookup_defn :
+  ⊢ G ->
+  lookup_defn G x = some ⟨t, T⟩ ->
+  EntryWf G (.defn x t T)
+:= by
+  intro h1 h2
+  simp [lookup_defn, Option.bind] at h2
+  generalize zdef : lookup x G = z at *
+  cases z; simp_all; case _ e =>
+  have lem := EntryWf.from_lookup h1 zdef
+  simp at h2; cases e <;> simp at h2
+  rcases h2 with ⟨e1, e2⟩; subst e1 e2
+  have lem2 := lookup_name_agrees zdef
+  simp [Entry.name] at lem2; subst lem2
+  apply lem
+
+theorem GlobalWf.index_instance {i : Nat} :
+  ⊢ G ->
+  G[i]? = some (.inst x p b) ->
+  GlobalWf G (.inst x p b)
+:= by
+  intro wf h2
+  induction G generalizing i; simp at h2
+  case _ hd tl ih =>
+    cases i <;> simp at h2
+    case _ =>
+      subst h2; cases wf; case _ wf gwf =>
+      have gwf' := gwf
+      cases gwf; case _ e _ j1 j2 j3 =>
+      have wf' := ListGlobalWf.cons gwf' wf
+      apply GlobalWf.inst
+      apply lookup_weaken wf' j1
+      apply e
+      apply PatternBinders.weaken_global wf' j2
+      apply Typing.weaken_global wf' j3
+    case _ =>
+      cases wf; case _ wf gwf =>
+      replace ih := ih wf h2
+      cases ih; case _ e _ j1 j2 j3 =>
+      have wf' := ListGlobalWf.cons gwf wf
+      apply GlobalWf.inst
+      apply lookup_weaken wf' j1
+      apply e
+      apply PatternBinders.weaken_global wf' j2
+      apply Typing.weaken_global wf' j3
 
 -- theorem EntryWf.get_openm {G} {Δ} {Γ} :
 --   ⊢ G ->
