@@ -128,4 +128,10 @@ namespace LeanSubst
     funext; case _ x =>
     cases x <;> simp [Ren.to, Subst.compose, Ren.compose]
 
+  @[simp]
+  theorem Subst.cons_head_action {t} {σ : Subst T} : (t::σ).act 0 = t := by simp [Subst.cons]
+
+  @[simp]
+  theorem Subst.cons_tail_action {t i} {σ : Subst T} : (t::σ).act (i + 1) = σ.act i := by simp [Subst.cons]
+
 end LeanSubst

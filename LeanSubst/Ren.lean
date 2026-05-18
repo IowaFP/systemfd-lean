@@ -57,7 +57,7 @@ namespace LeanSubst
       grind
 
   @[simp]
-  theorem Red.id_action {x} : Ren.id.act x = x := by simp [Ren.id]
+  theorem Ren.id_action {x} : Ren.id.act x = x := by simp [Ren.id]
 
   @[simp]
   theorem Ren.lift_id {k} : Ren.lift Ren.id k = Ren.id := by
@@ -65,34 +65,40 @@ namespace LeanSubst
     cases x <;> simp; omega
 
   @[simp]
-  theorem Ren.post_compose_id_left {r : Ren} : id ∘ r = r := by
+  theorem Ren.cons_head_action {n} {r : Ren} : (n::r).act 0 = n := by simp [Ren.cons]
+
+  @[simp]
+  theorem Ren.cons_tail_action {n i} {r : Ren} : (n::r).act (i + 1) = r.act i := by simp [Ren.cons]
+
+  @[simp]
+  theorem Ren.compose_id_left {r : Ren} : id ∘ r = r := by
     simp [Ren.compose, Ren.id]
 
   @[simp]
-  theorem Ren.post_compose_id_right {r : Ren} : r ∘ id = r := by
+  theorem Ren.compose_id_right {r : Ren} : r ∘ id = r := by
     simp [Ren.compose, Ren.id]
 
   @[simp]
-  theorem Ren.post_compose_assoc {r1 r2 r3 : Ren} : (r1 ∘ r2) ∘ r3 = r1 ∘ r2 ∘ r3 := by
+  theorem Ren.compose_assoc {r1 r2 r3 : Ren} : (r1 ∘ r2) ∘ r3 = r1 ∘ r2 ∘ r3 := by
     simp [Ren.compose]
 
   @[simp]
-  theorem Ren.post_compose_action {r1 r2 : Ren} {x} : (r1 ∘ r2).act x = r2.act (r1.act x) := by
+  theorem Ren.compose_action {r1 r2 : Ren} {x} : (r1 ∘ r2).act x = r2.act (r1.act x) := by
     simp [Ren.compose]
 
-  theorem Ren.post_compose_lift_k1 {r1 r2 : Ren} : (r1 ∘ r2).lift = r1.lift ∘ r2.lift := by
+  theorem Ren.compose_lift_k1 {r1 r2 : Ren} : (r1 ∘ r2).lift = r1.lift ∘ r2.lift := by
     simp [Ren.compose, Ren.lift]
     funext; case _ x =>
     cases x <;> simp
 
   @[simp]
-  theorem Ren.post_compose_lift {k} {r1 r2 : Ren} : (r1 ∘ r2).lift k = r1.lift k ∘ r2.lift k := by
+  theorem Ren.compose_lift {k} {r1 r2 : Ren} : (r1 ∘ r2).lift k = r1.lift k ∘ r2.lift k := by
     induction k generalizing r1 r2; simp
     case _ k ih =>
       rw [lift_succ, ih]
       rw [lift_succ (r := r1)]
       rw [lift_succ (r := r2)]
-      rw [post_compose_lift_k1]
+      rw [compose_lift_k1]
 
   class RenMapId (S : Type) [RenMap S] where
     apply_id {t : S} : t⟨Ren.id⟩ = t

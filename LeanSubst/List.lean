@@ -14,6 +14,16 @@ def List.rmap [i : RenMap S] (r : Ren) : List S -> List S
 instance [RenMap S] : RenMap (List S) where
   rmap := List.rmap
 
+@[simp, grind =]
+theorem List.rmap_nil [RenMap S] {r : Ren} : (@List.nil S)⟨r⟩ = [] := by
+  simp [RenMap.rmap, List.rmap]
+
+@[simp, grind =]
+theorem List.rmap_cons [RenMap S] {x} {tl : List S} {r : Ren}
+  : (x :: tl)⟨r⟩ = x⟨r⟩ :: tl⟨r⟩
+:= by
+  simp [RenMap.rmap, List.rmap]
+
 def List.smap [SubstMap S T] (σ : Subst T) : List S -> List S
 | [] => []
 | .cons x tl => x[σ:_] :: smap σ tl
