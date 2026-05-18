@@ -106,8 +106,8 @@ namespace LeanSubst
 
   macro:max t:term noWs "[" σ:term "]" : term => `(smap1 $σ $t)
   macro:max t:term noWs "[" σ:term ":" T:term "]" : term => `(smap (T := $T) $σ $t)
-  infixr:67 " :: " => Subst.cons
-  infixr:85 " ∘ " => Subst.compose
+  infixr:67 (name := Subst.cons_notation) " :: " => Subst.cons
+  infixr:85 (name := Subst.compose_notation) " ∘ " => Subst.compose
   infixr:85 " ◾ " => Subst.hcompose
 
   @[app_unexpander smap1]

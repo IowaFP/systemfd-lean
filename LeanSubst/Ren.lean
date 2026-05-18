@@ -36,8 +36,8 @@ namespace LeanSubst
   export RenMap (rmap)
 
   macro:max t:term noWs "⟨" r:term "⟩" : term => `(rmap $r $t)
-  infixr:67 " :: " => Ren.cons
-  infixr:85 " ∘ " => Ren.compose
+  infixr:67 (name := Ren.cons_notation) " :: " => Ren.cons
+  infixr:85 (name := Ren.compose_notation) " ∘ " => Ren.compose
 
   @[app_unexpander rmap]
   def unexpandRenApply : Lean.PrettyPrinter.Unexpander

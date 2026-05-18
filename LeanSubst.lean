@@ -1,5 +1,6 @@
 
 import LeanSubst.Ren
+import LeanSubst.HetRen
 import LeanSubst.Subst
 import LeanSubst.Laws
 import LeanSubst.Option

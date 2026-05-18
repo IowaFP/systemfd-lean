@@ -42,8 +42,8 @@ namespace LeanSubst
   export HetRenMap (hrmap)
 
   macro:max t:term noWs "⟨" r:term "⟩" : term => `(hrmap $r $t)
-  infixr:67 " :: " => HetRen.cons
-  infixr:85 " ∘ " => HetRen.compose
+  infixr:67 (name := HetRen.cons_notation) " :: " => HetRen.cons
+  infixr:85 (name := HetRen.compose_notation) " ∘ " => HetRen.compose
 
   @[app_unexpander hrmap]
   def unexpandHetRenApply : Lean.PrettyPrinter.Unexpander
