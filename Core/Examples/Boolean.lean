@@ -12,10 +12,11 @@ namespace Core.Examples
 
 /- data Bool = True | False -/
 def BoolCtx : List Global := [
-  Global.data 2 "Bool" ★ ((("True", gt#"Bool") :: (("False"), gt#"Bool") :: .nil) : Vec (String × Ty) 2)
+  Global.data 2 "Bool" ★
+             ((("True", ⟨0, Vec.nil, 0, Vec.nil, gt#"Bool"⟩) :: (("False"), ⟨0, Vec.nil, 0, Vec.nil, gt#"Bool"⟩) :: .nil) : Vec (String × SpineTy) 2)
   ]
 
-#guard (Term.spctor .cdata "True" [] .nil).infer_type BoolCtx [] [] == .some gt#"Bool"
+#guard (Term.spctor (.data .cls) "True" .nil .nil).infer_type BoolCtx [] [] == .some gt#"Bool"
 
 /-
 not : Bool -> Bool
@@ -25,8 +26,8 @@ not = λ x → case x of
 -/
 def notTerm : Core.Term := λ[  gt#"Bool" ]
   mtch' #𝓋[#0]
-     #𝓋[ (#𝓋[("True" , [] , 0)]  , ctor! "False" [] .nil)
-       , (#𝓋[("False" , [] , 0)] , ctor! "True" [] .nil) ]
+     #𝓋[ (#𝓋[⟨"True", 0,  #𝓋[] , 0⟩] , Term.spctor (.data .cls) "False" .nil .nil)
+       , (#𝓋[⟨"False", 0 , #𝓋[] , 0⟩] , Term.spctor (.data .cls) "True" .nil .nil) ]
 
 #guard Term.infer_type BoolCtx [] [] notTerm == some (gt#"Bool" -:> gt#"Bool")
 

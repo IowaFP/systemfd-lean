@@ -16,8 +16,8 @@ theorem is_arrow_some : (k : Kind) ->
 
 
 theorem infer_kind_sound :
-  τ.infer_kind G Δ = some k -> ⊢ G -> Kinding G Δ τ k := by
-intro h wf
+  τ.infer_kind G Δ = some k -> G&Δ ⊢ τ : k := by
+intro h
 induction Δ, τ using Ty.infer_kind.induct generalizing k <;> simp at *
 all_goals (try case _ => constructor; assumption)
 case _ ih1 ih2 =>

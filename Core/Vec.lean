@@ -11,7 +11,7 @@ namespace Lilac
 theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v := sorry
 
 @[simp]
-theorem Fun.Vec.to_iso : Fun.Vec.to (Vec.to v) = v := sorry
+theorem Fun.Vec.to_iso : Fun.Vec.to (Lilac.Vec.to v) = v := sorry
 
 def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
 | k => if i == k then a else v i
@@ -49,6 +49,11 @@ def Vec.to_list : Vec T n -> List T
 def Sequ.append_vec : Vec α n -> Fun.Sequ α -> Fun.Sequ α
 | #𝓋[], s => s
 | .cons hd tl, s => hd :: (append_vec tl s)
+
+def Vec.eq [BEq α]: Vec α n -> Vec α m -> Bool
+| #𝓋[], #𝓋[] => true
+| .cons hd1 tl1, .cons hd2 tl2 => hd1 == hd2 && Vec.eq tl1 tl2
+| _ , _=> false
 
 -- protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 -- | 0, _, _ => ""
@@ -197,8 +202,8 @@ case _ v vs ih =>
   induction i using Fin.induction <;> simp [get_elem] at *
   case _ i h => apply ih h1 i
 
--- def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec n Q) : Bool :=
---   vs.fold true (λ c acc => c == e && acc)
+def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
+  vs.fold true (λ c acc => c == e && acc)
 
 -- theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec n Q} :
 --   vs.elems_eq_to e = true ->
