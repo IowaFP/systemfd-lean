@@ -70,22 +70,11 @@ def Ty.prefix_type_match (Δ : List Kind) : Ty -> Ty -> Option Ty
     let _ <- A.spine
     return T
 
-def Ty.valid_open_type (G : List Global) (A : Ty) : Option Unit := sorry
-  -- do
-  -- let (x, _) <- A.spine
-  -- if is_open G x
-  -- then return () else none
-
-def Ty.valid_data_type (G : List Global) : Ty -> Option Unit := sorry
--- | .arrow _ A => A.valid_data_type G
--- | A => do
---   let (x, _) <- A.spine
---   if is_data G x
---   then return () else none
-
--- def Term.valid_inst_type (G : List Global)(A : Term) : Option Unit := do
---   let (x, _) <- A.spine
---   if is_instty G x then return () else none
+def Ty.valid_data (c : DataConst) (G : List Global) : Ty -> Option Unit
+| A => do
+  let (x, _) <- A.spine
+  if is_data c G x
+  then return () else none
 
 def Ty.valid_spine_kinding (G : List Global) : SpineTy -> Option Unit
   | ⟨_, Ks, n, Ts, R ⟩ => do
@@ -127,51 +116,55 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Tk <- T.infer_kind G Δ
   let _ <- Tk.base_kind
   return T
-| .defn x => none
-  -- do
-  -- let T <- lookup_type G x
-  -- let Tk <- T.infer_kind G Δ
-  -- let _ <- Tk.base_kind
-  -- return T
+| .defn x => do
+  let ⟨T, _⟩ <- lookup_defn G x
+  return T
 | spctor (n := n) (m := m) (.data _) x As ts => do
   let ⟨m', Ks, n', Ts, R⟩ <- lookup_spine_type G x
   let mKs := As.map (λ y => Ty.infer_kind G Δ y)
   let Ks' <- mKs.seq
-  if Ks.eq Ks'
+  if Ks.eq Ks' && m' == m
   then
     let τ := Sequ.append_vec (Vec.map su As) +0
-    let mτs := λ i => Term.infer_type G Δ Γ (ts i)
-    let mτs := Fun.Vec.to mτs
+    let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
     let τs <- mτs.seq
     let Ts := Ts.map (λ x => x[τ])
-    if lookup_ctor? G x R && Ts.eq τs && n' == n && m' == m
+    if lookup_ctor? G x R && Ts.eq τs && n' == n
     then return R[τ]
     else none
   none
-  -- where does As come from?
-
-  -- let D2 <- D1.kind_preamble G Δ τs
-  -- let (Ts, D3) <- Ty.typescope n D2
-  -- let mτs : Vec (Option Ty) n := Lilac.Fun.Vec.to ((λ t => infer_type G Δ Γ t) <$> ts)
-  -- let τs <- mτs.seq
-  -- let mbs := (Ts.zip τs).fold true (λ p acc => p.fst == p.snd && acc)
-  -- if mbs then return D3 else none
-| spctor (n := n) (.openm) x τs ts => none
-| .mtch m n ss ps ts => do none
+| spctor (n := n) (m := m) .openm x As ts => do
+  let ⟨m', Ks, n', Ts, R⟩ <- lookup_spine_type G x
+  let mKs := As.map (λ y => Ty.infer_kind G Δ y)
+  let Ks' <- mKs.seq
+  if Ks.eq Ks' && m' == m
+  -- TODO check that Ts are all open data
+  then
+    let τ := Sequ.append_vec (Vec.map su As) +0
+    let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
+    let τs <- mτs.seq
+    let Ts := Ts.map (λ x => x[τ])
+    if lookup_ctor? G x R && Ts.eq τs && n' == n
+    then return R[τ]
+    else none
+  none
+| .mtch m n ss ps ts => do
   -- infer the type of scrutinees
-  -- let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
-  -- let Ss <- smτs.to.seq
 
-  -- let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data_type G)
-  -- let _ <- mTs.seq
+  let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
+  let Ss <- smτs.to.seq
 
-  -- let mξs : Lilac.Fun.Vec (Option (List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
-  -- let ξs <- mξs.to.seq
-  -- let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs.get_elem i) ++ Γ)
+  let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data .cls G)
+  let _ <- mTs.seq
+
+  let mξs : Lilac.Fun.Vec (Option (List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
+  let ξs <- mξs.to.seq
+  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs.get_elem i) ++ Γ)
   -- -- TODO: Query business to make sure matches are exhaustive
-  -- let Ts' <- mTs'.to.seq
-  -- let T <- Ts'.get_elem_if_eq
-  -- return T
+  let Ts' <- mTs'.to.seq
+  let T <- Ts'.get_elem_if_eq
+  return T
+
 | .cast R c t => do
   let e <- c.infer_type G Δ Γ
   let (K, A, B) <- e.is_eq_some

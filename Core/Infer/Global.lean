@@ -15,21 +15,23 @@ def GlobalEnv.wf_globals : (G : GlobalEnv) -> Option Unit
  -- let _ <- ctors'.to.seq
 -- | .cons (.opent _ _) tl => do
 --   wf_globals tl
--- | .cons (.openm _ T) tl => do
---   wf_globals tl
---   let _ <- T.infer_kind tl []
+| .cons (.openm _ spTy) tl => do
+  wf_globals tl
+  -- let _ <- spTy.mkTy.infer_kind tl []
+| .cons (.octor _ spTy) tl => do
+  wf_globals tl
+  -- let _ <- spTy.mkTy.infer_kind tl []
 | .cons (.defn _ T t) tl => do
   wf_globals tl
   let T' <- t.infer_type tl [] []
   let _ <- T.infer_kind tl []
   if T == T' then return () else none
--- | .cons (.inst x t) tl => do
---   wf_globals tl
---   let T <- t.infer_type tl [] []
---   let T' <- lookup_type tl x
---   if T == T' then return () else none
--- | .cons (.instty _ T) tl => do
---   wf_globals tl
---   let _ <- T.infer_kind tl []
-| _ => none
+| .cons (.inst x pat t) tl => do
+  wf_globals tl
+  -- let T <- t.infer_type tl [] []
+  -- let T' <- lookup_type tl x
+  -- if T == T' then return () else none
+| .cons (.odata _ spTyT) tl => do
+  wf_globals tl
+  -- let _ <- T.infer_kind tl []
 end Core

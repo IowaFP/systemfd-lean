@@ -16,7 +16,10 @@ def BoolCtx : List Global := [
              ((("True", ⟨0, Vec.nil, 0, Vec.nil, gt#"Bool"⟩) :: (("False"), ⟨0, Vec.nil, 0, Vec.nil, gt#"Bool"⟩) :: .nil) : Vec (String × SpineTy) 2)
   ]
 
-#guard (Term.spctor (.data .cls) "True" .nil .nil).infer_type BoolCtx [] [] == .some gt#"Bool"
+def TrueCtor := ctor! "True" .nil .nil
+def FalseCtor := ctor! "False" .nil .nil
+
+#guard TrueCtor.infer_type BoolCtx [] [] == .some gt#"Bool"
 
 /-
 not : Bool -> Bool
@@ -26,8 +29,8 @@ not = λ x → case x of
 -/
 def notTerm : Core.Term := λ[  gt#"Bool" ]
   mtch' #𝓋[#0]
-     #𝓋[ (#𝓋[⟨"True", 0,  #𝓋[] , 0⟩] , Term.spctor (.data .cls) "False" .nil .nil)
-       , (#𝓋[⟨"False", 0 , #𝓋[] , 0⟩] , Term.spctor (.data .cls) "True" .nil .nil) ]
+     #𝓋[ (#𝓋[⟨"True", 0,  #𝓋[] , 0⟩] , TrueCtor)
+       , (#𝓋[⟨"False", 0 , #𝓋[] , 0⟩] , FalseCtor) ]
 
 #guard Term.infer_type BoolCtx [] [] notTerm == some (gt#"Bool" -:> gt#"Bool")
 
@@ -41,17 +44,17 @@ def notTerm : Core.Term := λ[  gt#"Bool" ]
                        False → True
  -/
 def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
-  (mtch' #𝓋[#0]
-     #𝓋[ (#𝓋[("True" , [] , 0)]  ,
-          (mtch' #𝓋[#1]
-                 #𝓋[ (#𝓋[ ("True" , [], 0) ], ctor! "True" [] .nil)
-                   , (#𝓋[ ("False" , [], 0) ] , ctor! "False" [] .nil)
+  (mtch' #𝓋[#1]
+     #𝓋[ (#𝓋[⟨"True", 0 , #𝓋[] , 0⟩]  ,
+          (mtch' #𝓋[#0]
+                 #𝓋[ (#𝓋[ ⟨"True", 0 , #𝓋[] , 0⟩ ], TrueCtor)
+                   , (#𝓋[ ⟨"False", 0 , #𝓋[] , 0⟩ ] , FalseCtor)
                    ]))
 
-       , (#𝓋[("False" , [] , 0)]  ,
-          (mtch' #𝓋[#1]
-                 #𝓋[ (#𝓋[ ("True" , [], 0) ], ctor! "False" [] .nil)
-                   , (#𝓋[ ("False" , [], 0) ] , ctor! "True" [] .nil)
+       , (#𝓋[⟨"False", 0 , #𝓋[] , 0⟩]  ,
+          (mtch' #𝓋[#0]
+                 #𝓋[ (#𝓋[ ⟨"True", 0 , #𝓋[] , 0⟩ ], FalseCtor)
+                   , (#𝓋[ ⟨"False", 0 , #𝓋[] , 0⟩ ] , TrueCtor)
                    ]))])
 
 #guard Term.infer_type BoolCtx [] [] eqBool == some (gt#"Bool" -:> (gt#"Bool" -:> gt#"Bool"))
@@ -77,18 +80,18 @@ def EqBoolCtx : GlobalEnv := [
   --    If EqBool[t] tBool ← i
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. ==@Bool ▹ sym c
-  -- .inst "eq" (#𝓋("EqBool", [gt#"Bool"], 1) .nil) (λ[ t#0 ] λ[ t#0 ] (.defn "eqBool")),
+  .inst "eq" #𝓋[⟨"EqBool", 1, #𝓋[gt#"Bool"], 1⟩] (λ[ t#0 ] λ[ t#0 ] (.defn "eqBool") ),
 
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool,
 
   -- EqBool : ∀ t. t ~ Bool → Eq t
-  .instty "EqBool" (∀[★] (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)) ,
+  .octor "EqBool" ⟨1, #𝓋[★], 1 , #𝓋[t#0 ~[★]~ gt#"Bool"], (gt#"Eq" • t#0)⟩ ,
 
   -- == : ∀ t. Eq t → t → t → Bool
-  .openm "eq" (∀[★] (gt#"Eq" • t#0) -:> t#0 -:> t#0 -:> gt#"Bool") ,
+  .openm "eq" ⟨1, #𝓋[★], 1, #𝓋[(gt#"Eq" • t#0)], t#0 -:> t#0 -:> gt#"Bool"⟩ ,
 
   -- class Eq a
-  .opent "Eq" (★ -:> ★),
+  .odata "Eq" (★ -:> ★),
 
   -- appc : (A ~ B) -> C ~ D -> (A • C ~ B • D)
   .defn "appc" (∀[★ -:> ★]∀[★ -:> ★]∀[★]∀[★] (t#3 ~[★ -:> ★]~ t#2) -:> (t#1 ~[★]~ t#0) -:> ((t#3 • t#1) ~[★]~ (t#2 • t#0)))
