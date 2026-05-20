@@ -46,7 +46,6 @@ def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
 end Infer.Ty.Test
 
 
-
 -- A is the type of the pattern and has the form
 -- ∀[★]∀[★].. x -t> y -t> T p q r
 -- T is the type of the rhs of the branch and has the form
@@ -150,7 +149,6 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   none
 | .mtch m n ss ps ts => do
   -- infer the type of scrutinees
-
   let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
   let Ss <- smτs.to.seq
 
@@ -251,5 +249,15 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   return ((∀[K]A) ~[Tk]~ (∀[K]B))
 
 | _ => none
+
+
+def spine_kinding (G : List Global) :  SpineTy -> Option Unit
+| ⟨_, Ks, _, Ts, R⟩ => do
+  let Δ := Ks.to_list
+  let mTKs := Ts.map (λ T => T.infer_kind G Δ)
+  let TKs <- mTKs.seq
+  let RK <- R.infer_kind G Δ
+  if TKs.elems_eq_to ★ && RK == ★
+  then some () else none
 
 namespace Core
