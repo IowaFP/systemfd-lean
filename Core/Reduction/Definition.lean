@@ -51,7 +51,9 @@ inductive Term.IsData (v : DataConst) : Vec Term m -> Vec Constructor m -> Prop 
 | nil : Term.IsData v .nil .nil
 | cons {t1 : Vec _ m} {t2 : Fun.Vec _ n}:
   Term.IsData v ts cs ->
-  Term.IsData v ((.spctor (.data v) c t1 t2)::ts) (⟨c, m, t1, n, t2.to⟩::cs)
+  Term.spctor (.data v) c t1 t2 = t ->
+  ⟨c, m, t1, n, t2.to⟩ = ct ->
+  Term.IsData v (t::ts) (ct::cs)
 
 def Constructor.subst : Vec Constructor m -> Subst Term
 | .nil => +0
@@ -95,9 +97,9 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Pattern.Match ctors (ps i) ->
   Constructor.subst ctors = σ ->
   Red G (.mtch m n ss ps bs) (bs i)[σ]
-| openm_match {ss : Fun.Vec Term m} :
+| openm_match {i : Nat} {ss : Fun.Vec Term m} :
   Term.IsData .opn ss.to ctors ->
-  get_instance x i G = some ⟨m, p, b⟩ ->
+  G[i]? = some (.inst x p b) ->
   Sequ.append_vec (Vec.map su Ts) +0 = τ ->
   Pattern.Match ctors p ->
   Constructor.subst ctors = σ ->

@@ -37,6 +37,13 @@ abbrev TyEnv := List Ty
 -- def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
 --   ∃ x, Term.spine t = some x ∧ test x.fst
 
+inductive VecTyping (J : A -> B -> Prop) : Vec A m -> Vec B m -> Prop
+| nil : VecTyping J .nil .nil
+| cons :
+  J a b ->
+  VecTyping J as bs ->
+  VecTyping J (a::as) (b::bs)
+
 def Ty.HeadVariable (A : Ty) (test : String -> Bool) : Prop :=
   ∃ x sp, A.spine = some (x, sp) ∧ test x
 
@@ -90,12 +97,16 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 
 notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
-inductive SpineKinding (G : List Global) : SpineTy -> Prop where
+abbrev Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data c G)
+
+inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : SpineTy -> Prop where
 | valid {Ks : Vec Kind m} {Ts : Vec _ n} :
   Vec.to_list Ks = Δ ->
   (∀ (i : Fin n), G&Δ ⊢ Ts[i] : ★) ->
   G&Δ ⊢ R : ★ ->
-  SpineKinding G ⟨m, Ks, n, Ts, R⟩
+  (∀ c, sv = .data c -> lookup_ctor? G c x R) ->
+  (sv = .openm -> ∀ (i : Fin n), Ts[i][τ].data? .opn G) ->
+  SpineKinding sv x G ⟨m, Ks, n, Ts, R⟩
 
 -- inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
 -- | done : KindingPreamble G Δ [] T T
@@ -104,7 +115,7 @@ inductive SpineKinding (G : List Global) : SpineTy -> Prop where
 --   KindingPreamble G Δ Ty T1[su A::+0] T2 ->
 --   KindingPreamble G Δ (A::Ty) (∀[K] T1) T2
 
-inductive PatternBinders G Δ : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
+inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
 | zero : PatternBinders G Δ 0 ss ps []
 | succ {Ts' : Vec _ nb} :
   lookup_spine_type G c = some ⟨na, Ks, nb, Ts, R⟩ ->
@@ -132,27 +143,34 @@ inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -
 -- def Ty.ctor? (G : List Global) (ctor : String) (A : Ty) : Prop :=
 --   ∃ D sp, A.spine = some (D, sp) ∧ Global.ctor? G ctor D
 
-abbrev Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data c G)
+def Query (G : List Global) (c : DataConst) (qs : Vec String m) (Ts : Vec Ty m) : Prop :=
+  VecTyping (lookup_ctor? G c · ·) qs Ts
 
-inductive Query (G : List Global) : Vec String m -> Vec Ty m -> Prop where
-| nil : Query G .nil .nil
-| cons :
-  lookup_ctor? G q A ->
-  Query G qs As ->
-  Query G (q::qs) (A::As)
+-- inductive Query (G : List Global) (c : DataConst) : Vec String m -> Vec Ty m -> Prop where
+-- | nil : Query G c .nil .nil
+-- | cons :
+--   lookup_ctor? G c q A ->
+--   Query G c qs As ->
+--   Query G c (q::qs) (A::As)
 
-inductive Query.Match : Vec String m -> Pattern m -> Prop where
-| nil : Query.Match .nil .nil
-| cons :
-  Query.Match qs ps ->
-  p = ⟨q, na, As, nb⟩ ->
-  Query.Match (q::qs) (p::ps)
+def Query.Match (qs : Vec String m) (ps : Pattern m) : Prop :=
+  VecTyping (λ q p => ∃ na As nb, p = ⟨q, na, As, nb⟩) qs ps
+
+-- inductive Query.Match : Vec String m -> Pattern m -> Prop where
+-- | nil : Query.Match .nil .nil
+-- | cons :
+--   Query.Match qs ps ->
+--   p = ⟨q, na, As, nb⟩ ->
+--   Query.Match (q::qs) (p::ps)
 
 def OpenExhaustive (G : List Global) : Prop :=
-  ∀ {x na nb} {Ks : Vec _ na} {Ts : Vec _ nb} {R q},
+  ∀ {x na nb} {τ : Subst Ty} {As Ks : Vec _ na} {Ts Ts' : Vec _ nb} {Δ R q},
   lookup x G = some (.openm x ⟨na, Ks, nb, Ts, R⟩) ->
-  Query G q Ts ->
-  ∃ i b p, get_instance x i G = some ⟨nb, p, b⟩ ∧ Query.Match q p
+  (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks[i]) ->
+  Sequ.append_vec (Vec.map su As) +0 = τ ->
+  Vec.map (·[τ]) Ts = Ts' ->
+  Query G .opn q Ts' ->
+  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Query.Match q p
 
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
@@ -164,15 +182,15 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   G&Δ ⊢ A : ★ ->
   Typing G Δ Γ d#x A
 ----------------------------------------------------------------------------------------------------
----- Closed Data
+---- Data
 ----------------------------------------------------------------------------------------------------
 | spctor {As : Vec Ty m} {ts : Fun.Vec Term n} :
   lookup_spine_type G x = some ⟨m, Ks, n, Ts, R⟩ ->
   (∀ (i : Fin m), G&Δ ⊢ As[i] : Ks[i]) ->
   Sequ.append_vec (Vec.map su As) +0 = τ ->
   (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts[i][τ]) ->
-  (∀ c, v = .data c -> lookup_ctor? G x R) ->
-  (v = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
+  (∀ c, v = .data c -> lookup_ctor? G c x R) ->
+  (v = .openm -> ∀ (i : Fin n), Ts[i][τ].data? .opn G) ->
   R' = R[τ] ->
   Typing G Δ Γ (.spctor v x As ts) R'
 | mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
@@ -180,20 +198,8 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ i, (S i).data? .cls G) ->
   (∀ i, PatternBinders G Δ m S (ps i) (ξ i)) ->
   (∀ i, Typing G Δ (ξ i ++ Γ) (ts i) T) ->
-  (∀ {q}, Query G q S -> ∃ i, Query.Match q (ps i)) ->
+  (∀ {q}, Query G .cls q S -> ∃ i, Query.Match q (ps i)) ->
   Typing G Δ Γ (.mtch m n ss ps ts) T
-----------------------------------------------------------------------------------------------------
----- Guards
-----------------------------------------------------------------------------------------------------
--- | guard :
---   Typing G Δ Γ p A ->
---   Typing G Δ Γ s R ->
---   Typing G Δ Γ t B ->
---   ValidHeadVariable p (is_instty G) ->
---   ValidTyHeadVariable R (is_opent G) ->
---   StableTypeMatch Δ A R ->
---   PrefixTypeMatch Δ A B T ->
---   Typing G Δ Γ (.guard p s t) T
 ----------------------------------------------------------------------------------------------------
 ---- Terms
 ----------------------------------------------------------------------------------------------------
@@ -230,31 +236,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ c T ->
   CoercionProject G Δ n T R ->
   Typing G Δ Γ (prj[n] c) R
--- | sym :
---   Typing G Δ Γ t (A ~[K]~ B) ->
---   Typing G Δ Γ (sym! t) (B ~[K]~ A)
--- | seq :
---   Typing G Δ Γ t1 (A ~[K]~ B) ->
---   Typing G Δ Γ t2 (B ~[K]~ C) ->
---   Typing G Δ Γ (t1 `; t2) (A ~[K]~ C)
--- | appc :
---   Typing G Δ Γ f (A ~[K1 -:> K2]~ B) ->
---   Typing G Δ Γ a (C ~[K1]~ D) ->
---   Typing G Δ Γ (f •c a) ((A • C) ~[K2]~ (B • D))
--- | arrowc :
---   Typing G Δ Γ t1 (A ~[.base b1]~ B) ->
---   Typing G Δ Γ t2 (C ~[.base b2]~ D) ->
---   Typing G Δ Γ (t1 -c> t2) ((A -:> C) ~[★]~ (B -:> D))
--- | fst :
---   G&Δ ⊢ C : K1 ->
---   G&Δ ⊢ D : K1 ->
---   Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
---   Typing G Δ Γ (fst! t) (A ~[K1 -:> K2]~ B)
--- | snd :
---   G&Δ ⊢ C : K1 ->
---   G&Δ ⊢ D : K1 ->
---   Typing G Δ Γ t ((A • C) ~[K2]~ (B • D)) ->
---   Typing G Δ Γ (snd! t) (C ~[K1]~ D)
 | allc :
   Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[★]~ B) ->
   Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
@@ -264,17 +245,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   A' = A[su C::+0] ->
   B' = B[su D::+0] ->
   Typing G Δ Γ (f •c[a]) (A' ~[★]~ B')
-----------------------------------------------------------------------------------------------------
----- Non-determinism
-----------------------------------------------------------------------------------------------------
--- | zero :
---   G&Δ ⊢ A : .base b ->
---   Typing G Δ Γ `0 A
--- | choice :
---   G&Δ ⊢ A : K ->
---   Typing G Δ Γ t1 A ->
---   Typing G Δ Γ t2 A ->
---   Typing G Δ Γ (t1 `+ t2) A
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
 
@@ -307,20 +277,45 @@ notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G �
 --   G&Δ ⊢ A : ★ ->
 --   ValidInstTy G x Δ (A -:> T)
 
+-- (m : Nat) × Vec Kind m × (n : Nat) × Vec Ty n × Ty
+
+inductive PatternPartTyping G Δ : String × (n : Nat) × Vec Ty n × Nat -> Ty -> Prop
+| valid :
+  lookup_spine_type G c = some ⟨na, Ks, nb, Bs, R⟩ ->
+  Sequ.append_vec (Vec.map su As) +0 = τ ->
+  (∀ i : Fin na, G&Δ ⊢ As[i] : Ks[i]) ->
+  R' = R[τ] ->
+  PatternPartTyping G Δ ⟨c, na, As, nb⟩ R'
+
+def PatternTyping (G : List Global) (Δ : List Kind) (ps : Pattern m) (Ts : Vec Ty m) : Prop :=
+  VecTyping (PatternPartTyping G Δ) ps Ts
+
+inductive ConstructorTyping G Δ Γ : Constructor -> Ty -> Prop
+| valid {ts : Vec Term nt} :
+  lookup_spine_type G c = some ⟨na, Ks, nt, Ts, R⟩ ->
+  (∀ i : Fin na, G&Δ ⊢ As[i] : Ks[i]) ->
+  Sequ.append_vec (Vec.map su As) +0 = τ ->
+  (∀ i : Fin nt, G&Δ,Γ ⊢ ts[i] : Ts[i][τ]) ->
+  R' = R[τ] ->
+  ConstructorTyping G Δ Γ ⟨c, na, As, nt, ts⟩ R'
+
+def VecConstructorTyping (G : List Global) (Δ : List Kind) (Γ : List Ty) (cs : Vec Constructor n) (Ts : Vec Ty n) : Prop :=
+  VecTyping (ConstructorTyping G Δ Γ) cs Ts
+
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Fun.Vec (String × SpineTy) n} :
   (∀ i y T, ctors i = (y, T) ->
-    SpineKinding (.data 0 x K .nil::G) T
+    SpineKinding (.data .cls) y (.data 0 x K .nil::G) T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
   lookup x G = none ->
   GlobalWf G (.data n x K ctors)
-| opent :
+| odata :
   lookup x G = none ->
   GlobalWf G (.odata x K)
 | openm {Γ : Vec Ty n} :
-  SpineKinding G T ->
+  SpineKinding .openm x G T ->
   lookup x G = none ->
   GlobalWf G (.openm x T)
 | defn :
@@ -331,11 +326,11 @@ inductive GlobalWf : List Global -> Global -> Prop where
 | inst :
   lookup x G = some (.openm x ⟨m, Ks, n, Ts, R⟩) ->
   Vec.to_list Ks = Δ ->
-  Vec.to_list Ts = Γ ->
+  PatternBinders G Δ n Ts p Γ ->
   G&Δ,Γ ⊢ t : R ->
   GlobalWf G (.inst x p t)
-| instty :
-  SpineKinding G T ->
+| octor :
+  SpineKinding (.data .opn) x G T ->
   lookup x G = none ->
   GlobalWf G (.octor x T)
 
@@ -345,34 +340,32 @@ inductive ListGlobalWf : List Global -> Prop where
 
 notation:175 "⊢ " G:175 => ListGlobalWf G
 
--- inductive EntryWf : List Global -> Entry -> Prop where
--- | data :
---   lookup x G = some (.data x K ctors) ->
---   EntryWf G (.data x K ctors)
--- | ctor z K (ctors : Vec _ n) (i : Fin n) :
---   lookup z G = some (.data z K ctors) ->
---   ctors[i] = (x, T) ->
---   G&[] ⊢ T : ★ ->
---   ValidCtor z T ->
---   lookup x G = some (.ctor x i T) ->
---   EntryWf G (.ctor x i T)
--- | opent :
---   ValidOpenKind K ->
---   lookup x G = some (odata x K) ->
---   EntryWf G (odata x K)
--- | openm :
---   G&[] ⊢ T : ★ ->
---   lookup x G = some (.openm n x T) ->
---   EntryWf G (.openm n x T)
--- | defn :
---   G&[] ⊢ T : ★ ->
---   G&[],[] ⊢ t : T ->
---   lookup x G = some (.defn x T t) ->
---   EntryWf G (.defn x T t)
--- | instty :
---   ValidInstTy G x [] T ->
---   lookup x G = some (octor x T) ->
---   EntryWf G (octor x T)
+inductive EntryWf : List Global -> Entry -> Prop where
+| data :
+  lookup x G = some (.data x K ctors) ->
+  EntryWf G (.data x K ctors)
+| ctor z K (ctors : Vec _ n) (i : Fin n) :
+  lookup z G = some (.data z K ctors) ->
+  ctors[i] = (x, T) ->
+  SpineKinding (.data .cls) x G T ->
+  lookup x G = some (.ctor x i T) ->
+  EntryWf G (.ctor x i T)
+| odata :
+  lookup x G = some (.odata x K) ->
+  EntryWf G (.odata x K)
+| openm :
+  SpineKinding .openm x G T ->
+  lookup x G = some (.openm x T) ->
+  EntryWf G (.openm x T)
+| defn :
+  G&[] ⊢ T : ★ ->
+  G&[],[] ⊢ t : T ->
+  lookup x G = some (.defn x T t) ->
+  EntryWf G (.defn x T t)
+| octor :
+  SpineKinding (.data .opn) x G T ->
+  lookup x G = some (.octor x T) ->
+  EntryWf G (.octor x T)
 
 -- inductive TypeMatch : Ty -> Ty -> Prop
 -- | refl :

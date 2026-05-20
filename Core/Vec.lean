@@ -39,6 +39,10 @@ where
   | .nil => .nil
   | .cons hd tl => .cons (i, hd) (go (i + 1) tl)
 
+@[simp]
+theorem Vec.enumerate_nil : Vec.enumerate (A := A) #𝓋[] = #𝓋[] := by
+  simp [Vec.enumerate, Vec.enumerate.go]
+
 def Vec.drop : Vec T (n + 1) -> Vec T n
 | .cons _ tl => tl
 
@@ -95,6 +99,20 @@ theorem Vec.to_index {v : Fun.Vec α _} : v.to[i] = v i := by
     cases i using Fin.cases
     case zero => simp [Fun.Vec.cons_zero]
     case succ i => simp [Fun.Vec.cons_succ, ih]
+
+theorem Vec.enumerate_index.go : {v : Vec A n} -> {i : Fin n} -> (Vec.enumerate.go k v)[i] = (i.val + k, v[i])
+| .nil, i => Fin.elim0 i
+| .cons hd tl, i => by
+  cases i using Fin.cases
+  case zero => simp [enumerate.go]
+  case succ i =>
+    simp [enumerate.go]
+    have lem := enumerate_index.go (k := k + 1) (v := tl) (i := i)
+    rw [lem]; congr 1; omega
+
+@[simp]
+theorem Vec.enumerate_index {v : Vec A n} {i : Fin n} : (Vec.enumerate v)[i] = (i.val, v[i]) := by
+  simp [enumerate]; rw [enumerate_index.go]; simp
 
 @[simp, grind =]
 theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by sorry

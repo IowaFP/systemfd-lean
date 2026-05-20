@@ -7,6 +7,16 @@ open Lilac
 
 namespace Core
 
+@[simp]
+def SpineTy.to' : (m : Nat) -> Vec Kind m -> (n : Nat) -> Vec Ty n -> Ty -> Ty
+| 0, .nil, 0, .nil, R => R
+| 0, .nil, n + 1, .cons A As, R => A -:> to' 0 .nil n As R
+| m + 1, .cons K Ks, n, As, R => ∀[K] to' m Ks n As R
+
+@[simp]
+def SpineTy.to : SpineTy -> Ty
+| ⟨m , Ks, n, Ts, R⟩ => to' m Ks n Ts R
+
 def Ty.spine : Ty -> Option (String × List Ty)
 | gt#x => return (x, [])
 | app f a => do

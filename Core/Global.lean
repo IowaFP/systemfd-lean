@@ -57,6 +57,14 @@ inductive Entry : Type where
 | defn : String -> Ty -> Term -> Entry
 | octor : String -> SpineTy -> Entry
 
+def Entry.name : Entry -> String
+| data x _ _ => x
+| ctor x _ _ => x
+| odata x _ => x
+| openm x _ => x
+| defn x _ _ => x
+| octor x _ => x
+
 def Entry.is_data : DataConst -> Entry -> Bool
 | .cls, data _ _ _ => true
 | .opn, odata _ _ => true
@@ -93,12 +101,12 @@ def Entry.spine_type : Entry -> Option SpineTy
 | octor _ T => T
 | _ => none
 
-def Entry.ctor? (data : String) : Entry -> Bool
-| ctor _ _ ⟨_, _, _, _, T⟩ | octor _ ⟨_, _, _, _, T⟩ =>
+def Entry.ctor? (data : String) : DataConst -> Entry -> Bool
+| .cls, ctor _ _ ⟨_, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, T⟩ =>
   match T.spine with
   | some ⟨d, _⟩ => d == data
   | none => false
-| _ => false
+| _, _ => false
 
 -- def Entry.spctor_type : Entry -> Option Ty
 -- | ctor _ _ T => T
@@ -129,11 +137,11 @@ def lookup (x : String) : List Global -> Option Entry
 | .cons (.octor y a) tl =>
   if x == y then return .octor y a else lookup x tl
 
-def lookup_spine_type G c := lookup c G |> Option.map Entry.spine_type |> Option.get!
+def lookup_spine_type G c := lookup c G |> Option.map Entry.spine_type |> Option.getD (dflt := none)
 
-def lookup_ctor? (G : List Global) (ctor : String) (data : Ty) : Bool :=
+def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) : Bool :=
   match data.spine with
-  | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x) |> Option.get!
+  | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
 -- def Global.ctor? (c : DataConst) (G : List Global) (ctor : String) (datatype : String) : Bool :=
@@ -165,11 +173,11 @@ def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
   | .defn _ T t => return ⟨T, t⟩
   | _ => none
 
-def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.get!
+def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.join
 -- def lookup_type G x := lookup x G |> Option.map Entry.type |> Option.get!
 -- def lookup_spctor_type G x := lookup x G |> Option.map Entry.spctor_type |> Option.get!
 -- def is_ctor G x := lookup x G |> Option.map Entry.is_ctor |> Option.get!
-def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.get!
+def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 -- def is_instty G x := lookup x G |> Option.map Entry.is_instty |> Option.get!
 -- def is_opent G x := lookup x G |> Option.map Entry.is_opent |> Option.get!
 -- def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!
