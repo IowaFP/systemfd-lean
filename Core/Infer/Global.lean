@@ -30,13 +30,14 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
   let T' <- t.infer_type G [] []
   let _ <- T.infer_kind G []
   if T == T' && (lookup x G).isNone then return () else none
-| .cons (.inst x _ t) G => do
+| .cons (.inst  x p t) G => do
   wf_globals G
   let e := lookup x G
   match e with
-  | some (.openm _ ⟨_, Ks, _, Ts, R⟩) => do
-    let T <- t.infer_type G Ks.to_list Ts.to_list
-    if T == R then return () else none
+  | some (.openm _ ⟨_, Ks, m, Ts, R⟩) => do
+      let Γ <- pattern_binders G Ks.to_list m Ts p
+      let T <- t.infer_type G Ks.to_list Γ
+      if T == R then return () else none
   | _ => none
 
 | .cons (.odata x _) G => do

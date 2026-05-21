@@ -82,8 +82,8 @@ def EqBoolCtx : GlobalEnv := [
   --    If EqBool[t] t~Bool ← i
   --        let c = refl @ tBool @ (refl @ tBool @ refl) in
   --        λb1. λb2. ==@Bool ▹ sym c
-  .inst "eq" #𝓋[⟨"EqBool", 1, #𝓋[t#0], 1⟩] (λ[ t#0 ] λ[ t#0 ] -- #2 t ~ Bool
-        (.cast gt#"Bool" (d#"sym" • #2) ((d#"eqBool" • (.cast t#0 #2 #1)) • (.cast t#0 #2 #0))) ),
+  -- .inst "eq" #𝓋[⟨"EqBool", 1, #𝓋[t#0], 1⟩] (λ[ t#0 ] λ[ t#0 ] -- #2 t ~ Bool
+  --       (.cast gt#"Bool" (d#"sym" • #2) ((d#"eqBool" • (.cast t#0 #2 #1)) • (.cast t#0 #2 #0))) ),
 
   -- .defn "test" (∀[★] λ [t#0 ~[★]~ gt#"Bool"] λ[ t#0 ] λ[ t#0 ])
 
@@ -127,7 +127,8 @@ def EqBoolCtx : GlobalEnv := [
 
 
 -- def ctx' := List.drop 1 EqBoolCtx
-#eval! (Λ[★] λ[(t#0 ~[★]~ gt#"Bool")] λ[t#0] λ[t#0] #0).infer_type EqBoolCtx [] []
+#eval! (Λ[★] λ[(t#0 ~[★]~ gt#"Bool")] λ[t#0] λ[t#0]
+             (((d#"eqBool" • (.cast t#0 #2 #1)) • (.cast t#0 #2 #0)))).infer_type EqBoolCtx [] []
 
 #guard EqBoolCtx.wf_globals  == some ()
 -- #guard t1.eval_loop EqBoolCtx == g#"False"

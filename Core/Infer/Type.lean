@@ -95,7 +95,7 @@ def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Optio
   else none
 | _ , _ => none
 
-def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> Option (List Ty)
+def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Ty)
 | 0, _, _ => some []
 | m + 1, .cons A' Ss, .cons ⟨c, na, As, nb⟩ ps => do
   let ℓ <- pattern_binders G Δ m Ss ps
@@ -108,6 +108,7 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
     let Ts' := Ts.map (λ T => T[τ])
      if R[τ] == A' then return (Ts'.to_list ++ ℓ) else none
    else none
+| _, _ , _ => none
 
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x => do
@@ -118,7 +119,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | .defn x => do
   let ⟨T, _⟩ <- lookup_defn G x
   return T
-| spctor (n := n) (m := m) (.data _) x As ts => do
+| spctor (n := n) (m := m) (.data d) x As ts => do
   let ⟨m', Ks, n', Ts, R⟩ <- lookup_spine_type G x
   let mKs := As.map (λ y => Ty.infer_kind G Δ y)
   let Ks' <- mKs.seq
@@ -128,7 +129,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
     let τs <- mτs.seq
     let Ts := Ts.map (λ x => x[τ])
-    if lookup_ctor? G x R && Ts.eq τs && n' == n
+    if lookup_ctor? G d x R && Ts.eq τs && n' == n
     then return R[τ]
     else none
   none
@@ -143,7 +144,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
     let τs <- mτs.seq
     let Ts := Ts.map (λ x => x[τ])
-    if lookup_ctor? G x R && Ts.eq τs && n' == n
+    if lookup_ctor? G .opn x R && Ts.eq τs && n' == n
     then return R[τ]
     else none
   none
