@@ -154,6 +154,9 @@ instance [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] [SubstMapCompose S 
 where
   apply_compose := by intro s σ τ; induction s <;> simp [*]
 
+@[simp]
+theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : v[i][σ:_] = v[σ:_][i] := sorry
+
 -- theorem length_coerce: ∀ n, Vec.length v = n -> (Vec.to_list v).length = n := by
 -- apply v.induction <;> simp [Vec.length] at *
 

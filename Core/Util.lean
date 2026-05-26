@@ -1,6 +1,9 @@
 import LeanSubst
+import Lean.Parser
 
 open LeanSubst
+
+macro t:term " ▸ " tac:Lean.Parser.Tactic.tacticSeq : term => `(cast (by $tac) $t)
 
 def ExistsUnique {α : Sort u} (p : α → Prop) := ∃ x, p x ∧ ∀ y, p y → y = x
 

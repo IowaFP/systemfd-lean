@@ -1,9 +1,9 @@
-import LeanSubst
+import Core.Vec
 import Core.Ty.Definition
 
+open Lilac
 open LeanSubst
 
-def Subst.add (k : Nat) : Subst T := λ n => re (n + k)
 namespace Core
 
 @[coe]
@@ -129,56 +129,87 @@ instance : SubstMapRenComposeRight Ty Ty where
 instance : SubstMapCompose Ty Ty where
   apply_compose := by subst_solve_compose
 
-theorem Ty.rename_preserves_var_shape {r : Ren} : t#x = T[r] -> ∃ y,  (T = t#y ∧ x = r y) := by
-intro h
-induction T <;> simp at *
-case var => simp [Ren.to] at h; assumption
+@[simp]
+def SpineTy.rmap (r : Ren) : SpineTy -> SpineTy
+| ⟨m, Ks, n, Ts, R⟩ =>
+  ⟨m, Ks, n, Vec.map (·[r.lift m]) Ts, R[r.lift m]⟩
 
+instance : RenMap SpineTy where
+  rmap := SpineTy.rmap
+
+@[simp]
+def SpineTy.smap (σ : Subst Ty) : SpineTy -> SpineTy
+| ⟨m, Ks, n, Ts, R⟩ =>
+  ⟨m, Ks, n, Vec.map (·[σ.lift m]) Ts, R[σ.lift m]⟩
+
+instance : SubstMap SpineTy Ty where
+  smap := SpineTy.smap
+
+@[simp]
+theorem SpineTy.smap_eq : (⟨m, Ks, n, Ts, R⟩ : SpineTy)[σ:Ty] = ⟨m, Ks, n, Ts[σ.lift m:_], R[σ.lift m:_]⟩ := by
+  simp [SubstMap.smap]
+  induction Ts <;> simp [Vec.smap, *, SubstMap.smap]
+
+instance : SubstMapId SpineTy Ty where
+  apply_id := by intro t; rcases t with ⟨m, Ks, n, Ts, R⟩; simp
+
+instance : SubstMapRenComposeLeft SpineTy Ty where
+  apply_ren_compose_left := by intro t; rcases t with ⟨m, Ks, n, Ts, R⟩; simp
+
+instance : SubstMapRenComposeRight SpineTy Ty where
+  apply_ren_compose_right := by intro t; rcases t with ⟨m, Ks, n, Ts, R⟩; simp
+
+instance : SubstMapCompose SpineTy Ty where
+  apply_compose := by intro t; rcases t with ⟨m, Ks, n, Ts, R⟩; simp
+
+theorem Ty.rename_preserves_var_shape {r : Ren} : t#x = T[r] -> ∃ y,  (T = t#y ∧ x = r y) := by
+  intro h
+  induction T <;> simp at *
+  case var => simp [Ren.to] at h; assumption
 
 theorem Ty.rename_preserves_global_shape {r : Ren} : gt#x = T[r] -> T = gt#x := by
-intro h
-induction T <;> simp at *
-case var => simp [Ren.to] at h
-case global => symm at h; assumption
-
+  intro h
+  induction T <;> simp at *
+  case var => simp [Ren.to] at h
+  case global => symm at h; assumption
 
 theorem Ty.rename_preserves_arrow_shape {A B : Ty}{r : Ren} : A -:> B = T[r] ->
   (∃ A' B' : Ty, (T = A' -:> B') ∧  A = A'[r] ∧ B = B'[r])
 := by
-intro h
-induction T <;> simp at *
-case var => simp [Ren.to] at h
-case arrow a1 a2 _ _ => exists a1; exists a2
+  intro h
+  induction T <;> simp at *
+  case var => simp [Ren.to] at h
+  case arrow a1 a2 _ _ => exists a1; exists a2
 
 theorem Ty.rename_preserves_eq_shape {A B : Ty}{r : Ren} : (A ~[K]~ B) = T[r] ->
   (∃ A' B' : Ty, (T = A' ~[K]~ B') ∧  A = A'[r] ∧ B = B'[r])
 := by
-intro h
-induction T generalizing K  <;> simp at *
-case var => simp [Ren.to] at h
-case eq a1 a2 _ _  =>
-  cases h.1; cases h.2.1; cases h.2.2; clear h
-  exists a1; exists a2
+  intro h
+  induction T generalizing K  <;> simp at *
+  case var => simp [Ren.to] at h
+  case eq a1 a2 _ _  =>
+    cases h.1; cases h.2.1; cases h.2.2; clear h
+    exists a1; exists a2
 
 theorem Ty.rename_preserves_app_shape {A B : Ty}{r : Ren} : (A • B) = T[r] ->
   (∃ A' B' : Ty, (T = A' • B') ∧  A = A'[r] ∧ B = B'[r])
 := by
-intro h
-induction T <;> simp at *
-case var => simp [Ren.to] at h
-case app a1 a2 _ _  =>
-  cases h.1; cases h.2; clear h
-  exists a1; exists a2
+  intro h
+  induction T <;> simp at *
+  case var => simp [Ren.to] at h
+  case app a1 a2 _ _  =>
+    cases h.1; cases h.2; clear h
+    exists a1; exists a2
 
 
 theorem Ty.rename_preserves_all_shape {P : Ty}{r : Ren} : (∀[K] P) = T[r] ->
   (∃ P' : Ty, (T = ∀[K]P') ∧  P = P'[re 0::↑r ∘ +1:Ty])
 := by
-intro h
-induction T generalizing K P <;> simp at *
-case var => simp [Ren.to] at h
-case all a ih =>
-  cases h.1; cases h.2; clear h
-  exists a;
+  intro h
+  induction T generalizing K P <;> simp at *
+  case var => simp [Ren.to] at h
+  case all a ih =>
+    cases h.1; cases h.2; clear h
+    exists a;
 
 end Core

@@ -25,7 +25,7 @@ inductive Ty : Type where
 | app : Ty -> Ty -> Ty
 | eq : Kind -> Ty -> Ty -> Ty
 
-def SpineTy := (m : Nat) × Vec Kind m × (n : Nat) × Vec Ty n × Ty
+abbrev SpineTy := (m : Nat) × Vec Kind m × (n : Nat) × Vec Ty n × Ty
 
 def Ty.size : Ty -> Nat
 | var _ => 0
