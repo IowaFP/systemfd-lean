@@ -36,7 +36,7 @@ instance instRepr_Global : Repr Global where
   reprPrec a p := Global.repr p a
 
 @[simp]
-def GlobalEnv := List Global
+abbrev GlobalEnv := List Global
 
 @[simp] instance instHAppend_GlobalEnv : Append GlobalEnv where
   append x y := by unfold GlobalEnv; unfold GlobalEnv at x; unfold GlobalEnv at y; apply x ++ y

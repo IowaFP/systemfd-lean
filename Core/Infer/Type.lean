@@ -125,9 +125,9 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Ks' <- mKs.seq
   if Ks.eq Ks' && m' == m
   then
-    let τ := Sequ.append_vec (Vec.map su As) +0
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
     let τs <- mτs.seq
+    let τ := Sequ.append_vec (Vec.map su As) +0
     let Ts := Ts.map (λ x => x[τ])
     if lookup_ctor? G d x R && Ts.eq τs && n' == n
     then return R[τ]
@@ -144,7 +144,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
     let τs <- mτs.seq
     let Ts := Ts.map (λ x => x[τ])
-    if lookup_ctor? G .opn x R && Ts.eq τs && n' == n
+    if Ts.eq τs && n' == n
     then return R[τ]
     else none
   none

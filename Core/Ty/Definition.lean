@@ -61,9 +61,13 @@ protected def Ty.repr (p : Nat) : (a : Ty) -> Std.Format
 | eq K A B => Repr.addAppParen (Ty.repr max_prec A ++ " ~[" ++ repr K ++ "]~ " ++ Ty.repr max_prec B) p
 | app t1 t2 => Repr.addAppParen (Ty.repr p t1 ++ " • " ++ Ty.repr max_prec t2) p
 
-instance tyRepr : Repr Ty where
+instance instRepr_Ty : Repr Ty where
   reprPrec a p := Ty.repr p a
 
+
+def Vec.Ty.repr : Vec Ty n -> Std.Format
+| .nil => ""
+| .cons x xs => x.repr max_prec ++ ", " ++ Vec.Ty.repr xs
 
 end Core
 /-

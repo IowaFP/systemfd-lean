@@ -172,10 +172,15 @@ def eval (G : List Global) : Term ->  Option Term
 
 
 | .mtch m n ss ps bs => do
-  let ctors <- Term.is_data .cls ss.to
-  let σ := Constructor.subst ctors
-  let i <- get_match ctors ps.to
-  return (bs (@Fin.ofNat n sorry i))[σ]
+  let m_ss : Lilac.Fun.Vec (Option Term) m := λ i => eval G (ss i)
+  match (m_ss.to).anyWithIndex with
+  | none =>
+    let ctors <- Term.is_data .cls ss.to
+    let σ := Constructor.subst ctors
+    let i <- get_match ctors ps.to
+    return (bs (@Fin.ofNat n sorry i))[σ]
+  | some (t', i) =>
+    return (.mtch m n (ss.update t' (@Fin.ofNat m sorry i)) ps bs)
 
 -- Λ reduction
 | .ctor1 (.appt ty) (.tbind .lamt _ tm) => do

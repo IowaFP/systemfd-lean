@@ -18,8 +18,8 @@ def BoolCtx : List Global := [
                , ("False", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)]
   ]
 
-def TrueCtor := ctor! "True" #𝓋[] .nil
-def FalseCtor := ctor! "False" #𝓋[] .nil
+def TrueCtor : Term := ctor! "True" #𝓋[] .nil
+def FalseCtor : Term := ctor! "False" #𝓋[] .nil
 
 #guard TrueCtor.infer_type BoolCtx [] [] == .some gt#"Bool"
 #guard GlobalEnv.wf_globals [] == some ()
@@ -88,50 +88,25 @@ def EqBoolCtx : GlobalEnv := [
   ] ++ BoolCtx
 
 
--- def t1 : Term := (d#"eq" •[ gt#"Bool" ]  • (gt#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"False"
+#guard EqBoolCtx.wf_globals  == some ()
+#eval ((d#"eqBool" • TrueCtor) • TrueCtor).eval_loop EqBoolCtx
+#eval ((d#"eqBool" • TrueCtor) • FalseCtor).eval_loop EqBoolCtx
+
+def iBool : Term := inst! "EqBool" #𝓋[ gt#"Bool" ] (Vec.to #𝓋[ refl! gt#"Bool"])
+#eval! iBool.infer_type EqBoolCtx [] []
+
+def t1 : Term := ((openm! "eq" #𝓋[ gt#"Bool" ] (Vec.to (#𝓋[ iBool ]))) • TrueCtor) • FalseCtor
+#eval! t1.infer_type EqBoolCtx [] []
 -- def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
 
+#eval! t1.eval_loop EqBoolCtx
 
 -- def ctx' := List.drop 1 EqBoolCtx
 -- #eval! (Λ[★] λ[(t#0 ~[★]~ gt#"Bool")] λ[t#0] λ[t#0]
 --              (((d#"eqBool" • (.cast t#0 #2 #1)) • (.cast t#0 #2 #0)))).infer_type EqBoolCtx [] []
 
-#guard EqBoolCtx.wf_globals  == some ()
-#eval ((d#"eqBool" • TrueCtor) • TrueCtor).eval_loop EqBoolCtx
-#eval ((d#"eqBool" • TrueCtor) • FalseCtor).eval_loop EqBoolCtx
+def t2 : Term := ((openm! "eq" #𝓋[ gt#"Bool" ] (Vec.to (#𝓋[ iBool ]))) • TrueCtor) • TrueCtor
+#eval! t2.eval_loop EqBoolCtx
 
--- #guard t2.eval_loop EqBoolCtx == g#"True"
-
--- -- #eval! eval EqBoolCtx t1
--- -- def t3 := Option.getD (eval EqBoolCtx t1) `0
--- -- #eval! eval EqBoolCtx t3
--- -- def t4 := Option.getD (eval EqBoolCtx t3) `0
--- -- #eval! eval EqBoolCtx t4
--- -- def t5 := Option.getD (eval EqBoolCtx t4) `0
--- -- #eval! eval EqBoolCtx t5
--- -- def t6 := Option.getD (eval EqBoolCtx t5) `0
--- -- #eval! eval EqBoolCtx t6
--- -- def t7 := Option.getD (eval EqBoolCtx t6) `0
--- -- #eval! eval EqBoolCtx t7
--- -- def t8 := Option.getD (eval EqBoolCtx t7) `0
--- -- #eval! eval EqBoolCtx t8
--- -- def t9 := Option.getD (eval EqBoolCtx t8) `0
--- -- #eval! eval EqBoolCtx t9
--- -- def t10 := Option.getD (eval EqBoolCtx t9) `0
--- -- #eval! eval EqBoolCtx t10
--- -- def t11 := Option.getD (eval EqBoolCtx t10) `0
--- -- #eval! eval EqBoolCtx t11
--- -- def t12 := Option.getD (eval EqBoolCtx t11) `0
--- -- #eval! eval EqBoolCtx t12
--- -- def t13 := Option.getD (eval EqBoolCtx t12) `0
--- -- #eval! eval EqBoolCtx t13
--- -- def t14 := Option.getD (eval EqBoolCtx t13) `0
--- -- #eval! eval EqBoolCtx t14
--- -- def t15 := Option.getD (eval EqBoolCtx t14) `0
--- -- #eval! eval EqBoolCtx t15
--- -- def t16 := Option.getD (eval EqBoolCtx t15) `0
--- -- #eval! eval EqBoolCtx t16
--- -- def t17 := Option.getD (eval EqBoolCtx t16) `0
--- -- #eval! eval EqBoolCtx t17
 
 end Core.Examples

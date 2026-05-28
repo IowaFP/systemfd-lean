@@ -33,6 +33,12 @@ inductive TyBindVariant : Type where
 
 abbrev Pattern m := Vec (String × (n : Nat) × Vec Ty n × Nat) m
 
+def Pattern.repr : Pattern m -> Std.Format
+| .nil => ""
+| .cons (x , ⟨_ , v, _⟩) xs =>
+   x ++ " "++ v.to_list.repr max_prec
+
+
 def Pattern.bind : Pattern m -> Nat
 | .nil => 0
 | .cons ⟨_, _, _, n⟩ tl => n + Pattern.bind tl
@@ -110,17 +116,17 @@ instance instSizeOf_Term : SizeOf Term where
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .defn n => "d#" ++ n
-| spctor _ x _ _ => " " ++ x
+| spctor (n := n) _ x tys tms =>
+         let tms' : Fun.Vec Std.Format n := λ i => Term.repr max_prec (tms i)
+         x ++ " "
+         ++ "•" ++ Std.Format.sbracket (Vec.fold Std.Format.nil (λ t acc => acc ++ t.repr max_prec) tys)
+         ++ "•" ++ "{" ++ Vec.fold Std.Format.nil (λ t acc => t ++ "," ++ acc) tms'.to ++ "}"
+
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
--- | .ctor0 .fail => "fail!"
 | .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"
 | .ctor1 (.appt τ) t => Repr.addAppParen (Term.repr max_prec t ++ " •[" ++ repr τ ++ "]") p
 | .ctor2 .app t1 t2 =>
-  Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++Term.repr p t2) p
--- | .ctor2 (.app .open) t1 t2 =>
---   Repr.addAppParen (Term.repr max_prec t1 ++ " ∘" ++ Std.Format.sbracket (Term.repr p t2)) p
--- | .ctor2 .cast t1 t2 =>
---   Repr.addAppParen ((Term.repr max_prec t1 ++ " • " ++ Term.repr p t2)) p
+  Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++ Term.repr p t2) p
 | .ctor2 .apptc t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++
   Std.Format.line ++ " •c" ++ Std.Format.sbracket (Term.repr p t2)) p
@@ -129,17 +135,17 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .tbind .allc K t =>
   Repr.addAppParen ("∀c" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
-| .cast _ _ _ => "don't care"
-| .mtch _ _ _ _ _ => "don't care"
-  -- let ts : Vec n Std.Format := λ i =>
-  --   let t := ts i
-  --   let pat := pats i
-  --   Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " => " ++ Term.repr p t
-  -- let css := Vec.fold Std.Format.nil (·++·) ts
-  -- Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
-  --   ++ css
-  --   ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ => " ++ Term.repr p allc)
-  --   )
+| .cast _ η t => Repr.addAppParen (t.repr max_prec ++ "▸" ++ Term.repr max_prec η) p
+| .mtch m n ss ps bs =>
+  let ssf : Fun.Vec Std.Format m := λ i => Term.repr max_prec (ss i)
+  let ssf : Std.Format := Std.Format.paren (ssf.to.fold Std.Format.nil (λ t acc => t ++ ", " ++ acc))
+  let bs : Fun.Vec Std.Format n := λ i =>
+    let pat := ps i
+    let t := bs i
+    Std.Format.nest 4 <| Std.Format.line ++ Pattern.repr pat ++ " => " ++ Term.repr p t
+  Std.Format.nest 4 <| "match " ++ ssf ++ " with"
+    ++ bs.to.fold Std.Format.line (λ t acc => t ++ Std.Format.line ++ acc)
+
 
 @[simp]
 instance instRepr_Term : Repr Term where

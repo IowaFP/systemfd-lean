@@ -1,5 +1,6 @@
 import Core.Ty
 import Core.Term.Definition
+import Core.Vec
 
 namespace Core
 def DataConst.beq : DataConst -> DataConst -> Bool
@@ -80,6 +81,15 @@ instance instLawfulBEq_TyBindVariant : LawfulBEq TyBindVariant where
     intro x b; induction x <;> simp +instances [instBEq_TyBindVariant, TyBindVariant.beq] at *
     all_goals (induction b <;> simp at *)
 
+def Pattern.eq : Pattern m1 -> Pattern m2 -> Bool
+| .nil, .nil => true
+| .cons (x1, ⟨n1, v1, k1⟩) xs, .cons (x2, ⟨n2, v2, k2⟩) ys =>
+  if n1 == n2 && k1 == k2 && x1 == x2
+  then let v1' : Lilac.Vec Ty n1 := v1.to
+       let v2' : Lilac.Vec Ty n2 := v2.to
+       Pattern.eq xs ys && Lilac.Vec.eq v1' v2'
+  else false
+| _, _ => false
 
 def Term.beq : Term -> Term -> Bool
 | var x, var y => x == y
@@ -89,12 +99,17 @@ def Term.beq : Term -> Term -> Bool
 | ctor2 c1 a1 b1, ctor2 c2 a2 b2 => c1 == c2 && beq a1 a2 && beq b1 b2
 | tbind A1 K1 t1, tbind A2 K2 t2 => A1 == A2 && K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
--- | .mtch n1 a1 b1 c1 d1, .mtch n2 a2 b2 c2 d2 => true -- TODO: Fix
-  -- if h : n1 = n2 then
-  --   let c : Vect n1 Bool := λ i => beq (c1 i) (c2 (by rw [h] at i; exact i))
-  --   let p : Vect n1 Bool := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
-  --   beq a1 a2 && Vect.fold true (·&&·) c && Vect.fold true (·&&·) p && beq d1 d2
-  -- else false
+| .cast A a1 a2, .cast B b1 b2 => A == B && beq a1 b1 && beq a2 b2
+| .mtch m1 n1 a1 b1 c1, .mtch m2 n2 a2 b2 c2 => -- true -- TODO: Fix
+  if h : n1 = n2 && m1 == m2 then
+    let a : Lilac.Fun.Vec Bool m1 := λ i => beq (a1 i) (a2 (by simp at h; rw [h.2] at i; exact i))
+    let c : Lilac.Fun.Vec Bool n1 := λ i => beq (c1 i) (c2 (by simp at h; rw [h.1] at i; exact i))
+    let p : Lilac.Fun.Vec Bool n1 := λ i =>
+      let p1 : Pattern m1 := (b1 i).to
+      let p2 : Pattern m2 := (b2 (by simp at h; rw[h.1] at i; exact i)).to
+      Pattern.eq p1 p2
+    Lilac.Vec.fold true (·&&·) a.to && Lilac.Vec.fold true (·&&·) c.to && Lilac.Vec.fold true (·&&·) p.to
+  else false
 | _, _ => false
 
 instance instBEq_Term : BEq Term where
