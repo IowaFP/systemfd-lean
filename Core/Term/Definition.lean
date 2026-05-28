@@ -12,7 +12,7 @@ inductive DataConst where
 | cls
 
 inductive Ctor0Variant : Type where
-| fail
+-- | fail
 | refl (A : Ty)
 
 inductive SpCtorVariant : Type where
@@ -60,7 +60,7 @@ notation "inst!" => Term.spctor (SpCtorVariant.data DataConst.opn)
 notation "openm!" => Term.spctor SpCtorVariant.openm
 
 -- ctor0 notation
-notation "fail!" => Term.ctor0 Ctor0Variant.fail
+-- notation "fail!" => Term.ctor0 Ctor0Variant.fail
 notation "refl! " A => Term.ctor0 (Ctor0Variant.refl A)
 
 -- ctor1 notation
@@ -110,9 +110,9 @@ instance instSizeOf_Term : SizeOf Term where
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .defn n => "d#" ++ n
-| spctor _ _ _ _ => "don't care"
+| spctor _ x _ _ => " " ++ x
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
-| .ctor0 .fail => "fail!"
+-- | .ctor0 .fail => "fail!"
 | .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"
 | .ctor1 (.appt τ) t => Repr.addAppParen (Term.repr max_prec t ++ " •[" ++ repr τ ++ "]") p
 | .ctor2 .app t1 t2 =>

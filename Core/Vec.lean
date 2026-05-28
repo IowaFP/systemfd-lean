@@ -199,7 +199,7 @@ where
 
 @[simp]
 def Vec.seq : Vec (Option T) n -> Option (Vec T n)
-| .nil => some $ .nil
+| .nil => some .nil
 | .cons none tl => none
 | .cons (some hd) tl => do
   let tl' <- Vec.seq tl
@@ -293,6 +293,19 @@ def Vec.any {n : Nat} : (vs : Vec (Option T) n) -> Option T
 | .nil => none
 | .cons (some x) xs => some x
 | .cons _ xs => xs.any
+
+def Vec.anyWithIndex_aux {n : Nat} : Nat -> (vs : Vec (Option T) n) -> Option (T × Nat)
+| _ , .nil => none
+| k, .cons (some x) xs => some (x, k)
+| k, .cons _ xs => xs.anyWithIndex_aux (k + 1)
+
+
+-- returns the first element that is not none
+@[simp]
+def Vec.anyWithIndex {n : Nat} (vs : Vec (Option T) n) : Option (T × Nat) := Vec.anyWithIndex_aux 0 vs
+
+#guard (Vec.anyWithIndex #𝓋[none, some 1, some 2]) == some (1, 1)
+
 
 -- Proof that Any actually matches the first element
 theorem Vec.any_returns_first {t : T} {n : Nat} : (vs : Vec (Option T) n) ->

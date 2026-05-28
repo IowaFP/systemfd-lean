@@ -2,10 +2,18 @@ import Core.Ty
 import Core.Term.Definition
 
 namespace Core
-def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
-| fail, fail => true
-| refl A, refl B => A == B
+def DataConst.beq : DataConst -> DataConst -> Bool
+| .opn, .opn => true
+| .cls, .cls => true
 | _, _ => false
+
+instance instBeq_DataConst : BEq DataConst where
+  beq := DataConst.beq
+
+def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
+-- | fail, fail => true
+| refl A, refl B => A == B
+-- | _, _ => false
 
 instance instBEq_Ctor0Variant : BEq Ctor0Variant where
   beq := Ctor0Variant.beq

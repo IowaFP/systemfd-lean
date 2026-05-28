@@ -8,6 +8,7 @@ import Core.Reduction.Definition
 
 import Core.Util
 open LeanSubst
+open Lilac
 
 namespace Core
 
@@ -105,11 +106,109 @@ namespace Core
 --               then return (inline_insts x G sp)
 --               else .none
 --        | .none => .none
+@[simp]
+def Term.is_data (v : DataConst) : Vec Term m -> Option (Vec Constructor m)
+| .nil => return .nil
+| .cons (.spctor (m := m) (n := n) (.data v') c t1 t2) xs => do
+  let zs <- Term.is_data v xs
+  let z : Constructor := ⟨c, m, t1, n, t2.to⟩
+  if v == v'
+  then some (z :: zs)
+  else none
+| .cons _ _ => none
 
 @[simp]
-def eval (G : List Global) (t : Term) : Option Term :=
-match eval_const_folding_refl G t with
-             | .some t => .some t
-             | .none => eval_inst_beta G t
+def Pattern.match : Vec Constructor m -> Pattern m' -> Bool
+| .nil, .nil => true
+| .cons ⟨q, m, _, n, _⟩ xs, .cons ⟨q', m', _, n'⟩ zs =>
+  Pattern.match xs zs && q == q' && m == m' && n == n'
+| _, _ => false
+
+def get_match_aux (n : Nat) (ctors : Vec Constructor m) : Vec (Pattern m) n' -> Option Nat
+| .nil => none
+| .cons p ps =>
+  if Pattern.match ctors p
+  then some n
+  else get_match_aux (n + 1) ctors ps
+
+def get_match (ctors : Vec Constructor m) : Vec (Pattern m) n -> Option Nat := get_match_aux 0 ctors
+
+-- @[simp]
+def eval (G : List Global) : Term ->  Option Term
+
+----------------------------------------------------------------
+---- Value forms
+----------------------------------------------------------------
+| .tbind _ _ _ => none
+| .lam _ _ => none
+| .ctor0 _ => none
+| .spctor (.data _) _ _ _ => none
+
+----------------------------------------------------------------
+---- Normal forms
+----------------------------------------------------------------
+| .var _ => none
+
+----------------------------------------------------------------
+---- Eval Steps
+----------------------------------------------------------------
+| .defn x => do
+  let (_, t) <- lookup_defn G x
+  return t
+
+| .spctor (n := n) .openm x Ts ss => do
+  let m_ss : Lilac.Fun.Vec (Option Term) n := λ i => eval G (ss i)
+  match (m_ss.to).anyWithIndex with
+  | none =>
+    let ctors <- Term.is_data .opn ss.to
+    let ⟨m, p, b⟩ <- get_instance x 0 G
+    let τ := Sequ.append_vec (Vec.map su Ts) +0
+    let σ := Constructor.subst ctors
+    if Pattern.match ctors p
+    then return b[τ:Ty][σ]
+    else none
+  | some (t', i) =>
+    return (.spctor .openm x Ts (ss.update t' (@Fin.ofNat n sorry i)))
+
+
+| .mtch m n ss ps bs => do
+  let ctors <- Term.is_data .cls ss.to
+  let σ := Constructor.subst ctors
+  let i <- get_match ctors ps.to
+  return (bs (@Fin.ofNat n sorry i))[σ]
+
+-- Λ reduction
+| .ctor1 (.appt ty) (.tbind .lamt _ tm) => do
+  return (tm[su ty::+0:Ty])
+| .ctor1 (.appt ty) t => do
+  let t' <- eval G t
+  return (.ctor1 (.appt ty) t')
+| .ctor1 v t => none
+
+-- λ reduction
+| .ctor2 .app (.lam _ t) t2 => do
+  return t[su t2::+0:Term]
+| .ctor2 .app t1 t2 => do
+  let t1' <- eval G t1
+  return (.ctor2 .app t1' t2)
+
+-- ∀c
+| .ctor2 .apptc (.tbind .allc _ (.ctor0 (.refl (Ty.all _ t1)))) (.ctor0 (.refl t2)) => do
+  return .ctor0 (.refl t1[su t2::+0:Ty])
+| .ctor2 .apptc t1 t2 => do
+   match eval G t1 with
+   | none => match eval G t2 with
+             | none => none
+             | some t2' => return (.ctor2 .apptc t1 t2')
+   | some t1' => return (.ctor2 .apptc t1' t2)
+
+-- t ▸ η
+| .cast _ (.ctor0 (.refl _)) t => return t
+| .cast ty t1 t2 => do
+  let t1' <- eval G t1
+  return .cast ty t1' t2
+
+
+
 
 end Core

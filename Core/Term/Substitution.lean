@@ -121,15 +121,15 @@ instance : SubstMapCompose Ctor0Variant Ctor0Variant where
 
 @[simp]
 def Ctor0Variant.Ty.smap (σ : Subst Ty) : Ctor0Variant -> Ctor0Variant
-| fail => fail
+-- | fail => fail
 | refl A => refl A[σ:_]
 
 instance : SubstMap Ctor0Variant Ty where
   smap := Ctor0Variant.Ty.smap
 
-@[simp]
-theorem Ctor0Variant.subst_fail : fail[σ:Ty] = fail := by
-  simp [SubstMap.smap]
+-- @[simp]
+-- theorem Ctor0Variant.subst_fail : fail[σ:Ty] = fail := by
+--   simp [SubstMap.smap]
 
 @[simp]
 theorem Ctor0Variant.subst_refl : (refl A)[σ:Ty] = refl A[σ:_] := by
