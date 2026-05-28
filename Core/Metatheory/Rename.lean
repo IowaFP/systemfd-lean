@@ -55,10 +55,12 @@ theorem GlobalWf.tail {G : List Global} : ⊢ (g :: G) -> ⊢ G := by
 
 theorem SpineKinding.closed : {T : SpineTy} -> SpineKinding v x G T -> ∀ σ, T[σ:Ty] = T
 | ⟨m, Ks, n, Ts, R⟩, valid (Δ := Δ) e j1 j2 j3 j4, σ =>
-  have e2 : Δ.length = m := by rw [<-e]; sorry
+  have e2 : Δ.length = m := by rw [<-e]; simp
   have lem1 := λ (i : Fin n) => (j1 i).closed_rep σ
   have lem2 := j2.closed_rep σ |> cast (by rw [e2])
-  have lem3 : Ts[σ.lift m:_] = Ts := sorry
+  have lem3 : Ts[σ.lift m:_] = Ts := by
+    apply Vec.eq_index_ext; rw [e2] at lem1
+    simp at lem1; exact lem1
   by simp; exact ⟨lem3, lem2⟩
 
 theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
@@ -74,7 +76,14 @@ theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
       apply ih wf h
   all_goals try simp [Entry.spine_type] at h
   case _ n y K ctors tl ctors' h2 ih =>
-    sorry
+    generalize zdef : Vec.fold (lookup x tl) Option.or ctors' = z at *
+    cases z <;> simp at h; case _ z =>
+    generalize wdef : lookup x tl = w at *
+    cases w <;> simp at *
+    case _ =>
+      sorry
+    case _ e =>
+      sorry
   case _ =>
     cases wf; case _ wf =>
     cases wf; case _ h1 h2 =>
@@ -85,6 +94,24 @@ theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
     cases wf; case _ h1 h2 =>
     subst h
     apply SpineKinding.closed h2
+
+theorem GlobalWf.subst_cancel_lookup_ctor? {G : List Global} :
+  ⊢ G ->
+  (e : T' = T[σ:Ty]) ->
+  lookup_ctor? G v x T' ->
+  lookup_ctor? G v x T
+:= by
+  intro wf e j
+  simp [lookup_ctor?] at *
+  generalize zdef : T.spine = z
+  cases z <;> simp
+  case none =>
+    have lem : T'.spine = none := sorry
+    rw [lem] at j; simp at j
+  case some z =>
+    rcases z with ⟨z, sp⟩
+    have lem : T'.spine = some (z, sp[σ:Ty]) := sorry
+    rw [lem] at j; simp at j; simp; exact j
 
 -- theorem GlobalWf.closed_ctors {v : Fun.Vec (Option Entry) n} {d : Option Entry} :
 --   ((Option.map Entry.type d).get! = some T -> ∀ σ, T[σ] = T) ->
@@ -339,9 +366,97 @@ theorem Kinding.extend : G&Δ₁ ⊢ A : K -> G&(Δ₁ ++ Δ₂) ⊢ A : K
 --   assumptio
 
 theorem Ty.data?_closed σ : Ty.data? v G T -> Ty.data? v G T[σ]
-| ⟨x, sp, e, j⟩ => ⟨x, sp[σ:Ty], sorry, j⟩
+| ⟨x, sp, e, j⟩ =>
+  have lem : T[σ].spine = some (x, sp[σ:_]) := by
+    sorry
+  ⟨x, sp[σ:Ty], lem, j⟩
 
-theorem Query.closed : Query G v q S[σ:Ty] -> Query G v q S := sorry
+theorem Query.closed (wf : ⊢ G) : {S : Vec Ty n} -> (e : S' = S[σ:Ty]) -> Query G v q S' -> Query G v q S
+| .nil, e, .nil => .nil
+| .cons hd tl, e, .cons j1 j2 => by
+  simp at e; rw [e.1] at j1
+  have lem := Query.closed wf e.2 j2
+  apply VecTyping.cons _ lem
+  apply GlobalWf.subst_cancel_lookup_ctor? wf rfl j1
+
+@[simp]
+theorem Vec.map_of_smap_fix [SubstMap A T] {σ : Subst T} : {v : Vec A n} -> Vec.map (·[σ:_]) v = v[σ:_]
+| .nil => by simp
+| .cons hd tl =>
+  have lem := Vec.map_of_smap_fix (σ := σ) (v := tl)
+  by simp; exact lem
+
+@[simp]
+theorem rewrite3_append_su [RenMap T] [SubstMap T T] {σ τ : Subst T} :
+  {v : Vec T n} ->
+  Sequ.append_vec (Vec.map su v) σ ∘ τ = Sequ.append_vec (Vec.map su v[τ:_]) (σ ∘ τ)
+| .nil => by simp [Sequ.append_vec]
+| .cons hd tl =>
+  have lem := rewrite3_append_su (σ := σ) (τ := τ) (v := tl)
+  by simp [Sequ.append_vec]; rw [lem]
+
+@[simp]
+theorem rewrite3_append_re [RenMap T] [SubstMap T T] {σ τ : Subst T} :
+  {v : Vec Nat n} ->
+  Sequ.append_vec (Vec.map re v) σ ∘ τ = Sequ.append_vec (Vec.map (λ i => τ i) v) (σ ∘ τ)
+| .nil => by simp [Sequ.append_vec]
+| .cons hd tl =>
+  have lem := rewrite3_append_re (σ := σ) (τ := τ) (v := tl)
+  by simp [Sequ.append_vec]; rw [lem]
+
+def Subst.add (k : Nat) : Subst T := λ n => re (n + k)
+
+@[simp]
+theorem Subst.add_1 : @Subst.add T 1 = +1 := sorry
+
+@[simp]
+theorem rewrite4_append [RenMap T] [SubstMap T T] {v : Vec (Subst.Action T) n}
+  : (Subst.add k) ∘ (Sequ.append_vec v σ) = σ
+:= sorry
+
+@[simp]
+theorem rewrite_lift_n [RenMap T] [SubstMap T T] [SubstMapStable T] {σ : Subst T}
+  : σ.lift n = Sequ.append_vec (Vec.map re $ Vec.range n) (σ ∘ Subst.add n)
+:= by
+  induction n generalizing σ
+  case zero =>
+    simp [Sequ.append_vec]
+    unfold Subst.add; unfold Subst.lift; simp
+    funext; case _ i =>
+    simp [Subst.compose]
+    rw [Subst.apply_stable]; simp
+    unfold Subst.id; rfl
+  case succ n ih =>
+    sorry
+
+@[simp]
+theorem rewrite_append_over_range {v : Vec (Subst.Action T) n}
+  : Vec.map (Sequ.append_vec v +0) (Vec.range n) = v
+:= sorry
+
+@[simp]
+theorem rewrite_cons_over_range
+  : Vec.map (a::+0) (Vec.range 1) = #𝓋[a]
+:= sorry
+
+@[simp]
+theorem rewrite_append_singleton
+  : Sequ.append_vec #𝓋[a] σ = a::σ
+:= sorry
+
+@[simp]
+theorem List.subst_append [RenMap T] [SubstMap T T] {a b : List T} {σ : Subst T}
+  : (a ++ b)[σ:T] = a[σ:T] ++ b[σ:T]
+:= sorry
+
+@[simp]
+theorem Vec.subst_to_list [RenMap T] [SubstMap T T] {v : Vec T n} {σ : Subst T}
+  : (Vec.to_list v)[σ:_] = Vec.to_list v[σ:_]
+:= sorry
+
+@[grind =]
+theorem Fun.Vec.subst_to [RenMap T] [SubstMap T T] {v : Fun.Vec T n}
+  : (v.to)[σ:T] = Fun.Vec.to (λ i => (v i)[σ:T]) := sorry
 
 theorem PatternBinders.rename_type Δr (r : Ren) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r i]?) :
   PatternBinders G Δ m S p ξ -> PatternBinders G Δr m S[r.to:Ty] p[r.to:Ty] ξ[r.to:Ty]
@@ -351,12 +466,19 @@ theorem PatternBinders.rename_type Δr (r : Ren) (wf : ⊢ G) (h : ∀ i, Δ[i]?
     have lem := GlobalWf.closed_lookup_spine_type wf e1 r.to
     simp; simp at lem; grind
   have e2' : Ts'[r.to:Ty] = (Vec.map (·[r.to.lift na:Ty]) Ts)[Sequ.append_vec (Vec.map su As[r.to:Ty]) +0:_] := by
-    rw [e2]; simp; simp [SubstMap.smap]; sorry
+    rw [e2]; simp
   have e3' : R'[r.to:Ty] = R[r.to.lift na][Sequ.append_vec (Vec.map su As[r.to:Ty]) +0:_] := by
-    rw [e3]; simp; sorry
+    rw [e3]; simp
   have j1' := λ i => (j1 i).rename Δr r h
   have j2' := j2.rename_type Δr r wf h
-  succ e1' (j1' ▸ simp) e2' e3' j2' ▸ simp; sorry
+  succ e1' (j1' ▸ simp) e2' e3' j2' ▸ congr; simp
+
+theorem Query.Match.rename_type (r : Ren) :
+  Query.Match q p -> Query.Match q p[r:Ty]
+| .nil => .nil
+| .cons ⟨na, As, nb, e⟩ j2 =>
+  let j2' := Query.Match.rename_type r j2
+  .cons ⟨na, As[r.to:Ty], nb, by grind⟩ j2'
 
 theorem Typing.rename_type Δr (r : Ren) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r i]?)
   : G&Δ,Γ ⊢ t : A -> G&Δr,Γ[r.to:Ty] ⊢ t[r:Ty] : A[r]
@@ -367,32 +489,33 @@ theorem Typing.rename_type Δr (r : Ren) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r
     have lem := GlobalWf.closed_lookup_spine_type wf j1 r.to
     simp; simp at lem; grind
   have e1' : Ts'[r.to:Ty] = (Vec.map (·[r.to.lift m:Ty]) Ts)[Sequ.append_vec (Vec.map su As[r.to:Ty]) +0:_] := by
-    rw [e1]; simp; simp [SubstMap.smap]; sorry
+    rw [e1]; simp
   have e2' : R'[r.to:Ty] = R[r.to.lift m][Sequ.append_vec (Vec.map su As[r.to:Ty]) +0:_] := by
-    rw [e2]; simp; sorry
+    rw [e2]; simp
   have j2' : ∀ (i : Fin m), G&Δr ⊢ As[r.to:_][i] : Ks[i] := λ i =>
     let lem := (j2 i).rename Δr r h
     by simp at lem; exact lem
-  have j3' : ∀ (i : Fin n), G&Δr,Γ.map (·[r.to]) ⊢ (ts i)[r.to:Ty] : Ts'[i][r.to] := λ i =>
+  have j3' : ∀ (i : Fin n), G&Δr,Γ[r.to:Ty] ⊢ (ts i)[r.to:Ty] : Ts'[i][r.to] := λ i =>
     let lem := (j3 i).rename_type Δr r wf h
-    by simp at lem; simp; sorry
+    by simp at lem; simp; exact lem
   have j4' : ∀ c, v = .data c → lookup_ctor? G c x R[r.to.lift m] = true :=
     have lem := GlobalWf.closed_lookup_spine_type wf j1 r.to
     by simp at lem; simp; rw [lem.2]; exact j4
   have j5' : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn G Ts'[r.to:Ty][i] := λ e i =>
     Ty.data?_closed r.to (j5 e i) ▸ simp
-  spctor j1' e1' e2' j2' (λ i => j3' i ▸ sorry) j4' j5'
+  spctor j1' e1' e2' j2' (λ i => j3' i ▸ congr; simp) j4' j5'
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j1' := λ i => (j1 i).rename_type Δr r wf h
   have j2' := λ i => Ty.data?_closed r.to (j2 i)
   have j3' : ∀ (i : Fin n), PatternBinders G Δr m S.to[r.to:Ty] (ps i)[r.to:Ty] (ξ i)[r.to:Ty] :=
     λ i => (j3 i).rename_type Δr r wf h
   have j4' : ∀ (i : Fin n), G&Δr,((ξ i)[r.to:Ty] ++ Γ[r.to:Ty]) ⊢ (ts i)[r.to:Ty] : A[r.to] :=
-    λ i => (j4 i).rename_type Δr r wf h ▸ simp; sorry
-  have j5' : ∀ {q}, (Query G .cls q S[r.to:Ty]) → ∃ i, Query.Match q (ps i) :=
-    λ q => j5 (Query.closed q)
+    λ i => (j4 i).rename_type Δr r wf h ▸ simp
+  have j5' : ∀ {q}, (Query G .cls q S[r.to:Ty]) → ∃ i, Query.Match q (ps i)[r.to:Ty] :=
+    λ q => match j5 (Query.closed wf rfl q) with
+          | ⟨i, m⟩ => ⟨i, Query.Match.rename_type r m⟩
   let ξ' := λ (i : Fin n) => (ξ i)[r.to:Ty]
-  mtch (ξ := ξ') j1' j2' (j3' ▸ sorry) j4' (λ {q} => @j5' q ▸ sorry)
+  mtch (ξ := ξ') j1' j2' (λ i => j3' i ▸ subst ξ'; congr; grind) j4' (λ {q} => @j5' q ▸ grind)
 | lam j1 j2 => lam (j1.rename Δr r h) (j2.rename_type _ _ wf h)
 | app j1 j2 => app (j1.rename_type _ _ wf h) (j2.rename_type _ _ wf h)
 | lamt j1 j2 => sorry --lamt (j1.rename Δr r h) (j2.rename_type _ _ wf sorry)

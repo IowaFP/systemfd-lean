@@ -357,11 +357,11 @@ theorem SpineKinding.weaken_global_ctors (wf : ⊢ (Global.data n y K ctors :: G
 theorem PatternBinders.weaken_global (wf : ⊢ (g::G))
   : PatternBinders G Δ m S p ξ -> PatternBinders (g::G) Δ m S p ξ
 | zero => zero
-| succ j1 j2 e1 e2 e3 j4 =>
+| succ j1 j2 e1 e2 j3 =>
   let j1' := lookup_spine_type_weaken wf j1
   let j2' := λ i => (j2 i).weaken_global wf
-  let j4' := j4.weaken_global wf
-  succ j1' j2' e1 e2 e3 j4'
+  let j3' := j3.weaken_global wf
+  succ j1' j2' e1 e2 j3'
 
 theorem CoercionProject.weaken_global (wf : ⊢ (g::G))
   : CoercionProject G Δ n T R -> CoercionProject (g::G) Δ n T R
@@ -385,13 +385,13 @@ theorem Query.global_strengthen {S : Vec _ m} (wf : ⊢ (g::G))
 theorem Typing.weaken_global (wf : ⊢ (g::G)) : G&Δ,Γ ⊢ t : A -> (g::G)&Δ,Γ ⊢ t : A
 | var j1 j2 => var j1 (j2.weaken_global wf)
 | defn j1 j2 => defn (lookup_defn_weaken wf j1) (j2.weaken_global wf)
-| spctor e1 j1 e2 j2 j3 j4 e3 =>
-  let e1' := lookup_spine_type_weaken wf e1
-  let j1' := λ i => (j1 i).weaken_global wf
+| spctor j1 e1 e2 j2 j3 j4 j5 =>
+  let j1' := lookup_spine_type_weaken wf j1
   let j2' := λ i => (j2 i).weaken_global wf
-  let j3' := λ c e => lookup_ctor_weaken wf (j3 c e)
-  let j4' := λ e i => Ty.data?_global_weaken wf (j4 e i)
-  spctor e1' j1' e2 j2' j3' j4' e3
+  let j3' := λ i => (j3 i).weaken_global wf
+  let j4' := λ c e => lookup_ctor_weaken wf (j4 c e)
+  let j5' := λ e i => Ty.data?_global_weaken wf (j5 e i)
+  spctor j1' e1 e2 j2' j3' j4' j5'
 | mtch (m := m) (S := S) j1 j2 j3 j4 j5 =>
   let j1' := λ i => (j1 i).weaken_global wf
   let j2' := λ i => Ty.data?_global_weaken wf (j2 i)
