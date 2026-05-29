@@ -120,9 +120,8 @@ inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec T
 | succ {Ts' : Vec _ nb} :
   lookup_spine_type G c = some ⟨na, Ks, nb, Ts, R⟩ ->
   (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks[i]) ->
-  Sequ.append_vec (Vec.map su As) +0 = τ ->
-  (∀ (i : Fin nb), Ts'[i] = Ts[i][τ]) ->
-  R' = R[τ] ->
+  Ts' = Ts[Sequ.append_vec (Vec.map su As) +0:Ty] ->
+  R' = R[Sequ.append_vec (Vec.map su As) +0:Ty] ->
   PatternBinders G Δ n S p ℓ ->
   PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb⟩::p) ((Vec.to_list Ts') ++ ℓ)
 
@@ -184,14 +183,14 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ----------------------------------------------------------------------------------------------------
 ---- Data
 ----------------------------------------------------------------------------------------------------
-| spctor {As : Vec Ty m} {ts : Fun.Vec Term n} :
+| spctor {Δ Γ m n x v Ks Ts Ts' R R'} {As : Vec Ty m} {ts : Fun.Vec Term n} :
   lookup_spine_type G x = some ⟨m, Ks, n, Ts, R⟩ ->
+  Ts' = Ts[Sequ.append_vec (Vec.map su As) +0:Ty] ->
+  R' = R[Sequ.append_vec (Vec.map su As) +0:Ty] ->
   (∀ (i : Fin m), G&Δ ⊢ As[i] : Ks[i]) ->
-  Sequ.append_vec (Vec.map su As) +0 = τ ->
-  (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts[i][τ]) ->
+  (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts'[i]) ->
   (∀ c, v = .data c -> lookup_ctor? G c x R) ->
-  (v = .openm -> ∀ (i : Fin n), Ts[i][τ].data? .opn G) ->
-  R' = R[τ] ->
+  (v = .openm -> ∀ (i : Fin n), Ts'[i].data? .opn G) ->
   Typing G Δ Γ (.spctor v x As ts) R'
 | mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
@@ -213,7 +212,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   Typing G Δ Γ (f • a) B
 | lamt :
   Kinding G Δ (∀[K]P) ★ ->
-  Typing G (K::Δ) (Γ.map (·[+1])) t P ->
+  Typing G (K::Δ) Γ[+1:Ty] t P ->
   Typing G Δ Γ (Λ[K] t) (∀[K] P)
 | appt :
   Typing G Δ Γ f (∀[K] P) ->
@@ -237,7 +236,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   CoercionProject G Δ n T R ->
   Typing G Δ Γ (prj[n] c) R
 | allc :
-  Typing G (K::Δ) (Γ.map (·[+1])) t (A ~[★]~ B) ->
+  Typing G (K::Δ) Γ[+1:Ty] t (A ~[★]~ B) ->
   Typing G Δ Γ (∀c[K] t) ((∀[K] A) ~[★]~ (∀[K] B))
 | apptc :
   Typing G Δ Γ f ((∀[K] A) ~[★]~ (∀[K] B)) ->

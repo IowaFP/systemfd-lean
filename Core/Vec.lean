@@ -125,10 +125,18 @@ theorem Vec.length_bound : (v : Vec A n) -> Vec.length v = n := by
   induction n <;> (simp at *)
 
 @[simp]
+theorem Vec.to_list_length : {v : Vec A n} -> (Vec.to_list v).length = n
+| .nil => by simp [Vec.to_list]
+| .cons hd tl =>
+  have lem := Vec.to_list_length (v := tl)
+  by grind [Vec.to_list]
+
+theorem Vec.eq_index_ext : {v1 v2 : Vec A n} -> (∀ (i : Fin n), v1[i] = v2[i]) -> v1 = v2 := sorry
+
+@[simp]
 def Vec.sum : Vec Nat n -> Nat
 | .nil => 0
 | .cons hd tl => hd + Vec.sum tl
-
 
 def Vec.rmap [i : RenMap S] (r : Ren) : Vec S n -> Vec S n
 | .nil => .nil
@@ -163,6 +171,9 @@ instance [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] [SubstMapCompose S 
   : SubstMapCompose (Vec S n) T
 where
   apply_compose := by intro s σ τ; induction s <;> simp [*]
+
+@[simp]
+theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : v[i][σ:_] = v[σ:_][i] := sorry
 
 -- theorem length_coerce: ∀ n, Vec.length v = n -> (Vec.to_list v).length = n := by
 -- apply v.induction <;> simp [Vec.length] at *
@@ -219,6 +230,15 @@ case _ v vs ih =>
   cases h2;
   induction i using Fin.induction <;> simp [get_elem] at *
   case _ i h => apply ih h1 i
+
+def Vec.range (n : Nat) : Vec Nat n := go n 0
+where
+  go : (n : Nat) -> Nat -> Vec Nat n
+  | 0, _ => .nil
+  | n + 1, acc => .cons acc (go n (acc + 1))
+
+@[simp]
+theorem Vec.range_zero : range 0 = .nil := sorry
 
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
   vs.fold true (λ c acc => c == e && acc)

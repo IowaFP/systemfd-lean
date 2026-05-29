@@ -1,4 +1,5 @@
 import LeanSubst
+import Core.Vec
 import Core.Term.Definition
 
 open LeanSubst
@@ -238,6 +239,47 @@ instance : SubstMapHetCompose Ctor2Variant Ty where
   apply_hcompose := by simp
 
 @[simp]
+def Pattern.rmap (r : Ren) : Pattern m -> Pattern m
+| .nil => .nil
+| .cons ⟨s, i, ℓ, j⟩ tl => ⟨s, i, ℓ[r.to:Ty], j⟩::(rmap r tl)
+
+instance : RenMap (Pattern m) where
+  rmap := Pattern.rmap
+
+@[simp]
+def Pattern.smap (σ : Subst Ty) : Pattern m -> Pattern m
+| .nil => .nil
+| .cons ⟨s, i, ℓ, j⟩ tl => ⟨s, i, ℓ[σ:Ty], j⟩::(smap σ tl)
+
+instance : SubstMap (Pattern m) Ty where
+  smap := Pattern.smap
+
+@[simp]
+theorem Pattern.subst_nil : (.nil : Pattern 0)[σ:Ty] = .nil := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Pattern.subst_cons {tl : Pattern m} : (⟨s, i, ℓ, j⟩::tl)[σ:Ty] = ⟨s, i, ℓ[σ:Ty], j⟩::tl[σ:_] := by
+  simp [SubstMap.smap]
+
+instance : SubstMapId (Pattern m) Ty where
+  apply_id := by
+    intro t; induction t; simp
+    case _ x p ih =>
+    rcases x with ⟨a, b, c, d⟩; simp [*]
+
+instance : SubstMapCompose (Pattern m) Ty where
+  apply_compose := by
+    intro s σ τ; induction s; simp
+    case _ x p ih =>
+    rcases x with ⟨n, a, m, b⟩; simp [*]
+
+@[simp]
+theorem Pattern.subst_bind {p : Pattern m} : p[σ:Ty].bind = p.bind := by
+  induction p; simp; case _ x p ih =>
+  rcases x with ⟨n, a, m, b⟩; simp [bind, *]
+
+@[simp]
 def Term.Ty.smap (σ : Subst Ty) : Term -> Term
 | #x => #x
 | d#x => d#x
@@ -248,7 +290,7 @@ def Term.Ty.smap (σ : Subst Ty) : Term -> Term
 | tbind v A t => tbind v A (smap σ.lift t)
 | lam A t => lam A[σ:_] (smap σ t)
 | cast T c t => cast T[σ.lift:_] (smap σ c) (smap σ t)
-| mtch m n t1 t2 t3 => mtch m n (smap σ <$> t1) t2 (smap σ <$> t3)
+| mtch m n t1 t2 t3 => mtch m n (smap σ <$> t1) ((·[σ:Ty]) <$> t2) (smap σ <$> t3)
 
 instance : SubstMap Term Ty where
   smap := Term.Ty.smap
@@ -363,7 +405,7 @@ theorem Term.Ty.cast_lam : (cast T c t)[σ:Ty] = cast T[σ.lift:_] c[σ:_] t[σ:
 @[simp]
 theorem Term.Ty.subst_match
   : (mtch m n t1 t2 t3)[σ:Ty]
-    = mtch m n (λ i => (t1 i)[σ:_]) t2 (λ i => (t3 i)[σ:_])
+    = mtch m n (λ i => (t1 i)[σ:_]) (λ i => (t2 i)[σ:_]) (λ i => (t3 i)[σ:_])
 := by
   simp [SubstMap.smap]
 
@@ -427,21 +469,5 @@ instance : SubstMapCompose Term Term where
 -- | .nil => t
 -- | .term σ tl => t[σ].isubst tl
 -- | .type σ tl => t[σ:Ty].isubst tl
-
-@[simp]
-def Pattern.smap (σ : Subst Ty) : Pattern m -> Pattern m
-| .nil => .nil
-| .cons ⟨s, i, ℓ, j⟩ tl => ⟨s, i, ℓ[σ:Ty], j⟩::(smap σ tl)
-
-instance : SubstMap (Pattern m) Ty where
-  smap := Pattern.smap
-
-@[simp]
-theorem Pattern.subst_nil : (.nil : Pattern 0)[σ:Ty] = .nil := by
-  simp [SubstMap.smap]
-
-@[simp]
-theorem Pattern.subst_cons {tl : Pattern m} : (⟨s, i, ℓ, j⟩::tl)[σ:Ty] = ⟨s, i, ℓ[σ:Ty], j⟩::tl[σ:_] := by
-  simp [SubstMap.smap]
 
 end Core
