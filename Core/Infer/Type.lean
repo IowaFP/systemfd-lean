@@ -110,6 +110,7 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
    else none
 | _, _ , _ => none
 
+@[simp]
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x => do
   let T <- Γ[x]?

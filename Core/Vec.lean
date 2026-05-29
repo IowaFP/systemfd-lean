@@ -286,6 +286,30 @@ match vs with
 --     have lem := Vec.elems_eq_to_sound h1
 --     apply lem i
 
+-- Finds the first element that satisfies the predicate and its index
+@[simp]
+def Vec.find_aux {n : Nat} (p : T -> Bool) (vs : Vec T n) (k : Nat) : Option (T × Fin n) :=
+  if h : k < n
+  then
+    let i := Fin.mk k h
+    let e := (vs.get_elem i)
+    if p e
+       then some (e, i)
+       else Vec.find_aux p vs (k + 1)
+  else none
+
+-- Finds the first element that satisfies the predicate and its index
+@[simp]
+def Vec.find {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (T × Fin n) := Vec.find_aux p vs 0
+
+
+theorem Vec.find_returns_first_elem {n : Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) : vs.find p = some ei ->
+  vs.get_elem ei.snd = ei.fst ∧
+  ∀ j : Fin n, j < ei.snd -> p (vs.get_elem j) = false := by
+intro h; unfold Vec.find at h;
+generalize idx : 0 = k at *
+sorry
+
 
 -- returns the first element that is not none
 @[simp]

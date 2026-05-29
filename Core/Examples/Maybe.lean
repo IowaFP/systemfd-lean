@@ -25,19 +25,16 @@ namespace Core.Examples
 def MaybeBoolCtx : GlobalEnv := [
 
    /- Λ t. λ (i : Eq t).
-        If EqMaybe[t] <- i.
-          Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
-            eqMaybe ▹ sym (<t ~ Maybe u> → <t ~ Maybe u> → <Bool>)
+        If EqMaybe[t][u] <- i.
+           λ (tmu : t ~ Maybe u). λ eqU : Eq u.
+            eqMaybe @Bool eqU ▹ sym (tmu -c> tmu -c> <Bool>)
     -/
-
-  -- .inst "eq" #𝓋[ ⟨"EqMaybe", 1, #𝓋[ gt#"Maybe" • t#0 ], 2⟩ ] (λ[ t#0 ] λ [ t#0 ] -- #2 : t ~ Maybe u, #3 : Eq u
-  --      TrueCtor),
-       -- ((d#"eq@Maybe" •[t#0]) • #0))   ),
-
+  .inst "eq" #𝓋[ ⟨"EqMaybe", 1, #𝓋[ t#1 ], 2⟩ ] (λ[ t#1 ] λ[ t#1 ] -- #3 : t ~ Maybe u, #2 : Eq u
+       (((d#"eq@Maybe" •[t#0]) • #2) • (.cast t#1 #3 #1)) • (.cast t#1 #3 #0)) ,
 
   -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
   .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
-        (Λ[★] λ[gt#"Eq" • t#0] λ[ gt#"Maybe" • t#0] λ[gt#"Maybe" • t#0]
+        (Λ[★] λ[gt#"Eq" • t#0] λ[ gt#"Maybe" • t#0 ] λ[gt#"Maybe" • t#0]
           mtch' #𝓋[#1]
            #𝓋[ (#𝓋[⟨"Nothing", 1, #𝓋[ t#0 ], 0⟩],
              mtch' #𝓋[#0]
@@ -63,7 +60,6 @@ def MaybeBoolCtx : GlobalEnv := [
 
 #guard MaybeBoolCtx.wf_globals == .some ()
 
-
 def NothingCtor (T : Ty) : Term := ctor! "Nothing" #𝓋[T] .nil
 def JustCtor (T : Ty) (Tm : Term) : Term := ctor! "Just" #𝓋[T] (Vec.to #𝓋[Tm])
 
@@ -73,8 +69,6 @@ def JustCtor (T : Ty) (Tm : Term) : Term := ctor! "Just" #𝓋[T] (Vec.to #𝓋[
 
 #guard (refl! (gt#"Maybe" • gt#"Bool")).infer_type MaybeBoolCtx [] []
               == some ((gt#"Maybe" • gt#"Bool") ~[★]~ (gt#"Maybe" • gt#"Bool"))
-
--- #eval! Vec.Ty.repr (#𝓋[t#1 ~[★]~ (gt#"Maybe" • t#0) , gt#"Eq" • t#0 ].map (λ x => x[Sequ.append_vec (Vec.map su #𝓋[ gt#"Bool" , gt#"Maybe" • gt#"Bool" ]) +0] ))
 
 def iMaybeBool : Term := inst! "EqMaybe" #𝓋[ gt#"Bool", gt#"Maybe" • gt#"Bool" ] (Vec.to #𝓋[ refl! (gt#"Maybe" • gt#"Bool"), iBool ])
 #guard iMaybeBool.infer_type MaybeBoolCtx [] [] == some (gt#"Eq" • (gt#"Maybe" • gt#"Bool"))
@@ -86,12 +80,23 @@ def t0 := (((d#"eq@Maybe" •[gt#"Bool"]) • iBool)
 
 #eval! t0.eval_loop MaybeBoolCtx -- True
 
-def t0' := (((d#"eq@Maybe" •[gt#"Bool"]) • iBool)
+def mt1 := (((d#"eq@Maybe" •[gt#"Bool"]) • iBool)
                           • NothingCtor gt#"Bool")
                           • JustCtor gt#"Bool" TrueCtor
-#eval! t0'.eval_loop MaybeBoolCtx -- True
+#eval! mt1.eval_loop MaybeBoolCtx -- True
 
--- #guard t.eval_loop MaybeBoolCtx == g#"True"
 
+def mt2 := (((d#"eq@Maybe" •[gt#"Bool"]) • iBool)
+                          • JustCtor gt#"Bool" TrueCtor)
+                          • JustCtor gt#"Bool" TrueCtor
+#eval! mt2.eval_loop MaybeBoolCtx -- True
+
+
+def mt3 := openm! "eq" #𝓋[gt#"Maybe" • gt#"Bool"] (Vec.to #𝓋[ iMaybeBool ])
+#eval! mt3.infer_type MaybeBoolCtx [] []
+
+#eval! ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor).infer_type MaybeBoolCtx [] []
+
+#eval ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor).eval_loop MaybeBoolCtx
 
 end Core.Examples

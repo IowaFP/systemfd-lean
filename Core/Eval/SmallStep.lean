@@ -117,21 +117,7 @@ def Term.is_data (v : DataConst) : Vec Term m -> Option (Vec Constructor m)
   else none
 | .cons _ _ => none
 
-@[simp]
-def Pattern.match : Vec Constructor m -> Pattern m' -> Bool
-| .nil, .nil => true
-| .cons ⟨q, m, _, n, _⟩ xs, .cons ⟨q', m', _, n'⟩ zs =>
-  Pattern.match xs zs && q == q' && m == m' && n == n'
-| _, _ => false
-
-def get_match_aux (n : Nat) (ctors : Vec Constructor m) : Vec (Pattern m) n' -> Option Nat
-| .nil => none
-| .cons p ps =>
-  if Pattern.match ctors p
-  then some n
-  else get_match_aux (n + 1) ctors ps
-
-def get_match (ctors : Vec Constructor m) : Vec (Pattern m) n -> Option Nat := get_match_aux 0 ctors
+def get_match (ctors : Vec Constructor m) (ps : Vec (Pattern m) n) : Option (Pattern m × Fin n) := ps.find (Pattern.match ctors)
 
 -- @[simp]
 def eval (G : List Global) : Term ->  Option Term
@@ -158,29 +144,29 @@ def eval (G : List Global) : Term ->  Option Term
 
 | .spctor (n := n) .openm x Ts ss => do
   let m_ss : Lilac.Fun.Vec (Option Term) n := λ i => eval G (ss i)
-  match (m_ss.to).anyWithIndex with
+  match (m_ss.to).find Option.isSome with
   | none =>
     let ctors <- Term.is_data .opn ss.to
-    let ⟨m, p, b⟩ <- get_instance x 0 G
+    let ⟨m, p, b⟩ <- get_instance x ctors G
     let τ := Sequ.append_vec (Vec.map su Ts) +0
     let σ := Constructor.subst ctors
-    if Pattern.match ctors p
-    then return b[τ:Ty][σ]
-    else none
-  | some (t', i) =>
-    return (.spctor .openm x Ts (ss.update t' (@Fin.ofNat n sorry i)))
+    return b[τ:Ty][σ]
+  | some (t', i) => do
+    let t' <- t'
+    return (.spctor .openm x Ts (ss.update t' i))
 
 
 | .mtch m n ss ps bs => do
   let m_ss : Lilac.Fun.Vec (Option Term) m := λ i => eval G (ss i)
-  match (m_ss.to).anyWithIndex with
+  match (m_ss.to).find Option.isSome with
   | none =>
     let ctors <- Term.is_data .cls ss.to
     let σ := Constructor.subst ctors
     let i <- get_match ctors ps.to
-    return (bs (@Fin.ofNat n sorry i))[σ]
-  | some (t', i) =>
-    return (.mtch m n (ss.update t' (@Fin.ofNat m sorry i)) ps bs)
+    return (bs i.snd)[σ]
+  | some (t', i) => do
+    let t' <- t'
+    return (.mtch m n (ss.update t' i) ps bs)
 
 -- Λ reduction
 | .ctor1 (.appt ty) (.tbind .lamt _ tm) => do

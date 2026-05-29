@@ -38,6 +38,8 @@ def Pattern.repr : Pattern m -> Std.Format
 | .cons (x , ⟨_ , v, _⟩) xs =>
    x ++ " "++ v.to_list.repr max_prec
 
+instance instRepr_pattern : Repr (Pattern m) where
+  reprPrec p _ := Pattern.repr p
 
 def Pattern.bind : Pattern m -> Nat
 | .nil => 0
@@ -119,8 +121,8 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | spctor (n := n) _ x tys tms =>
          let tms' : Fun.Vec Std.Format n := λ i => Term.repr max_prec (tms i)
          x ++ " "
-         ++ "•" ++ Std.Format.sbracket (Vec.fold Std.Format.nil (λ t acc => acc ++ t.repr max_prec) tys)
-         ++ "•" ++ "{" ++ Vec.fold Std.Format.nil (λ t acc => t ++ "," ++ acc) tms'.to ++ "}"
+         ++ "•" ++ Std.Format.sbracket (Vec.fold Std.Format.nil (λ t acc => t.repr max_prec ++ " | " ++ acc) tys)
+         ++ "•" ++ "{" ++ Vec.fold Std.Format.nil (λ t acc => t ++ " | " ++ acc) tms'.to ++ "}"
 
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
 | .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"
