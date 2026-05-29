@@ -119,7 +119,10 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   return T
 | .defn x => do
   let ⟨T, _⟩ <- lookup_defn G x
-  return T
+  let Tk <- T.infer_kind G Δ
+  if Tk == .base
+    then return T
+    else none
 | spctor (n := n) (m := m) (.data d) x As ts => do
   let ⟨m', Ks, n', Ts, R⟩ <- lookup_spine_type G x
   let mKs := As.map (λ y => Ty.infer_kind G Δ y)

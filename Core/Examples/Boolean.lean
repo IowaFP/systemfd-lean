@@ -86,7 +86,7 @@ def EqBoolCtx : GlobalEnv := [
 
   ] ++ BoolCtx
 
-
+#eval EqBoolCtx
 #guard EqBoolCtx.wf_globals  == some ()
 
 #eval ((d#"eqBool" • TrueCtor) • TrueCtor).eval_loop EqBoolCtx

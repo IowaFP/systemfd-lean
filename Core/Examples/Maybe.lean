@@ -58,6 +58,8 @@ def MaybeBoolCtx : GlobalEnv := [
 
   ] ++ EqBoolCtx
 
+#eval MaybeBoolCtx
+
 #guard MaybeBoolCtx.wf_globals == .some ()
 
 def NothingCtor (T : Ty) : Term := ctor! "Nothing" #𝓋[T] .nil

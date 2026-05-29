@@ -64,10 +64,18 @@ protected def Ty.repr (p : Nat) : (a : Ty) -> Std.Format
 instance instRepr_Ty : Repr Ty where
   reprPrec a p := Ty.repr p a
 
-
 def Vec.Ty.repr : Vec Ty n -> Std.Format
 | .nil => ""
 | .cons x xs => x.repr max_prec ++ ", " ++ Vec.Ty.repr xs
+
+def Vec.Kind.repr : Vec Kind n -> Std.Format
+| .nil => ""
+| .cons x xs => x.repr max_prec ++ ", " ++ Vec.Kind.repr xs
+
+def SpineTy.repr : SpineTy -> Std.Format
+| ⟨m, vm, n, vn, t⟩ =>
+  "⟨" ++ Nat.repr m ++ ", " ++ Vec.Kind.repr vm ++ ", " ++ Nat.repr n ++ ", " ++ Vec.Ty.repr vn ++ ", " ++ t.repr max_prec ++"⟩"
+
 
 end Core
 /-

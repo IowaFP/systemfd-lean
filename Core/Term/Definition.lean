@@ -146,7 +146,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
     let t := bs i
     Std.Format.nest 4 <| Std.Format.line ++ Pattern.repr pat ++ " => " ++ Term.repr p t
   Std.Format.nest 4 <| "match " ++ ssf ++ " with"
-    ++ bs.to.fold Std.Format.line (λ t acc => t ++ Std.Format.line ++ acc)
+    ++ bs.to.fold Std.Format.nil (λ t acc => t ++ Std.Format.line ++ acc)
 
 
 @[simp]

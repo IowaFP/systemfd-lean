@@ -29,7 +29,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
   let T' <- t.infer_type G [] []
   let _ <- T.infer_kind G []
   if T == T' && (lookup x G).isNone then return () else none
-| .cons (.inst  x p t) G => do
+| .cons (.inst x p t) G => do
   wf_globals G
   let e := lookup x G
   match e with
