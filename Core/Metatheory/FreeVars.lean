@@ -35,16 +35,16 @@ theorem lift_iterated_succ_is_re :
   ∃ i, z = re i
 := by
   intro h
-  induction n generalizing y z <;> simp at *
+  induction n generalizing y z <;> simp [-rewrite_lift_n] at *
   case zero => exists y + 1; symm at h; assumption
   case succ n ih =>
-    cases y <;> simp at *
+    cases y <;> simp [-rewrite_lift_n] at *
     case zero => exists 0; symm at h; assumption
     case succ y =>
-      simp [Subst.compose] at *
+      simp [-rewrite_lift_n, Subst.compose] at *
       rcases (@ih y) with ⟨k, ih⟩
       generalize zdef : (((Subst.lift (T := Ty))^[n]) +1) y = z at *
-      cases z <;> simp at *
+      cases z <;> simp [-rewrite_lift_n] at *
       case _ a =>
         exists (a + 1); symm at h
         rw [zdef] at h; simp [*]
@@ -55,12 +55,12 @@ theorem lift_iterated_succ_is_re :
 -- x ∉ T[(x + 1)]
 theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T[((Subst.lift)^[x]) +1:Ty]) := by
   intro h
-  induction T generalizing x <;> simp at *
+  induction T generalizing x <;> simp [-rewrite_lift_n] at *
   case var y =>
-    induction x generalizing y <;> simp at *
+    induction x generalizing y <;> simp [-rewrite_lift_n]  at *
     case zero => cases h
     case succ n ih =>
-    cases y <;> simp at *
+    cases y <;> simp [-rewrite_lift_n]  at *
     case zero => cases h
     case succ y =>
     simp [Subst.compose] at h
@@ -68,7 +68,7 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T[((Subst.lift)^[x]) +1:Ty]) :=
     generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
     have lem := lift_iterated_succ_is_re zdef
     rcases lem with ⟨k , lem⟩
-    subst z; simp at lem; rw [lem] at h; simp at h
+    subst z; simp [-rewrite_lift_n] at lem; rw [lem] at h; simp at h
     cases h; apply ih; rw[lem]; simp; apply Ty.FV.var
   case all P ih =>
     cases h; case _ h =>

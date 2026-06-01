@@ -1,33 +1,149 @@
-import LeanSubst
-import Lilac
 
 import Core.Typing
 import Core.Util
-import Core.Metatheory.FreeVars
-import Core.Metatheory.Rename
+import Core.Metatheory.Global
 
 open LeanSubst
+open Lilac
 
 namespace Core
 
-theorem PrefixTypeMatch.closed_rep σ :
-  A[rep Subst.lift σ Δ.length] = A ->
-  B[rep Subst.lift σ Δ.length] = B ->
-  PrefixTypeMatch Δ A B T ->
-  T[rep Subst.lift σ Δ.length] = T
+theorem subst_lift [RenMap T] [RenMapId T] [RenMapCompose T] (σ : Subst T) :
+  x < n ->
+  σ.lift n x = re x
 := by
-  sorry
-  -- intro h1 h2 j
-  -- induction j generalizing σ
-  -- case refl => exact h2
-  -- case arrow ih =>
-  --   simp at ih h1 h2
-  --   apply ih σ h1.2 h2.2
-  -- case all Δ _ _ T _ ih =>
-  --   simp at ih h1 h2
-  --   have lem := ih σ h1 h2
-  --   have lem2 : T[rep Subst.lift σ Δ.length ∘ +1:Ty][-1:Ty] = T[+1:Ty][-1:Ty] := by rw [lem]
-  --   simp at lem2; exact lem2
+  intro h; induction n generalizing x σ; cases h
+  case _ n ih =>
+  cases x; simp [Subst.lift]
+  case _ i =>
+  have lem : i < n := by omega
+  replace ih := @ih i σ lem
+  rw [Subst.rewrite_lift_succ]
+  generalize zdef : σ.lift n = z at *
+  simp [Subst.lift]; rw [ih]
+
+theorem Kinding.closed_rep :
+  G&Δ ⊢ A : K ->
+  ∀ (σ : Subst Ty), A[σ.lift Δ.length:_] = A
+| var (x := x) j, σ =>
+  have lem1 : x < Δ.length := Δ.indexing_length_some j
+  have lem2 := subst_lift σ lem1
+  by simp_all
+| global h, σ => by simp
+| arrow j1 j2, σ
+| app j1 j2, σ
+| eq j1 j2, σ =>
+  let j1' := j1.closed_rep σ
+  let j2' := j2.closed_rep σ
+  by simp at j1'; simp at j2'; simp [*]
+| all j, σ =>
+  let j' := j.closed_rep σ
+  by simp [-rewrite_lift_n] at j'; simp [*]
+     rw [Subst.rewrite_lift_succ] at j'; simp at j'
+     exact j'
+
+theorem Kinding.closed : G&[] ⊢ A : K -> ∀ σ, A[σ] = A := by
+  intro j
+  have lem := closed_rep j; simp [-rewrite_lift_n] at lem
+  exact lem
+
+theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
+  intro j; cases j; case _ j => exact j
+
+theorem GlobalWf.tail {G : List Global} : ⊢ (g :: G) -> ⊢ G := by
+  intro j; cases j; case _ j _ => exact j
+
+theorem SpineKinding.closed : {T : SpineTy} -> SpineKinding v x G T -> ∀ σ, T[σ:Ty] = T
+| ⟨m, Ks, n, Ts, R⟩, valid (Δ := Δ) e j1 j2 j3 j4, σ =>
+  have e2 : Δ.length = m := by rw [<-e]; simp
+  have lem1 := λ (i : Fin n) => (j1 i).closed_rep σ
+  have lem2 := j2.closed_rep σ |> cast (by rw [e2])
+  have lem3 : Ts[σ.lift m:_] = Ts := by
+    apply Vec.eq_index_ext; rw [e2] at lem1
+    simp [-rewrite_lift_n] at lem1; exact lem1
+  by simp [-rewrite_lift_n] ; exact ⟨lem3, lem2⟩
+
+theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
+  ⊢ G ->
+  lookup_spine_type G x = some T ->
+  ∀ σ, T[σ:Ty] = T
+:= by
+  intro wf h; unfold lookup_spine_type at h
+  fun_induction lookup
+  all_goals try
+    case _ ih =>
+      cases wf; case _ wf _ =>
+      apply ih wf h
+  all_goals try simp [Entry.spine_type] at h
+  case _ n y K ctors tl ctors' h2 ih =>
+    generalize zdef : Vec.fold (lookup x tl) Option.or ctors' = z at *
+    cases z <;> simp at h; case _ z =>
+    generalize wdef : lookup x tl = w at *
+    cases w <;> simp at *
+    case _ =>
+      sorry
+    case _ e =>
+      sorry
+  case _ =>
+    cases wf; case _ wf =>
+    cases wf; case _ h1 h2 =>
+    subst h
+    apply SpineKinding.closed h2
+  case _ =>
+    cases wf; case _ wf =>
+    cases wf; case _ h1 h2 =>
+    subst h
+    apply SpineKinding.closed h2
+
+theorem GlobalWf.subst_cancel_lookup_ctor? {G : List Global} :
+  ⊢ G ->
+  (e : T' = T[σ:Ty]) ->
+  lookup_ctor? G v x T' ->
+  lookup_ctor? G v x T
+:= by
+  intro wf e j
+  simp [lookup_ctor?] at *
+  generalize zdef : T.spine = z
+  cases z <;> simp
+  case none =>
+    have lem : T'.spine = none := sorry
+    rw [lem] at j; simp at j
+  case some z =>
+    rcases z with ⟨z, sp⟩
+    have lem : T'.spine = some (z, sp[σ:Ty]) := sorry
+    rw [lem] at j; simp at j; simp; exact j
+
+theorem extend_lemma {ℓ₁ ℓ₂ : List A} : {x : Nat} -> ℓ₁[x]? = some t -> (ℓ₁ ++ ℓ₂)[x]? = some t
+| 0, h =>
+  match ℓ₁ with
+  | .nil => by simp at h
+  | .cons a tl => by simp_all
+| x + 1, h =>
+  match ℓ₁ with
+  | .nil => by simp at h
+  | .cons a tl => extend_lemma (ℓ₁ := tl) (ℓ₂ := ℓ₂) h
+
+theorem Kinding.extend : G&Δ₁ ⊢ A : K -> G&(Δ₁ ++ Δ₂) ⊢ A : K
+| var h => var (extend_lemma h)
+| global h => global h
+| arrow j1 j2 => arrow j1.extend j2.extend
+| all j => all j.extend
+| app j1 j2 => app j1.extend j2.extend
+| eq j1 j2 => eq j1.extend j2.extend
+
+theorem Ty.data?_closed σ : Ty.data? v G T -> Ty.data? v G T[σ]
+| ⟨x, sp, e, j⟩ =>
+  have lem : T[σ].spine = some (x, sp[σ:_]) := by
+    sorry
+  ⟨x, sp[σ:Ty], lem, j⟩
+
+theorem Query.closed (wf : ⊢ G) : {S : Vec Ty n} -> (e : S' = S[σ:Ty]) -> Query G v q S' -> Query G v q S
+| .nil, e, .nil => .nil
+| .cons hd tl, e, .cons j1 j2 => by
+  simp at e; rw [e.1] at j1
+  have lem := Query.closed wf e.2 j2
+  apply VecTyping.cons _ lem
+  apply GlobalWf.subst_cancel_lookup_ctor? wf rfl j1
 
 theorem Typing.closed_type_rep :
   G&Δ,Γ ⊢ t : A ->
@@ -161,22 +277,69 @@ theorem Typing.weaken_type_closed Δ :
   G&[],[] ⊢ t : A ->
   G&Δ,[] ⊢ t : A
 := by
-  intro wf j
-  have lem1 := weaken_type_list Δ wf j; simp at lem1
-  obtain ⟨q1, q2⟩ := closed_type j (Ren.to (· + Δ.length))
-  rw [q1, q2] at lem1
-  exact lem1
+  sorry
+  -- intro wf j
+  -- have lem1 := weaken_type_list Δ wf j; simp at lem1
+  -- obtain ⟨q1, q2⟩ := closed_type j (Ren.to (· + Δ.length))
+  -- rw [q1, q2] at lem1
+  -- exact lem1
 
 theorem Typing.weaken_closed Γ :
   ⊢ G ->
   G&Δ,[] ⊢ t : A ->
   G&Δ,Γ ⊢ t : A
 := by
-  intro wf j
-  have lem1 := weaken_list Γ wf j; simp at lem1
-  have lem2 := closed j (Ren.to (· + Γ.length)) +0; simp at lem2
-  rw [lem2] at lem1
-  exact lem1
+  sorry
+  -- intro wf j
+  -- have lem1 := weaken_list Γ wf j; simp at lem1
+  -- have lem2 := closed j (Ren.to (· + Γ.length)) +0; simp at lem2
+  -- rw [lem2] at lem1
+  -- exact lem1
+
+
+theorem CoercionProject.extend Δ
+  : CoercionProject G Δ₁ n T A -> CoercionProject G (Δ₁ ++ Δ) n T A
+| fst_app j => fst_app j.extend
+| snd_app j => snd_app j.extend
+| fst_arrow j => fst_arrow j.extend
+| snd_arrow j => snd_arrow j.extend
+
+theorem PatternBinders.extend Δ
+  : PatternBinders G Δ₁ m S p ξ -> PatternBinders G (Δ₁ ++ Δ) m S p ξ
+| zero => zero
+| succ j1 j2 e1 e2 j3 => succ j1 (λ i => (j2 i).extend) e1 e2 (j3.extend _)
+
+theorem Typing.extend Δ Γ : G&Δ₁,Γ₁ ⊢ t : A -> G&(Δ₁ ++ Δ),(Γ₁ ++ Γ) ⊢ t : A
+| var (x := x) j1 j2 => var (extend_lemma j1) j2.extend
+| defn j1 j2 => defn j1 j2.extend
+| spctor j1 e1 e2 j2 j3 j4 j5 => spctor j1 e1 e2 (λ i => (j2 i).extend) (λ i => (j3 i).extend _ _) j4 j5
+| mtch j1 j2 j3 j4 j5 =>
+  let j4' := (λ i => (j4 i).extend Δ Γ ▸ congr 1; grind)
+  mtch (λ i => (j1 i).extend _ _) j2 (λ i => (j3 i).extend _) j4' j5
+| lam (A := A) j1 j2 => lam j1.extend (j2.extend _ _)
+| app j1 j2 => app (j1.extend _ _) (j2.extend _ _)
+| lamt j1 j2 => lamt j1.extend (j2.extend Δ Γ[+1:Ty] ▸ simp)
+| appt (P := P) j1 j2 e => appt (j1.extend _ _) j2.extend e
+| refl j1 => refl j1.extend
+| cast j1 j2 j3 e => cast j1.extend (j2.extend _ _) (j3.extend _ _) e
+| prj j1 j2 => prj (j1.extend _ _) (j2.extend _)
+| allc j1 => allc (j1.extend Δ Γ[+1:Ty] ▸ simp)
+| apptc j1 j2 e1 e2 => apptc (j1.extend _ _) (j2.extend _ _) e1 e2
+
+theorem GlobalWf.closed_lookup_defn {G : List Global} :
+  ⊢ G ->
+  lookup_defn G x = some (A, t) ->
+  (∀ σ, A[σ:Ty] = A) ∧ (∀ σ, t[σ:Term] = t) ∧ (∀ σ, t[σ:Ty] = t)
+:= by
+  intro wf h
+  unfold lookup_defn at h; simp at h
+  replace h := Option.bind_eq_some_iff.1 h
+  rcases h with ⟨e, h⟩
+  cases e <;> simp at h; case _ z B s =>
+  rcases h with ⟨h, e1, e2⟩; subst e1 e2
+  have lem := EntryWf.from_lookup wf h
+  cases lem; case _ j1 j2 lem =>
+  sorry
 
 theorem Kinding.closed_lifting_lemma :
   ∀ Δ', ⊢ G ->
