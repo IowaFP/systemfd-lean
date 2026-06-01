@@ -59,6 +59,11 @@ def Vec.eq [BEq α]: Vec α n -> Vec α m -> Bool
 | .cons hd1 tl1, .cons hd2 tl2 => hd1 == hd2 && Vec.eq tl1 tl2
 | _ , _=> false
 
+def Vec.eq_sound [BEq α] {vs1 : Vec α n} {vs2 : Vec α m} : vs1.eq vs2 = true ->
+  m = n := by
+intro h
+fun_induction Vec.eq <;> simp at *
+simp_all
 -- protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 -- | 0, _, _ => ""
 -- | 1, v, _ => repr (v 0)
@@ -240,19 +245,21 @@ where
 @[simp]
 theorem Vec.range_zero : range 0 = .nil := sorry
 
+@[simp]
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
   vs.fold true (λ c acc => c == e && acc)
 
--- theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec n Q} :
---   vs.elems_eq_to e = true ->
---   ∀ i, (vs i) = e := by
--- apply vs.induction <;> simp [Vec.elems_eq_to] at *
--- case _ =>
---   intro n hd tl ih e h
---   subst hd; replace ih := ih h
---   intro i'
---   induction i' using Fin.induction <;> simp at *
---   case _ i _ => apply ih i
+theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec Q n} :
+  vs.elems_eq_to e = true ->
+  ∀ i, (vs.get_elem i) = e := by
+intro h
+induction vs <;> simp at *
+case _ n hd tl ih =>
+  cases h.1; replace ih := ih h.2
+  intro i'
+  induction i' using Fin.induction <;> simp at *
+  case _ => simp [get_elem, Fin.cases_zero]
+  case _ => simp[get_elem, Fin.cases_succ]; apply ih
 
 
 -- theorem quantifier_flip {Q Q' : Type} {v : Vec n Q} (f : Q -> Option Q') :
@@ -283,6 +290,7 @@ def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
 
 
 -- -- Returns the 1st element if all the elements are equal
+@[simp]
 def Vec.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vec Q n) : Option Q :=
 match vs with
 | .nil => none
@@ -291,20 +299,20 @@ match vs with
   let e <- xs.get_elem_if_eq
   if e == x then return x else none
 
--- theorem Vec.get_elem_if_eq_sound[BEq Q] [LawfulBEq Q] {vs : Vec n Q} {t : Q} :
---   vs.get_elem_if_eq = some t ->
---   ∀ i, vs i = t := by
--- apply vs.induction
--- case _ => simp
--- case _ =>
---   intro n hd tl ih
---   simp [Vec.get_elem_if_eq];
---   intro h1 h2
---   subst t; intro i
---   induction i using Fin.induction <;> simp at *
---   case _ i h =>
---     have lem := Vec.elems_eq_to_sound h1
---     apply lem i
+theorem Vec.get_elem_if_eq_sound [BEq Q] [LawfulBEq Q] {vs : Vec Q n} {t : Q} :
+  vs.get_elem_if_eq = some t ->
+  ∀ i, vs.get_elem i = t := by
+intro h;
+fun_induction Vec.get_elem_if_eq <;> simp at *
+case _ => simp [get_elem, Fin.cases_zero]; assumption
+case _ n x xs ih1 ih2 =>
+  intro i
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h⟩
+  simp at h; cases h.2.1; cases h.2.2; simp at h
+  simp[get_elem]
+  induction i using Fin.induction
+  · simp[Fin.cases_zero]
+  · simp[Fin.cases_succ]; apply ih1 h
 
 -- Finds the first element that satisfies the predicate and its index
 @[simp]
@@ -338,18 +346,7 @@ def Vec.any {n : Nat} : (vs : Vec (Option T) n) -> Option T
 | .cons (some x) xs => some x
 | .cons _ xs => xs.any
 
-def Vec.anyWithIndex_aux {n : Nat} : Nat -> (vs : Vec (Option T) n) -> Option (T × Nat)
-| _ , .nil => none
-| k, .cons (some x) xs => some (x, k)
-| k, .cons _ xs => xs.anyWithIndex_aux (k + 1)
-
-
--- returns the first element that is not none
-@[simp]
-def Vec.anyWithIndex {n : Nat} (vs : Vec (Option T) n) : Option (T × Nat) := Vec.anyWithIndex_aux 0 vs
-
-#guard (Vec.anyWithIndex #𝓋[none, some 1, some 2]) == some (1, 1)
-
+#guard (Vec.find Option.isSome #𝓋[none, some 1, some 2]) == some (some 1, 1)
 
 -- Proof that Any actually matches the first element
 theorem Vec.any_returns_first {t : T} {n : Nat} : (vs : Vec (Option T) n) ->

@@ -95,19 +95,23 @@ def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Optio
   else none
 | _ , _ => none
 
+@[simp]
 def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Ty)
 | 0, _, _ => some []
 | m + 1, .cons A' Ss, .cons ⟨c, na, As, nb⟩ ps => do
   let ℓ <- pattern_binders G Δ m Ss ps
   let ⟨na', Ks, nb', Ts, R⟩ <- lookup_spine_type G c
-  let τ := Sequ.append_vec (As.map su) +0
-  let mAsk := As.map (λ t => t.infer_kind G Δ)
-  let Ask <- mAsk.seq
-  if Ask.eq Ks && nb == nb' && na' == na
+  if nb == nb' && na' == na
   then
-    let Ts' := Ts.map (λ T => T[τ])
-     if R[τ] == A' then return (Ts'.to_list ++ ℓ) else none
-   else none
+    let τ := Sequ.append_vec (As.map su) +0
+    let mAsk := As.map (λ t => t.infer_kind G Δ)
+    let Ask <- mAsk.seq
+    if Ask.eq Ks
+    then
+      let Ts' := Ts.map (λ T => T[τ])
+      if R[τ] == A' then return (Ts'.to_list ++ ℓ) else none
+    else none
+  else none
 | _, _ , _ => none
 
 @[simp]

@@ -65,11 +65,11 @@ instance instRepr_Ty : Repr Ty where
   reprPrec a p := Ty.repr p a
 
 def Vec.Ty.repr : Vec Ty n -> Std.Format
-| .nil => ""
+| .nil => ".nil"
 | .cons x xs => x.repr max_prec ++ ", " ++ Vec.Ty.repr xs
 
 def Vec.Kind.repr : Vec Kind n -> Std.Format
-| .nil => ""
+| .nil => ".nil"
 | .cons x xs => x.repr max_prec ++ ", " ++ Vec.Kind.repr xs
 
 def SpineTy.repr : SpineTy -> Std.Format

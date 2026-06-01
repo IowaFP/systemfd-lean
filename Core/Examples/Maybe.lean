@@ -62,6 +62,17 @@ def MaybeBoolCtx : GlobalEnv := [
 
 #guard MaybeBoolCtx.wf_globals == .some ()
 
+#eval lookup "eq" MaybeBoolCtx
+#eval do
+  let e := lookup "eq" MaybeBoolCtx
+  match e with
+  | some (.openm _ ⟨_, Ks, m, Ts, R⟩) => do
+      pattern_binders MaybeBoolCtx Ks.to_list m Ts (#𝓋[ ⟨"EqMaybe", 2, #𝓋[ t#1, gt#"Maybe" • gt#"Bool" ], 2⟩ ])
+      -- let T <- t.infer_type G Ks.to_list Γ
+      -- if T == R then return () else none
+  | _ => none
+
+
 def NothingCtor (T : Ty) : Term := ctor! "Nothing" #𝓋[T] .nil
 def JustCtor (T : Ty) (Tm : Term) : Term := ctor! "Just" #𝓋[T] (Vec.to #𝓋[Tm])
 
