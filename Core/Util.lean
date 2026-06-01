@@ -1,6 +1,9 @@
+import Lilac
 import LeanSubst
 import Lean.Parser
+import Core.Vec
 
+open Lilac
 open LeanSubst
 
 macro t:term " ▸ " tac:Lean.Parser.Tactic.tacticSeq : term => `(cast (by $tac) $t)
@@ -126,3 +129,93 @@ instance [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] [SubstMapCompose S 
   : SubstMapCompose (List S) T
 where
   apply_compose := by intro s σ τ; induction s <;> simp [*]
+
+@[simp]
+theorem Vec.map_of_smap_fix [SubstMap A T] {σ : Subst T} : {v : Vec A n} -> Vec.map (·[σ:_]) v = v[σ:_]
+| .nil => by simp
+| .cons hd tl =>
+  have lem := Vec.map_of_smap_fix (σ := σ) (v := tl)
+  by simp; exact lem
+
+@[simp]
+theorem rewrite3_append_su [RenMap T] [SubstMap T T] {σ τ : Subst T} :
+  {v : Vec T n} ->
+  Sequ.append_vec (Vec.map su v) σ ∘ τ = Sequ.append_vec (Vec.map su v[τ:_]) (σ ∘ τ)
+| .nil => by simp [Sequ.append_vec]
+| .cons hd tl =>
+  have lem := rewrite3_append_su (σ := σ) (τ := τ) (v := tl)
+  by simp [Sequ.append_vec]; rw [lem]
+
+@[simp]
+theorem rewrite3_append_re [RenMap T] [SubstMap T T] {σ τ : Subst T} :
+  {v : Vec Nat n} ->
+  Sequ.append_vec (Vec.map re v) σ ∘ τ = Sequ.append_vec (Vec.map (λ i => τ i) v) (σ ∘ τ)
+| .nil => by simp [Sequ.append_vec]
+| .cons hd tl =>
+  have lem := rewrite3_append_re (σ := σ) (τ := τ) (v := tl)
+  by simp [Sequ.append_vec]; rw [lem]
+
+def Subst.add (k : Nat) : Subst T := λ n => re (n + k)
+
+@[simp]
+theorem Subst.add_1 : @Subst.add T 1 = +1 := sorry
+
+@[simp]
+theorem rewrite4_append [RenMap T] [SubstMap T T] {v : Vec (Subst.Action T) n}
+  : (Subst.add k) ∘ (Sequ.append_vec v σ) = σ
+:= sorry
+
+@[simp]
+theorem rewrite_lift_n [RenMap T] [SubstMap T T] [SubstMapStable T] {σ : Subst T}
+  : σ.lift n = Sequ.append_vec (Vec.map re $ Vec.range n) (σ ∘ Subst.add n)
+:= by
+  induction n generalizing σ
+  case zero =>
+    simp [Sequ.append_vec]
+    unfold Subst.add; unfold Subst.lift; simp
+    funext; case _ i =>
+    simp [Subst.compose]
+    rw [Subst.apply_stable]; simp
+    unfold Subst.id; rfl
+  case succ n ih =>
+    sorry
+
+@[simp]
+theorem rewrite_vec_map_range_1 : Vec.map (@re T) (Vec.range 1) = #𝓋[re 0] := by
+  simp [Vec.map, Vec.range, Vec.range.go]
+
+@[simp]
+theorem rewrite_append_over_range {v : Vec (Subst.Action T) n}
+  : Vec.map (Sequ.append_vec v +0) (Vec.range n) = v
+:= sorry
+
+@[simp]
+theorem rewrite_cons_over_range
+  : Vec.map (a::+0) (Vec.range 1) = #𝓋[a]
+:= sorry
+
+@[simp]
+theorem rewrite_append_singleton
+  : Sequ.append_vec #𝓋[a] σ = a::σ
+:= sorry
+
+@[simp]
+theorem List.subst_append [RenMap T] [SubstMap T T] {a b : List T} {σ : Subst T}
+  : (a ++ b)[σ:T] = a[σ:T] ++ b[σ:T]
+:= sorry
+
+@[simp]
+theorem Vec.subst_to_list [RenMap T] [SubstMap T T] {v : Vec T n} {σ : Subst T}
+  : (Vec.to_list v)[σ:_] = Vec.to_list v[σ:_]
+:= sorry
+
+@[grind =]
+theorem Fun.Vec.subst_to [RenMap T] [SubstMap T T] {v : Fun.Vec T n}
+  : (v.to)[σ:T] = Fun.Vec.to (λ i => (v i)[σ:T]) := sorry
+
+@[simp, grind =]
+theorem List.getElem?_subst [RenMap T] [SubstMap S T] {ℓ : List S} {σ : Subst T} {x : Nat}
+  : ℓ[x]?[σ:T] = ℓ[σ:T][x]?
+:= by
+  induction ℓ generalizing x <;> simp
+  case _ hd tl ih => cases x <;> simp [*]

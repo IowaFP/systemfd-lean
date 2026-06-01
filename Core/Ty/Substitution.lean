@@ -162,6 +162,8 @@ instance : SubstMapRenComposeRight SpineTy Ty where
 instance : SubstMapCompose SpineTy Ty where
   apply_compose := by intro t; rcases t with ⟨m, Ks, n, Ts, R⟩; simp
 
+theorem Ty.smap_promote : Ty.smap σ A = A[σ:Ty] := by simp [SubstMap.smap]
+
 -- theorem Ty.rename_preserves_var_shape {r : Ren} : t#x = T[r] -> ∃ y,  (T = t#y ∧ x = r y) := by
 --   intro h
 --   induction T <;> simp at *

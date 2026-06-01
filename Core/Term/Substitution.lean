@@ -470,4 +470,8 @@ instance : SubstMapCompose Term Term where
 -- | .term σ tl => t[σ].isubst tl
 -- | .type σ tl => t[σ:Ty].isubst tl
 
+theorem Term.Ty.smap_promote : Term.Ty.smap σ A = A[σ:Ty] := by simp [SubstMap.smap]
+
+theorem Term.smap_promote : Term.smap σ t = t[σ:Term] := by simp [SubstMap.smap]
+
 end Core

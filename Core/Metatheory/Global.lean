@@ -259,8 +259,6 @@ theorem lookup_ctor_strengthen (wf : ⊢ (g::G))
     split at e <;> simp_all
     subst e; simp_all [Entry.ctor?]
 
-
-
 theorem lookup_defn_weaken (wf : ⊢ (g::G))
   : lookup_defn G x = some e -> lookup_defn (g::G) x = some e
 := by
