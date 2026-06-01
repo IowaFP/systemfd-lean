@@ -63,11 +63,14 @@ def MaybeBoolCtx : GlobalEnv := [
 #guard MaybeBoolCtx.wf_globals == .some ()
 
 #eval lookup "eq" MaybeBoolCtx
+#eval lookup_spine_type MaybeBoolCtx "EqMaybe"
+-- na = 2, Ks = [★, ★], nb = 2, Ts := t ~ Maybe u, Eq u, R := Eq t
+
 #eval do
   let e := lookup "eq" MaybeBoolCtx
   match e with
   | some (.openm _ ⟨_, Ks, m, Ts, R⟩) => do
-      pattern_binders MaybeBoolCtx Ks.to_list m Ts (#𝓋[ ⟨"EqMaybe", 2, #𝓋[ t#1, gt#"Maybe" • gt#"Bool" ], 2⟩ ])
+      pattern_binders MaybeBoolCtx Ks.to_list m Ts (#𝓋[ ⟨"EqMaybe", 2, #𝓋[ t#1 , gt#"Eq" • t#0 ], 2⟩ ])
       -- let T <- t.infer_type G Ks.to_list Γ
       -- if T == R then return () else none
   | _ => none

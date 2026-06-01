@@ -64,15 +64,8 @@ def Vec.eq_sound [BEq α] {vs1 : Vec α n} {vs2 : Vec α m} : vs1.eq vs2 = true 
 intro h
 fun_induction Vec.eq <;> simp at *
 simp_all
--- protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
--- | 0, _, _ => ""
--- | 1, v, _ => repr (v 0)
--- | _ + 1, v, i =>
---   let ⟨h , t⟩ := v.uncons
---   (repr h) ++ ", " ++ (Vec.reprPrec t i)
 
--- instance [Repr T] : Repr (Vec n T) where
---   reprPrec v n := "v[" ++ Vec.reprPrec v n ++ "]"
+
 
 @[simp]
 theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
@@ -120,7 +113,12 @@ theorem Vec.enumerate_index {v : Vec A n} {i : Fin n} : (Vec.enumerate v)[i] = (
   simp [enumerate]; rw [enumerate_index.go]; simp
 
 @[simp, grind =]
-theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by sorry
+theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by
+  fun_induction Vec.map
+  case _ => apply Fin.elim0 i
+  case _ hd tl ih =>
+  induction i using Fin.induction <;> simp at *
+  case _ h => apply ih
 
 def Vec.length (_ : Vec A n) : Nat := n
 
@@ -213,6 +211,17 @@ theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : 
 --           case _ i => rw [lem]; simp; apply ih i
 --   }
 
+
+def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
+| 0, _, _ => ""
+| 1, v, _ => repr (v.get_elem 0)
+| _ + 1, .cons v t, i =>
+  (repr v) ++ ", " ++ (Vec.reprPrec t i)
+
+
+instance instRepr_Vec [Repr T] : Repr (Vec T n) where
+  reprPrec v n := "#𝓋[" ++ Vec.reprPrec v n ++ "]"
+
 @[simp]
 def Vec.seq : Vec (Option T) n -> Option (Vec T n)
 | .nil => some .nil
@@ -259,7 +268,7 @@ case _ n hd tl ih =>
   intro i'
   induction i' using Fin.induction <;> simp at *
   case _ => simp [get_elem, Fin.cases_zero]
-  case _ => simp[get_elem, Fin.cases_succ]; apply ih
+  case _ => simp [get_elem, Fin.cases_succ]; apply ih
 
 
 -- theorem quantifier_flip {Q Q' : Type} {v : Vec n Q} (f : Q -> Option Q') :
