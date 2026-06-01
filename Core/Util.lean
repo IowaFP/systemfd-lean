@@ -158,12 +158,15 @@ theorem rewrite3_append_re [RenMap T] [SubstMap T T] {σ τ : Subst T} :
 def Subst.add (k : Nat) : Subst T := λ n => re (n + k)
 
 @[simp]
-theorem Subst.add_1 : @Subst.add T 1 = +1 := sorry
+theorem Subst.add_1 : @Subst.add T 1 = +1 := by unfold add; funext; simp
 
-@[simp]
-theorem rewrite4_append [RenMap T] [SubstMap T T] {v : Vec (Subst.Action T) n}
-  : (Subst.add k) ∘ (Sequ.append_vec v σ) = σ
-:= sorry
+-- @[simp]
+-- theorem rewrite4_append [RenMap T] [SubstMap T T] {v : Vec (Subst.Action T) n}
+--   : (Subst.add k) ∘ (Sequ.append_vec v σ) = σ
+-- := match n, v with
+--    | 0, .nil => by unfold Sequ.append_vec; sorry
+--    | n + 1, .cons x xs => sorry
+
 
 @[simp]
 theorem rewrite_lift_n [RenMap T] [SubstMap T T] [SubstMapStable T] {σ : Subst T}
@@ -171,13 +174,15 @@ theorem rewrite_lift_n [RenMap T] [SubstMap T T] [SubstMapStable T] {σ : Subst 
 := by
   induction n generalizing σ
   case zero =>
-    simp [Sequ.append_vec]
     unfold Subst.add; unfold Subst.lift; simp
     funext; case _ i =>
-    simp [Subst.compose]
-    rw [Subst.apply_stable]; simp
-    unfold Subst.id; rfl
+    generalize z_def : σ i = z at *
+    cases z <;> simp at *
+    simp [Vec.range.go, Sequ.append_vec, Subst.compose, z_def]
+    simp [Vec.range.go, Sequ.append_vec, Subst.compose, z_def];
+    sorry
   case succ n ih =>
+    simp;
     sorry
 
 @[simp]
@@ -187,7 +192,7 @@ theorem rewrite_vec_map_range_1 : Vec.map (@re T) (Vec.range 1) = #𝓋[re 0] :=
 @[simp]
 theorem rewrite_append_over_range {v : Vec (Subst.Action T) n}
   : Vec.map (Sequ.append_vec v +0) (Vec.range n) = v
-:= sorry
+:= by simp; sorry
 
 @[simp]
 theorem rewrite_cons_over_range

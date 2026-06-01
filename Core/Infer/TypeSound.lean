@@ -48,7 +48,7 @@ case _ n ih =>
   let nb' := h3.2.2.1
   let h := @PatternBinders.succ G Δ h3.snd.snd.1 c h3.1 Ks (S := S) (p := ps') (ℓ := Γ') (R := R) (As := As) (R' := R') (Ts := Ts) (Ts' := Ts'') n
     (by have lem : Ks = h3.2.1 := by sorry
-        rw[h4]; simp[Ts, R, lem])
+        simp[h4, Ts, R, lem])
     (by intro i; rw[h5.2] at i; replace h6 := h6 i; sorry)
     (by unfold Ts''; sorry)
     (by unfold R'; rfl) ih

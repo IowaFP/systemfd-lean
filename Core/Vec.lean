@@ -1,4 +1,3 @@
-import Core.Util
 import LeanSubst
 import Lilac
 
@@ -134,7 +133,15 @@ theorem Vec.to_list_length : {v : Vec A n} -> (Vec.to_list v).length = n
   have lem := Vec.to_list_length (v := tl)
   by grind [Vec.to_list]
 
-theorem Vec.eq_index_ext : {v1 v2 : Vec A n} -> (∀ (i : Fin n), v1[i] = v2[i]) -> v1 = v2 := sorry
+theorem Vec.eq_index_ext {v1 v2 : Vec A n} : (∀ (i : Fin n), v1[i] = v2[i]) -> v1 = v2 :=
+  match n, v1, v2 with
+  | 0, Vec.nil, Vec.nil => λ _ => Vec.nil_singleton .nil .nil
+  | n + 1, .cons h1 t1 , .cons h2 t2 =>
+    by intro h;
+       have he := h 0; simp at he;
+       subst he; simp;
+       apply Vec.eq_index_ext
+       intro i; apply h i.succ
 
 @[simp]
 def Vec.sum : Vec Nat n -> Nat
@@ -176,41 +183,12 @@ where
   apply_compose := by intro s σ τ; induction s <;> simp [*]
 
 @[simp]
-theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : v[i][σ:_] = v[σ:_][i] := sorry
-
--- theorem length_coerce: ∀ n, Vec.length v = n -> (Vec.to_list v).length = n := by
--- apply v.induction <;> simp [Vec.length] at *
-
-
--- def Vec.seq_lemma (vs : Vec n (Option Q)) :
---   (Σ' (i : Fin n), ¬ (vs i).isSome) ⊕ ((i : Fin n) -> Σ' A, (vs i) = some A)
--- := by {
---     induction n
---     case _ =>
---       apply Sum.inr; intro i
---       apply Fin.elim0 i
---     case _ n ih =>
---       generalize zdef : uncons vs = z at *
---       rcases z with ⟨h, t⟩
---       have lem := Vec.uncons_iff.1 zdef
---       cases h
---       case none =>
---         apply Sum.inl; apply PSigma.mk 0
---         rw [lem]; simp
---       case some h =>
---         replace ih := ih t
---         cases ih
---         case _ ih =>
---           rcases ih with ⟨k, ih⟩
---           apply Sum.inl; apply PSigma.mk (Fin.succ k)
---           rw [lem]; simp at *; exact ih
---         case _ ih =>
---           apply Sum.inr; intro i
---           cases i using Fin.cases
---           case _ => rw [lem]; simp; apply PSigma.mk h; rfl
---           case _ i => rw [lem]; simp; apply ih i
---   }
-
+theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : v[i][σ:_] = v[σ:_][i] :=
+  match n, v with
+  | 0, v => Fin.elim0 i
+  | n + 1, .cons x xs => by
+    induction i using Fin.induction <;> simp at *
+    case _ i h => sorry
 
 def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 | 0, _, _ => ""
@@ -245,6 +223,7 @@ case _ v vs ih =>
   induction i using Fin.induction <;> simp [get_elem] at *
   case _ i h => apply ih h1 i
 
+@[simp]
 def Vec.range (n : Nat) : Vec Nat n := go n 0
 where
   go : (n : Nat) -> Nat -> Vec Nat n
@@ -252,7 +231,8 @@ where
   | n + 1, acc => .cons acc (go n (acc + 1))
 
 @[simp]
-theorem Vec.range_zero : range 0 = .nil := sorry
+theorem Vec.range_zero : range 0 = .nil := by
+  unfold range; unfold range.go; apply Vec.nil_singleton
 
 @[simp]
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
@@ -298,7 +278,7 @@ case _ n hd tl ih =>
 --     replace lem := lem i; simp at lem; assumption
 
 
--- -- Returns the 1st element if all the elements are equal
+-- Returns the 1st element if all the elements are equal
 @[simp]
 def Vec.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vec Q n) : Option Q :=
 match vs with
@@ -340,13 +320,11 @@ def Vec.find_aux {n : Nat} (p : T -> Bool) (vs : Vec T n) (k : Nat) : Option (T 
 def Vec.find {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (T × Fin n) := Vec.find_aux p vs 0
 
 
-theorem Vec.find_returns_first_elem {n : Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) : vs.find p = some ei ->
-  vs.get_elem ei.snd = ei.fst ∧
-  ∀ j : Fin n, j < ei.snd -> p (vs.get_elem j) = false := by
-intro h; unfold Vec.find at h;
-generalize idx : 0 = k at *
-sorry
-
+theorem Vec.find_returns_first_elem {n : Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
+  vs.find p = some ei ->
+  vs.get_elem ei.2 = ei.1 :=
+  -- ∀ j : Fin n, j < ei.snd -> p (vs.get_elem j) = false :=
+by sorry
 
 -- returns the first element that is not none
 @[simp]
@@ -382,19 +360,5 @@ theorem Vec.zip_sound {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> (i : Fin n) ->
 | .cons p ps, .cons q qs, i => by
   induction i using Fin.induction <;> simp [Vec.get_elem] at *
   case _ i ih => apply Vec.zip_sound ps qs i
-
-
--- theorem Vect.map_cons {f : Q -> P} {v : Vect n Q} {v' : Vect (n + 1) P} {q : Q} :
---   v' = (λ i => f ((Vect.cons q v) i)) ->
---   v' = Vect.cons (f q) (λ i => (f (v i))) := by
--- intro h
--- revert v' v;
--- intro v
--- apply v.induction
--- case nil => simp
--- case cons =>
---   intro n hd tl ih1
---   intro v' ih2
---   sorry
 
 end Lilac
