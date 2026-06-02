@@ -95,6 +95,21 @@ def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Optio
   else none
 | _ , _ => none
 
+def query (G : GlobalEnv) (c : DataConst) : (ps : Vec String m) -> (qs : Vec Ty m) -> Option Unit
+| .nil, .nil => some ()
+| .cons x xs, .cons y ys => do
+  let _ <- query G c xs ys
+  if lookup_ctor? G c x y
+  then some ()
+
+
+def query_match : Vec String m -> Pattern m -> Option Unit
+| .nil, _ => some ()
+| .cons x xs, .cons y ys => do
+  let _ <- query_match xs ys
+  if x == y.1 then some () else none
+
+
 @[simp]
 def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Ty)
 | 0, _, _ => some []
@@ -167,7 +182,11 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let mξs : Lilac.Fun.Vec (Option (List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
   let ξs <- mξs.to.seq
   let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs.get_elem i) ++ Γ)
-  -- -- TODO: Query business to make sure matches are exhaustive
+  -- TODO: Query business to make sure matches are exhaustive
+  -- Plan:
+  -- Get the types of all the scrutinees
+  -- get the possible tags/constructor names for each of the scrutinee datatype
+  -- given a permutation of tags, the function spits out the row in the pattern vector
   let Ts' <- mTs'.to.seq
   let T <- Ts'.get_elem_if_eq
   return T

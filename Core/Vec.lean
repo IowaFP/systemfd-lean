@@ -399,4 +399,38 @@ theorem Vec.eq_sound [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h
     apply h.1
     apply Vec.eq_sound h.2
 
+-- failure indicates t was not in the vector
+def Vec.remove [BEq T] (t : T) : {n : Nat} -> Vec T (n + 1) -> Option (Vec T n)
+| 0, .cons x xs => if t == x then return xs else none
+| _ + 1, .cons x xs =>
+  if t == x then return xs
+  else do let xs' <- xs.remove t
+          return .cons x xs'
+
+-- counts the occurence of t in the vector
+def Vec.count [BEq T] (t : T) : Vec T n -> Nat
+| .nil => 0
+| .cons x xs => if t == x then 1 + xs.count t else xs.count t
+
+theorem Vec.count_cons [BEq T] (t x : T) (vs : Vec T n) :
+  Vec.count t (x :: vs) = if t == x then 1 + vs.count t else vs.count t := by
+simp [Vec.count];
+
+
+def Vec.remove_sound [BEq T][LawfulBEq T] (t : T) {vs : Vec T (n + 1)} {vs' : Vec T n}:
+  vs.remove t = some vs' ->
+  vs.count t = 1 + vs'.count t := by
+intro h
+fun_induction Vec.remove <;> simp [Vec.count] at *
+case _ h2 => rw[h2]; simp; subst h; rfl
+case _ h2 => rw[h2]; simp; subst h; rfl
+case _ ih v' =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨vs', h3, h⟩; cases h
+  split <;> simp at *
+  contradiction
+  replace ih := ih h3
+  rw[Vec.count_cons]; split <;> simp at *
+  contradiction
+  assumption
+
 end Lilac

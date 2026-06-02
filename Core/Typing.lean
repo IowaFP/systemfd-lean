@@ -11,32 +11,6 @@ namespace Core
 abbrev KindEnv := List Kind
 abbrev TyEnv := List Ty
 
-
--- None of this should be needed...
--- instance inst_getElem_TyEnv : GetElem TyEnv Nat Ty (λ env i => by simp [TyEnv] at env; apply i < env.length) where
---   getElem env i _ := by unfold TyEnv at env; apply env[i]
-
--- instance inst_getElem?_TyEnv : GetElem? TyEnv Nat Ty
---          (λ env i => by simp [TyEnv] at env; apply i < env.length) where
---   getElem? env i := by unfold TyEnv at env; apply env[i]?
-
--- instance inst_getElem_KindEnv : GetElem KindEnv Nat Kind
---          (λ env i => by simp [KindEnv] at env; apply i < env.length) where
---   getElem env i _ := by unfold KindEnv at env; apply env[i]
-
--- instance inst_getElem?_KindEnv : GetElem? KindEnv Nat Kind
---          (λ env i => by simp [KindEnv] at env; apply i < env.length) where
---   getElem? env i := by unfold KindEnv at env; apply env[i]?
-
--- def TyEnv.mapM [Monad m] (f : Ty -> m β) (env : TyEnv) := by simp [TyEnv] at env; apply env.mapM f
--- def TyEnv.map (f : Ty -> β) (env : TyEnv) := by simp [TyEnv] at env; apply env.map f
-
--- def KindEnv.map (f : Kind -> β) (env : KindEnv) := by simp [KindEnv] at env; apply env.map f
-
-
--- def ValidHeadVariable (t : Term) (test : String -> Bool) : Prop :=
---   ∃ x, Term.spine t = some x ∧ test x.fst
-
 inductive VecTyping (J : A -> B -> Prop) : Vec A m -> Vec B m -> Prop
 | nil : VecTyping J .nil .nil
 | cons :
@@ -46,31 +20,6 @@ inductive VecTyping (J : A -> B -> Prop) : Vec A m -> Vec B m -> Prop
 
 def Ty.HeadVariable (A : Ty) (test : String -> Bool) : Prop :=
   ∃ x sp, A.spine = some (x, sp) ∧ test x
-
--- def ValidTyHeadVariable (t : Ty) (test : String -> Bool) : Prop :=
---   ∃ x, Ty.spine t = some x ∧ test x.fst
-
--- inductive StableTypeMatch : List Kind -> Ty -> Ty -> Prop
--- | refl :
---   Ty.spine R = some x ->
---   StableTypeMatch Δ R R
--- | arrow :
---   StableTypeMatch Δ B R ->
---   StableTypeMatch Δ (A -:> B) R
--- | all :
---   StableTypeMatch (K::Δ) B R[+1] ->
---   StableTypeMatch Δ (∀[K] B) R
-
--- inductive PrefixTypeMatch : List Kind -> Ty -> Ty -> Ty -> Prop
--- | refl :
---   Ty.spine B = some x ->
---   PrefixTypeMatch Δ B T T
--- | arrow :
---   PrefixTypeMatch Δ B V T ->
---   PrefixTypeMatch Δ (A -:> B) (A -:> V) T
--- | all :
---   PrefixTypeMatch (K::Δ) B V T[+1] ->
---   PrefixTypeMatch Δ (∀[K] B) (∀[K] V) T
 
 inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 | var :
@@ -108,13 +57,6 @@ inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : Spi
   (sv = .openm -> ∀ (i : Fin n), Ts[i][τ].data? .opn G) ->
   SpineKinding sv x G ⟨m, Ks, n, Ts, R⟩
 
--- inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
--- | done : KindingPreamble G Δ [] T T
--- | cons {Ty : List Ty} :
---   G&Δ ⊢ A : K ->
---   KindingPreamble G Δ Ty T1[su A::+0] T2 ->
---   KindingPreamble G Δ (A::Ty) (∀[K] T1) T2
-
 inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
 | zero : PatternBinders G Δ 0 ss ps []
 | succ {Ts' : Vec _ nb} :
@@ -139,28 +81,11 @@ inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -
   G&Δ ⊢ C : ★ ->
   CoercionProject G Δ 1 (A -:> C ~[★]~ B -:> D) (C ~[★]~ D)
 
--- def Ty.ctor? (G : List Global) (ctor : String) (A : Ty) : Prop :=
---   ∃ D sp, A.spine = some (D, sp) ∧ Global.ctor? G ctor D
-
 def Query (G : List Global) (c : DataConst) (qs : Vec String m) (Ts : Vec Ty m) : Prop :=
   VecTyping (lookup_ctor? G c · ·) qs Ts
 
--- inductive Query (G : List Global) (c : DataConst) : Vec String m -> Vec Ty m -> Prop where
--- | nil : Query G c .nil .nil
--- | cons :
---   lookup_ctor? G c q A ->
---   Query G c qs As ->
---   Query G c (q::qs) (A::As)
-
 def Query.Match (qs : Vec String m) (ps : Pattern m) : Prop :=
   VecTyping (λ q p => ∃ na As nb, p = ⟨q, na, As, nb⟩) qs ps
-
--- inductive Query.Match : Vec String m -> Pattern m -> Prop where
--- | nil : Query.Match .nil .nil
--- | cons :
---   Query.Match qs ps ->
---   p = ⟨q, na, As, nb⟩ ->
---   Query.Match (q::qs) (p::ps)
 
 def OpenExhaustive (G : List Global) : Prop :=
   ∀ {x na nb} {τ : Subst Ty} {As Ks : Vec _ na} {Ts Ts' : Vec _ nb} {Δ R q},

@@ -59,9 +59,15 @@ case _ n ih =>
 
   sorry
 
-
-
-
+theorem query_match_sound : query_match qs ps = some () -> Query.Match qs ps := by
+intro h
+fun_induction query_match <;> simp at *
+case _ a => cases a; apply VecTyping.nil
+case _ y _ ih =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h3⟩
+  apply VecTyping.cons
+  simp at h3; exists y.2.1; exists y.2.2.1; exists y.2.2.2; subst h3; rfl
+  apply ih h2
 
 theorem infer_type_sound :
   ⊢ G ->
@@ -98,8 +104,22 @@ case _ ih => -- spctor
   rcases h9 with ⟨h11, h12⟩
   replace h4 := Vec.seq_sound h4
   sorry
-sorry
-sorry
+case _ => -- openm
+  sorry
+case _ m n ss ps ts smτs ih1 ih2 => -- match
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨S, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h5, h6, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h7, h8, h⟩
+  apply Typing.mtch (m := m) (n := n) (S := S.to)
+  sorry
+  sorry
+  intro i; replace h6 := Vec.seq_sound h6; replace h6 := h6 i; sorry
+  sorry
+  intro q qs; sorry
+  sorry
+
+
 sorry
 sorry
 sorry
