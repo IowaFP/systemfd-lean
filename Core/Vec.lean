@@ -80,7 +80,7 @@ def Vec.eq [BEq α]: Vec α n -> Vec α m -> Bool
 | .cons hd1 tl1, .cons hd2 tl2 => hd1 == hd2 && Vec.eq tl1 tl2
 | _ , _=> false
 
-def Vec.eq_sound [BEq α] {vs1 : Vec α n} {vs2 : Vec α m} : vs1.eq vs2 = true ->
+theorem Vec.eq_len_sound [BEq α] {vs1 : Vec α n} {vs2 : Vec α m} : vs1.eq vs2 = true ->
   m = n := by
 intro h
 fun_induction Vec.eq <;> simp at *
@@ -383,5 +383,20 @@ theorem Vec.zip_sound {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> (i : Fin n) ->
 | .cons p ps, .cons q qs, i => by
   induction i using Fin.induction <;> simp [Vec.get_elem] at *
   case _ i ih => apply Vec.zip_sound ps qs i
+
+theorem Vec.eq_sound [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h : v1.eq v2) ->
+  v1 = ((cast (by have lem := @Vec.eq_len_sound α n m _ v1 v2 h
+                  rw[lem]) v2))
+:= by
+  intro h;
+  have lem := Vec.eq_len_sound h
+  subst m
+  match n, v1, v2 with
+  | 0, .nil, .nil => simp
+  | n + 1, .cons x xs , .cons y ys =>
+    unfold Vec.eq at h; simp at *;
+    constructor
+    apply h.1
+    apply Vec.eq_sound h.2
 
 end Lilac

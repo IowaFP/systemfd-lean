@@ -32,6 +32,8 @@ case _ n ih =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks, h6, h⟩; simp at h
   rcases h with ⟨h7, h8, h9⟩
   replace ih := @ih _ _ Γ' h2
+  have lem' := Vec.eq_sound h7;
+
   replace h6 := Vec.seq_sound h6
   simp only [<-h5.2] at Ks
   simp [SpineTy] at h3;
