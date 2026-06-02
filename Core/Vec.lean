@@ -7,20 +7,34 @@ open LeanSubst
 namespace Lilac
 
 @[simp]
-theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v := sorry
+theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v
+ := by
+ apply v.induction <;> simp
+ · intro n hd tl ih
+   funext; case _ i =>
+   induction i using Fin.induction
+   case zero => rw[Fun.Vec.cons_zero]; unfold Fun.Vec.cons; rw[Fin.cases_zero]
+   case succ ih1 => rw[Fun.Vec.cons_succ]; unfold Fun.Vec.cons; rw[Fin.cases_succ]; rw[ih]
 
 @[simp]
-theorem Fun.Vec.to_iso : Fun.Vec.to (Lilac.Vec.to v) = v := sorry
+theorem Fun.Vec.to_iso : Fun.Vec.to (Lilac.Vec.to v) = v
+:= by
+  induction v <;> simp at *
+  case cons => assumption
 
 def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
-| k => if i == k then a else v i
+| k => if k == i then a else v k
 
 def Fun.Vec.length (_ : Fun.Vec A n) : Nat := n
 
 @[simp]
-theorem Fun.Vec.update_eq : update v a i i = a := sorry
+theorem Fun.Vec.update_eq : update v a i i = a := by
+  unfold update; simp
 
-theorem Fun.Vec.update_neq : ∀ j ≠ i, v j = update v a i j := sorry
+theorem Fun.Vec.update_neq : ∀ j ≠ i, v j = update v a i j := by
+  intro j i_ne_j
+  unfold update; simp
+  intro h; contradiction
 
 @[simp]
 def Vec.fold (d : B) (f : A -> B -> B) : Vec A n -> B
@@ -188,7 +202,7 @@ theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : 
   | 0, v => Fin.elim0 i
   | n + 1, .cons x xs => by
     induction i using Fin.induction <;> simp at *
-    case _ i h => sorry
+    case _ i ih => apply Vec.ren_index
 
 def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 | 0, _, _ => ""
@@ -320,11 +334,11 @@ def Vec.find_aux {n : Nat} (p : T -> Bool) (vs : Vec T n) (k : Nat) : Option (T 
 def Vec.find {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (T × Fin n) := Vec.find_aux p vs 0
 
 
-theorem Vec.find_returns_first_elem {n : Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
-  vs.find p = some ei ->
-  vs.get_elem ei.2 = ei.1 :=
-  -- ∀ j : Fin n, j < ei.snd -> p (vs.get_elem j) = false :=
-by sorry
+-- theorem Vec.find_returns_first_elem {n : Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
+--   vs.find p = some ei ->
+--   vs.get_elem ei.2 = ei.1 :=
+--   -- ∀ j : Fin n, j < ei.snd -> p (vs.get_elem j) = false :=
+-- by sorry
 
 -- returns the first element that is not none
 @[simp]
