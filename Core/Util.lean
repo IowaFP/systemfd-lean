@@ -165,28 +165,52 @@ theorem Subst.add_0 : @Subst.add T 0 = Ren.id := by unfold Subst.add; funext; si
 
 @[simp]
 theorem rewrite4_append [RenMap T] [SubstMap T T] {v : Vec (Subst.Action T) n}
-  : (Subst.add v.length) ∘ (Sequ.append_vec v σ) = σ
-:= match n, v with
-   | 0, .nil => by simp[Sequ.append_vec, Vec.length]
-   | n + 1, .cons σ' σs =>
-     by simp[Vec.length, Sequ.append_vec]
-        sorry
+  : (Subst.add n) ∘ (Sequ.append_vec v σ) = σ
+:= by
+  funext; case _ i =>
+  induction i <;> simp [Subst.compose, Subst.add] at *
+  case _ =>
+    induction v <;> simp [Sequ.append_vec] at *
+    assumption
+  case _ k ih1 =>
+    induction v <;> simp [Sequ.append_vec] at *
+    case _ k' σ' v' ih2 =>
+      apply ih2
+      have lem : k + (k' + 1) = (k + k') + 1 := by omega
+      rw[lem] at ih1; clear lem
+      simp at ih1; apply ih1
+
+theorem rename_range [RenMap T] [SubstMap T T] (k : Nat) : (Vec.map (@Subst.add T k) (Vec.range.go n 0)) = (Vec.map re (Vec.range.go n k))
+:= by
+  induction n
+  case zero => simp[Vec.range.go]
+  case succ n ih =>
+    simp[Vec.range.go];
+    constructor
+    simp[Subst.add]
+    sorry
+
+
 
 @[simp]
-theorem rewrite_lift_n [RenMap T] [SubstMap T T] [SubstMapStable T] {σ : Subst T}
+theorem rewrite_lift_n [RenMap T] [RenMapId T] [RenMapCompose T] [SubstMap T T] [SubstMapId T T] [SubstMapStable T][SubstMapCompose T T] {σ : Subst T}
   : σ.lift n = Sequ.append_vec (Vec.map re $ Vec.range n) (σ ∘ Subst.add n)
 := by
   induction n generalizing σ
   case zero =>
-    unfold Subst.add; unfold Subst.lift; simp
-    funext; case _ i =>
-    generalize z_def : σ i = z at *
-    cases z <;> simp at *
-    simp [Vec.range.go, Sequ.append_vec, Subst.compose, z_def]
-    simp [Vec.range.go, Sequ.append_vec, Subst.compose, z_def];
-    sorry
+    have lem := Subst.rewrite_lift_zero (σ := σ)
+    rw[Subst.rewrite_lift_zero]
+    simp; simp [Vec.range.go, Sequ.append_vec]
   case succ n ih =>
-    sorry
+    have lem := Subst.rewrite_lift_succ (σ := σ) (k := n)
+    rw[lem]; simp; rw[ih]
+    simp[Vec.range.go, Sequ.append_vec];
+    have lem1 : @Subst.add T n ∘ +1 = Subst.add (n + 1) := by unfold Subst.add; rfl
+    rw[lem1]
+    have lem2' := rename_range (T := T) (n := n) 1
+    rw[<-lem2']
+    rfl
+
 
 @[simp]
 theorem rewrite_vec_map_range_1 : Vec.map (@re T) (Vec.range 1) = #𝓋[re 0] := by
@@ -233,9 +257,11 @@ theorem Vec.subst_to_list [RenMap T] [SubstMap T T] {v : Vec T n} {σ : Subst T}
 theorem Fun.Vec.subst_to [RenMap T] [SubstMap T T] {v : Fun.Vec T n}
   : (v.to)[σ:T] = Fun.Vec.to (λ i => (v i)[σ:T])
 := by
-   induction v using Fun.Vec.induction <;> simp at *
-   case nil => sorry
-   case cons => sorry
+   apply v.induction
+   case nil => simp; sorry
+   case cons =>
+     intro n hd tl ih
+     simp; sorry
 
 @[simp, grind =]
 theorem List.getElem?_subst [RenMap T] [SubstMap S T] {ℓ : List S} {σ : Subst T} {x : Nat}

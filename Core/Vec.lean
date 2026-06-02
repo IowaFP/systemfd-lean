@@ -6,6 +6,14 @@ open LeanSubst
 
 namespace Lilac
 
+def Vec.beq [BEq α] : Vec α n -> Vec α n -> Bool
+| .nil, .nil => true
+| .cons x xs, .cons y ys => x == y && xs.beq ys
+
+instance instBeq_Vec [BEq α] : BEq (Vec α n) where
+  beq := Vec.beq
+
+
 @[simp]
 theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v
  := by
@@ -77,7 +85,6 @@ def Vec.eq_sound [BEq α] {vs1 : Vec α n} {vs2 : Vec α m} : vs1.eq vs2 = true 
 intro h
 fun_induction Vec.eq <;> simp at *
 simp_all
-
 
 
 @[simp]
@@ -243,6 +250,8 @@ where
   go : (n : Nat) -> Nat -> Vec Nat n
   | 0, _ => .nil
   | n + 1, acc => .cons acc (go n (acc + 1))
+
+#guard (Vec.range 3) == (#𝓋[0, 1, 2])
 
 @[simp]
 theorem Vec.range_zero : range 0 = .nil := by
