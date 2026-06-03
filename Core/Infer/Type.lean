@@ -9,21 +9,6 @@ open LeanSubst
 open Lilac
 
 namespace Core
--- A is the type of the pattern
--- and is of the form ∀[★]∀[★] x -t> y -t> ... -t> T p q r
--- R is the type of the scrutinee
--- and is of the form T' p' q' r'
--- we need to make sure T == T' (i.e. it is a datatype or an opent)
-def Ty.stable_type_match : List Kind -> Ty -> Ty -> Option Unit
-| Δ, (Ty.all K A), R => Ty.stable_type_match (K::Δ) A R[+1]
-| Δ, (Ty.arrow _ B), R => Ty.stable_type_match Δ B R
-| _, (Ty.eq _ _ _ ), _ => none
-| _, A, R =>
- do
-  let _ <- R.spine
-  if A == R -- && (is_opent G x || is_data G x)
-  then some ()
-  else none
 
 namespace Infer.Ty.Test
 
@@ -39,36 +24,11 @@ def G : List Global := [
 def R : Ty := gt#"Eq" • t#0
 def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
 
-#eval A.stable_type_match [] R
-
 #guard R.spine == .some ("Eq", [t#0])
 
 end Infer.Ty.Test
 
-
--- A is the type of the pattern and has the form
--- ∀[★]∀[★].. x -t> y -t> T p q r
--- T is the type of the rhs of the branch and has the form
--- ∀[★]∀[★].. x' -t> y' -t> ... z -t> T' p' q' r'
--- A potentially has more ∀s and -t> s than in the branch
--- This function returns the 'extra' bits
-def Ty.prefix_type_match (Δ : List Kind) : Ty -> Ty -> Option Ty
-  | (.arrow A B), (.arrow A' B') => do
-    if A == A'
-    then prefix_type_match Δ B B'
-    else none
-
-  | (.all K A), (.all K' A') => do
-    if K == K'
-    then let x <- prefix_type_match (K :: Δ) A A'
-         if x[-1][+1] == x
-         then return x[-1]
-         else none
-    else none
-  | A, T => do
-    let _ <- A.spine
-    return T
-
+@[simp]
 def Ty.valid_data (c : DataConst) (G : List Global) : Ty -> Option Unit
 | A => do
   let (x, _) <- A.spine
@@ -129,6 +89,12 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
   else none
 | _, _ , _ => none
 
+
+-- Checks that the patterns are exhaustive
+def check_exhaustive (G : GlobalEnv) : Vec Ty m -> Fun.Vec (Pattern m) n -> Option Unit
+| _ , _ => do return ()
+
+
 @[simp]
 def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x => do
@@ -144,7 +110,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
     else none
 | spctor (n := n) (m := m) (.data d) x As ts => do
   let ⟨m', Ks, n', Ts, R⟩ <- lookup_spine_type G x
-  let mKs := As.map (λ y => Ty.infer_kind G Δ y)
+  let mKs := (As.map (λ y => Ty.infer_kind G Δ y))
   let Ks' <- mKs.seq
   if Ks.eq Ks' && m' == m
   then
@@ -161,12 +127,13 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let mKs := As.map (λ y => Ty.infer_kind G Δ y)
   let Ks' <- mKs.seq
   if Ks.eq Ks' && m' == m
-  -- TODO check that Ts are all open data
   then
     let τ := Sequ.append_vec (Vec.map su As) +0
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
-    let τs <- mτs.seq
-    let Ts := Ts.map (λ x => x[τ])
+    let τs : Vec Ty n <- mτs.seq
+    let Ts := Ts.map (λ x => x[τ:Ty])
+    let vs := Vec.map (Ty.valid_data .opn G) τs
+    let _ <- vs.seq
     if Ts.eq τs && n' == n
     then return R[τ]
     else none
@@ -187,6 +154,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   -- Get the types of all the scrutinees
   -- get the possible tags/constructor names for each of the scrutinee datatype
   -- given a permutation of tags, the function spits out the row in the pattern vector
+  let _ <- check_exhaustive G Ss ps
   let Ts' <- mTs'.to.seq
   let T <- Ts'.get_elem_if_eq
   return T
@@ -266,12 +234,12 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if A == A' then return B else none
 
 | .tbind .lamt K t => do
-  let T <- t.infer_type G (K::Δ) (Γ.map (·[+1]))
+  let T <- t.infer_type G (K::Δ) (Γ.map (λ x => x[+1:Ty]))
   let Tk <- (∀[K]T).infer_kind G Δ
   let bk <- Tk.base_kind
   if bk == () then return (∀[K] T) else none
 | .tbind .allc K t => do
-  let T1 <- infer_type G (K::Δ) (Γ.map (·[+1])) t
+  let T1 <- infer_type G (K::Δ) (Γ.map (·[+1:Ty])) t
   let (Tk, A, B) <- T1.is_eq_some
   let _ <- Tk.base_kind
   return ((∀[K]A) ~[Tk]~ (∀[K]B))

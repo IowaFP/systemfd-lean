@@ -260,13 +260,25 @@ theorem Vec.subst_to_list [RenMap T] [SubstMap T T] {v : Vec T n} {σ : Subst T}
    assumption
 
 
+theorem Vec.subst_to_cons [RenMap T] [SubstMap T T] {hd : T} {tl : Vec T n} :
+  (Vec.cons hd tl)[σ:T] = .cons (hd[σ:T]) (tl[σ:T]) := by simp
+
+
 @[grind =]
 theorem Fun.Vec.subst_to [RenMap T] [SubstMap T T] {v : Fun.Vec T n}
   : (v.to)[σ:T] = Fun.Vec.to (λ i => (v i)[σ:T])
 := by
-  induction n
+  induction v using Fun.Vec.induction
+  simp [Fun.Vec.to]; rfl
+  case _ ih =>
+  simp [Fun.Vec.to]; rw[Fun.Vec.induction_cons]; simp;
+  simp [Fun.Vec.to] at ih; rw[ih]
   sorry
-  sorry
+
+
+  -- induction n
+  -- sorry
+  -- sorry
   -- induction v.to
   -- simp; rw[Fun.Vec.eta0 (v := v)]; sorry
   -- sorry

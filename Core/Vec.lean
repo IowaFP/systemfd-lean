@@ -86,7 +86,6 @@ intro h
 fun_induction Vec.eq <;> simp at *
 simp_all
 
-
 @[simp]
 theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
 | .nil, .nil => rfl
@@ -94,10 +93,10 @@ theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
 def Vec.get_elem : Vec α n -> Fin n -> α
 | .cons hd tl, i => Fin.cases hd (Vec.get_elem tl) i
 
-instance : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
+instance instGetElem_Vec : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
   getElem xs i _ := Vec.get_elem xs i
 
-instance : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
+instance instGetElem_Vec? : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
   getElem? xs i := .some (Vec.get_elem xs i)
 
 @[simp]
@@ -211,6 +210,9 @@ theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : 
     induction i using Fin.induction <;> simp at *
     case _ i ih => apply Vec.ren_index
 
+theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs.get_elem i := by sorry
+
+
 def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 | 0, _, _ => ""
 | 1, v, _ => repr (v.get_elem 0)
@@ -229,7 +231,7 @@ def Vec.seq : Vec (Option T) n -> Option (Vec T n)
   let tl' <- Vec.seq tl
   return .cons hd tl'
 
-theorem Vec.seq_sound {vs : Vec (Option Q) n} {vs' : Vec Q n} :
+theorem Vec.seq_sound_get_elem {vs : Vec (Option Q) n} {vs' : Vec Q n} :
   vs.seq = some vs' ->
   ∀ i, (vs.get_elem i) = some (vs'.get_elem i) := by
 intro h i
@@ -243,6 +245,32 @@ case _ v vs ih =>
   cases h2;
   induction i using Fin.induction <;> simp [get_elem] at *
   case _ i h => apply ih h1 i
+
+
+theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
+  (Fun.Vec.to (λ i => f (vs i))).seq = some vs' ->
+  ∀ i : Fin n, f (vs i) = some (vs'.to i) := sorry
+
+theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
+  (Vec.map f vs).seq = some vs' ->
+  ∀ i : Fin n, f (vs.to i) = some (vs'.to i) := sorry
+
+theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
+  (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).seq = some vs' ->
+  ∀ i : Fin n, f (vs1 i) (vs2 i) = some (vs'.to i) := by
+intro h1 i
+match n, vs1, vs2 with
+| 0, vs1, vs2 => apply i.elim0
+| n + 1, xs, ys =>
+  induction i using Fin.induction
+  sorry
+  sorry
+
+theorem Vec.units (vs : Vec Unit n) : ∀ i, (vs.to i) = () := by
+ intro i
+ induction vs
+ apply i.elim0
+ simp
 
 @[simp]
 def Vec.range (n : Nat) : Vec Nat n := go n 0
@@ -335,19 +363,67 @@ def Vec.find_aux {n : Nat} (p : T -> Bool) (vs : Vec T n) (k : Nat) : Option (T 
     let e := (vs.get_elem i)
     if p e
        then some (e, i)
-       else Vec.find_aux p vs (k + 1)
+       else if h' : (k + 1) < n then Vec.find_aux p vs (k + 1) else none
   else none
 
 -- Finds the first element that satisfies the predicate and its index
 @[simp]
 def Vec.find {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (T × Fin n) := Vec.find_aux p vs 0
 
+def Vec.find_aux_sound {n k: Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
+  Vec.find_aux p vs k = some ei ->
+  vs.get_elem ei.2 = ei.1
+:= by
+  intro h
+  fun_induction find_aux
+  case _ e _ => cases h; simp; unfold e; rfl
+  case _ ih => apply ih h
+  case _ => cases h
+  case _ => cases h
 
--- theorem Vec.find_returns_first_elem {n : Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
---   vs.find p = some ei ->
---   vs.get_elem ei.2 = ei.1 :=
---   -- ∀ j : Fin n, j < ei.snd -> p (vs.get_elem j) = false :=
--- by sorry
+
+
+theorem Vec.find_aux_returns_first_elem {n k: Nat} {h : k < n} (p : T -> Bool) (vs : Vec T n) (e : T) (i : Fin n) :
+  Vec.find_aux p vs k = some ⟨e , i⟩ ->
+  vs.get_elem i = e ∧
+  (∀ j : Fin n, ⟨k, h⟩ ≤ j ∧ j < i -> p (vs.get_elem j) = false) := by
+intro h1
+constructor
+· apply Vec.find_aux_sound p vs ⟨e, i⟩ h1
+· intro j b
+  rcases b with ⟨lb, up⟩
+  fun_induction find_aux
+  case _ l i e =>
+    subst i; injection h1; case _ h1 =>
+    injection h1; case _ q1 q2 =>
+    subst q2; subst l
+    -- contradiction as x ≤ j and j < x
+    exfalso
+    sorry
+  case _ k k_le_n i l _ h' ih =>
+    apply @ih h'
+    apply h1
+    sorry
+
+  case _ => cases h1
+  case _ => cases h1
+
+
+theorem Vec.find_returns_first_elem {n : Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
+  vs.find p = some ei ->
+  vs.get_elem ei.2 = ei.1 ∧
+  (∀ j : Fin n, j < ei.snd -> p (vs.get_elem j) = false)
+:= by sorry
+  -- intro h
+  -- have lem := Vec.find_aux_returns_first_elem (k := 0) p vs ei h
+  -- constructor
+  -- · apply lem.1
+  -- · intro j h;
+  --   have lem2 := lem.2 j
+  --   apply lem2
+  --   constructor
+  --   · simp
+  --   · apply h
 
 -- returns the first element that is not none
 @[simp]
@@ -370,6 +446,9 @@ theorem Vec.any_returns_first {t : T} {n : Nat} : (vs : Vec (Option T) n) ->
     by simp[Vec.get_elem];
        intro j; induction j using Fin.induction <;> simp at *
        case _ j ih => apply p2'⟩⟩
+
+#guard (Vec.any #𝓋[none, some 2, some 3]) == some 2
+
 
 @[simp]
 def Vec.zip {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> Vec (Q × Q') n
@@ -432,5 +511,9 @@ case _ ih v' =>
   rw[Vec.count_cons]; split <;> simp at *
   contradiction
   assumption
+
+
+theorem Vec.get_elem_indexing {vs : Vec T n} {i : Fin n} : vs.to i = vs.get_elem i := by
+sorry
 
 end Lilac
