@@ -1,6 +1,7 @@
 import LeanSubst
 import Core.Ty
 import Core.Infer.Kind
+import Core.Infer.Exhaustiveness
 import Core.Global
 import Core.Vec
 import Lilac
@@ -89,18 +90,6 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
   else none
 | _, _ , _ => none
 
--- Builds a matrix of all possible combination of constructor tags given a vector of types
-def build_sat_matrix {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n : Nat) × Fun.Vec (Vec String m) n) := do
-
-  sorry
-
--- returns a matrix of constructor tags from a pattern matrix
-def pattern_to_tags (ps : Fun.Vec (Pattern m) n) : Fun.Vec (Vec String m) n := λ i =>
- Fun.Vec.to (λ j => ((ps i).get_elem j).1)
-
--- Checks that the patterns are exhaustive
-def check_exhaustive (G : GlobalEnv) : Vec Ty m -> Fun.Vec (Pattern m) n -> Option Unit
-| _ , _ => do return ()
 
 
 @[simp]

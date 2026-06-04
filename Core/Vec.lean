@@ -370,6 +370,10 @@ def Vec.find_aux {n : Nat} (p : T -> Bool) (vs : Vec T n) (k : Nat) : Option (T 
 @[simp]
 def Vec.find {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (T × Fin n) := Vec.find_aux p vs 0
 
+def Vec.findIdx {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (Fin n) := do
+  let ⟨_, i⟩ <- Vec.find_aux p vs 0
+  return i
+
 def Vec.find_aux_sound {n k: Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
   Vec.find_aux p vs k = some ei ->
   vs.get_elem ei.2 = ei.1
@@ -515,5 +519,38 @@ case _ ih v' =>
 
 theorem Vec.get_elem_indexing {vs : Vec T n} {i : Fin n} : vs.to i = vs.get_elem i := by
 sorry
+
+
+
+
+def append {α : Type _} {n : Nat} (v : Vec α n) : {m : Nat} -> Vec α m -> Vec α (m + n)
+| 0, .nil => by simp; apply v
+| m + 1, .cons x xs => by
+  let tl := append v xs
+  let vs := x :: tl
+  have lem : m + 1 + n = m + n + 1 := by omega
+  rw[lem]; clear lem
+  apply vs
+
+def paste (b : String) : Vec (Vec String m) n -> Vec (Vec String (m + 1)) n
+| .nil => .nil
+| .cons x xs => .cons (.cons b x) (paste b xs)
+
+def combine (base : Vec (Vec String k) m) : {n : Nat} -> Vec String (n + 1) -> ((p : Nat) × Vec (Vec String (k + 1)) p) -- p = m + n
+| 0, .cons x .nil => ⟨m, paste x base⟩
+| _ + 1, .cons x xs =>
+  let ⟨p , vs⟩ := combine base xs
+  let vs' := paste x base
+  let ys := append vs' vs
+  ⟨p + m, ys⟩
+
+
+-- def enumerate_aux : (Vec ((n : Nat) × Vec String n) (m + 1)) -> ((p : Nat) × Vec (Vec String k) p) -> ((p : Nat) × Vec (Vec String (k + 1)) p)
+-- | .cons ⟨n , x⟩ _, ⟨m, acc⟩ =>
+--    ⟨n + m, combine acc x⟩
+-- | .cons x xs, ⟨p, acc⟩ =>
+--   combine acc x.2
+--   sorry
+
 
 end Lilac
