@@ -244,11 +244,126 @@ case _ ih => -- t •[T]
   · apply infer_kind_sound h2
   · rfl
 
-sorry
-sorry
-sorry
-sorry
-sorry
-sorry
+case _ ih => -- prj[0]
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨AB, h6, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨CD, h8, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h9, h10, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h11, h12, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h13, h14, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h15, h16, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h17, h18, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h19, h20, h⟩
+  simp at h;
+  rcases h with ⟨⟨⟨⟨⟨ e5, e6  ⟩, e4⟩, e3⟩, e2⟩ , e1⟩
+  subst e5; subst h13; subst T
+  replace h4 := Ty.is_eq_some_sound h4; subst h1
+  replace h6 := Ty.is_app_some_sound h6
+  replace h8 := Ty.is_app_some_sound h8
+  rw[<-Prod.eta h17] at h18
+  replace h18 := Kind.is_arrow_sound h18
+  subst h9
+  rw[<-Prod.eta h19] at h20
+  replace h20 := Kind.is_arrow_sound h20
+  subst h11
+  apply Typing.prj
+  · apply ih h2
+  · rw[h6, h8, e2]; rw[e2] at h10
+    apply CoercionProject.fst_app
+    · apply infer_kind_sound h10
+
+case _ ih => -- prj[1]
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨AB, h6, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨CD, h8, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h9, h10, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h11, h12, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h13, h14, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h15, h16, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h17, h18, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h19, h20, h⟩
+  simp at h;
+  rcases h with ⟨⟨⟨⟨⟨ e5, e6  ⟩, e4⟩, e3⟩, e2⟩ , e1⟩
+  subst T; subst h13; subst h15
+  rw[e2] at e3;
+  replace h4 := Ty.is_eq_some_sound h4; subst h1
+  replace h6 := Ty.is_app_some_sound h6
+  replace h8 := Ty.is_app_some_sound h8
+  replace h18 := Kind.is_arrow_sound h18; subst h18
+  replace h20 := Kind.is_arrow_sound h20; subst h11
+  apply Typing.prj
+  · apply ih h2
+  · rw[h6, h8];
+    apply CoercionProject.snd_app
+    · apply infer_kind_sound h14
+
+case _ ih1 ih2 => -- f •c[a]
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h5, h6, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h7, h8, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h9, h10, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h11, h12, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h13, h14, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h15, h16, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h17, h18, h⟩
+  simp at h
+  rcases h with ⟨⟨e1, e2⟩, e3⟩; rw[e1] at e2; subst T
+  replace h6 := Ty.is_eq_some_sound h6; subst h1
+  replace h8 := Kind.base_kind_sound _ h8; rw[h8] at h2; rw[h8] at h4
+  replace h10 := Ty.is_all_some_sound h10; rw[h10] at h2; rw[h10] at h4
+  replace h12 := Ty.is_all_some_sound h12; rw[h12] at h2; rw[h12] at h4
+  replace h18 := Ty.is_eq_some_sound h18; subst h18
+  rw[e1] at h2; rw[e2] at h16; rw[e2] at h14
+  apply Typing.apptc
+  · apply ih1 h2
+  · apply ih2 h14
+  · rfl
+  · rfl
+
+
+
+case _ ih1 ih2 => -- f • a
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h5, h6, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h7, h8, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h9, h10, h⟩
+  simp at h; rcases h with ⟨e1, e2⟩
+  subst T; subst h5
+  replace h4 := Ty.is_arrow_some_sound h4; subst h1
+  replace h10 := Kind.base_kind_sound _ h10; subst h7
+  apply Typing.app
+  · apply ih1 h2
+  · apply ih2 h6
+
+
+case _ ih => -- Λ[K]t
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨T, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h5, h6, h⟩
+  cases h
+  replace h6 := Kind.base_kind_sound _ h6; subst h3
+  rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨h7, h8, h4⟩
+  simp at h4; subst h7
+  apply Typing.lamt
+  · apply Kinding.all
+    · apply infer_kind_sound h8
+  · replace ih := ih h2; simp at ih; apply ih
+
+case _ ih => -- ∀c[K]t
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h5, h6, h⟩
+  cases h
+  replace h4 := Ty.is_eq_some_sound h4
+  subst h1
+  replace h6 := Kind.base_kind_sound _ h6
+  rw[h6]; rw[h6] at h2
+  apply Typing.allc
+  · apply ih h2
+
 
 end Core

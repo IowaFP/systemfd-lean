@@ -89,6 +89,14 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
   else none
 | _, _ , _ => none
 
+-- Builds a matrix of all possible combination of constructor tags given a vector of types
+def build_sat_matrix {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n : Nat) × Fun.Vec (Vec String m) n) := do
+
+  sorry
+
+-- returns a matrix of constructor tags from a pattern matrix
+def pattern_to_tags (ps : Fun.Vec (Pattern m) n) : Fun.Vec (Vec String m) n := λ i =>
+ Fun.Vec.to (λ j => ((ps i).get_elem j).1)
 
 -- Checks that the patterns are exhaustive
 def check_exhaustive (G : GlobalEnv) : Vec Ty m -> Fun.Vec (Pattern m) n -> Option Unit
@@ -219,12 +227,16 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | .ctor2 .apptc f a => do
   let T1 <- f.infer_type G Δ Γ
   let _ <- T1.infer_kind G Δ
-  let (Kf, A1, B1) <- T1.is_eq_some
+  let (Kf, A, B) <- T1.is_eq_some
+  let _ <- Kf.base_kind
+  let (AK, AT) <- A.is_all_some
+  let (BK, BT) <- B.is_all_some
   let T2 <- a.infer_type G Δ Γ
   let _ <- T2.infer_kind G Δ
-  let (Ka, A2, B2) <- T2.is_eq_some
-  let (Kf1, Kf2) <- Kf.is_arrow
-  if Ka == Kf1 then return ((A1 • A2) ~[Kf2]~ (B1 • B2)) else none
+  let (Ka, C, D) <- T2.is_eq_some
+  if AK == BK && Ka == AK
+  then return ((AT[su C::+0:Ty]) ~[★]~ (BT[su D ::+0 :Ty])) else none
+
 | .ctor2 .app f a => do
   let F <- f.infer_type G Δ Γ
   let (A, B) <- F.is_arrow_some
@@ -234,12 +246,12 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if A == A' then return B else none
 
 | .tbind .lamt K t => do
-  let T <- t.infer_type G (K::Δ) (Γ.map (λ x => x[+1:Ty]))
+  let T <- t.infer_type G (K::Δ) (Γ[+1:Ty])
   let Tk <- (∀[K]T).infer_kind G Δ
   let bk <- Tk.base_kind
   if bk == () then return (∀[K] T) else none
 | .tbind .allc K t => do
-  let T1 <- infer_type G (K::Δ) (Γ.map (·[+1:Ty])) t
+  let T1 <- infer_type G (K::Δ) (Γ[+1:Ty]) t
   let (Tk, A, B) <- T1.is_eq_some
   let _ <- Tk.base_kind
   return ((∀[K]A) ~[Tk]~ (∀[K]B))

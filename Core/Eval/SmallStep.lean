@@ -107,5 +107,4 @@ def eval (G : List Global) : Term ->  Option Term
 
 
 
-
 end Core
