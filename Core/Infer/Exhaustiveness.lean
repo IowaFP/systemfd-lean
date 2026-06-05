@@ -1,7 +1,10 @@
-import LeanSubst
+
 import Core.Ty
 import Core.Global
+import Core.Typing
+
 import Core.Vec
+import LeanSubst
 import Lilac
 
 open LeanSubst
@@ -21,7 +24,6 @@ def enumerate_ctor_names {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n 
   -- for each type in Ss get all the possible constructors
   let ctors <- (Vec.map (lookup_ctor_names G) Ss).seq
   return Vec.populate ctors
-
 
 
 namespace Test
@@ -52,15 +54,25 @@ def pattern_to_ctor_names (ps : Fun.Vec (Pattern m) n) : Fun.Vec (Vec String m) 
 
 
 -- Checks that the patterns are exhaustive
-def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : Option Unit := do
-  let ⟨_, ref_matrix⟩ <- enumerate_ctor_names G Ss
+def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : Option ((ℓ : Nat) × (Vec (Vec String m) ℓ × Vec (Fin n) ℓ)) := do
+  let ref_matrix <- enumerate_ctor_names G Ss
 
   -- just keep the constructor names from the patterns
   let ps' := pattern_to_ctor_names ps.to
 
   -- check that each entry in ref_matrix has an associated entry ps'
-  let mbs := ref_matrix.map (λ r => ps'.to.findIdx (λ x => x == r))
-  let _ <- mbs.seq
-  return ()
+  let mbs := ref_matrix.2.map (λ r => ps'.to.findIdx (λ x => x == r))
+  let idxs <- mbs.seq
+  return ⟨ref_matrix.fst, ⟨ref_matrix.snd , idxs⟩⟩
+
+
+theorem query_in_ref_matrix {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
+  Query G DataConst.cls q S ->
+  check_exhaustive G S ps = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
+  ∃ i, ref_matrix.get_elem i = q ∧ (pattern_to_ctor_names ps.to).to.get_elem (idxs.get_elem i) = q := by
+intro h1 h2
+unfold Query at h1
+sorry
+
 
 end Core

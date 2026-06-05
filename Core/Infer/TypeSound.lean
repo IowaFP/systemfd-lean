@@ -69,23 +69,23 @@ case _ y _ ih =>
   simp at h3; exists y.2.1; exists y.2.2.1; exists y.2.2.2; subst h3; rfl
   apply ih h2
 
+
 theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Fun.Vec (Pattern m) k} {q : Vec String m} {S : Vec Ty m} :
   Query G DataConst.cls q S ->
-  check_exhaustive G S ps.to = some () ->
-  query_patterns q ps.to = some i ->
+  check_exhaustive G S ps.to = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
   ∃ i, Query.Match q (ps i)
 := by
-intro h1 h2 h3
+intro h1 h2
+have lem := query_in_ref_matrix h1 h2
 unfold check_exhaustive at h2; simp at h2;
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
-rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨h5, h6, h2⟩
+rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
 replace h6 := Vec.map_seq_sound _ h6
-unfold query_patterns at h3;
-replace h3 := Vec.findIdx_sound h3
-rw[Option.isSome_iff_exists] at h3; rcases h3 with ⟨_, h3⟩
-exists i;
-apply query_match_sound h3
-
+rcases lem with ⟨i,lem⟩
+cases h2;
+exists (idxs.get_elem i)
+replace h6 := h6 i
+sorry
 
 theorem data_valid_sound (G : GlobalEnv) :
   Ty.valid_data c G T = some () ->
