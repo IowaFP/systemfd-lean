@@ -70,6 +70,8 @@ def query_match : Vec String m -> Pattern m -> Option Unit
   let _ <- query_match xs ys
   if x == y.1 then some () else none
 
+def query_patterns (q : Vec String m) (ps : Vec (Pattern m) n) : Option (Fin n)
+ := Vec.findIdx (λ p => (query_match q p).isSome) ps
 
 @[simp]
 def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Ty)
@@ -146,12 +148,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let mξs : Lilac.Fun.Vec (Option (List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
   let ξs <- mξs.to.seq
   let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs.get_elem i) ++ Γ)
-  -- TODO: Query business to make sure matches are exhaustive
-  -- Plan:
-  -- Get the types of all the scrutinees
-  -- get the possible tags/constructor names for each of the scrutinee datatype
-  -- given a permutation of tags, the function spits out the row in the pattern vector
-  let _ <- check_exhaustive G Ss ps
+  let _ <- check_exhaustive G Ss ps.to
   let Ts' <- mTs'.to.seq
   let T <- Ts'.get_elem_if_eq
   return T

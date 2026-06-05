@@ -59,7 +59,7 @@ case _ n ih =>
 
   sorry
 
-theorem query_match_sound : query_match qs ps = some () -> Query.Match qs ps := by
+theorem query_match_sound : query_match q ps = some () -> Query.Match q ps := by
 intro h
 fun_induction query_match <;> simp at *
 case _ a => cases a; apply VecTyping.nil
@@ -69,8 +69,22 @@ case _ y _ ih =>
   simp at h3; exists y.2.1; exists y.2.2.1; exists y.2.2.2; subst h3; rfl
   apply ih h2
 
-theorem pattern_exhaustive_sound (G : GlobalEnv) : (q : Vec String m) -> Query G DataConst.cls q S ->
-  check_exhaustive G S ps = some () -> ∃ i, Query.Match q (ps i) := by sorry
+theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Fun.Vec (Pattern m) k} {q : Vec String m} {S : Vec Ty m} :
+  Query G DataConst.cls q S ->
+  check_exhaustive G S ps.to = some () ->
+  query_patterns q ps.to = some i ->
+  ∃ i, Query.Match q (ps i)
+:= by
+intro h1 h2 h3
+unfold check_exhaustive at h2; simp at h2;
+rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
+rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨h5, h6, h2⟩
+replace h6 := Vec.map_seq_sound _ h6
+unfold query_patterns at h3;
+replace h3 := Vec.findIdx_sound h3
+rw[Option.isSome_iff_exists] at h3; rcases h3 with ⟨_, h3⟩
+exists i;
+apply query_match_sound h3
 
 
 theorem data_valid_sound (G : GlobalEnv) :
@@ -194,7 +208,9 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
     replace h10 := Vec.seq_sound2 _ h10 i;
     replace h11 := Vec.get_elem_if_eq_sound h11 i
     rw[<-Vec.get_elem_indexing] at h11; rw [h11] at h10; apply h10
-  · intro q qs; apply pattern_exhaustive_sound G q qs h8
+  · rw[<-Fun.Vec.to_iso (v := S)] at h8; intro q qs;
+
+    sorry
 
 case _ ih1 ih2 => -- cast
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩

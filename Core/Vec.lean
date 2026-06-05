@@ -374,6 +374,9 @@ def Vec.findIdx {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (Fin n) := do
   let ⟨_, i⟩ <- Vec.find_aux p vs 0
   return i
 
+theorem Vec.findIdx_sound {p : T -> Bool} {vs : Fun.Vec T n} : Vec.findIdx p vs.to = some i ->
+   p (vs i) = true := by sorry
+
 def Vec.find_aux_sound {n k: Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
   Vec.find_aux p vs k = some ei ->
   vs.get_elem ei.2 = ei.1
@@ -384,8 +387,6 @@ def Vec.find_aux_sound {n k: Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin 
   case _ ih => apply ih h
   case _ => cases h
   case _ => cases h
-
-
 
 theorem Vec.find_aux_returns_first_elem {n k: Nat} {h : k < n} (p : T -> Bool) (vs : Vec T n) (e : T) (i : Fin n) :
   Vec.find_aux p vs k = some ⟨e , i⟩ ->
@@ -521,9 +522,8 @@ theorem Vec.get_elem_indexing {vs : Vec T n} {i : Fin n} : vs.to i = vs.get_elem
 sorry
 
 
-
-
-def append {α : Type _} {n : Nat} (v : Vec α n) : {m : Nat} -> Vec α m -> Vec α (m + n)
+@[simp]
+def Vec.append {α : Type _} {n : Nat} (v : Vec α n) : {m : Nat} -> Vec α m -> Vec α (m + n)
 | 0, .nil => by simp; apply v
 | m + 1, .cons x xs => by
   let tl := append v xs
@@ -532,25 +532,34 @@ def append {α : Type _} {n : Nat} (v : Vec α n) : {m : Nat} -> Vec α m -> Vec
   rw[lem]; clear lem
   apply vs
 
-def paste (b : String) : Vec (Vec String m) n -> Vec (Vec String (m + 1)) n
+@[simp]
+def Vec.paste (b : String) : Vec (Vec String m) n -> Vec (Vec String (m + 1)) n
 | .nil => .nil
 | .cons x xs => .cons (.cons b x) (paste b xs)
 
-def combine (base : Vec (Vec String k) m) : {n : Nat} -> Vec String (n + 1) -> ((p : Nat) × Vec (Vec String (k + 1)) p) -- p = m + n
-| 0, .cons x .nil => ⟨m, paste x base⟩
-| _ + 1, .cons x xs =>
-  let ⟨p , vs⟩ := combine base xs
-  let vs' := paste x base
+@[simp]
+def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) : ((n : Nat) × Vec String n) -> ((p : Nat) × Vec (Vec String (k + 1)) p)
+| ⟨0, .nil⟩ => ⟨0, .nil⟩
+| ⟨(n + 1), (.cons x xs)⟩ =>
+  let ⟨p , vs⟩ := combine base ⟨n, xs⟩
+  let vs' := paste x base.snd
   let ys := append vs' vs
-  ⟨p + m, ys⟩
+  ⟨p + base.fst, ys⟩
 
+@[simp]
+def populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
+  Vec ((n : Nat) × Vec String n) ℓ -> ((p : Nat) × Vec (Vec String (k + ℓ)) p)
+| .nil => base
+| .cons x xs =>
+  let ys := populate_aux base xs
+  Vec.combine ys x
 
--- def enumerate_aux : (Vec ((n : Nat) × Vec String n) (m + 1)) -> ((p : Nat) × Vec (Vec String k) p) -> ((p : Nat) × Vec (Vec String (k + 1)) p)
--- | .cons ⟨n , x⟩ _, ⟨m, acc⟩ =>
---    ⟨n + m, combine acc x⟩
--- | .cons x xs, ⟨p, acc⟩ =>
---   combine acc x.2
---   sorry
+@[simp]
+def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String ℓ) p)
+:= by
+  let rs := populate_aux (k := 0) ⟨1, #𝓋[#𝓋[]]⟩ ps
+  simp at rs
+  apply rs
 
 
 end Lilac
