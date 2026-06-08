@@ -219,12 +219,18 @@ theorem Vec.get_zipIdx {α n k} {v : Vec α n} {i : Fin n} : (v.zipIdx k)[i] = (
 
 /-! ## append -/
 
-@[grind =]
-theorem Vec.append_nil_right {α n} {v : Vec α n} : v ++ (#() : Vec α 0) = (v |> cast (by simp)) := sorry
+@[simp]
+theorem Vec.append_nil_left {α n} {v : Vec α n} : (#() : Vec α 0) ++ v = v := rfl
 
-@[grind =]
+@[simp]
+theorem Vec.append_cons {α n1 n2 x} {v1 : Vec α n1} {v2 : Vec α n2} : (x::v1) ++ v2 = x::(v1 ++ v2) := rfl
+
+@[simp, grind =]
+theorem Vec.append_nil_right {α n} {v : Vec α n} : v ++ (#() : Vec α 0) ≍ v := sorry
+
+@[simp, grind =]
 theorem Vec.append_assoc {α n1 n2 n3} {v1 : Vec α n1} {v2 : Vec α n2} {v3 : Vec α n3}
-  : (v1 ++ v2) ++ v3 = (v1 ++ (v2 ++ v3) |> cast (by congr 1; grind))
+  : (v1 ++ v2) ++ v3 ≍ v1 ++ (v2 ++ v3)
 := sorry
 
 /-! ## flatten -/
