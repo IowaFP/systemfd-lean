@@ -545,6 +545,17 @@ def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) : ((n : Nat) × Vec S
   let ys := append vs vs'
   ⟨p + base.fst, ys⟩
 
+theorem Vec.combine_size (base : (m : Nat) × Vec (Vec String k) m) (x : ((n : Nat) × Vec String n)) :
+  combine base x = ⟨p, ys⟩ ->
+  p = x.fst * base.fst := by
+intro h
+fun_induction Vec.combine generalizing ys p <;> simp at *
+apply Eq.symm h.1
+case _ vs _ _ ih =>
+  replace ih := ih vs
+  subst ih; rw[<-h.1]
+  rw[Nat.right_distrib]; simp
+
 @[simp]
 def populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
   Vec ((n : Nat) × Vec String n) ℓ -> ((p : Nat) × Vec (Vec String (k + ℓ)) p)
@@ -559,7 +570,6 @@ def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec 
   let rs := populate_aux (k := 0) ⟨1, #𝓋[#𝓋[]]⟩ ps
   simp at rs
   apply rs
-
 
 instance instLawfulBEq_Vec {α : Type _} [BEq α] [LawfulBEq α] : LawfulBEq (Vec α n) where
   rfl := by
