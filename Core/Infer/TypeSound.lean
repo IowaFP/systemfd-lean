@@ -32,7 +32,7 @@ case _ n ih =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks, h6, h⟩; simp at h
   rcases h with ⟨h7, h8, h9⟩
   replace ih := @ih _ _ Γ' h2
-  have lem' := Vec.eq_sound h7;
+  have lem' := Vec.eq_sound' h7;
 
   replace h6 := Vec.seq_sound_get_elem h6
   simp only [<-h5.2] at Ks
@@ -76,7 +76,7 @@ theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Vec (Pattern m) k} {q : V
   ∃ i : Fin k, Query.Match q ps[i]
 := by
 intro h1 h2
-have lem := query_in_ref_matrix h1 h2
+have lem := check_exhaustive_sound h1 h2
 unfold check_exhaustive at h2; simp at h2;
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩

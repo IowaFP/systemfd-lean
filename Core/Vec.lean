@@ -210,11 +210,6 @@ theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : 
     induction i using Fin.induction <;> simp at *
     case _ i ih => apply Vec.ren_index
 
-theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by sorry
-theorem Fun.Vec.to_get_elem (vs : Fun.Vec α n) : ∀i, vs i = (Fun.Vec.to vs)[i] := by sorry
-
-
-
 def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 | 0, _, _ => ""
 | 1, v, _ => repr (v.get_elem 0)
@@ -235,9 +230,9 @@ def Vec.seq : Vec (Option T) n -> Option (Vec T n)
 
 theorem Vec.seq_sound_get_elem {vs : Vec (Option Q) n} {vs' : Vec Q n} :
   vs.seq = some vs' ->
-  ∀ i, (vs.get_elem i) = some (vs'.get_elem i) := by
+  ∀ i : Fin n, (vs[i]) = some (vs'[i]) := by
 intro h i
-induction vs <;> simp [Vec.get_elem, Vec.seq] at *
+induction vs <;> simp [Vec.seq] at *
 case _ => subst h; cases i; omega
 case _ v vs ih =>
   cases v <;> simp at *
@@ -245,28 +240,9 @@ case _ v vs ih =>
   rw[Option.bind_eq_some_iff] at h;
   rcases h with ⟨vs', h1, h2⟩
   cases h2;
-  induction i using Fin.induction <;> simp [get_elem] at *
+  induction i using Fin.induction <;> simp at *
   case _ i h => apply ih h1 i
 
-
-theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
-  (Fun.Vec.to (λ i => f (vs i))).seq = some vs' ->
-  ∀ i : Fin n, f (vs i) = some (vs'.to i) := sorry
-
-theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
-  (Vec.map f vs).seq = some vs' ->
-  ∀ i : Fin n, f (vs.to i) = some (vs'.to i) := sorry
-
-theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
-  (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).seq = some vs' ->
-  ∀ i : Fin n, f (vs1 i) (vs2 i) = some (vs'.to i) := by
-intro h1 i
-match n, vs1, vs2 with
-| 0, vs1, vs2 => apply i.elim0
-| n + 1, xs, ys =>
-  induction i using Fin.induction
-  sorry
-  sorry
 
 theorem Vec.units (vs : Vec Unit n) : ∀ i, (vs.to i) = () := by
  intro i
@@ -293,15 +269,14 @@ def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
 
 theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec Q n} :
   vs.elems_eq_to e = true ->
-  ∀ i, (vs.get_elem i) = e := by
+  ∀ i : Fin n, vs[i] = e := by
 intro h
 induction vs <;> simp at *
 case _ n hd tl ih =>
   cases h.1; replace ih := ih h.2
   intro i'
   induction i' using Fin.induction <;> simp at *
-  case _ => simp [get_elem, Fin.cases_zero]
-  case _ => simp [get_elem, Fin.cases_succ]; apply ih
+  case _ => apply ih
 
 
 -- theorem quantifier_flip {Q Q' : Type} {v : Vec n Q} (f : Q -> Option Q') :
@@ -605,7 +580,55 @@ instance instLawfulBEq_Vec {α : Type _} [BEq α] [LawfulBEq α] : LawfulBEq (Ve
       · apply ih; apply h2
 
 @[simp]
-theorem Vec.get_map {α β n} {f : α -> β} {v : Vec α n} {i : Fin n} : (v.map f)[i] = f v[i] := sorry
+theorem Vec.get_map {α β n} {f : α -> β} {v : Vec α n} {i : Fin n} : (v.map f)[i] = f v[i] := by
+  induction v
+  apply i.elim0
+  case _ ih =>
+  induction i using Fin.induction <;> simp at *
+
+theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
+  intro i; induction vs <;> simp at *
+  apply i.elim0
+  case _ ih =>
+  induction i using Fin.induction <;> simp at *
+  rw[Fun.Vec.cons_zero]
+  apply ih
+
+theorem Fun.Vec.to_get_elem (vs : Fun.Vec α n) : ∀i, vs i = (Fun.Vec.to vs)[i] := by
+  intro i; induction vs using Vec.induction
+  apply i.elim0
+  case _ ih =>
+  induction i using Fin.induction <;> simp at *
+  rw[Fun.Vec.cons_zero]
+  rw[Fun.Vec.cons_succ]
+
+theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
+  (Fun.Vec.to (λ i => f (vs i))).seq = some vs' ->
+  ∀ i : Fin n, f (vs i) = some (vs'.to i) := by
+intro h i
+induction vs.to
+apply i.elim0
+case _ ih =>
+  induction i using Fin.induction <;> simp at *
+  · cases vs';
+    simp; rw[Fun.Vec.cons_zero];
+    sorry
+  · sorry
+
+theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
+  (Vec.map f vs).seq = some vs' ->
+  ∀ i : Fin n, f (vs.to i) = some (vs'.to i) := sorry
+
+theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
+  (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).seq = some vs' ->
+  ∀ i : Fin n, f (vs1 i) (vs2 i) = some (vs'.to i) := by
+intro h1 i
+match n, vs1, vs2 with
+| 0, vs1, vs2 => apply i.elim0
+| n + 1, xs, ys =>
+  induction i using Fin.induction
+  sorry
+  sorry
 
 
 end Lilac

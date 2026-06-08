@@ -19,6 +19,15 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
     return ⟨ctors.length, ctors.map (·.1) ⟩
   | _ => none
 
+theorem lookup_ctor_names_sound :
+  lookup_ctor? G DataConst.cls x T = true ->
+  lookup_ctor_names G T = some ⟨n, cs⟩ ->
+  ∃ j : Fin n, x = cs[j] := by
+intro h1 h2
+
+sorry
+
+
 -- Given a vector of types, builds a matrix of all possible combination of constructor names
 def enumerate_ctor_names {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n : Nat) × Vec (Vec String m) n) := do
   -- for each type in Ss get all the possible constructors
@@ -54,7 +63,6 @@ def Pattern.to_ctor_names (ps : Pattern m) : Vec String m :=  ps.map (λ p => p.
 @[simp]
 def patterns_to_ctor_names (ps : Vec (Pattern m) n) : Vec (Vec String m) n :=
  ps.map (λ x => x.to_ctor_names)
-
 
 -- Checks that the patterns are exhaustive
 def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : Option ((ℓ : Nat) × (Vec (Vec String m) ℓ × Vec (Fin n) ℓ)) := do
@@ -96,7 +104,7 @@ apply Iff.intro
     cases h; simp; apply ih
 
 
-theorem query_in_ref_matrix {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
+theorem check_exhaustive_sound {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
   Query G DataConst.cls q S ->
   check_exhaustive G S ps = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
   ∃ j : Fin ℓ, ref_matrix[j] = q := by
@@ -106,7 +114,30 @@ rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
 replace h6 := Vec.map_seq_sound _ h6
 cases h2;
+cases ref_matrix; case _ n ref_matrix =>
+simp at idxs;
+simp at h6; simp
+unfold enumerate_ctor_names at h4; simp at h4
+rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨ctor_names, h6, h4⟩
+injection h4; case _ h4 =>
+induction q;
+case nil =>
+  cases ctor_names
+  cases ref_matrix
+  case _ => simp at *
+  case _ z _ => cases z; exists 0
+case cons =>
+  cases ctor_names
+  replace h6 := Vec.map_seq_sound _ h6
+  cases ref_matrix
+  · simp; unfold Query at h1; cases h1;
+    simp at h6; case _ h2 _ =>
+    replace h6 := h6 0; simp at h6; rw[Fun.Vec.cons_zero, Fun.Vec.cons_zero] at h6
+    have lem := lookup_ctor_names_sound h2 h6
+    rcases lem with ⟨j, lem⟩; subst lem;
+    simp at h4; simp at *; case _ ih =>
+    sorry
 
-sorry
+  · sorry
 
 end Core
