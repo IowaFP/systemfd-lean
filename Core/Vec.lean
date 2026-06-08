@@ -6,13 +6,13 @@ open LeanSubst
 
 namespace Lilac
 
+@[simp]
 def Vec.beq [BEq α] : Vec α n -> Vec α n -> Bool
 | .nil, .nil => true
 | .cons x xs, .cons y ys => x == y && xs.beq ys
 
-instance instBeq_Vec [BEq α] : BEq (Vec α n) where
+instance instBEq_Vec [BEq α] : BEq (Vec α n) where
   beq := Vec.beq
-
 
 @[simp]
 theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v
@@ -210,7 +210,9 @@ theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : 
     induction i using Fin.induction <;> simp at *
     case _ i ih => apply Vec.ren_index
 
-theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs.get_elem i := by sorry
+theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by sorry
+theorem Fun.Vec.to_get_elem (vs : Fun.Vec α n) : ∀i, vs i = (Fun.Vec.to vs)[i] := by sorry
+
 
 
 def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
@@ -341,18 +343,17 @@ match vs with
 
 theorem Vec.get_elem_if_eq_sound [BEq Q] [LawfulBEq Q] {vs : Vec Q n} {t : Q} :
   vs.get_elem_if_eq = some t ->
-  ∀ i, vs.get_elem i = t := by
+  ∀ i : Fin n, vs[i] = t := by
 intro h;
 fun_induction Vec.get_elem_if_eq <;> simp at *
-case _ => simp [get_elem, Fin.cases_zero]; assumption
+case _ => assumption
 case _ n x xs ih1 ih2 =>
   intro i
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h⟩
   simp at h; cases h.2.1; cases h.2.2; simp at h
-  simp[get_elem]
   induction i using Fin.induction
-  · simp[Fin.cases_zero]
-  · simp[Fin.cases_succ]; apply ih1 h
+  · simp
+  · simp; apply ih1 h
 
 -- Finds the first element that satisfies the predicate and its index
 @[simp]
@@ -360,7 +361,7 @@ def Vec.find_aux {n : Nat} (p : T -> Bool) (vs : Vec T n) (k : Nat) : Option (T 
   if h : k < n
   then
     let i := Fin.mk k h
-    let e := (vs.get_elem i)
+    let e := vs[i]
     if p e
        then some (e, i)
        else if h' : (k + 1) < n then Vec.find_aux p vs (k + 1) else none
@@ -374,12 +375,12 @@ def Vec.findIdx {n : Nat} (p : T -> Bool) (vs : Vec T n) : Option (Fin n) := do
   let ⟨_, i⟩ <- Vec.find_aux p vs 0
   return i
 
-theorem Vec.findIdx_sound {p : T -> Bool} {vs : Fun.Vec T n} : Vec.findIdx p vs.to = some i ->
-   p (vs i) = true := by sorry
+theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx p vs = some i ->
+   p vs[i] = true := by sorry
 
 def Vec.find_aux_sound {n k: Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
   Vec.find_aux p vs k = some ei ->
-  vs.get_elem ei.2 = ei.1
+  vs[ei.2] = ei.1
 := by
   intro h
   fun_induction find_aux
@@ -468,6 +469,24 @@ theorem Vec.zip_sound {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> (i : Fin n) ->
   induction i using Fin.induction <;> simp [Vec.get_elem] at *
   case _ i ih => apply Vec.zip_sound ps qs i
 
+theorem Vec.eq_sound_lem [BEq α][LawfulBEq α] {v1 v2 : Vec α n} : (h : v1.eq v2) -> v1 = v2 := by
+  intro h;
+  match n, v1, v2 with
+  | 0, .nil, .nil => simp
+  | n + 1, .cons x xs , .cons y ys =>
+    unfold Vec.eq at h; simp at *;
+    constructor
+    apply h.1
+    apply Vec.eq_sound_lem h.2
+
+theorem Vec.eq_sound' [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h : v1.eq v2) ->
+  v1 ≍ v2 := by
+intro h
+have lem := Vec.eq_len_sound h
+subst m
+apply heq_of_eq (Vec.eq_sound_lem (v1 := v1) (v2 := v2) h)
+
+
 theorem Vec.eq_sound [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h : v1.eq v2) ->
   v1 = ((cast (by have lem := @Vec.eq_len_sound α n m _ v1 v2 h
                   rw[lem]) v2))
@@ -518,18 +537,23 @@ case _ ih v' =>
   assumption
 
 
-theorem Vec.get_elem_indexing {vs : Vec T n} {i : Fin n} : vs.to i = vs.get_elem i := by
-sorry
-
+theorem Vec.get_elem_indexing {vs : Vec T n} {i : Fin n} : vs.to i = vs[i] := by
+induction n
+case _ => apply i.elim0
+case _ ih1 =>
+  induction i using Fin.induction
+  · cases vs; simp;
+    apply Fin.cases_zero
+  case _ ih2 =>
+  · cases vs; simp at *
+    apply ih1
 
 @[simp]
-def Vec.append {α : Type _} {n : Nat} (v : Vec α n) : {m : Nat} -> Vec α m -> Vec α (m + n)
+def Vec.append {α : Type _} {n : Nat} (v : Vec α n) : {m : Nat} -> Vec α m -> Vec α (n + m)
 | 0, .nil => by simp; apply v
 | m + 1, .cons x xs => by
   let tl := append v xs
   let vs := x :: tl
-  have lem : m + 1 + n = m + n + 1 := by omega
-  rw[lem]; clear lem
   apply vs
 
 @[simp]
@@ -543,7 +567,7 @@ def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) : ((n : Nat) × Vec S
 | ⟨(n + 1), (.cons x xs)⟩ =>
   let ⟨p , vs⟩ := combine base ⟨n, xs⟩
   let vs' := paste x base.snd
-  let ys := append vs' vs
+  let ys := append vs vs'
   ⟨p + base.fst, ys⟩
 
 @[simp]
@@ -560,6 +584,28 @@ def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec 
   let rs := populate_aux (k := 0) ⟨1, #𝓋[#𝓋[]]⟩ ps
   simp at rs
   apply rs
+
+
+instance instLawfulBEq_Vec {α : Type _} [BEq α] [LawfulBEq α] : LawfulBEq (Vec α n) where
+  rfl := by
+    intro a;
+    induction a <;> unfold instBEq_Vec at *;
+    case nil => simp
+    case cons ih => simp at *; apply ih
+  eq_of_beq := by
+    intro a b
+    induction a;
+    case nil =>
+      cases b; unfold instBEq_Vec; simp
+    case cons ih =>
+      cases b; unfold instBEq_Vec; simp
+      intro h1 h2
+      apply And.intro
+      · apply h1
+      · apply ih; apply h2
+
+@[simp]
+theorem Vec.get_map {α β n} {f : α -> β} {v : Vec α n} {i : Fin n} : (v.map f)[i] = f v[i] := sorry
 
 
 end Lilac

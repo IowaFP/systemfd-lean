@@ -147,7 +147,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 
   let mξs : Lilac.Fun.Vec (Option (List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
   let ξs <- mξs.to.seq
-  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs.get_elem i) ++ Γ)
+  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs[i]) ++ Γ)
   let _ <- check_exhaustive G Ss ps.to
   let Ts' <- mTs'.to.seq
   let T <- Ts'.get_elem_if_eq

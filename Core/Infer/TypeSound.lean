@@ -70,10 +70,10 @@ case _ y _ ih =>
   apply ih h2
 
 
-theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Fun.Vec (Pattern m) k} {q : Vec String m} {S : Vec Ty m} :
+theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Vec (Pattern m) k} {q : Vec String m} {S : Vec Ty m} :
   Query G DataConst.cls q S ->
-  check_exhaustive G S ps.to = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
-  ∃ i, Query.Match q (ps i)
+  check_exhaustive G S ps = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
+  ∃ i : Fin k, Query.Match q ps[i]
 := by
 intro h1 h2
 have lem := query_in_ref_matrix h1 h2
@@ -81,11 +81,14 @@ unfold check_exhaustive at h2; simp at h2;
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
 replace h6 := Vec.map_seq_sound _ h6
-rcases lem with ⟨i,lem⟩
 cases h2;
-exists (idxs.get_elem i)
-replace h6 := h6 i
-sorry
+rcases lem with ⟨j, lem⟩
+replace h6 := h6 j;
+replace h6 := Vec.findIdx_sound h6; simp at h6;
+exists idxs.to j
+rw[<-lem]; rw[<-Vec.to_get_elem (vs := ref_matrix.snd)]
+apply pattern_match_rfl.1 h6
+
 
 theorem data_valid_sound (G : GlobalEnv) :
   Ty.valid_data c G T = some () ->
@@ -150,12 +153,15 @@ case _ As _ ih => -- spctor
   rcases h8 with ⟨h9, h10⟩
   rcases h9 with ⟨h11, h12⟩
   subst h10;
-  apply Typing.spctor (R := h1.2.2.2.snd) (Ts := h1.2.2.2.1) (Ks := Ks) (Ts' := Ts')
-  · sorry
-  · sorry
+  rcases h5 with ⟨h5, e⟩; subst e
+  replace h5 := Vec.eq_sound_lem h5; subst Ks
+  replace h12 := Vec.eq_sound_lem h12
+  apply Typing.spctor (R := h1.2.2.2.snd) (Ts := h1.2.2.2.1) (Ks := h1.2.1) (Ts' := Ts')
+  · rw[h2]
+  · apply Eq.symm h12
   · apply Eq.symm h
   · intro i; replace h4 := Vec.map_seq_sound _ h4 i; replace h4 := infer_kind_sound h4;
-    simp[instGetElem_Vec]; rw[Vec.to_get_elem Ks, Vec.to_get_elem As] at h4; apply h4
+    simp[instGetElem_Vec]; rw[Vec.to_get_elem h1.2.1, Vec.to_get_elem As] at h4; apply h4
   · intro i; replace h7 := Vec.seq_sound1 _ h7 i;
     apply ih i; simp[instGetElem_Vec]; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e; apply h11
@@ -171,12 +177,14 @@ case _ As _ ih => -- openm
   simp at h; rcases h with ⟨h10, h11⟩
   rcases h10 with ⟨h10, e⟩; subst e
   rcases h5 with ⟨h5, e⟩; subst e
-  apply Typing.spctor (R := h1.2.2.2.snd) (Ts := h1.2.2.2.1) (Ks := Ks) (Ts' := Ts')
-  · sorry
-  · sorry
-  · apply (Eq.symm h11)
+  replace h5 := Vec.eq_sound_lem h5; subst Ks
+  replace h12 := Vec.eq_sound_lem h10
+  apply Typing.spctor (R := h1.2.2.2.snd) (Ts := h1.2.2.2.1) (Ks := h1.2.1) (Ts' := Ts')
+  · rw[h2]
+  · apply Eq.symm h12
+  · apply Eq.symm h11
   · intro i; replace h4 := Vec.map_seq_sound _ h4 i; replace h4 := infer_kind_sound h4;
-    simp[instGetElem_Vec]; rw[Vec.to_get_elem Ks, Vec.to_get_elem As] at h4; apply h4
+    simp[instGetElem_Vec]; rw[Vec.to_get_elem h1.2.1, Vec.to_get_elem As] at h4; apply h4
   · intro i; replace h7 := Vec.seq_sound1 _ h7 i;
     apply ih i; simp[instGetElem_Vec]; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e
@@ -207,10 +215,11 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
     apply ih2
     replace h10 := Vec.seq_sound2 _ h10 i;
     replace h11 := Vec.get_elem_if_eq_sound h11 i
-    rw[<-Vec.get_elem_indexing] at h11; rw [h11] at h10; apply h10
+    rw[Vec.to_get_elem, h11] at h10; apply h10
   · rw[<-Fun.Vec.to_iso (v := S)] at h8; intro q qs;
-
-    sorry
+    have lem := pattern_exhaustive_sound qs h8
+    rcases lem with ⟨i, lem⟩
+    exists i; rw[Fun.Vec.to_get_elem ps]; apply lem
 
 case _ ih1 ih2 => -- cast
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
@@ -338,7 +347,6 @@ case _ ih1 ih2 => -- f •c[a]
   · apply ih2 h14
   · rfl
   · rfl
-
 
 
 case _ ih1 ih2 => -- f • a
