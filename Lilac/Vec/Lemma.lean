@@ -17,11 +17,17 @@ theorem Fun.Vec.to_nil {α} : to (nil : Vec α 0) = .nil := by rfl
 theorem Fun.Vec.to_cons {α n hd} {tl : Vec α n} : to (cons hd tl) = .cons hd tl.to := by rfl
 
 @[simp]
-theorem Fun.Vec.to_iso {α n} {v : Fun.Vec α n} : v.to.to = v := sorry
+theorem Fun.Vec.to_iso {α n} {v : Fun.Vec α n} : v.to.to = v := by
+  induction v using Fun.Vec.induction
+  case nil => simp
+  case cons ih => simp [ih]
 
 /-! ## to -/
 
-theorem Vec.to_iso {α n} {v : Vec α n} : v.to.to = v := sorry
+@[simp]
+theorem Vec.to_iso {α n} : {v : Vec α n} -> v.to.to = v
+| #() => by simp
+| x::xs => by simp [to_iso]
 
 /-! ## list -/
 
