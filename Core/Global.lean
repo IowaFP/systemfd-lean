@@ -15,7 +15,7 @@ inductive Global : Type where
 | inst : String -> Pattern m -> Term -> Global
 | octor : String -> SpineTy -> Global
 
-def Global.repr (p : Nat) : (a : Global) -> Std.Format
+def Global.repr (_ : Nat) : (a : Global) -> Std.Format
 | .data (n := n) s K ctors =>
   let cs : Fun.Vec Std.Format n := λ i =>
     let ctorN := (Vec.to ctors i).1

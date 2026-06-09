@@ -116,6 +116,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts'[i]) ->
   (∀ c, v = .data c -> lookup_ctor? G c x R) ->
   (v = .openm -> ∀ (i : Fin n), Ts'[i].data? .opn G) ->
+  (v = .openm -> (∀ {q}, Query G .opn q As -> ∀{p : Pattern m} t, ∃ i : Nat, G[i]? = .some (Global.inst x p t) ∧ Query.Match q p)) ->
   Typing G Δ Γ (.spctor v x As ts) R'
 | mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->

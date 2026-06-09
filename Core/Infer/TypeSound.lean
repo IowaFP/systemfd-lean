@@ -86,7 +86,7 @@ rcases lem with ⟨j, lem⟩
 replace h6 := h6 j;
 replace h6 := Vec.findIdx_sound h6; simp at h6;
 exists idxs.to j
-rw[<-lem]; rw[<-Vec.to_get_elem (vs := ref_matrix.snd)]
+rw[<-lem]; rw[Vec.to_get_elem (vs := idxs)]
 apply pattern_match_rfl.1 h6
 
 
@@ -161,10 +161,11 @@ case _ As _ ih => -- spctor
   · apply Eq.symm h12
   · apply Eq.symm h
   · intro i; replace h4 := Vec.map_seq_sound _ h4 i; replace h4 := infer_kind_sound h4;
-    simp[instGetElem_Vec]; rw[Vec.to_get_elem h1.2.1, Vec.to_get_elem As] at h4; apply h4
+    simp[instGetElem_Vec]; apply h4
   · intro i; replace h7 := Vec.seq_sound1 _ h7 i;
     apply ih i; simp[instGetElem_Vec]; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e; apply h11
+  · intro h; cases h
   · intro h; cases h
 
 
@@ -184,14 +185,15 @@ case _ As _ ih => -- openm
   · apply Eq.symm h12
   · apply Eq.symm h11
   · intro i; replace h4 := Vec.map_seq_sound _ h4 i; replace h4 := infer_kind_sound h4;
-    simp[instGetElem_Vec]; rw[Vec.to_get_elem h1.2.1, Vec.to_get_elem As] at h4; apply h4
+    simp[instGetElem_Vec]; apply h4
   · intro i; replace h7 := Vec.seq_sound1 _ h7 i;
     apply ih i; simp[instGetElem_Vec]; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e
   · intro e i; cases e; replace h9 := Vec.map_seq_sound _ h9 i;
     have lem := Vec.units h8 i; rw[lem] at h9
     replace h9 := data_valid_sound _ h9; simp[instGetElem_Vec];
-    rw[Vec.to_get_elem] at h9; apply h9
+    apply h9
+  · intro h q qs p t; sorry
 
 
 case _ m n ss ps ts smτs ih1 ih2 => -- match
@@ -205,6 +207,7 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
     apply ih1 i (T := S.to i) (h2 i);
   · intro i; replace h4 := Vec.map_seq_sound _ h4 i;
     have lem := Vec.units h3 i; rw[lem] at h4
+    rw[Vec.to_get_elem]
     apply data_valid_sound _ h4
   · intro i; replace h6 := Vec.seq_sound1 _ h6 i;
     apply pattern_binders_sound;

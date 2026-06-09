@@ -168,6 +168,11 @@ def Vec.sum : Vec Nat n -> Nat
 | .nil => 0
 | .cons hd tl => hd + Vec.sum tl
 
+@[simp]
+def Vec.prod : Vec Nat n -> Nat
+| .nil => 1
+| .cons hd tl => hd * Vec.prod tl
+
 def Vec.rmap [i : RenMap S] (r : Ren) : Vec S n -> Vec S n
 | .nil => .nil
 | .cons x tl => (i.rmap r x) :: rmap r tl
@@ -244,7 +249,7 @@ case _ v vs ih =>
   case _ i h => apply ih h1 i
 
 
-theorem Vec.units (vs : Vec Unit n) : ∀ i, (vs.to i) = () := by
+theorem Vec.units (vs : Vec Unit n) : ∀ i : Fin n, (vs[i]) = () := by
  intro i
  induction vs
  apply i.elim0
@@ -564,12 +569,35 @@ def populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
   let ys := populate_aux base xs
   Vec.combine ys x
 
+theorem Vec.populate_aux_size (ps : Vec ((n : Nat) × Vec String n) ℓ) :
+  populate_aux (k := k) ⟨bℓ, bs⟩ ps = vs ->
+  vs.fst = (Vec.prod (ps.map (·.1))) * bℓ := by
+intro h
+induction ps generalizing bs bℓ <;> simp at *
+cases h; simp
+case _ ps pss ih =>
+  generalize z_def : populate_aux ⟨bℓ, bs⟩ pss = z at h
+  have lem := combine_size _ _ h
+  rw[Nat.mul_assoc]
+  rw[lem]; congr
+  have ih := @ih bℓ bs
+  rw[z_def] at ih; apply ih;
+
+
 @[simp]
-def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String ℓ) p)
+def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String (0 + ℓ)) p)
+:= populate_aux (k := 0) ⟨1, #𝓋[#𝓋[]]⟩ ps
+
+theorem Vec.populate_size (ps : Vec ((n : Nat) × Vec String n) ℓ) :
+  populate ps = vs ->
+  vs.fst = (Vec.prod (ps.map (·.1)))
 := by
-  let rs := populate_aux (k := 0) ⟨1, #𝓋[#𝓋[]]⟩ ps
-  simp at rs
-  apply rs
+intro h
+unfold populate at h
+generalize z_def : populate_aux ⟨1, #𝓋[#𝓋[]]⟩ ps = z at *
+have lem := Vec.populate_aux_size _ z_def
+subst h; rw[Nat.mul_one] at lem; assumption
+
 
 instance instLawfulBEq_Vec {α : Type _} [BEq α] [LawfulBEq α] : LawfulBEq (Vec α n) where
   rfl := by
@@ -604,7 +632,7 @@ theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
   rw[Fun.Vec.cons_zero]
   apply ih
 
-theorem Fun.Vec.to_get_elem (vs : Fun.Vec α n) : ∀i, vs i = (Fun.Vec.to vs)[i] := by
+theorem Fun.Vec.to_get_elem (vs : Vec α n) : ∀i, vs i = (Vec.to vs)[i] := by
   intro i; induction vs using Vec.induction
   apply i.elim0
   case _ ih =>
@@ -627,7 +655,18 @@ case _ ih =>
 
 theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Vec.map f vs).seq = some vs' ->
-  ∀ i : Fin n, f (vs.to i) = some (vs'.to i) := sorry
+  ∀ i : Fin n, f (vs[i]) = some (vs'[i]) := by
+intro h i
+induction vs'
+case nil => apply i.elim0
+case cons n b bs ih =>
+  induction i using Fin.induction
+  · cases vs; simp;
+    simp at h; unfold seq at h; simp at h
+    case _ a as =>
+
+    sorry
+  · sorry
 
 theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
   (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).seq = some vs' ->
