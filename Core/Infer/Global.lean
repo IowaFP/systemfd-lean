@@ -12,7 +12,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
 | .cons (.data (n := n) x k ctors) G => do
   wf_globals G
   if (lookup x G).isNone then
-  let mctors' : Fun.Vec (Option Unit) n := λ i => spine_kinding (.data (n := 0) x k .nil :: G) (ctors.get_elem i).snd
+  let mctors' : Fun.Vec (Option Unit) n := λ i => spine_kinding (.data (n := 0) x k #𝓋[] :: G) (ctors.get_elem i).snd
   let _ <- mctors'.to.seq
 | .cons (.openm x spTy) G => do
   wf_globals G

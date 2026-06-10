@@ -284,11 +284,14 @@ case _ n hd tl ih =>
   case _ => apply ih
 
 
--- theorem quantifier_flip {Q Q' : Type} {v : Vec n Q} (f : Q -> Option Q') :
+-- theorem Fun.Vec.quantifier_flip {Q Q' : Type} {v : Vec Q n} (f : Q -> Option Q') :
 --   (∀ i, ∃ T, f (v i) = some T) ->
---   ∃ (T' : Vec n Q'), ∀ i, f (v i) = some (T' i) := by
+--   ∃ (T' : Vec Q' n), ∀ i, f (v i) = some (T' i)
+-- := by
+-- intro h
+-- sorry
 --   intro h
---   generalize T'def : Vec.seq (f <$> v) = T' at *
+
 --   cases T'
 --   case none =>
 --     exfalso
@@ -640,33 +643,50 @@ theorem Fun.Vec.to_get_elem (vs : Vec α n) : ∀i, vs i = (Vec.to vs)[i] := by
   rw[Fun.Vec.cons_zero]
   rw[Fun.Vec.cons_succ]
 
-theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
-  (Fun.Vec.to (λ i => f (vs i))).seq = some vs' ->
-  ∀ i : Fin n, f (vs i) = some (vs'.to i) := by
-intro h i
-induction vs.to
-apply i.elim0
-case _ ih =>
-  induction i using Fin.induction <;> simp at *
-  · cases vs';
-    simp; rw[Fun.Vec.cons_zero];
-    sorry
-  · sorry
-
 theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Vec.map f vs).seq = some vs' ->
-  ∀ i : Fin n, f (vs[i]) = some (vs'[i]) := by
+  ∀ i : Fin n, f (vs[i]) = some (vs'[i])
+:= by
 intro h i
-induction vs'
-case nil => apply i.elim0
-case cons n b bs ih =>
+generalize zdef : map f vs = z at *
+fun_induction Vec.seq
+· apply i.elim0
+· cases h
+· case _ ih1 =>
+  simp at h
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h1, h⟩
   induction i using Fin.induction
-  · cases vs; simp;
-    simp at h; unfold seq at h; simp at h
-    case _ a as =>
+  · cases vs'; case _ v' vs' =>
+    cases vs; case _ v vs =>
+    simp; simp at h; rcases h with ⟨e1, e2⟩
+    subst e1; subst e2; simp at zdef; apply zdef.1
+  · case _ ih2 =>
+    cases vs'; case _ v' vs' =>
+    cases vs; case _ v vs =>
+    simp; simp at h; rcases h with ⟨e1, e2⟩
+    subst e1; subst e2
+    simp at zdef;
+    apply ih1;
+    apply zdef.2
+    apply h1
 
-    sorry
-  · sorry
+theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
+  (Fun.Vec.to (λ i => f (vs i))).seq = some vs' ->
+  ∀ i : Fin n, f (vs i) = some (vs'.to i)
+:= by
+generalize zdef : Fun.Vec.to (λ i => f (vs i)) = z at *
+have lem : Fun.Vec.to (λ i => f (vs i)) = (Vec.map f vs.to) := by
+  induction vs using Fun.Vec.induction
+  simp; cases vs'; cases z; apply zdef
+  case _ v vs ih =>
+  cases vs'; case _ v' vs' =>
+  cases z; case _ hd tl =>
+  simp at *; rw[zdef]; simp
+  sorry
+intro h i
+
+sorry
+
 
 theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
   (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).seq = some vs' ->

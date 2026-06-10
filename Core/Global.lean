@@ -161,22 +161,6 @@ def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) :
   | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
--- def Global.ctor? (c : DataConst) (G : List Global) (ctor : String) (datatype : String) : Bool :=
---   match c, lookup datatype G with
---   | .cls, some (.data _ _ ctors) => List.contains (List.map Prod.fst (Vec.to_list ctors)) ctor
---   | .opn, some (.odata _ K) =>
---     let t :=
---     sorry
---   | _, _ => false
-
--- def get_instance_aux (x : String) : Nat -> List Global -> Option ((m : Nat) × Pattern m × Term)
--- | _, .nil => none
--- | 0, .cons (.inst (m := m) y p b) _ =>
---   if x == y then some ⟨m, p, b⟩ else none
--- | n + 1, .cons (.inst y _ _) G =>
---   if x == y then get_instance_aux x n G
---   else get_instance_aux x (n + 1) G
--- | n, .cons _ G => get_instance_aux x n G
 
 @[simp]
 def Pattern.match : Vec Constructor m -> Pattern m' -> Bool
@@ -192,12 +176,6 @@ def get_instance (x : String) (ctors : (Vec Constructor m)) : (G : List Global) 
   then some ⟨m, p, b⟩
   else get_instance x ctors G'
 | .cons _ G' => get_instance x ctors G'
-
--- def instances (x : String) : List Global -> List Term
--- | [] => []
--- | .cons (.inst y t) tl =>
---   if x == y then t :: instances x tl else instances x tl
--- | .cons _ tl => instances x tl
 
 def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
   let t <- lookup x G
@@ -231,7 +209,6 @@ def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (
 --   | .data _ _ ctors => Vec.length ctors
 --   | _ => .none
 
--- def is_stable (G : List Global) (x : String) : Bool := (is_ctor G x ∨ is_instty G x)
 
 -- theorem lookup_type_reconstruct :
 --   lookup x G = some e ->

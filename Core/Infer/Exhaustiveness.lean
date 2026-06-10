@@ -19,6 +19,7 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
     return ⟨ctors.length, ctors.map (·.1) ⟩
   | _ => none
 
+
 theorem lookup_ctor_names_sound :
   lookup_ctor? G DataConst.cls c T = true ->
   lookup_ctor_names G T = some ⟨n, cs⟩ ->
@@ -35,6 +36,8 @@ split at h2
   cases e <;> simp at h3
   split at h3 <;> simp at *
   subst h3;
+  case _ c' k spTy _ _ _ =>
+
   sorry
 
 · cases h2
@@ -123,14 +126,15 @@ theorem query_ctor_names {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
 intro h1 h2 i
 induction h1
 apply i.elim0
-case _ q qs ih =>
+case _ q qs ih1 =>
   replace h2 := Vec.map_seq_sound _ h2 i
   induction i using Fin.induction <;> simp at h2
   · have lem := lookup_ctor_names_sound q h2
     rcases lem with ⟨j, lem⟩
     exists j
-  · cases ctor_names
-    apply ih
+  case _ i ih2 => cases ctor_names; case _ ctor_name ctor_names =>
+    apply ih1; simp at h2
+    clear ih2; revert i
     sorry
 
 
@@ -143,26 +147,26 @@ unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
 generalize z_def : populate_aux ⟨1, #𝓋[#𝓋[]]⟩ ctor_names = rm at *
-
-induction q
-case nil =>
-  cases ctor_names
-  cases ref_matrix
-  simp at *
-  cases h1; subst h2;
-  simp at z_def; exists 0;
-  case _ v _ =>
-  cases v; simp
-case cons ih =>
-  cases S; case _ S Ss =>
-  cases ctor_names; case _ ctor_name ctor_names =>
+have lem := query_ctor_names h1 h3
+-- induction q
+-- case nil =>
+--   cases ctor_names
+--   cases ref_matrix
+--   simp at *
+--   cases h1; subst h2;
+--   simp at z_def; exists 0;
+--   case _ v _ =>
+--   cases v; simp
+-- case cons ih =>
+--   cases S; case _ S Ss =>
+--   cases ctor_names; case _ ctor_name ctor_names =>
 
   -- cases ctor_names
   -- replace h7 := Vec.map_seq_sound _ h7
   -- simp at h7;
   -- cases h1;
   -- simp at z_def;
-  sorry
+sorry
 
   -- cases ref_matrix
   -- · simp; unfold Query at h1; cases h1;
