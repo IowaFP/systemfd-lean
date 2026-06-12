@@ -13,6 +13,14 @@ open LeanSubst
 
 namespace Core
 
+theorem spine_kinding_sound :
+  spine_kinding G v x spTy = some () ->
+  SpineKinding v x G spTy
+:= by
+
+sorry
+
+
 theorem pattern_binders_sound :
   pattern_binders G Δ m Ts p = some Γ ->
   PatternBinders G Δ m Ts p Γ := by
@@ -68,7 +76,6 @@ case _ y _ ih =>
   apply VecTyping.cons
   simp at h3; exists y.2.1; exists y.2.2.1; exists y.2.2.2; subst h3; rfl
   apply ih h2
-
 
 theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Vec (Pattern m) k} {q : Vec String m} {S : Vec Ty m} :
   Query G DataConst.cls q S ->
@@ -166,7 +173,6 @@ case _ As _ ih => -- spctor
     apply ih i; simp[instGetElem_Vec]; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e; apply h11
   · intro h; cases h
-  · intro h; cases h
 
 
 case _ As _ ih => -- openm
@@ -193,8 +199,6 @@ case _ As _ ih => -- openm
     have lem := Vec.units h8 i; rw[lem] at h9
     replace h9 := data_valid_sound _ h9; simp[instGetElem_Vec];
     apply h9
-  · intro h q qs p t; sorry
-
 
 case _ m n ss ps ts smτs ih1 ih2 => -- match
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨S, h2, h⟩

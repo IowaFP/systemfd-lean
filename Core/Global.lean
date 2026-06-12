@@ -193,6 +193,33 @@ def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (
 -- def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!
 -- def is_defn G x := lookup x G |> Option.map Entry.is_defn |> Option.get!
 
+theorem lookup_name_eq :
+  lookup x G = some e ->
+  e.name = x := by
+intro h
+fun_induction lookup
+cases h
+simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all
+case _ ctors _ ctors' _ ih =>
+  unfold ctors' at h
+  induction ctors <;> simp at *
+  apply ih h
+  case _ ih2 =>
+    simp [Vec.enumerate, Vec.enumerate.go] at h;
+    cases h
+    cases ctors'; case _ h _ _ => rw[h.1]; rw[<-h.2]; simp [Entry.name]
+    case _ h => sorry
+any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
+any_goals (case _ ih => apply ih h)
+
+def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
+  let ⟨d, _⟩ <- T.spine
+  match lookup d G with
+  | some (.data _ _ ctors) =>
+    return ⟨ctors.length, ctors.map (·.1) ⟩
+  | _ => none
+
+
 -- def ctor_idx (G : List Global) (x : String) : Option Nat := do
 --   let t <- lookup x G
 --   match t with

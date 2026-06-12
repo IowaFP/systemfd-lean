@@ -36,17 +36,6 @@ def Ty.valid_data (c : DataConst) (G : List Global) : Ty -> Option Unit
   if is_data c G x
   then return () else none
 
-def Ty.valid_spine_kinding (G : List Global) : SpineTy -> Option Unit
-  | ⟨_, Ks, n, Ts, R ⟩ => do
-  let Δ := Vec.to_list Ks
-  let mks : Vec (Option Kind) n <- Ts.map (λ t => t.infer_kind G Δ)
-  let ks <- mks.seq
-  if ks.elems_eq_to ★
-  then let k <- R.infer_kind G Δ
-       if k == ★ then some ()
-       else none
-  else none
-
 def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Option Ty
 | [], τ  => return τ
 | .cons a as, ∀[K] τ => do
@@ -245,13 +234,18 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | _ => none
 
 
-def spine_kinding (G : List Global) :  SpineTy -> Option Unit
+def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) :  SpineTy -> Option Unit
 | ⟨_, Ks, _, Ts, R⟩ => do
   let Δ := Ks.to_list
   let mTKs := Ts.map (λ T => T.infer_kind G Δ)
   let TKs <- mTKs.seq
   let RK <- R.infer_kind G Δ
   if TKs.elems_eq_to ★ && RK == ★
-  then some () else none
+  then
+    match sv with
+    | .data c =>
+      if lookup_ctor? G c x R then some () else none
+    | .openm => none
+  else none
 
 namespace Core

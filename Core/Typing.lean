@@ -108,6 +108,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ----------------------------------------------------------------------------------------------------
 ---- Data
 ----------------------------------------------------------------------------------------------------
+
 | spctor {Δ Γ m n x v Ks Ts Ts' R R'} {As : Vec Ty m} {ts : Fun.Vec Term n} :
   lookup_spine_type G x = some ⟨m, Ks, n, Ts, R⟩ ->
   Ts' = Ts[Sequ.append_vec (Vec.map su As) +0:Ty] ->
@@ -116,8 +117,8 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts'[i]) ->
   (∀ c, v = .data c -> lookup_ctor? G c x R) ->
   (v = .openm -> ∀ (i : Fin n), Ts'[i].data? .opn G) ->
-  (v = .openm -> (∀ {q}, Query G .opn q As -> ∀{p : Pattern m} t, ∃ i : Nat, G[i]? = .some (Global.inst x p t) ∧ Query.Match q p)) ->
   Typing G Δ Γ (.spctor v x As ts) R'
+
 | mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
   (∀ i, (S i).data? .cls G) ->

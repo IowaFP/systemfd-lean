@@ -12,13 +12,6 @@ open Lilac
 
 namespace Core
 
-def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
-  let ⟨d, _⟩ <- T.spine
-  match lookup d G with
-  | some (.data _ _ ctors) =>
-    return ⟨ctors.length, ctors.map (·.1) ⟩
-  | _ => none
-
 
 theorem lookup_ctor_names_sound :
   lookup_ctor? G DataConst.cls c T = true ->
@@ -36,7 +29,9 @@ split at h2
   cases e <;> simp at h3
   split at h3 <;> simp at *
   subst h3;
-  case _ c' k spTy _ _ _ =>
+  case _ lk1 c k spTy _ _ _ =>
+  have lem := lookup_name_eq lk1; cases lem
+  have lem := lookup_name_eq h2; cases lem; simp [Entry.name] at *
 
   sorry
 
@@ -119,23 +114,25 @@ apply Iff.intro
     rcases h with ⟨_, _, _, h⟩
     cases h; simp; apply ih
 
-theorem query_ctor_names {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
-  Query G DataConst.cls q S ->
-  (Vec.map (lookup_ctor_names G) S).seq = some ctor_names ->
-  ∀ i : Fin m, ∃ j : Fin ctor_names[i].fst, q[i] = ctor_names[i].snd[j] := by
-intro h1 h2 i
-induction h1
-apply i.elim0
-case _ q qs ih1 =>
-  replace h2 := Vec.map_seq_sound _ h2 i
-  induction i using Fin.induction <;> simp at h2
-  · have lem := lookup_ctor_names_sound q h2
-    rcases lem with ⟨j, lem⟩
-    exists j
-  case _ i ih2 => cases ctor_names; case _ ctor_name ctor_names =>
-    apply ih1; simp at h2
-    clear ih2; revert i
-    sorry
+-- theorem query_ctor_names {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
+--   Query G DataConst.cls q S ->
+--   (Vec.map (lookup_ctor_names G) S).seq = some ctor_names ->
+--   ∃ idv: Vec ((n : Nat) × Fin n) m,
+--   ∀ i : Fin m, q[i] = ctor_names[i].snd[j] := by
+-- intro h1 h2 i
+-- induction h1
+-- apply i.elim0
+-- case _ q qs ih1 =>
+--   replace h2 := Vec.map_seq_sound _ h2 i
+--   induction i using Fin.induction <;> simp at h2
+--   · have lem := lookup_ctor_names_sound q h2
+--     rcases lem with ⟨j, lem⟩
+--     exists j
+--   case _ i ih2 => cases ctor_names; case _ ctor_name ctor_names =>
+--     apply ih1; simp at h2
+--     clear ih2; revert i
+--     sorry
+
 
 
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
@@ -147,7 +144,9 @@ unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
 generalize z_def : populate_aux ⟨1, #𝓋[#𝓋[]]⟩ ctor_names = rm at *
-have lem := query_ctor_names h1 h3
+
+-- have lem := query_ctor_names h1 h3
+
 -- induction q
 -- case nil =>
 --   cases ctor_names
