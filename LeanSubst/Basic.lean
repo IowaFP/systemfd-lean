@@ -1,8 +1,8 @@
 
 namespace LeanSubst
 
-universe u1 u2
-variable {S : Type u1} {T : Type u2}
+universe u1 u2 u3
+variable {S : Type u1} {T : Type u2} {U : Type u3}
 
 structure Ren (T : Type u2) where
   act : Nat -> Nat
@@ -27,7 +27,15 @@ deriving Repr
 export Action (re su)
 
 structure Subst (T : Type u2) where
-  act : Nat -> Action T
+  inner : Nat -> Action T
+
+class SubstAction (T : Type u1) (A : Type u2) (U : outParam (Type u3)) where
+  act (σ : Subst T) : A -> U
+
+def Subst.act [SubstAction S T U] (σ : Subst S) : T -> U := SubstAction.act σ
+
+instance : SubstAction T Nat (Action T) where
+  act := Subst.inner
 
 class SubstMap (S : Type u1) (T : Type u2) where
   smap : Subst T -> S -> S
