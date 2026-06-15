@@ -102,7 +102,7 @@ def Entry.spine_type : Entry -> Option SpineTy
 | _ => none
 
 def Entry.ctor? (data : String) : DataConst -> Entry -> Bool
-| .cls, ctor _ _ ⟨_, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, T⟩ =>
+| .cls, ctor _ _ ⟨_, _, _, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, _, _, T⟩ =>
   match T.spine with
   | some ⟨d, _⟩ => d == data
   | none => false

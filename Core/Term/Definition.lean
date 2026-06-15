@@ -31,16 +31,20 @@ inductive TyBindVariant : Type where
 | lamt
 | allc
 
-abbrev Pattern m := Vec (String × (n : Nat) × Vec Ty n × Nat) m
+abbrev Pattern m := Vec (String × (n : Nat) × Vec Ty n × Nat × Nat) m
+
+def Pattern.bind_type : Pattern m -> Nat
+| .nil => 0
+| .cons ⟨_, _, _, m, _⟩ tl => m + Pattern.bind_type tl
 
 def Pattern.bind : Pattern m -> Nat
 | .nil => 0
-| .cons ⟨_, _, _, n⟩ tl => n + Pattern.bind tl
+| .cons ⟨_, _, _, _, n⟩ tl => n + Pattern.bind tl
 
 inductive Term : Type where
 | var : Nat -> Term
 | defn : String -> Term
-| spctor : SpCtorVariant -> String -> Vec Ty m -> Fun.Vec Term n -> Term
+| spctor : SpCtorVariant -> String -> Vec Ty m1 -> Vec Ty m2 -> Fun.Vec Term n -> Term
 | ctor0 : Ctor0Variant -> Term
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
@@ -83,7 +87,7 @@ notation "∀c[" K "]" P => Term.tbind TyBindVariant.allc K P
 def Term.size : Term -> Nat
 | var _ => 0
 | defn _ => 0
-| spctor _ _ _ t2 =>
+| spctor _ _ _ _ t2 =>
   let t2' : Fun.Vec _ _ := size <$> t2
   Vec.sum t2'.to + 1
 | ctor0 _ => 0
@@ -104,7 +108,7 @@ instance instSizeOf_Term : SizeOf Term where
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .defn n => "d#" ++ n
-| spctor _ _ _ _ => "don't care"
+| spctor _ _ _ _ _ => "don't care"
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
 | .ctor0 .fail => "fail!"
 | .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"

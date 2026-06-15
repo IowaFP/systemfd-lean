@@ -7,216 +7,216 @@ open Lilac
 
 namespace Core
 
-@[simp]
-def SpineTy.to' : (m : Nat) -> Vec Kind m -> (n : Nat) -> Vec Ty n -> Ty -> Ty
-| 0, .nil, 0, .nil, R => R
-| 0, .nil, n + 1, .cons A As, R => A -:> to' 0 .nil n As R
-| m + 1, .cons K Ks, n, As, R => ∀[K] to' m Ks n As R
+-- @[simp]
+-- def SpineTy.to' : (m : Nat) -> Vec Kind m -> (n : Nat) -> Vec Ty n -> Ty -> Ty
+-- | 0, .nil, 0, .nil, R => R
+-- | 0, .nil, n + 1, .cons A As, R => A -:> to' 0 .nil n As R
+-- | m + 1, .cons K Ks, n, As, R => ∀[K] to' m Ks n As R
 
-@[simp]
-def SpineTy.to : SpineTy -> Ty
-| ⟨m , Ks, n, Ts, R⟩ => to' m Ks n Ts R
+-- @[simp]
+-- def SpineTy.to : SpineTy -> Ty
+-- | ⟨m , Ks, n, Ts, R⟩ => to' m Ks n Ts R
 
-def Ty.spine : Ty -> Option (String × List Ty)
-| gt#x => return (x, [])
-| app f a => do
-  let (x, sp) <- spine f
-  (x, sp ++ [a])
-| _ => none
+-- def Ty.spine : Ty -> Option (String × List Ty)
+-- | gt#x => return (x, [])
+-- | app f a => do
+--   let (x, sp) <- spine f
+--   (x, sp ++ [a])
+-- | _ => none
 
-@[simp, grind =]
-theorem Ty.spine_arrow {A B : Ty} : (A -:> B).spine = none := by simp [spine]
+-- @[simp, grind =]
+-- theorem Ty.spine_arrow {A B : Ty} : (A -:> B).spine = none := by simp [spine]
 
-@[simp, grind =]
-theorem Ty.spine_all : (∀[K] A).spine = none := by simp [spine]
+-- @[simp, grind =]
+-- theorem Ty.spine_all : (∀[K] A).spine = none := by simp [spine]
 
-@[simp, grind =]
-theorem Ty.spine_eq : (A ~[K]~ B).spine = none := by simp [spine]
+-- @[simp, grind =]
+-- theorem Ty.spine_eq : (A ~[K]~ B).spine = none := by simp [spine]
 
-def Ty.apply (t : Ty) : List Ty -> Ty
-| [] => t
-| .cons a tl => (t • a).apply tl
+-- def Ty.apply (t : Ty) : List Ty -> Ty
+-- | [] => t
+-- | .cons a tl => (t • a).apply tl
 
-def Ty.arity : Ty -> Nat
-| arrow _ B => B.arity + 1
-| ∀[_] P => P.arity + 1
-| _ => 0
+-- def Ty.arity : Ty -> Nat
+-- | arrow _ B => B.arity + 1
+-- | ∀[_] P => P.arity + 1
+-- | _ => 0
 
-inductive Telescope where
-| nil : Telescope
-| kind : Kind -> Telescope -> Telescope
-| ty : Ty -> Telescope -> Telescope
+-- inductive Telescope where
+-- | nil : Telescope
+-- | kind : Kind -> Telescope -> Telescope
+-- | ty : Ty -> Telescope -> Telescope
 
-def Ty.kindscope : Ty -> List Kind × Ty
-| .all K T =>
-  let (Ks, R) := T.kindscope
-  (K::Ks, R)
-| T => (.nil, T)
+-- def Ty.kindscope : Ty -> List Kind × Ty
+-- | .all K T =>
+--   let (Ks, R) := T.kindscope
+--   (K::Ks, R)
+-- | T => (.nil, T)
 
-def Ty.typescope : (n : Nat) -> Ty -> Option (Vec Ty n × Ty)
-| n + 1, .arrow A B => do
-  let (tys, b) <- B.typescope n
-  return (A::tys, b)
-| _ + 1, _ => none
-| 0, t => some (.nil, t)
+-- def Ty.typescope : (n : Nat) -> Ty -> Option (Vec Ty n × Ty)
+-- | n + 1, .arrow A B => do
+--   let (tys, b) <- B.typescope n
+--   return (A::tys, b)
+-- | _ + 1, _ => none
+-- | 0, t => some (.nil, t)
 
-def Telescope.rmap (r : Ren) : Telescope -> Telescope
-| nil => nil
-| kind K te => kind K (rmap r.lift te)
-| ty A te => ty A[r] (rmap r.lift te)
+-- def Telescope.rmap (r : Ren T) : Telescope -> Telescope
+-- | nil => nil
+-- | kind K te => kind K (rmap r.lift te)
+-- | ty A te => ty A[r] (rmap r.lift te)
 
-instance : RenMap Telescope where
-  rmap := Telescope.rmap
+-- instance : RenMap Telescope where
+--   rmap := Telescope.rmap
 
-def Telescope.smap (σ : Subst Ty) : Telescope -> Telescope
-| nil => nil
-| kind K te => kind K (smap σ.lift te)
-| ty A te => ty A[σ] (smap σ te)
+-- def Telescope.smap (σ : Subst Ty) : Telescope -> Telescope
+-- | nil => nil
+-- | kind K te => kind K (smap σ.lift te)
+-- | ty A te => ty A[σ] (smap σ te)
 
-instance : SubstMap Telescope Ty where
-  smap := Telescope.smap
+-- instance : SubstMap Telescope Ty where
+--   smap := Telescope.smap
 
-@[simp]
-theorem Telescope.subst_nil : (nil)[σ:Ty] = nil := by
-  simp [SubstMap.smap, Telescope.smap]
+-- @[simp]
+-- theorem Telescope.subst_nil : (nil)[σ:Ty] = nil := by
+--   simp [SubstMap.smap, Telescope.smap]
 
-@[simp]
-theorem Telescope.subst_kind : (kind K te)[σ:Ty] = kind K te[σ.lift:_] := by
-  simp [SubstMap.smap, Telescope.smap]
+-- @[simp]
+-- theorem Telescope.subst_kind : (kind K te)[σ:Ty] = kind K te[σ.lift:_] := by
+--   simp [SubstMap.smap, Telescope.smap]
 
-@[simp]
-theorem Telescope.subst_ty : (ty A te)[σ:Ty] = ty A[σ:_] te[σ:_] := by
-  simp [SubstMap.smap, Telescope.smap]
+-- @[simp]
+-- theorem Telescope.subst_ty : (ty A te)[σ:Ty] = ty A[σ:_] te[σ:_] := by
+--   simp [SubstMap.smap, Telescope.smap]
 
-def Telescope.extend (Γ : List Ty) : Telescope -> List Ty
-| nil => Γ
-| kind _ te => extend Γ te
-| ty A te => extend (A::Γ) te
+-- def Telescope.extend (Γ : List Ty) : Telescope -> List Ty
+-- | nil => Γ
+-- | kind _ te => extend Γ te
+-- | ty A te => extend (A::Γ) te
 
-def Ty.telescope : Ty -> Telescope  × Ty
-| .arrow A B =>
-  let (tys, b) := B.telescope
-  (.ty A tys, b)
-| .all K B =>
-  let (tys, b) := B.telescope
-  (.kind K tys, b)
-| t => (.nil, t)
+-- def Ty.telescope : Ty -> Telescope  × Ty
+-- | .arrow A B =>
+--   let (tys, b) := B.telescope
+--   (.ty A tys, b)
+-- | .all K B =>
+--   let (tys, b) := B.telescope
+--   (.kind K tys, b)
+-- | t => (.nil, t)
 
--- def Telescope.count_binders (t : Telescope) : Nat :=
---   t.foldl (λ acc x => match x with
---                   | .kind _ => acc + 1
---                   | _ => acc) 0
+-- -- def Telescope.count_binders (t : Telescope) : Nat :=
+-- --   t.foldl (λ acc x => match x with
+-- --                   | .kind _ => acc + 1
+-- --                   | _ => acc) 0
 
-def Ty.from_telescope : Telescope -> Ty -> Ty
-| .nil , t => t
-| .ty A tys, t =>
-  let r := t.from_telescope tys
-  A -:> r
-| .kind K tys, t =>
-  let r := t.from_telescope tys
-  ∀[K] r
+-- def Ty.from_telescope : Telescope -> Ty -> Ty
+-- | .nil , t => t
+-- | .ty A tys, t =>
+--   let r := t.from_telescope tys
+--   A -:> r
+-- | .kind K tys, t =>
+--   let r := t.from_telescope tys
+--   ∀[K] r
 
-@[simp]
-theorem Ty.Spine.apply_subst {t : Ty} {sp : List Ty} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ])) := by
-  induction sp generalizing t <;> simp [Ty.apply]
-  case cons hd tl ih => replace ih := @ih (t • hd); simp at ih; rw [ih]
+-- @[simp]
+-- theorem Ty.Spine.apply_subst {t : Ty} {sp : List Ty} : (t.apply sp)[σ] = (t[σ]).apply (sp.map (·[σ])) := by
+--   induction sp generalizing t <;> simp [Ty.apply]
+--   case cons hd tl ih => replace ih := @ih (t • hd); simp at ih; rw [ih]
 
-@[simp]
-theorem Ty.Spine.app_eq :
-  (f • a).spine = some (x, sp)
-  <-> ∃ sp', sp = sp' ++ [a] ∧ f.spine = some (x, sp')
-:= by
-  apply Iff.intro <;> intro h
-  case _ =>
-    simp [Ty.spine] at h
-    rw [Option.bind_eq_some_iff] at h
-    rcases h with ⟨q, e1, e2⟩
-    rcases q with ⟨y, sp'⟩; simp at e2
-    rcases e2 with ⟨e2, e3⟩; subst e2 e3
-    rw [e1]; exists sp'
-  case _ =>
-    rcases h with ⟨sp', e1, e2⟩; subst e1
-    simp [Ty.spine]
-    rw [Option.bind_eq_some_iff]; apply Exists.intro (x, sp')
-    apply And.intro e2; simp
+-- @[simp]
+-- theorem Ty.Spine.app_eq :
+--   (f • a).spine = some (x, sp)
+--   <-> ∃ sp', sp = sp' ++ [a] ∧ f.spine = some (x, sp')
+-- := by
+--   apply Iff.intro <;> intro h
+--   case _ =>
+--     simp [Ty.spine] at h
+--     rw [Option.bind_eq_some_iff] at h
+--     rcases h with ⟨q, e1, e2⟩
+--     rcases q with ⟨y, sp'⟩; simp at e2
+--     rcases e2 with ⟨e2, e3⟩; subst e2 e3
+--     rw [e1]; exists sp'
+--   case _ =>
+--     rcases h with ⟨sp', e1, e2⟩; subst e1
+--     simp [Ty.spine]
+--     rw [Option.bind_eq_some_iff]; apply Exists.intro (x, sp')
+--     apply And.intro e2; simp
 
-theorem Ty.Spine.apply_type {t : Ty} : t.apply sp • a = t.apply (sp ++ [a]) := by
-  induction sp generalizing t <;> simp [Ty.apply]
-  case cons hd tl ih => rw [ih]
+-- theorem Ty.Spine.apply_type {t : Ty} : t.apply sp • a = t.apply (sp ++ [a]) := by
+--   induction sp generalizing t <;> simp [Ty.apply]
+--   case cons hd tl ih => rw [ih]
 
-theorem Ty.Spine.apply_eq
-  : t.spine = some (x, sp) -> t = (gt#x).apply sp
-:= by
-  intro h
-  fun_induction Ty.spine generalizing x sp <;> simp at *
-  case _ y =>
-    rcases h with ⟨e1, e2⟩; subst e1 e2
-    simp [Ty.apply]
-  case _ ih =>
-    rw [Option.bind_eq_some_iff] at h
-    rcases h with ⟨q, e1, e2⟩
-    rcases q with ⟨y, sp'⟩; simp at e2
-    rcases e2 with ⟨e2, e3⟩; subst e2 e3
-    rw [ih e1, apply_type]
+-- theorem Ty.Spine.apply_eq
+--   : t.spine = some (x, sp) -> t = (gt#x).apply sp
+-- := by
+--   intro h
+--   fun_induction Ty.spine generalizing x sp <;> simp at *
+--   case _ y =>
+--     rcases h with ⟨e1, e2⟩; subst e1 e2
+--     simp [Ty.apply]
+--   case _ ih =>
+--     rw [Option.bind_eq_some_iff] at h
+--     rcases h with ⟨q, e1, e2⟩
+--     rcases q with ⟨y, sp'⟩; simp at e2
+--     rcases e2 with ⟨e2, e3⟩; subst e2 e3
+--     rw [ih e1, apply_type]
 
-theorem Ty.Spine.apply_compose {t : Ty}
-  : t.spine = some (x, sp1) -> (t.apply sp2).spine = some (x, sp1 ++ sp2)
-:= by
-  intro h; induction sp2 generalizing t x sp1
-  simp [Ty.apply]; exact h
-  case _ a tl ih =>
-  have lem : (t • a).spine = some (x, sp1 ++ [a]) := by simp; exact h
-  replace ih := ih lem; simp at ih; exact ih
+-- theorem Ty.Spine.apply_compose {t : Ty}
+--   : t.spine = some (x, sp1) -> (t.apply sp2).spine = some (x, sp1 ++ sp2)
+-- := by
+--   intro h; induction sp2 generalizing t x sp1
+--   simp [Ty.apply]; exact h
+--   case _ a tl ih =>
+--   have lem : (t • a).spine = some (x, sp1 ++ [a]) := by simp; exact h
+--   replace ih := ih lem; simp at ih; exact ih
 
-@[simp]
-theorem Ty.Spine.apply_eta : ((gt#x).apply sp).spine = some (x, sp) := by
-  have lem := @apply_compose x [] sp gt#x (by simp [Ty.spine])
-  simp at lem; exact lem
-
-
-def Ty.is_all_some : Ty -> Option (Kind × Ty)
-| .all K B => return (K, B)
-| _ => none
-
-def Ty.is_all_some_sound {T : Ty} :
-  T.is_all_some = .some (K, T1) ->
-  T = ∀[K] T1 := by
-intro h
-cases T <;> simp [Ty.is_all_some] at *
-assumption
+-- @[simp]
+-- theorem Ty.Spine.apply_eta : ((gt#x).apply sp).spine = some (x, sp) := by
+--   have lem := @apply_compose x [] sp gt#x (by simp [Ty.spine])
+--   simp at lem; exact lem
 
 
-def Ty.is_arrow_some : Ty -> Option (Ty × Ty)
-| .arrow A B => return (A, B)
-| _ => none
+-- def Ty.is_all_some : Ty -> Option (Kind × Ty)
+-- | .all K B => return (K, B)
+-- | _ => none
 
-def Ty.is_arrow_some_sound {T : Ty} :
-  T.is_arrow_some = .some (T1, T2) ->
-  T = T1 -:> T2 := by
-intro h
-cases T <;> simp [Ty.is_arrow_some] at *
-assumption
+-- def Ty.is_all_some_sound {T : Ty} :
+--   T.is_all_some = .some (K, T1) ->
+--   T = ∀[K] T1 := by
+-- intro h
+-- cases T <;> simp [Ty.is_all_some] at *
+-- assumption
 
-def Ty.is_eq_some : Ty -> Option (Kind × Ty × Ty)
-| .eq K A B => return (K, A, B)
-| _ => none
 
-def Ty.is_eq_some_sound {T : Ty} :
-  T.is_eq_some = some (K, A, B) ->
-  T = (A ~[K]~ B) := by
-intro h;
-cases T <;> simp [Ty.is_eq_some] at *
-assumption
+-- def Ty.is_arrow_some : Ty -> Option (Ty × Ty)
+-- | .arrow A B => return (A, B)
+-- | _ => none
 
-def Ty.is_app_some : Ty -> Option (Ty × Ty)
-| .app A B => return (A, B)
-| _ => none
+-- def Ty.is_arrow_some_sound {T : Ty} :
+--   T.is_arrow_some = .some (T1, T2) ->
+--   T = T1 -:> T2 := by
+-- intro h
+-- cases T <;> simp [Ty.is_arrow_some] at *
+-- assumption
 
-def Ty.is_app_some_sound {T : Ty} :
-  T.is_app_some = some (A, B) ->
-  T = (A • B) := by
-intro h;
-cases T <;> simp [Ty.is_app_some] at *
-assumption
+-- def Ty.is_eq_some : Ty -> Option (Kind × Ty × Ty)
+-- | .eq K A B => return (K, A, B)
+-- | _ => none
+
+-- def Ty.is_eq_some_sound {T : Ty} :
+--   T.is_eq_some = some (K, A, B) ->
+--   T = (A ~[K]~ B) := by
+-- intro h;
+-- cases T <;> simp [Ty.is_eq_some] at *
+-- assumption
+
+-- def Ty.is_app_some : Ty -> Option (Ty × Ty)
+-- | .app A B => return (A, B)
+-- | _ => none
+
+-- def Ty.is_app_some_sound {T : Ty} :
+--   T.is_app_some = some (A, B) ->
+--   T = (A • B) := by
+-- intro h;
+-- cases T <;> simp [Ty.is_app_some] at *
+-- assumption
 
 end Core

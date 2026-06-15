@@ -100,13 +100,13 @@ notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 abbrev Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data c G)
 
 inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : SpineTy -> Prop where
-| valid {Ks : Vec Kind m} {Ts : Vec _ n} :
-  Vec.to_list Ks = Δ ->
+| valid {Ks1 : Vec Kind m1} {Ks2 : Vec Kind m2} {Ts : Vec _ n} :
+  Vec.to_list Ks1 ++ Vec.to_list Ks2 = Δ ->
   (∀ (i : Fin n), G&Δ ⊢ Ts[i] : ★) ->
   G&Δ ⊢ R : ★ ->
   (∀ c, sv = .data c -> lookup_ctor? G c x R) ->
   (sv = .openm -> ∀ (i : Fin n), Ts[i][τ].data? .opn G) ->
-  SpineKinding sv x G ⟨m, Ks, n, Ts, R⟩
+  SpineKinding sv x G ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
 
 -- inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
 -- | done : KindingPreamble G Δ [] T T
@@ -115,15 +115,15 @@ inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : Spi
 --   KindingPreamble G Δ Ty T1[su A::+0] T2 ->
 --   KindingPreamble G Δ (A::Ty) (∀[K] T1) T2
 
-inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
-| zero : PatternBinders G Δ 0 ss ps []
-| succ {Ts' : Vec _ nb} :
-  lookup_spine_type G c = some ⟨na, Ks, nb, Ts, R⟩ ->
-  (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks[i]) ->
+inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Kind -> List Ty -> Prop
+| zero : PatternBinders G Δ 0 ss ps [] []
+| succ {Ts' : Vec _ nc} :
+  lookup_spine_type G c = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
+  (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks1[i]) ->
   Ts' = Ts[Sequ.append_vec (Vec.map su As) +0:Ty] ->
   R' = R[Sequ.append_vec (Vec.map su As) +0:Ty] ->
-  PatternBinders G Δ n S p ℓ ->
-  PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb⟩::p) ((Vec.to_list Ts') ++ ℓ)
+  PatternBinders G Δ n S p ℓ1 ℓ2 ->
+  PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (Vec.to_list Ks2 ++ ℓ1) ((Vec.to_list Ts') ++ ℓ2)
 
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :
@@ -163,9 +163,9 @@ def Query.Match (qs : Vec String m) (ps : Pattern m) : Prop :=
 --   Query.Match (q::qs) (p::ps)
 
 def OpenExhaustive (G : List Global) : Prop :=
-  ∀ {x na nb} {τ : Subst Ty} {As Ks : Vec _ na} {Ts Ts' : Vec _ nb} {Δ R q},
-  lookup x G = some (.openm x ⟨na, Ks, nb, Ts, R⟩) ->
-  (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks[i]) ->
+  ∀ {x na nb nc} {τ : Subst Ty} {As Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts Ts' : Vec _ nc} {Δ R q},
+  lookup x G = some (.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
+  (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks1[i]) ->
   Sequ.append_vec (Vec.map su As) +0 = τ ->
   Vec.map (·[τ]) Ts = Ts' ->
   Query G .opn q Ts' ->
@@ -183,15 +183,16 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 ----------------------------------------------------------------------------------------------------
 ---- Data
 ----------------------------------------------------------------------------------------------------
-| spctor {Δ Γ m n x v Ks Ts Ts' R R'} {As : Vec Ty m} {ts : Fun.Vec Term n} :
-  lookup_spine_type G x = some ⟨m, Ks, n, Ts, R⟩ ->
-  Ts' = Ts[Sequ.append_vec (Vec.map su As) +0:Ty] ->
+| spctor {Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R'} {As : Vec Ty m1} {Bs : Vec Ty m2} {ts : Fun.Vec Term n} :
+  lookup_spine_type G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
+  Ts' = Ts[Sequ.append_vec (Vec.map su (Bs ++ As)) +0:Ty] ->
   R' = R[Sequ.append_vec (Vec.map su As) +0:Ty] ->
-  (∀ (i : Fin m), G&Δ ⊢ As[i] : Ks[i]) ->
+  (∀ (i : Fin m1), G&Δ ⊢ As[i] : Ks1[i]) ->
+  (∀ (i : Fin m2), G&Δ ⊢ Bs[i] : Ks2[i]) ->
   (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts'[i]) ->
   (∀ c, v = .data c -> lookup_ctor? G c x R) ->
   (v = .openm -> ∀ (i : Fin n), Ts'[i].data? .opn G) ->
-  Typing G Δ Γ (.spctor v x As ts) R'
+  Typing G Δ Γ (.spctor v x As Bs ts) R'
 | mtch {ss S : Fun.Vec _ m} {ps ts ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
   (∀ i, (S i).data? .cls G) ->

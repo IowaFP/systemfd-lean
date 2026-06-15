@@ -4,50 +4,50 @@ import Lilac
 open LeanSubst
 open Lilac
 
-@[simp]
-theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v := sorry
+-- @[simp]
+-- theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v := sorry
 
-@[simp]
-theorem Fun.Vec.to_iso : Fun.Vec.to (Vec.to v) = v := sorry
+-- @[simp]
+-- theorem Fun.Vec.to_iso : Fun.Vec.to (Vec.to v) = v := sorry
 
-def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
-| k => if i == k then a else v i
+-- def Fun.Vec.update (v : Fun.Vec A n) (a : A) (i : Fin n) : Fun.Vec A n
+-- | k => if i == k then a else v i
 
-@[simp]
-theorem Fun.Vec.update_eq : update v a i i = a := sorry
+-- @[simp]
+-- theorem Fun.Vec.update_eq : update v a i i = a := sorry
 
-theorem Fun.Vec.update_neq : ∀ j ≠ i, v j = update v a i j := sorry
+-- theorem Fun.Vec.update_neq : ∀ j ≠ i, v j = update v a i j := sorry
 
-@[simp]
-def Vec.fold (d : B) (f : A -> B -> B) : Vec A n -> B
-| .nil => d
-| .cons hd tl => f hd (Vec.fold d f tl)
+-- @[simp]
+-- def Vec.fold (d : B) (f : A -> B -> B) : Vec A n -> B
+-- | .nil => d
+-- | .cons hd tl => f hd (Vec.fold d f tl)
 
-@[simp]
-def Vec.map (f : A -> B) : Vec A n -> Vec B n
-| .nil => .nil
-| .cons hd tl => .cons (f hd) (Vec.map f tl)
+-- @[simp]
+-- def Vec.map (f : A -> B) : Vec A n -> Vec B n
+-- | .nil => .nil
+-- | .cons hd tl => .cons (f hd) (Vec.map f tl)
 
-def Vec.enumerate : Vec A n -> Vec (Nat × A) n := go 0
-where
-  go {n : Nat} (i : Nat) : Vec A n -> Vec (Nat × A) n
-  | .nil => .nil
-  | .cons hd tl => .cons (i, hd) (go (i + 1) tl)
+-- def Vec.enumerate : Vec A n -> Vec (Nat × A) n := go 0
+-- where
+--   go {n : Nat} (i : Nat) : Vec A n -> Vec (Nat × A) n
+--   | .nil => .nil
+--   | .cons hd tl => .cons (i, hd) (go (i + 1) tl)
 
-@[simp]
-theorem Vec.enumerate_nil : Vec.enumerate (A := A) #𝓋[] = #𝓋[] := by
-  simp [Vec.enumerate, Vec.enumerate.go]
+-- @[simp]
+-- theorem Vec.enumerate_nil : Vec.enumerate (A := A) #𝓋[] = #𝓋[] := by
+--   simp [Vec.enumerate, Vec.enumerate.go]
 
-def Vec.drop : Vec T (n + 1) -> Vec T n
-| .cons _ tl => tl
+-- def Vec.drop : Vec T (n + 1) -> Vec T n
+-- | .cons _ tl => tl
 
-def Vec.to_list : Vec T n -> List T
-| .nil => .nil
-| .cons hd tl => .cons hd (Vec.to_list tl)
+-- def Vec.to_list : Vec T n -> List T
+-- | .nil => .nil
+-- | .cons hd tl => .cons hd (Vec.to_list tl)
 
-def Sequ.append_vec : Vec α n -> Fun.Sequ α -> Fun.Sequ α
-| #𝓋[], s => s
-| .cons hd tl, s => hd :: (append_vec tl s)
+-- def Sequ.append_vec : Vec α n -> Fun.Sequ α -> Fun.Sequ α
+-- | #𝓋[], s => s
+-- | .cons hd tl, s => hd :: (append_vec tl s)
 
 -- protected def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 -- | 0, _, _ => ""
@@ -59,111 +59,115 @@ def Sequ.append_vec : Vec α n -> Fun.Sequ α -> Fun.Sequ α
 -- instance [Repr T] : Repr (Vec n T) where
 --   reprPrec v n := "v[" ++ Vec.reprPrec v n ++ "]"
 
-@[simp]
-theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
-| .nil, .nil => rfl
+-- @[simp]
+-- theorem Vec.nil_singleton : (v1 v2 : Vec T 0) -> v1 = v2
+-- | .nil, .nil => rfl
 
-def Vec.get_elem : Vec α n -> Fin n -> α
-| .cons hd tl, i => Fin.cases hd (Vec.get_elem tl) i
+-- def Vec.get_elem : Vec α n -> Fin n -> α
+-- | .cons hd tl, i => Fin.cases hd (Vec.get_elem tl) i
 
-instance : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
-  getElem xs i _ := Vec.get_elem xs i
+-- instance : GetElem (Vec α n) (Fin n) α (λ _ _ => True) where
+--   getElem xs i _ := Vec.get_elem xs i
 
-instance : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
-  getElem? xs i := .some (Vec.get_elem xs i)
+-- instance : GetElem? (Vec α n) (Fin n) α (λ _ _ => True) where
+--   getElem? xs i := .some (Vec.get_elem xs i)
 
-@[simp]
-theorem get_cons_head {t : Vec T n} : (h::t)[(0 : Fin (n + 1))] = h := by
-  simp [getElem, Vec.get_elem]
+-- @[simp]
+-- theorem get_cons_head {t : Vec T n} : (h::t)[(0 : Fin (n + 1))] = h := by
+--   simp [getElem, Vec.get_elem]
 
-@[simp]
-theorem get_cons_tail_succ {t : Vec T n} {i : Fin n} : (h::t)[Fin.succ i] = t[i] := by
-  simp [getElem, Vec.get_elem]
+-- @[simp]
+-- theorem get_cons_tail_succ {t : Vec T n} {i : Fin n} : (h::t)[Fin.succ i] = t[i] := by
+--   simp [getElem, Vec.get_elem]
 
-@[simp]
-theorem Vec.to_index {v : Fun.Vec α _} : v.to[i] = v i := by
-  induction v using Fun.Vec.induction
-  case nil => apply Fin.elim0 i
-  case cons hd tl ih =>
-    simp [Fun.Vec.to_cons]
-    cases i using Fin.cases
-    case zero => simp [Fun.Vec.cons_zero]
-    case succ i => simp [Fun.Vec.cons_succ, ih]
+-- @[simp]
+-- theorem Vec.to_index {v : Fun.Vec α _} : v.to[i] = v i := by
+--   induction v using Fun.Vec.induction
+--   case nil => apply Fin.elim0 i
+--   case cons hd tl ih =>
+--     simp [Fun.Vec.to_cons]
+--     cases i using Fin.cases
+--     case zero => simp [Fun.Vec.cons_zero]
+--     case succ i => simp [Fun.Vec.cons_succ, ih]
 
-theorem Vec.enumerate_index.go : {v : Vec A n} -> {i : Fin n} -> (Vec.enumerate.go k v)[i] = (i.val + k, v[i])
-| .nil, i => Fin.elim0 i
-| .cons hd tl, i => by
-  cases i using Fin.cases
-  case zero => simp [enumerate.go]
-  case succ i =>
-    simp [enumerate.go]
-    have lem := enumerate_index.go (k := k + 1) (v := tl) (i := i)
-    rw [lem]; congr 1; omega
+-- theorem Vec.enumerate_index.go : {v : Vec A n} -> {i : Fin n} -> (Vec.enumerate.go k v)[i] = (i.val + k, v[i])
+-- | .nil, i => Fin.elim0 i
+-- | .cons hd tl, i => by
+--   cases i using Fin.cases
+--   case zero => simp [enumerate.go]
+--   case succ i =>
+--     simp [enumerate.go]
+--     have lem := enumerate_index.go (k := k + 1) (v := tl) (i := i)
+--     rw [lem]; congr 1; omega
 
-@[simp]
-theorem Vec.enumerate_index {v : Vec A n} {i : Fin n} : (Vec.enumerate v)[i] = (i.val, v[i]) := by
-  simp [enumerate]; rw [enumerate_index.go]; simp
+-- @[simp]
+-- theorem Vec.enumerate_index {v : Vec A n} {i : Fin n} : (Vec.enumerate v)[i] = (i.val, v[i]) := by
+--   simp [enumerate]; rw [enumerate_index.go]; simp
 
-@[simp, grind =]
-theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by sorry
+-- @[simp, grind =]
+-- theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by sorry
 
-def Vec.length (_ : Vec A n) : Nat := n
+-- def Vec.length (_ : Vec A n) : Nat := n
 
-theorem Vec.length_bound : (v : Vec A n) -> Vec.length v = n := by
-  intro v
-  unfold Vec.length
-  induction n <;> (simp at *)
+-- theorem Vec.length_bound : (v : Vec A n) -> Vec.length v = n := by
+--   intro v
+--   unfold Vec.length
+--   induction n <;> (simp at *)
 
-@[simp]
-theorem Vec.to_list_length : {v : Vec A n} -> (Vec.to_list v).length = n
-| .nil => by simp [Vec.to_list]
-| .cons hd tl =>
-  have lem := Vec.to_list_length (v := tl)
-  by grind [Vec.to_list]
+-- @[simp]
+-- theorem Vec.to_list_length : {v : Vec A n} -> (Vec.to_list v).length = n
+-- | .nil => by simp [Vec.to_list]
+-- | .cons hd tl =>
+--   have lem := Vec.to_list_length (v := tl)
+--   by grind [Vec.to_list]
 
-theorem Vec.eq_index_ext : {v1 v2 : Vec A n} -> (∀ (i : Fin n), v1[i] = v2[i]) -> v1 = v2 := sorry
+-- theorem Vec.eq_index_ext : {v1 v2 : Vec A n} -> (∀ (i : Fin n), v1[i] = v2[i]) -> v1 = v2 := sorry
 
-@[simp]
-def Vec.sum : Vec Nat n -> Nat
-| .nil => 0
-| .cons hd tl => hd + Vec.sum tl
+-- @[simp]
+-- def Vec.sum : Vec Nat n -> Nat
+-- | .nil => 0
+-- | .cons hd tl => hd + Vec.sum tl
 
-def Vec.rmap [i : RenMap S] (r : Ren) : Vec S n -> Vec S n
+def Vec.rmap [RenMap S T] (r : Ren T) : Vec S n -> Vec S n
 | .nil => .nil
-| .cons x tl => (i.rmap r x) :: rmap r tl
+| .cons x tl => x⟨r⟩ :: rmap r tl
 
-instance [RenMap S] : RenMap (Vec S n) where
+instance [RenMap S T] : RenMap (Vec S n) T where
   rmap := Vec.rmap
 
 def Vec.smap [SubstMap S T] (σ : Subst T) : Vec S n -> Vec S n
 | .nil => .nil
-| .cons x tl => x[σ:_] :: smap σ tl
+| .cons x tl => x[σ] :: smap σ tl
 
 instance [SubstMap S T] : SubstMap (Vec S n) T where
   smap := Vec.smap
 
 @[simp, grind =]
-theorem Vec.smap_nil [SubstMap S T] {σ : Subst T} : (@Vec.nil S)[σ:_] = #𝓋[] := by
+theorem Vec.smap_nil [SubstMap S T] {σ : Subst T} : (@Vec.nil S)[σ] = #() := by
   simp [SubstMap.smap, Vec.smap]
 
 @[simp, grind =]
 theorem Vec.smap_cons [SubstMap S T] {x} {tl : Vec S n} {σ : Subst T}
-  : (x :: tl)[σ:_] = x[σ:_] :: tl[σ:_]
+  : (x :: tl)[σ] = x[σ] :: tl[σ]
 := by
   simp [SubstMap.smap, Vec.smap]
 
-instance [RenMap T] [SubstMap S T] [SubstMapId S T]
+instance [RenMap S T] [SubstMap S T] [SubstMapId S T]
   : SubstMapId (Vec S n) T
 where
   apply_id := by intro t; induction t <;> simp [*]
 
-instance [RenMap S] [RenMap T] [SubstMap T T] [SubstMap S T] [SubstMapCompose S T]
-  : SubstMapCompose (Vec S n) T
-where
-  apply_compose := by intro s σ τ; induction s <;> simp [*]
+instance [RenMap S T] [SubstMap S T] [SubstMapRenComposeLeft S T] : SubstMapRenComposeLeft (Vec S n) T where
+  apply_ren_compose_left := sorry
+
+instance [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T] : SubstMapRenComposeRight (Vec S n) T where
+  apply_ren_compose_right := sorry
+
+instance [SubstMap S T] [SubstMap T T] : SubstMapCompose (Vec S n) T where
+  apply_compose := sorry
 
 @[simp]
-theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : v[i][σ:_] = v[σ:_][i] := sorry
+theorem Vec.get_subst [SubstMap S T] {i : Fin n} {v : Vec S n} {σ : Subst T} : v[i][σ] = v[σ][i] := sorry
 
 -- theorem length_coerce: ∀ n, Vec.length v = n -> (Vec.to_list v).length = n := by
 -- apply v.induction <;> simp [Vec.length] at *
@@ -198,21 +202,21 @@ theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : 
 --           case _ i => rw [lem]; simp; apply ih i
 --   }
 
-def Vec.seq : Vec (Option T) n -> Option (Vec T n)
-| .nil => some $ .nil
-| .cons none tl => none
-| .cons (some hd) tl => do
-  let tl' <- Vec.seq tl
-  return .cons hd tl'
+-- def Vec.seq : Vec (Option T) n -> Option (Vec T n)
+-- | .nil => some $ .nil
+-- | .cons none tl => none
+-- | .cons (some hd) tl => do
+--   let tl' <- Vec.seq tl
+--   return .cons hd tl'
 
-def Vec.range (n : Nat) : Vec Nat n := go n 0
-where
-  go : (n : Nat) -> Nat -> Vec Nat n
-  | 0, _ => .nil
-  | n + 1, acc => .cons acc (go n (acc + 1))
+-- def Vec.range (n : Nat) : Vec Nat n := go n 0
+-- where
+--   go : (n : Nat) -> Nat -> Vec Nat n
+--   | 0, _ => .nil
+--   | n + 1, acc => .cons acc (go n (acc + 1))
 
-@[simp]
-theorem Vec.range_zero : range 0 = .nil := sorry
+-- @[simp]
+-- theorem Vec.range_zero : range 0 = .nil := sorry
 
 
 -- theorem Vec.seq_sound {vs : Vec n (Option Q)} {vs' : Vec n Q}:
