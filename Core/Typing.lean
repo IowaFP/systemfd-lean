@@ -46,16 +46,24 @@ inductive Kinding (G : List Global) : List Kind -> Ty -> Kind -> Prop
 
 notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
-abbrev Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Prop := A.HeadVariable (is_data c G)
+def Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Bool :=
+  match A.spine with
+  | some (x, _) => is_data c G x
+  | none => false
 
-inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : SpineTy -> Prop where
+def Ty.is_data (data1 : String) (A : Ty) : Bool :=
+  match A.spine with
+  | some (data2, _) => data1 == data2
+  | none => false
+
+inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) (test : Ty -> Bool) : SpineTy -> Prop where
 | valid {Ks1 : Vec Kind m1} {Ks2 : Vec Kind m2} {Ts : Vec _ n} :
   (Ks1.list ++ Ks2.list).reverse = Δ ->
   (∀ (i : Fin n), G&Δ ⊢ Ts[i] : ★) ->
   G&Δ ⊢ R : ★ ->
-  (∀ c, sv = .data c -> lookup_ctor? G c x R) ->
+  test R ->
   (sv = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
-  SpineKinding sv x G ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
+  SpineKinding sv x G test ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
 
 -- inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
 -- | done : KindingPreamble G Δ [] T T
@@ -235,7 +243,7 @@ def PatternTyping (G : List Global) (Δ : List Kind) (ps : Pattern m) (Ts : Vec 
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vec (String × SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
-    SpineKinding (.data .cls) y (.data 1 x K #(ctors[i])::G) T
+    SpineKinding (.data .cls) y (.data 0 x K #()::G) (Ty.is_data x) T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
@@ -245,7 +253,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
   lookup x G = none ->
   GlobalWf G (.odata x K)
 | openm :
-  SpineKinding .openm x G T ->
+  SpineKinding .openm x G (λ _ => true) T ->
   lookup x G = none ->
   GlobalWf G (.openm x T)
 | defn :
@@ -257,10 +265,10 @@ inductive GlobalWf : List Global -> Global -> Prop where
   lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
   (Ks1.list ++ Ks2.list).reverse = Δ ->
   PatternBinders G Δ n Ts p ζ Γ ->
-  G&Δ,Γ ⊢ t : R ->
+  G&(ζ ++ Δ),Γ ⊢ t : R ->
   GlobalWf G (.inst x p t)
 | octor :
-  SpineKinding (.data .opn) x (.octor x T :: G) T ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
   lookup x G = none ->
   GlobalWf G (.octor x T)
 
@@ -277,14 +285,14 @@ inductive EntryWf : List Global -> Entry -> Prop where
 | ctor z K (ctors : Vec _ n) (i : Fin n) :
   lookup z G = some (.data z K ctors) ->
   ctors[i] = (x, T) ->
-  SpineKinding (.data .cls) x G T ->
+  SpineKinding (.data .cls) x G (Ty.is_data z) T ->
   lookup x G = some (.ctor x i T) ->
   EntryWf G (.ctor x i T)
 | odata :
   lookup x G = some (.odata x K) ->
   EntryWf G (.odata x K)
 | openm :
-  SpineKinding .openm x G T ->
+  SpineKinding .openm x G (λ _ => true) T ->
   lookup x G = some (.openm x T) ->
   EntryWf G (.openm x T)
 | defn :
@@ -293,7 +301,7 @@ inductive EntryWf : List Global -> Entry -> Prop where
   lookup x G = some (.defn x T t) ->
   EntryWf G (.defn x T t)
 | octor :
-  SpineKinding (.data .opn) x G T ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
   lookup x G = some (.octor x T) ->
   EntryWf G (.octor x T)
 
