@@ -249,10 +249,10 @@ inductive GlobalWf : List Global -> Global -> Prop where
   G&[],[] ⊢ t : T ->
   lookup x G = none ->
   GlobalWf G (.defn x T t)
-| inst :
-  lookup x G = some (.openm x ⟨m, Ks, n, Ts, R⟩) ->
+| inst {p : Pattern m}:
+  lookup x G = some (.openm x ⟨n, Ks, m, Ts, R⟩) ->
   Vec.to_list Ks = Δ ->
-  PatternBinders G Δ n Ts p Γ ->
+  PatternBinders G Δ m Ts p Γ ->
   G&Δ,Γ ⊢ t : R ->
   GlobalWf G (.inst x p t)
 | octor :

@@ -91,17 +91,13 @@ case _ m _ p t G ih => -- inst
     replace ih := ih h2
     replace h6 := infer_type_sound ih h6
     have lem := lookup_name_eq lk; simp [Entry.name] at lem; subst lem
+    replace h4 := pattern_binders_sound h4
     apply ListGlobalWf.cons
-    -- · apply GlobalWf.inst (G := G) (Δ := Ks.to_list) (x := x) (n := n) (m := m) (p := p) (t := t)
-    --   apply lk
-    --   sorry
-    --   sorry
-    --   sorry
-    --   sorry
-    --   sorry
-    --   sorry
-      sorry
-
+    · apply GlobalWf.inst (G := G) (Δ := Ks.to_list) (x := x) (n := n) (m := m) (p := p) (t := t)
+      apply lk
+      rfl
+      apply h4
+      apply h6
     · apply ih
   · cases h
 
