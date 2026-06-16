@@ -16,7 +16,7 @@ inductive Value (G : List Global) : Term -> Prop where
 -- | var : Value G #x
 | spctor :
   v ≠ .openm ->
-  Value G (.spctor v s tys ts)
+  Value G (.spctor v s tys1 tys2 ts)
 -- | app : Value G f -> Value G (f •(b) a)
 -- | app :
 --   t.spine = some (x, sp) ->
@@ -43,21 +43,17 @@ def TyBindVariant.congr : TyBindVariant -> Bool
 | lamt => false
 | allc => true
 
-def Sequ.append : List α -> Fun.Sequ α -> Fun.Sequ α
-| [], s => s
-| .cons hd tl, s => hd :: (append tl s)
-
 inductive Term.IsData (v : DataConst) : Vec Term m -> Vec Constructor m -> Prop where
 | nil : Term.IsData v .nil .nil
-| cons {t1 : Vec _ m} {t2 : Fun.Vec _ n}:
+| cons {t1 : Vec _ m1} {t2 : Vec _ m2} {t3 : Fun.Vec _ n}:
   Term.IsData v ts cs ->
-  Term.spctor (.data v) c t1 t2 = t ->
-  ⟨c, m, t1, n, t2.to⟩ = ct ->
+  Term.spctor (.data v) c t1 t2 t3 = t ->
+  ⟨c, m1, t1, m2, t2, n, t3.to⟩ = ct ->
   Term.IsData v (t::ts) (ct::cs)
 
 def Constructor.subst : Vec Constructor m -> Subst Term
-| .nil => +0
-| .cons ⟨_, _, _, _, ts⟩ v => Sequ.append_vec (Vec.map su ts) (Constructor.subst v)
+| .nil => +0σ
+| .cons ⟨_, _, _, _, _, _, ts⟩ v => ts.list.map su ++ Constructor.subst v
 
 -- def Pattern.match_component : Constructor -> (String × List Ty × Nat) -> Option (List $ Subst.Action Term)
 -- | ⟨c1, _, _, _, t2⟩, (c2, _) => if c1 == c2 then some $ Vec.map su t2 else none
@@ -66,16 +62,16 @@ inductive Pattern.Match : Vec Constructor m -> Pattern m -> Prop
 | nil : Pattern.Match .nil .nil
 | cons :
   Pattern.Match cs ps ->
-  c = ⟨q, m, As, n, ts⟩ ->
-  p = ⟨q, m, Bs, n⟩ ->
+  c = ⟨q, m1, As1, m2, As2, n, ts⟩ ->
+  p = ⟨q, m1, Bs, m2, n⟩ ->
   Pattern.Match (c::cs) (p::ps)
 
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
 ----------------------------------------------------------------
-| beta : Red G ((λ[A] b) • t) b[su t::+0]
-| betat : Red G ((Λ[A] b) •[t]) b[su t::+0:Ty]
+| beta : Red G ((λ[A] b) • t) b[su t::+0σ]
+| betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | cast : Red G (.cast R (refl! A) t) t
 -- | sym : Red G (sym! (refl! A)) (refl! A)
 -- | seq : Red G ((refl! A) `; (refl! A)) (refl! A)
@@ -85,7 +81,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | prj_fst_arr: Red G (prj[0] refl! (A -:> B)) (refl! A)
 | prj_snd_arr : Red G (prj[1] refl! (A -:> B)) (refl! B)
 | allc : Red G (∀c[A] refl! B) (refl! (∀[A] B))
-| apptc : Red G ((refl! (∀[K] A)) •c[refl! B]) (refl! A[su B::+0])
+| apptc : Red G ((refl! (∀[K] A)) •c[refl! B]) (refl! A[su B::+0σ])
 -- | arrowc : Red G ((refl! A) -c> (refl! B)) (refl! (A -:> B))
 -- | choice1 : Red G (`0 `+ t) t
 -- | choice2 : Red G (t `+ `0) t
@@ -95,15 +91,14 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
   Term.IsData .cls ss.to ctors ->
   Pattern.Match ctors (ps i) ->
-  Constructor.subst ctors = σ ->
-  Red G (.mtch m n ss ps bs) (bs i)[σ]
+  b' = (bs i)[Constructor.subst ctors] ->
+  Red G (.mtch m n ss ps bs) b'
 | openm_match {i : Nat} {ss : Fun.Vec Term m} :
   Term.IsData .opn ss.to ctors ->
   G[i]? = some (.inst x p b) ->
-  Sequ.append_vec (Vec.map su Ts) +0 = τ ->
   Pattern.Match ctors p ->
-  Constructor.subst ctors = σ ->
-  Red G (openm! x Ts ss) b[τ:Ty][σ]
+  b' = b[Ts1.list.map su ++ Ts2.list.map su ++ Subst.id Ty][Constructor.subst ctors] ->
+  Red G (openm! x Ts1 Ts2 ss) b'
 ----------------------------------------------------------------
 ---- Guard Matching
 ----------------------------------------------------------------
@@ -162,7 +157,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | openm_congr {ts : Fun.Vec Term n} i :
   Red G (ts i) (ts' i) ->
   (∀ j ≠ i, ts j = ts' j) ->
-  Red G (openm! x Ts ts) (openm! x Ts ts')
+  Red G (openm! x Ts1 Ts2 ts) (openm! x Ts1 Ts2 ts')
 | match_congr {ss : Fun.Vec Term m} i :
   Red G (ss i) (ss' i) ->
   (∀ j ≠ i, ss j = ss' j) ->

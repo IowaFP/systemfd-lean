@@ -53,7 +53,7 @@ inductive Term : Type where
 | cast : Ty -> Term -> Term -> Term
 | mtch m n : Fun.Vec Term m -> Fun.Vec (Pattern m) n -> Fun.Vec Term n -> Term
 
-def Constructor := String × (m : Nat) × Vec Ty m × (n : Nat) × Vec Term n
+def Constructor := String × (m1 : Nat) × Vec Ty m1 × (m2 : Nat) × Vec Ty m2 × (n : Nat) × Vec Term n
 
 prefix:max "#" => Term.var
 prefix:max "d#" => Term.defn
