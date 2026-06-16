@@ -143,7 +143,7 @@ intro h1 h2
 unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
-generalize z_def : populate_aux ⟨1, #𝓋[#𝓋[]]⟩ ctor_names = rm at *
+generalize z_def : Vec.populate_aux ⟨1, #𝓋[#𝓋[]]⟩ ctor_names = rm at *
 
 -- have lem := query_ctor_names h1 h3
 

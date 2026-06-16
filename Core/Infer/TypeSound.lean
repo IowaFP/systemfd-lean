@@ -13,15 +13,8 @@ open LeanSubst
 
 namespace Core
 
-theorem spine_kinding_sound :
-  spine_kinding G v x spTy = some () ->
-  SpineKinding v x G spTy
-:= by
 
-sorry
-
-
-theorem pattern_binders_sound :
+theorem pattern_binders_sound {G : GlobalEnv} {Δ : KindEnv} {m : Nat} {Ts : Vec Ty m} {p : Pattern m}:
   pattern_binders G Δ m Ts p = some Γ ->
   PatternBinders G Δ m Ts p Γ := by
 intro h
@@ -39,7 +32,7 @@ case _ n ih =>
   simp at h; rcases h with ⟨h5, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks, h6, h⟩; simp at h
   rcases h with ⟨h7, h8, h9⟩
-  replace ih := @ih _ _ Γ' h2
+  replace ih := ih h2
   have lem' := Vec.eq_sound' h7;
 
   replace h6 := Vec.seq_sound_get_elem h6
@@ -101,7 +94,7 @@ theorem data_valid_sound (G : GlobalEnv) :
   Ty.valid_data c G T = some () ->
   T.data? c G := by
 intro h
-induction T <;> simp at *
+induction T <;> simp [Ty.valid_data] at *
 case _ =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
   simp at h;
@@ -125,6 +118,38 @@ case _ a h _ =>
   apply And.intro
   · exists w ++ [a]; exists w;
   · apply h
+
+theorem spine_kinding_sound :
+  spine_kinding G v x spTy = some () ->
+  SpineKinding v x G spTy
+:= by
+intro h
+unfold spine_kinding at h; split at h; simp at h
+case _ Ks _ _ _ =>
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
+simp at h; rcases h with ⟨h5, h⟩
+rcases h5 with ⟨h5, h6⟩; subst h6;
+split at h
+· simp at h;
+  apply SpineKinding.valid (Δ := Ks.to_list)
+  · rfl
+  · intro i; replace h2 := Vec.map_seq_sound _ h2 i; replace h2 := infer_kind_sound h2;
+    replace h5 := Vec.elems_eq_to_sound h5 i; rw[h5] at h2; apply h2
+  · apply infer_kind_sound h4
+  · intros _ e; cases e; apply h
+  · intro h; cases h
+
+· rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h6, h, _⟩
+  apply SpineKinding.valid (Δ := Ks.to_list)
+  · rfl
+  · intro i; replace h2 := Vec.map_seq_sound _ h2 i; replace h2 := infer_kind_sound h2;
+    replace h5 := Vec.elems_eq_to_sound h5 i; rw[h5] at h2; apply h2
+  · apply infer_kind_sound h4
+  · intros _ e; cases e
+  · intro _ i; replace h := Vec.map_seq_sound _ h i
+    apply data_valid_sound; replace h6 := Vec.units h6 i; rw[h6] at h
+    apply h
 
 theorem infer_type_sound :
   ⊢ G ->

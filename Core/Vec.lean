@@ -268,7 +268,6 @@ where
 theorem Vec.range_zero : range 0 = .nil := by
   unfold range; unfold range.go; apply Vec.nil_singleton
 
-@[simp]
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
   vs.fold true (λ c acc => c == e && acc)
 
@@ -276,7 +275,7 @@ theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec Q n} :
   vs.elems_eq_to e = true ->
   ∀ i : Fin n, vs[i] = e := by
 intro h
-induction vs <;> simp at *
+induction vs <;> simp [Vec.elems_eq_to] at *
 case _ n hd tl ih =>
   cases h.1; replace ih := ih h.2
   intro i'
@@ -545,7 +544,8 @@ def Vec.paste (b : String) : Vec (Vec String m) n -> Vec (Vec String (m + 1)) n
 | .cons x xs => .cons (.cons b x) (paste b xs)
 
 @[simp]
-def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) : ((n : Nat) × Vec String n) -> ((p : Nat) × Vec (Vec String (k + 1)) p)
+def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) :
+    ((n : Nat) × Vec String n) -> ((p : Nat) × Vec (Vec String (k + 1)) p)
 | ⟨0, .nil⟩ => ⟨0, .nil⟩
 | ⟨(n + 1), (.cons x xs)⟩ =>
   let ⟨p , vs⟩ := combine base ⟨n, xs⟩
@@ -565,7 +565,7 @@ case _ vs _ _ ih =>
   rw[Nat.right_distrib]; simp
 
 @[simp]
-def populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
+def Vec.populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
   Vec ((n : Nat) × Vec String n) ℓ -> ((p : Nat) × Vec (Vec String (k + ℓ)) p)
 | .nil => base
 | .cons x xs =>
@@ -682,7 +682,7 @@ have lem : Fun.Vec.to (λ i => f (vs i)) = (Vec.map f vs.to) := by
   cases vs'; case _ v' vs' =>
   cases z; case _ hd tl =>
   simp at *; rw[zdef]; simp
-  sorry
+  replace ih := @ih vs'; sorry
 intro h i
 
 sorry
@@ -698,6 +698,46 @@ match n, vs1, vs2 with
   induction i using Fin.induction
   sorry
   sorry
+
+-- checks if all the elements are unique
+def Vec.unique_elems [BEq α][LawfulBEq α] : Vec α n -> Bool
+| .nil => true
+| .cons x xs =>
+  let vs' := Vec.map (· != x) xs
+  Vec.elems_eq_to true vs' && Vec.unique_elems xs
+
+
+#guard Vec.unique_elems #𝓋[1, 2, 3] == true
+#guard Vec.unique_elems #𝓋[1, 1, 2] == false
+
+theorem Vec.unique_elems_sound [BEq α][LawfulBEq α] {vs : Vec α n} :
+  vs.unique_elems = true ->
+  (∀ i j : Fin n, i ≠ j -> (vs[i] ≠ vs[j])) := by
+intro h i j e
+induction vs
+apply i.elim0
+case _ ih =>
+  simp [unique_elems] at h
+  rcases h with ⟨h1, h2⟩
+  replace h1 := Vec.elems_eq_to_sound h1
+  intro h
+  cases i using Fin.cases
+  case _ =>
+    cases j using Fin.cases
+    apply e; rfl
+    case _ i =>
+    simp at e; simp at h;
+    replace h1 := h1 i
+    simp at h1; apply h1 (Eq.symm h)
+  case _ i =>
+    replace ih := ih h2
+    simp at h
+    cases j using Fin.cases
+    · simp at *;
+      apply h1 i h
+    · case _ j =>
+      simp at *;
+      apply ih i j e h
 
 
 end Lilac

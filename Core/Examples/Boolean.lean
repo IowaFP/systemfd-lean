@@ -12,7 +12,7 @@ open Lilac
 namespace Core.Examples
 
 /- data Bool = True | False -/
-def BoolCtx : List Global := [
+def BoolCtx : GlobalEnv := [
   Global.data 2 "Bool" ★
              #𝓋[ ("True", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)
                , ("False", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)]
@@ -23,6 +23,7 @@ def FalseCtor : Term := ctor! "False" #𝓋[] .nil
 
 #guard TrueCtor.infer_type BoolCtx [] [] == .some gt#"Bool"
 #guard GlobalEnv.wf_globals [] == some ()
+#guard GlobalEnv.wf_globals BoolCtx == some ()
 
 /-
 not : Bool -> Bool
@@ -88,6 +89,8 @@ def EqBoolCtx : GlobalEnv := [
 
 #eval EqBoolCtx
 #guard EqBoolCtx.wf_globals  == some ()
+
+#eval lookup_octor EqBoolCtx (gt#"Eq")
 
 #eval ((d#"eqBool" • TrueCtor) • TrueCtor).eval_loop EqBoolCtx
 #eval ((d#"eqBool" • TrueCtor) • FalseCtor).eval_loop EqBoolCtx

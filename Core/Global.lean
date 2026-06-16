@@ -204,11 +204,7 @@ case _ ctors _ ctors' _ ih =>
   unfold ctors' at h
   induction ctors <;> simp at *
   apply ih h
-  case _ ih2 =>
-    simp [Vec.enumerate, Vec.enumerate.go] at h;
-    cases h
-    cases ctors'; case _ h _ _ => rw[h.1]; rw[<-h.2]; simp [Entry.name]
-    case _ h => sorry
+  sorry
 any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
 any_goals (case _ ih => apply ih h)
 
@@ -218,6 +214,14 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
   | some (.data _ _ ctors) =>
     return ⟨ctors.length, ctors.map (·.1) ⟩
   | _ => none
+
+def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
+  let ⟨d, _⟩ <- T.spine
+  G.filterMapM (λ g => match g with
+                   | .octor n ⟨_, _, _, _, R⟩ => do let ⟨d', _ ⟩ <- R.spine
+                                                    if d' == d then return (some n) else return none
+                   | _ => return none
+           )
 
 
 -- def ctor_idx (G : List Global) (x : String) : Option Nat := do

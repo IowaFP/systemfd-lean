@@ -29,7 +29,6 @@ def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
 
 end Infer.Ty.Test
 
-@[simp]
 def Ty.valid_data (c : DataConst) (G : List Global) : Ty -> Option Unit
 | A => do
   let (x, _) <- A.spine
@@ -245,7 +244,9 @@ def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) :  SpineTy
     match sv with
     | .data c =>
       if lookup_ctor? G c x R then some () else none
-    | .openm => none
+    | .openm =>
+      let Ts' := Ts.map (λ T => T.valid_data .opn G)
+      let _ <- Ts'.seq
   else none
 
 namespace Core

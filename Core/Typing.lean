@@ -54,7 +54,7 @@ inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : Spi
   (∀ (i : Fin n), G&Δ ⊢ Ts[i] : ★) ->
   G&Δ ⊢ R : ★ ->
   (∀ c, sv = .data c -> lookup_ctor? G c x R) ->
-  (sv = .openm -> ∀ (i : Fin n), Ts[i][τ].data? .opn G) ->
+  (sv = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
   SpineKinding sv x G ⟨m, Ks, n, Ts, R⟩
 
 inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
@@ -229,18 +229,18 @@ def VecConstructorTyping (G : List Global) (Δ : List Kind) (Γ : List Ty) (cs :
   VecTyping (ConstructorTyping G Δ Γ) cs Ts
 
 inductive GlobalWf : List Global -> Global -> Prop where
-| data {G : GlobalEnv} {ctors : Fun.Vec (String × SpineTy) n} :
-  (∀ i y T, ctors i = (y, T) ->
+| data {G : GlobalEnv} {ctors : Vec (String × SpineTy) n} :
+  (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
     SpineKinding (.data .cls) y (.data 0 x K .nil::G) T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
-  (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
+  (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
   lookup x G = none ->
   GlobalWf G (.data n x K ctors)
 | odata :
   lookup x G = none ->
   GlobalWf G (.odata x K)
-| openm {Γ : Vec Ty n} :
+| openm :
   SpineKinding .openm x G T ->
   lookup x G = none ->
   GlobalWf G (.openm x T)
