@@ -31,7 +31,11 @@ inductive TyBindVariant : Type where
 | lamt
 | allc
 
-abbrev Pattern m := Vec (String × (n : Nat) × Vec Ty n × Nat) m
+abbrev Pattern m := Vec (String × (n : Nat) × Vec Ty n × Nat × Nat) m
+
+def Pattern.bind_type : Pattern m -> Nat
+| .nil => 0
+| .cons ⟨_, _, _, m, _⟩ tl => m + Pattern.bind_type tl
 
 def Pattern.repr : Pattern m -> Std.Format
 | .nil => ""
@@ -43,12 +47,12 @@ instance instRepr_pattern : Repr (Pattern m) where
 
 def Pattern.bind : Pattern m -> Nat
 | .nil => 0
-| .cons ⟨_, _, _, n⟩ tl => n + Pattern.bind tl
+| .cons ⟨_, _, _, _, n⟩ tl => n + Pattern.bind tl
 
 inductive Term : Type where
 | var : Nat -> Term
 | defn : String -> Term
-| spctor : SpCtorVariant -> String -> Vec Ty m -> Fun.Vec Term n -> Term
+| spctor : SpCtorVariant -> String -> Vec Ty m1 -> Vec Ty m2 -> Fun.Vec Term n -> Term
 | ctor0 : Ctor0Variant -> Term
 | ctor1 : Ctor1Variant -> Term -> Term
 | ctor2 : Ctor2Variant -> Term -> Term -> Term
@@ -57,7 +61,7 @@ inductive Term : Type where
 | cast : Ty -> Term -> Term -> Term
 | mtch m n : Fun.Vec Term m -> Fun.Vec (Pattern m) n -> Fun.Vec Term n -> Term
 
-def Constructor := String × (m : Nat) × Vec Ty m × (n : Nat) × Vec Term n
+def Constructor := String × (m1 : Nat) × Vec Ty m1 × (m2 : Nat) × Vec Ty m2 × (n : Nat) × Vec Term n
 
 prefix:max "#" => Term.var
 prefix:max "d#" => Term.defn
@@ -97,7 +101,7 @@ def mtch' (sts : Vec Term m) (pat_cube : Vec (Pattern m × Term) n) : Term :=
 def Term.size : Term -> Nat
 | var _ => 0
 | defn _ => 0
-| spctor _ _ _ t2 =>
+| spctor _ _ _ _ t2 =>
   let t2' : Fun.Vec _ _ := size <$> t2
   Vec.sum t2'.to + 1
 | ctor0 _ => 0
@@ -118,12 +122,13 @@ instance instSizeOf_Term : SizeOf Term where
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "#" ++ Nat.repr n
 | .defn n => "d#" ++ n
-| spctor (n := n) _ x tys tms =>
-         let tms' : Fun.Vec Std.Format n := λ i => Term.repr max_prec (tms i)
-         x ++ " "
-         ++ "•" ++ Std.Format.sbracket (Vec.fold Std.Format.nil (λ t acc => t.repr max_prec ++ " | " ++ acc) tys)
-         ++ "•" ++ "{" ++ Vec.fold Std.Format.nil (λ t acc => t ++ " | " ++ acc) tms'.to ++ "}"
+-- | spctor (n := n) _ x tys tms =>
+--          let tms' : Fun.Vec Std.Format n := λ i => Term.repr max_prec (tms i)
+--          x ++ " "
+--          ++ "•" ++ Std.Format.sbracket (Vec.fold Std.Format.nil (λ t acc => t.repr max_prec ++ " | " ++ acc) tys)
+--          ++ "•" ++ "{" ++ Vec.fold Std.Format.nil (λ t acc => t ++ " | " ++ acc) tms'.to ++ "}"
 
+| spctor _ _ _ _ _ => "don't care"
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
 | .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"
 | .ctor1 (.appt τ) t => Repr.addAppParen (Term.repr max_prec t ++ " •[" ++ repr τ ++ "]") p

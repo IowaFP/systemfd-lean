@@ -27,7 +27,12 @@ inductive Ty : Type where
 | app : Ty -> Ty -> Ty
 | eq : Kind -> Ty -> Ty -> Ty
 
-abbrev SpineTy := (m : Nat) × Vec Kind m × (n : Nat) × Vec Ty n × Ty
+-- Us -> Es -> Ts -> R
+-- Us = "Universally quantified" types, will be applied in a pattern
+-- Es = "Existentionally quantified" types, will be bound by a pattern
+-- Ts = Subdata, will be bound by a pattern
+-- R = Return type (datatype for constructors, anything for an open method)
+abbrev SpineTy := (m1 : Nat) × Vec Kind m1 × (m2 : Nat) × Vec Kind m2 × (n : Nat) × Vec Ty n × Ty
 
 def Ty.size : Ty -> Nat
 | var _ => 0
