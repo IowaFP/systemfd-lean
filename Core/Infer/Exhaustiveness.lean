@@ -12,10 +12,12 @@ open Lilac
 
 namespace Core
 
+-- abbrev SpineTy := (m1 : Nat) × Vec Kind m1 × (m2 : Nat) × Vec Kind m2 × (n : Nat) × Vec Ty n × Ty
+
 theorem ctor_data_linked {ctors : Vec _ n} {T : String} {spTy : SpineTy}{Tys : List Ty}:
   lookup T G = some (Entry.data T a ctors) ->
   lookup c G = some (Entry.ctor c k spTy) ->
-  spTy.2.2.2.2.spine = some (T, Tys) ->
+  spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
   ∃ i : Fin n, ctors[i].1 = c
 := by
 intro h1 h2 h3
@@ -49,7 +51,7 @@ split at h2
 -- Given a vector of types, builds a matrix of all possible combination of constructor names
 def enumerate_ctor_names {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n : Nat) × Vec (Vec String m) n) := do
   -- for each type in Ss get all the possible constructors
-  let ctors <- (Vec.map (lookup_ctor_names G) Ss).seq
+  let ctors <- (Vec.map (lookup_ctor_names G) Ss).sequence
   let cs : (n : Nat) × Vec (Vec String m) n := Vec.populate ctors |> cast (by rw[Nat.zero_add])
   return cs
 
@@ -59,19 +61,19 @@ namespace Test
 def Γ : GlobalEnv := [
   -- data Maybe a = Nothing | Just a
   Global.data 2 "Maybe" (★ -:> ★)
-           #𝓋[ ("Nothing", ⟨1, #𝓋[★], 0, #𝓋[], (gt#"Maybe" • t#0)⟩) ,
-               ("Just", ⟨1, #𝓋[★], 1,  #𝓋[t#0],  (gt#"Maybe" • t#0)⟩) ],
+           #( ("Nothing", ⟨1, #(★), 0, #(), 0,  #(), (gt#"Maybe" • t#0)⟩) ,
+               ("Just",    ⟨1, #(★), 0, #(), 1,  #(t#0),  (gt#"Maybe" • t#0)⟩) ),
    Global.data 2 "Bool" ★
-             #𝓋[ ("True", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)
-               , ("False", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)]
+              #(("True", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩),
+                ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩))
 ]
 
 
-#eval (Vec.map (lookup_ctor_names Γ) (#𝓋[ (gt#"Maybe" • gt#"Bool"), gt#"Bool"])).seq
-#eval enumerate_ctor_names Γ (#𝓋[ (gt#"Maybe" • gt#"Bool"), gt#"Bool", gt#"Bool"])
-#eval Vec.append #𝓋[ "Nothing", "Just"] #𝓋[ "True" , "False" ]
-#eval Vec.combine ⟨2, #𝓋[ #𝓋["Nothing", "()"], #𝓋["Just" , "()"]]⟩ ⟨3 , #𝓋[ "True" , "False" , "Med" ]⟩
-#eval Vec.combine (k := 0) ⟨1, #𝓋[#𝓋[]]⟩ ⟨3 , #𝓋[ "True" , "False" , "Med" ]⟩
+#eval (Vec.map (lookup_ctor_names Γ) (#( (gt#"Maybe" • gt#"Bool"), gt#"Bool"))).sequence
+#eval enumerate_ctor_names Γ #( (gt#"Maybe" • gt#"Bool"), gt#"Bool", gt#"Bool")
+#eval Vec.append #("Nothing", "Just") #("True" , "False")
+#eval Vec.combine ⟨2, #( #("Nothing", "()"), #("Just" , "()"))⟩ ⟨3 , #( "True" , "False" , "Med" )⟩
+#eval Vec.combine (k := 0) ⟨1, #(#())⟩ ⟨3 , #("True" , "False" , "Med")⟩
 
 end Test
 
@@ -91,8 +93,8 @@ def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : 
   let ps' := patterns_to_ctor_names ps
 
   -- check that each entry in ref_matrix has an associated entry ps'
-  let mbs := ref_matrix.2.map (λ r => ps'.findIdx (λ x => x == r))
-  let idxs <- mbs.seq
+  let mbs := ref_matrix.2.map (λ r => ps'.findIdx? (λ x => x == r))
+  let idxs <- mbs.sequence
   return ⟨ref_matrix.fst, ⟨ref_matrix.snd , idxs⟩⟩
 
 theorem pattern_match_rfl {q : Vec String m} {p : Pattern m} :
@@ -151,7 +153,7 @@ intro h1 h2
 unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
-generalize z_def : Vec.populate_aux ⟨1, #𝓋[#𝓋[]]⟩ ctor_names = rm at *
+generalize z_def : Vec.populate_aux ⟨1, #(#())⟩ ctor_names = rm at *
 
 -- have lem := query_ctor_names h1 h3
 

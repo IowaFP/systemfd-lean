@@ -25,8 +25,8 @@ namespace Core.Examples
 def MaybeBoolCtx : GlobalEnv := [
 
    /- Λ t. λ (i : Eq t).
-        If EqMaybe[t][u] <- i.
-           λ (tmu : t ~ Maybe u). λ eqU : Eq u.
+        If EqMaybe[t] <- i.
+           Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
             eqMaybe @Bool eqU ▹ sym (tmu -c> tmu -c> <Bool>)
     -/
   .inst "eq" #𝓋[ ⟨"EqMaybe", 1, #𝓋[ t#1 ], 2⟩ ] (λ[ t#1 ] λ[ t#1 ] -- #3 : t ~ Maybe u, #2 : Eq u

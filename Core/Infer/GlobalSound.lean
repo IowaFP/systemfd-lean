@@ -82,24 +82,25 @@ case _ ih => -- defn
 
 case _ m _ p t G ih => -- inst
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
-  split at h
-  case _ x n Ks _ Ts R lk =>
-    rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ, h4, h⟩
-    rw[Option.bind_eq_some_iff] at h; rcases h with ⟨R, h6, h⟩
-    simp at h; rcases h with ⟨e1, e2⟩; subst e1; subst e2;
-    simp [Vec.length] at *
-    replace ih := ih h2
-    replace h6 := infer_type_sound ih h6
-    have lem := lookup_name_eq lk; simp [Entry.name] at lem; subst lem
-    replace h4 := pattern_binders_sound h4
-    apply ListGlobalWf.cons
-    · apply GlobalWf.inst (G := G) (Δ := Ks.to_list) (x := x) (n := n) (m := m) (p := p) (t := t)
-      apply lk
-      rfl
-      apply h4
-      apply h6
-    · apply ih
-  · cases h
+  -- split at h
+  -- case _ x n Ks _ Ts R lk =>
+  --   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ, h4, h⟩
+  --   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨R, h6, h⟩
+  --   simp at h; rcases h with ⟨e1, e2⟩; subst e1; subst e2;
+  --   simp [Vec.length] at *
+  --   replace ih := ih h2
+  --   replace h6 := infer_type_sound ih h6
+  --   have lem := lookup_name_eq lk; simp [Entry.name] at lem; subst lem
+  --   replace h4 := pattern_binders_sound h4
+  --   apply ListGlobalWf.cons
+  --   · apply GlobalWf.inst (G := G) (Δ := Ks.to_list) (x := x) (n := n) (m := m) (p := p) (t := t)
+  --     apply lk
+  --     rfl
+  --     apply h4
+  --     apply h6
+  --   · apply ih
+  -- · cases h
+  sorry
 
 case _ ih => -- odata
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩

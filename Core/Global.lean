@@ -15,25 +15,25 @@ inductive Global : Type where
 | inst : String -> Pattern m -> Term -> Global
 | octor : String -> SpineTy -> Global
 
--- def Global.repr (_ : Nat) : (a : Global) -> Std.Format
--- | .data (n := n) s K ctors =>
---   let cs : Fun.Vec Std.Format n := λ i =>
---     let ctorN := (Vec.to ctors i).1
---     let ctorTy := (Vec.to ctors i).2
---     Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
---   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
---       ++ "#𝓋" ++ Std.Format.sbracket (cs.to.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c))
+def Global.repr (_ : Nat) : (a : Global) -> Std.Format
+| .data (n := n) s K ctors =>
+  let cs : Fun.Vec Std.Format n := λ i =>
+    let ctorN := (Vec.to ctors i).1
+    let ctorTy := (Vec.to ctors i).2
+    Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
+  ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
+      ++ "#𝓋" ++ Std.Format.sbracket (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
 
--- | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
--- | .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
--- | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
--- | .inst n _ t => "instance " ++ n ++ " " ++  t.repr max_prec
--- | .octor n ty => ".octor" ++ n ++ SpineTy.repr ty
+| .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
+| .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
+| .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
+| .inst n _ t => "instance " ++ n ++ " " ++  t.repr max_prec
+| .octor n ty => ".octor" ++ n ++ SpineTy.repr ty
 
 
--- @[simp]
--- instance instRepr_Global : Repr Global where
---   reprPrec a p := Global.repr p a
+@[simp]
+instance instRepr_Global : Repr Global where
+  reprPrec a p := Global.repr p a
 
 @[simp]
 abbrev GlobalEnv := List Global
@@ -196,21 +196,20 @@ def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (
 theorem lookup_name_eq :
   lookup x G = some e ->
   e.name = x := by
-    sorry
--- intro h
--- fun_induction lookup
--- cases h
--- simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all
--- case _ ctors _ ctors' _ ih =>
---   replace h := Vec.fold_or h
---   cases h
---   case _ h => apply ih h
---   case _ h =>
---     rcases h with ⟨i, h⟩
---     unfold ctors' at h; simp at h;
---     rw[<-h.2]; rw[<-h.1]; simp [Entry.name]
--- any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
--- any_goals (case _ ih => apply ih h)
+intro h
+fun_induction lookup
+cases h
+simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all
+case _ ctors _ ctors' _ ih =>
+  replace h := Vec.fold_or h
+  cases h
+  case _ h => apply ih h
+  case _ h =>
+    rcases h with ⟨i, h⟩
+    unfold ctors' at h; simp at h;
+    rw[<-h.2]; rw[<-h.1]; simp [Entry.name]
+any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
+any_goals (case _ ih => apply ih h)
 
 def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
   let ⟨d, _⟩ <- T.spine

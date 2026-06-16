@@ -121,24 +121,24 @@ theorem Ty.spine_eq : (A ~[K]~ B).spine = none := by simp [spine]
 --   induction sp generalizing t <;> simp [Ty.apply]
 --   case cons hd tl ih => replace ih := @ih (t • hd); simp at ih; rw [ih]
 
--- @[simp]
--- theorem Ty.Spine.app_eq :
---   (f • a).spine = some (x, sp)
---   <-> ∃ sp', sp = sp' ++ [a] ∧ f.spine = some (x, sp')
--- := by
---   apply Iff.intro <;> intro h
---   case _ =>
---     simp [Ty.spine] at h
---     rw [Option.bind_eq_some_iff] at h
---     rcases h with ⟨q, e1, e2⟩
---     rcases q with ⟨y, sp'⟩; simp at e2
---     rcases e2 with ⟨e2, e3⟩; subst e2 e3
---     rw [e1]; exists sp'
---   case _ =>
---     rcases h with ⟨sp', e1, e2⟩; subst e1
---     simp [Ty.spine]
---     rw [Option.bind_eq_some_iff]; apply Exists.intro (x, sp')
---     apply And.intro e2; simp
+@[simp]
+theorem Ty.Spine.app_eq :
+  (f • a).spine = some (x, sp)
+  <-> ∃ sp', sp = sp' ++ [a] ∧ f.spine = some (x, sp')
+:= by
+  apply Iff.intro <;> intro h
+  case _ =>
+    simp [Ty.spine] at h
+    rw [Option.bind_eq_some_iff] at h
+    rcases h with ⟨q, e1, e2⟩
+    rcases q with ⟨y, sp'⟩; simp at e2
+    rcases e2 with ⟨e2, e3⟩; subst e2 e3
+    rw [e1]; exists sp'
+  case _ =>
+    rcases h with ⟨sp', e1, e2⟩; subst e1
+    simp [Ty.spine]
+    rw [Option.bind_eq_some_iff]; apply Exists.intro (x, sp')
+    apply And.intro e2; simp
 
 -- theorem Ty.Spine.apply_type {t : Ty} : t.apply sp • a = t.apply (sp ++ [a]) := by
 --   induction sp generalizing t <;> simp [Ty.apply]
@@ -174,49 +174,49 @@ theorem Ty.spine_eq : (A ~[K]~ B).spine = none := by simp [spine]
 --   simp at lem; exact lem
 
 
--- def Ty.is_all_some : Ty -> Option (Kind × Ty)
--- | .all K B => return (K, B)
--- | _ => none
+def Ty.is_all_some : Ty -> Option (Kind × Ty)
+| .all K B => return (K, B)
+| _ => none
 
--- def Ty.is_all_some_sound {T : Ty} :
---   T.is_all_some = .some (K, T1) ->
---   T = ∀[K] T1 := by
--- intro h
--- cases T <;> simp [Ty.is_all_some] at *
--- assumption
+def Ty.is_all_some_sound {T : Ty} :
+  T.is_all_some = .some (K, T1) ->
+  T = ∀[K] T1 := by
+intro h
+cases T <;> simp [Ty.is_all_some] at *
+assumption
 
 
--- def Ty.is_arrow_some : Ty -> Option (Ty × Ty)
--- | .arrow A B => return (A, B)
--- | _ => none
+def Ty.is_arrow_some : Ty -> Option (Ty × Ty)
+| .arrow A B => return (A, B)
+| _ => none
 
--- def Ty.is_arrow_some_sound {T : Ty} :
---   T.is_arrow_some = .some (T1, T2) ->
---   T = T1 -:> T2 := by
--- intro h
--- cases T <;> simp [Ty.is_arrow_some] at *
--- assumption
+def Ty.is_arrow_some_sound {T : Ty} :
+  T.is_arrow_some = .some (T1, T2) ->
+  T = T1 -:> T2 := by
+intro h
+cases T <;> simp [Ty.is_arrow_some] at *
+assumption
 
--- def Ty.is_eq_some : Ty -> Option (Kind × Ty × Ty)
--- | .eq K A B => return (K, A, B)
--- | _ => none
+def Ty.is_eq_some : Ty -> Option (Kind × Ty × Ty)
+| .eq K A B => return (K, A, B)
+| _ => none
 
--- def Ty.is_eq_some_sound {T : Ty} :
---   T.is_eq_some = some (K, A, B) ->
---   T = (A ~[K]~ B) := by
--- intro h;
--- cases T <;> simp [Ty.is_eq_some] at *
--- assumption
+def Ty.is_eq_some_sound {T : Ty} :
+  T.is_eq_some = some (K, A, B) ->
+  T = (A ~[K]~ B) := by
+intro h;
+cases T <;> simp [Ty.is_eq_some] at *
+assumption
 
--- def Ty.is_app_some : Ty -> Option (Ty × Ty)
--- | .app A B => return (A, B)
--- | _ => none
+def Ty.is_app_some : Ty -> Option (Ty × Ty)
+| .app A B => return (A, B)
+| _ => none
 
--- def Ty.is_app_some_sound {T : Ty} :
---   T.is_app_some = some (A, B) ->
---   T = (A • B) := by
--- intro h;
--- cases T <;> simp [Ty.is_app_some] at *
--- assumption
+def Ty.is_app_some_sound {T : Ty} :
+  T.is_app_some = some (A, B) ->
+  T = (A • B) := by
+intro h;
+cases T <;> simp [Ty.is_app_some] at *
+assumption
 
 end Core

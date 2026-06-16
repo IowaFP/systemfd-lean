@@ -71,13 +71,16 @@ protected def Ty.repr (p : Nat) : (a : Ty) -> Std.Format
 instance instRepr_Ty : Repr Ty where
   reprPrec a p := Ty.repr p a
 
-def Vec.Ty.repr (vs : Lilac.Vec Ty n) : Std.Format := "#𝓋[" ++ vs.reprPrec 0 ++ "]"
+def Vec.Ty.repr (vs : Lilac.Vec Ty n) : Std.Format := "#(" ++ vs.reprPrec 0 ++ ")"
 
-def Vec.Kind.repr (vs : Vec Kind n) : Std.Format := "#𝓋[" ++ vs.reprPrec 0 ++ "]"
+def Vec.Kind.repr (vs : Vec Kind n) : Std.Format := "#(" ++ vs.reprPrec 0 ++ ")"
 
--- def SpineTy.repr : SpineTy -> Std.Format
--- | ⟨m, vm, n, vn, t⟩ =>
---   "⟨" ++ Nat.repr m ++ ", " ++ Vec.Kind.repr vm ++ ", " ++ Nat.repr n ++ ", " ++ Vec.Ty.repr vn ++ ", " ++ t.repr 0 ++"⟩"
+def SpineTy.repr : SpineTy -> Std.Format
+| ⟨m, vm, n, vn, u, vu, t⟩ =>
+  "⟨" ++ Nat.repr m ++ ", " ++ Vec.Kind.repr vm ++ ", "
+      ++ Nat.repr n ++ ", " ++ Vec.Kind.repr vn ++ ", "
+      ++ Nat.repr u ++ ", " ++ Vec.Ty.repr vu ++ ", "
+      ++ t.repr 0 ++"⟩"
 
 
 end Core

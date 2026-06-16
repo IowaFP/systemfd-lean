@@ -13,11 +13,11 @@ namespace Core
 
 namespace Infer.Ty.Test
 
-def bool_ctors_sig : SpineTy := ⟨0, Vec.nil, 0, Vec.nil, gt#"Bool"⟩
+def bool_ctors_sig : SpineTy := ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩
 
 def G : List Global := [
   .odata "Eq" (★ -:> ★)
-  , .data 2 "Bool" ★ #𝓋[ ("True",  bool_ctors_sig) , ("False", bool_ctors_sig) ]
+  , .data 2 "Bool" ★ #( ("True",  bool_ctors_sig) , ("False", bool_ctors_sig) )
   -- , .data 0 "Empty" ★ Vec.nil
   ]
 
@@ -31,8 +31,7 @@ end Infer.Ty.Test
 
 def Ty.valid_data (c : DataConst) (G : List Global) : Ty -> Option Unit
 | A => do
-  let (x, _) <- A.spine
-  if is_data c G x
+  if Ty.data? c G A
   then return () else none
 
 def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Option Ty
@@ -40,7 +39,7 @@ def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Optio
 | .cons a as, ∀[K] τ => do
   let K' <- a.infer_kind G Δ
   if K == K' then
-    (τ[su a :: +0]).kind_preamble G Δ as
+    (τ[su a::+0σ]).kind_preamble G Δ as
   else none
 | _ , _ => none
 
@@ -59,26 +58,26 @@ def query_match : Vec String m -> Pattern m -> Option Unit
   if x == y.1 then some () else none
 
 def query_patterns (q : Vec String m) (ps : Vec (Pattern m) n) : Option (Fin n)
- := Vec.findIdx (λ p => (query_match q p).isSome) ps
+ := Vec.findIdx? (λ p => (query_match q p).isSome) ps
 
 @[simp]
-def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Ty)
-| 0, _, _ => some []
-| m + 1, .cons R' Ss, .cons ⟨c, na, As, nb⟩ ps => do
-  let ℓ <- pattern_binders G Δ m Ss ps
-  let ⟨na', Ks, nb', Ts, R⟩ <- lookup_spine_type G c
-  if nb == nb' && na' == na
+def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Kind × List Ty)
+| 0, _, _ => some ([], [])
+| m + 1, .cons R' Ss, .cons ⟨c, na, As, nb, nc⟩ ps => do
+  let (ℓ1, ℓ2) <- pattern_binders G Δ m Ss ps
+  let ⟨na', Ks1, nb', Ks2, nc', Ts, R⟩ <- lookup_spine_type G c
+  if nb == nb' && na' == na && nc == nc'
   then
-    let τ := Sequ.append_vec (As.map su) +0
+    let σ := As.list.reverse.map su ++ Subst.id Ty
     let mAsk := As.map (λ t => t.infer_kind G Δ)
-    let Ask <- mAsk.seq
-    if Ask.eq Ks
+    let Ask <- mAsk.sequence
+    if Ask.beq Ks1
     then
-      let Ts' := Ts.map (λ T => T[τ])
-      if R[τ] == R' then return (Ts'.to_list ++ ℓ) else none
+      let Ts' := Ts.map (λ (T : Ty) => T[σ])
+      if R[σ] == R' then return (ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts'.list.reverse) else none
     else none
   else none
-| _, _ , _ => none
+| _, _ ,_ => none
 
 
 
@@ -95,49 +94,53 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if Tk == .base
     then return T
     else none
-| spctor (n := n) (m := m) (.data d) x As ts => do
-  let ⟨m', Ks, n', Ts, R⟩ <- lookup_spine_type G x
-  let mKs := (As.map (λ y => Ty.infer_kind G Δ y))
-  let Ks' <- mKs.seq
-  if Ks.eq Ks' && m' == m
+| spctor (n := n) (m1 := m1) (m2 := m2) (.data d) x As Bs ts => do
+  let ⟨m1', Ks1, m2', Ks2, n', Ts, R⟩ <- lookup_spine_type G x
+  let mKsA := (As.map (λ y => Ty.infer_kind G Δ y))
+  let KsA <- mKsA.sequence
+  let mKsB := Bs.map (λ y => Ty.infer_kind G Δ y)
+  let KsB <- mKsB.sequence
+  if KsA.beq Ks1 && KsB.beq Ks2 && m1 == m1' && m2 == m2'
   then
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
-    let τs <- mτs.seq
-    let τ := Sequ.append_vec (Vec.map su As) +0
-    let Ts := Ts.map (λ x => x[τ])
-    if lookup_ctor? G d x R && Ts.eq τs && n' == n
+    let τs <- mτs.sequence
+    let τ := (As.list ++ Bs.list).reverse.map su ++ Subst.id Ty
+    let Ts := Ts.map (λ x : Ty => x[τ])
+    if lookup_ctor? G d x R && Ts.beq τs && n' == n
     then return R[τ]
     else none
   none
-| spctor (n := n) (m := m) .openm x As ts => do
-  let ⟨m', Ks, n', Ts, R⟩ <- lookup_spine_type G x
-  let mKs := As.map (λ y => Ty.infer_kind G Δ y)
-  let Ks' <- mKs.seq
-  if Ks.eq Ks' && m' == m
+| spctor (n := n) (m1 := m1) (m2 := m2) .openm x As Bs ts => do
+  let ⟨m1', Ks1, m2', Ks2, n', Ts, R⟩ <- lookup_spine_type G x
+  let mKsA := (As.map (λ y => Ty.infer_kind G Δ y))
+  let KsA <- mKsA.sequence
+  let mKsB := Bs.map (λ y => Ty.infer_kind G Δ y)
+  let KsB <- mKsB.sequence
+  if KsA.beq Ks1 && KsB.beq Ks2 && m1 == m1' && m2 == m2'
   then
-    let τ := Sequ.append_vec (Vec.map su As) +0
+    let τ := (As.list ++ Bs.list).reverse.map su ++ Subst.id Ty
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
-    let τs : Vec Ty n <- mτs.seq
-    let Ts := Ts.map (λ x => x[τ:Ty])
+    let τs : Vec Ty n <- mτs.sequence
+    let Ts := Ts.map (λ x : Ty => x[τ])
     let vs := Vec.map (Ty.valid_data .opn G) τs
-    let _ <- vs.seq
-    if Ts.eq τs && n' == n
+    let _ <- vs.sequence
+    if Ts.beq τs && n' == n
     then return R[τ]
     else none
   none
 | .mtch m n ss ps ts => do
   -- infer the type of scrutinees
   let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
-  let Ss <- smτs.to.seq
+  let Ss <- smτs.to.sequence
 
   let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data .cls G)
-  let _ <- mTs.seq
+  let _ <- mTs.sequence
 
-  let mξs : Lilac.Fun.Vec (Option (List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
-  let ξs <- mξs.to.seq
-  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G Δ ((ξs[i]) ++ Γ)
+  let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
+  let ξs <- mξs.to.sequence
+  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G (ξs[i].1 ++ Δ) (ξs[i].2 ++ Γ)
   let _ <- check_exhaustive G Ss ps.to
-  let Ts' <- mTs'.to.seq
+  let Ts' <- mTs'.to.sequence
   let T <- Ts'.get_elem_if_eq
   return T
 
@@ -147,7 +150,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let RK <- R.infer_kind G (K :: Δ)
   let _ <- RK.base_kind
   let tA <- t.infer_type G Δ Γ
-  if R[su A::+0] == tA then return R[su B::+0] else none
+  if R[su A::+0σ] == tA then return R[su B::+0σ] else none
 | .lam A t => do
   let Ak <- A.infer_kind G Δ
   let _ <- Ak.base_kind
@@ -165,7 +168,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let T <- t.infer_type G Δ Γ
   let (K, T) <- T.is_all_some
   if τk == K
-  then return T[.su τ::+0]
+  then return T[.su τ::+0σ]
   else none
 | .ctor1 (.prj 0) t => do
    let T <- t.infer_type G Δ Γ
@@ -209,7 +212,7 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let _ <- T2.infer_kind G Δ
   let (Ka, C, D) <- T2.is_eq_some
   if AK == BK && Ka == AK
-  then return ((AT[su C::+0:Ty]) ~[★]~ (BT[su D ::+0 :Ty])) else none
+  then return ((AT[su C::+0σ]) ~[★]~ (BT[su D::+0σ])) else none
 
 | .ctor2 .app f a => do
   let F <- f.infer_type G Δ Γ
@@ -220,12 +223,12 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   if A == A' then return B else none
 
 | .tbind .lamt K t => do
-  let T <- t.infer_type G (K::Δ) (Γ[+1:Ty])
+  let T : Ty <- t.infer_type G (K::Δ) Γ⟨.succ Ty⟩
   let Tk <- (∀[K]T).infer_kind G Δ
   let bk <- Tk.base_kind
   if bk == () then return (∀[K] T) else none
 | .tbind .allc K t => do
-  let T1 <- infer_type G (K::Δ) (Γ[+1:Ty]) t
+  let T1 <- t.infer_type G (K::Δ) Γ⟨.succ Ty⟩
   let (Tk, A, B) <- T1.is_eq_some
   let _ <- Tk.base_kind
   return ((∀[K]A) ~[Tk]~ (∀[K]B))
@@ -233,20 +236,22 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
 | _ => none
 
 
-def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) :  SpineTy -> Option Unit
-| ⟨_, Ks, _, Ts, R⟩ => do
-  let Δ := Ks.to_list
-  let mTKs := Ts.map (λ T => T.infer_kind G Δ)
-  let TKs <- mTKs.seq
+def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) (test : Ty -> Bool): SpineTy -> Option Unit
+| ⟨_, Ks1, _, Ks2, _, Ts, R⟩ => do
+  let Δ1 := Ks1.list
+  let Δ2 := Ks2.list
+  let Δ := (Δ1 ++ Δ2).reverse
+  let mTKs := Ts.map (λ T : Ty => T.infer_kind G Δ)
+  let TKs <- mTKs.sequence
   let RK <- R.infer_kind G Δ
   if TKs.elems_eq_to ★ && RK == ★
   then
     match sv with
     | .data c =>
-      if lookup_ctor? G c x R then some () else none
+      if test R then some () else none
     | .openm =>
       let Ts' := Ts.map (λ T => T.valid_data .opn G)
-      let _ <- Ts'.seq
+      let _ <- Ts'.sequence
       return ()
   else none
 
