@@ -126,8 +126,12 @@ theorem Ty.from_action_compose_ren {x : Nat} {σ : Subst Ty} {r : Ren Ty}
 instance : SubstMapId Ty Ty where
   apply_id := by subst_solve_id
 
--- instance : SubstMapStable Ty Ty where
---   apply_stable := by subst_solve_stable
+instance : SubstMapStable Ty Ty where
+  apply_stable := by
+    intro r σ h; funext; case _ t =>
+    induction t generalizing r σ
+      <;> simp [-Subst.rewrite_lift, -Subst.rewrite_lift_ren, -Subst.rewrite_lift_k_ren, *]
+    case var => rw [<-h]; simp
 
 instance : SubstMapRenComposeLeft Ty Ty where
   apply_ren_compose_left := by subst_solve_compose

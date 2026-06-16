@@ -127,7 +127,41 @@ theorem Vec.subst_to_list [SubstMap S T] {v : Vec S n} {σ : Subst T}
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst
 ----------------------------------------------------------------------------------------------------
+macro "subst_solve_compose_fix" : tactic => `(tactic| {
+  intro s σ τ
+  induction s generalizing σ τ
+  any_goals solve | simp +instances [*]
+  try any_goals solve | (
+    try simp [-Subst.rewrite_lift, -Subst.rewrite_lift_ren, -Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+    try funext; case _ x =>
+    try simp [-Subst.rewrite_lift, -Subst.rewrite_lift_ren, -Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+    try grind)
+})
+
 namespace LeanSubst
+  @[simp]
+  theorem Subst.ren_to_hcompose [SubstMap S T] {r : Ren S} {σ : Subst T}: r.to ◾ σ = r.to := sorry
+
+  @[simp]
+  theorem Subst.ren_to_hcompose_ren [RenMap S T] {r : Ren S} {k : Ren T}: r.to ◾ k = r.to := sorry
+
+  @[simp]
+  theorem Subst.to_append {ℓ : List Nat} {r : Ren T} : (ℓ ++ r).to = ℓ ++ r.to := sorry
+
+  @[grind =]
+  theorem Subst.compose_commute_add [RenMap T T] [SubstMap T T] [SubstMapStable T T] {τ : Subst T}
+    : τ ∘ add T k = add T k ∘ τ.lift k
+  := by
+    simp [compose]; funext; case _ x =>
+    generalize zdef : τ.act x = z
+    cases z <;> simp
+    rw [apply_stable]; simp
+
+  @[grind =]
+  theorem Subst.compose_commute_add_ren [RenMap T T] {r : Ren T}
+    : r ∘ add T k = add T k ∘ r.lift k
+  := by
+    simp [compose_ren_left, compose_ren_right]
 
   @[simp]
   theorem Ren.to_cons {r : Ren T} : (x::r).to = re x :: r.to := by

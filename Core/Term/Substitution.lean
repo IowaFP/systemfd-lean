@@ -110,11 +110,26 @@ instance : RenMapCompose Term Term where
     --subst_solve_compose
 
 @[simp]
-def Ctor0Variant.rmap (_ : Ren Ty) : Ctor0Variant -> Ctor0Variant
-| c => c
+def Ctor0Variant.rmap (r : Ren Ty) : Ctor0Variant -> Ctor0Variant
+| fail => fail
+| refl A => refl A⟨r⟩
 
 instance : RenMap Ctor0Variant Ty where
   rmap := Ctor0Variant.rmap
+
+@[simp]
+theorem Ctor0Variant.ren_fail {r : Ren Ty} : fail⟨r⟩ = fail := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Ctor0Variant.ren_refl {r : Ren Ty} : (refl A)⟨r⟩ = refl A⟨r⟩ := by
+  simp [RenMap.rmap]
+
+instance : RenMapId Ctor0Variant Ty where
+  apply_id := by intro s; cases s <;> simp
+
+instance : RenMapCompose Ctor0Variant Ty where
+  apply_compose := by intro s; cases s <;> simp
 
 @[simp]
 def Ctor0Variant.smap (_ : Subst Ctor0Variant) : Ctor0Variant -> Ctor0Variant
@@ -159,11 +174,26 @@ instance : SubstMapHetCompose Ctor0Variant Ty where
   apply_hcompose := by simp
 
 @[simp]
-def Ctor1Variant.rmap (_ : Ren Ty) : Ctor1Variant -> Ctor1Variant
-| c => c
+def Ctor1Variant.rmap (r : Ren Ty) : Ctor1Variant -> Ctor1Variant
+| prj n => prj n
+| appt a => appt a⟨r⟩
 
 instance : RenMap Ctor1Variant Ty where
   rmap := Ctor1Variant.rmap
+
+@[simp]
+theorem Ctor1Variant.ren_fst {r : Ren Ty} : (prj n)⟨r⟩ = prj n := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Ctor1Variant.ren_appt {r : Ren Ty} : (appt a)⟨r⟩ = appt a⟨r⟩ := by
+  simp [RenMap.rmap]
+
+instance : RenMapId Ctor1Variant Ty where
+  apply_id := by intro s; cases s <;> simp
+
+instance : RenMapCompose Ctor1Variant Ty where
+  apply_compose := by intro s; cases s <;> simp
 
 @[simp]
 def Ctor1Variant.smap (_ : Subst Ctor1Variant) : Ctor1Variant -> Ctor1Variant
@@ -214,6 +244,16 @@ def Ctor2Variant.rmap (_ : Ren Ty) : Ctor2Variant -> Ctor2Variant
 instance : RenMap Ctor2Variant Ty where
   rmap := Ctor2Variant.rmap
 
+instance : RenMapId Ctor2Variant Ty where
+  apply_id := by intro s; cases s <;> simp [rmap]
+
+instance : RenMapCompose Ctor2Variant Ty where
+  apply_compose := by intro s; cases s <;> simp [rmap]
+
+@[simp]
+theorem Ctor2Variant.subst_ren {c : Ctor2Variant} {r : Ren Ty} : c⟨r⟩ = c := by
+  simp [RenMap.rmap]
+
 @[simp]
 def Ctor2Variant.smap (_ : Subst Ctor2Variant) : Ctor2Variant -> Ctor2Variant
 | c => c
@@ -260,6 +300,26 @@ instance : RenMap (Pattern m) Ty where
   rmap := Pattern.rmap
 
 @[simp]
+theorem Pattern.ren_nil {r : Ren Ty} : (.nil : Pattern 0)⟨r⟩ = .nil := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Pattern.ren_cons {r : Ren Ty} {tl : Pattern m} : (⟨s, i, ℓ, j⟩::tl)⟨r⟩ = ⟨s, i, ℓ⟨r⟩, j⟩::tl⟨r⟩ := by
+  simp [RenMap.rmap]
+
+instance : RenMapId (Pattern m) Ty where
+  apply_id := by
+    intro s; induction s; simp
+    case _ t1 t2 ih =>
+      rcases t1 with ⟨s, i, ℓ, j⟩; simp [*]
+
+instance : RenMapCompose (Pattern m) Ty where
+  apply_compose := by
+    intro s r1 r2; induction s generalizing r1 r2; simp
+    case _ t1 t2 ih =>
+      rcases t1 with ⟨s, i, ℓ, j⟩; simp [*]
+
+@[simp]
 def Pattern.smap (σ : Subst Ty) : Pattern m -> Pattern m
 | .nil => .nil
 | .cons ⟨s, i, ℓ, j⟩ tl => ⟨s, i, ℓ[σ], j⟩::(smap σ tl)
@@ -291,6 +351,21 @@ instance : SubstMapCompose (Pattern m) Ty where
 theorem Pattern.subst_bind {σ : Subst Ty} {p : Pattern m} : p[σ].bind = p.bind := by
   induction p; simp; case _ x p ih =>
   rcases x with ⟨n, a, m, b⟩; simp [bind, *]
+
+@[simp]
+theorem Pattern.ren_bind {r : Ren Ty} {p : Pattern m} : p⟨r⟩.bind = p.bind := by
+  induction p; simp; case _ x p ih =>
+  rcases x with ⟨n, a, m, b⟩; simp [bind, *]
+
+@[simp]
+theorem Pattern.subst_bind_type {σ : Subst Ty} {p : Pattern m} : p[σ].bind_type = p.bind_type := by
+  induction p; simp; case _ x p ih =>
+  rcases x with ⟨n, a, m, b⟩; simp [bind_type, *]
+
+@[simp]
+theorem Pattern.ren_bind_type {r : Ren Ty} {p : Pattern m} : p⟨r⟩.bind_type = p.bind_type := by
+  induction p; simp; case _ x p ih =>
+  rcases x with ⟨n, a, m, b⟩; simp [bind_type, *]
 
 @[simp]
 def Term.Ty.rmap (r : Ren Ty) : Term -> Term
@@ -338,7 +413,7 @@ def Term.smap (σ : Subst Term) : Term -> Term
 | ctor0 c => ctor0 c
 | ctor1 c t => ctor1 c (smap σ t)
 | ctor2 c t1 t2 => ctor2 c (smap σ t1) (smap σ t2)
-| tbind v A t => tbind v A (smap (σ ◾ .succ Term) t)
+| tbind v A t => tbind v A (smap (σ ◾ Ren.succ Ty) t)
 | lam A t => lam A (smap σ.lift t)
 | cast T c t => cast T (smap σ c) (smap σ t)
 | mtch m n t1 t2 t3 =>
@@ -375,7 +450,7 @@ theorem Term.subst_ctor2 {σ : Subst Term} : (ctor2 v t1 t2)[σ] = ctor2 v t1[σ
   simp [SubstMap.smap]
 
 @[simp]
-theorem Term.subst_tbind {σ : Subst Term} : (tbind v A t)[σ] = tbind v A t[σ ◾ Ren.succ Term] := by
+theorem Term.subst_tbind {σ : Subst Term} : (tbind v A t)[σ] = tbind v A t[σ ◾ Ren.succ Ty] := by
   simp [SubstMap.smap]
 
 @[simp]
@@ -440,11 +515,11 @@ theorem Term.Ty.rmap_cast {r : Ren Ty} : (cast T c t)⟨r⟩ = cast T⟨r.lift�
   simp [RenMap.rmap]
 
 @[simp]
-theorem Term.Ty.rmap_match {σ : Subst Ty}
-  : (mtch m n t1 t2 t3)[σ]
-    = mtch m n (λ i => (t1 i)[σ]) (λ i => (t2 i)[σ]) (λ i => (t3 i)[σ.lift (t2 i).bind_type])
+theorem Term.Ty.rmap_match {r : Ren Ty}
+  : (mtch m n t1 t2 t3)⟨r⟩
+    = mtch m n (λ i => (t1 i)⟨r⟩) (λ i => (t2 i)⟨r⟩) (λ i => (t3 i)⟨r.lift (t2 i).bind_type⟩)
 := by
-  simp [SubstMap.smap]
+  simp [RenMap.rmap]
 
 @[simp]
 theorem Term.Ty.subst_var {σ : Subst Ty} : (#x)[σ] = #x := by
@@ -496,8 +571,48 @@ theorem Term.Ty.subst_match {σ : Subst Ty}
 --   : Sequ.append_vec (Vec.map re (Vec.range n)) (Subst.add n) = +0@T
 -- := sorry
 
+
+instance : RenMapId Term Ty where
+  apply_id := by intro s; induction s <;> simp [*]
+
+instance : RenMapCompose Term Ty where
+  apply_compose := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
+
 instance : SubstMapId Term Ty where
   apply_id := by subst_solve_id
+
+@[simp]
+theorem Term.from_action_hcompose {x : Nat} {σ : Subst Term} {τ : Subst Ty}
+  : (from_action (σ.act x))[τ] = from_action ((σ ◾ τ).act x)
+:= by
+  simp [from_action]
+  generalize zdef : σ.act x = z
+  cases z <;> simp
+
+@[simp]
+theorem Term.from_action_compose_ren {x : Nat} {σ : Subst Term} {r : Ren Term}
+  : (from_action (σ.act x))⟨r⟩ = from_action ((σ ∘ r).act x)
+:= by
+  simp [Term.from_action]
+  generalize zdef : σ.act x = z
+  cases z <;> simp
+
+@[simp]
+theorem Term.from_action_hcompose_ren {x : Nat} {σ : Subst Term} {r : Ren Ty}
+  : (from_action (σ.act x))⟨r⟩ = from_action ((σ ◾ r).act x)
+:= by
+  simp [Term.from_action]
+  generalize zdef : σ.act x = z
+  cases z <;> simp
 
 @[simp]
 theorem Term.hcompose_var {x : Nat} {σ : Subst Term} {τ : Subst Ty}
@@ -507,41 +622,145 @@ theorem Term.hcompose_var {x : Nat} {σ : Subst Term} {τ : Subst Ty}
   generalize zdef : σ.act x = z
   cases z <;> simp
 
--- instance : SubstMapStable Term Term where
---   apply_stable := by subst_solve_stable
+instance : SubstMapStable Term Term where
+  apply_stable := by
+    intro r σ h; funext; case _ t =>
+    replace h := Eq.symm h
+    induction t generalizing r σ <;> simp [*]
+    case lam => congr
+    case mtch t1 t2 t3 ih1 ih2 =>
+      funext; case _ i =>
+      rw [<-Ren.to_lift]; simp
+      generalize zdef : (0..(t2 i).bind ++ r ∘ Ren.add Term (t2 i).bind) = z
+      generalize wdef : (0..(t2 i).bind ++ r.to ∘ Subst.add Term (t2 i).bind) = w
+      have lem : z.to = w := by subst zdef wdef; simp
+      rw [<-lem]; simp
 
 instance : SubstMapRenCommute Term Ty where
   apply_commute_ren_subst := by
     intro s r τ; induction s generalizing r τ <;> simp [*]
   apply_commute_ren_ren := by
     intro s r τ; induction s generalizing r τ <;> simp [*]
-    case mtch =>
-      sorry
+
+instance : SubstMapRenComposeLeft Ctor0Variant Ty where
+  apply_ren_compose_left := by intro s r τ; cases s <;> simp
+
+instance : SubstMapRenComposeLeft Ctor1Variant Ty where
+  apply_ren_compose_left := by intro s r τ; cases s <;> simp
+
+instance : SubstMapRenComposeLeft Ctor2Variant Ty where
+  apply_ren_compose_left := by intro s r τ; cases s <;> simp
+
+instance : SubstMapRenComposeLeft (Pattern m) Ty where
+  apply_ren_compose_left := by
+    intro s r τ; induction s; simp
+    case _ t1 t2 ih =>
+      rcases t1 with ⟨q1, q2, q3, q4⟩; simp [*]
 
 instance : SubstMapRenComposeLeft Term Ty where
-  apply_ren_compose_left := by sorry
-    --subst_solve_compose
+  apply_ren_compose_left := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
+
+instance : SubstMapRenComposeRight Ctor0Variant Ty where
+  apply_ren_compose_right := by intro s r τ; cases s <;> simp
+
+instance : SubstMapRenComposeRight Ctor1Variant Ty where
+  apply_ren_compose_right := by intro s r τ; cases s <;> simp
+
+instance : SubstMapRenComposeRight Ctor2Variant Ty where
+  apply_ren_compose_right := by intro s r τ; cases s <;> simp
+
+instance : SubstMapRenComposeRight (Pattern m) Ty where
+  apply_ren_compose_right := by
+    intro s r τ; induction s; simp
+    case _ t1 t2 ih =>
+      rcases t1 with ⟨q1, q2, q3, q4⟩; simp [*]
 
 instance : SubstMapRenComposeRight Term Ty where
-  apply_ren_compose_right := by sorry --subst_solve_compose
+  apply_ren_compose_right := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
 
 instance : SubstMapCompose Term Ty where
-  apply_compose := by sorry --subst_solve_compose
+  apply_compose := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
 
 instance : SubstMapId Term Term where
   apply_id := by subst_solve_id
-
-instance : SubstMapHetCompose Term Ty where
-  apply_hcompose := by sorry --subst_solve_compose
 
 instance : SubstMapRenComposeLeft Term Term where
   apply_ren_compose_left := by subst_solve_compose
 
 instance : SubstMapRenComposeRight Term Term where
-  apply_ren_compose_right := by sorry --subst_solve_compose
+  apply_ren_compose_right := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
+
+instance : SubstMapHetCompose Term Ty where
+  apply_hcompose := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
+
+instance : SubstMapRenHetCompose Term Ty where
+  apply_hcompose_ren := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
 
 instance : SubstMapCompose Term Term where
-  apply_compose := by sorry --subst_solve_compose
+  apply_compose := by
+    intro s σ τ
+    induction s generalizing σ τ
+    any_goals solve | simp +instances [*]
+    try any_goals solve | (
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try funext; case _ x =>
+      try rw [<-Ren.to_lift]
+      try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
+      try grind)
 
 theorem Term.Ty.smap_promote : Term.Ty.smap σ A = A[σ] := by simp [SubstMap.smap]
 

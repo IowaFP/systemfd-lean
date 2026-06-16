@@ -135,6 +135,22 @@ def Vec.rmap [RenMap S T] (r : Ren T) : Vec S n -> Vec S n
 instance [RenMap S T] : RenMap (Vec S n) T where
   rmap := Vec.rmap
 
+@[simp, grind =]
+theorem Vec.rmap_nil [RenMap S T] {r : Ren T} : (@Vec.nil S)⟨r⟩ = #() := by
+  simp [RenMap.rmap, Vec.rmap]
+
+@[simp, grind =]
+theorem Vec.rmap_cons [RenMap S T] {x} {tl : Vec S n} {r : Ren T}
+  : (x :: tl)⟨r⟩ = x⟨r⟩ :: tl⟨r⟩
+:= by
+  simp [RenMap.rmap, Vec.rmap]
+
+instance [RenMap S T] [RenMapId S T] : RenMapId (Vec S n) T where
+  apply_id := by intro s; induction s <;> simp [*]
+
+instance [RenMap S T] [RenMapCompose S T] : RenMapCompose (Vec S n) T where
+  apply_compose := by intro s; induction s <;> simp [*]
+
 def Vec.smap [SubstMap S T] (σ : Subst T) : Vec S n -> Vec S n
 | .nil => .nil
 | .cons x tl => x[σ] :: smap σ tl

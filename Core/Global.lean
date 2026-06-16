@@ -123,10 +123,10 @@ def lookup (x : String) : List Global -> Option Entry
 | [] => none
 | .cons (.data _ y K ctors) tl =>
   let ctors' := Vec.map
-    (λ (i, (z, A)) => if x == z then some (Entry.ctor z i A) else none)
-    (Vec.enumerate ctors)
+    (λ ((z, A), i) => if x == z then some (Entry.ctor z i A) else none)
+    (Vec.zipIdx ctors)
   if x == y then return .data y K ctors
-  else Vec.fold (lookup x tl) Option.or ctors'
+  else Vec.foldl Option.or (lookup x tl) ctors'
 | .cons (.odata y a) tl =>
   if x == y then return .odata y a else lookup x tl
 | .cons (.openm y a) tl =>
