@@ -9,28 +9,37 @@ import Core.Infer
 
 namespace Core.Examples
 /- data Bool = True | False -/
-def BoolCtx : Core.GlobalEnv := [
-  .data (n := 2) "Bool" ★ [ ("True", gt#"Bool") , ("False", gt#"Bool") ]
+def BoolCtx : GlobalEnv := [
+  Global.data 2 "Bool" ★
+             #𝓋[ ("True", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)
+               , ("False", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)]
   ]
+
+def TrueCtor : Term := ctor! "True" #𝓋[] .nil
+def FalseCtor : Term := ctor! "False" #𝓋[] .nil
 
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
 
-#eval! (g#"True").infer_type BoolCtx [] []
+#eval! BoolCtx.wf_globals
+
+#eval! TrueCtor.infer_type BoolCtx [] []
+
+#eval spine_kinding [Global.data 0 "Bool" ★ #𝓋[]] (.data .cls) "True" ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩
+#eval lookup_ctor? [Global.data 0 "Bool" ★ #𝓋[]] .cls "True" gt#"Bool"
 
 /-
 not : Bool -> Bool
 not = λ x → case x of
                False → True
                True → False
-               _ → False
 -/
+def notTerm : Core.Term := λ[  gt#"Bool" ]
+  mtch' #𝓋[#0]
+     #𝓋[ (#𝓋[⟨"True", 0,  #𝓋[] , 0⟩] , TrueCtor)
+       , (#𝓋[⟨"False", 0 , #𝓋[] , 0⟩] , FalseCtor) ]
 
-def notTerm : Core.Term := λ[gt#"Bool" ]
-  match! 1 #0
-         [ g#"True" ]
-         [ g# "False"]
-         g#"True"
+#guard Term.infer_type BoolCtx [] [] notTerm == some (gt#"Bool" -:> gt#"Bool")
 
 /-  eqBool =
   λ x. λ y. case x of
@@ -41,21 +50,24 @@ def notTerm : Core.Term := λ[gt#"Bool" ]
                        True → False
                        False → True
  -/
-
 def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
-  match! 2 #1
-    [ g#"True", g#"False" ]
-    [
-      match! 2 #0 [ g#"True", g#"False" ] [ g#"True", g#"False" ] `0,
-      match! 2  #0 [ g#"True", g#"False" ] [ g# "False", g# "False"] `0
-    ]
-    `0
+  (mtch' #𝓋[#1]
+     #𝓋[ (#𝓋[⟨"True", 0 , #𝓋[] , 0⟩]  ,
+          (mtch' #𝓋[#0]
+                 #𝓋[ (#𝓋[ ⟨"True", 0 , #𝓋[] , 0⟩ ], TrueCtor)
+                   , (#𝓋[ ⟨"False", 0 , #𝓋[] , 0⟩ ] , FalseCtor)
+                   ]))
 
-def funs : GlobalEnv := [ .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool ]
-def EqBoolCtx : GlobalEnv := funs ++ BoolCtx
+       , (#𝓋[⟨"False", 0 , #𝓋[] , 0⟩]  ,
+          (mtch' #𝓋[#0]
+                 #𝓋[ (#𝓋[ ⟨"True", 0 , #𝓋[] , 0⟩ ], FalseCtor)
+                   , (#𝓋[ ⟨"False", 0 , #𝓋[] , 0⟩ ] , TrueCtor)
+                   ]))])
 
-#eval! eqBool.infer_type EqBoolCtx [] []
-#guard Globals.wf_globals EqBoolCtx == some ()
+#guard Term.infer_type BoolCtx [] [] eqBool == some (gt#"Bool" -:> (gt#"Bool" -:> gt#"Bool"))
+
+-- #eval! eqBool.infer_type EqBoolCtx [] []
+-- #guard Globals.wf_globals EqBoolCtx == some ()
 
 -- def t1 := Term.match g#"False"
 --               v[ "True", "False" ] v[ g#"False" , g#"True" ]

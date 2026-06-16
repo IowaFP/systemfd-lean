@@ -63,6 +63,7 @@ def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
 
 #guard Term.infer_type BoolCtx [] [] eqBool == some (gt#"Bool" -:> (gt#"Bool" -:> gt#"Bool"))
 
+
 def EqBoolCtx : GlobalEnv := [
   -- instance (==)[t] i
   --    If EqBool[t] t~Bool ← i

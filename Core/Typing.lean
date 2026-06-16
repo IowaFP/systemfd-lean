@@ -230,8 +230,9 @@ def VecConstructorTyping (G : List Global) (Δ : List Kind) (Γ : List Ty) (cs :
 
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vec (String × SpineTy) n} :
-  (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
-    SpineKinding (.data .cls) y (.data 0 x K .nil::G) T
+  (∀ (i : Fin n) y T, ctors[i] = (y, ⟨n, Ks, m, Ts, R⟩) ->
+    -- Ty.data? .cls (.data 0 x K .nil::G) R
+    SpineKinding (.data .cls) y (.data 0 x K .nil::G) T /-  <-- This is busted -/
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->

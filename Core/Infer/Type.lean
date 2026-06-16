@@ -247,6 +247,7 @@ def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) :  SpineTy
     | .openm =>
       let Ts' := Ts.map (λ T => T.valid_data .opn G)
       let _ <- Ts'.seq
+      return ()
   else none
 
 namespace Core
