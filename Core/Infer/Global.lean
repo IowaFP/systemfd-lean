@@ -84,7 +84,6 @@ def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option Unit
 
 
 
-
   return ()
 | _ => return ()
 

@@ -740,4 +740,23 @@ case _ ih =>
       apply ih i j e h
 
 
+theorem Vec.fold_or {cs : Vec _ n}: Vec.fold d Option.or cs = e ->
+  d = e ∨ ∃ i : Fin n, cs[i] = e
+:= by
+intro h
+induction cs
+simp at h; apply Or.inl h
+case _ a as ih =>
+  cases a <;> simp at *
+  · replace ih := ih h;
+    cases e
+    all_goals (
+    · cases ih
+      · case _ ih => apply Or.inl ih
+      · case _ ih => rcases ih with ⟨i, ih⟩; apply Or.inr; exists i.succ)
+  · cases e
+    cases h
+    cases h; apply Or.inr; exists 0
+
+
 end Lilac

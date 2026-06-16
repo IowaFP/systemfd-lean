@@ -12,11 +12,21 @@ open Lilac
 
 namespace Core
 
+theorem ctor_data_linked {ctors : Vec _ n} {T : String} {spTy : SpineTy}{Tys : List Ty}:
+  lookup T G = some (Entry.data T a ctors) ->
+  lookup c G = some (Entry.ctor c k spTy) ->
+  spTy.2.2.2.2.spine = some (T, Tys) ->
+  ∃ i : Fin n, ctors[i].1 = c
+:= by
+intro h1 h2 h3
+
+sorry
+
 
 theorem lookup_ctor_names_sound :
   lookup_ctor? G DataConst.cls c T = true ->
   lookup_ctor_names G T = some ⟨n, cs⟩ ->
-  ∃ j : Fin n, c = cs[j] := by
+  ∃ j : Fin n, cs[j] = c := by
 intro h1 h2
 unfold lookup_ctor_names at h2; unfold lookup_ctor? at h1;
 simp at h2
@@ -29,12 +39,10 @@ split at h2
   cases e <;> simp at h3
   split at h3 <;> simp at *
   subst h3;
-  case _ lk1 c k spTy _ _ _ =>
+  case _ lk1 c k spTy _ _ e =>
   have lem := lookup_name_eq lk1; cases lem
   have lem := lookup_name_eq h2; cases lem; simp [Entry.name] at *
-
-  sorry
-
+  apply ctor_data_linked lk1 h2 e
 · cases h2
 
 

@@ -201,10 +201,13 @@ fun_induction lookup
 cases h
 simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all
 case _ ctors _ ctors' _ ih =>
-  unfold ctors' at h
-  induction ctors <;> simp at *
-  apply ih h
-  sorry
+  replace h := Vec.fold_or h
+  cases h
+  case _ h => apply ih h
+  case _ h =>
+    rcases h with ⟨i, h⟩
+    unfold ctors' at h; simp at h;
+    rw[<-h.2]; rw[<-h.1]; simp [Entry.name]
 any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
 any_goals (case _ ih => apply ih h)
 
@@ -220,8 +223,7 @@ def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
   G.filterMapM (λ g => match g with
                    | .octor n ⟨_, _, _, _, R⟩ => do let ⟨d', _ ⟩ <- R.spine
                                                     if d' == d then return (some n) else return none
-                   | _ => return none
-           )
+                   | _ => return none)
 
 
 -- def ctor_idx (G : List Global) (x : String) : Option Nat := do
