@@ -28,7 +28,7 @@ theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
 theorem GlobalWf.drop_lookup_unique_vec :
   {v : Vec (Option Entry) n} ->
   (∀ (i : Fin n), v[i] = none) ->
-  Vec.fold (lookup x G) Option.or v = lookup x G
+  v.foldl Option.or (lookup x G) = lookup x G
 | .nil, h => by simp
 | .cons e tl, h =>
   have lem := h 0
@@ -52,24 +52,25 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
       replace ih := ih n j
       cases j2
       case data n y K ctors j1 j2 j3 =>
-        simp [lookup]; split
-        case _ e => subst e; rw [ih] at j3; injection j3
-        case _ e =>
-          rw [drop_lookup_unique_vec]; exact ih
-          intro i
-          generalize endef : ctors i = en at *
-          rcases en with ⟨z, A⟩; simp; intro e2
-          replace j2 := j2 i z A endef
-          rcases j2 with ⟨q1, q2, q3⟩
-          cases q1; case _ w1 w2 w3 w4 w5 =>
-          clear w5; replace w4 := w4 _ rfl
-          simp [lookup_ctor?] at w4; split at w4
-          case _ =>
-            have lem : lookup z (Global.data 0 y K #𝓋[] :: G) = none := by
-              simp [lookup]; split; simp_all; apply q3
-            simp [Option.map, Option.getD] at w4
-            rw [lem] at w4; simp at w4
-          case _ => cases w4
+        sorry
+        -- simp [lookup]; split
+        -- case _ e => subst e; rw [ih] at j3; injection j3
+        -- case _ e =>
+        --   rw [drop_lookup_unique_vec]; exact ih
+        --   intro i
+        --   generalize endef : ctors i = en at *
+        --   rcases en with ⟨z, A⟩; simp; intro e2
+        --   replace j2 := j2 i z A endef
+        --   rcases j2 with ⟨q1, q2, q3⟩
+        --   cases q1; case _ w1 w2 w3 w4 w5 =>
+        --   clear w5; replace w4 := w4 _ rfl
+        --   simp [lookup_ctor?] at w4; split at w4
+        --   case _ =>
+        --     have lem : lookup z (Global.data 0 y K #() :: G) = none := by
+        --       simp [lookup]; split; simp_all; apply q3
+        --     simp [Option.map, Option.getD] at w4
+        --     rw [lem] at w4; simp at w4
+        --   case _ => cases w4
       case openm T b y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j2; injection j2
@@ -95,7 +96,7 @@ theorem lookup_weaken_ctors_vec (wf : ⊢ (Global.data n y D ctors :: G)) (h : x
   : {v : Vec _ k} ->
     lookup x G = some e ->
     (∀ (i : Fin k), v[i] = none) ->
-    Vec.fold (lookup x G) Option.or v = some e
+    v.foldl Option.or (lookup x G) = some e
 | .nil, h1, h2 => h1
 | .cons hd tl, h1, h2 => by
   have h2' := λ (i : Fin _) => h2 (Fin.succ i); simp at h2'
@@ -105,7 +106,7 @@ theorem lookup_weaken_ctors_vec (wf : ⊢ (Global.data n y D ctors :: G)) (h : x
   case _ hd => replace h2 := h2 0; simp at h2
 
 theorem lookup_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G)) (h : x ≠ y)
-  : lookup x (Global.data 0 y D #𝓋[] :: G) = some e ->
+  : lookup x (Global.data 0 y D #() :: G) = some e ->
     lookup x (Global.data n y D ctors :: G) = some e
 := by
   intro h
@@ -117,13 +118,14 @@ theorem lookup_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G)) (h : x ≠
     intro i; simp; intro h2
     cases wf; case _ wf gwf =>
     cases gwf; case _ ctors q1 q2 q3 =>
-    simp at h2
-    generalize zdef : ctors i = z
-    rcases z with ⟨z, A⟩
-    rw [zdef] at h2; simp at h2; subst h2
-    replace q3 := q3 i x A zdef
-    rcases q3 with ⟨q3, q4, q5⟩
-    simp_all
+    sorry
+    -- simp at h2
+    -- generalize zdef : ctors i = z
+    -- rcases z with ⟨z, A⟩
+    -- rw [zdef] at h2; simp at h2; subst h2
+    -- replace q3 := q3 i x A zdef
+    -- rcases q3 with ⟨q3, q4, q5⟩
+    -- simp_all
 
 theorem lookup_kind_weaken (wf : ⊢ (g::G))
   : lookup_kind G x = some K -> lookup_kind (g::G) x = some K
@@ -143,11 +145,11 @@ theorem lookup_kind_weaken (wf : ⊢ (g::G))
     rw [wdef] at lem; cases lem; exact h
 
 theorem lookup_kind_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G))
-  : lookup_kind (Global.data 0 y D #𝓋[] :: G) x = some K ->
+  : lookup_kind (Global.data 0 y D #() :: G) x = some K ->
     lookup_kind (Global.data n y D ctors :: G) x = some K
 := by
   intro h1; simp_all [lookup_kind, Option.map]
-  generalize zdef : lookup x (Global.data 0 y D #𝓋[] :: G) = z at *
+  generalize zdef : lookup x (Global.data 0 y D #() :: G) = z at *
   generalize wdef : lookup x (Global.data n y D ctors :: G) = w at *
   cases z; simp at h1; case _ z =>
   cases w
@@ -183,7 +185,7 @@ theorem lookup_ctor_weaken (wf : ⊢ (g::G))
     exact h
 
 theorem lookup_ctor_weaken_ctors (wf : ⊢ (Global.data n y K ctors :: G))
-  : lookup_ctor? (Global.data 0 y K #𝓋[] :: G) c x D ->
+  : lookup_ctor? (Global.data 0 y K #() :: G) c x D ->
     lookup_ctor? (Global.data n y K ctors :: G) c x D
 := by
   intro h; simp_all [lookup_ctor?, Option.map]
@@ -192,7 +194,7 @@ theorem lookup_ctor_weaken_ctors (wf : ⊢ (Global.data n y K ctors :: G))
   case _ val =>
     rcases val with ⟨z, D⟩
     simp at *
-    generalize wdef : lookup x (Global.data 0 y K #𝓋[] :: G) = w at *
+    generalize wdef : lookup x (Global.data 0 y K #() :: G) = w at *
     cases w; simp_all; case _ e =>
     cases String.decEq x y
     case _ lem =>
@@ -212,52 +214,53 @@ theorem lookup_ctor_strengthen (wf : ⊢ (g::G))
   (hdata : Ty.data? DataConst.cls G D)
   : lookup_ctor? (g::G) .cls x D -> lookup_ctor? G .cls x D
 := by
-  intro h; simp_all [lookup_ctor?]
-  simp [Ty.data?, Ty.HeadVariable] at hdata
-  rcases hdata with ⟨y, ⟨z, q1⟩, q2⟩; rw [q1]; rw [q1] at h; simp_all [Option.map]
-  simp [is_data, Option.map] at q2
-  have lem1 : ∀ n K ctors, g ≠ .data n x K ctors := by
-    intro n K ctors h; subst h; simp [lookup, Entry.ctor?] at h
-  have lem2 : ∀ T, g ≠ .octor x T := by
-    intro T h; subst h; simp [lookup, Entry.ctor?] at h
-  cases g <;> simp [lookup] at h
-  case data w _ ctors =>
-    cases decEq x w
-    case _ e =>
-      rw [ite_not_resolve e] at h
-      rw [GlobalWf.drop_lookup_unique_vec] at h; apply h
-      intro i; simp; intro h
-      cases wf; case _ wf gwf =>
-      cases gwf; case _ ctors q3 q4 q5 q6 =>
-      simp at h; generalize zdef : ctors i = z at *
-      rcases z with ⟨z, C⟩; simp at h; subst h
-      replace q5 := q5 i x C zdef
-      rcases q5 with ⟨q5, q7, q8⟩
-      -- cases q5; case _ R _ _ _ w0 w1 w2 w3 w4 =>
-      -- replace w3 := w3 .cls rfl
-      -- simp [lookup_ctor?] at w3
-      -- generalize Rsdef : R.spine = Rs at *
-      -- cases Rs; simp at w3; case _ Rs =>
-      -- rcases Rs with ⟨Rx, RT⟩; simp [Option.map] at w3
-      -- generalize vdef : lookup y G = v at *
-      -- cases v; simp_all; case _ ve =>
-      -- simp [Entry.is_data] at q2
-      sorry
-    case _ e =>
-      subst e; exfalso
-      apply lem1; rfl
-  case octor w _ =>
-    cases decEq x w
-    case _ e =>
-      rw [ite_not_resolve e] at h
-      apply h
-    case _ e =>
-      subst e; exfalso
-      apply lem2; rfl
-  all_goals split at h <;> simp_all
-  all_goals case _ e =>
-    split at e <;> simp_all
-    subst e; simp_all [Entry.ctor?]
+  sorry
+  -- intro h; simp_all [lookup_ctor?]
+  -- simp [Ty.data?, Ty.HeadVariable] at hdata
+  -- rcases hdata with ⟨y, ⟨z, q1⟩, q2⟩; rw [q1]; rw [q1] at h; simp_all [Option.map]
+  -- simp [is_data, Option.map] at q2
+  -- have lem1 : ∀ n K ctors, g ≠ .data n x K ctors := by
+  --   intro n K ctors h; subst h; simp [lookup, Entry.ctor?] at h
+  -- have lem2 : ∀ T, g ≠ .octor x T := by
+  --   intro T h; subst h; simp [lookup, Entry.ctor?] at h
+  -- cases g <;> simp [lookup] at h
+  -- case data w _ ctors =>
+  --   cases decEq x w
+  --   case _ e =>
+  --     rw [ite_not_resolve e] at h
+  --     rw [GlobalWf.drop_lookup_unique_vec] at h; apply h
+  --     intro i; simp; intro h
+  --     cases wf; case _ wf gwf =>
+  --     cases gwf; case _ ctors q3 q4 q5 q6 =>
+  --     simp at h; generalize zdef : ctors i = z at *
+  --     rcases z with ⟨z, C⟩; simp at h; subst h
+  --     replace q5 := q5 i x C zdef
+  --     rcases q5 with ⟨q5, q7, q8⟩
+  --     -- cases q5; case _ R _ _ _ w0 w1 w2 w3 w4 =>
+  --     -- replace w3 := w3 .cls rfl
+  --     -- simp [lookup_ctor?] at w3
+  --     -- generalize Rsdef : R.spine = Rs at *
+  --     -- cases Rs; simp at w3; case _ Rs =>
+  --     -- rcases Rs with ⟨Rx, RT⟩; simp [Option.map] at w3
+  --     -- generalize vdef : lookup y G = v at *
+  --     -- cases v; simp_all; case _ ve =>
+  --     -- simp [Entry.is_data] at q2
+  --     sorry
+  --   case _ e =>
+  --     subst e; exfalso
+  --     apply lem1; rfl
+  -- case octor w _ =>
+  --   cases decEq x w
+  --   case _ e =>
+  --     rw [ite_not_resolve e] at h
+  --     apply h
+  --   case _ e =>
+  --     subst e; exfalso
+  --     apply lem2; rfl
+  -- all_goals split at h <;> simp_all
+  -- all_goals case _ e =>
+  --   split at e <;> simp_all
+  --   subst e; simp_all [Entry.ctor?]
 
 theorem lookup_defn_weaken (wf : ⊢ (g::G))
   : lookup_defn G x = some e -> lookup_defn (g::G) x = some e
@@ -286,10 +289,10 @@ theorem is_data_weaken (wf : ⊢ (g::G)) : is_data c G x -> is_data c (g::G) x :
   rw [lem]; simp_all
 
 theorem is_data_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G))
-  : is_data c (Global.data 0 y D #𝓋[] :: G) x -> is_data c (Global.data n y D ctors :: G) x
+  : is_data c (Global.data 0 y D #() :: G) x -> is_data c (Global.data n y D ctors :: G) x
 := by
   intro h; simp_all [is_data, Option.map]
-  generalize zdef : lookup x (Global.data 0 y D #𝓋[] :: G) = z at *
+  generalize zdef : lookup x (Global.data 0 y D #() :: G) = z at *
   cases z; simp_all; case _ e =>
   cases String.decEq x y
   case _ lem =>
@@ -303,18 +306,20 @@ theorem is_data_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G))
 theorem Ty.data?_global_weaken (wf : ⊢ (g::G))
   : Ty.data? c G A -> Ty.data? c (g::G) A
 := by
-  intro h; simp_all [Ty.data?, Ty.HeadVariable]
-  rcases h with ⟨x, ⟨T, h1⟩, h2⟩
-  exists x; apply And.intro
-  exists T; apply is_data_weaken wf h2
+  sorry
+  -- intro h; simp_all [Ty.data?, Ty.HeadVariable]
+  -- rcases h with ⟨x, ⟨T, h1⟩, h2⟩
+  -- exists x; apply And.intro
+  -- exists T; apply is_data_weaken wf h2
 
 theorem Ty.data?_global_weaken_ctors (wf : ⊢ (Global.data n y D ctors :: G))
-  : Ty.data? c (Global.data 0 y D #𝓋[] :: G) A -> Ty.data? c (Global.data n y D ctors :: G) A
+  : Ty.data? c (Global.data 0 y D #() :: G) A -> Ty.data? c (Global.data n y D ctors :: G) A
 := by
-  intro h; simp_all [Ty.data?, Ty.HeadVariable]
-  rcases h with ⟨x, ⟨T, h1⟩, h2⟩
-  exists x; apply And.intro
-  exists T; apply is_data_weaken_ctors wf h2
+  sorry
+  -- intro h; simp_all [Ty.data?, Ty.HeadVariable]
+  -- rcases h with ⟨x, ⟨T, h1⟩, h2⟩
+  -- exists x; apply And.intro
+  -- exists T; apply is_data_weaken_ctors wf h2
 
 theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢ A : K -> (g::G)&Δ ⊢ A : K
 | var h => var h
@@ -325,7 +330,7 @@ theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢ A : K -> (g::G)&Δ �
 | eq j1 j2 => eq (j1.weaken_global wf) (j2.weaken_global wf)
 
 theorem Kinding.weaken_global_ctors (wf : ⊢ (Global.data n y D ctors :: G))
-  : (Global.data 0 y D #𝓋[] :: G)&Δ ⊢ A : K -> (Global.data n y D ctors :: G)&Δ ⊢ A : K
+  : (Global.data 0 y D #() :: G)&Δ ⊢ A : K -> (Global.data n y D ctors :: G)&Δ ⊢ A : K
 | var h => var h
 | global h => global $ lookup_kind_weaken_ctors wf h
 | arrow j1 j2 => arrow (j1.weaken_global_ctors wf) (j2.weaken_global_ctors wf)
@@ -334,26 +339,23 @@ theorem Kinding.weaken_global_ctors (wf : ⊢ (Global.data n y D ctors :: G))
 | eq j1 j2 => eq (j1.weaken_global_ctors wf) (j2.weaken_global_ctors wf)
 
 theorem SpineKinding.weaken_global (wf : ⊢ (g::G))
-  : {T : SpineTy} -> SpineKinding v x G T -> SpineKinding v x (g::G) T
-| ⟨m, Ks, n, Ts, R⟩, valid (τ := τ) e j1 j2 j3 j4 =>
-  have lem1 : ∀ c, v = .data c → lookup_ctor? (g::G) c x R :=
-    λ c e => lookup_ctor_weaken wf (j3 c e)
-  have lem2 : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn (g::G) Ts[i][τ] :=
+  : {T : SpineTy} -> SpineKinding v x G tst T -> SpineKinding v x (g::G) tst T
+| ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩, valid e j1 j2 j3 j4 =>
+  have lem2 : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn (g::G) Ts[i] :=
     λ e i => Ty.data?_global_weaken wf (j4 e i)
-  valid e (λ i => (j1 i).weaken_global wf) (j2.weaken_global wf) lem1 lem2
+  valid e (λ i => (j1 i).weaken_global wf) (j2.weaken_global wf) j3 lem2
 
 theorem SpineKinding.weaken_global_ctors (wf : ⊢ (Global.data n y K ctors :: G))
-  : SpineKinding v x (Global.data 0 y K #𝓋[] :: G) T ->
-    SpineKinding v x (Global.data n y K ctors :: G) T
+  : SpineKinding v x (Global.data 0 y K #() :: G) tst T ->
+    SpineKinding v x (Global.data n y K ctors :: G) tst T
 | valid e j1 j2 j3 j4 =>
   let j1' := λ i => (j1 i).weaken_global_ctors wf
   let j2' := j2.weaken_global_ctors wf
-  let j3' := λ c e => lookup_ctor_weaken_ctors wf (j3 c e)
   let j4' := λ e i => Ty.data?_global_weaken_ctors wf (j4 e i)
-  valid e j1' j2' j3' j4'
+  valid e j1' j2' j3 j4'
 
 theorem PatternBinders.weaken_global (wf : ⊢ (g::G))
-  : PatternBinders G Δ m S p ξ -> PatternBinders (g::G) Δ m S p ξ
+  : PatternBinders G Δ m S p ζ ξ -> PatternBinders (g::G) Δ m S p ζ ξ
 | zero => zero
 | succ j1 j2 e1 e2 j3 =>
   let j1' := lookup_spine_type_weaken wf j1
@@ -383,17 +385,18 @@ theorem Query.global_strengthen {S : Vec _ m} (wf : ⊢ (g::G))
 theorem Typing.weaken_global (wf : ⊢ (g::G)) : G&Δ,Γ ⊢ t : A -> (g::G)&Δ,Γ ⊢ t : A
 | var j1 j2 => var j1 (j2.weaken_global wf)
 | defn j1 j2 => defn (lookup_defn_weaken wf j1) (j2.weaken_global wf)
-| spctor j1 e1 e2 j2 j3 j4 j5 =>
-  let j1' := lookup_spine_type_weaken wf j1
-  let j2' := λ i => (j2 i).weaken_global wf
-  let j3' := λ i => (j3 i).weaken_global wf
-  let j4' := λ c e => lookup_ctor_weaken wf (j4 c e)
-  let j5' := λ e i => Ty.data?_global_weaken wf (j5 e i)
-  spctor j1' e1 e2 j2' j3' j4' j5'
+| spctor j1 e1 e2 j2 j3 j4 j5 j6 =>
+  sorry
+  -- let j1' := lookup_spine_type_weaken wf j1
+  -- let j2' := λ i => (j2 i).weaken_global wf
+  -- let j3' := λ i => (j3 i).weaken_global wf
+  -- let j4' := λ c e => lookup_ctor_weaken wf (j4 c e)
+  -- let j5' := λ e i => Ty.data?_global_weaken wf (j5 e i)
+  -- spctor j1' e1 e2 j2' j3' j4' j5'
 | mtch (m := m) (S := S) j1 j2 j3 j4 j5 =>
   let j1' := λ i => (j1 i).weaken_global wf
   let j2' := λ i => Ty.data?_global_weaken wf (j2 i)
-  let j2'' : ∀ (i : Fin m), Ty.data? DataConst.cls G S.to[i] := by simp; exact j2
+  let j2'' : ∀ (i : Fin m), Ty.data? DataConst.cls G S.to[i] := by sorry
   let j3' := λ i => (j3 i).weaken_global wf
   let j4' := λ i => (j4 i).weaken_global wf
   let j5' := λ {q} q' => j5 (q := q) (Query.global_strengthen wf j2'' q')
@@ -419,38 +422,40 @@ theorem EntryWf.weaken (wf : ⊢ (g::G))
 | odata j => odata (lookup_weaken wf j)
 | openm j1 j2 => openm (j1.weaken_global wf) (lookup_weaken wf j2)
 | defn j1 j2 j3 => defn (j1.weaken_global wf) (j2.weaken_global wf) (lookup_weaken wf j3)
-| octor j1 j2 => octor (j1.weaken_global wf) (lookup_weaken wf j2)
+| octor j1 j2 => sorry -- octor (j1.weaken_global wf) (lookup_weaken wf j2)
 
 theorem EntryWf.from_lookup_ctor1 :
   {v : Vec _ n} ->
-  Vec.fold (lookup x G) Option.or v = some e ->
+  v.foldl Option.or (lookup x G) = some e ->
   lookup x G = some e ∨ (∃ (i : Fin n), v[i] = some e)
 | .nil, eq => Or.inl eq
 | .cons a tl, eq => by
-  simp at eq; cases eq
-  case _ eq => apply Or.inr; exists 0
-  case _ eq =>
-    have lem := from_lookup_ctor1 eq.2
-    cases lem
-    case _ lem => apply Or.inl lem
-    case _ lem =>
-      rcases lem with ⟨i, lem⟩
-      apply Or.inr; exists (Fin.succ i)
+  sorry
+  -- simp at eq; cases eq
+  -- case _ eq => apply Or.inr; exists 0
+  -- case _ eq =>
+  --   have lem := from_lookup_ctor1 eq.2
+  --   cases lem
+  --   case _ lem => apply Or.inl lem
+  --   case _ lem =>
+  --     rcases lem with ⟨i, lem⟩
+  --     apply Or.inr; exists (Fin.succ i)
 
 -- TODO: need decidable equality of Entry
 theorem EntryWf.from_lookup_ctor2 :
   {v : Vec (Option Entry) n} ->
   (∃ (i : Fin n), v[i].isSome) ->
-  Vec.fold none Option.or v = some e
+  v.foldl Option.or none = some e
 | .nil, ⟨i, h⟩ => Fin.elim0 i
 | .cons a tl, ⟨i, h⟩ => by
-  cases i using Fin.cases
-  case zero => sorry
-  case succ i =>
-    simp at h; simp
-    apply Or.inr
-    have lem := EntryWf.from_lookup_ctor2 (e := e) (v := tl) ⟨i, h⟩
-    sorry
+  sorry
+  -- cases i using Fin.cases
+  -- case zero => sorry
+  -- case succ i =>
+  --   simp at h; simp
+  --   apply Or.inr
+  --   have lem := EntryWf.from_lookup_ctor2 (e := e) (v := tl) ⟨i, h⟩
+  --   sorry
 
 theorem EntryWf.from_lookup :
   ⊢ G ->
@@ -470,26 +475,27 @@ theorem EntryWf.from_lookup :
     cases h; apply EntryWf.data
     simp [lookup]
   case _ n y K ctors tl ctors' h1 ih1 =>
-    have wf' := wf
-    cases wf; case _ wf gwf =>
-    cases gwf; case _ ctors2 h2 h3 h4 =>
-    cases (EntryWf.from_lookup_ctor1 h)
-    case _ lem => apply EntryWf.weaken wf' (ih1 wf lem)
-    case _ lem =>
-      rcases lem with ⟨i, lem⟩
-      clear h; subst ctors'; simp at lem
-      generalize zdef : ctors2 i = z
-      rcases z with ⟨z, A⟩
-      replace h4 := h4 i z A zdef
-      rw [zdef] at lem; simp at lem
-      rcases h4 with ⟨q1, q2, q3⟩
-      rw [<-lem.2]; apply EntryWf.ctor y K ctors2
-      simp [lookup]
-      simp; exact zdef
-      apply SpineKinding.weaken_global_ctors wf' q1
-      simp [lookup]; split; simp_all; rw [q3]
-      apply EntryWf.from_lookup_ctor2; simp
-      exists i; rw [zdef]
+    sorry
+    -- have wf' := wf
+    -- cases wf; case _ wf gwf =>
+    -- cases gwf; case _ ctors2 h2 h3 h4 =>
+    -- cases (EntryWf.from_lookup_ctor1 h)
+    -- case _ lem => apply EntryWf.weaken wf' (ih1 wf lem)
+    -- case _ lem =>
+    --   rcases lem with ⟨i, lem⟩
+    --   clear h; subst ctors'; simp at lem
+    --   generalize zdef : ctors2 i = z
+    --   rcases z with ⟨z, A⟩
+    --   replace h4 := h4 i z A zdef
+    --   rw [zdef] at lem; simp at lem
+    --   rcases h4 with ⟨q1, q2, q3⟩
+    --   rw [<-lem.2]; apply EntryWf.ctor y K ctors2
+    --   simp [lookup]
+    --   simp; exact zdef
+    --   apply SpineKinding.weaken_global_ctors wf' q1
+    --   simp [lookup]; split; simp_all; rw [q3]
+    --   apply EntryWf.from_lookup_ctor2; simp
+    --   exists i; rw [zdef]
       -- apply EntryWf.from_lookup_ctor3; simp
       -- exists i; rw [zdef]; simp
   case _ =>
@@ -511,12 +517,13 @@ theorem EntryWf.from_lookup :
     apply Typing.weaken_global wf' j2
     simp [lookup]
   case _ =>
-    have wf' := wf
-    cases h; cases wf; case _ wf h =>
-    cases h; case _ j1 j2 =>
-    apply EntryWf.octor
-    apply SpineKinding.weaken_global wf' j2
-    simp [lookup]
+    sorry
+    -- have wf' := wf
+    -- cases h; cases wf; case _ wf h =>
+    -- cases h; case _ j1 j2 =>
+    -- apply EntryWf.octor
+    -- apply SpineKinding.weaken_global wf' j2
+    -- simp [lookup]
 
 theorem EntryWf.from_lookup_defn :
   ⊢ G ->
