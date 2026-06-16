@@ -13,7 +13,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
   wf_globals G
   if (lookup x G).isNone && Vec.unique_elems (ctors.map (·.1)) then
     let mctors' : Vec (Option Unit) n := ctors.map (λ (c : String × SpineTy) =>
-        spine_kinding (List.cons (.data (n := 0) x k #𝓋[]) G) (.data .cls) (c.1) (c.2))
+        spine_kinding (List.cons (.data (n := 1) x k #𝓋[c]) G) (.data .cls) (c.1) (c.2))
     let _ <- mctors'.seq
     let mctors'' : Vec (Option Unit) n := ctors.map (λ c => if c.1 != x then some () else none)
     let _ <- mctors''.seq
@@ -29,7 +29,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
 | .cons (.octor x spTy) G => do
   wf_globals G
   if (lookup x G).isNone
-  then spine_kinding G (.data .opn) x spTy
+  then spine_kinding (.octor x spTy :: G) (.data .opn) x spTy
   else none
 | .cons (.defn x T t) G => do
   wf_globals G

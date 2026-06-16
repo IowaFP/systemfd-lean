@@ -30,16 +30,22 @@ case _ n x k ctors G ih => -- ctors
   replace h9 := Vec.map_seq_sound _ h9
   replace h4 := Vec.units h4;
   rcases h3 with ⟨h3a, h3b⟩
-  apply ListGlobalWf.cons
+  replace h3b := Vec.unique_elems_sound h3b;
+  apply ListGlobalWf.cons; simp at h3b
   · apply GlobalWf.data (G := G) (n := n) (K := k) (x := x) (ctors := ctors)
     · intro i y T h
       apply And.intro
-      · replace h5 := h5 i; rw[h] at h5; simp at h5; apply spine_kinding_sound h5
+      · replace h5 := h5 i; simp at h5;
+        replace h5 := spine_kinding_sound h5; simp at h5;
+        have lem : ctors[i].1 = y := by rw[h]
+        rw[lem] at h5; clear lem;
+        have lem : ctors[i].2 = T := by rw[h]
+        rw[lem] at h5; apply h5
       · apply And.intro
         · replace h7 := h7 i; rw[h] at h7; simp at h7; simp; intro f; apply h7 (Eq.symm f)
         · replace h9 := h9 i; rw[h] at h9; simp at h9; apply h9
-    replace h3b := Vec.unique_elems_sound h3b; simp at h3b; apply h3b
-    apply h3a
+    · apply h3b
+    · apply h3a
   · apply ih h2
 
 case _ ih =>  -- openm

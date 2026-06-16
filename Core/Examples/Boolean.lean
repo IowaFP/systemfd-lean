@@ -74,13 +74,13 @@ def EqBoolCtx : GlobalEnv := [
 
   -- .defn "test" (∀[★] λ [t#0 ~[★]~ gt#"Bool"] λ[ t#0 ] λ[ t#0 ])
 
-  -- ==@Bool
+  -- -- ==@Bool
   .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool,
 
-  -- EqBool : ∀ t. t ~ Bool → Eq t
+  -- -- EqBool : ∀ t. t ~ Bool → Eq t
   .octor "EqBool" ⟨1, #𝓋[★], 1 , #𝓋[t#0 ~[★]~ gt#"Bool"], (gt#"Eq" • t#0)⟩ ,
 
-  -- == : ∀ t. Eq t → t → t → Bool
+  -- -- == : ∀ t. Eq t → t → t → Bool
   .openm "eq" ⟨1, #𝓋[★], 1, #𝓋[gt#"Eq" • t#0], t#0 -:> t#0 -:> gt#"Bool"⟩ ,
 
   -- class Eq a

@@ -26,7 +26,7 @@ def FalseCtor : Term := ctor! "False" #𝓋[] .nil
 #eval! TrueCtor.infer_type BoolCtx [] []
 
 #eval spine_kinding [Global.data 0 "Bool" ★ #𝓋[]] (.data .cls) "True" ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩
-#eval lookup_ctor? [Global.data 0 "Bool" ★ #𝓋[]] .cls "True" gt#"Bool"
+#eval lookup_ctor? [Global.data 1 "Bool" ★ #𝓋[("True", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)]] .cls "True" gt#"Bool"
 
 /-
 not : Bool -> Bool
