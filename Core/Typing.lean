@@ -55,19 +55,6 @@ inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) : Spi
   G&Δ ⊢ R : ★ ->
   (∀ c, sv = .data c -> lookup_ctor? G c x R) ->
   (sv = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
-<<<<<<< HEAD
-  SpineKinding sv x G ⟨m, Ks, n, Ts, R⟩
-
-inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Ty -> Prop
-| zero : PatternBinders G Δ 0 ss ps []
-| succ {Ts' : Vec _ nb} :
-  lookup_spine_type G c = some ⟨na, Ks, nb, Ts, R⟩ ->
-  (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks[i]) ->
-  Ts' = Ts[Sequ.append_vec (Vec.map su As) +0:Ty] ->
-  R' = R[Sequ.append_vec (Vec.map su As) +0:Ty] ->
-  PatternBinders G Δ n S p ℓ ->
-  PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb⟩::p) ((Vec.to_list Ts') ++ ℓ)
-=======
   SpineKinding sv x G ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
 
 -- inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
@@ -86,7 +73,6 @@ inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec T
   R' = R[As.list.reverse.map su ++ Subst.id Ty] ->
   PatternBinders G Δ n S p ℓ1 ℓ2 ->
   PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (ℓ1 ++ Ks2.list.reverse) (ℓ2 ++ Ts'.list.reverse)
->>>>>>> origin/andrew
 
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :
@@ -249,7 +235,7 @@ def PatternTyping (G : List Global) (Δ : List Kind) (ps : Pattern m) (Ts : Vec 
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vec (String × SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
-    SpineKinding (.data .cls) y (.data 1 x K #𝓋[ctors[i]]::G) T
+    SpineKinding (.data .cls) y (.data 1 x K #(ctors[i])::G) T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->

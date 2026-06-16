@@ -2,6 +2,8 @@ import Core.Ty
 import Core.Term.Definition
 import Core.Vec
 
+open Lilac
+
 namespace Core
 def DataConst.beq : DataConst -> DataConst -> Bool
 | .opn, .opn => true
@@ -87,7 +89,7 @@ def Pattern.eq : Pattern m1 -> Pattern m2 -> Bool
   if n1 == n2 && k1 == k2 && x1 == x2
   then let v1' : Lilac.Vec Ty n1 := v1.to
        let v2' : Lilac.Vec Ty n2 := v2.to
-       Pattern.eq xs ys && Lilac.Vec.eq v1' v2'
+       Pattern.eq xs ys && Lilac.Vec.beq v1' v2'
   else false
 | _, _ => false
 
@@ -108,7 +110,7 @@ def Term.beq : Term -> Term -> Bool
       let p1 : Pattern m1 := (b1 i).to
       let p2 : Pattern m2 := (b2 (by simp at h; rw[h.1] at i; exact i)).to
       Pattern.eq p1 p2
-    Lilac.Vec.fold true (·&&·) a.to && Lilac.Vec.fold true (·&&·) c.to && Lilac.Vec.fold true (·&&·) p.to
+    Vec.foldl (·&&·) true a.to && Vec.foldl (·&&·) true c.to && Vec.foldl (·&&·) true p.to
   else false
 | _, _ => false
 

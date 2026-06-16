@@ -111,15 +111,10 @@ instance : RenMapCompose Term Term where
 
 @[simp]
 def Ctor0Variant.rmap (r : Ren Ty) : Ctor0Variant -> Ctor0Variant
-| fail => fail
 | refl A => refl A⟨r⟩
 
 instance : RenMap Ctor0Variant Ty where
   rmap := Ctor0Variant.rmap
-
-@[simp]
-theorem Ctor0Variant.ren_fail {r : Ren Ty} : fail⟨r⟩ = fail := by
-  simp [RenMap.rmap]
 
 @[simp]
 theorem Ctor0Variant.ren_refl {r : Ren Ty} : (refl A)⟨r⟩ = refl A⟨r⟩ := by

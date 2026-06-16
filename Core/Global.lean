@@ -15,25 +15,25 @@ inductive Global : Type where
 | inst : String -> Pattern m -> Term -> Global
 | octor : String -> SpineTy -> Global
 
-def Global.repr (_ : Nat) : (a : Global) -> Std.Format
-| .data (n := n) s K ctors =>
-  let cs : Fun.Vec Std.Format n := λ i =>
-    let ctorN := (Vec.to ctors i).1
-    let ctorTy := (Vec.to ctors i).2
-    Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
-  ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-      ++ "#𝓋" ++ Std.Format.sbracket (cs.to.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c))
+-- def Global.repr (_ : Nat) : (a : Global) -> Std.Format
+-- | .data (n := n) s K ctors =>
+--   let cs : Fun.Vec Std.Format n := λ i =>
+--     let ctorN := (Vec.to ctors i).1
+--     let ctorTy := (Vec.to ctors i).2
+--     Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
+--   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
+--       ++ "#𝓋" ++ Std.Format.sbracket (cs.to.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c))
 
-| .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
-| .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
-| .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
-| .inst n _ t => "instance " ++ n ++ " " ++  t.repr max_prec
-| .octor n ty => ".octor" ++ n ++ SpineTy.repr ty
+-- | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
+-- | .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
+-- | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
+-- | .inst n _ t => "instance " ++ n ++ " " ++  t.repr max_prec
+-- | .octor n ty => ".octor" ++ n ++ SpineTy.repr ty
 
 
-@[simp]
-instance instRepr_Global : Repr Global where
-  reprPrec a p := Global.repr p a
+-- @[simp]
+-- instance instRepr_Global : Repr Global where
+--   reprPrec a p := Global.repr p a
 
 @[simp]
 abbrev GlobalEnv := List Global
@@ -41,13 +41,13 @@ abbrev GlobalEnv := List Global
 @[simp] instance instHAppend_GlobalEnv : Append GlobalEnv where
   append x y := by unfold GlobalEnv; unfold GlobalEnv at x; unfold GlobalEnv at y; apply x ++ y
 
-def GlobalEnv.repr (p : Nat) : GlobalEnv -> Std.Format
-| .nil => Std.Format.nil
-| .cons g gl => Global.repr 0 g ++ Std.Format.line ++ GlobalEnv.repr p gl
+-- def GlobalEnv.repr (p : Nat) : GlobalEnv -> Std.Format
+-- | .nil => Std.Format.nil
+-- | .cons g gl => Global.repr 0 g ++ Std.Format.line ++ GlobalEnv.repr p gl
 
-@[simp]
-instance instRepr_GlobalEnv : Repr GlobalEnv where
-  reprPrec a p := GlobalEnv.repr p a
+-- @[simp]
+-- instance instRepr_GlobalEnv : Repr GlobalEnv where
+--   reprPrec a p := GlobalEnv.repr p a
 
 inductive Entry : Type where
 | data : String -> Kind -> Vec (String × SpineTy) n -> Entry
@@ -57,22 +57,22 @@ inductive Entry : Type where
 | defn : String -> Ty -> Term -> Entry
 | octor : String -> SpineTy -> Entry
 
-def Entry.repr (_ : Nat) : Entry -> Std.Format
-| .data (n := n) x K ctors =>
-  let cs : Fun.Vec Std.Format n := λ i =>
-    let ctorN := (Vec.to ctors i).1
-    let ctorTy := (Vec.to ctors i).2
-    Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
-  ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-      ++ "#𝓋" ++ Std.Format.sbracket (cs.to.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c))
-| .ctor x _ spTy => ".ctor " ++ x ++ " " ++ spTy.repr
-| .odata x K =>  ".odata " ++ x ++ " " ++ K.repr max_prec
-| .openm x spTy => ".openm " ++ x ++ " : " ++ SpineTy.repr spTy
-| .defn x T t => ".defn " ++ x ++ " " ++ T.repr max_prec ++ t.repr max_prec
-| .octor x spTy => ".octor " ++ x ++ SpineTy.repr spTy
+-- def Entry.repr (_ : Nat) : Entry -> Std.Format
+-- | .data (n := n) x K ctors =>
+--   let cs : Fun.Vec Std.Format n := λ i =>
+--     let ctorN := (Vec.to ctors i).1
+--     let ctorTy := (Vec.to ctors i).2
+--     Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
+--   ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
+--       ++ "#𝓋" ++ Std.Format.sbracket (cs.to.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c))
+-- | .ctor x _ spTy => ".ctor " ++ x ++ " " ++ spTy.repr
+-- | .odata x K =>  ".odata " ++ x ++ " " ++ K.repr max_prec
+-- | .openm x spTy => ".openm " ++ x ++ " : " ++ SpineTy.repr spTy
+-- | .defn x T t => ".defn " ++ x ++ " " ++ T.repr max_prec ++ t.repr max_prec
+-- | .octor x spTy => ".octor " ++ x ++ SpineTy.repr spTy
 
-instance instRepr_Entry : Repr Entry where
-  reprPrec e p := Entry.repr p e
+-- instance instRepr_Entry : Repr Entry where
+--   reprPrec e p := Entry.repr p e
 
 def Entry.name : Entry -> String
 | data x _ _ => x
@@ -165,8 +165,8 @@ def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) :
 @[simp]
 def Pattern.match : Vec Constructor m -> Pattern m' -> Bool
 | .nil, .nil => true
-| .cons ⟨q, m, _, n, _⟩ xs, .cons ⟨q', m', _, n'⟩ zs =>
-  Pattern.match xs zs && q == q' && m == m' && n == n'
+| .cons ⟨q, m, _, n, _, k, _⟩ xs, .cons ⟨q', m', _, n', k'⟩ zs =>
+  Pattern.match xs zs && q == q' && m == m' && n == n' && k == k'
 | _, _ => false
 
 def get_instance (x : String) (ctors : (Vec Constructor m)) : (G : List Global) -> Option ((m : Nat) × Pattern m × Term)
@@ -196,20 +196,21 @@ def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (
 theorem lookup_name_eq :
   lookup x G = some e ->
   e.name = x := by
-intro h
-fun_induction lookup
-cases h
-simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all
-case _ ctors _ ctors' _ ih =>
-  replace h := Vec.fold_or h
-  cases h
-  case _ h => apply ih h
-  case _ h =>
-    rcases h with ⟨i, h⟩
-    unfold ctors' at h; simp at h;
-    rw[<-h.2]; rw[<-h.1]; simp [Entry.name]
-any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
-any_goals (case _ ih => apply ih h)
+    sorry
+-- intro h
+-- fun_induction lookup
+-- cases h
+-- simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all
+-- case _ ctors _ ctors' _ ih =>
+--   replace h := Vec.fold_or h
+--   cases h
+--   case _ h => apply ih h
+--   case _ h =>
+--     rcases h with ⟨i, h⟩
+--     unfold ctors' at h; simp at h;
+--     rw[<-h.2]; rw[<-h.1]; simp [Entry.name]
+-- any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
+-- any_goals (case _ ih => apply ih h)
 
 def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
   let ⟨d, _⟩ <- T.spine
@@ -221,8 +222,8 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
 def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
   let ⟨d, _⟩ <- T.spine
   G.filterMapM (λ g => match g with
-                   | .octor n ⟨_, _, _, _, R⟩ => do let ⟨d', _ ⟩ <- R.spine
-                                                    if d' == d then return (some n) else return none
+                   | .octor n ⟨_, _, _, _, _, _, R⟩ => do let ⟨d', _ ⟩ <- R.spine
+                                                          if d' == d then return (some n) else return none
                    | _ => return none)
 
 

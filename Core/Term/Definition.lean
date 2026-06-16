@@ -37,13 +37,13 @@ def Pattern.bind_type : Pattern m -> Nat
 | .nil => 0
 | .cons ⟨_, _, _, m, _⟩ tl => m + Pattern.bind_type tl
 
-def Pattern.repr : Pattern m -> Std.Format
-| .nil => ""
-| .cons (x , ⟨_ , v, _⟩) xs =>
-   x ++ " "++ v.to_list.repr max_prec
+-- def Pattern.repr : Pattern m -> Std.Format
+-- | .nil => ""
+-- | .cons (x , ⟨_ , v, _⟩) xs =>
+--    x ++ " "++ v.to_list.repr max_prec
 
-instance instRepr_pattern : Repr (Pattern m) where
-  reprPrec p _ := Pattern.repr p
+-- instance instRepr_pattern : Repr (Pattern m) where
+--   reprPrec p _ := Pattern.repr p
 
 def Pattern.bind : Pattern m -> Nat
 | .nil => 0
@@ -143,15 +143,16 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   Repr.addAppParen ("∀c" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
 | .cast _ η t => Repr.addAppParen (t.repr max_prec ++ "▸" ++ Term.repr max_prec η) p
-| .mtch m n ss ps bs =>
-  let ssf : Fun.Vec Std.Format m := λ i => Term.repr max_prec (ss i)
-  let ssf : Std.Format := Std.Format.paren (ssf.to.fold Std.Format.nil (λ t acc => t ++ ", " ++ acc))
-  let bs : Fun.Vec Std.Format n := λ i =>
-    let pat := ps i
-    let t := bs i
-    Std.Format.nest 4 <| Std.Format.line ++ Pattern.repr pat ++ " => " ++ Term.repr p t
-  Std.Format.nest 4 <| "match " ++ ssf ++ " with"
-    ++ bs.to.fold Std.Format.nil (λ t acc => t ++ Std.Format.line ++ acc)
+| .mtch m n ss ps bs => "don't care"
+-- | .mtch m n ss ps bs =>
+--   let ssf : Fun.Vec Std.Format m := λ i => Term.repr max_prec (ss i)
+--   let ssf : Std.Format := Std.Format.paren (ssf.to.fold Std.Format.nil (λ t acc => t ++ ", " ++ acc))
+--   let bs : Fun.Vec Std.Format n := λ i =>
+--     let pat := ps i
+--     let t := bs i
+--     Std.Format.nest 4 <| Std.Format.line ++ Pattern.repr pat ++ " => " ++ Term.repr p t
+--   Std.Format.nest 4 <| "match " ++ ssf ++ " with"
+--     ++ bs.to.fold Std.Format.nil (λ t acc => t ++ Std.Format.line ++ acc)
 
 
 @[simp]
