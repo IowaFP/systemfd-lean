@@ -20,15 +20,15 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   let cs : Fun.Vec Std.Format n := λ i =>
     let ctorN := (Vec.to ctors i).1
     let ctorTy := (Vec.to ctors i).2
-    Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
+    Std.Format.nest 4 <| ctorN ++ " : " ++SpineTy.repr ctorTy ++ Std.Format.line
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-      ++ "#𝓋" ++ Std.Format.sbracket (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
+      ++ "#" ++ Std.Format.paren (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
 
 | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
 | .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
-| .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ t.repr max_prec
-| .inst n _ t => "instance " ++ n ++ " " ++  t.repr max_prec
-| .octor n ty => ".octor" ++ n ++ SpineTy.repr ty
+| .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line ++ t.repr max_prec
+| .inst n _ t => ".inst " ++ n ++ " " ++  t.repr max_prec
+| .octor n ty => ".octor " ++ n ++ " " ++ SpineTy.repr ty
 
 
 @[simp]
@@ -57,22 +57,22 @@ inductive Entry : Type where
 | defn : String -> Ty -> Term -> Entry
 | octor : String -> SpineTy -> Entry
 
--- def Entry.repr (_ : Nat) : Entry -> Std.Format
--- | .data (n := n) x K ctors =>
---   let cs : Fun.Vec Std.Format n := λ i =>
---     let ctorN := (Vec.to ctors i).1
---     let ctorTy := (Vec.to ctors i).2
---     Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
---   ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
---       ++ "#𝓋" ++ Std.Format.sbracket (cs.to.fold Std.Format.nil (λ c acc => acc ++ ", " ++ Std.Format.line ++ c))
--- | .ctor x _ spTy => ".ctor " ++ x ++ " " ++ spTy.repr
--- | .odata x K =>  ".odata " ++ x ++ " " ++ K.repr max_prec
--- | .openm x spTy => ".openm " ++ x ++ " : " ++ SpineTy.repr spTy
--- | .defn x T t => ".defn " ++ x ++ " " ++ T.repr max_prec ++ t.repr max_prec
--- | .octor x spTy => ".octor " ++ x ++ SpineTy.repr spTy
+def Entry.repr (_ : Nat) : Entry -> Std.Format
+| .data (n := n) x K ctors =>
+  let cs : Fun.Vec Std.Format n := λ i =>
+    let ctorN := (Vec.to ctors i).1
+    let ctorTy := (Vec.to ctors i).2
+    Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
+  ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
+      ++ "#" ++ Std.Format.paren (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
+| .ctor x _ spTy => ".ctor " ++ x ++ " " ++ spTy.repr
+| .odata x K =>  ".odata " ++ x ++ " " ++ K.repr max_prec
+| .openm x spTy => ".openm " ++ x ++ " : " ++ SpineTy.repr spTy
+| .defn x T t => ".defn " ++ x ++ " " ++ T.repr max_prec ++ t.repr max_prec
+| .octor x spTy => ".octor " ++ x ++ SpineTy.repr spTy
 
--- instance instRepr_Entry : Repr Entry where
---   reprPrec e p := Entry.repr p e
+instance instRepr_Entry : Repr Entry where
+  reprPrec e p := Entry.repr p e
 
 def Entry.name : Entry -> String
 | data x _ _ => x

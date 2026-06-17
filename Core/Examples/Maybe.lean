@@ -22,6 +22,11 @@ open LeanSubst
 --               g#"False"
 
 namespace Core.Examples
+
+def NothingPattern : Pattern 1 := #(⟨"Nothing", 1, #(t#0), 0, 0⟩)
+def JustPattern : Pattern 1 := #(⟨"Just", 1, #(t#0), 0, 1⟩)
+
+
 def MaybeBoolCtx : GlobalEnv := [
 
    /- Λ t. λ (i : Eq t).
@@ -29,32 +34,37 @@ def MaybeBoolCtx : GlobalEnv := [
            Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
             eqMaybe @Bool eqU ▹ sym (tmu -c> tmu -c> <Bool>)
     -/
-  .inst "eq" #𝓋[ ⟨"EqMaybe", 1, #𝓋[ t#1 ], 2⟩ ] (λ[ t#1 ] λ[ t#1 ] -- #3 : t ~ Maybe u, #2 : Eq u
-       (((d#"eq@Maybe" •[t#0]) • #2) • (.cast t#1 #3 #1)) • (.cast t#1 #3 #0)) ,
+  -- .inst "eq" #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩) (λ[ t#1 ] λ[ t#1 ] -- #3 : t ~ Maybe u, #2 : Eq u
+  --      (((d#"eq@Maybe" •[t#0]) • #2) • (.cast t#1 #3 #1)) • (.cast t#1 #3 #0)) ,
 
   -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
   .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
         (Λ[★] λ[gt#"Eq" • t#0] λ[ gt#"Maybe" • t#0 ] λ[gt#"Maybe" • t#0]
-          mtch' #𝓋[#1]
-           #𝓋[ (#𝓋[⟨"Nothing", 1, #𝓋[ t#0 ], 0⟩],
-             mtch' #𝓋[#0]
-                     #𝓋[ (#𝓋[ ⟨"Nothing", 1, #𝓋[ t#0 ], 0 ⟩] , TrueCtor)
-                       , (#𝓋[ ⟨"Just", 1, #𝓋[ t#0 ], 1⟩ ], FalseCtor) ]
-             ) ,
-             (#𝓋[⟨"Just", 1, #𝓋[t#0], 1⟩],
-                 mtch' #𝓋[#1]
-                     #𝓋[ (#𝓋[ ⟨"Nothing", 1, #𝓋[ t#0 ], 0 ⟩] , FalseCtor)
-                       , (#𝓋[ ⟨"Just", 1, #𝓋[ t#0 ], 1⟩ ], (openm! "eq" #𝓋[t#0] (Vec.to (#𝓋[ #4 ])) • #0) • #1) ]
-             )
-             ]),
+          (mtch' #(#1)
+            #((NothingPattern,
+                (mtch' #(#0)
+                       #( (NothingPattern , TrueCtor)
+                        , (JustPattern, FalseCtor)))) ,
+              (JustPattern,
+                (mtch' #(#1)
+                     #( (NothingPattern , FalseCtor)
+                       , (JustPattern, (openm! "eq" #(t#0) #() (Vec.to (#( #4 ))) • #0) • #1))))
+             ))),
 
-  -- EqMaybe : ∀ t u. (t ~ Maybe u) → Eq u -> Eq t
-  .octor "EqMaybe" ⟨2, #𝓋[★ , ★], 2, #𝓋[t#1 ~[★]~ (gt#"Maybe" • t#0) , gt#"Eq" • t#0 ],  (gt#"Eq" • t#1)⟩,
+  .defn "isNothing" (∀[★] (gt#"Maybe" • t#0) -:> gt#"Bool")
+        (Λ[★] λ[gt#"Maybe" • t#0]
+          (mtch' #(#0)
+            #( (NothingPattern, TrueCtor) ,
+               (JustPattern, FalseCtor)))),
+
+
+  -- EqMaybe : ∀ t u. (t ~ Maybe u) → Eq u → Eq t
+  .octor "EqMaybe" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ (gt#"Maybe" • t#0) , gt#"Eq" • t#0 ),  (gt#"Eq" • t#1)⟩,
 
   -- data Maybe a = Nothing | Just a
   Global.data 2 "Maybe" (★ -:> ★)
-           #𝓋[ ("Nothing", ⟨1, #𝓋[★], 0, #𝓋[], (gt#"Maybe" • t#0)⟩) ,
-               ("Just", ⟨1, #𝓋[★], 1,  #𝓋[t#0],  (gt#"Maybe" • t#0)⟩) ]
+           #( ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩) ,
+              ("Just", ⟨1, #(★), 0, #(), 1,  #(t#0), (gt#"Maybe" • t#0)⟩) )
 
   ] ++ EqBoolCtx
 
@@ -64,20 +74,21 @@ def MaybeBoolCtx : GlobalEnv := [
 
 #eval lookup "eq" MaybeBoolCtx
 #eval lookup_spine_type MaybeBoolCtx "EqMaybe"
--- na = 2, Ks = [★, ★], nb = 2, Ts := t ~ Maybe u, Eq u, R := Eq t
+-- na = 1, Ks1 = [★], nb = 1, Ks2 := [★],  nc := 2, Ts := [t ~ Maybe u] Eq u, R := Eq t
 
 #eval do
   let e := lookup "eq" MaybeBoolCtx
   match e with
-  | some (.openm _ ⟨_, Ks, m, Ts, R⟩) => do
-      pattern_binders MaybeBoolCtx Ks.to_list m Ts (#𝓋[ ⟨"EqMaybe", 2, #𝓋[ t#1 , gt#"Eq" • t#0 ], 2⟩ ])
+  | some (.openm _ ⟨_, Ks1, _, Ks2, m, Ts, R⟩) => do
+      pattern_binders MaybeBoolCtx [] m Ts
+        (#(⟨"EqMaybe", 2, #(gt#"Maybe"•t#0, t#1), 1, 2⟩ ))
       -- let T <- t.infer_type G Ks.to_list Γ
       -- if T == R then return () else none
   | _ => none
 
 
-def NothingCtor (T : Ty) : Term := ctor! "Nothing" #𝓋[T] .nil
-def JustCtor (T : Ty) (Tm : Term) : Term := ctor! "Just" #𝓋[T] (Vec.to #𝓋[Tm])
+def NothingCtor (T : Ty) : Term := ctor! "Nothing" #(T) .nil .nil
+def JustCtor (T : Ty) (Tm : Term) : Term := ctor! "Just" #(T) .nil (Vec.to #(Tm))
 
 #guard (NothingCtor gt#"Bool").infer_type MaybeBoolCtx [] [] == some (gt#"Maybe" • gt#"Bool")
 #guard (JustCtor gt#"Bool" TrueCtor).infer_type MaybeBoolCtx [] [] == some (gt#"Maybe" • gt#"Bool")
@@ -86,7 +97,9 @@ def JustCtor (T : Ty) (Tm : Term) : Term := ctor! "Just" #𝓋[T] (Vec.to #𝓋[
 #guard (refl! (gt#"Maybe" • gt#"Bool")).infer_type MaybeBoolCtx [] []
               == some ((gt#"Maybe" • gt#"Bool") ~[★]~ (gt#"Maybe" • gt#"Bool"))
 
-def iMaybeBool : Term := inst! "EqMaybe" #𝓋[ gt#"Bool", gt#"Maybe" • gt#"Bool" ] (Vec.to #𝓋[ refl! (gt#"Maybe" • gt#"Bool"), iBool ])
+def iMaybeBool : Term :=
+    inst! "EqMaybe" #(gt#"Maybe" • gt#"Bool") #(gt#"Bool") (Vec.to #( refl! (gt#"Maybe" • gt#"Bool"), iBool ))
+
 #guard iMaybeBool.infer_type MaybeBoolCtx [] [] == some (gt#"Eq" • (gt#"Maybe" • gt#"Bool"))
 
 
@@ -108,10 +121,10 @@ def mt2 := (((d#"eq@Maybe" •[gt#"Bool"]) • iBool)
 #eval! mt2.eval_loop MaybeBoolCtx -- True
 
 
-def mt3 := openm! "eq" #𝓋[gt#"Maybe" • gt#"Bool"] (Vec.to #𝓋[ iMaybeBool ])
+def mt3 := openm! "eq" #(gt#"Maybe" • gt#"Bool") .nil (Vec.to #( iMaybeBool ))
 #eval! mt3.infer_type MaybeBoolCtx [] []
 
-#eval! ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor).infer_type MaybeBoolCtx [] []
+#eval! ((mt3 • JustCtor (gt#"Bool") TrueCtor) • JustCtor gt#"Bool" TrueCtor).infer_type MaybeBoolCtx [] []
 
 #eval ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor).eval_loop MaybeBoolCtx
 

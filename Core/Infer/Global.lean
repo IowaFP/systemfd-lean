@@ -37,12 +37,12 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
   let Tk <- T.infer_kind G []
   let _ <- Tk.base_kind
   if T == T' && (lookup x G).isNone then return () else none
-| .cons (.inst x p t) G => do
+| .cons (.inst (m := m) x p t) G => do
   wf_globals G
   let e := lookup x G
   match e with
   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
-    if x == y
+    if x == y && m == n
     then
       let Δ := (Ks1.list ++ Ks2.list).reverse
       let (ζ, Γ) <- pattern_binders G Δ n Ts p

@@ -121,10 +121,10 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
     let τ := (As.list ++ Bs.list).reverse.map su ++ Subst.id Ty
     let mτs := Fun.Vec.to (λ i => Term.infer_type G Δ Γ (ts i))
     let τs : Vec Ty n <- mτs.sequence
-    let Ts := Ts.map (λ x : Ty => x[τ])
-    let vs := Vec.map (Ty.valid_data .opn G) τs
+    let Ts' := Ts.map (λ x : Ty => x[τ])
+    let vs := Vec.map (Ty.valid_data .opn G) Ts
     let _ <- vs.sequence
-    if Ts.beq τs && n' == n
+    if Ts'.beq τs && n' == n
     then return R[τ]
     else none
   none
@@ -247,7 +247,7 @@ def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) (test : Ty
   if TKs.elems_eq_to ★ && RK == ★
   then
     match sv with
-    | .data c =>
+    | .data _ =>
       if test R then some () else none
     | .openm =>
       let Ts' := Ts.map (λ T => T.valid_data .opn G)

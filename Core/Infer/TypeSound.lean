@@ -15,10 +15,10 @@ namespace Core
 
 
 theorem pattern_binders_sound {G : GlobalEnv} {Δ : KindEnv} {m : Nat} {Ts : Vec Ty m} {p : Pattern m}:
-  pattern_binders G Δ m Ts p = some (Δ', Γ) ->
-  PatternBinders G Δ m Ts p Δ' Γ := by
+  pattern_binders G Δ m Ts p = some (ζ, ξ) ->
+  PatternBinders G Δ m Ts p ζ ξ := by
 intro h
-induction m generalizing Γ Δ' <;> simp at *
+induction m generalizing ξ ζ <;> simp at *
 case _ =>
   cases Ts; cases p; cases h
   case _ e1 e2 =>
@@ -29,37 +29,24 @@ case _ n ih =>
   cases p; case _ p ps' =>
   unfold pattern_binders at h;
   simp at h;
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ζ, ξ⟩, h2, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
   simp at h; rcases h with ⟨h5, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks, h6, h⟩; simp at h
   rcases h with ⟨h7, h8, h9⟩
+  rcases h9 with ⟨h9, h10⟩; subst h9; subst h10
+  rcases h3 with ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩
+  rcases h5 with ⟨⟨e1, e2⟩, e3⟩
+  simp; simp at e3; simp at e1; subst e1; subst e3; subst e2; simp at h8;
   replace ih := ih h2
-
   replace h6 := Vec.map_seq_sound _ h6
-  -- simp only [<-h5.2] at Ks
-  -- simp [SpineTy] at h3;
-  -- let Ts := h3.2.2.2.fst
-  -- let Ts'' := Vec.map (fun T => T[Sequ.append_vec (Vec.map LeanSubst.su p.2.2.fst) +0:_]) Ts
-  -- let R := h3.2.2.2.2
-  -- let As := p.2.2.fst
-  -- rw[<-h5.2] at As
-  -- let R' := R[Sequ.append_vec (Vec.map su As) +0:Ty]
-  -- generalize c_def : p.fst = c at *
-  -- let na := p.2.fst
-  -- let na' := h3.1
-  -- let nb := p.2.2.2
-  -- let nb' := h3.2.2.1
-  -- let h := @PatternBinders.succ G Δ h3.snd.snd.1 c h3.1 Ks (S := S) (p := ps') (ℓ := Γ') (R := R) (As := As) (R' := R') (Ts := Ts) (Ts' := Ts'') n
-  --   (by have lem : Ks = h3.2.1 := by sorry
-  --       simp[h4, Ts, R, lem])
-  --   (by intro i; rw[h5.2] at i; replace h6 := h6 i; sorry)
-  --   (by unfold Ts''; sorry)
-  --   (by unfold R'; rfl) ih
-  -- subst h9; subst h8;
-  -- simp at h; unfold R' at h; unfold R at h
-
-  sorry
+  replace h7 := Vec.eq_sound_lem h7; simp at h7; subst h7
+  apply @PatternBinders.succ (G := G) (Δ := Δ) (Ks1 := Ks) (Ks2 := Ks2) (Ts := Ts) (R := R)
+  · apply h4
+  · intro i; replace h6 := h6 i; apply infer_kind_sound h6
+  · simp
+  · simp; apply Eq.symm h8
+  · apply ih
 
 theorem query_match_sound : query_match q ps = some () -> Query.Match q ps := by
 intro h

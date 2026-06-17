@@ -82,25 +82,25 @@ case _ ih => -- defn
 
 case _ m _ p t G ih => -- inst
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
-  -- split at h
-  -- case _ x n Ks _ Ts R lk =>
-  --   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ, h4, h⟩
-  --   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨R, h6, h⟩
-  --   simp at h; rcases h with ⟨e1, e2⟩; subst e1; subst e2;
-  --   simp [Vec.length] at *
-  --   replace ih := ih h2
-  --   replace h6 := infer_type_sound ih h6
-  --   have lem := lookup_name_eq lk; simp [Entry.name] at lem; subst lem
-  --   replace h4 := pattern_binders_sound h4
-  --   apply ListGlobalWf.cons
-  --   · apply GlobalWf.inst (G := G) (Δ := Ks.to_list) (x := x) (n := n) (m := m) (p := p) (t := t)
-  --     apply lk
-  --     rfl
-  --     apply h4
-  --     apply h6
-  --   · apply ih
-  -- · cases h
-  sorry
+  split at h
+  case _ x _ _ _ Ks1 _ Ks2 _ Ts R lk =>
+    simp at h; rcases h with ⟨⟨e1, e2⟩, h⟩; subst e1; subst e2;
+    rw[Option.bind_eq_some_iff] at h; rcases h with ⟨ξ, h4, h⟩
+    rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h5, h6, h⟩
+    simp at h; subst h
+    replace ih := ih h2
+    rcases ξ with ⟨Δ', Γ⟩
+    simp at h6;
+    replace h4 := pattern_binders_sound h4
+    replace h6 := infer_type_sound ih h6
+    apply ListGlobalWf.cons
+    · apply GlobalWf.inst
+      · apply lk
+      · rfl
+      · simp; apply h4
+      · simp; apply h6
+    · apply ih
+  · cases h
 
 case _ ih => -- odata
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
@@ -117,7 +117,7 @@ theorem open_exhaustive_sound {G : GlobalEnv} :
 := by
 intro h
 unfold OpenExhaustive
-intro x na nb τ As Ks Ts Ts' Δ R q lk wk σ h1 h2 qh
+intro x na nb τ Ks1 Ks2 Ts R q lk qh
 unfold GlobalEnv.check_open_exhaustive at h; simp at h
 rw[Option.bind_eq_some_iff] at h; rcases h with ⟨n, h, e⟩; cases e
 
