@@ -441,15 +441,15 @@ theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx? p vs = s
 --   induction i using Fin.induction <;> simp [Vec.get_elem] at *
 --   case _ i ih => apply Vec.zip_sound ps qs i
 
--- theorem Vec.eq_sound_lem [BEq α][LawfulBEq α] {v1 v2 : Vec α n} : (h : v1.eq v2) -> v1 = v2 := by
---   intro h;
---   match n, v1, v2 with
---   | 0, .nil, .nil => simp
---   | n + 1, .cons x xs , .cons y ys =>
---     unfold Vec.eq at h; simp at *;
---     constructor
---     apply h.1
---     apply Vec.eq_sound_lem h.2
+theorem Vec.eq_sound_lem [BEq α][LawfulBEq α] {v1 v2 : Vec α n} : (h : v1.beq v2) -> v1 = v2 := by
+  intro h;
+  match n, v1, v2 with
+  | 0, .nil, .nil => simp
+  | n + 1, .cons x xs , .cons y ys =>
+    unfold Vec.beq at h; simp at *;
+    constructor
+    apply h.1
+    apply Vec.eq_sound_lem h.2
 
 -- theorem Vec.eq_sound' [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h : v1.eq v2) ->
 --   v1 ≍ v2 := by
@@ -697,6 +697,13 @@ theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n
 --   induction i using Fin.induction
 --   sorry
 --   sorry
+
+theorem Vec.seq_sound3
+  {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs3 : Fun.Vec γ n}
+  {vs' : Vec δ n} (f : α -> β -> γ -> Option δ) :
+  (Fun.Vec.to (λ i => f (vs1 i) (vs2 i) (vs3 i))).sequence = some vs' ->
+  ∀ i : Fin n, f (vs1 i) (vs2 i) (vs3 i) = some (vs'.to i) := by sorry
+
 
 -- checks if all the elements are unique
 def Vec.unique_elems [BEq α][LawfulBEq α] : Vec α n -> Bool

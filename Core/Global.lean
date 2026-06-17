@@ -161,6 +161,13 @@ def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) :
   | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
+def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
+  let ⟨d, _⟩ <- T.spine
+  match lookup d G with
+  | some (.data _ _ ctors) =>
+    return ⟨ctors.length, ctors.map (·.1) ⟩
+  | _ => none
+
 
 @[simp]
 def Pattern.match : Vec Constructor m -> Pattern m' -> Bool
@@ -210,13 +217,6 @@ case _ ctors _ ctors' _ ih =>
     rw[<-h.2]; rw[<-h.1]; simp [Entry.name]
 any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
 any_goals (case _ ih => apply ih h)
-
-def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
-  let ⟨d, _⟩ <- T.spine
-  match lookup d G with
-  | some (.data _ _ ctors) =>
-    return ⟨ctors.length, ctors.map (·.1) ⟩
-  | _ => none
 
 def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
   let ⟨d, _⟩ <- T.spine

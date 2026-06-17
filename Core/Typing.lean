@@ -103,11 +103,9 @@ def Query.Match (qs : Vec String m) (ps : Pattern m) : Prop :=
   VecTyping (λ q p => ∃ na As nb, p = ⟨q, na, As, nb⟩) qs ps
 
 def OpenExhaustive (G : List Global) : Prop :=
-  ∀ {x na nb nc} {τ : Subst Ty} {As Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts Ts' : Vec _ nc} {Δ R q},
+  ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q},
   lookup x G = some (.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
-  (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks1[i]) ->
-  Ts[As.list.reverse.map su ++ Subst.id Ty] = Ts' ->
-  Query G .opn q Ts' ->
+  Query G .opn q Ts ->
   ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Query.Match q p
 
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
@@ -130,7 +128,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ (i : Fin m2), G&Δ ⊢ Bs[i] : Ks2[i]) ->
   (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts'[i]) ->
   (∀ c, v = .data c -> lookup_ctor? G c x R) ->
-  (v = .openm -> ∀ (i : Fin n), Ts'[i].data? .opn G) ->
+  (v = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
   Typing G Δ Γ (.spctor v x As Bs ts) R'
 | mtch {ss S : Fun.Vec _ m} {ps ts ζ ξ : Fun.Vec _ n} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->

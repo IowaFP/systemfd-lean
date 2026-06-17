@@ -13,7 +13,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
   wf_globals G
   if (lookup x G).isNone && Vec.unique_elems (ctors.map (·.1)) then
     let mctors' : Vec (Option Unit) n := ctors.map (λ (c : String × SpineTy) =>
-        spine_kinding (List.cons (.data (n := 1) x k #(c)) G) (.data .cls) (c.1) (c.2))
+        spine_kinding (List.cons (.data 0 x k #()) G) (.data .cls) (c.1) (Ty.is_data x) c.2)
     let _ <- mctors'.sequence
     let mctors'' : Vec (Option Unit) n := ctors.map (λ c => if c.1 != x then some () else none)
     let _ <- mctors''.sequence
@@ -29,7 +29,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
 | .cons (.octor x spTy) G => do
   wf_globals G
   if (lookup x G).isNone
-  then spine_kinding (.octor x spTy :: G) (.data .opn) x spTy
+  then spine_kinding G (.data .opn) x (Ty.data? .opn G) spTy
   else none
 | .cons (.defn x T t) G => do
   wf_globals G
@@ -41,11 +41,14 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
   wf_globals G
   let e := lookup x G
   match e with
-  | some (.openm _ ⟨n, Ks, m1, Ts1, m2, Ts2, R⟩) => do
-    return ()
-      -- let (Δ, Γ) <- pattern_binders G Ks.list m1 Ts1 p
-      -- let T <- t.infer_type G (Δ ++ Ks.list) Γ
-      -- if T == R && p.length == m then return () else none
+  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
+    if x == y
+    then
+      let Δ := (Ks1.list ++ Ks2.list).reverse
+      let (ζ, Γ) <- pattern_binders G Δ n Ts p
+      let R' <- t.infer_type G (ζ++Δ) Γ
+      if R == R' then  return () else none
+    else none
   | _ => none
 
 | .cons (.odata x _) G => do
@@ -80,7 +83,7 @@ def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option Unit
 
   -- get all the instances of this method
   let ιs := G.filter (λ e => match e with
-                             | (_, .inst y _ _) => y == x
+                             | (_, .inst y p _) => y == x
                              | _ => false )
 
 

@@ -33,19 +33,23 @@ intro h1 h2
 unfold lookup_ctor_names at h2; unfold lookup_ctor? at h1;
 simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨spT, h4, h2⟩
-split at h2
-· cases h2; rw[h4] at h1; simp at h1; rw[Option.getD_eq_iff] at h1;
-  simp at h1
-  rcases h1 with ⟨e, h2, h3⟩
-  unfold Entry.ctor? at h3;
-  cases e <;> simp at h3
-  split at h3 <;> simp at *
-  subst h3;
-  case _ lk1 c k spTy _ _ e =>
-  have lem := lookup_name_eq lk1; cases lem
-  have lem := lookup_name_eq h2; cases lem; simp [Entry.name] at *
-  apply ctor_data_linked lk1 h2 e
-· cases h2
+split at h1
+· rcases spT with ⟨Tx, Targs⟩; simp at h2; sorry
+· cases h1
+
+
+-- · cases h2; rw[h4] at h1; simp at h1; rw[Option.getD_eq_iff] at h1;
+--   simp at h1
+--   rcases h1 with ⟨e, h2, h3⟩
+--   unfold Entry.ctor? at h3;
+--   cases e <;> simp at h3
+--   split at h3 <;> simp at *
+--   subst h3;
+--   case _ lk1 c k spTy _ _ e =>
+--   have lem := lookup_name_eq lk1; cases lem
+--   have lem := lookup_name_eq h2; cases lem; simp [Entry.name] at *
+--   apply ctor_data_linked lk1 h2 e
+-- · cases h2
 
 
 -- Given a vector of types, builds a matrix of all possible combination of constructor names

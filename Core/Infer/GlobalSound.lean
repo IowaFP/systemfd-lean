@@ -117,10 +117,10 @@ theorem open_exhaustive_sound {G : GlobalEnv} :
 := by
 intro h
 unfold OpenExhaustive
-intro x na nb τ As Ks Ts Ts' Δ R q lk wk σ h1 h2
-
+intro x na nb τ As Ks Ts Ts' Δ R q lk wk σ h1 h2 qh
 unfold GlobalEnv.check_open_exhaustive at h; simp at h
 rw[Option.bind_eq_some_iff] at h; rcases h with ⟨n, h, e⟩; cases e
+
 sorry
 
 
