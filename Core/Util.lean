@@ -289,4 +289,42 @@ namespace LeanSubst
   @[simp, grind =]
   theorem Subst.ren_rewrite1 [RenMap T T] {r : Ren T} : id T ∘ r = r.to := sorry
 
+  @[simp, grind =]
+  theorem Subst.ren_rewrite1_left {r : Ren T} : r ∘ id T = r.to := sorry
+
+  @[simp, grind =]
+  theorem Subst.rewrite4_cons_ren_add_direct {r : Ren T} {ℓ : List Nat}
+    : Ren.add T ℓ.length ∘ (ℓ ++ r) = r
+  := by simp [Ren.compose]
+
+  @[simp, grind =]
+  theorem Subst.rewrite4_cons_ren_add_indirect {r : Ren T} {ℓ : List Nat} {h : k = ℓ.length}
+    : Ren.add T k ∘ (ℓ ++ r) = r
+  := by simp [Ren.compose, h]
+
+  @[simp]
+  theorem Subst.test3 [RenMap T T] [SubstMap T T] {a : Action T} {σ τ μ : Subst T}
+    : σ.lift ∘ (a :: τ) = μ
+  := sorry
+
+  @[simp]
+  theorem Subst.test2 [RenMap T T] {a : Action T} {r : Ren T}
+    : r.lift ∘ (a⟨r⟩ :: σ) = (a::σ) ∘ r
+  := by
+    simp
+    simp [compose_ren_left, compose_ren_right]; funext; case _ i =>
+    cases i <;> simp
+    sorry
+
+  theorem Subst.test [RenMap T T] {ℓ : List Nat} {r : Ren T} {σ : Subst T}
+    : r.lift ℓ.length ∘ (ℓ ++ Subst.id T) = ℓ⟨r⟩ ++ r.to
+  := by
+    induction ℓ generalizing r σ <;> simp [-Subst.rewrite_lift_k_ren, *]
+    case _ hd tl ih =>
+      rw [Ren.lift_of_succ]
+      generalize zdef : r.lift tl.length = z
+
+
+      sorry
+
 end LeanSubst
