@@ -46,7 +46,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
       let Δ := (Ks1.list ++ Ks2.list).reverse
       let (ζ, Γ) <- pattern_binders G Δ n Ts p
       let R' <- t.infer_type G (ζ++Δ) Γ
-      if R[Subst.add Ty ζ.length] == R' then return () else none
+      if R⟨Ren.add Ty ζ.length⟩ == R' then return () else none
     else none
   | _ => none
 

@@ -68,12 +68,12 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
   let ⟨na', Ks1, nb', Ks2, nc', Ts, R⟩ <- lookup_spine_type G c
   if nb == nb' && na' == na && nc == nc'
   then
-    let σ := As.list.reverse.map su ++ Subst.id Ty
     let mAsk := As.map (λ t => t.infer_kind G Δ)
     let Ask <- mAsk.sequence
     if Ask.beq Ks1
     then
-      -- let Ts := Ts.map (λ (T : Ty) => T[σ])
+      let σ := As.list.reverse.map su ++ Subst.id Ty
+      let Ts := Ts⟨.add Ty Δ.length⟩[σ]
       if R[σ] == R' then return (ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts.list.reverse) else none
     else none
   else none
@@ -137,12 +137,14 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let _ <- mTs.sequence
 
   let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
-  let ξs <- mξs.to.sequence
-  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G (ξs[i].1 ++ Δ) (ξs[i].2 ++ Γ)
+  let ζξ <- mξs.to.sequence
+  let (ζ , ξ) := ζξ.unzip
+  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G (ζ[i] ++ Δ) (ξ[i] ++ Γ)
   let _ <- check_exhaustive G Ss ps.to
   let Ts' <- mTs'.to.sequence
   let T <- Ts'.get_elem_if_eq
-  return T
+  if T⟨.sub Ty ζ.length⟩⟨.add Ty ζ.length⟩ == T
+    then return T⟨.sub Ty ζ.length⟩ else none
 
 | .cast R c t => do
   let e <- c.infer_type G Δ Γ

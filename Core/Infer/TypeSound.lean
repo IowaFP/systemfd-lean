@@ -203,28 +203,36 @@ case _ As _ ih => -- openm
 case _ m n ss ps ts smτs ih1 ih2 => -- match
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨S, h2, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h3, h4, h⟩
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨ξ, h6, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨ζξ, h6, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h7, h8, h⟩
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h9, h10, h11⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h9, h10, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨T, h12, h13⟩
+  simp at h13; rcases h13 with ⟨e1, e2⟩
+  subst e2;
   replace h2 := Vec.seq_sound1 _ h2
   replace h4 := Vec.map_seq_sound _ h4
   replace h6 := Vec.seq_sound1 _ h6
   replace h10 := Vec.seq_sound3 _ h10
-  replace h11 := Vec.get_elem_if_eq_sound h11
-
-  apply Typing.mtch (m := m) (n := n) (S := S.to) (ζ := (ξ.map (λ x : List Kind × List Ty => x.1)).to)
-                       (ξ := (ξ.map (λ x : List Kind × List Ty => x.2)).to)
+  replace h12 := Vec.get_elem_if_eq_sound h12
+  let ζ := ζξ.unzip.1
+  let ξ := ζξ.unzip.2
+  apply Typing.mtch (m := m) (n := n) (S := S.to) (ζ := ζ.to) (ξ := ξ.to)
   · intro i; apply ih1 i (T := S.to i) (h2 i);
   · intro i; replace h4 := h4 i;
     have lem := Vec.units h3 i; rw[lem] at h4; rw[Vec.to_get_elem]
     apply data_valid_sound _ h4
   · intro i; replace h6 := h6 i;
     apply pattern_binders_sound;
-    rw[Vec.to_get_elem]; simp; rw[Vec.to_get_elem]; simp; rw[h6]; simp; rw[Vec.to_get_elem]
-  · intro i; replace ih2 := ih2 ξ;
-    replace ih2 := ih2 (T := T) i
-    rw[Vec.to_get_elem]; simp; rw[Vec.to_get_elem]; simp; apply ih2
-    replace h10 := h10 i; rw[Vec.to_get_elem] at h10; rw[h11 i] at h10; apply h10;
+    rw[Vec.to_get_elem]; simp; rw[Vec.to_get_elem]; rw[Vec.to_get_elem] at h6; rw[h6]; simp; unfold ζ; unfold ξ;
+    apply Vec.unzip_eta_get_elem -- unzip law
+  · intro i; replace ih2 := @ih2 ζ ξ i
+    rw[Vec.to_get_elem]; simp; rw[Vec.to_get_elem];
+    apply ih2
+    replace h10 := h10 i;
+    have lem : ζξ.unzip.fst[i].length = n := by sorry
+    rw[Vec.to_get_elem] at h10; rw[h12 i] at h10; unfold ζ; unfold ξ; rw[lem];
+    rw[h10]; simp; apply Eq.symm e1
+
   · intro q qs;
     rw[<-Vec.to_iso (v := S)] at h8;
     have lem := pattern_exhaustive_sound qs h8

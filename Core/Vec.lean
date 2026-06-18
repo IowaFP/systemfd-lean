@@ -450,6 +450,11 @@ theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx? p vs = s
 
 -- #guard (Vec.any #𝓋[none, some 2, some 3]) == some 2
 
+theorem Vec.unzip_length_1 {vs : Vec (α × β) n} : vs.unzip.1.length = vs.length := by sorry
+theorem Vec.unzip_length_2 {vs : Vec (α × β) n} : vs.unzip.2.length = vs.length := by sorry
+theorem Vec.unzip_eta_get_elem {vs : Vec (α × β) n} : ∀ i : Fin n, vs[i] = (vs.unzip.1[i], vs.unzip.2[i]) := by
+
+sorry
 
 -- @[simp]
 -- def Vec.zip {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> Vec (Q × Q') n
