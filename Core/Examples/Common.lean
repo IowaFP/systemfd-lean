@@ -12,7 +12,7 @@ open Lilac
 
 namespace Core.Examples
 
-def BoolCtx : List Global := [
+def CastCtx : List Global := [
   -- appc : (A ~ B) -> C ~ D -> (A • C ~ B • D)
   .defn "appc" (∀[★ -:> ★]∀[★ -:> ★]∀[★]∀[★] (t#3 ~[★ -:> ★]~ t#2) -:> (t#1 ~[★]~ t#0) -:> ((t#3 • t#1) ~[★]~ (t#2 • t#0)))
                (Λ[★ -:> ★]Λ[★ -:> ★]Λ[★]Λ[★] λ[t#3 ~[★ -:> ★]~ t#2] λ[t#1 ~[★]~ t#0]
@@ -33,6 +33,8 @@ def BoolCtx : List Global := [
   -- sym : B ~ A -> A ~ B
   .defn "sym" (∀[★] ∀[★] (t#1 ~[★]~ t#0) -:> (t#0 ~[★]~ t#1)) (Λ[★]Λ[★] λ[t#1 ~[★]~ t#0] (.cast (t#0 ~[★]~ t#2) #0 (refl! t#1)))
   ]
+
+
 
 #guard (((Λ[★]Λ[★] λ[t#1 ~[★]~ t#0] (.cast (t#0 ~[★]~ t#2) #0 (refl! t#1)))).infer_type [] [] []) == some ((∀[★] ∀[★] (t#1 ~[★]~ t#0) -:> (t#0 ~[★]~ t#1)))
 

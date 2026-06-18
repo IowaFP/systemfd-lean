@@ -73,8 +73,8 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
     let Ask <- mAsk.sequence
     if Ask.beq Ks1
     then
-      let Ts' := Ts.map (λ (T : Ty) => T[σ])
-      if R[σ] == R' then return (ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts'.list.reverse) else none
+      -- let Ts := Ts.map (λ (T : Ty) => T[σ])
+      if R[σ] == R' then return (ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts.list.reverse) else none
     else none
   else none
 | _, _ ,_ => none

@@ -235,7 +235,7 @@ def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
 
 
 instance instRepr_Vec [Repr T] : Repr (Vec T n) where
-  reprPrec v n := "#𝓋[" ++ Vec.reprPrec v n ++ "]"
+  reprPrec v n := "#(" ++ Vec.reprPrec v n ++ ")"
 
 theorem Vec.units (vs : Vec Unit n) : ∀ i : Fin n, (vs[i]) = () := by
  intro i

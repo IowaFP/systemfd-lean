@@ -38,8 +38,8 @@ def Pattern.bind_type : Pattern m -> Nat
 
 def Pattern.repr : Pattern m -> Std.Format
 | .nil => ""
-| .cons (x , ⟨_ , v, _, _⟩) xs =>
-   x ++ " " ++ v.repr max_prec
+| .cons (x , ⟨na , v, nb, nc⟩) xs =>
+   x ++ " " ++ "⟨" ++ na.repr ++ ", " ++ v.repr max_prec ++ ", " ++ nb.repr  ++ ", " ++ nc.repr ++ "⟩"
 
 instance instRepr_pattern : Repr (Pattern m) where
   reprPrec p _ := Pattern.repr p

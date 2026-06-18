@@ -76,11 +76,11 @@ def Vec.Ty.repr (vs : Lilac.Vec Ty n) : Std.Format := "#(" ++ vs.reprPrec 0 ++ "
 def Vec.Kind.repr (vs : Vec Kind n) : Std.Format := "#(" ++ vs.reprPrec 0 ++ ")"
 
 def SpineTy.repr : SpineTy -> Std.Format
-| ⟨m, vm, n, vn, u, vu, t⟩ =>
-  "⟨" ++ Nat.repr m ++ ", " ++ Vec.Kind.repr vm ++ ", "
-      ++ Nat.repr n ++ ", " ++ Vec.Kind.repr vn ++ ", "
-      ++ Nat.repr u ++ ", " ++ Vec.Ty.repr vu ++ ", "
-      ++ t.repr 0 ++"⟩"
+| ⟨_, vm, _, vn, _, vu, R⟩ =>
+  "⟨" /-++ Nat.repr m ++ ", " -/ ++ Vec.Kind.repr vm ++ ", "
+      /-++ Nat.repr n ++ ", " -/ ++ Vec.Kind.repr vn ++ ", "
+      /-++ Nat.repr u ++ ", " -/ ++ Vec.Ty.repr vu ++ ", "
+      ++ R.repr 0 ++"⟩"
 
 
 end Core

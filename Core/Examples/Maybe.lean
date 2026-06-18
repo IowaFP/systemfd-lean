@@ -6,9 +6,8 @@ import Core.Infer
 
 import Core.Eval.BigStep
 import Core.Examples.Boolean
+import Core.Examples.Common
 
-import LeanSubst
-import Lilac
 open Lilac
 open LeanSubst
 
@@ -30,12 +29,16 @@ def JustPattern : Pattern 1 := #(⟨"Just", 1, #(t#0), 0, 1⟩)
 def MaybeBoolCtx : GlobalEnv := [
 
    /- Λ t. λ (i : Eq t).
-        If EqMaybe[t] <- i.
-           Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
+        If EqMaybe[t][u] <- i.
+            λ (tmu : t ~ Maybe u). λ eqU : Eq u.
             eqMaybe @Bool eqU ▹ sym (tmu -c> tmu -c> <Bool>)
     -/
-  -- .inst "eq" #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩) (λ[ t#1 ] λ[ t#1 ] -- #3 : t ~ Maybe u, #2 : Eq u
-  --      (((d#"eq@Maybe" •[t#0]) • #2) • (.cast t#1 #3 #1)) • (.cast t#1 #3 #0)) ,
+  .inst "eq" #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩) (-- #1 : t ~ Maybe u, #0 : Eq u
+        let t1 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[gt#"Bool"]) •[gt#"Bool"]) • #1) • (refl! gt#"Bool")
+        let t2 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[t#1 -:> gt#"Bool"]) •[(gt#"Maybe" • t#0) -:> gt#"Bool"]) • #1) • t1
+        let t3 := ((d#"sym" •[t#1 -:> (t#1 -:> gt#"Bool")]) •[(gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> gt#"Bool")]) • t2
+        Term.cast t#0 t3 ((d#"eq@Maybe" •[t#0]) • #0)
+       ) ,
 
   -- ∀ a. Eq a →  Maybe a → Maybe a → Bool
   .defn "eq@Maybe" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> gt#"Bool")
@@ -59,29 +62,39 @@ def MaybeBoolCtx : GlobalEnv := [
 
 
   -- EqMaybe : ∀ t u. (t ~ Maybe u) → Eq u → Eq t
-  .octor "EqMaybe" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ (gt#"Maybe" • t#0) , gt#"Eq" • t#0 ),  (gt#"Eq" • t#1)⟩,
+  .octor "EqMaybe" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ gt#"Maybe" • t#0 , gt#"Eq" • t#0),  gt#"Eq" • t#1⟩,
 
   -- data Maybe a = Nothing | Just a
   Global.data 2 "Maybe" (★ -:> ★)
            #( ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩) ,
               ("Just", ⟨1, #(★), 0, #(), 1,  #(t#0), (gt#"Maybe" • t#0)⟩) )
 
-  ] ++ EqBoolCtx
+  ] ++ EqBoolCtx ++ CastCtx
 
 #eval MaybeBoolCtx
 
 #guard MaybeBoolCtx.wf_globals == .some ()
 
-#eval lookup "eq" MaybeBoolCtx
-#eval lookup_spine_type MaybeBoolCtx "EqMaybe"
--- na = 1, Ks1 = [★], nb = 1, Ks2 := [★],  nc := 2, Ts := [t ~ Maybe u] Eq u, R := Eq t
+-- #eval lookup "eq" MaybeBoolCtx
+-- na = 1, Ks1 = [★], nb = 0, Ks2 = [],   nc = 1,  Ts := [Eq t],              R := t -> t -> Bool
+-- #eval lookup_spine_type MaybeBoolCtx "EqMaybe"
+-- na = 1, Ks1 = [★], nb = 1, Ks2 := [★], nc := 2, Ts := [t ~ Maybe u, Eq u], R := Eq t
 
-#eval do
-  let e := lookup "eq" MaybeBoolCtx
-  match e with
-  | some (.openm _ ⟨_, Ks1, _, Ks2, m, Ts, R⟩) => do
-      pattern_binders MaybeBoolCtx [] m Ts
-        (#(⟨"EqMaybe", 2, #(gt#"Maybe"•t#0, t#1), 1, 2⟩ ))
+#eval! do
+  match lookup "eq" MaybeBoolCtx with
+  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+      if "eq" == y then
+        let Δ := (Ks1.list ++ Ks2.list).reverse
+        let (ζ, Γ) <- pattern_binders MaybeBoolCtx Δ n Ts #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩)
+        let t1 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[gt#"Bool"]) •[gt#"Bool"]) • #1) • (refl! gt#"Bool")
+        let t2 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[t#1 -:> gt#"Bool"]) •[(gt#"Maybe" • t#0) -:> gt#"Bool"]) • #1) • t1
+        let t3 := ((d#"sym" •[t#1 -:> (t#1 -:> gt#"Bool")]) •[(gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> gt#"Bool")]) • t2
+
+        let t4 := Term.cast t#0 t3 ((d#"eq@Maybe" •[t#0]) • #0)
+        let R' <- t4.infer_type MaybeBoolCtx (ζ ++ Δ) Γ
+        some R'
+
+      else none
       -- let T <- t.infer_type G Ks.to_list Γ
       -- if T == R then return () else none
   | _ => none

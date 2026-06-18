@@ -1,8 +1,8 @@
 import Core.Infer.Kind
 import Core.Infer.Type
 
-import Lilac
 open Lilac
+open LeanSubst
 
 namespace Core
 
@@ -39,15 +39,14 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
   if T == T' && (lookup x G).isNone then return () else none
 | .cons (.inst (m := m) x p t) G => do
   wf_globals G
-  let e := lookup x G
-  match e with
+  match lookup x G with
   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
     if x == y && m == n
     then
       let Δ := (Ks1.list ++ Ks2.list).reverse
       let (ζ, Γ) <- pattern_binders G Δ n Ts p
       let R' <- t.infer_type G (ζ++Δ) Γ
-      if R == R' then  return () else none
+      if R[Subst.add Ty ζ.length] == R' then return () else none
     else none
   | _ => none
 

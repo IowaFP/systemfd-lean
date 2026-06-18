@@ -20,14 +20,14 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   let cs : Fun.Vec Std.Format n := λ i =>
     let ctorN := (Vec.to ctors i).1
     let ctorTy := (Vec.to ctors i).2
-    Std.Format.nest 4 <| ctorN ++ " : " ++SpineTy.repr ctorTy ++ Std.Format.line
+    Std.Format.nest 4 <| ctorN ++ " : " ++ SpineTy.repr ctorTy ++ Std.Format.line
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
       ++ "#" ++ Std.Format.paren (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
 
 | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
 | .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line ++ t.repr max_prec
-| .inst n _ t => ".inst " ++ n ++ " " ++  t.repr max_prec
+| .inst n p t => ".inst " ++ n ++ " " ++ p.repr ++ " => " ++ t.repr max_prec
 | .octor n ty => ".octor " ++ n ++ " " ++ SpineTy.repr ty
 
 
