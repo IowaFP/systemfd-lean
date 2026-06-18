@@ -173,7 +173,7 @@ theorem PatternBinders.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[
   have e1' : lookup_spine_type G c = (some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩)⟨r⟩ := by
     have lem := GlobalWf.closed_lookup_spine_type_ren wf e1 r
     simp; simp at lem; grind
-  have e2' : Ts'⟨r⟩ = (Vec.map (·⟨r.lift (na + nb)⟩) Ts)[As⟨r⟩.list.reverse.map su ++ Subst.id Ty] := by
+  have e2' : Ts'⟨r⟩ = (Vec.map (·⟨r.lift (na + nb)⟩) Ts)[As⟨r⟩.list.reverse.map su ++ Subst.id Ty]⟨Ren.add Ty ℓ1.length⟩ := by
     rw [e2]; simp; sorry
   have e3' : R'⟨r⟩ = R⟨r.lift (na + nb)⟩[As⟨r⟩.list.reverse.map su ++ Subst.id Ty] := by
     rw [e3]; simp; sorry
@@ -231,11 +231,15 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
     have lem := GlobalWf.closed_lookup_spine_type_ren wf j1 r
     simp; simp at lem; grind
   have e1' : Ts'⟨r⟩ = Ts⟨r.lift (m1 + m2)⟩[List.map su (As⟨r⟩.list ++ Bs⟨r⟩.list).reverse ++ Subst.id Ty] := by
-    rw [e1]; simp;
+    rw [e1]; simp [-Subst.rewrite_lift_k_ren];
     generalize ℓdef : (List.map su Bs.list).reverse ++ (List.map su As.list).reverse = ℓ
     have lem : (List.map su Bs⟨r⟩.list).reverse ++ (List.map su As⟨r⟩.list).reverse = ℓ⟨r⟩ := sorry
     rw [lem]
     generalize kdef : m1 + m2 = k
+    have lem2 := Subst.List.rmap_map_su (ℓ := Bs.list) (r := r)
+    rw [Subst.List.rmap_map_su (ℓ := As.list) (r := r)]
+    rw [Subst.compose_ren_left_cons_lift_indirect (k := k) (ℓ := ℓ⟨r⟩)]
+
     sorry
   have e2' : R'⟨r⟩ = R⟨r.lift (m1 + m2)⟩[List.map su (As⟨r⟩.list ++ Bs⟨r⟩.list).reverse ++ Subst.id Ty] := by
     rw [e2]; simp; sorry

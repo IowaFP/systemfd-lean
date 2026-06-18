@@ -28,9 +28,9 @@ def JustPattern : Pattern 1 := #(⟨"Just", 1, #(t#0), 0, 1⟩)
 
 def MaybeBoolCtx : GlobalEnv := [
 
-   /- Λ t. λ (i : Eq t).
-        If EqMaybe[t][u] <- i.
-            λ (tmu : t ~ Maybe u). λ eqU : Eq u.
+   /- Λ t.
+        If EqMaybe[t] <- i.
+            Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
             eqMaybe @Bool eqU ▹ sym (tmu -c> tmu -c> <Bool>)
     -/
   .inst "eq" #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩) (-- #1 : t ~ Maybe u, #0 : Eq u
