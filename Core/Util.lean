@@ -192,6 +192,11 @@ namespace LeanSubst
   := by
     simp [compose_ren_left, compose_ren_right]
 
+  @[grind =]
+  theorem Subst.compose_commute_add_ren_ren {r : Ren T}
+    : r ∘ Ren.add T k = .add T k ∘ r.lift k
+  := by simp [Ren.compose]
+
   @[simp]
   theorem Ren.to_cons {r : Ren T} : (x::r).to = re x :: r.to := by
     simp [to, cons, Subst.cons]; funext; case _ x =>

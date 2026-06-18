@@ -134,7 +134,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
   (∀ i, (S i).data? .cls G) ->
   (∀ i, PatternBinders G Δ m S (ps i) (ζ i) (ξ i)) ->
-  (∀ i, Typing G (ζ i ++ Δ) (ξ i ++ Γ) (ts i) T) ->
+  (∀ i, Typing G (ζ i ++ Δ) (ξ i ++ Γ)⟨.add Ty (ζ i).length⟩ (ts i) T⟨.add Ty (ζ i).length⟩) ->
   (∀ {q}, Query G .cls q S -> ∃ i, Query.Match q (ps i)) ->
   Typing G Δ Γ (.mtch m n ss ps ts) T
 ----------------------------------------------------------------------------------------------------
@@ -263,7 +263,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
   lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
   (Ks1.list ++ Ks2.list).reverse = Δ ->
   PatternBinders G Δ n Ts p ζ Γ ->
-  G&(ζ ++ Δ),Γ ⊢ t : R ->
+  G&(ζ ++ Δ),Γ⟨.add Ty ζ.length⟩ ⊢ t : R⟨.add Ty ζ.length⟩ ->
   GlobalWf G (.inst x p t)
 | octor :
   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->

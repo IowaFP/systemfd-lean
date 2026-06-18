@@ -210,6 +210,12 @@ theorem Typing.rename_type_lift {Δ Δr : List Kind} {r : Ren Ty} K :
   cases i <;> simp [Ren.lift]
   apply h _
 
+theorem Typing.rename_type_lift_k {Δ Δr : List Kind} {r : Ren Ty} K :
+  (∀ (i : Nat), Δ[i]? = Δr[r.act i]?) ->
+  ∀ (i : Nat), (K ++ Δ)[i]? = (K ++ Δr)[(r.lift K.length).act i]?
+:= by
+  sorry
+
 theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r.act i]?)
   : G&Δ,Γ ⊢ t : A -> G&Δr,Γ⟨r⟩ ⊢ t⟨r⟩ : A⟨r⟩
 | var (x := x) j1 j2 =>
@@ -225,7 +231,12 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
     have lem := GlobalWf.closed_lookup_spine_type_ren wf j1 r
     simp; simp at lem; grind
   have e1' : Ts'⟨r⟩ = Ts⟨r.lift (m1 + m2)⟩[List.map su (As⟨r⟩.list ++ Bs⟨r⟩.list).reverse ++ Subst.id Ty] := by
-    rw [e1]; simp; sorry
+    rw [e1]; simp;
+    generalize ℓdef : (List.map su Bs.list).reverse ++ (List.map su As.list).reverse = ℓ
+    have lem : (List.map su Bs⟨r⟩.list).reverse ++ (List.map su As⟨r⟩.list).reverse = ℓ⟨r⟩ := sorry
+    rw [lem]
+    generalize kdef : m1 + m2 = k
+    sorry
   have e2' : R'⟨r⟩ = R⟨r.lift (m1 + m2)⟩[List.map su (As⟨r⟩.list ++ Bs⟨r⟩.list).reverse ++ Subst.id Ty] := by
     rw [e2]; simp; sorry
   have j2' : ∀ (i : Fin m1), G&Δr ⊢ As⟨r⟩[i] : Ks1[i] := λ i =>
@@ -249,15 +260,19 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
   have j2' := λ i => Ty.data?_closed_ren r (j2 i)
   have j3' : ∀ (i : Fin n), PatternBinders G Δr m S.to⟨r⟩ (ps i)⟨r⟩ (ζ i) (ξ i)⟨r⟩ :=
     λ i => (j3 i).rename_type Δr r wf h
-  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δr),((ξ i)⟨r⟩ ++ Γ⟨r⟩) ⊢ (ts i)⟨r.lift (ps i).bind_type⟩ : A⟨r⟩ := λ i => by
-    have lem := (j4 i).rename_type (ζ i ++ Δr) (r.lift (ps i).bind_type) wf sorry
-    sorry
-    --(j4 i).rename_type Δr r wf h ▸ simp
+  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δr),((ξ i)⟨r⟩ ++ Γ⟨r⟩)⟨Ren.add Ty (ζ i).length⟩ ⊢ (ts i)⟨r.lift (ps i).bind_type⟩ : A⟨r⟩⟨Ren.add Ty (ζ i).length⟩ := λ i => by
+    have lem1 := rename_type_lift_k (ζ i) h
+    have lem2 : (ζ i).length = (ps i).bind_type := sorry
+    rw [lem2] at lem1
+    have lem3 := (j4 i).rename_type (ζ i ++ Δr) (r.lift (ps i).bind_type) wf lem1
+    rw [lem2] at lem3; simp [-Subst.rewrite_lift_k_ren] at lem3
+    rw [<-Subst.compose_commute_add_ren_ren] at lem3
+    simp [-Subst.rewrite_lift_k_ren, lem2]; exact lem3
   have j5' : ∀ {q}, (Query G .cls q S⟨r⟩) → ∃ i, Query.Match q (ps i)⟨r⟩ :=
     λ q => match j5 (Query.closed_ren wf rfl q) with
           | ⟨i, m⟩ => ⟨i, Query.Match.rename_type r m⟩
   let ξ' := λ (i : Fin n) => (ξ i)⟨r⟩
-  mtch (ξ := ξ') j1' j2' (λ i => j3' i ▸ subst ξ'; congr; grind) j4' (λ {q} => @j5' q ▸ grind)
+  mtch (ζ := ζ) (ξ := ξ') j1' j2' (λ i => j3' i ▸ congr; grind) (j4' ▸ simp [ξ', Term.Ty.rmap_promote]) (λ {q} => @j5' q ▸ grind)
 | lam j1 j2 => lam (j1.rename Δr r h) (j2.rename_type _ _ wf h)
 | app j1 j2 => app (j1.rename_type _ _ wf h) (j2.rename_type _ _ wf h)
 | lamt (K := K) (P := P) (t := t) j1 j2 =>
@@ -310,12 +325,13 @@ theorem Typing.rename Γr (r : Ren Term) (wf : ⊢ G)
   defn j1' j2
 | spctor j1 e1 e2 j2 j3 j4 j5 j6 => sorry --spctor j1 e1 e2 j2 (λ i => (j3 i).rename _ _ wf h) j4 j5
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ξ := ξ) j1 j2 j3 j4 j5 =>
-  let j4' : ∀ (i : Fin n), G&Δ,(ξ i ++ Γr) ⊢ (ts i)[r.to.lift (ps i).bind] : A := λ i =>
-    have lem1 : (ps i).bind = (ξ i).length := (j3 i).length
-    have lem {k} : (ξ i ++ Γ)[k]? = (ξ i ++ Γr)[(r.lift (ps i).bind).act k]? := by
-      rw [lem1]; exact Typing.rename_lift_k r (ξ i) h
-    (j4 i).rename (ξ i ++ Γr) (r.lift (ps i).bind) wf lem ▸ sorry --rw [Ren.to_lift]
-  mtch (λ i => (j1 i).rename _ _ wf h) j2 j3 sorry j5
+  sorry
+  -- let j4' : ∀ (i : Fin n), G&Δ,(ξ i ++ Γr) ⊢ (ts i)[r.to.lift (ps i).bind] : A := λ i =>
+  --   have lem1 : (ps i).bind = (ξ i).length := (j3 i).length
+  --   have lem {k} : (ξ i ++ Γ)[k]? = (ξ i ++ Γr)[(r.lift (ps i).bind).act k]? := by
+  --     rw [lem1]; exact Typing.rename_lift_k r (ξ i) h
+  --   (j4 i).rename (ξ i ++ Γr) (r.lift (ps i).bind) wf lem ▸ sorry --rw [Ren.to_lift]
+  -- mtch (λ i => (j1 i).rename _ _ wf h) j2 j3 sorry j5
 | lam (A := A) j1 j2 =>
   let j2' := (j2.rename (A::Γr) r.lift wf (Typing.rename_lift _ A h) ▸ simp [Term.rmap_promote])
   lam j1 j2'
