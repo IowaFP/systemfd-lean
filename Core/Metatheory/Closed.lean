@@ -97,6 +97,12 @@ theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
     subst h
     apply SpineKinding.closed h2
 
+theorem GlobalWf.closed_lookup_spine_type_ren {G : List Global} :
+  ⊢ G ->
+  lookup_spine_type G x = some T ->
+  ∀ (r : Ren Ty), T⟨r⟩ = T
+:= sorry
+
 theorem GlobalWf.subst_cancel_lookup_ctor? {T T' : Ty} {G : List Global} {σ : Subst Ty} :
   ⊢ G ->
   (e : T' = T[σ]) ->
@@ -114,6 +120,14 @@ theorem GlobalWf.subst_cancel_lookup_ctor? {T T' : Ty} {G : List Global} {σ : S
     rcases z with ⟨z, sp⟩
     have lem : T'.spine = some (z, sp[σ]) := sorry
     rw [lem] at j; simp at j; simp; exact j
+
+theorem GlobalWf.subst_cancel_lookup_ctor?_ren {T T' : Ty} {G : List Global} {r : Ren Ty} :
+  ⊢ G ->
+  (e : T' = T⟨r⟩) ->
+  lookup_ctor? G v x T' ->
+  lookup_ctor? G v x T
+:= by
+  sorry
 
 theorem extend_lemma {ℓ₁ ℓ₂ : List A} : {x : Nat} -> ℓ₁[x]? = some t -> (ℓ₁ ++ ℓ₂)[x]? = some t
 | 0, h =>
@@ -139,6 +153,8 @@ theorem Ty.data?_closed (σ : Subst Ty) : Ty.data? v G T -> Ty.data? v G T[σ] :
 --     sorry
 --   ⟨x, sp[σ:Ty], lem, j⟩
 
+theorem Ty.data?_closed_ren (r : Ren Ty) : Ty.data? v G T -> Ty.data? v G T⟨r⟩ := sorry
+
 theorem Query.closed {σ : Subst Ty} (wf : ⊢ G) : {S : Vec Ty n} -> (e : S' = S[σ]) -> Query G v q S' -> Query G v q S
 | .nil, e, .nil => .nil
 | .cons hd tl, e, .cons j1 j2 => by
@@ -146,6 +162,14 @@ theorem Query.closed {σ : Subst Ty} (wf : ⊢ G) : {S : Vec Ty n} -> (e : S' = 
   have lem := Query.closed wf e.2 j2
   apply VecTyping.cons _ lem
   apply GlobalWf.subst_cancel_lookup_ctor? wf rfl j1
+
+theorem Query.closed_ren {r : Ren Ty} (wf : ⊢ G) : {S : Vec Ty n} -> (e : S' = S⟨r⟩) -> Query G v q S' -> Query G v q S
+| .nil, e, .nil => .nil
+| .cons hd tl, e, .cons j1 j2 => by
+  simp at e; rw [e.1] at j1
+  have lem := Query.closed_ren wf e.2 j2
+  apply VecTyping.cons _ lem
+  apply GlobalWf.subst_cancel_lookup_ctor?_ren wf rfl j1
 
 theorem Typing.closed_type_rep :
   G&Δ,Γ ⊢ t : A ->
@@ -342,6 +366,13 @@ theorem GlobalWf.closed_lookup_defn {G : List Global} :
   rcases h with ⟨h, e1, e2⟩; subst e1 e2
   have lem := EntryWf.from_lookup wf h
   cases lem; case _ j1 j2 lem =>
+  sorry
+
+theorem GlobalWf.closed_lookup_defn_ren {G : List Global} :
+  ⊢ G ->
+  lookup_defn G x = some (A, t) ->
+  (∀ (r : Ren Ty), A⟨r⟩ = A) ∧ (∀ (r : Ren Term), t⟨r⟩ = t) ∧ (∀ (r : Ren Ty), t⟨r⟩ = t)
+:= by
   sorry
 
 -- theorem Kinding.closed_lifting_lemma :

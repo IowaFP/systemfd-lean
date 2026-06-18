@@ -754,6 +754,10 @@ instance : SubstMapCompose Term Term where
 
 theorem Term.Ty.smap_promote : Term.Ty.smap σ A = A[σ] := by simp [SubstMap.smap]
 
+theorem Term.Ty.rmap_promote : Term.Ty.rmap r A = A⟨r⟩ := by simp [RenMap.rmap]
+
 theorem Term.smap_promote : Term.smap σ t = t[σ] := by simp [SubstMap.smap]
+
+theorem Term.rmap_promote : Term.rmap r t = t⟨r⟩ := by simp [RenMap.rmap]
 
 end Core

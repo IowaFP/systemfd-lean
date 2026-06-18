@@ -6,6 +6,11 @@ open LeanSubst
 
 namespace Lilac
 
+@[simp]
+theorem Vec.length_list : {v : Vec α n} -> v.list.length = n
+| #() => by simp [list]
+| .cons x xs => by simp [list, length_list (v := xs)]
+
 -- @[simp]
 -- theorem Vec.to_iso : Vec.to (Fun.Vec.to v) = v := sorry
 
@@ -193,13 +198,31 @@ instance [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T] 
 instance [SubstMap S T] [SubstMap T T] : SubstMapCompose (Vec S n) T where
   apply_compose := sorry
 
--- @[simp]
--- theorem Vec.ren_index [SubstMap T T] {i : Fin n} {v : Vec T n} {σ : Subst T} : v[i][σ:_] = v[σ:_][i] :=
---   match n, v with
---   | 0, v => Fin.elim0 i
---   | n + 1, .cons x xs => by
---     induction i using Fin.induction <;> simp at *
---     case _ i ih => apply Vec.ren_index
+@[grind =]
+theorem Vec.to_rmap [RenMap S T] {r : Ren T} {v : Fun.Vec S m}
+  : (v.to)⟨r⟩ = Fun.Vec.to (fun i => (v i)⟨r⟩)
+:= sorry
+
+@[grind =]
+theorem Vec.to_smap [SubstMap S T] {σ : Subst T} {v : Fun.Vec S m}
+  : (v.to)[σ] = Fun.Vec.to (fun i => (v i)[σ])
+:= sorry
+
+@[simp]
+theorem Vec.smap_index [SubstMap S T] {i : Fin n} {v : Vec S n} {σ : Subst T} : v[i][σ] = v[σ][i] :=
+  match n, v with
+  | 0, v => Fin.elim0 i
+  | n + 1, .cons x xs => by
+    induction i using Fin.induction <;> simp at *
+    case _ i ih => apply Vec.smap_index
+
+@[simp]
+theorem Vec.rmap_index [RenMap S T] {i : Fin n} {v : Vec S n} {r : Ren T} : v[i]⟨r⟩ = v⟨r⟩[i] :=
+  match n, v with
+  | 0, v => Fin.elim0 i
+  | n + 1, .cons x xs => by
+    induction i using Fin.induction <;> simp at *
+    case _ i ih => apply Vec.rmap_index
 
 theorem Vec.get_subst [SubstMap S T] {i : Fin n} {v : Vec S n} {σ : Subst T} : v[i][σ] = v[σ][i] := sorry
 

@@ -117,12 +117,19 @@ theorem Vec.subst_to_list [SubstMap S T] {v : Vec S n} {σ : Subst T}
 -- theorem Fun.Vec.subst_to [RenMap T] [SubstMap T T] {v : Fun.Vec T n}
 --   : (v.to)[σ:T] = Fun.Vec.to (λ i => (v i)[σ:T]) := sorry
 
--- @[simp, grind =]
--- theorem List.getElem?_subst [RenMap T] [SubstMap S T] {ℓ : List S} {σ : Subst T} {x : Nat}
---   : ℓ[x]?[σ:T] = ℓ[σ:T][x]?
--- := by
---   induction ℓ generalizing x <;> simp
---   case _ hd tl ih => cases x <;> simp [*]
+@[simp, grind =]
+theorem List.getElem?_rmap [RenMap S T] {ℓ : List S} {r : Ren T} {x : Nat}
+  : ℓ[x]?⟨r⟩ = ℓ⟨r⟩[x]?
+:= by
+  induction ℓ generalizing x <;> simp
+  case _ hd tl ih => cases x <;> simp [*]
+
+@[simp, grind =]
+theorem List.getElem?_smap [SubstMap S T] {ℓ : List S} {σ : Subst T} {x : Nat}
+  : ℓ[x]?[σ] = ℓ[σ][x]?
+:= by
+  induction ℓ generalizing x <;> simp
+  case _ hd tl ih => cases x <;> simp [*]
 
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst
@@ -139,6 +146,28 @@ macro "subst_solve_compose_fix" : tactic => `(tactic| {
 })
 
 namespace LeanSubst
+
+  @[simp, grind =]
+  theorem Subst.rewrite3_cons_ren_fix [RenMap T T] [SubstMap T T] {σ : Subst T} {r : Ren T}
+    : (a :: σ) ∘ r = a⟨r⟩:: (σ ∘ r)
+  := by
+    simp [cons, compose_ren_right]
+    funext; case _ x =>
+    cases x; all_goals simp [act, SubstAction.act]
+
+  @[simp, grind =]
+  theorem Subst.rewrite3_cons_ren_subst [SubstMap T T] {σ : Subst T} {r : Ren T}
+    : (x :: r) ∘ σ = σ.act x :: (r ∘ σ)
+  := by
+    simp [cons, compose_ren_left]
+    funext; case _ x =>
+    cases x; all_goals simp [act, SubstAction.act]
+
+  @[simp, grind =]
+  theorem Subst.ren_succ_beta_to {r : Ren T}
+    : (r ∘ Ren.succ T) ∘ (a :: Subst.id T) = r.to
+  := by simp [compose_ren_left, Ren.to]
+
   @[simp]
   theorem Subst.ren_to_hcompose [SubstMap S T] {r : Ren S} {σ : Subst T}: r.to ◾ σ = r.to := sorry
 
