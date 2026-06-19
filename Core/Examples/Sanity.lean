@@ -11,12 +11,12 @@ namespace Core.Examples
 /- data Bool = True | False -/
 def BoolCtx : GlobalEnv := [
   Global.data 2 "Bool" ★
-             #𝓋[ ("True", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)
-               , ("False", ⟨0, #𝓋[], 0, #𝓋[], gt#"Bool"⟩)]
+             #𝓋[ ("True", ⟨0, #(), 0, #(), gt#"Bool"⟩)
+               , ("False", ⟨0, #(), 0, #𝓋(), gt#"Bool"⟩)]
   ]
 
-def TrueCtor : Term := ctor! "True" #𝓋[] .nil
-def FalseCtor : Term := ctor! "False" #𝓋[] .nil
+def TrueCtor : Term := ctor! "True" 0 #() 0 #() .nil
+def FalseCtor : Term := ctor! "False" 0 #() 0 #() .nil
 
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
 #guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★

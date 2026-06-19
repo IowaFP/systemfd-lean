@@ -80,7 +80,16 @@ def eval (G : List Global) : Term ->  Option Term
 | .ctor1 (.appt ty) t => do
   let t' <- eval G t
   return (.ctor1 (.appt ty) t')
-| .ctor1 v t => none
+| .ctor1 (.prj 0) (refl! (.app A _)) => return refl! A
+| .ctor1 (.prj 0) (refl! (.arrow A _)) => return refl! A
+
+| .ctor1 (.prj 1) (refl! (.app _ B)) => return refl! B
+| .ctor1 (.prj 1) (refl! (.arrow _ B)) => return refl! B
+
+| .ctor1 (.prj n) t => do
+  let t' <- eval G t
+  return .ctor1 (.prj n) t'
+
 
 -- λ reduction
 | .ctor2 .app (.lam _ t) t2 => do
@@ -101,9 +110,9 @@ def eval (G : List Global) : Term ->  Option Term
 
 -- t ▸ η
 | .cast _ (.ctor0 (.refl _)) t => return t
-| .cast ty t1 t2 => do
-  let t1' <- eval G t1
-  return .cast ty t1' t2
+| .cast ty η t2 => do
+  let η' <- eval G η
+  return .cast ty η' t2
 
 
 

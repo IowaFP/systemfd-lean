@@ -147,3 +147,12 @@ def mt3 := openm! "eq" #(gt#"Maybe" • gt#"Bool") .nil (Vec.to #( iMaybeBool ))
 #eval ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor).eval_loop MaybeBoolCtx
 
 end Core.Examples
+
+
+/-
+
+((((d#eq@Maybe •[gt#Maybe • gt#Bool]) • (refl! (gt#Maybe • gt#Bool))) ▸ ((refl! (t#0 -:> (t#0 -:> gt#Bool))) ▸
+               (((refl! (t#0 -:> (t#0 -:> gt#Bool))) ▸
+                 ((((((d#arrowc •[t#0]) •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[gt#Bool]) •[gt#Bool]) • EqBool •[gt#Bool | ]•[]•{(refl! gt#Bool) | }) • (refl! gt#Bool))) ▸ EqBool •[gt#Bool | ]•[]•{(refl! gt#Bool) | }))) • Just •[gt#Bool | ]•[]•{True •[]•[]•{} | }) • Just •[gt#Bool | ]•[]•{True •[]•[]•{} | }
+
+-/
