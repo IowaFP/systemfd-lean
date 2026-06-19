@@ -18,6 +18,8 @@ def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
 | refl A, refl B => A == B
 -- | _, _ => false
 
+deriving instance BEq for SpCtorVariant
+
 instance instBEq_Ctor0Variant : BEq Ctor0Variant where
   beq := Ctor0Variant.beq
 
@@ -102,8 +104,8 @@ def Term.beq : Term -> Term -> Bool
 | tbind A1 K1 t1, tbind A2 K2 t2 => A1 == A2 && K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
 | .cast A a1 a2, .cast B b1 b2 => A == B && beq a1 b1 && beq a2 b2
-| .mtch m1 n1 a1 b1 c1, .mtch m2 n2 a2 b2 c2 => -- true -- TODO: Fix
-  if h : n1 = n2 && m1 == m2 then
+| .mtch m1 n1 a1 b1 c1, .mtch m2 n2 a2 b2 c2 =>
+  if h : n1 == n2 && m1 == m2 then
     let a : Lilac.Fun.Vec Bool m1 := λ i => beq (a1 i) (a2 (by simp at h; rw [h.2] at i; exact i))
     let c : Lilac.Fun.Vec Bool n1 := λ i => beq (c1 i) (c2 (by simp at h; rw [h.1] at i; exact i))
     let p : Lilac.Fun.Vec Bool n1 := λ i =>
@@ -111,6 +113,12 @@ def Term.beq : Term -> Term -> Bool
       let p2 : Pattern m2 := (b2 (by simp at h; rw[h.1] at i; exact i)).to
       Pattern.eq p1 p2
     Vec.foldl (·&&·) true a.to && Vec.foldl (·&&·) true c.to && Vec.foldl (·&&·) true p.to
+  else false
+| .spctor (n := n1) v1 s1 A1 B1 ts1, .spctor (n := n2) v2 s2 A2 B2 ts2 =>
+  if h : n1 == n2
+  then
+    let bs : Lilac.Fun.Vec Bool n1 := (λ i => beq (ts1 i) (ts2 (by simp at h; rw[h] at i; exact i)))
+    v1 == v2 && s1 == s2 && A1.beq A2 && B1.beq B2 && Vec.foldl (·&&·) true bs.to
   else false
 | _, _ => false
 

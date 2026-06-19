@@ -29,19 +29,6 @@ def A : Ty := (t#0 ~[★]~ gt#"Bool") -:> (gt#"Eq" • t#0)
 
 end Infer.Ty.Test
 
-def Ty.valid_data (c : DataConst) (G : List Global) : Ty -> Option Unit
-| A => do
-  if Ty.data? c G A
-  then return () else none
-
-def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Option Ty
-| [], τ  => return τ
-| .cons a as, ∀[K] τ => do
-  let K' <- a.infer_kind G Δ
-  if K == K' then
-    (τ[su a::+0σ]).kind_preamble G Δ as
-  else none
-| _ , _ => none
 
 def query (G : GlobalEnv) (c : DataConst) : (ps : Vec String m) -> (qs : Vec Ty m) -> Option Unit
 | .nil, .nil => some ()
@@ -58,7 +45,7 @@ def query_match : Vec String m -> Pattern m -> Option Unit
   if x == y.1 then some () else none
 
 def query_patterns (q : Vec String m) (ps : Vec (Pattern m) n) : Option (Fin n)
- := Vec.findIdx? (λ p => (query_match q p).isSome) ps
+ := Vec.findIdx (λ p => (query_match q p).isSome) ps
 
 @[simp]
 def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Kind × List Ty)
@@ -80,7 +67,6 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
     else none
   else none
 | _, _ ,_ => none
-
 
 
 @[simp]
@@ -236,25 +222,5 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   return ((∀[K]A) ~[Tk]~ (∀[K]B))
 
 | _ => none
-
-
-def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) (test : Ty -> Bool): SpineTy -> Option Unit
-| ⟨_, Ks1, _, Ks2, _, Ts, R⟩ => do
-  let Δ1 := Ks1.list
-  let Δ2 := Ks2.list
-  let Δ := (Δ1 ++ Δ2).reverse
-  let mTKs := Ts.map (λ T : Ty => T.infer_kind G Δ)
-  let TKs <- mTKs.sequence
-  let RK <- R.infer_kind G Δ
-  if TKs.elems_eq_to ★ && RK == ★
-  then
-    match sv with
-    | .data _ =>
-      if test R then some () else none
-    | .openm =>
-      let Ts' := Ts.map (λ T => T.valid_data .opn G)
-      let _ <- Ts'.sequence
-      if test R then return () else none
-  else none
 
 namespace Core

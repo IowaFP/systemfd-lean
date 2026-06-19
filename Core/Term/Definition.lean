@@ -11,6 +11,7 @@ inductive DataConst where
 | opn
 | cls
 
+
 inductive Ctor0Variant : Type where
 | refl (A : Ty)
 

@@ -4,6 +4,7 @@ import Core.Global
 import Core.Vec
 
 import Core.Eval.BigStep
+import Core.Eval.SmallStep
 import Core.Infer.Type
 import Core.Infer.Global
 import Lilac
@@ -33,8 +34,8 @@ not = λ x → case x of
 -/
 def notTerm : Core.Term := λ[  gt#"Bool" ]
   mtch' #(#0)
-     #( (#(⟨"True", 0,  #(), 0, 0⟩) , TrueCtor)
-      , (#(⟨"False", 0 , #(), 0, 0⟩) , FalseCtor) )
+     #( (#(⟨"True", 0,  #(), 0, 0⟩) , FalseCtor)
+      , (#(⟨"False", 0 , #(), 0, 0⟩) , TrueCtor) )
 
 #guard Term.infer_type BoolCtx [] [] notTerm == some (gt#"Bool" -:> gt#"Bool")
 
@@ -88,13 +89,13 @@ def EqBoolCtx : GlobalEnv := [
 
   ] ++ BoolCtx
 
-#eval EqBoolCtx
+-- #eval EqBoolCtx
 #guard EqBoolCtx.wf_globals  == some ()
 
-#eval lookup_octor EqBoolCtx (gt#"Eq")
+-- #eval lookup_octor EqBoolCtx (gt#"Eq")
 
-#eval ((d#"eqBool" • TrueCtor) • TrueCtor).eval_loop EqBoolCtx
-#eval ((d#"eqBool" • TrueCtor) • FalseCtor).eval_loop EqBoolCtx
+#guard ((d#"eqBool" • TrueCtor) • TrueCtor).eval_loop EqBoolCtx == TrueCtor
+#guard ((d#"eqBool" • TrueCtor) • FalseCtor).eval_loop EqBoolCtx == FalseCtor
 
 def iBool : Term := inst! "EqBool" #( gt#"Bool" ) #() (Vec.to #( refl! gt#"Bool"))
 #guard iBool.infer_type EqBoolCtx [] [] == some (gt#"Eq" • gt#"Bool")
@@ -105,17 +106,48 @@ def t1 : Term := ((openm! "eq" #( gt#"Bool" ) #() (Vec.to (#( iBool )))) • Tru
 #guard t1.infer_type EqBoolCtx [] [] == some (gt#"Bool")
 -- def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
 
-#eval t1.eval_loop EqBoolCtx
+#guard t1.eval_loop EqBoolCtx == FalseCtor
 
 -- def ctx' := List.drop 1 EqBoolCtx
 -- #eval! (Λ[★] λ[(t#0 ~[★]~ gt#"Bool")] λ[t#0] λ[t#0]
 --              (((d#"eqBool" • (.cast t#0 #2 #1)) • (.cast t#0 #2 #0)))).infer_type EqBoolCtx [] []
 
 def t2 : Term := ((openm! "eq" #( gt#"Bool") #() (Vec.to (#(iBool)))) • TrueCtor) • TrueCtor
-#eval t2.eval_loop EqBoolCtx
+#guard t2.eval_loop EqBoolCtx == TrueCtor
+
+def t4 : Term := ((openm! "eq" #( gt#"Bool") #() (Vec.to (#(iBool)))) • FalseCtor) • FalseCtor
+#guard t4.eval_loop EqBoolCtx == TrueCtor
 
 def t3 : Term := ((openm! "eq" #( gt#"Bool") #() (Vec.to (#(iBool)))) • TrueCtor) • FalseCtor
-#eval t3.eval_loop EqBoolCtx
+#guard t3.eval_loop EqBoolCtx == FalseCtor
+
+
+
+
+
+-- def e1 := ((d#"eqBool" • TrueCtor) • FalseCtor)
+-- #eval e1
+
+-- def e2 := (e1.eval EqBoolCtx).getD (d#"fail")
+-- #eval e2
+
+-- def e3 := (e2.eval EqBoolCtx).getD (d#"fail")
+-- #eval e3
+
+-- def e4 := (e3.eval EqBoolCtx).getD (d#"fail")
+-- #eval e4
+
+-- def e5 := (e4.eval EqBoolCtx).getD (d#"fail")
+-- #eval e5
+
+-- def e6 := (e5.eval EqBoolCtx).getD (d#"fail")
+-- #eval e6
+
+
+
+
+
+
 
 
 end Core.Examples

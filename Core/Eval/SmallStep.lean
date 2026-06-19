@@ -23,10 +23,25 @@ def Term.is_data (v : DataConst) : Vec Term m -> Option (Vec Constructor m)
   else none
 | .cons _ _ => none
 
-def get_match (ctors : Vec Constructor m) (ps : Vec (Pattern m) n) : Option (Fin n) := ps.findIdx? (Pattern.match ctors)
+def get_match (ctors : Vec Constructor m) (ps : Vec (Pattern m) n) : Option (Fin n) :=
+  ps.findIdx (Pattern.match ctors)
+
+namespace Test.Eval
+
+def TrueCtor : Vec Constructor 1 := #(⟨"True", 0, #(),0, #(), 0, #()⟩)
+def FalseCtor : Vec Constructor 1 := #(⟨"False", 0, #(),0, #(), 0, #()⟩)
+
+def TruePattern : Pattern 1 := #(⟨"True", 0, #(), 0, 0⟩)
+def FalsePattern : Pattern 1 := #(⟨"False", 0, #(), 0, 0⟩)
+def ps : Vec (Pattern 1) 2 := #(TruePattern, FalsePattern)
+
+#guard get_match TrueCtor ps == some 0
+#guard get_match FalseCtor ps == some 1
+
+end Test.Eval
 
 @[simp]
-def eval (G : List Global) : Term ->  Option Term
+def Term.eval (G : List Global) : Term ->  Option Term
 
 ----------------------------------------------------------------
 ---- Value forms
