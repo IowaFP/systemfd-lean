@@ -73,8 +73,10 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
     if Ask.beq Ks1
     then
       let σ := As.list.reverse.map su ++ Subst.id Ty
-      let Ts := Ts⟨.add Ty Δ.length⟩[σ]
-      if R[σ] == R' then return (ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts.list.reverse) else none
+      let Ts := Ts[σ.lift nb]⟨.add Ty ℓ1.length⟩
+      --(ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts.list.reverse)
+      --some ⟨[], [R[σ.lift nb], R'⟨.add Ty nb⟩]⟩
+      if R[σ.lift nb] == R'⟨.add Ty nb⟩ then return (ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts.list.reverse) else none
     else none
   else none
 | _, _ ,_ => none
@@ -132,10 +134,8 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   -- infer the type of scrutinees
   let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
   let Ss <- smτs.to.sequence
-
   let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data .cls G)
   let _ <- mTs.sequence
-
   let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
   let ζξ <- mξs.to.sequence
   let (ζ , ξ) := ζξ.unzip
