@@ -48,6 +48,17 @@ def TypeFunCtx : GlobalEnv := [
 
 #guard TypeFunCtx.wf_globals == some ()
 
+  -- -- FMM : ∀ a b a' b'. Maybe a' ~ a → Maybe b' ~ b → F a' b' → F a b
+  -- .octor "FMM" ⟨2 , #(★, ★), 2, #(★, ★),
+  --         3, #((gt#"Maybe" • t#1) ~[★]~ t#3, (gt#"Maybe" • t#0) ~[★]~ t#2, (gt#"F" • t#1) • t#0),
+  --            ((gt#"F" • t#3) • t#2)⟩,
+
+#eval!
+  pattern_binders TypeFunCtx
+    [★, ★, ★] 2 #( ((gt#"F" • t#2) • t#1), ((gt#"F" • t#2) • t#0))
+    #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+
+
 #eval! do
   match lookup "fdF" TypeFunCtx with
   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>

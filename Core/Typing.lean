@@ -77,10 +77,22 @@ inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec T
 | succ {Ts' : Vec _ nc} :
   lookup_spine_type G c = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
   (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks1[i]) ->
-  Ts' = Ts[As.list.reverse.map su ++ Subst.id Ty]⟨.add Ty ℓ1.length⟩ ->
-  R' = R[As.list.reverse.map su ++ Subst.id Ty] ->
+  Ts' = Ts[Subst.lift (k := nb) $ As.list.reverse.map su ++ Subst.id Ty]⟨.add Ty ℓ1.length⟩ ->
+  ℓ2' = ℓ2⟨.add Ty ℓ1.length⟩ ->
+  R' = R[Subst.lift (k := nb) $ As.list.reverse.map su ++ Subst.id Ty]⟨.sub Ty nb⟩ ->
   PatternBinders G Δ n S p ℓ1 ℓ2 ->
-  PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (ℓ1 ++ Ks2.list.reverse) (ℓ2 ++ Ts'.list.reverse)
+  PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (Ks2.list.reverse ++ ℓ1) (ℓ2' ++ Ts'.list.reverse)
+
+
+-- inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Kind -> List Ty -> Prop
+-- | zero : PatternBinders G Δ 0 ss ps [] []
+-- | succ {Ts' : Vec _ nc} :
+--   lookup_spine_type G c = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
+--   (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks1[i]) ->
+--   Ts' = Ts[As.list.reverse.map su ++ Subst.id Ty]⟨.add Ty ℓ1.length⟩ ->
+--   R' = R[As.list.reverse.map su ++ Subst.id Ty] ->
+--   PatternBinders G Δ n S p ℓ1 ℓ2 ->
+--   PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (ℓ1 ++ Ks2.list.reverse) (ℓ2 ++ Ts'.list.reverse)
 
 /-
   data Term
