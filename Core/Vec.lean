@@ -827,4 +827,13 @@ def Vec.from_list : List α -> (n : Nat) × Vec α n
   let ⟨n, v⟩ := from_list xs
   ⟨n + 1, x :: v⟩
 
+theorem Vec.from_list_to {l : List α} : (Vec.from_list l).2.list = l := by
+induction l <;> simp [from_list] at *
+case _ ih => apply ih
+
+theorem Vec.to_from_list {vs : Vec α n} : Vec.from_list (vs.list) = ⟨n, vs⟩ := by
+induction vs <;> simp [from_list] at *
+case _ ih => rw[ih]; simp
+
+
 end Lilac
