@@ -83,26 +83,26 @@ def MaybeBoolCtx : GlobalEnv := [
 -- #eval lookup_spine_type MaybeBoolCtx "EqMaybe"
 -- na = 1, Ks1 = [★], nb = 1, Ks2 := [★], nc := 2, Ts := [t#1 ~ Maybe t#0, Eq #0], R := Eq t
 
--- #eval! do
---   match lookup "eq" MaybeBoolCtx with
---   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
---       if "eq" == y then
---         let Δ := (Ks1.list ++ Ks2.list).reverse
---         let (ζ, Γ) <- pattern_binders MaybeBoolCtx Δ n Ts #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩)
+#eval! do
+  match lookup "eq" MaybeBoolCtx with
+  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+      if "eq" == y then
+        let Δ := (Ks1.list ++ Ks2.list).reverse
+        let (ζ, Γ) <- pattern_binders MaybeBoolCtx Δ n Ts #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩)
 
 
---         let t1 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[gt#"Bool"]) •[gt#"Bool"]) • #1) • (refl! gt#"Bool")
---         let t2 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[t#1 -:> gt#"Bool"]) •[(gt#"Maybe" • t#0) -:> gt#"Bool"]) • #1) • t1
---         let t3 := ((d#"sym" •[t#1 -:> (t#1 -:> gt#"Bool")]) •[(gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> gt#"Bool")]) • t2
+        -- let t1 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[gt#"Bool"]) •[gt#"Bool"]) • #1) • (refl! gt#"Bool")
+        -- let t2 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[t#1 -:> gt#"Bool"]) •[(gt#"Maybe" • t#0) -:> gt#"Bool"]) • #1) • t1
+        -- let t3 := ((d#"sym" •[t#1 -:> (t#1 -:> gt#"Bool")]) •[(gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> gt#"Bool")]) • t2
 
---         let t4 := Term.cast t#0 t3 ((d#"eq@Maybe" •[t#0]) • #0)
---         let R' <- t4.infer_type MaybeBoolCtx (ζ ++ Δ) Γ
---         return R'
+        -- let t4 := Term.cast t#0 t3 ((d#"eq@Maybe" •[t#0]) • #0)
+        -- let R' <- t4.infer_type MaybeBoolCtx (ζ ++ Δ) Γ
+        return (ζ ++ Δ, Γ) -- R'
 
---       else none
---       -- let T <- t.infer_type G Ks.to_list Γ
---       -- if T == R then return () else none
---   | _ => none
+      else none
+      -- let T <- t.infer_type G Ks.to_list Γ
+      -- if T == R then return () else none
+  | _ => none
 
 
 def NothingCtor (T : Ty) : Term := ctor! "Nothing" #(T) .nil .nil
@@ -150,18 +150,18 @@ def mt3 := openm! "eq" #(gt#"Maybe" • gt#"Bool") .nil (Vec.to #( iMaybeBool ))
 def e1 := (mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor
 #eval e1
 
-def e2 := (e1.eval MaybeBoolCtx).getD (d#"fail")
-#eval e2
-def e3 := (e2.eval MaybeBoolCtx).getD (d#"fail")
-#eval e3
-def e4 := (e3.eval MaybeBoolCtx).getD (d#"fail")
-#eval e4
-def e5 := (e4.eval MaybeBoolCtx).getD (d#"fail")
-#eval e5
-def e6 := (e5.eval MaybeBoolCtx).getD (d#"fail")
-#eval e6
-def e7 := (e6.eval MaybeBoolCtx).getD (d#"fail")
-#eval e7
+-- def e2 := (e1.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e2
+-- def e3 := (e2.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e3
+-- def e4 := (e3.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e4
+-- def e5 := (e4.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e5
+-- def e6 := (e5.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e6
+-- def e7 := (e6.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e7
 
 
 

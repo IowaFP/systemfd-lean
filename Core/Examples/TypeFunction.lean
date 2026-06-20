@@ -10,9 +10,6 @@ import Core.Examples.Maybe
 namespace Core.Examples
 
 def TypeFunCtx : GlobalEnv := [
-  --    -- not : Bool → Bool → Bool = λ x if x ← True then False else True
-  --   .term (#12 -t> #13)
-  --          (`λ[#12] Term.ite #11 #0 #12 #11),
 
   --   Λ t u v. λ d1 d2.
   --     If FMM[t][u] ← d1 then Λ a' b'. λ (h1: Maybe a' ~  t) (h2 : Maybe b' ~ u) (e1 : F a' b').
@@ -23,10 +20,8 @@ def TypeFunCtx : GlobalEnv := [
 
 
   -- FMM : ∀ a b a' b'. Maybe a' ~ a → Maybe b' ~ b → F a' b' → F a b
-  .octor "FMM" ⟨4 , #(★, ★, ★, ★), 0, #(), 3,
-             #((gt#"Maybe" • t#1) ~[★]~ t#3,
-               (gt#"Maybe" • t#0) ~[★]~ t#2,
-               (gt#"F" • t#1) • t#0),
+  .octor "FMM" ⟨2 , #(★, ★), 2, #(★, ★),
+          3, #((gt#"Maybe" • t#1) ~[★]~ t#3, (gt#"Maybe" • t#0) ~[★]~ t#2, (gt#"F" • t#1) • t#0),
              ((gt#"F" • t#3) • t#2)⟩,
 
   -- fdf : Λ t u v. λ (d1 : F t u)  (d2 : F t v).
@@ -56,7 +51,7 @@ def TypeFunCtx : GlobalEnv := [
 #eval! do
   match lookup "fdF" TypeFunCtx with
   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
-      -- Ks1 := #(★, ★) Ks2 := () Ts := [F t u, F t v] R := u ~ v
+      -- Ks1 := #(★, ★, ★) Ks2 := #() Ts := [F t u, F t v] R := u ~ v
       if "fdF" == y then
         let Δ := (Ks1.list ++ Ks2.list).reverse
         let (ζ, Γ) <- pattern_binders TypeFunCtx Δ n Ts #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
@@ -68,6 +63,25 @@ def TypeFunCtx : GlobalEnv := [
   | _ => none
 
 
+/-
+some ([★, ★, ★, ★, ★, ★, ★],
+ [gt#F • t#1 • t#0,
+  (gt#Maybe • t#0) ~[★]~ t#2,
+  (gt#Maybe • t#1) ~[★]~ t#4,
+  gt#F • t#3 • t#2,
+  (gt#Maybe • t#2) ~[★]~ t#5,
+  (gt#Maybe • t#3) ~[★]~ t#6])
+-/
+
+/-
+some ([★, ★, ★, ★, ★, ★, ★],
+ [gt#F • t#1 • t#0,
+  (gt#Maybe • t#0) ~[★]~ t#2,
+  (gt#Maybe • t#1) ~[★]~ t#4,
+  gt#F • t#1 • t#0,
+  (gt#Maybe • t#0) ~[★]~ t#3,
+  (gt#Maybe • t#1) ~[★]~ t#4])
+-/
 
 -- #eval! do
 --   match lookup "fdF" TypeFunCtx with
@@ -83,6 +97,18 @@ def TypeFunCtx : GlobalEnv := [
 
 --       else none
 --   | _ => none
+
+
+-- f : ∀ t. F Int t → t → t
+--   = Λ t λ (d : F Int t).
+--     let h : Bool ~ t = fdF[Int][Bool][t](FIB [Int][Bool] <Int> <Bool>) d in
+--     not ▹ <→> `@c h `@c h
+-- def fnot := Λ[★]`λ[#10 `@k #11 `@k #0]
+--         .letterm ((#15 ~[★]~ #1))
+--           (#10 `@t #12 `@t #15 `@t #1
+--                `@ (#9 `@t #12 `@t #15 `@ (refl! ★ #12) `@ (refl! ★ #15))
+--                `@ #0)
+--             (#3 ▹ (#0 -c> #1))
 
 
 

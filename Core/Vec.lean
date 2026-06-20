@@ -813,4 +813,12 @@ induction cs
       rcases ih with ⟨i, ih⟩; apply Or.inr; exists i.succ
 
 
+-- returns the maximum sized list form a vector of lists
+def Vec.max (vs : Vec (List α) n) : Nat :=
+  vs.foldl (λ (acc : Nat) (x : List α) => if x.length > acc then x.length else acc) 0
+
+theorem Vec.max_sound {vs : Vec (List α) n} :
+  vs.max = k ->
+  ∀ i : Fin n, vs[i].length ≤ k := by sorry
+
 end Lilac

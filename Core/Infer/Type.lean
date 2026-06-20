@@ -122,13 +122,16 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let Ss <- smτs.to.sequence
   let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data .cls G)
   let _ <- mTs.sequence
+  -- infer the type of binders
   let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
   let ζξ <- mξs.to.sequence
   let (ζ , ξ) := ζξ.unzip
+  -- infer the type of each branch by updating the typing and kinding ctx
   let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G (ζ[i] ++ Δ) (ξ[i] ++ Γ)
+  -- check the patterns are exhaustive
   let _ <- check_exhaustive G Ss ps.to
   let Ts' <- mTs'.to.sequence
-  let T <- Ts'.get_elem_if_eq
+  let T <- Ts'.get_elem_if_eq -- TODO : Fix me, map (λ T : Ty => T⟨.add Ty ((Vec.max ζ) - ζ[i].length) ⟩)
   if T⟨.sub Ty ζ.length⟩⟨.add Ty ζ.length⟩ == T
     then return T⟨.sub Ty ζ.length⟩ else none
 
