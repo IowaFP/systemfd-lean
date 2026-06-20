@@ -76,16 +76,26 @@ def List.enumerate (l : List α) : List (Nat × α) :=
 
 
 def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option Unit
-| .openm x ⟨na, Ks, nb, Ts, R⟩ => do
+| .openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
+
+  let octors <- (Ts.map (λ T : Ty => lookup_octor G T)).sequence
+  let octors := octors.map (λ cs => Vec.from_list cs)
+  let ref_matrix : (p : Nat) × Vec (Vec String nc) p := Vec.populate octors |> cast (by rw[Nat.zero_add])
 
   let G := List.enumerate G
 
-  -- get all the instances of this method
-  let ιs := G.filter (λ e => match e with
-                             | (_, .inst y p _) => y == x
-                             | _ => false )
+  -- get all the patterns from instances of this method
+  let ιs : List (Nat × Pattern nc) := G.filterMap (λ e => match e with
+         | (i, .inst (m := m) y p _) =>
+           if h : y == x && m == nc
+           then let p' : Pattern nc := p |> cast (by simp at h; rw[h.2])
+                some ⟨i, p'⟩
+           else none
+         | _ => none )
+  let ιs := Vec.from_list ιs
 
-
+  let mbs := ref_matrix.2.map (λ r => ((ιs.2.map (λ i => i.2.to_ctor_names)).findIdx! (· == r)))
+  let mbs <- mbs.sequence
 
   return ()
 | _ => return ()

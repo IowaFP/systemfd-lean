@@ -37,7 +37,7 @@ def MaybeBoolCtx : GlobalEnv := [
    /- Λ t.
         If EqMaybe[t] <- i.
             Λ u. λ (tmu : t ~ Maybe u). λ eqU : Eq u.
-            eqMaybe @Bool eqU ▹ sym (tmu -c> tmu -c> <Bool>)
+            eqMaybe @u eqU ▹ sym (tmu -c> tmu -c> <Bool>)
     -/
   .inst "eq" #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩) (-- #1 : t ~ Maybe u, #0 : Eq u
         eq_maybe_inst
@@ -149,19 +149,31 @@ def mt3 := openm! "eq" #(gt#"Maybe" • gt#"Bool") .nil (Vec.to #( iMaybeBool ))
 
 def e1 := (mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor
 #eval e1
+#guard e1.infer_type MaybeBoolCtx [] []  == some (gt#"Bool")
 
--- def e2 := (e1.eval MaybeBoolCtx).getD (d#"fail")
--- #eval e2
--- def e3 := (e2.eval MaybeBoolCtx).getD (d#"fail")
--- #eval e3
--- def e4 := (e3.eval MaybeBoolCtx).getD (d#"fail")
--- #eval e4
--- def e5 := (e4.eval MaybeBoolCtx).getD (d#"fail")
--- #eval e5
--- def e6 := (e5.eval MaybeBoolCtx).getD (d#"fail")
--- #eval e6
--- def e7 := (e6.eval MaybeBoolCtx).getD (d#"fail")
--- #eval e7
+/-
+(eq •[(gt#Maybe • gt#Bool)]•[]•{EqMaybe •[(gt#Maybe • gt#Bool)]•[gt#Bool] •{EqBool •[gt#Bool]•[]•{(refl! gt#Bool)}, (refl! (gt#Maybe • gt#Bool))}}
+    • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }) • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }
+-/
+
+def e2 := (e1.eval MaybeBoolCtx).getD (d#"fail")
+#eval e2
+/-
+((((d#eq@Maybe •[gt#Maybe • gt#Bool]) • (refl! (gt#Maybe • gt#Bool)))▸(((d#sym •[t#0 -:> t#0 -:> gt#Bool]) •[(gt#Maybe • (gt#Maybe • gt#Bool)) -:> (gt#Maybe • (gt#Maybe • gt#Bool)) -:> gt#Bool]) • ((((((d#arrowc •[t#0]) •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[t#0 -:> gt#Bool]) •[(gt#Maybe • (gt#Maybe • gt#Bool)) -:> gt#Bool]) • EqBool •[gt#Bool, ]•[]•{(refl! gt#Bool), }) • ((((((d#arrowc •[t#0]) •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[gt#Bool]) •[gt#Bool]) • EqBool •[gt#Bool, ]•[]•{(refl! gt#Bool), }) • (refl! gt#Bool))))) • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }) • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }
+-/
+
+#eval! e2.infer_type MaybeBoolCtx [] []
+
+def e3 := (e2.eval MaybeBoolCtx).getD (d#"fail")
+#eval e3
+def e4 := (e3.eval MaybeBoolCtx).getD (d#"fail")
+#eval e4
+def e5 := (e4.eval MaybeBoolCtx).getD (d#"fail")
+#eval e5
+def e6 := (e5.eval MaybeBoolCtx).getD (d#"fail")
+#eval e6
+def e7 := (e6.eval MaybeBoolCtx).getD (d#"fail")
+#eval e7
 
 
 
@@ -170,10 +182,7 @@ end Core.Examples
 
 /-
 
-((((d#eq@Maybe •[gt#Maybe • gt#Bool]) •
-             (refl! (gt#Maybe • gt#Bool))) ▸
-                    ((refl! (t#0 -:> (t#0 -:> gt#Bool))) ▸ (((refl! (t#0 -:> (t#0 -:> gt#Bool))) ▸ ((((((d#arrowc •[t#0])
-                    •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[gt#Bool]) •[gt#Bool]) • EqBool •[gt#Bool | ]•[]•{(refl! gt#Bool) | }) • (refl! gt#Bool)))▸EqBool •[gt#Bool | ]•[]•{(refl! gt#Bool) | }))) • Just •[gt#Bool | ]•[]•{True •[]•[]•{} | }) • Just •[gt#Bool | ]•[]•{True •[]•[]•{} | }
+((((d#eq@Maybe •[gt#Maybe • gt#Bool]) • (refl! (gt#Maybe • gt#Bool)))▸(((d#sym •[t#0 -:> t#0 -:> gt#Bool]) •[(gt#Maybe • (gt#Maybe • gt#Bool)) -:> (gt#Maybe • (gt#Maybe • gt#Bool)) -:> gt#Bool]) • ((((((d#arrowc •[t#0]) •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[t#0 -:> gt#Bool]) •[(gt#Maybe • (gt#Maybe • gt#Bool)) -:> gt#Bool]) • EqBool •[gt#Bool | ]•[]•{(refl! gt#Bool) | }) • ((((((d#arrowc •[t#0]) •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[gt#Bool]) •[gt#Bool]) • EqBool •[gt#Bool | ]•[]•{(refl! gt#Bool) | }) • (refl! gt#Bool))))) • Just •[gt#Bool | ]•[]•{True •[]•[]•{} | }) • Just •[gt#Bool | ]•[]•{True •[]•[]•{} | }
 
 
 -/

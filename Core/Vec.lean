@@ -455,7 +455,7 @@ theorem Vec.unzip_length_2 {vs : Vec (α × β) n} : vs.unzip.2.length = vs.leng
 theorem Vec.unzip_eta_get_elem {vs : Vec (α × β) n} : ∀ i : Fin n, vs[i] = (vs.unzip.1[i], vs.unzip.2[i]) := by
 sorry
 
-def Vec.findIdx {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
+def Vec.findIdx! {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
 | #() => none
 | .cons x xs => go (x::xs) 0
 where
@@ -464,9 +464,9 @@ where
   | n + 1, .cons x xs, i => if p x then Fin.ofNat (n + 1) i else Fin.succ <$> go xs i
 
 
-#guard Vec.findIdx (· == 3) #(3, 1, 2) == some 0
-#guard Vec.findIdx (· == 4) #(0, 4, 2) == some 1
-#guard Vec.findIdx (· == 5) #(0, 1, 5) == some 2
+#guard Vec.findIdx! (· == 3) #(3, 1, 2) == some 0
+#guard Vec.findIdx! (· == 4) #(0, 4, 2) == some 1
+#guard Vec.findIdx! (· == 5) #(0, 1, 5) == some 2
 
 -- @[simp]
 -- def Vec.zip {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> Vec (Q × Q') n
@@ -820,5 +820,11 @@ def Vec.max (vs : Vec (List α) n) : Nat :=
 theorem Vec.max_sound {vs : Vec (List α) n} :
   vs.max = k ->
   ∀ i : Fin n, vs[i].length ≤ k := by sorry
+
+def Vec.from_list : List α -> (n : Nat) × Vec α n
+| .nil => ⟨0, .nil⟩
+| .cons x xs =>
+  let ⟨n, v⟩ := from_list xs
+  ⟨n + 1, x :: v⟩
 
 end Lilac

@@ -24,7 +24,7 @@ def Term.is_data (v : DataConst) : Vec Term m -> Option (Vec Constructor m)
 | .cons _ _ => none
 
 def get_match (ctors : Vec Constructor m) (ps : Vec (Pattern m) n) : Option (Fin n) :=
-  ps.findIdx (Pattern.match ctors)
+  ps.findIdx! (Pattern.match ctors)
 
 namespace Test.Eval
 
@@ -65,10 +65,10 @@ def Term.eval (G : List Global) : Term ->  Option Term
 
 | .spctor (n := n) .openm x Ts1 Ts2 ss => do
   let m_ss : Vec (Option Term) n := Fun.Vec.to (λ i => eval G (ss i))
-  match (m_ss).findIdx? Option.isSome with
+  match (m_ss).findIdx! Option.isSome with
   | none =>
     let ctors <- Term.is_data .opn ss.to
-    let ⟨_, _, b⟩ <- get_instance x ctors G
+    let ⟨m, p, b⟩ <- get_instance x ctors G
     let τ := Ts1.list.map su ++ Ts2.list.map su ++ Subst.id Ty
     let σ := Constructor.subst ctors
     return b[τ][σ]
@@ -79,7 +79,7 @@ def Term.eval (G : List Global) : Term ->  Option Term
 
 | .mtch m n ss ps bs => do
   let m_ss : Vec (Option Term) m := Fun.Vec.to (λ i => eval G (ss i))
-  match (m_ss).findIdx? Option.isSome with
+  match (m_ss).findIdx! Option.isSome with
   | none =>
     let ctors <- Term.is_data .cls ss.to
     let σ := Constructor.subst ctors

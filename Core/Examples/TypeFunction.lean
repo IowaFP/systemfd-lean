@@ -66,8 +66,8 @@ def TypeFunCtx : GlobalEnv := [
 /-
 some ([★, ★, ★, ★, ★, ★, ★],
  [gt#F • t#1 • t#0,
-  (gt#Maybe • t#0) ~[★]~ t#2,
-  (gt#Maybe • t#1) ~[★]~ t#4,
+  (gt#Maybe • t#0) ~[★]~ t#2, -- Expected (gt#Maybe • t#0) ~[★]~ t#4
+  (gt#Maybe • t#1) ~[★]~ t#4, -- Exptected (gt#Maybe • t#1) ~[★]~ t#6
   gt#F • t#3 • t#2,
   (gt#Maybe • t#2) ~[★]~ t#5,
   (gt#Maybe • t#3) ~[★]~ t#6])

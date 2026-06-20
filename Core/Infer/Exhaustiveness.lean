@@ -97,7 +97,7 @@ def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : 
   let ps' := patterns_to_ctor_names ps
 
   -- check that each entry in ref_matrix has an associated entry ps'
-  let mbs := ref_matrix.2.map (λ r => ps'.findIdx? (λ x => x == r))
+  let mbs := ref_matrix.2.map (λ r => ps'.findIdx! (λ x => x == r))
   let idxs <- mbs.sequence
   return ⟨ref_matrix.fst, ⟨ref_matrix.snd , idxs⟩⟩
 

@@ -122,6 +122,7 @@ def t3 : Term := ((openm! "eq" #( gt#"Bool") #() (Vec.to (#(iBool)))) • TrueCt
 #guard t3.eval_loop EqBoolCtx == FalseCtor
 
 
+#guard EqBoolCtx.check_open_exhaustive == some ()
 
 
 

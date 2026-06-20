@@ -124,10 +124,10 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .defn n => "d#" ++ n
 | spctor (n := n) _ x tys1 tys2 tms =>
          let tms' : Fun.Vec Std.Format n := λ i => Term.repr max_prec (tms i)
-         let tms' : Std.Format := Vec.foldl (λ acc t => t ++ " | " ++ acc) Std.Format.nil tms'.to
+         let tms' : Std.Format := Vec.foldl (λ acc t => t ++ ", " ++ acc) Std.Format.nil tms'.to
          x ++ " "
-         ++ "•" ++ Std.Format.sbracket (Vec.foldl (λ acc t => t.repr max_prec ++ " | " ++ acc) Std.Format.nil tys1)
-         ++ "•" ++ Std.Format.sbracket (Vec.foldl (λ acc t => t.repr max_prec ++ " | " ++ acc) Std.Format.nil tys2)
+         ++ "•" ++ Std.Format.sbracket (Vec.foldl (λ acc t => t.repr max_prec ++ ", " ++ acc) Std.Format.nil tys1)
+         ++ "•" ++ Std.Format.sbracket (Vec.foldl (λ acc t => t.repr max_prec ++ ", " ++ acc) Std.Format.nil tys2)
          ++ "•" ++ "{" ++ tms' ++ "}"
 | .ctor0 (.refl t) => Std.Format.paren ("refl! " ++ Ty.repr max_prec t)
 | .ctor1 (.prj n) t => "(prj! " ++ Nat.repr n ++ " " ++ Term.repr p t ++ ")"
