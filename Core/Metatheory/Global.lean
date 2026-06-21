@@ -357,11 +357,11 @@ theorem SpineKinding.weaken_global_ctors (wf : ⊢ (Global.data n y K ctors :: G
 theorem PatternBinders.weaken_global (wf : ⊢ (g::G))
   : PatternBinders G Δ m S p ζ ξ -> PatternBinders (g::G) Δ m S p ζ ξ
 | zero => zero
-| succ j1 j2 e1 e2 j3 =>
+| succ j1 j2 e1 e2 e3 j3 =>
   let j1' := lookup_spine_type_weaken wf j1
   let j2' := λ i => (j2 i).weaken_global wf
   let j3' := j3.weaken_global wf
-  succ j1' j2' e1 e2 j3'
+  succ j1' j2' e1 e2 e3 j3'
 
 theorem CoercionProject.weaken_global (wf : ⊢ (g::G))
   : CoercionProject G Δ n T R -> CoercionProject (g::G) Δ n T R

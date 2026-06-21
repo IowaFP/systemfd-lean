@@ -333,7 +333,7 @@ theorem CoercionProject.extend Δ
 theorem PatternBinders.extend Δ
   : PatternBinders G Δ₁ m S p ζ ξ -> PatternBinders G (Δ₁ ++ Δ) m S p ζ ξ
 | zero => zero
-| succ j1 j2 e1 e2 j3 => succ j1 (λ i => (j2 i).extend) e1 e2 (j3.extend _)
+| succ j1 j2 e1 e2 e3 j3 => succ j1 (λ i => (j2 i).extend) e1 e2 e3 (j3.extend _)
 
 theorem Typing.extend Δ Γ : G&Δ₁,Γ₁ ⊢ t : A -> G&(Δ₁ ++ Δ),(Γ₁ ++ Γ) ⊢ t : A
 | var (x := x) j1 j2 => var (extend_lemma j1) j2.extend

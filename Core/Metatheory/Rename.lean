@@ -166,20 +166,38 @@ theorem CoercionProject.rename_type Δr (r : Ren Ty) (h : ∀ i, Δ[i]? = Δr[r.
 | fst_arrow j => fst_arrow (j.rename _ _ h)
 | snd_arrow j => snd_arrow (j.rename _ _ h)
 
+theorem test {r1 r2 : Ren Ty} {Δ Δ1 Δ2 : List Kind}
+  (h1 : ∀ i, Δ[i]? = Δ1[r1.act i]?)
+  (h2 : ∀ i, Δ[i]? = Δ2[r2.act i]?)
+  : r1 ∘ r2 = r2 ∘ r1
+:= by
+  simp [Ren.compose]; funext; case _ i =>
+
+  induction i
+  case zero => sorry
+  case succ i ih =>
+
+    sorry
+
 theorem PatternBinders.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r.act i]?) :
-  PatternBinders G Δ m S p ζ ξ -> PatternBinders G Δr m S⟨r⟩ p⟨r⟩ ζ ξ⟨r⟩
+  PatternBinders G Δ m S p ζ ξ -> PatternBinders G Δr m S⟨r⟩ p⟨r⟩ ζ ξ⟨.add Ty ζ.length ∘ r⟩
 | zero => zero
-| @succ G Δ nc c na Ks1 nb Ks2 Ts R As R' n S p ℓ1 ℓ2 Ts' e1 j1 e2 e3 j2 =>
+| @succ G Δ nc c na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' e1 j1 e2 e3 e4 j2 =>
   have e1' : lookup_spine_type G c = (some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩)⟨r⟩ := by
     have lem := GlobalWf.closed_lookup_spine_type_ren wf e1 r
     simp; simp at lem; grind
-  have e2' : Ts'⟨r⟩ = (Vec.map (·⟨r.lift (na + nb)⟩) Ts)[As⟨r⟩.list.reverse.map su ++ Subst.id Ty]⟨Ren.add Ty ℓ1.length⟩ := by
-    rw [e2]; simp; sorry
-  have e3' : R'⟨r⟩ = R⟨r.lift (na + nb)⟩[As⟨r⟩.list.reverse.map su ++ Subst.id Ty] := by
-    rw [e3]; simp; sorry
   have j1' := λ i => (j1 i).rename Δr r h
   have j2' := j2.rename_type Δr r wf h
-  succ (Ts' := Ts'⟨r⟩) e1' (j1' ▸ simp) e2' e3' j2' ▸ congr; simp; sorry
+  have e2' : Ts'⟨Ren.add Ty (nb + ℓ1.length) ∘ r⟩ = (Vec.map (fun x => x⟨r.lift (na + nb)⟩) Ts)[(List.map su As⟨r⟩.list.reverse ++ Subst.id Ty).lift nb]⟨Ren.add Ty ℓ1.length⟩ := by
+    sorry
+  have e3' : ℓ2'⟨Ren.add Ty (nb + ℓ1.length) ∘ r⟩ = ℓ2⟨Ren.add Ty ℓ1.length ∘ r⟩⟨Ren.add Ty ℓ1.length⟩ := by
+    rw [e3];
+    sorry
+  have e4' : R'⟨r⟩ = R⟨r.lift (na + nb)⟩[(List.map su As⟨r⟩.list.reverse ++ Subst.id Ty).lift nb]⟨Ren.sub Ty nb⟩ := by
+    rw [e4]
+    sorry
+  succ (Ts' := Ts'⟨Ren.add Ty (nb + ℓ1.length) ∘ r⟩) (ℓ2' := ℓ2'⟨Ren.add Ty (nb + ℓ1.length) ∘ r⟩)
+    e1' (j1' ▸ simp) e2' e3' e4' j2' ▸ congr; simp
 
 theorem Query.Match.rename_type (r : Ren Ty) :
   Query.Match q p -> Query.Match q p⟨r⟩
@@ -313,9 +331,9 @@ theorem Pattern.bind_zero : {p : Pattern 0} -> p.bind = 0
 
 theorem PatternBinders.length : PatternBinders G Δ m S p ζ ξ -> p.bind = ξ.length
 | zero => by simp
-| succ j1 j2 e1 e2 j3 => by
+| succ j1 j2 e1 e2 e3 j3 => by
   have lem := j3.length
-  simp [Pattern.bind]; grind
+  simp [Pattern.bind, e2]; grind
 
 theorem Typing.rename Γr (r : Ren Term) (wf : ⊢ G)
   (h : ∀ {i}, Γ[i]? = Γr[r.act i]?)
