@@ -228,21 +228,14 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
   · intro i; replace ih2 := @ih2 ζ ξ i (T⟨.add Ty ζ[i].length⟩)
     rw[Vec.to_get_elem]; rw[Vec.to_get_elem];
     apply ih2
-    replace h10 := h10 i; simp at h10
-    replace h8 := h8 i; simp at h8
-    sorry
-    -- apply ih2
-    -- replace h10 := h10 i;
-    -- have lem : ζξ.unzip.fst[i].length = n := by sorry
-    -- rw[Vec.to_get_elem] at h10; rw[h12 i] at h10; unfold ζ; unfold ξ; rw[lem];
-    -- rw[h10]; simp; apply Eq.symm e1
-
+    replace h10 := h10 i; simp at h10; rcases h10 with ⟨e1, e2⟩
+    replace h8 := h8 i; simp at h8; unfold ζ; unfold ξ; rw[h8]; rw[Vec.to_get_elem]; simp
+    replace h12 := h12 i; subst T; rw[<-e2]; simp; apply (Eq.symm e1)
   · intro q qs;
-    sorry
-    -- rw[<-Vec.to_iso (v := S)] at h8;
-    -- have lem := pattern_exhaustive_sound qs h8
-    -- rcases lem with ⟨i, lem⟩
-    -- exists i; rw[Fun.Vec.to_get_elem ps]; apply lem
+    rw[<-Vec.to_iso (v := S)] at h13;
+    have lem := pattern_exhaustive_sound qs h13
+    rcases lem with ⟨i, lem⟩
+    exists i; rw[Fun.Vec.to_get_elem ps]; apply lem
 
 case _ ih1 ih2 => -- cast
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
