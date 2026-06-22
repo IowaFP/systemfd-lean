@@ -1,4 +1,4 @@
 import Core.Examples.Boolean
-import Core.Examples.Nat
-import Core.Examples.Monad
+import Core.Examples.Maybe
 import Core.Examples.FunDeps
+import Core.Examples.TypeFunction

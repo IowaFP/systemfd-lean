@@ -200,24 +200,6 @@ def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (
 -- def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!
 -- def is_defn G x := lookup x G |> Option.map Entry.is_defn |> Option.get!
 
-theorem lookup_name_eq :
-  lookup x G = some e ->
-  e.name = x := by
-intro h
-fun_induction lookup
-cases h
-simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all
-case _ ctors _ ctors' _ ih =>
-  replace h := Vec.fold_or h
-  cases h
-  case _ h => apply ih h
-  case _ h =>
-    rcases h with ⟨i, h⟩
-    unfold ctors' at h; simp at h;
-    rw[<-h.2]; rw[<-h.1]; simp [Entry.name]
-any_goals (simp at h; cases e <;> (simp at h; try simp [Entry.name]); simp_all)
-any_goals (case _ ih => apply ih h)
-
 def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
   let ⟨d, _⟩ <- T.spine
   G.filterMapM (λ g => match g with

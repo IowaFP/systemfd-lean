@@ -14,7 +14,11 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
   all_goals try solve | subst h; simp [Entry.name]
   case _ n y K ctors tl ctors' h2 ih =>
   generalize zdef : lookup x tl = z at *
-  sorry
+  replace h := Vec.fold_or h
+  cases h
+  case _ h => apply ih h
+  case _ h => sorry
+
 
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
   intro n wf

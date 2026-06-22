@@ -13,7 +13,6 @@ open LeanSubst
 
 namespace Core
 
-
 theorem pattern_binders_sound {G : GlobalEnv} {Δ : KindEnv} {m : Nat} {Ts : Vec Ty m} {p : Pattern m}:
   pattern_binders G Δ m Ts p = some (ζ, ξ) ->
   PatternBinders G Δ m Ts p ζ ξ := by
@@ -25,14 +24,14 @@ case _ =>
   subst e1; subst e2
   apply PatternBinders.zero
 case _ n ih =>
-  cases Ts; case _ T S =>
+  cases Ts; case _ R' S =>
   cases p; case _ p ps' =>
-  rcases p with ⟨p1, _, p2, p3, p4⟩
+  rcases p with ⟨p1, _, p2, nb, p4⟩
   unfold pattern_binders at h; simp at h;
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ζ, ξ⟩, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ℓ1, ℓ2⟩, h2, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨na, Ks1, nb, Ks2, nc, Ts, R⟩, h4, h⟩
   simp at h; rcases h with ⟨h5, h⟩
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks, h6, h⟩; simp at h
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks1, h6, h⟩; simp at h
   rcases h with ⟨h7, h8, h9⟩
   rcases h9 with ⟨h9, h10⟩; subst h9; subst h10
   rcases h5 with ⟨⟨e1, e2⟩, e3⟩
@@ -40,13 +39,13 @@ case _ n ih =>
   replace ih := ih h2
   replace h6 := Vec.map_seq_sound _ h6
   replace h7 := Vec.eq_sound_lem h7; simp at h7; subst h7
-  sorry
-  -- apply @PatternBinders.succ (G := G) (Δ := Δ) (Ks1 := Ks) (Ks2 := Ks2) (Ts := Ts)
-  -- · apply h4
-  -- · intro i; replace h6 := h6 i; apply infer_kind_sound h6
-  -- · simp; sorry -- simp
-  -- · sorry -- simp; apply Eq.symm h8
-  -- · apply ih
+  apply PatternBinders.succ
+  · apply h4
+  · intro i; replace h6 := h6 i; replace h6 := infer_kind_sound h6; apply h6
+  · simp;
+  · simp; rfl
+  · simp; apply h8
+  · apply ih
 
 theorem query_match_sound : query_match q ps = some () -> Query.Match q ps := by
 intro h
@@ -206,13 +205,14 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨ζξ, h6, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h7, h8, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h9, h10, h⟩
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨T, h12, h13⟩
-  simp at h13; rcases h13 with ⟨e1, e2⟩
-  subst e2;
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨T, h12, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h13, h⟩
+  cases h;
   replace h2 := Vec.seq_sound1 _ h2
   replace h4 := Vec.map_seq_sound _ h4
   replace h6 := Vec.seq_sound1 _ h6
-  replace h10 := Vec.seq_sound3 _ h10
+  replace h8 := Vec.seq_sound3 _ h8
+  replace h10 := Vec.map_seq_sound _ h10
   replace h12 := Vec.get_elem_if_eq_sound h12
   let ζ := ζξ.unzip.1
   let ξ := ζξ.unzip.2
@@ -225,19 +225,24 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
     apply pattern_binders_sound;
     rw[Vec.to_get_elem]; simp; rw[Vec.to_get_elem]; rw[Vec.to_get_elem] at h6; rw[h6]; simp; unfold ζ; unfold ξ;
     apply Vec.unzip_eta_get_elem -- unzip law
-  · intro i; replace ih2 := @ih2 ζ ξ i
-    rw[Vec.to_get_elem]; simp; rw[Vec.to_get_elem];
+  · intro i; replace ih2 := @ih2 ζ ξ i (T⟨.add Ty ζ[i].length⟩)
+    rw[Vec.to_get_elem]; rw[Vec.to_get_elem];
     apply ih2
-    replace h10 := h10 i;
-    have lem : ζξ.unzip.fst[i].length = n := by sorry
-    rw[Vec.to_get_elem] at h10; rw[h12 i] at h10; unfold ζ; unfold ξ; rw[lem];
-    rw[h10]; simp; apply Eq.symm e1
+    replace h10 := h10 i; simp at h10
+    replace h8 := h8 i; simp at h8
+    sorry
+    -- apply ih2
+    -- replace h10 := h10 i;
+    -- have lem : ζξ.unzip.fst[i].length = n := by sorry
+    -- rw[Vec.to_get_elem] at h10; rw[h12 i] at h10; unfold ζ; unfold ξ; rw[lem];
+    -- rw[h10]; simp; apply Eq.symm e1
 
   · intro q qs;
-    rw[<-Vec.to_iso (v := S)] at h8;
-    have lem := pattern_exhaustive_sound qs h8
-    rcases lem with ⟨i, lem⟩
-    exists i; rw[Fun.Vec.to_get_elem ps]; apply lem
+    sorry
+    -- rw[<-Vec.to_iso (v := S)] at h8;
+    -- have lem := pattern_exhaustive_sound qs h8
+    -- rcases lem with ⟨i, lem⟩
+    -- exists i; rw[Fun.Vec.to_get_elem ps]; apply lem
 
 case _ ih1 ih2 => -- cast
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩

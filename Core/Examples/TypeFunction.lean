@@ -27,7 +27,6 @@ namespace Core.Examples
 
 
 def TypeFunCtx : GlobalEnv := [
-
   --   Λ t u v. λ d1 d2.
   --     If FMM[t][u] ← d1 then Λ a' b'. λ (h1: Maybe a' ~  t) (h2 : Maybe b' ~ u) (e1 : F a' b').
   --     If FMM[t][v] ← d2 then Λ a'' b''. λ (k1: Maybe a'' ~ t) (k2 : Maybe b'' ~ v) (e2 : F a'' b'').

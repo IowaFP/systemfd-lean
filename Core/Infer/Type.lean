@@ -62,7 +62,7 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
       let σ := As.list.reverse.map su ++ Subst.id Ty
       let Ts := Ts[σ.lift nb]⟨.add Ty ℓ1.length⟩
       let ℓ2' := ℓ2⟨(Ren.add Ty nb).lift ℓ1.length⟩
-      if R[σ.lift nb] == R'⟨.add Ty nb⟩ then return (ℓ1 ++ Ks2.list.reverse, ℓ2' ++ Ts.list.reverse) else none
+      if R'⟨.add Ty nb⟩ == R[σ.lift nb] then return (Ks2.list.reverse ++ ℓ1, ℓ2' ++ Ts.list.reverse) else none
     else none
   else none
 | _, _ ,_ => none
@@ -126,13 +126,15 @@ def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> 
   let ζξ <- mξs.to.sequence
   let (ζ , ξ) := ζξ.unzip
   -- infer the type of each branch by updating the typing and kinding ctx
-  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G (ζ[i] ++ Δ) (ξ[i] ++ Γ)
+  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G (ζ[i] ++ Δ) (ξ[i] ++ Γ⟨.add Ty ζ[i].length⟩)
+  let Ts' <- mTs'.to.sequence
+  let Ts' := (Ts'.zip ζ).map (λ (T, z) =>
+                      if T⟨.sub Ty z.length⟩⟨.add Ty z.length⟩ == T then return T⟨.sub Ty z.length⟩ else none)
+  let Ts <- Ts'.sequence
+  let T <- Ts.get_elem_if_eq
   -- check the patterns are exhaustive
   let _ <- check_exhaustive G Ss ps.to
-  let Ts' <- mTs'.to.sequence
-  let T <- Ts'.get_elem_if_eq -- TODO : Fix me, map (λ T : Ty => T⟨.add Ty ((Vec.max ζ) - ζ[i].length) ⟩)
-  if T⟨.sub Ty ζ.length⟩⟨.add Ty ζ.length⟩ == T
-    then return T⟨.sub Ty ζ.length⟩ else none
+  return T
 
 | .cast R c t => do
   let e <- c.infer_type G Δ Γ

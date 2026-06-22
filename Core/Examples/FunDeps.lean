@@ -8,7 +8,7 @@ import Core.Examples.Common
 
 namespace Core.Examples
 
-def FunDepsCtx : List Global := [
+def FunDepsCtx : GlobalEnv := [
 
   -- id :: ∀ A B. Equal A B -> A -> B =
   --     Λ A B. λ i a. a |> fdEqual1 A A B (EqualTT A A (refl A)) i
@@ -54,7 +54,7 @@ def FunDepsCtx : List Global := [
 ] ++ Examples.CastCtx
 
 #guard GlobalEnv.wf_globals FunDepsCtx == .some ()
-
+#guard FunDepsCtx.check_open_exhaustive == some ()
 
 -- #eval! do
 --   let i := inst! "EqualTT" #(t#1, t#1) #() #(refl! t#1).to

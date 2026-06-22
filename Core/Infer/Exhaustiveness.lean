@@ -15,12 +15,17 @@ namespace Core
 -- abbrev SpineTy := (m1 : Nat) × Vec Kind m1 × (m2 : Nat) × Vec Kind m2 × (n : Nat) × Vec Ty n × Ty
 
 theorem ctor_data_linked {ctors : Vec _ n} {T : String} {spTy : SpineTy}{Tys : List Ty}:
+  ⊢ G ->
   lookup T G = some (Entry.data T a ctors) ->
   lookup c G = some (Entry.ctor c k spTy) ->
   spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
   ∃ i : Fin n, ctors[i].1 = c
 := by
-intro h1 h2 h3
+intro wf h1 h2 h3
+induction G <;> simp [lookup] at *
+case _ e G ih =>
+cases wf; case _ wf wfe =>
+replace ih := ih wf
 
 sorry
 

@@ -374,7 +374,20 @@ case _ n x xs ih1 ih2 =>
 --   let ⟨_, i⟩ <- Vec.find_aux p vs 0
 --   return i
 
-theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx? p vs = some i ->
+def Vec.findIdx! {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
+| #() => none
+| .cons x xs => go (x::xs) 0
+where
+  go : {n : Nat} -> Vec α n -> Nat -> Option (Fin n)
+  | _, #(), _ => none
+  | n + 1, .cons x xs, i => if p x then Fin.ofNat (n + 1) i else Fin.succ <$> go xs i
+
+
+#guard Vec.findIdx! (· == 3) #(3, 1, 2) == some 0
+#guard Vec.findIdx! (· == 4) #(0, 4, 2) == some 1
+#guard Vec.findIdx! (· == 5) #(0, 1, 5) == some 2
+
+theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx! p vs = some i ->
    p vs[i] = true := by sorry
 
 -- def Vec.find_aux_sound {n k: Nat} (p : T -> Bool) (vs : Vec T n) (ei : T × Fin n) :
@@ -458,19 +471,6 @@ theorem Vec.unzip_length_1 {vs : Vec (α × β) n} : vs.unzip.1.length = vs.leng
 theorem Vec.unzip_length_2 {vs : Vec (α × β) n} : vs.unzip.2.length = vs.length := by sorry
 theorem Vec.unzip_eta_get_elem {vs : Vec (α × β) n} : ∀ i : Fin n, vs[i] = (vs.unzip.1[i], vs.unzip.2[i]) := by
 sorry
-
-def Vec.findIdx! {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
-| #() => none
-| .cons x xs => go (x::xs) 0
-where
-  go : {n : Nat} -> Vec α n -> Nat -> Option (Fin n)
-  | _, #(), _ => none
-  | n + 1, .cons x xs, i => if p x then Fin.ofNat (n + 1) i else Fin.succ <$> go xs i
-
-
-#guard Vec.findIdx! (· == 3) #(3, 1, 2) == some 0
-#guard Vec.findIdx! (· == 4) #(0, 4, 2) == some 1
-#guard Vec.findIdx! (· == 5) #(0, 1, 5) == some 2
 
 -- @[simp]
 -- def Vec.zip {n} : (ps: Vec Q n) -> (cs : Vec Q' n) -> Vec (Q × Q') n
