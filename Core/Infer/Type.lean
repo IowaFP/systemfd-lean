@@ -61,10 +61,8 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
     then
       let σ := As.list.reverse.map su ++ Subst.id Ty
       let Ts := Ts[σ.lift nb]⟨.add Ty ℓ1.length⟩
-      let ℓ2' := ℓ2⟨.add Ty ℓ1.length⟩
-      --(ℓ1 ++ Ks2.list.reverse, ℓ2 ++ Ts.list.reverse)
-      --some ⟨[], [R[σ.lift nb], R'⟨.add Ty nb⟩]⟩
-      if R[σ.lift nb]⟨.sub Ty nb⟩ == R' then return (ℓ1 ++ Ks2.list.reverse, ℓ2' ++ Ts.list.reverse) else none
+      let ℓ2' := ℓ2⟨(Ren.add Ty nb).lift ℓ1.length⟩
+      if R[σ.lift nb] == R'⟨.add Ty nb⟩ then return (ℓ1 ++ Ks2.list.reverse, ℓ2' ++ Ts.list.reverse) else none
     else none
   else none
 | _, _ ,_ => none

@@ -78,28 +78,10 @@ inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec T
   lookup_spine_type G c = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
   (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks1[i]) ->
   Ts' = Ts[Subst.lift (k := nb) $ As.list.reverse.map su ++ Subst.id Ty]⟨.add Ty ℓ1.length⟩ ->
-  ℓ2' = ℓ2⟨.add Ty ℓ1.length⟩ ->
-  R' = R[Subst.lift (k := nb) $ As.list.reverse.map su ++ Subst.id Ty]⟨.sub Ty nb⟩ ->
+  ℓ2' = ℓ2⟨(Ren.add Ty nb).lift ℓ1.length⟩ ->
+  R'⟨.add Ty nb⟩ = R[Subst.lift (k := nb) $ As.list.reverse.map su ++ Subst.id Ty] ->
   PatternBinders G Δ n S p ℓ1 ℓ2 ->
   PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (Ks2.list.reverse ++ ℓ1) (ℓ2' ++ Ts'.list.reverse)
-
-
--- inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Kind -> List Ty -> Prop
--- | zero : PatternBinders G Δ 0 ss ps [] []
--- | succ {Ts' : Vec _ nc} :
---   lookup_spine_type G c = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
---   (∀ (i : Fin na), G&Δ ⊢ As[i] : Ks1[i]) ->
---   Ts' = Ts[As.list.reverse.map su ++ Subst.id Ty]⟨.add Ty ℓ1.length⟩ ->
---   R' = R[As.list.reverse.map su ++ Subst.id Ty] ->
---   PatternBinders G Δ n S p ℓ1 ℓ2 ->
---   PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (ℓ1 ++ Ks2.list.reverse) (ℓ2 ++ Ts'.list.reverse)
-
-/-
-  data Term
-  | nat : ∀ α, α ~ Nat -> Term α
-  | app : ∀ α, Term α -> Term α -> Term α
-
--/
 
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :
@@ -153,7 +135,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
   (∀ i, (S i).data? .cls G) ->
   (∀ i, PatternBinders G Δ m S (ps i) (ζ i) (ξ i)) ->
-  (∀ i, Typing G (ζ i ++ Δ) (ξ i ++ Γ) (ts i) T⟨.add Ty (ζ i).length⟩) ->
+  (∀ i, Typing G (ζ i ++ Δ) (ξ i ++ Γ⟨.add Ty (ζ i).length⟩) (ts i) T⟨.add Ty (ζ i).length⟩) ->
   (∀ {q}, Query G .cls q S -> ∃ i, Query.Match q (ps i)) ->
   Typing G Δ Γ (.mtch m n ss ps ts) T
 ----------------------------------------------------------------------------------------------------

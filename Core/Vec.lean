@@ -199,6 +199,10 @@ instance [SubstMap S T] [SubstMap T T] : SubstMapCompose (Vec S n) T where
   apply_compose := sorry
 
 @[grind =]
+theorem Vec.rmap_promote [RenMap S T] {v : Vec S n} {r : Ren T} : Vec.map (·⟨r⟩) v = v⟨r⟩ := by
+  induction v <;> simp [*]
+
+@[grind =]
 theorem Vec.to_rmap [RenMap S T] {r : Ren T} {v : Fun.Vec S m}
   : (v.to)⟨r⟩ = Fun.Vec.to (fun i => (v i)⟨r⟩)
 := sorry

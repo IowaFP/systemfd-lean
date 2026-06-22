@@ -168,6 +168,20 @@ namespace LeanSubst
     : (r ∘ Ren.succ T) ∘ (a :: Subst.id T) = r.to
   := by simp [compose_ren_left, Ren.to]
 
+  theorem Ren.lift_of_succ_rev {r : Ren S} : r.lift (1 + k) = r.lift.lift k := by
+    induction k; simp
+    case _ k ih =>
+    rw [Ren.lift_of_succ, <-ih, <-Ren.lift_of_succ]
+    congr 1
+
+  @[grind =]
+  theorem Ren.lift_of_add {r : Ren S} : r.lift (a + b) = (r.lift a).lift b := by
+    induction a generalizing b; simp
+    case _ a ih =>
+    rw [Ren.lift_of_succ]
+    rw [<-Ren.lift_of_succ_rev]
+    rw [<-ih]; congr 1; omega
+
   @[simp]
   theorem Subst.ren_to_hcompose [SubstMap S T] {r : Ren S} {σ : Subst T}: r.to ◾ σ = r.to := sorry
 

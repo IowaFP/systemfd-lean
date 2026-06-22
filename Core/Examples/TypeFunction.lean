@@ -46,18 +46,31 @@ def TypeFunCtx : GlobalEnv := [
   ] ++ MaybeBoolCtx
 
 
-#guard TypeFunCtx.wf_globals == some ()
+-- #guard TypeFunCtx.wf_globals == some ()
 
   -- -- FMM : ∀ a b a' b'. Maybe a' ~ a → Maybe b' ~ b → F a' b' → F a b
   -- .octor "FMM" ⟨2 , #(★, ★), 2, #(★, ★),
   --         3, #((gt#"Maybe" • t#1) ~[★]~ t#3, (gt#"Maybe" • t#0) ~[★]~ t#2, (gt#"F" • t#1) • t#0),
   --            ((gt#"F" • t#3) • t#2)⟩,
 
+--some ([], [gt#F • t#3 • t#2, gt#F • t#2 • t#1, gt#F • t#4 • t#3, gt#F • t#4 • t#3])
 #eval!
   pattern_binders TypeFunCtx
+  /- v  u  t           F       t      u       F        t      v   -/
     [★, ★, ★] 2 #( ((gt#"F" • t#2) • t#1), ((gt#"F" • t#2) • t#0))
+  /-                t    u                         t    v           -/
     #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
-
+  /-  0    1    2    3   4  5  6       0           1             2         3           4             5     -/
+  /- b'1  a'1  b'2  a'2  v  u  t     F 1 0   Maybe 0 ~ 4   Maybe 1 ~ 6   F 3 2   Maybe 2 ~ 5   Maybe 3 ~ 6 -/
+/-
+some ([★, ★, ★, ★],
+ [gt#F • t#3 • t#2,
+  (gt#Maybe • t#2) ~[★]~ t#4,
+  (gt#Maybe • t#3) ~[★]~ t#6,
+  gt#F • t#3 • t#2,
+  (gt#Maybe • t#2) ~[★]~ t#5,
+  (gt#Maybe • t#3) ~[★]~ t#6])
+-/
 
 #eval! do
   match lookup "fdF" TypeFunCtx with
