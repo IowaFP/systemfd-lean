@@ -10,7 +10,7 @@ def DataConst.beq : DataConst -> DataConst -> Bool
 | .cls, .cls => true
 | _, _ => false
 
-instance instBeq_DataConst : BEq DataConst where
+instance instBEq_DataConst : BEq DataConst where
   beq := DataConst.beq
 
 def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
@@ -18,7 +18,14 @@ def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
 | refl A, refl B => A == B
 -- | _, _ => false
 
-deriving instance BEq for SpCtorVariant
+def SpCtorVariant.beq : SpCtorVariant -> SpCtorVariant -> Bool
+| .openm, .openm => true
+| .data c1, .data c2 => c1 == c2
+| _, _ => false
+
+instance instBEq_SpCtorVariant : BEq SpCtorVariant where
+  beq := SpCtorVariant.beq
+
 
 instance instBEq_Ctor0Variant : BEq Ctor0Variant where
   beq := Ctor0Variant.beq
@@ -126,32 +133,19 @@ instance instBEq_Term : BEq Term where
   beq := Term.beq
 
 instance instReflBEq_Term : ReflBEq Term where
-  rfl := by sorry
-    -- intro a; induction a <;> simp [instBEq_Term, Term.beq] at *
-    -- all_goals (repeat assumption)
-    -- constructor; assumption; assumption
-    -- constructor; constructor; assumption; assumption; assumption
-    -- case «match» ih1 ih2 ih3 ih4 =>
-    -- constructor
-    -- · constructor
-    --   · constructor; assumption;
-    --     unfold Vect.fold;
-    --     case _ n _ _ _ _ =>
-    --     induction n
-    --     case _ => simp
-    --     case _ n ih v1 v2 =>
+  rfl := by
+    intro a; induction a <;> simp +instances [instBEq_Term, Term.beq, instBEq_SpCtorVariant]
+    all_goals try (case _ ih => apply ih)
+    all_goals try (case _ ih1 ih2 => apply And.intro; apply ih1; apply ih2)
+    case _ ts ih =>
+      apply And.intro
+      · apply And.intro
+        · sorry
+        · sorry
+      · sorry
+    sorry
 
-    --       -- split
-    --       -- simp;
-    --     -- case _ => rfl
-    --     -- case _ =>
-    --     --   split; case _ h =>
-    --     --   cases h; simp at *
-    --     --   constructor
-    --     --   apply ih3
-    --       sorry
-    --   · sorry
-    -- · assumption
+
 
 instance instLawfulBEq_Term : LawfulBEq Term where
   eq_of_beq := by sorry

@@ -15,7 +15,7 @@ namespace Infer.Ty.Test
 
 def bool_ctors_sig : SpineTy := ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩
 
-def G : List Global := [
+def G : GlobalEnv := [
   .odata "Eq" (★ -:> ★)
   , .data 2 "Bool" ★ #( ("True",  bool_ctors_sig) , ("False", bool_ctors_sig) )
   -- , .data 0 "Empty" ★ Vec.nil
@@ -48,7 +48,7 @@ def query_patterns (q : Vec String m) (ps : Vec (Pattern m) n) : Option (Fin n)
  := Vec.findIdx! (λ p => (query_match q p).isSome) ps
 
 @[simp]
-def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Kind × List Ty)
+def pattern_binders (G : GlobalEnv) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Kind × List Ty)
 | 0, _, _ => some ([], [])
 | m + 1, .cons R' Ss, .cons ⟨c, na, As, nb, nc⟩ ps => do
   let (ℓ1, ℓ2) <- pattern_binders G Δ m Ss ps
@@ -69,7 +69,7 @@ def pattern_binders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -
 
 
 @[simp]
-def Term.infer_type (G : List Global) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
+def Term.infer_type (G : GlobalEnv) (Δ : List Kind) (Γ : List Ty) : Term -> Option Ty
 | #x => do
   let T <- Γ[x]?
   let Tk <- T.infer_kind G Δ

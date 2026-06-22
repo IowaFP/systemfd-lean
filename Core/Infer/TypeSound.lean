@@ -72,10 +72,9 @@ cases h2;
 rcases lem with ⟨j, lem⟩
 replace h6 := h6 j;
 replace h6 := Vec.findIdx_sound h6; simp at h6;
-exists idxs.to j
-rw[<-lem]; rw[Vec.to_get_elem (vs := idxs)]
+rw[lem] at h6;
+exists idxs[j].rev
 apply pattern_match_rfl.1 h6
-
 
 theorem data_valid_sound (G : GlobalEnv) :
   Ty.valid_data c G T = some () ->
