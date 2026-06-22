@@ -27,6 +27,7 @@ case _ =>
 case _ n ih =>
   cases Ts; case _ T S =>
   cases p; case _ p ps' =>
+  rcases p with ⟨p1, _, p2, p3, p4⟩
   unfold pattern_binders at h; simp at h;
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ζ, ξ⟩, h2, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨na, Ks1, nb, Ks2, nc, Ts, R⟩, h4, h⟩
@@ -39,12 +40,13 @@ case _ n ih =>
   replace ih := ih h2
   replace h6 := Vec.map_seq_sound _ h6
   replace h7 := Vec.eq_sound_lem h7; simp at h7; subst h7
-  apply @PatternBinders.succ (G := G) (Δ := Δ) (Ks1 := Ks) (Ks2 := Ks2) (Ts := Ts)
-  · apply h4
-  · intro i; replace h6 := h6 i; apply infer_kind_sound h6
-  · simp; sorry -- simp
-  · sorry -- simp; apply Eq.symm h8
-  · apply ih
+  sorry
+  -- apply @PatternBinders.succ (G := G) (Δ := Δ) (Ks1 := Ks) (Ks2 := Ks2) (Ts := Ts)
+  -- · apply h4
+  -- · intro i; replace h6 := h6 i; apply infer_kind_sound h6
+  -- · simp; sorry -- simp
+  -- · sorry -- simp; apply Eq.symm h8
+  -- · apply ih
 
 theorem query_match_sound : query_match q ps = some () -> Query.Match q ps := by
 intro h

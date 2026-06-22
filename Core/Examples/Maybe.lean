@@ -78,6 +78,9 @@ def MaybeBoolCtx : GlobalEnv := [
 
 #guard MaybeBoolCtx.wf_globals == .some ()
 
+#eval MaybeBoolCtx.check_open_exhaustive == some ()
+#guard GlobalEnv.check_open_exhaustive (MaybeBoolCtx.tail) == none
+
 -- #eval lookup "eq" MaybeBoolCtx
 -- na = 1, Ks1 = [★], nb = 0, Ks2 = [],   nc = 1,  Ts := [Eq t],              R := t -> t -> Bool
 -- #eval lookup_spine_type MaybeBoolCtx "EqMaybe"
