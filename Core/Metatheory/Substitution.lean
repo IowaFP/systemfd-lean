@@ -1,12 +1,16 @@
 import LeanSubst
 import Core.Typing
+import Core.Util
 import Core.Metatheory.Rename
 
+open Lilac
 open LeanSubst
+
 namespace Core
+
 theorem Kinding.subst_lift {Δ Δσ : List Kind} {σ : Subst Ty} T :
-  (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
-  ∀ i K, (T::Δ)[i]? = some K -> G&(T::Δσ) ⊢ σ.lift 1 i : K
+  (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K) ->
+  ∀ (i : Nat) K, (T::Δ)[i]? = some K -> G&(T::Δσ) ⊢ σ.lift.act i : K
 := by
   intro h1 i K h2
   cases i <;> simp at *
@@ -17,7 +21,7 @@ theorem Kinding.subst_lift {Δ Δσ : List Kind} {σ : Subst Ty} T :
     simp at h1; exact h1
 
 theorem Kinding.subst Δσ (σ : Subst Ty) :
-  (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
+  (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K) ->
   G&Δ ⊢ A : K ->
   G&Δσ ⊢ A[σ] : K
 := by
@@ -45,357 +49,305 @@ theorem Kinding.subst Δσ (σ : Subst Ty) :
 theorem Kinding.beta :
   G&(T::Δ) ⊢ A : K ->
   G&Δ ⊢ t : T ->
-  G&Δ ⊢ A[su t::+0] : K
+  G&Δ ⊢ A[su t::+0σ] : K
 := by
   intro j1 j2
-  apply Kinding.subst Δ (su t::+0) _ j1
+  apply Kinding.subst Δ (su t::+0σ) _ j1
   intro i K h; cases i <;> simp at *
   case _ => subst h; exact j2
   case _ i => apply var h
 
--- theorem ValidHeadVariable.subst_type (σ : Subst Ty)
---   : ValidHeadVariable t test -> ValidHeadVariable t[σ:Ty] test
--- := by
---   intro j
---   rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
---   apply Exists.intro (x, sp.map (·[σ:Ty])); simp [*]
---   have lem := Spine.apply_eq e1; rw [lem]
---   simp
+@[simp]
+theorem Subst.compose_cons_lift [RenMap S S] [SubstMap S S] {σ τ : Subst S} : σ.lift ∘ (x :: τ) = x :: σ ∘ τ  := by
+  simp [Subst.compose, Subst.cons]; funext; case _ i =>
+  cases i <;> simp
+  sorry
 
--- theorem ValidHeadVariable.subst (σ : Subst Term)
---   : ValidHeadVariable t test -> ValidHeadVariable t[σ] test
--- := by
---   intro j
---   rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
---   apply Exists.intro (x, sp.map (·[σ:Term])); simp [*]
---   have lem := Spine.apply_eq e1; rw [lem]
---   simp
-
--- theorem ValidTyHeadVariable.subst (σ : Subst Ty)
---   : Ty.HeadVariable t test -> Ty.HeadVariable t[σ] test
--- := by
---   intro j
---   rcases j with ⟨⟨x, sp⟩, e1, e2⟩; simp at e2
---   apply Exists.intro (x, sp.map (·[σ:Ty])); simp [*]
---   have lem := Ty.Spine.apply_eq e1; rw [lem]
---   simp
-
--- theorem StableTypeMatch.subst Δσ (σ : Subst Ty) :
---   StableTypeMatch Δ A B ->
---   StableTypeMatch Δσ A[σ] B[σ]
--- := by
---   intro j
---   induction j generalizing Δσ σ
---   case refl R x Δ j =>
---     rcases x with ⟨x, sp⟩
---     apply refl (x := (x, sp.map (·[σ])))
---     have lem := Ty.Spine.apply_eq j
---     rw [lem]; simp
---   case arrow j ih =>
---     simp; apply arrow
---     apply ih _ _
---   case all K Δ B R j ih =>
---     simp; apply all
---     replace ih := ih (K::Δσ) σ.lift
---     simp at ih; simp; exact ih
-
--- theorem PrefixTypeMatch.subst Δσ (σ : Subst Ty) :
---   PrefixTypeMatch Δ A B C ->
---   PrefixTypeMatch Δσ A[σ] B[σ] C[σ]
--- := by
---   intro j
---   induction j generalizing Δσ σ
---   case refl B x Δ T j =>
---     rcases x with ⟨x, sp⟩
---     apply refl (x := (x, sp.map (·[σ])))
---     have lem := Ty.Spine.apply_eq j
---     rw [lem]; simp
---   case arrow j ih =>
---     simp; apply arrow
---     apply ih _ _
---   case all K Δ B V T j ih =>
---     simp; apply all
---     replace ih := ih (K::Δσ) σ.lift
---     simp at ih; simp; exact ih
-
-theorem Ty.spine_subst (Δ Δσ : List Kind) (σ: Subst Ty) (A : Ty) :
-  (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
-  A.spine = .some (H, sp) ->
-  A[r].spine = .some (H, sp.map (·[r])) := by
-intro h j
-induction A generalizing sp <;> simp at *
-all_goals (try case _ => unfold spine at j; cases j)
-case _ => unfold spine at j; simp at j; unfold spine; simp; assumption
-case _ f a ih1 ih2 => cases j; case _ spf j =>
-  cases j; case _ e1 h1 =>
-  have ih1' := ih1 h1
-  exists spf.map (·[r])
-  rw[e1]; constructor;
-  simp
-  assumption
-
--- theorem Global.type_subst_noop (G : List Global) (p : String) (σ : Subst Ty) : ⊢ G ->
---   ctor_ty G p = .some B ->
---   B[σ] = B := by
--- intro wf h
--- unfold ctor_ty at h;
--- generalize ludef : lookup_type G p = lu at *
--- cases lu <;> simp at *
--- rcases h with ⟨h1, h2⟩
--- cases h2
--- apply GlobalWf.closed wf ludef
-
-
-theorem Typing.subst_type Δσ (σ : Subst Ty) :
-  ⊢ G ->
-  (∀ i K, Δ[i]? = some K -> G&Δσ ⊢ σ i : K) ->
-  G&Δ,Γ ⊢ t : A ->
-  G&Δσ,Γ.map (·[σ]) ⊢ t[σ:Ty] : A[σ]
+theorem Subst.compose_append_id_commute_indirect
+  [RenMap S S] [RenMapId S S] [RenMapCompose S S]
+  [SubstMap S S] [SubstMapId S S]
+  {ℓ : List $ Action S} {σ : Subst S} (h : k = ℓ.length)
+  : (ℓ ++ Subst.id S) ∘ σ = σ.lift k ∘ (ℓ[σ] ++ Subst.id S)
 := by
-  intro wf h j; induction j generalizing Δσ σ <;> simp
-  case var => sorry
-    -- apply var; simp
-    -- apply Exists.intro _
-    -- apply And.intro j1 rfl
-    -- apply Kinding.subst _ σ h j2
-  case defn j1 j2 => sorry
-    -- have lem := GlobalWf.closed (σ := σ) wf j1; simp at lem
-    -- rw[lem]
-    -- replace j2 := Kinding.subst Δσ σ h j2; simp at j2;
-    -- rw [lem] at j2;
-    -- apply global j1 j2
-  case spctor => sorry
-  case mtch => sorry
-  -- case mtch _ s R c T A PTy ps cs _ vtyhv sJ ih1 _ ih3 _ ih5 ih6 ih7 ih8 ih9 =>
-  --   apply mtch (CTy := λ i => (A i)[σ]) (PTy := λ i => (PTy i)[σ])
-  --   apply ih6; assumption
-  --   apply ValidTyHeadVariable.subst; assumption
-  --   apply ih7; assumption
-  --   intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst_type; assumption
-  --   intro i; replace ih8 := ih8 i; apply ih8; assumption
-  --   intro i; replace ih3 := ih3 i; apply StableTypeMatch.subst; assumption
-  --   intro i; replace ih9 := ih9 i; apply ih9; assumption
-  --   intro i; replace ih5 := ih5 i; apply PrefixTypeMatch.subst; assumption
-  -- case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
-  --   apply guard
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  --   apply ih3 _ _ h
-  --   apply ValidHeadVariable.subst_type σ j4
-  --   apply ValidTyHeadVariable.subst σ j5
-  --   apply StableTypeMatch.subst _ _ j6
-  --   apply PrefixTypeMatch.subst _ _ j7
-  case lam j1 j2 ih =>
-    apply lam
-    apply Kinding.subst _ _ h j1
-    apply ih _ _ h
-  case app j1 j2 j3 ih1 ih2 =>
-    apply app
-    apply ih1 _ _ h
-    apply ih2 _ _ h
-  case lamt Δ K P t Γ jk j ih =>
-    replace ih := ih (K::Δσ) σ.lift (Kinding.subst_lift K h)
-    simp at ih; apply lamt; have lem := Kinding.subst _ _ h jk; simp at lem; exact lem; simp
-    unfold Function.comp at *; simp at *
-    exact ih
-  case appt f K P a P' j1 j2 j3 ih =>
-    apply appt (K := K) (P := P[σ.lift])
-    apply ih _ _ h
-    apply Kinding.subst _ _ h j2
-    rw [j3]; simp
-  case cast j1 j2 ih1 ih2 =>
+  induction ℓ generalizing σ k; simp [*]
+  case _ hd tl ih =>
+    simp [-Subst.rewrite_lift_k_ren] at *
+    rw [@ih (k - 1) σ (by simp [*])]
+    cases k; simp at h; case _ k =>
+    simp [-Subst.rewrite_lift_k_ren]
+    rw [Subst.rewrite_lift_succ, Subst.compose_cons_lift]
+
+theorem Subst.compose_append_id_commute_direct
+  [RenMap S S] [RenMapId S S] [RenMapCompose S S]
+  [SubstMap S S] [SubstMapId S S]
+  {ℓ : List $ Action S} {σ : Subst S}
+  : (ℓ ++ Subst.id S) ∘ σ = σ.lift ℓ.length ∘ (ℓ[σ] ++ Subst.id S)
+:= by
+  rw [compose_append_id_commute_indirect rfl]
+
+theorem Typing.subst_type_lift {Δ Δσ : List Kind} {σ : Subst Ty} K :
+  (∀ (i : Nat) T, Δ[i]? = some T → G&Δσ ⊢ (σ.act i) : T) ->
+  (∀ (i : Nat) T, (K::Δ)[i]? = some T → G&(K::Δσ) ⊢ (σ.lift.act i) : T)
+:= sorry
+
+theorem Typing.subst_type_lift_k {Δ Δσ : List Kind} {σ : Subst Ty} K :
+  (∀ (i : Nat) T, Δ[i]? = some T → G&Δσ ⊢ (σ.act i) : T) ->
+  (∀ (i : Nat) T, (K ++ Δ)[i]? = some T → G&(K ++ Δσ) ⊢ ((σ.lift K.length).act i) : T)
+:= sorry
+
+
+theorem CoercionProject.subst_type Δσ (σ : Subst Ty)
+  (h : (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K))
+  : CoercionProject G Δ n T A -> CoercionProject G Δσ n T[σ] A[σ]
+| fst_app j => fst_app (j.subst _ _ h)
+| snd_app j => snd_app (j.subst _ _ h)
+| fst_arrow j => fst_arrow (j.subst _ _ h)
+| snd_arrow j => snd_arrow (j.subst _ _ h)
+
+theorem Query.Match.subst_type (σ : Subst Ty) :
+  Query.Match q p -> Query.Match q p[σ]
+| .nil => .nil
+| .cons ⟨na, As, nb, e⟩ j2 =>
+  let j2' := Query.Match.subst_type σ j2
+  .cons ⟨na, As[σ], nb, by grind⟩ j2'
+
+theorem PatternBinders.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
+  (h : (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K))
+  : PatternBinders G Δ m S p ζ ξ ->
+  PatternBinders G Δσ m S[σ] p[σ] ζ ξ[σ.lift ζ.length]
+| zero => zero
+| @succ G Δ nc c na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' e1 j1 e2 e3 e4 j2 =>
+  have e1' : lookup_spine_type G c = (some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩)[σ] := by
+    have lem := GlobalWf.closed_lookup_spine_type wf e1 σ
+    simp; simp at lem; grind
+  have j1' := λ i => (j1 i).subst Δσ σ h
+  have j2' := j2.subst_type Δσ σ wf h
+  have e2' : Ts'[σ.lift (nb + ℓ1.length)] = (Vec.map (fun (x:Ty) => x[σ.lift (na + nb)]) Ts)[(List.map su As[σ].list.reverse ++ Subst.id Ty).lift nb]⟨Ren.add Ty ℓ1.length⟩ := by
+    rw [e2, Vec.smap_promote]; simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_k]; congr 1
     sorry
-  case refl j =>
-    apply refl
-    apply Kinding.subst _ _ h j
-  case prj => sorry
-  -- case sym j ih =>
-  --   apply sym
-  --   apply ih _ _ h
-  -- case seq j1 j2 ih1 ih2 =>
-  --   apply seq
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  -- case appc j1 j2 ih1 ih2 =>
-  --   apply appc
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  -- case arrowc j1 j2 ih1 ih2 =>
-  --   apply arrowc
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  -- case fst j1 j2 j3 ih =>
-  --   apply fst
-  --   apply Kinding.subst _ _ h j1
-  --   apply Kinding.subst _ _ h j2
-  --   apply ih _ _ h
-  -- case snd j1 j2 j3 ih =>
-  --   apply snd
-  --   apply Kinding.subst _ _ h j1
-  --   apply Kinding.subst _ _ h j2
-  --   apply ih _ _ h
-  case allc K Δ t A B Γ j ih =>
-    replace ih := ih (K::Δσ) σ.lift (Kinding.subst_lift K h)
-    simp at ih; apply allc; simp;
-    unfold Function.comp at *; simp at *
-    apply ih
-  case apptc Δ Γ f K A B a C D A' B' j1 j2 j3 j4 ih1 ih2 =>
-    apply apptc (A := A[σ.lift]) (B := B[σ.lift]) (C := C[σ]) (D := D[σ])
-    apply ih1 _ _ h
-    apply ih2 _ _ h
-    rw [j3]; simp
-    rw [j4]; simp
-  -- case zero j =>
-  --   apply zero
-  --   apply Kinding.subst _ _ h j
-  -- case choice j1 j2 j3 ih1 ih2 =>
-  --   apply choice
-  --   apply Kinding.subst _ _ h j1
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
+    -- rw [Subst.lift_of_add, <-Subst.compose_commute_add_ren_ren]
+    -- rw [<-Subst.rewrite7_ren, <-Subst.lift_compose_ren_right, Subst.compose_ren_append_id_commute_direct]
+    -- simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_k]
+    -- rw [Ren.lift_of_add, <-Subst.rewrite_lift_compose_ren_left]; congr
+    -- have lem : (List.map su As⟨r⟩.list).reverse = (List.map su As.list).reverse⟨r⟩ := by simp
+    -- rw [lem, <-Subst.compose_ren_append_id_commute_indirect]
+    -- all_goals simp
+  have e3' : ℓ2'[σ.lift (nb + ℓ1.length)] = ℓ2[σ.lift ℓ1.length]⟨(Ren.add Ty nb).lift ℓ1.length⟩ := by
+    sorry
+    -- rw [e3]; simp [-Subst.rewrite_lift_k_ren]
+    -- rw [Ren.lift_of_add, <-Ren.lift_compose, <-Subst.compose_commute_add_ren_ren]
+    -- rw [<-Ren.lift_compose]
+  have e4' : R'[σ]⟨.add Ty nb⟩ = R[σ.lift (na + nb)][(List.map su As[σ].list.reverse ++ Subst.id Ty).lift nb] := by
+    sorry
+    -- simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_k]; rw [Subst.compose_commute_add_ren_ren]
+    -- rw [<-Ren.apply_compose, e4]; simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_k]
+    -- congr; rw [<-Subst.lift_compose_ren_right, Subst.compose_ren_append_id_commute_direct]
+    -- rw [Ren.lift_of_add, Subst.rewrite_lift_compose_ren_left]
+    -- simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_k]
+  succ (Ts' := Ts'[σ.lift (nb + ℓ1.length)]) (ℓ2' := ℓ2'[σ.lift (nb + ℓ1.length)])
+    e1' (j1' ▸ simp) e2' e3' e4' j2' ▸ congr; simp
+
+theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
+  (h : (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K))
+  : G&Δ,Γ ⊢ t : A -> G&Δσ,Γ[σ] ⊢ t[σ] : A[σ]
+| var (x := x) j1 j2 =>
+  have lem : Γ[x]?[σ] = (some A)[σ] := by rw [j1]
+  var (by simp at lem; exact lem) (j2.subst _ _ h)
+| defn (x := x) (t := t) j1 j2 =>
+  have j1' : lookup_defn G x = some (A[σ], t[σ]) := by
+    have ⟨e1, e2, e3⟩ := GlobalWf.closed_lookup_defn wf j1
+    rw [e1 σ, e3 σ]; exact j1
+  defn j1' (j2.subst _ _ h)
+| @spctor G Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R' As Bs ts j1 e1 e2 j2 j3 j4 j5 j6 =>
+  have j1' : lookup_spine_type G x = (some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)[σ] := by
+    have lem := GlobalWf.closed_lookup_spine_type wf j1 σ
+    simp; simp at lem; grind
+  have e1' : Ts'[σ] = Ts[σ.lift (m1 + m2)][List.map su (As[σ].list ++ Bs[σ].list).reverse ++ Subst.id Ty] := by
+    rw [e1]; simp [-Subst.rewrite_lift_k];
+    generalize ℓdef : (List.map su Bs.list).reverse ++ (List.map su As.list).reverse = ℓ
+    have lem : (List.map su Bs[σ].list).reverse ++ (List.map su As[σ].list).reverse = ℓ[σ] := by
+      rw [<-ℓdef]; simp
+    rw [lem]
+    generalize kdef : m1 + m2 = k
+    rw [<-Subst.compose_append_id_commute_indirect]; simp
+    rw [<-ℓdef]; simp; rw [<-kdef]; omega
+  have e2' : R'[σ] = R[σ.lift (m1 + m2)][List.map su (As[σ].list ++ Bs[σ].list).reverse ++ Subst.id Ty] := by
+    rw [e2]; simp [-Subst.rewrite_lift_k]
+    generalize ℓdef : (List.map su Bs.list).reverse ++ (List.map su As.list).reverse = ℓ
+    have lem : (List.map su Bs[σ].list).reverse ++ (List.map su As[σ].list).reverse = ℓ[σ] := by
+      rw [<-ℓdef]; simp
+    rw [lem]
+    rw [<-Subst.compose_append_id_commute_indirect]; simp
+    rw [<-ℓdef]; simp; omega
+  have j2' : ∀ (i : Fin m1), G&Δσ ⊢ As[σ][i] : Ks1[i] := λ i =>
+    let lem := (j2 i).subst Δσ σ h
+    by simp at lem; exact lem
+  have j3' : ∀ (i : Fin m2), G&Δσ ⊢ Bs[σ][i] : Ks2[i] := λ i =>
+    let lem := (j3 i).subst Δσ σ h
+    by simp at lem; exact lem
+  have j4' : ∀ (i : Fin n), G&Δσ,Γ[σ] ⊢ (ts i)[σ] : Ts'[i][σ] := λ i =>
+    let lem := (j4 i).subst_type Δσ σ wf h
+    by simp at lem; simp; exact lem
+  have j5' : ∀ c, v = .data c → lookup_ctor? G c x R[σ.lift (m1 + m2)] = true :=
+    have lem := GlobalWf.closed_lookup_spine_type wf j1 σ
+    by simp at lem; simp; rw [lem.2]; exact j5
+  have j6' : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn G Ts[σ.lift (m1 + m2)][i] := λ e i =>
+    Ty.data?_closed (σ.lift (m1 + m2)) (j6 e i) ▸ simp
+  spctor (Ts := Ts[σ.lift (m1 + m2)]) (R := R[σ.lift (m1 + m2)])
+    (j1' ▸ simp) e1' e2' j2' j3' (λ i => j4' i ▸ simp [Term.Ty.smap_promote]) j5' j6'
+| mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
+  have j1' := λ i => (j1 i).subst_type Δσ σ wf h
+  have j2' := λ i => Ty.data?_closed σ (j2 i)
+  let ξ' := λ (i : Fin n) => (ξ i)[σ.lift (ζ i).length]
+  have j3' : ∀ (i : Fin n), PatternBinders G Δσ m S.to[σ] (ps i)[σ] (ζ i) (ξ' i) :=
+    λ i => (j3 i).subst_type Δσ σ wf h
+  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δσ),((ξ' i) ++ Γ[σ]⟨.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind_type] : A[σ]⟨.add Ty (ζ i).length⟩ := λ i => by
+    have lem1 := subst_type_lift_k (ζ i) h
+    have lem2 : (ζ i).length = (ps i).bind_type := Eq.symm (j3 i).length_type
+    rw [lem2] at lem1
+    have lem3 := (j4 i).subst_type (ζ i ++ Δσ) (σ.lift (ps i).bind_type) wf lem1
+    rw [lem2] at lem3; simp [-Subst.rewrite_lift_k] at lem3
+    rw [<-Subst.compose_commute_add_ren_subst] at lem3
+    simp [-Subst.rewrite_lift_k, lem2, ξ']; exact lem3
+  have j5' : ∀ {q}, (Query G .cls q S[σ]) → ∃ i, Query.Match q (ps i)[σ] :=
+    λ q => match j5 (Query.closed wf rfl q) with
+          | ⟨i, m⟩ => ⟨i, Query.Match.subst_type σ m⟩
+  mtch (ζ := ζ) (ξ := ξ') j1' j2'
+    (λ i => j3' i ▸ congr 1; grind)
+    (λ i => (j4' i) ▸ congr 1)
+    (λ {q} => @j5' q ▸ grind)
+| lam j1 j2 => lam (j1.subst Δσ σ h) (j2.subst_type _ _ wf h)
+| app j1 j2 => app (j1.subst_type _ _ wf h) (j2.subst_type _ _ wf h)
+| lamt (K := K) (P := P) (t := t) j1 j2 =>
+  let j2' : G&(K :: Δσ),Γ[σ]⟨.succ Ty⟩ ⊢ t[σ.lift] : P[σ.lift] := by
+    have lem := j2.subst_type (K::Δσ) σ.lift wf (Typing.subst_type_lift K h)
+    simp; simp at lem; exact lem
+  lamt (j1.subst Δσ σ h) j2'
+| appt (P := P) j1 j2 e =>
+  appt (P := P[σ.lift]) (j1.subst_type Δσ σ wf h) (j2.subst Δσ σ h) (by simp [e, Subst.compose_ren_right_assoc])
+| refl j1 => refl (j1.subst Δσ σ h)
+| cast (K := K) (A := A) (R := R) (R' := R') (c := c) (t := t) j1 j2 j3 e =>
+  have j1' := j1.subst _ _ (Kinding.subst_lift _ h)
+  have j2' := j2.subst_type Δσ σ wf h
+  have j3' : G&Δσ,Γ[σ] ⊢ t[σ] : R[σ.lift][su A[σ] :: +0σ] :=
+    have lem := j3.subst_type Δσ σ wf h
+    by simp [Subst.compose_ren_right_assoc]; simp at lem; exact lem
+  have lem : G&Δσ,Γ[σ] ⊢ .cast R[σ.lift] c[σ] t[σ] : R'[σ] :=
+    cast j1' j2' j3' (by simp [e, Ty.smap_promote, Subst.compose_ren_right_assoc])
+  by simp; simp at lem; exact lem
+| prj j1 j2 => prj (j1.subst_type _ _ wf h) (j2.subst_type _ _ h)
+| allc (K := K) (A := A) (B := B) (t := t) j1 =>
+  have j1' : G&(K::Δσ),Γ[σ]⟨.succ Ty⟩ ⊢ t[σ.lift] : (A[σ.lift] ~[★]~ B[σ.lift]) := by
+    have lem := j1.subst_type (K::Δσ) σ.lift wf (Typing.subst_type_lift K h)
+    simp; simp at lem; exact lem
+  allc j1'
+| apptc j1 j2 e1 e2 =>
+  let j1' := j1.subst_type _ _ wf h
+  let j2' := j2.subst_type _ _ wf h
+  apptc j1' j2'
+    (by simp [Ty.smap_promote, e1, Subst.compose_ren_right_assoc])
+    (by simp [Ty.smap_promote, e2, Subst.compose_ren_right_assoc])
 
 theorem Typing.beta_type :
   ⊢ G ->
   G&(K::Δ),Γ ⊢ t : A ->
   G&Δ ⊢ a : K ->
-  G&Δ,Γ.map (·[su a::+0]) ⊢ t[su a::+0:Ty] : A[su a::+0]
+  G&Δ,Γ[su a::+0σ] ⊢ t[su a::+0σ] : A[su a::+0σ]
 := by
   intro wf j1 j2
-  apply subst_type Δ (su a::+0) wf _ j1
+  apply subst_type Δ (su a::+0σ) wf _ j1
   intro i T h
   cases i <;> simp at *
   case _ => subst h; exact j2
   case _ i => apply Kinding.var h
 
-theorem Typing.subst_lift_type {Γ Γσ : List Ty} {σ : Subst Term} T :
-  ⊢ G ->
-  (∀ i A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ i : A) ->
-  ∀ i A, (Γ.map (·[+1]))[i]? = some A ->
-    G&(T::Δ) ⊢ A : ★ ->
-    G&(T::Δ),(Γσ.map (·[+1])) ⊢ (σ ◾ +1@Ty) i : A
-:= by sorry
-  -- intro wf h1 i A b h2 h3
-  -- cases i <;> simp at *
-  -- case _ =>
-  --   rcases h2 with ⟨a, e1, e2⟩; subst e2
-  --   replace h3 := Kinding.strengthening h3
-  --   replace h1 := h1 0 a b e1 h3
-  --   apply rename_type (T::Δ) (· + 1) wf _ h1
-  --   intro i; cases i <;> simp
-  -- case _ i =>
-  --   rcases h2 with ⟨a, e1, e2⟩; subst e2
-  --   replace h3 := Kinding.strengthening h3
-  --   replace h1 := h1 (i + 1) a b e1 h3
-  --   apply rename_type (T::Δ) (· + 1) wf _ h1
-  --   intro i; cases i <;> simp
+theorem Typing.subst_rename {Γ Γσ : List Ty} {σ : Subst Term} {Δ Δr : List Kind} (r : Ren Ty) :
+  (∀ i, Δ[i]? = Δr[r.act i]?) ->
+  (∀ (i:Nat) A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ.act i : A) ->
+  ∀ (i:Nat) A, Γ[i]?⟨r⟩ = some A -> G&Δr ⊢ A : ★ -> G&Δr,Γσ⟨r⟩ ⊢ (σ ◾ r).act i : A
+:= sorry
 
 theorem Typing.subst_lift {Γ Γσ : List Ty} {σ : Subst Term} T :
-  ⊢ G ->
-  (∀ i A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ i : A) ->
-  ∀ i A, (T::Γ)[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,(T::Γσ) ⊢ σ.lift 1 i : A
-:= by sorry
-  -- intro wf h1 i A K h2 h3
-  -- cases i <;> simp at *
-  -- case _ =>
-  --   subst h2; apply var
-  --   simp; apply h3
-  -- case _ i =>
-  --   replace h1 := h1 i A K h2 h3
-  --   replace h1 := weaken T wf h1
-  --   simp at h1; exact h1
+  (∀ (i:Nat) A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ.act i : A) ->
+  ∀ (i:Nat) A, (T::Γ)[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,(T::Γσ) ⊢ σ.lift.act i : A
+:= sorry
 
-theorem Typing.subst Γσ (σ : Subst Term) :
-  ⊢ G ->
-  (∀ i A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ i : A) ->
-  G&Δ,Γ ⊢ t : A ->
-  G&Δ,Γσ ⊢ t[σ] : A
+theorem Typing.subst_lift_k {Γ Γσ : List Ty} {σ : Subst Term} T :
+  (∀ (i:Nat) A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ.act i : A) ->
+  ∀ (i:Nat) A, (T ++ Γ)[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,(T ++ Γσ) ⊢ (σ.lift T.length).act i : A
 := by
-  intro wf h j; induction j generalizing Γσ σ <;> simp
-  case var => sorry
-  case defn j1 j2 => apply defn j1 j2
-  case spctor => sorry
-  case mtch => sorry
-  -- case mtch c _ A PTy pats cs _ _ _ ih1 ih2 ih3 ih4 ih5 ih6 ih7 ih8 ih9 =>
-  --   apply mtch (CTy := A) (PTy := PTy)
-  --   apply ih6; apply h
-  --   assumption
-  --   apply ih7; apply h
-  --   intro i; replace ih1 := ih1 i; apply ValidHeadVariable.subst; assumption
-  --   intro i; apply ih8; assumption
-  --   intro i; replace ih3 := ih3 i; assumption
-  --   intro i; replace ih9 := ih9 i; apply ih9; assumption
-  --   intro i; replace ih5 := ih5 i; assumption
-  -- case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
-  --   apply Typing.guard
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  --   apply ih3 _ _ h
-  --   apply ValidHeadVariable.subst σ j4
-  --   apply j5; apply j6; apply j7
-  case lam => sorry
-    -- replace ih := ih (A::Γσ) σ.lift (subst_lift A wf h)
-    -- simp at ih; apply lam j1 ih
-  case app j1 j2 j3 ih1 ih2 =>
-    apply app
-    apply ih1 _ _ h
-    apply ih2 _ _ h
-  case lamt j jk ih =>
-    replace ih := ih (Γσ.map (·[+1])) (σ ◾ +1@Ty) (subst_lift_type _ wf h)
-    apply lamt j ih
-  case appt j1 j2 j3 ih =>
-    apply appt _ j2 j3
-    apply ih _ _ h
-  case cast j1 j2 ih1 ih2 =>
-    sorry
-  case refl j => apply refl j
-  case prj => sorry
-  -- case sym j ih =>
-  --   apply sym
-  --   apply ih _ _ h
-  -- case seq j1 j2 ih1 ih2 =>
-  --   apply seq
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  -- case appc j1 j2 ih1 ih2 =>
-  --   apply appc
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  -- case arrowc j1 j2 ih1 ih2 =>
-  --   apply arrowc
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
-  -- case fst j1 j2 j3 ih =>
-  --   apply fst j1 j2
-  --   apply ih _ _ h
-  -- case snd j1 j2 j3 ih =>
-  --   apply snd j1 j2
-  --   apply ih _ _ h
-  case allc j ih =>
-    replace ih := ih (Γσ.map (·[+1])) (σ ◾ +1@Ty) (subst_lift_type _ wf h)
-    apply allc ih
-  case apptc j1 j2 j3 j4 ih1 ih2 =>
-    apply apptc
-    apply ih1 _ _ h
-    apply ih2 _ _ h
-    apply j3
-    apply j4
-  -- case zero j => apply zero j
-  -- case choice j1 j2 j3 ih1 ih2 =>
-  --   apply choice j1
-  --   apply ih1 _ _ h
-  --   apply ih2 _ _ h
+  sorry
+  -- intro h1 i
+  -- induction T generalizing Γ i <;> simp [-Subst.rewrite_lift_k_ren]
+  -- case nil => rw [h1]
+  -- case cons hd tl ih =>
+  --   cases i <;> simp [-Subst.rewrite_lift_k_ren, *]
+  --   case _ i =>
+  --     rw [Ren.lift_of_succ, Subst.rewrite_lift_ren]
+  --     simp [-Subst.rewrite_lift_k_ren]
+
+theorem Typing.subst_lift_succ {Γ Γσ : List Ty} {σ : Subst Term} K :
+  (∀ (i:Nat) A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ.act i : A) ->
+  ∀ (i:Nat) A, Γ⟨.succ Ty⟩[i]? = some A -> G&(K::Δ) ⊢ A : ★ -> G&(K::Δ),Γσ⟨.succ Ty⟩ ⊢ ((σ ◾ Ren.succ Ty).act i) : A
+:= sorry
+
+theorem Typing.subst Γσ (σ : Subst Term) (wf : ⊢ G)
+  (h : ∀ (i:Nat) A, Γ[i]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γσ ⊢ σ.act i : A)
+  : G&Δ,Γ ⊢ t : A ->
+  G&Δ,Γσ ⊢ t[σ] : A
+| var (x := x) j1 j2 => h x A j1 j2
+| defn (x := x) (t := t) j1 j2 =>
+  have ⟨e1, e2, e3⟩ := GlobalWf.closed_lookup_defn wf j1
+  have j1' : lookup_defn G x = some (A, t[σ]) := by
+    rw [e2 σ]; exact j1
+  defn j1' j2
+| spctor j1 e1 e2 j2 j3 j4 j5 j6 => spctor j1 e1 e2 j2 j3 (λ i => (j4 i).subst _ _ wf h) j5 j6
+| mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
+  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δ),(ξ i ++ Γσ⟨Ren.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind ◾ Subst.add Ty (ps i).bind_type] : A⟨Ren.add Ty (ζ i).length⟩ := λ i =>
+    have lem1 : (ps i).bind = (ξ i).length := (j3 i).length
+    have lem2 (k:Nat) A :
+      (ξ i ++ Γ⟨Ren.add Ty (ζ i).length⟩)[k]? = some A ->
+      G&(ζ i ++ Δ) ⊢ A : ★ ->
+      G&(ζ i ++ Δ),(ξ i ++ Γσ⟨Ren.add Ty (ζ i).length⟩) ⊢ ((σ.lift (ps i).bind ◾ Subst.add Ty (ps i).bind_type).act k) : A
+    := by
+      rw [lem1]
+      have h2 := subst_rename (Δr := ζ i ++ Δ) (Ren.add Ty (ζ i).length) sorry h
+      generalize zdef : σ ◾ Ren.add Ty (ζ i).length = z at h2
+      simp at h2
+      have h3 := subst_lift_k (ξ i) h2 k A
+      subst zdef
+      sorry
+      -- rw [lem1]
+      -- have h2 {j} := Typing.subst_rename r (Ren.add Ty (ζ i).length) h (i := j)
+      -- simp at h2
+      -- have h3 {j} := Typing.subst_lift_k r (ξ i) h2 (i := j)
+      -- exact h3
+    (j4 i).subst (ξ i ++ Γσ⟨Ren.add Ty (ζ i).length⟩) (σ.lift (ps i).bind ◾ Subst.add Ty (ps i).bind_type) wf lem2
+  mtch (λ i => (j1 i).subst _ _ wf h) j2 j3 j4' j5
+| lam (A := A) j1 j2 =>
+  let j2' := (j2.subst (A::Γσ) σ.lift wf (Typing.subst_lift A h) ▸ simp [Term.smap_promote])
+  lam j1 j2'
+| app j1 j2 => app (j1.subst _ _ wf h) (j2.subst _ _ wf h)
+| lamt j1 j2 =>
+  lamt j1 (j2.subst _ _ wf (Typing.subst_lift_succ _ h))
+| appt (P := P) j1 j2 e => appt (j1.subst _ _ wf h) j2 (by simp [*])
+| refl j1 => refl j1
+| cast j1 j2 j3 e => cast j1 (j2.subst _ _ wf h) (j3.subst _ _ wf h) e
+| prj j1 j2 => prj (j1.subst _ _ wf h) j2
+| allc j1 =>
+  allc (j1.subst _ _ wf (Typing.subst_lift_succ _ h))
+| apptc j1 j2 e1 e2 => apptc (j1.subst _ _ wf h) (j2.subst _ _ wf h) e1 e2
 
 theorem Typing.beta :
   ⊢ G ->
   G&Δ,(A::Γ) ⊢ t : T ->
   G&Δ,Γ ⊢ a : A ->
-  G&Δ,Γ ⊢ t[su a::+0] : T
+  G&Δ,Γ ⊢ t[su a::+0σ] : T
 := by
-  sorry
-  -- intro wf j1 j2
-  -- apply subst Γ (su a::+0) wf _ j1
-  -- intro i B K h1 h2
-  -- cases i <;> simp at *
-  -- case _ => subst h1; exact j2
-  -- case _ i => apply var h1 h2
+  intro wf j1 j2
+  apply subst Γ (su a::+0σ) wf _ j1
+  intro i B e h
+  cases i <;> simp at *
+  case _ => subst e; exact j2
+  case _ i => apply var e h
 end Core

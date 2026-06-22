@@ -203,6 +203,10 @@ theorem Vec.rmap_promote [RenMap S T] {v : Vec S n} {r : Ren T} : Vec.map (·⟨
   induction v <;> simp [*]
 
 @[grind =]
+theorem Vec.smap_promote [SubstMap S T] {v : Vec S n} {σ : Subst T} : Vec.map (·[σ]) v = v[σ] := by
+  induction v <;> simp [*]
+
+@[grind =]
 theorem Vec.to_rmap [RenMap S T] {r : Ren T} {v : Fun.Vec S m}
   : (v.to)⟨r⟩ = Fun.Vec.to (fun i => (v i)⟨r⟩)
 := sorry
