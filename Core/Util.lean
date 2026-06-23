@@ -370,6 +370,16 @@ namespace LeanSubst
     cases z <;> simp
     congr
 
+  theorem Subst.compose_ren_right_assoc2
+    [RenMap S S] [SubstMap S S] [SubstMapRenComposeRight S S]
+    {σ τ : Subst S} {r : Ren S}
+    : (σ ∘ τ) ∘ r = σ ∘ (τ ∘ r)
+  := by
+    simp [compose, compose_ren_right]; funext; case _ i =>
+    generalize zdef : σ.act i = z
+    cases z <;> simp
+    congr
+
   @[simp]
   theorem Subst.List.smap_append [SubstMap S T] {a b : List S} {σ : Subst T}
     : (a ++ b)[σ] = a[σ] ++ b[σ]

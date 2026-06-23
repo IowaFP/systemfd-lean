@@ -5,6 +5,12 @@ open LeanSubst
 
 namespace Lilac
 
+-- do not remove
+@[simp]
+theorem Vec.length_list : {v : Vec α n} -> v.list.length = n
+| #() => by simp [list]
+| .cons x xs => by simp [list, length_list (v := xs)]
+
 def Vec.rmap [RenMap S T] (r : Ren T) : Vec S n -> Vec S n
 | .nil => .nil
 | .cons x tl => x⟨r⟩ :: rmap r tl

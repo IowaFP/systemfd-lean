@@ -84,6 +84,28 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ 
     case _ h => apply ih1 h
     case _ h => apply ih2 h)
 
+theorem FV.mem_add {T : Ty} : x ∈ T⟨.add Ty k⟩ -> x ≥ k := by
+  intro h
+  generalize Zdef : T⟨Ren.add Ty k⟩ = Z at *
+  induction h generalizing T k
+  case var =>
+    cases T <;> simp at Zdef
+    subst Zdef; simp
+  case arrowr ih =>
+    cases T <;> simp at Zdef
+    apply ih Zdef.1
+  case arrowl => sorry
+  case eqr => sorry
+  case eql => sorry
+  case appr => sorry
+  case appl => sorry
+  case all A n K j ih =>
+    cases T <;> simp at Zdef
+    case _ K' B =>
+    rcases Zdef with ⟨e1, e2⟩; subst e1 e2
+
+    sorry
+
 theorem FV.zero_not_in_succ {T : Ty} : 0 ∉ T⟨.succ Ty⟩ := by
   have lem := @FV.var_not_in_one_more (T := T) 0
   simp at lem; apply lem

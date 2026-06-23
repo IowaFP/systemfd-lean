@@ -10,7 +10,6 @@ open LeanSubst
 namespace Core
 
 
-
 -- theorem GlobalWf.closed_ctors {v : Fun.Vec (Option Entry) n} {d : Option Entry} :
 --   ((Option.map Entry.type d).get! = some T -> ∀ σ, T[σ] = T) ->
 --   (∀ i e, v i = some e -> e.type = some T -> ∀ σ, T[σ] = T) ->
