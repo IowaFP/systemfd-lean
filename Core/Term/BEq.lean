@@ -13,10 +13,12 @@ def DataConst.beq : DataConst -> DataConst -> Bool
 instance instBEq_DataConst : BEq DataConst where
   beq := DataConst.beq
 
+instance instReflBEq_DataConst : ReflBEq DataConst where
+  rfl := by
+         intro a; induction a <;> simp +instances [instBEq_DataConst, DataConst.beq] at *
+
 def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
--- | fail, fail => true
 | refl A, refl B => A == B
--- | _, _ => false
 
 def SpCtorVariant.beq : SpCtorVariant -> SpCtorVariant -> Bool
 | .openm, .openm => true
@@ -26,6 +28,9 @@ def SpCtorVariant.beq : SpCtorVariant -> SpCtorVariant -> Bool
 instance instBEq_SpCtorVariant : BEq SpCtorVariant where
   beq := SpCtorVariant.beq
 
+instance instReflBEq_SpCtorVariant : ReflBEq SpCtorVariant where
+  rfl := by
+         intro a; induction a <;> simp +instances [instBEq_SpCtorVariant, SpCtorVariant.beq] at *
 
 instance instBEq_Ctor0Variant : BEq Ctor0Variant where
   beq := Ctor0Variant.beq
@@ -102,6 +107,12 @@ def Pattern.eq : Pattern m1 -> Pattern m2 -> Bool
   else false
 | _, _ => false
 
+instance instReflBEq_Vec [BEq α][ReflBEq α] : ReflBEq (Vec α n) where
+  rfl
+  := by
+     intro a
+     induction a <;> simp at *
+
 def Term.beq : Term -> Term -> Bool
 | var x, var y => x == y
 | defn x, defn y => x == y
@@ -110,8 +121,8 @@ def Term.beq : Term -> Term -> Bool
 | ctor2 c1 a1 b1, ctor2 c2 a2 b2 => c1 == c2 && beq a1 a2 && beq b1 b2
 | tbind A1 K1 t1, tbind A2 K2 t2 => A1 == A2 && K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
-| .cast A a1 a2, .cast B b1 b2 => A == B && beq a1 b1 && beq a2 b2
-| .mtch m1 n1 a1 b1 c1, .mtch m2 n2 a2 b2 c2 =>
+| cast A a1 a2, cast B b1 b2 => A == B && beq a1 b1 && beq a2 b2
+| mtch m1 n1 a1 b1 c1, mtch m2 n2 a2 b2 c2 =>
   if h : n1 == n2 && m1 == m2 then
     let a : Lilac.Fun.Vec Bool m1 := λ i => beq (a1 i) (a2 (by simp at h; rw [h.2] at i; exact i))
     let c : Lilac.Fun.Vec Bool n1 := λ i => beq (c1 i) (c2 (by simp at h; rw [h.1] at i; exact i))
@@ -119,9 +130,11 @@ def Term.beq : Term -> Term -> Bool
       let p1 : Pattern m1 := (b1 i).to
       let p2 : Pattern m2 := (b2 (by simp at h; rw[h.1] at i; exact i)).to
       Pattern.eq p1 p2
-    Vec.foldl (·&&·) true a.to && Vec.foldl (·&&·) true c.to && Vec.foldl (·&&·) true p.to
+    Vec.foldl (·&&·) true a.to
+    && Vec.foldl (·&&·) true c.to
+    && Vec.foldl (·&&·) true p.to
   else false
-| .spctor (n := n1) v1 s1 A1 B1 ts1, .spctor (n := n2) v2 s2 A2 B2 ts2 =>
+| spctor (n := n1) v1 s1 A1 B1 ts1, .spctor (n := n2) v2 s2 A2 B2 ts2 =>
   if h : n1 == n2
   then
     let bs : Lilac.Fun.Vec Bool n1 := (λ i => beq (ts1 i) (ts2 (by simp at h; rw[h] at i; exact i)))
@@ -132,19 +145,44 @@ def Term.beq : Term -> Term -> Bool
 instance instBEq_Term : BEq Term where
   beq := Term.beq
 
-instance instReflBEq_Term : ReflBEq Term where
-  rfl := by
-    intro a; induction a <;> simp +instances [instBEq_Term, Term.beq, instBEq_SpCtorVariant]
-    all_goals try (case _ ih => apply ih)
-    all_goals try (case _ ih1 ih2 => apply And.intro; apply ih1; apply ih2)
-    case _ ts ih =>
-      apply And.intro
-      · apply And.intro
-        · sorry
-        · sorry
-      · sorry
-    sorry
 
+instance instReflBEq_VecTy : ReflBEq (Vec Ty n) where
+   rfl := by
+          intro a
+          induction a <;> simp at *
+
+theorem Term.rfl : {a : Term} -> (a == a) = true
+| var _ | defn _ | ctor0 _ => by simp +instances [instBEq_Term, Term.beq]
+| ctor1 _ _ | tbind _ _ _ | lam _ _ =>  by simp +instances [instBEq_Term, Term.beq]; apply Term.rfl
+| ctor2 _ _ _ | cast _ _ _ => by simp +instances [instBEq_Term, Term.beq]; apply And.intro; apply Term.rfl; apply Term.rfl
+| mtch m n s p b =>
+  by simp +instances [instBEq_Term, Term.beq]
+     apply And.intro
+     · apply And.intro
+       · generalize zdef : Fun.Vec.to (λ i => (s i).beq (s i)) = z at *;
+         generalize fdef : (λ x1 x2 => x1 && x2) = f at *
+         generalize ddef : true = d at *
+         fun_induction Vec.foldl <;> simp at *
+         case _ hd tl ih =>
+         subst f; subst ddef; simp;
+         replace ih := ih s.tail
+         have lem_hd : (s 0).beq (s 0) = hd := by sorry
+         sorry
+
+       · sorry
+     · sorry
+| spctor _ _ _ _ _ =>
+  by simp +instances [instBEq_Term, Term.beq]
+     apply And.intro;
+     apply And.intro; simp +instances [instBEq_Ty]; sorry; sorry
+     sorry
+
+
+
+
+
+instance instReflBEq_Term : ReflBEq Term where
+  rfl := Term.rfl
 
 
 instance instLawfulBEq_Term : LawfulBEq Term where

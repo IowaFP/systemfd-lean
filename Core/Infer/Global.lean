@@ -80,7 +80,7 @@ def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option Unit
 
   let octors <- (Ts.map (λ T : Ty => lookup_octor G T)).sequence
   let octors := octors.map (λ cs => Vec.from_list cs)
-  let ref_matrix : (p : Nat) × Vec (Vec String nc) p := Vec.populate octors
+  let ref_matrix : (p : Nat) × Vec (Vec String nc) p := Vec.populate octors |> cast (by rw[Nat.zero_add])
 
   let G := List.enumerate G
 

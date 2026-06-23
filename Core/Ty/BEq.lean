@@ -42,14 +42,14 @@ instance instReflBEq_Kind : ReflBEq Kind where
     constructor; apply ih1; apply ih2
 
 instance instLawfulBeq_Kind : LawfulBEq Kind where
-  eq_of_beq := by sorry
-    -- intro a b h
-    -- induction a, b using Kind.beq.induct <;> simp +instances [instBEq_Kind, Kind.beq] at *
-    -- apply h
-    -- case _ ih1 ih2 =>
-    --   constructor
-    --   · apply ih1 h.1
-    --   · apply ih2 h.2
+  eq_of_beq
+  := by
+    intro a b h
+    induction a, b using Kind.beq.induct <;> simp +instances [instBEq_Kind, Kind.beq] at *
+    case _ ih1 ih2 =>
+      constructor
+      · apply ih1 h.1
+      · apply ih2 h.2
 
 def Ty.beq : Ty -> Ty -> Bool
 | var x, var y => x == y
@@ -63,7 +63,7 @@ def Ty.beq : Ty -> Ty -> Bool
 instance instBEq_Ty : BEq Ty where
   beq := Ty.beq
 
-instance instReflBEq_Type : ReflBEq Ty where
+instance instReflBEq_Ty : ReflBEq Ty where
   rfl := by
     intro a; induction a <;> simp +instances [instBEq_Ty, Ty.beq] at *
     all_goals (try case _ ih1 ih2 => constructor; assumption; assumption)

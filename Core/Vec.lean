@@ -177,7 +177,7 @@ case _ n x xs ih1 ih2 =>
   · simp
   · simp; apply ih1 h
 
-
+-- TODO: change this to Vec.findIdx? once Lilac is fixed
 def Vec.findIdx! {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
 | #() => none
 | .cons x xs => go (x::xs) 0
@@ -192,7 +192,15 @@ where
 #guard Vec.findIdx! (· == 5) #(0, 1, 5) == some 2
 
 theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx! p vs = some i ->
-   p vs[i] = true := by sorry
+   p vs[i] = true
+:= by
+  intro h
+  induction vs <;> simp [findIdx!] at *
+  case _ ih =>
+    induction i using Fin.induction <;> simp [findIdx!.go] at *
+    sorry
+    sorry
+
 
 
 theorem Vec.unzip_eta_get_elem {vs : Vec (α × β) n} : ∀ i : Fin n, vs[i] = (vs.unzip.1[i], vs.unzip.2[i])
@@ -215,39 +223,84 @@ theorem Vec.eq_sound_lem [BEq α][LawfulBEq α] {v1 v2 : Vec α n} : (h : v1.beq
 
 
 @[simp]
-def Vec.paste (b : String) : Vec (Vec String m) n -> Vec (Vec String (1 + m)) n
+def Vec.paste (b : String) : Vec (Vec String m) n -> Vec (Vec String (m + 1)) n
 | .nil => .nil
-| .cons x xs => .cons (Vec.append x #(b)) (paste b xs)
+| .cons x xs => .cons (b :: x) (paste b xs)
+
+theorem Vec.paste_soundness {rm : Vec (Vec String m) n} {rm' : Vec (Vec String (m + 1)) n} :
+  Vec.paste b rm = rm' ->
+  ∀ i : Fin n, rm'[i] = b :: (rm[i])
+:= by
+intro h i
+fun_induction Vec.paste
+apply i.elim0
+case _ ih =>
+  subst h;
+  induction i using Fin.induction <;> simp at *
+  case _ ih => apply ih
 
 @[simp]
 def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) :
-    ((n : Nat) × Vec String n) -> ((p : Nat) × Vec (Vec String (1 + k)) p)
+    ((n : Nat) × Vec String n) -> ((p : Nat) × Vec (Vec String (k + 1)) p)
 | ⟨0, .nil⟩ => ⟨0, .nil⟩
 | ⟨(n + 1), (.cons x xs)⟩ =>
   let ⟨p , vs⟩ := combine base ⟨n, xs⟩
-  let vs' := paste x base.snd
-  let ys := append vs' vs
-  ⟨p + base.fst, ys⟩
+  -- let vs' := paste x base.snd
+  ⟨p + base.fst, (paste x base.snd).append vs⟩
 
-theorem Vec.combine_size (base : (m : Nat) × Vec (Vec String k) m) (x : ((n : Nat) × Vec String n)) :
+theorem Vec.combine_size {base : (m : Nat) × Vec (Vec String k) m} {x : ((n : Nat) × Vec String n)} :
   combine base x = ⟨p, ys⟩ ->
   p = x.fst * base.fst := by
 intro h
 fun_induction Vec.combine generalizing ys p <;> simp at *
 apply Eq.symm h.1
-case _ vs _ _ ih =>
-  replace ih := ih vs
-  subst ih; rw[<-h.1]
-  rw[Nat.right_distrib]; simp
+case _ vs _ h ih =>
+  rcases h with ⟨h1, h2⟩
+  subst h1; replace h2 := eq_of_heq h2; subst h2
+  replace ih := ih h
+  subst ih; rw[Nat.right_distrib]; simp
+
+theorem Vec.append_indexing_left {vs : Vec α n}{vs' : Vec α m} (i : Fin n) :
+  ∃ j : Fin (m + n), vs[i] = (vs.append vs')[j]
+:= by
+   sorry
+
+theorem Vec.append_indexing_right {vs : Vec α n}{vs' : Vec α m} (i : Fin m) :
+  ∃ j : Fin (m + n), vs'[i] = (vs.append vs')[j]
+  := by
+  sorry
+
+theorem Vec.combine_soundness :
+  Vec.combine rm1 cs = rm2 ->
+  ∀ (i : Fin cs.1) (i' : Fin rm1.1), ∃ j : Fin rm2.1, cs.2[i] :: rm1.2[i'] = rm2.2[j] := by
+intro h i i'
+fun_induction Vec.combine generalizing rm2 <;> simp at i
+case _ => apply i.elim0
+case _ n x vs _ vs' ch ih =>
+  subst h; simp at *;
+  induction i using Fin.induction
+  · case _ =>
+    simp
+    have lem := Vec.combine_size ch; subst lem; simp at *
+    rw[ch] at ih; simp at ih
+    generalize p_def : paste x rm1.snd = p at *
+    have lem := Vec.paste_soundness p_def; rw[<-p_def] at lem; replace lem := lem i'
+    subst p; rw[<-lem]; apply Vec.append_indexing_left i'
+  case _ i _ =>
+    simp; replace ih := ih i;
+    rcases ih with ⟨j, ih⟩
+    generalize zdef : combine rm1 ⟨n, vs⟩ = z at *
+    have lem := Vec.combine_size zdef; simp at lem; subst ch; simp at *; subst lem; simp at j
+    rw[ih]
+    apply Vec.append_indexing_right (vs := paste x rm1.snd) j
 
 @[simp]
 def Vec.populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
-  Vec ((n : Nat) × Vec String n) ℓ -> ((p : Nat) × Vec (Vec String (ℓ + k)) p)
-| .nil => base |> cast (by rw[Nat.zero_add])
-| .cons (n := n) x xs =>
+  Vec ((n : Nat) × Vec String n) ℓ -> ((p : Nat) × Vec (Vec String (k + ℓ)) p)
+| .nil => base
+| .cons x xs =>
   let ys := populate_aux base xs
-  have lem : 1 + (n + k) = n + 1 + k := by omega
-  Vec.combine ys x |> cast (by rw[lem])
+  Vec.combine ys x
 
 @[simp]
 def Vec.prod : Vec Nat n -> Nat
@@ -260,31 +313,29 @@ theorem Vec.populate_aux_size (ps : Vec ((n : Nat) × Vec String n) ℓ) :
   vs.fst = (Vec.prod (ps.map (·.1))) * bℓ := by
 intro h
 induction ps generalizing bs bℓ <;> simp at *
-cases h; sorry
+cases h; simp
 case _ ps pss ih =>
   generalize z_def : populate_aux ⟨bℓ, bs⟩ pss = z at h
-
-  sorry
-  -- have lem := combine_size _ _ h
-  -- rw[Nat.mul_assoc]
-  -- rw[lem]; congr
-  -- have ih := @ih bℓ bs
-  -- rw[z_def] at ih; apply ih;
+  have lem := combine_size h
+  rw[Nat.mul_assoc]
+  rw[lem]; congr
+  have ih := @ih bℓ bs
+  rw[z_def] at ih; apply ih;
 
 
 @[simp]
-def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String (ℓ + 0)) p)
+def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String (0 + ℓ)) p)
 := populate_aux (k := 0) ⟨1, #(#())⟩ ps
 
--- theorem Vec.populate_size (ps : Vec ((n : Nat) × Vec String n) ℓ) :
---   populate ps = vs ->
---   vs.fst = (Vec.prod (ps.map (·.1)))
--- := by
--- intro h
--- unfold populate at h
--- generalize z_def : populate_aux ⟨1, #(#())⟩ ps = z at *
--- have lem := Vec.populate_aux_size _ z_def
--- subst h; rw[Nat.mul_one] at lem; assumption
+theorem Vec.populate_size (ps : Vec ((n : Nat) × Vec String n) ℓ) :
+  populate ps = vs ->
+  vs.fst = (Vec.prod (ps.map (·.1)))
+:= by
+intro h
+unfold populate at h
+generalize z_def : populate_aux ⟨1, #(#())⟩ ps = z at *
+have lem := Vec.populate_aux_size _ z_def
+subst h; rw[Nat.mul_one] at lem; assumption
 
 
 theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
@@ -409,6 +460,16 @@ case _ ih =>
       simp at *;
       apply ih i j e h
 
+#guard Vec.foldl Option.or (some 1) #(none, some 2) = some 1
+#guard Vec.foldl Option.or (none : Option Nat) (#(none, none)) = none
+#guard Vec.foldl Option.or none #(some 1, none) = some 1
+
+theorem Vec.fold_or_val_eq : foldl Option.or (some v1) as = some v2 -> v1 = v2
+:= by
+  intro h
+  induction as <;> simp at *
+  apply h
+  case _ ih => apply ih h
 
 theorem Vec.fold_or {cs : Vec _ n}: Vec.foldl Option.or d cs = e ->
   d = e ∨ ∃ i : Fin n, cs[i] = e
@@ -429,7 +490,7 @@ induction cs
     cases d <;> simp at *
     cases e
     · apply Or.inl rfl
-    · apply Or.inr; sorry
+    · apply Or.inr; exists 0; simp; apply Vec.fold_or_val_eq h
     replace ih := ih h
     cases ih
     case _ ih => apply Or.inl ih

@@ -86,7 +86,7 @@ split at h1
 def enumerate_ctor_names {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n : Nat) × Vec (Vec String m) n) := do
   -- for each type in Ss get all the possible constructors
   let ctors <- (Vec.map (lookup_ctor_names G) Ss).sequence
-  let cs : (n : Nat) × Vec (Vec String m) n := Vec.populate ctors
+  let cs : (n : Nat) × Vec (Vec String m) n := Vec.populate ctors |> cast (by rw [Nat.zero_add])
   return cs
 
 namespace Test
@@ -146,28 +146,32 @@ apply Iff.intro
     rcases h with ⟨_, _, _, h⟩
     cases h; simp; apply ih
 
--- theorem query_ctor_names {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
---   Query G DataConst.cls q S ->
---   (Vec.map (lookup_ctor_names G) S).seq = some ctor_names ->
---   ∃ idv: Vec ((n : Nat) × Fin n) m,
---   ∀ i : Fin m, q[i] = ctor_names[i].snd[j] := by
--- intro h1 h2 i
--- induction h1
--- apply i.elim0
--- case _ q qs ih1 =>
---   replace h2 := Vec.map_seq_sound _ h2 i
---   induction i using Fin.induction <;> simp at h2
---   · have lem := lookup_ctor_names_sound q h2
---     rcases lem with ⟨j, lem⟩
---     exists j
---   case _ i ih2 => cases ctor_names; case _ ctor_name ctor_names =>
---     apply ih1; simp at h2
---     clear ih2; revert i
---     sorry
+theorem pattern_extension_enumerate {G : GlobalEnv} {qs : Vec String (0 + m)} {Ss : Vec Ty  m} {y : String} {S : Ty} :
+  ⊢ G ->
+  (Vec.map (lookup_ctor_names G) Ss).sequence = some ctor_names ->
+  Vec.populate ctor_names = ⟨ℓ, ref_matrix⟩ ->
+  (∃ j : Fin ℓ, ref_matrix[j] = qs) ->
+  lookup_ctor? G DataConst.cls y S ->
+  lookup_ctor_names G S = some ⟨nc, cs⟩ ->
+  Vec.populate (⟨nc, cs⟩ :: ctor_names) = ⟨ℓ', ref_matrix'⟩ ->
+  ∃ j' : Fin ℓ', ref_matrix'[j'] = y :: qs
+:= by
+intro wf h2 h3 h4 h5 h6 h7
+rcases h4 with ⟨j, h4⟩
+have lem := lookup_ctor_names_sound wf h5 h6
+rcases lem with ⟨k, lem⟩;
+unfold Vec.populate at h7; simp at h7; unfold Vec.populate at h3; rw[h3] at h7
+have comb_size_lem := Vec.combine_size h7; simp at comb_size_lem
+subst ℓ'
+have lem1 := Vec.combine_soundness h7
+simp at lem1;
+replace lem1 := lem1 k j
+rcases lem1 with ⟨j', lem1⟩
+exists j'; rw[lem] at lem1; rw[h4] at lem1
+apply Eq.symm lem1
 
 
-
-theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
+theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
   Query G DataConst.cls q S ->
   enumerate_ctor_names G S = some ⟨ℓ, ref_matrix⟩ ->
   ∃ j : Fin ℓ, ref_matrix[j] = q := by
@@ -176,21 +180,22 @@ unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
 replace h3 := Vec.map_seq_sound _ h3
+sorry
 -- have lem := query_ctor_names h1 h3
-induction q
-case nil =>
-  cases ctor_names;
-  cases ref_matrix
-  simp [Vec.populate_aux] at h2; case _ c1 c2 =>
+-- induction q
+-- case nil =>
+--   cases ctor_names;
+--   cases ref_matrix
+--   simp [Vec.populate_aux] at h2; case _ c1 c2 =>
 
-  sorry
-case cons ih =>
-  cases S; case _ S Ss =>
-  cases ctor_names; case _ ctor_name ctor_names =>
-  cases ctor_names
-  cases h1;
-  sorry
-  sorry
+--   sorry
+-- case cons ih =>
+--   cases S; case _ S Ss =>
+--   cases ctor_names; case _ ctor_name ctor_names =>
+--   cases ctor_names
+--   cases h1;
+--   sorry
+--   sorry
   -- cases ref_matrix
   -- · simp; unfold Query at h1; cases h1;
   --   simp at h6; case _ h2 _ =>
