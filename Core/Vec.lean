@@ -263,12 +263,24 @@ case _ vs _ h ih =>
 theorem Vec.append_indexing_left {vs : Vec α n}{vs' : Vec α m} (i : Fin n) :
   ∃ j : Fin (m + n), vs[i] = (vs.append vs')[j]
 := by
-   sorry
+  induction vs <;> simp at *
+  apply i.elim0
+  case _ i ih =>
+  induction i using Fin.induction <;> simp at *
+  case _ => exists 0
+  case _ i _ =>
+    replace ih := ih i;
+    rcases ih with ⟨j, ih⟩
+    exists j.succ
 
 theorem Vec.append_indexing_right {vs : Vec α n}{vs' : Vec α m} (i : Fin m) :
   ∃ j : Fin (m + n), vs'[i] = (vs.append vs')[j]
-  := by
-  sorry
+:= by
+  induction vs <;> simp at *
+  exists i
+  case _ ih =>
+    rcases ih with ⟨j, ih⟩
+    exists j.succ
 
 theorem Vec.combine_soundness :
   Vec.combine rm1 cs = rm2 ->
@@ -299,8 +311,7 @@ def Vec.populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
   Vec ((n : Nat) × Vec String n) ℓ -> ((p : Nat) × Vec (Vec String (k + ℓ)) p)
 | .nil => base
 | .cons x xs =>
-  let ys := populate_aux base xs
-  Vec.combine ys x
+  Vec.combine (populate_aux base xs) x
 
 @[simp]
 def Vec.prod : Vec Nat n -> Nat
@@ -321,6 +332,10 @@ case _ ps pss ih =>
   rw[lem]; congr
   have ih := @ih bℓ bs
   rw[z_def] at ih; apply ih;
+
+-- def Vec.populate_aux_soundness :
+--   Vec.populate_aux base cs = rm ->
+--   ∀ i : Fin base.1, ∃ j : Fin rm.1, base.2[i] = rm.2[j] := by sorry
 
 
 @[simp]

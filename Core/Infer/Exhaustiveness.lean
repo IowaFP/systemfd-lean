@@ -102,7 +102,7 @@ def Γ : GlobalEnv := [
 ]
 
 
-#eval (Vec.map (lookup_ctor_names Γ) (#( (gt#"Maybe" • gt#"Bool"), gt#"Bool"))).sequence -- == some #(⟨2, #("Nothing", "Just")⟩, ⟨2, #("True", "False")⟩)
+#eval (Vec.map (lookup_ctor_names Γ) (#( (gt#"Maybe" • gt#"Bool"), gt#"Bool"))).sequence
 #eval! enumerate_ctor_names Γ #( (gt#"Maybe" • gt#"Bool"), gt#"Bool", gt#"Bool")
 
 #eval Vec.append #("Nothing", "Just") #("True" , "False")
@@ -146,17 +146,18 @@ apply Iff.intro
     rcases h with ⟨_, _, _, h⟩
     cases h; simp; apply ih
 
-theorem pattern_extension_enumerate {G : GlobalEnv} {qs : Vec String (0 + m)} {Ss : Vec Ty  m} {y : String} {S : Ty} :
+theorem pattern_extension_enumerate {G : GlobalEnv} {qs : Vec String (0 + m)} {y : String} {S : Ty} :
   ⊢ G ->
-  (Vec.map (lookup_ctor_names G) Ss).sequence = some ctor_names ->
   Vec.populate ctor_names = ⟨ℓ, ref_matrix⟩ ->
   (∃ j : Fin ℓ, ref_matrix[j] = qs) ->
+
   lookup_ctor? G DataConst.cls y S ->
   lookup_ctor_names G S = some ⟨nc, cs⟩ ->
+
   Vec.populate (⟨nc, cs⟩ :: ctor_names) = ⟨ℓ', ref_matrix'⟩ ->
   ∃ j' : Fin ℓ', ref_matrix'[j'] = y :: qs
 := by
-intro wf h2 h3 h4 h5 h6 h7
+intro wf h3 h4 h5 h6 h7
 rcases h4 with ⟨j, h4⟩
 have lem := lookup_ctor_names_sound wf h5 h6
 rcases lem with ⟨k, lem⟩;
@@ -180,7 +181,17 @@ unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
 replace h3 := Vec.map_seq_sound _ h3
-sorry
+generalize zdef : Vec.populate_aux ⟨1, #(#())⟩ ctor_names = z at *
+induction ctor_names
+case _ =>
+  simp at zdef; subst z; simp at *;
+  obtain ⟨e1, e2⟩ := h2; subst e1; replace e2 := eq_of_heq e2; subst e2; cases q;
+  cases h1; simp;
+case _ =>
+  cases h1; case _ h1 _ _ _ =>
+  clear h3
+
+  sorry
 -- have lem := query_ctor_names h1 h3
 -- induction q
 -- case nil =>
