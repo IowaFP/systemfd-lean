@@ -17,39 +17,49 @@ open LeanSubst
 
 namespace Core
 
-theorem List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : Nat) (h : k < ℓ.length), f ℓ[k] = some t
-| .nil, h => by injection h
-| .cons hd tl, h => by
-  simp at h; rcases h with h | ⟨h1, h2⟩
-  exists 0; apply Exists.intro; apply h; simp
-  rcases List.firstM_eq_some h2 with ⟨k, q1, q2⟩
-  exists (k + 1); apply Exists.intro; apply q2
-  simp; exact q1
-
--- theorem open_method_pattern_binders (wf : ⊢ G):
---   lookup_spctor_type G ctor = some D1 ->
---   KindingPreamble G Δ As D1 D2 ->
---   Ty.typescope n D2 = some (Ts, T) ->
---   get_instance ctor i G = some ⟨n, (p, b)⟩ ->
---   Sequ.append (List.map su As) +0 = τ ->
---   ∃ ξ, PatternBinders n Ts p[τ:Ty] ξ
--- := by
---   sorry
 theorem List.getElem_swap_index {ℓ : List α} {i j : Nat} (e : i = j) (h1 : i < ℓ.length)
   : ℓ[i] = ℓ[j]
 := by
-  sorry
+  induction ℓ generalizing i j <;> simp [*]
 
-theorem Vec.get_list_to_get {v : Vec α (n + 1)} (h : i < n + 1) : v.list[i]'(by simp [h]) = v[Fin.ofNat (n + 1) i] := sorry
+@[simp]
+theorem Vec.get_Fin_ofNat_succ {xs : Vec α (n + 1)} (h : i + 1 < n + 2) : (x :: xs)[Fin.ofNat (n + 2) (i + 1)] = xs[Fin.ofNat (n + 1) i] := by
+  unfold Fin.ofNat
+  have lem1 : (i + 1) % (n + 2) = i + 1 := by rw [Nat.mod_eq_of_lt h]
+  have lem2 : i % (n + 1) = i := by rw [Nat.mod_eq_of_lt]; grind
+  simp [lem1, lem2]
+  simp [getElem, Vec.get]
+
+theorem Vec.get_list_to_get : {n:Nat} -> {v : Vec α (n + 1)} -> (h : i < n + 1) -> v.list[i]'(by simp [h]) = v[Fin.ofNat (n + 1) i]
+| n, .cons x xs, h =>
+  match i with
+  | 0 => by simp
+  | i + 1 =>
+    match n with
+    | 0 => by simp at h
+    | n + 1 =>
+      have lem1 : i < n + 1 := by grind
+      have lem2 := get_list_to_get (v := xs) lem1
+      by rw [Vec.get_Fin_ofNat_succ h]; simp [lem2]
 
 theorem PatternBinders.ctors_type_length {ss S : Vec _ m} :
-  --(∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
   PatternBinders G Δ m S p ζ ξ ->
   Term.IsData v ss ctors ->
   Pattern.Match ctors p ->
   ζ.length = (Constructor.subst_type ctors).length
 := by
-  sorry
+  intro h1 h2 h3
+  induction h1
+  case _ =>
+    cases ss; cases h2
+    simp [Constructor.subst_type]
+  case _ nc c' na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' j1 j2 e1 e2 e3 j3 ih =>
+    cases h3; case _  c q m1 As1 m2 As2 na2 ts Bs e4 cs e5 j4 =>
+    cases h2; case _ m1' m2' n' c'' t' t1 t2 t3 e6 ts' e7 j5 =>
+    subst e4; cases e7; case _ =>
+    cases e5; case _ =>
+    simp [Constructor.subst_type]
+    rw [ih j5 j4]
 
 theorem PatternBinders.ctors_type {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
@@ -202,7 +212,7 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
 --       rw [<-h5]
 --       sorry
 
-set_option maxHeartbeats 800000
+set_option maxHeartbeats 800000 in
 theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
 | .defn j1 j2, .defn (A := A) j3 =>
   have e : T = A := by rw [j1] at j3; grind
