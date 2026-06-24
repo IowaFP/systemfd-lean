@@ -170,19 +170,24 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
 
 
 @[simp]
-def Pattern.match : Vec Constructor m -> Pattern m' -> Bool
+def pattern_match : Vec Constructor m -> Pattern m' -> Bool
 | .nil, .nil => true
 | .cons ⟨q, m, _, n, _, k, _⟩ xs, .cons ⟨q', m', _, n', k'⟩ zs =>
-  Pattern.match xs zs && q == q' && m == m' && n == n' && k == k'
+  pattern_match xs zs && q == q' && m == m' && n == n' && k == k'
 | _, _ => false
 
-def get_instance (x : String) (ctors : (Vec Constructor m)) : (G : List Global) -> Option ((m : Nat) × Pattern m × Term)
-| .nil => none
-| .cons (.inst (m := m) y p b) G' =>
-  if x == y && Pattern.match ctors p
-  then some ⟨m, p, b⟩
-  else get_instance x ctors G'
-| .cons _ G' => get_instance x ctors G'
+def get_instance_aux (x : String) (ctors : (Vec Constructor m)) (i : Nat) :
+    (G : List Global) -> Option (Nat × (m : Nat) × Pattern m × Term)
+      | .nil => none
+      | .cons (.inst (m := m) y p b) G' =>
+         if x == y && pattern_match ctors p
+         then some ⟨i, m, p, b⟩
+         else get_instance_aux x ctors (i + 1) G'
+      | .cons _ G' => get_instance_aux x ctors (i + 1) G'
+
+def get_instance (x : String) (ctors : (Vec Constructor m)) :
+  (G : List Global) -> Option (Nat × (m : Nat) × Pattern m × Term) :=
+  get_instance_aux x ctors 0
 
 def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
   let t <- lookup x G

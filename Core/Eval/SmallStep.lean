@@ -24,7 +24,7 @@ def Term.is_data (v : DataConst) : Vec Term m -> Option (Vec Constructor m)
 | .cons _ _ => none
 
 def get_match (ctors : Vec Constructor m) (ps : Vec (Pattern m) n) : Option (Fin n) :=
-  ps.findIdx! (Pattern.match ctors)
+  ps.findIdx! (pattern_match ctors)
 
 namespace Test.Eval
 
@@ -68,10 +68,14 @@ def Term.eval (G : List Global) : Term ->  Option Term
   match (m_ss).findIdx! Option.isSome with
   | none =>
     let ctors <- Term.is_data .opn ss.to
-    let ⟨m, p, b⟩ <- get_instance x ctors G
-    let τ := Ts1.list.map su ++ Ts2.list.map su ++ Subst.id Ty
-    let σ := Constructor.subst ctors
-    return b[τ][σ]
+    let ⟨_, m, p, b⟩ <- get_instance x ctors G
+    if h : m == n && pattern_match ctors p
+    then
+      let τ := Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty
+      let σ' := Constructor.subst_type ctors ++ Subst.id Ty
+      let σ := Constructor.subst ctors ++ Subst.id Term
+      return b[τ][σ'][σ]
+    else none -- stuck
   | some i => do
     let t' <- eval G (ss i)
     return (.spctor .openm x Ts1 Ts2 (ss.to.set i t').to)
@@ -82,7 +86,7 @@ def Term.eval (G : List Global) : Term ->  Option Term
   match (m_ss).findIdx! Option.isSome with
   | none =>
     let ctors <- Term.is_data .cls ss.to
-    let σ := Constructor.subst ctors
+    let σ := Constructor.subst ctors ++ Subst.id Term
     let i <- get_match ctors ps.to
     return (bs i)[σ]
   | some i => do

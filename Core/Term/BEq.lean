@@ -17,6 +17,12 @@ instance instReflBEq_DataConst : ReflBEq DataConst where
   rfl := by
          intro a; induction a <;> simp +instances [instBEq_DataConst, DataConst.beq] at *
 
+instance instLawfulBEq_DataConst : LawfulBEq DataConst where
+  eq_of_beq := by
+    intro a b h
+    cases a <;> (cases b)
+    all_goals (simp +instances [instBEq_DataConst, DataConst.beq] at *)
+
 def Ctor0Variant.beq : Ctor0Variant -> Ctor0Variant -> Bool
 | refl A, refl B => A == B
 
@@ -39,7 +45,7 @@ instance instReflBEq_Ctor0Variant : ReflBEq Ctor0Variant where
   rfl := by
     intro x; induction x <;> simp +instances [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
 
-instance instLawfulBEq_CtorVariant : LawfulBEq Ctor0Variant where
+instance instLawfulBEq_Ctor0Variant : LawfulBEq Ctor0Variant where
   eq_of_beq := by
     intro x b; induction x <;> simp +instances [instBEq_Ctor0Variant, Ctor0Variant.beq] at *
     all_goals (induction b <;> simp at *)
@@ -176,8 +182,6 @@ theorem Term.rfl : {a : Term} -> (a == a) = true
      apply And.intro;
      apply And.intro; simp +instances [instBEq_Ty]; sorry; sorry
      sorry
-
-
 
 
 

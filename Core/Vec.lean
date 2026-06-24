@@ -11,9 +11,6 @@ theorem Vec.length_list : {v : Vec α n} -> v.list.length = n
 | #() => by simp [list]
 | .cons x xs => by simp [list, length_list (v := xs)]
 
-@[grind =]
-theorem Vec.get_to {v : Fun.Vec α n} : v.to[i] = v i := sorry
-
 def Vec.rmap [RenMap S T] (r : Ren T) : Vec S n -> Vec S n
 | .nil => .nil
 | .cons x tl => x⟨r⟩ :: rmap r tl
@@ -337,10 +334,6 @@ case _ ps pss ih =>
   have ih := @ih bℓ bs
   rw[z_def] at ih; apply ih;
 
--- def Vec.populate_aux_soundness :
---   Vec.populate_aux base cs = rm ->
---   ∀ i : Fin base.1, ∃ j : Fin rm.1, base.2[i] = rm.2[j] := by sorry
-
 @[simp]
 def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String (0 + ℓ)) p)
 := populate_aux (k := 0) ⟨1, #(#())⟩ ps
@@ -373,51 +366,6 @@ theorem Fun.Vec.to_get_elem (vs : Vec α n) : ∀i, vs i = (Vec.to vs)[i] := by
   case _ i _ =>
   rw[Fun.Vec.cons_succ]
   apply ih i
-
-
-
-theorem nat_comm {m n k : Nat} : m + n + k = n + m + k := by omega
-
-@[simp]
-def Vec.paste2 (b : String) : Vec (Vec String m) n -> Vec (Vec String (1 + m)) n
-| .nil => .nil
-| .cons x xs => append #((append x #(b))) (paste2 b xs)
-
-theorem Vec.paste2_soundness {rm : Vec (Vec String m) n} {rm' : Vec (Vec String (1 + m)) n} :
-  Vec.paste2 b rm = rm' ->
-  ∀ i : Fin n, rm'[i] = (rm[i]).append #(b)
-:= by
-intro h i
-fun_induction Vec.paste2
-apply i.elim0
-case _ ih =>
-  subst h;
-  induction i using Fin.induction <;> simp at *
-  case _ ih => apply ih
-
-#eval Vec.paste2 "1" #(#("0", "1"), #("0", "2"))
-
-
-@[simp]
-def Vec.combine2 (base : (m : Nat) × Vec (Vec String k) m) :
-    ((n : Nat) × Vec String n) -> ((p : Nat) × Vec (Vec String (1 + k)) p)
-| ⟨0, .nil⟩ => ⟨0, .nil⟩
-| ⟨(n + 1), (.cons x xs)⟩ =>
-  let ⟨p , vs⟩ := combine2 base ⟨n, xs⟩
-  let vs' := paste2 x base.snd
-  ⟨p + base.fst,  vs'.append vs⟩
-
-@[simp]
-def Vec.populate_aux2 (base : (m : Nat) × Vec (Vec String k) m) :
-  Vec ((n : Nat) × Vec String n) ℓ -> ((p : Nat) × Vec (Vec String (ℓ + k)) p)
-| .nil => base |> cast (by rw[Nat.zero_add])
-| .cons x xs =>
-  Vec.combine2 (populate_aux2 base xs) x |> cast (by rw[<-Nat.add_assoc, nat_comm])
-
-
-@[simp]
-def Vec.populate2 (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String ℓ) p)
-:= populate_aux2 (k := 0) ⟨1, #(#())⟩ ps
 
 
 theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :

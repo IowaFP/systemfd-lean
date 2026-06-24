@@ -88,13 +88,6 @@ def enumerate_ctor_names {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n 
   return cs
 
 
-def enumerate_ctor_names2 {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n : Nat) × Vec (Vec String m) n) := do
-  -- for each type in Ss get all the possible constructors
-  let ctors <- (Vec.map (lookup_ctor_names G) Ss).sequence
-  let cs : (n : Nat) × Vec (Vec String m) n := Vec.populate2 ctors
-  return cs
-
-
 namespace Test
 
 def Γ : GlobalEnv := [
@@ -183,6 +176,20 @@ theorem fin_shift_lemma {bs cs : Vec _ n} :
 intro h i
 replace h := h (i.succ); simp at h; apply h
 
+theorem heq_cast_l {a : α} {b : β} {e : α = β} : a ≍ b -> a = (b |> cast (by rw[e]))
+:= by subst e; simp;
+
+theorem heq_cast_r {a : α} {b : β} {e : α = β}: a ≍ b -> cast (by rw[e]) a = b
+:= by subst e; simp;
+
+theorem cast_get_elem {a : Vec α ℓ} {b : Vec β ℓ} {e : α = β} (i : Fin ℓ):
+  a ≍ b -> (cast (by rw[e]) a[i]) = b[i]
+:= by intro h; subst e; replace h := eq_of_heq h; subst h; simp
+
+theorem cast_cons {a : α} {b : Vec α n} {e : α = β} :
+  cast (by rw[e]) (a :: b) = Vec.cons (cast (by rw[e]) a) (cast (by rw[e]) b)
+:= by subst e; simp
+
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
   ⊢ G ->
   Query G DataConst.cls q S ->
@@ -193,13 +200,14 @@ unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
 replace h3 := Vec.map_seq_sound _ h3
-generalize zdef : Vec.populate_aux ⟨1, #(#())⟩ ctor_names = z at *
 unfold Query at h1;
 induction h1 generalizing ℓ <;> simp at *
 case _ =>
+  generalize zdef : Vec.populate_aux ⟨1, #(#())⟩ ctor_names = z at *
   subst h2; cases ctor_names; simp at zdef;
   obtain ⟨e1, e2⟩ := zdef; subst e1; replace e2 := eq_of_heq e2; subst e2; simp;
 case _ x _ _ lc _ ih =>
+  generalize zdef : Vec.populate_aux ⟨1, #(#())⟩ ctor_names = z at *
   cases ctor_names; case _ c cs =>
   have z_size := Vec.populate_size _ zdef
   simp at z_size;
@@ -211,37 +219,28 @@ case _ x _ _ lc _ ih =>
   have lem2 := Vec.combine_soundness zdef
   obtain ⟨j, lem⟩ := lem
   replace lem2 := lem2 j
-  replace ih := @ih z'.fst (ref_matrix := z'.snd |> cast (by simp only [Nat.zero_add])) _ h3' sorry
+  rcases z with ⟨z, zh⟩
+  have lemz : z = ℓ := by grind
+  have lem0 : zh ≍ ref_matrix := by grind
+  subst z;
+  rcases z' with ⟨z', z'h⟩
+  replace ih := @ih z' (ref_matrix := z'h |> cast (by grind)) _ (by {
+    rw[zdef']; grind}) h3'
   rcases ih with ⟨j', ih⟩
   replace lem2 := lem2 j'
   rcases lem2 with ⟨j'', lem2⟩
   subst lem; subst ih; simp at *;
+  simp at j''
+  exists j''
+  have e1 : ref_matrix[j''] = cast (by simp) zh[j''] := by
+    have h := cast_get_elem (e := by simp) j'' lem0
+    rw[<-h]
+  rw_mod_cast[e1]; rw_mod_cast[<-lem2]; norm_cast;
+  subst ℓ;
+  -- TODO push casts inside Vec.cons and Vec.get_elem
+  have lem' := cast_cons (α := String) (a := c.snd[j]) (b := z'h[j']) (e := by rfl)
 
   sorry
--- have lem := query_ctor_names h1 h3
--- induction q
--- case nil =>
---   cases ctor_names;
---   cases ref_matrix
---   simp [Vec.populate_aux] at h2; case _ c1 c2 =>
-
---   sorry
--- case cons ih =>
---   cases S; case _ S Ss =>
---   cases ctor_names; case _ ctor_name ctor_names =>
---   cases ctor_names
---   cases h1;
---   sorry
---   sorry
-  -- cases ref_matrix
-  -- · simp; unfold Query at h1; cases h1;
-  --   simp at h6; case _ h2 _ =>
-  --   replace h6 := h6 0; simp at h6; rw[Fun.Vec.cons_zero, Fun.Vec.cons_zero] at h6
-  --   have lem := lookup_ctor_names_sound h2 h6
-  --   rcases lem with ⟨j, lem⟩; subst lem;
-  --   simp at h4; simp at *; case _ ih =>
-  --   sorry
-
 
 -- Checks that the patterns are exhaustive
 def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : Option ((ℓ : Nat) × (Vec (Vec String m) ℓ × Vec (Fin n) ℓ)) := do

@@ -1,29 +1,6 @@
 import Core.Ty.Definition
 
 namespace Core
--- def BaseKind.beq : BaseKind -> BaseKind -> Bool
--- | closed, closed => true
--- | .open, .open => true
--- | _, _ => false
-
-
--- instance instBEq_BaseKind : BEq BaseKind where
---   beq := BaseKind.beq
-
--- @[simp]
--- instance instReflBEq_BaseKind : ReflBEq BaseKind where
---   rfl := by
---     intro a
---     cases a
---     all_goals (simp +instances [instBEq_BaseKind, BaseKind.beq])
-
--- @[simp]
--- instance instLawfulBEq_BaseKind : LawfulBEq BaseKind where
---   eq_of_beq := by
---     intro a b h
---     cases a <;> cases b
---     all_goals (simp at *)
---     all_goals (simp +instances [instBEq_BaseKind, BaseKind.beq] at h)
 
 def Kind.beq : Kind -> Kind -> Bool
 | base, base => true

@@ -148,10 +148,15 @@ def mt3 := openm! "eq" #(gt#"Maybe" • gt#"Bool") .nil (Vec.to #( iMaybeBool ))
 
 #guard ((mt3 • JustCtor (gt#"Bool") TrueCtor) • JustCtor gt#"Bool" TrueCtor).infer_type MaybeBoolCtx [] [] == some (gt#"Bool")
 
--- #eval ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor).eval_loop MaybeBoolCtx
+#guard ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor).eval_loop MaybeBoolCtx == some (TrueCtor)
+
+#guard ((mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" FalseCtor).eval_loop MaybeBoolCtx == some (FalseCtor)
+
+#guard ((mt3 • NothingCtor gt#"Bool") • JustCtor gt#"Bool" FalseCtor).eval_loop MaybeBoolCtx == some (FalseCtor)
+
 
 def e1 := (mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor
-#eval e1
+-- #eval e1
 #guard e1.infer_type MaybeBoolCtx [] []  == some (gt#"Bool")
 
 /-
@@ -159,24 +164,24 @@ def e1 := (mt3 • JustCtor gt#"Bool" TrueCtor) • JustCtor gt#"Bool" TrueCtor
     • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }) • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }
 -/
 
-def e2 := (e1.eval MaybeBoolCtx).getD (d#"fail")
-#eval e2
+-- def e2 := (e1.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e2
 /-
 ((((d#eq@Maybe •[gt#Maybe • gt#Bool]) • (refl! (gt#Maybe • gt#Bool)))▸(((d#sym •[t#0 -:> t#0 -:> gt#Bool]) •[(gt#Maybe • (gt#Maybe • gt#Bool)) -:> (gt#Maybe • (gt#Maybe • gt#Bool)) -:> gt#Bool]) • ((((((d#arrowc •[t#0]) •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[t#0 -:> gt#Bool]) •[(gt#Maybe • (gt#Maybe • gt#Bool)) -:> gt#Bool]) • EqBool •[gt#Bool, ]•[]•{(refl! gt#Bool), }) • ((((((d#arrowc •[t#0]) •[gt#Maybe • (gt#Maybe • gt#Bool)]) •[gt#Bool]) •[gt#Bool]) • EqBool •[gt#Bool, ]•[]•{(refl! gt#Bool), }) • (refl! gt#Bool))))) • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }) • Just •[gt#Bool, ]•[]•{True •[]•[]•{}, }
 -/
 
-#eval! e2.infer_type MaybeBoolCtx [] []
+-- #eval! e2.infer_type MaybeBoolCtx [] []
 
-def e3 := (e2.eval MaybeBoolCtx).getD (d#"fail")
-#eval e3
-def e4 := (e3.eval MaybeBoolCtx).getD (d#"fail")
-#eval e4
-def e5 := (e4.eval MaybeBoolCtx).getD (d#"fail")
-#eval e5
-def e6 := (e5.eval MaybeBoolCtx).getD (d#"fail")
-#eval e6
-def e7 := (e6.eval MaybeBoolCtx).getD (d#"fail")
-#eval e7
+-- def e3 := (e2.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e3
+-- def e4 := (e3.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e4
+-- def e5 := (e4.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e5
+-- def e6 := (e5.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e6
+-- def e7 := (e6.eval MaybeBoolCtx).getD (d#"fail")
+-- #eval e7
 
 
 
