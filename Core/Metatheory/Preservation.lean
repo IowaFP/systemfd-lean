@@ -36,73 +36,209 @@ theorem List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : 
 -- := by
 --   sorry
 
-theorem PatternBinders.subst {ss S : Vec _ m} :
+theorem Vec.get_list_to_get {v : Vec α (n + 1)} (h : i < n + 1) : v.list[i]'(by simp [h]) = v[Fin.ofNat (n + 1) i] := sorry
+
+theorem List.append_triple_lemma {a b c : List α} {i:Nat} :
+  (a ++ b ++ c)[i]? = some t ->
+  (a[i]? = some t ∧ i < a.length) ∨ ((a ++ b)[i]? = some t ∧ i > a.length) ∨ i > a.length + b.length
+:= sorry
+
+theorem PatternBinders.ctors_type {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
-  PatternBinders G Δ m S p ξ ->
+  PatternBinders G Δ m S p ζ ξ ->
   Term.IsData v ss ctors ->
   Pattern.Match ctors p ->
-  Constructor.subst ctors = σ ->
-  ∀ j A, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γ ⊢ σ j : A
+  ∀ (i: Nat) K, (ζ ++ Δ)[i]? = some K → G&Δ ⊢ ((Constructor.subst_type ctors ++ Subst.id Ty).act i) : K
 := by
-  intro h1 h2 h3 h4 h5 j A h6 h7
-  induction ctors generalizing ξ σ
-  case _ =>
-    simp at *; cases h2; simp at h6
-    unfold Constructor.subst at h5; subst h5; simp
-    apply Typing.var h6 h7
-  case _ n c v ih =>
-    rcases c with ⟨c, As, ts⟩
-    cases ss; case _ sshd sstl =>
-    cases S; case _ Shd Stl =>
-    have lem1 := λ (i : Fin n) => h1 i.succ; simp at lem1
-    replace h1 := h1 0; simp at h1
-    cases h2; case _ v1 v2 q1 q2 q3 q4 q5 q6 q7 =>
-    cases h3; case _ x t2 w1 w2 =>
-    cases h4; case _ Bs n1 ξ e1 e2 h4 =>
-    unfold Constructor.subst at h5;
-    have lem2 := Nat.decLe v1.length j
-    rcases lem2 with lem2 | lem2
-    case _ =>
-      replace h6 : (Vec.to_list v2)[j]? = some A := by sorry
-      sorry
-    case _ =>
-      replace h6 : (v1 ++ Γ)[j]? = some A := sorry
-      replace ih := @ih q5 v1 _ sstl Stl lem1 q7 w2 h4 rfl h6
-      rw [<-h5]
-      sorry
+  intro h1 h2 h3 h4
+  induction h2
+  case _ ss _ =>
+    cases ss; cases h3; cases h4; simp
+    intro i K h2
+    apply Kinding.var h2
+  case _ nc c' na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' j1 j2 e1 e2 e3 j3 ih =>
+    intro i K h
+    cases h4; case _  c q m1 As1 m2 As2 na2 ts Bs e4 cs e5 j4 =>
+    cases h3; case _ m1' m2' n' c'' t' t1 t2 t3 e6 ts' e7 j5 =>
+    subst e4; cases e7; case _ =>
+    cases e5; case _ =>
+    simp [Constructor.subst_type]
+    sorry
+    -- rcases List.append_triple_lemma h with nh|nh|nh
+    -- case _ =>
+    --   rcases nh with ⟨nh1, nh2⟩
+    --   have lem : i < nb := sorry
+    --   rw [Subst.append_action_lt (by simp [lem])]
+    --   rw [List.getElem?_eq_getElem (by simp [nh2])] at nh1; cases nh1; case _ =>
+
+
+    --   sorry
+    -- case _ =>
+    --   sorry
+    -- case _ =>
+    --   sorry
+    -- cases Nat.decLt i nb
+    -- case _ nh =>
+    --   replace nh : i ≥ nb := by grind
+    --   rw [Subst.append_action_ge (h := by simp [nh])]; simp; simp at h
+    --   rw [List.getElem?_append_right (by simp [nh])] at h; simp at h
+    --   replace h1 := λ (i:Fin n) => h1 i.succ; simp at h1
+    --   apply ih h1 j5 j4 (i - nb) K h
+    -- case _ nh =>
+    --   rw [Subst.append_action_lt (h := by simp [nh])]; simp; simp at h
+    --   rw [List.getElem?_append_left (by simp [nh])] at h
+    --   rw [List.getElem?_eq_getElem (by simp [nh])] at h; cases h; case _ =>
+    --   replace h1 := h1 0; simp at h1; subst e6
+    --   cases h1; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
+    --   rw [j1] at q2; cases q2; case _ =>
+    --   simp; cases nb; cases nh; case _ nb =>
+    --   simp; have lem : nb - i < nb + 1 := by grind
+    --   rw [Vec.get_list_to_get lem, Vec.get_list_to_get lem]
+    --   apply q5
+
+theorem PatternBinders.ctors_term {ss S : Vec _ m} :
+  (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
+  PatternBinders G Δ m S p ζ ξ ->
+  Term.IsData v ss ctors ->
+  Pattern.Match ctors p ->
+  ∀ (i:Nat) A, (ξ[Constructor.subst_type ctors ++ Subst.id Ty] ++ Γ)[i]? = some A ->
+    G&Δ ⊢ A : ★ ->
+    G&Δ,Γ ⊢ ((Constructor.subst ctors ++ Subst.id Term).act i) : A
+:= by
+  intro h1 h2 h3 h4
+  induction h2
+  case _ ss _ =>
+    cases ss; cases h3; cases h4
+    simp [Constructor.subst_type]
+    intro i K h2 h3
+    simp [Constructor.subst]
+    apply Typing.var h2 h3
+  case _ nc c' na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' j1 j2 e1 e2 e3 j3 ih =>
+    intro i A h h5
+    cases h4; case _  c q m1 As1 m2 As2 na2 ts Bs e4 cs e5 j4 =>
+    cases h3; case _ m1' m2' n' c'' t' t1 t2 t3 e6 ts' e7 j5 =>
+    subst e4; cases e7; case _ =>
+    cases e5; case _ =>
+    simp [Constructor.subst_type] at h
+    simp [Constructor.subst]
+    sorry
+    -- cases Nat.decLt i nc
+    -- case _ nh =>
+    --   replace nh : i ≥ nc := by grind
+    --   rw [Subst.append_action_ge (h := by simp [nh])]; simp
+    --   rw [List.getElem?_append_right (by simp [nh])] at h; simp at h
+    --   replace h1 := λ (i:Fin n) => h1 i.succ; simp at h1
+    --   apply ih h1 j5 j4 (i - nc) A _ h5
+    --   sorry
+    -- case _ nh =>
+    --   rw [Subst.append_action_lt (h := by simp [nh])]; simp
+    --   rw [List.getElem?_append_left (by simp [nh])] at h
+    --   rw [List.getElem?_eq_getElem (by simp [nh])] at h; cases h; case _ =>
+    --   replace h1 := h1 0; simp at h1; subst e6
+    --   cases h1; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
+    --   rw [j1] at q2; cases q2; case _ =>
+    --   simp; cases nc; cases nh; case _ nc =>
+    --   simp; have lem : nc - i < nc + 1 := by grind
+    --   rw [Vec.get_list_to_get lem, Vec.get_list_to_get lem]
+    --   sorry
+
+theorem PatternBinders.ctors_type_length {ss S : Vec _ m} :
+  --(∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
+  PatternBinders G Δ m S p ζ ξ ->
+  Term.IsData v ss ctors ->
+  Pattern.Match ctors p ->
+  ζ.length = (Constructor.subst_type ctors).length
+:= by
+  sorry
+
+-- theorem PatternBinders.ctors_type_length_lemma {ss S : Vec _ m} :
+--   --(∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
+--   PatternBinders G Δ m S p ζ ξ ->
+--   Term.IsData v ss ctors ->
+--   Pattern.Match ctors p ->
+--   Ren.add Ty ζ.length ∘ (Constructor.subst_type ctors ++ Subst.id Ty) = +0σ
+-- := by
+--   intro h1 h2 h3
+--   have lem := ctors_type_length h1 h2 h3
+--   rw [lem]
+--   rw [Subst.rewrite4_append_add_direct (ℓ := Constructor.subst_type ctors)]
+--   sorry
+-- theorem PatternBinders.subst {ss S : Vec _ m} :
+--   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
+--   PatternBinders G Δ m S p ξ ->
+--   Term.IsData v ss ctors ->
+--   Pattern.Match ctors p ->
+--   Constructor.subst ctors = σ ->
+--   ∀ j A, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γ ⊢ σ j : A
+-- := by
+--   intro h1 h2 h3 h4 h5 j A h6 h7
+--   induction ctors generalizing ξ σ
+--   case _ =>
+--     simp at *; cases h2; simp at h6
+--     unfold Constructor.subst at h5; subst h5; simp
+--     apply Typing.var h6 h7
+--   case _ n c v ih =>
+--     rcases c with ⟨c, As, ts⟩
+--     cases ss; case _ sshd sstl =>
+--     cases S; case _ Shd Stl =>
+--     have lem1 := λ (i : Fin n) => h1 i.succ; simp at lem1
+--     replace h1 := h1 0; simp at h1
+--     cases h2; case _ v1 v2 q1 q2 q3 q4 q5 q6 q7 =>
+--     cases h3; case _ x t2 w1 w2 =>
+--     cases h4; case _ Bs n1 ξ e1 e2 h4 =>
+--     unfold Constructor.subst at h5;
+--     have lem2 := Nat.decLe v1.length j
+--     rcases lem2 with lem2 | lem2
+--     case _ =>
+--       replace h6 : (Vec.to_list v2)[j]? = some A := by sorry
+--       sorry
+--     case _ =>
+--       replace h6 : (v1 ++ Γ)[j]? = some A := sorry
+--       replace ih := @ih q5 v1 _ sstl Stl lem1 q7 w2 h4 rfl h6
+--       rw [<-h5]
+--       sorry
 
 set_option maxHeartbeats 800000
 theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
-| .defn j1 j2, r => sorry
-| .mtch (ξ := ξ) j1 j2 j3 j4 j5, .data_match (σ := σ) (i := i) h1 h2 h3 =>
-  let lem := PatternBinders.subst (cast (by simp) j1) (j3 i) h1 h2 h3
-  Typing.subst Γ σ wf lem (j4 i)
+| .defn j1 j2, .defn (A := A) j3 =>
+  have e : T = A := by rw [j1] at j3; grind
+  match EntryWf.from_lookup_defn wf j3 with
+  | .defn q1 q2 q3 => q2.extend Δ Γ ▸ simp [e]
+| .mtch (ξ := ξ) (ts := ts) j1 j2 j3 j4 j5, .data_match (ctors := ctors) (i := i) h1 h2 h3 =>
+  have lem1 := PatternBinders.ctors_type (Γ := Γ) (cast (by grind) j1) (j3 i) h1 h2
+  have lem2 := PatternBinders.ctors_term (Γ := Γ) (cast (by grind) j1) (j3 i) h1 h2
+  have lem3 := PatternBinders.ctors_type_length (j3 i) h1 h2
+  have j4 : G&Δ,((ξ i)[Constructor.subst_type ctors ++ Subst.id Ty] ++ Γ) ⊢ (ts i)[Constructor.subst_type ctors ++ Subst.id Ty] : T :=
+    Typing.subst_type Δ (Constructor.subst_type ctors ++ Subst.id Ty) wf lem1 (j4 i) ▸ simp [lem3]
+  have j4 := Typing.subst Γ (Constructor.subst ctors ++ Subst.id Term) wf lem2 j4
+  j4 ▸ rw [h3]
 | .mtch (S := S) j1 j2 j3 j4 j5, .match_congr (ss' := ss') i h1 h2 =>
   let j1' : ∀ k, G&Δ,Γ ⊢ ss' k : S k := λ k =>
     match decEq k i with
     | isTrue h => preservation_step wf (j1 k) (h1 |> cast (by rw [h]))
     | isFalse h => j1 k |> cast (by rw [h2 k h])
   .mtch j1' j2 j3 j4 j5
-| .spctor (n := n) (ts := ts) (τ := τ) (Ts := Ts) j1 j2 j3 j4 j5 j6 j7,
-  .openm_match (p := p) (b := b) (σ := σ) h1 h2 h3 h4 h5 =>
-  let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
-  let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
-  let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders G Δ n Ts' p[τ:Ty] ξ := sorry
-  let lem1 : G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T := sorry
-  let lem3 := PatternBinders.subst j4' lem2 h1 sorry h5
-  Typing.subst Γ σ wf lem3 (cast (by grind) lem1)
-| .spctor (Ts := Ts) (τ := τ) j1 j2 j3 j4 j5 j6 j7, .openm_congr (ts' := ts') i h1 h2 =>
-  let j4' : ∀ k, G&Δ,Γ ⊢ ts' k : Ts[k][τ] := λ k =>
+| .spctor (n := n) (ts := ts) (Ts := Ts) j1 j2 j3 j4 j5 j6 j7 j8,
+  .openm_match (p := p) (b := b) h1 h2 h3 h4 =>
+    sorry
+  -- let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
+  -- let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
+  -- let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders G Δ n Ts' p[τ:Ty] ξ := sorry
+  -- let lem1 : G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T := sorry
+  -- let lem3 := PatternBinders.subst j4' lem2 h1 sorry h5
+  -- Typing.subst Γ σ wf lem3 (cast (by grind) lem1)
+| .spctor (Ts' := Ts') j1 j2 j3 j4 j5 j6 j7 j8, .openm_congr (ts' := ts') i h1 h2 =>
+  let j6' : ∀ k, G&Δ,Γ ⊢ ts' k : Ts'[k] := λ k =>
     match decEq k i with
-    | isTrue h => preservation_step wf (j4 k) (h1 |> cast (by rw [h]))
-    | isFalse h => j4 k |> cast (by rw [h2 k h])
-  .spctor j1 j2 j3 j4' j5 j6 j7
+    | isTrue h => preservation_step wf (j6 k) (h1 |> cast (by rw [h]))
+    | isFalse h => j6 k |> cast (by rw [h2 k h])
+  .spctor j1 j2 j3 j4 j5 j6' j7 j8
 | .app (.lam j2 j4) j3, .beta => Typing.beta wf j4 j3
 | .app j1 j2, .app_congr r =>
   let j1' := preservation_step wf j1 r
   .app j1' j2
 | .appt (.lamt j1 j3) j2 e, .betat =>
-  Typing.beta_type wf j3 j2 |> cast (by simp; rw [e]; unfold Function.comp; simp)
+  Typing.beta_type wf j3 j2 |> cast (by simp; rw [e])
 | .appt j1 j2 e, .ctor1_congr r =>
   let j1' := preservation_step wf j1 r
   .appt j1' j2 e

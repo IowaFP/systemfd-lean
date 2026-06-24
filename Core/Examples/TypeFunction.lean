@@ -33,21 +33,21 @@ def TypeFunCtx : GlobalEnv := [
   --     let j : (a' ~ a'') = (h1 ; sym k1).2
   --     let e1' : F a'' b' = e1 ▹ <F> `@c[ j ] `@c[<b'>]
   --       sym h2 ; <Maybe> `@c fdF[a''][b'][b''] e1' e2 ; k2
-  .inst "fdF" #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
-        (let sk1 := Term.mkApps d#"sym" [gt#"Maybe" • t#1, t#6] [#2]
-        let t := Term.mkApps d#"seq" [gt#"Maybe" • t#3, t#6, gt#"Maybe" • t#1] [#5, sk1]
-        let j := prj[1] t
-        -- let j : (a' ~ a'') = (h1 ; sym k1).2
-        let sh2 := Term.mkApps d#"sym" [gt#"Maybe" • t#2, t#5] [#4]
-        let e1' := Term.cast t#0
-                    ((d#"appc2").mkApps [gt#"F", gt#"F", t#3, t#1, t#2, t#2] [refl! gt#"F", j, refl! t#2])
-                    #3
-        -- let e1' : F a'' b' = e1 ▹ <F> `@c[ j ] `@c[<b'>]
-        let e3 := (d#"appc").mkApps [gt#"Maybe", gt#"Maybe", t#2, t#0] [(refl! gt#"Maybe"), (openm! "fdF" #(t#1, t#2, t#0) #() #(e1', #0).to)]
-        -- let e3 : Maybe b' ~ Maybe b'' = <Maybe> `@c fdF[a''][b'][b''] e1' e2
-        (d#"seq").mkApps [t#5, gt#"Maybe" • t#2, t#4]
-                  [sh2, (d#"seq").mkApps [gt#"Maybe" • t#2, gt#"Maybe" • t#0, t#4] [e3, #1]]),
-         -- sym h2 ; e3 ; k2
+  -- .inst "fdF" #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+  --       (let sk1 := Term.mkApps d#"sym" [gt#"Maybe" • t#1, t#6] [#2]
+  --       let t := Term.mkApps d#"seq" [gt#"Maybe" • t#3, t#6, gt#"Maybe" • t#1] [#5, sk1]
+  --       let j := prj[1] t
+  --       -- let j : (a' ~ a'') = (h1 ; sym k1).2
+  --       let sh2 := Term.mkApps d#"sym" [gt#"Maybe" • t#2, t#5] [#4]
+  --       let e1' := Term.cast t#0
+  --                   ((d#"appc2").mkApps [gt#"F", gt#"F", t#3, t#1, t#2, t#2] [refl! gt#"F", j, refl! t#2])
+  --                   #3
+  --       -- let e1' : F a'' b' = e1 ▹ <F> `@c[ j ] `@c[<b'>]
+  --       let e3 := (d#"appc").mkApps [gt#"Maybe", gt#"Maybe", t#2, t#0] [(refl! gt#"Maybe"), (openm! "fdF" #(t#1, t#2, t#0) #() #(e1', #0).to)]
+  --       -- let e3 : Maybe b' ~ Maybe b'' = <Maybe> `@c fdF[a''][b'][b''] e1' e2
+  --       (d#"seq").mkApps [t#5, gt#"Maybe" • t#2, t#4]
+  --                 [sh2, (d#"seq").mkApps [gt#"Maybe" • t#2, gt#"Maybe" • t#0, t#4] [e3, #1]]),
+  --        -- sym h2 ; e3 ; k2
 
 
   -- FMM : ∀ a b a' b'. Maybe a' ~ a → Maybe b' ~ b → F a' b' → F a b
@@ -144,6 +144,11 @@ some ([★, ★, ★, ★, ★, ★, ★],
   -- .octor "FMM" ⟨2 , #(★, ★), 2, #(★, ★),
   --         3, #((gt#"Maybe" • t#1) ~[★]~ t#3, (gt#"Maybe" • t#0) ~[★]~ t#2, (gt#"F" • t#1) • t#0),
   --            ((gt#"F" • t#3) • t#2)⟩,
+
+#eval!
+  pattern_binders TypeFunCtx
+    [★, ★, ★] 2 #( ((gt#"F" • t#2) • t#1), ((gt#"F" • t#2) • t#0))
+    #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
 
 --some ([], [gt#F • t#3 • t#2, gt#F • t#2 • t#1, gt#F • t#4 • t#3, gt#F • t#4 • t#3])
 -- #eval!

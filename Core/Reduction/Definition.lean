@@ -51,9 +51,13 @@ inductive Term.IsData (v : DataConst) : Vec Term m -> Vec Constructor m -> Prop 
   ⟨c, m1, t1, m2, t2, n, t3.to⟩ = ct ->
   Term.IsData v (t::ts) (ct::cs)
 
-def Constructor.subst : Vec Constructor m -> Subst Term
-| .nil => +0σ
-| .cons ⟨_, _, _, _, _, _, ts⟩ v => ts.list.map su ++ Constructor.subst v
+def Constructor.subst_type : Vec Constructor m -> List (Action Ty)
+| .nil => []
+| .cons ⟨_, _, _, _, As, _, _⟩ v => Constructor.subst_type v ++ As.list.reverse.map su
+
+def Constructor.subst : Vec Constructor m -> List (Action Term)
+| .nil => []
+| .cons ⟨_, _, _, _, _, _, ts⟩ v => Constructor.subst v ++ ts.list.reverse.map su
 
 -- def Pattern.match_component : Constructor -> (String × List Ty × Nat) -> Option (List $ Subst.Action Term)
 -- | ⟨c1, _, _, _, t2⟩, (c2, _) => if c1 == c2 then some $ Vec.map su t2 else none
@@ -91,13 +95,13 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 | data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
   Term.IsData .cls ss.to ctors ->
   Pattern.Match ctors (ps i) ->
-  b' = (bs i)[Constructor.subst ctors] ->
+  b' = (bs i)[Constructor.subst_type ctors ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term] ->
   Red G (.mtch m n ss ps bs) b'
 | openm_match {i : Nat} {ss : Fun.Vec Term m} :
   Term.IsData .opn ss.to ctors ->
   G[i]? = some (.inst x p b) ->
   Pattern.Match ctors p ->
-  b' = b[Ts1.list.map su ++ Ts2.list.map su ++ Subst.id Ty][Constructor.subst ctors] ->
+  b' = b[Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty][Constructor.subst_type ctors ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term] ->
   Red G (openm! x Ts1 Ts2 ss) b'
 ----------------------------------------------------------------
 ---- Guard Matching

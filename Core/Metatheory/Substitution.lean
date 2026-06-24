@@ -171,7 +171,7 @@ theorem PatternBinders.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
     rw [Subst.lift_of_add, <-Subst.rewrite_lift_compose]; congr 2
     rw [Subst.compose_append_id_commute_indirect (k := na) (by simp)]; simp
   succ (Ts' := Ts'[σ.lift (nb + ℓ1.length)]) (ℓ2' := ℓ2'[σ.lift (nb + ℓ1.length)])
-    e1' (j1' ▸ simp) e2' e3' e4' j2' ▸ congr; simp
+    e1' (j1' ▸ simp) e2' e3' e4' j2' ▸ congr; simp; grind
 
 theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
   (h : (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K))

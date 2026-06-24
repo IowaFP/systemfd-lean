@@ -81,7 +81,7 @@ inductive PatternBinders (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec T
   ℓ2' = ℓ2⟨(Ren.add Ty nb).lift ℓ1.length⟩ ->
   R'⟨.add Ty nb⟩ = R[Subst.lift (k := nb) $ As.list.reverse.map su ++ Subst.id Ty] ->
   PatternBinders G Δ n S p ℓ1 ℓ2 ->
-  PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (Ks2.list.reverse ++ ℓ1) (ℓ2' ++ Ts'.list.reverse)
+  PatternBinders G Δ (n + 1) (R'::S) (⟨c, na, As, nb, nc⟩::p) (ℓ1 ++ Ks2.list.reverse) (ℓ2' ++ Ts'.list.reverse)
 
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :

@@ -189,10 +189,10 @@ namespace LeanSubst
 
 
   @[simp]
-  theorem Subst.ren_to_hcompose [SubstMap S T] {r : Ren S} {σ : Subst T}: r.to ◾ σ = r.to := sorry
+  theorem Subst.ren_to_hcompose [SubstMap S T] {r : Ren S} {σ : Subst T} : r.to ◾ σ = r.to := sorry
 
   @[simp]
-  theorem Subst.ren_to_hcompose_ren [RenMap S T] {r : Ren S} {k : Ren T}: r.to ◾ k = r.to := sorry
+  theorem Subst.ren_to_hcompose_ren [RenMap S T] {r : Ren S} {k : Ren T} : r.to ◾ k = r.to := sorry
 
   @[simp]
   theorem Subst.to_append {ℓ : List Nat} {r : Ren T} : (ℓ ++ r).to = ℓ ++ r.to := sorry
@@ -327,6 +327,16 @@ namespace LeanSubst
   theorem Subst.rewrite4_cons_ren_add_indirect {r : Ren T} {ℓ : List Nat} {h : k = ℓ.length}
     : Ren.add T k ∘ (ℓ ++ r) = r
   := by simp [Ren.compose, h]
+
+  @[simp, grind =]
+  theorem Subst.rewrite4_append_add_direct {σ : Subst T} {ℓ : List (Action T)}
+    : Ren.add T ℓ.length ∘ (ℓ ++ σ) = σ
+  := by simp [compose_ren_left]; congr
+
+  @[simp, grind =]
+  theorem Subst.rewrite4_append_add_indirect {σ : Subst T} {ℓ : List (Action T)} {h : k = ℓ.length}
+    : Ren.add T k ∘ (ℓ ++ σ) = σ
+  := by simp [compose_ren_left, h]; congr
 
   theorem Subst.compose_ren_left_cons_lift_1 [RenMap T T] [SubstMap T T] {a : Action T} {r : Ren T} {σ : Subst T}
     : r.lift ∘ (a :: σ) = a :: (r ∘ σ)

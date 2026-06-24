@@ -278,7 +278,7 @@ theorem PatternBinders.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[
     rw [Ren.lift_of_add, Subst.rewrite_lift_compose_ren_left]
     simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_k]
   succ (Ts' := Ts'⟨r.lift (nb + ℓ1.length)⟩) (ℓ2' := ℓ2'⟨r.lift (nb + ℓ1.length)⟩)
-    e1' (j1' ▸ simp) e2' e3' e4' j2' ▸ congr; simp
+    e1' (j1' ▸ simp) e2' e3' e4' j2' ▸ congr; simp; grind
 
 theorem Query.Match.rename_type (r : Ren Ty) :
   Query.Match q p -> Query.Match q p⟨r⟩
