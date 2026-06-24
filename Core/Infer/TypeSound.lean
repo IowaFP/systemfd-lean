@@ -58,12 +58,13 @@ case _ y _ ih =>
   apply ih h2
 
 theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Vec (Pattern m) k} {q : Vec String m} {S : Vec Ty m} :
+  ⊢ G ->
   Query G DataConst.cls q S ->
   check_exhaustive G S ps = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
   ∃ i : Fin k, Query.Match q ps[i]
 := by
-intro h1 h2
-have lem := check_exhaustive_sound h1 h2
+intro wf h1 h2
+have lem := check_exhaustive_sound wf h1 h2
 unfold check_exhaustive at h2; simp at h2;
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
@@ -232,7 +233,7 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
     replace h12 := h12 i; subst T; rw[<-e2]; simp; apply (Eq.symm e1)
   · intro q qs;
     rw[<-Vec.to_iso (v := S)] at h13;
-    have lem := pattern_exhaustive_sound qs h13
+    have lem := pattern_exhaustive_sound wf qs h13
     rcases lem with ⟨i, lem⟩
     exists i; rw[Fun.Vec.to_get_elem ps]; apply lem
 

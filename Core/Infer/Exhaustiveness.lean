@@ -16,8 +16,6 @@ namespace Core
 
 -- abbrev SpineTy := (m1 : Nat) × Vec Kind m1 × (m2 : Nat) × Vec Kind m2 × (n : Nat) × Vec Ty n × Ty
 
-theorem lookup_entry_wf : ⊢ G -> lookup T G = some e -> EntryWf G e := by sorry
-
 theorem ctor_data_linked {ctors : Vec _ n} {T : String} {spTy : SpineTy}{Tys : List Ty}:
   ⊢ G ->
   lookup T G = some (Entry.data T a ctors) ->
@@ -26,7 +24,7 @@ theorem ctor_data_linked {ctors : Vec _ n} {T : String} {spTy : SpineTy}{Tys : L
   ∃ i : Fin n, ctors[i].1 = c
 := by
 intro wf h1 h2 h3
-replace h2 := lookup_entry_wf wf h2
+replace h2 := EntryWf.from_lookup wf h2
 cases h2; case _ i h2 h3 h4 h5 =>
 cases h4; case _ h4 _ h6 =>
 simp at h6; simp [Ty.is_data] at h4; rw[h6] at h4; simp at h4; subst T
@@ -89,6 +87,14 @@ def enumerate_ctor_names {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n 
   let cs : (n : Nat) × Vec (Vec String m) n := Vec.populate ctors |> cast (by rw [Nat.zero_add])
   return cs
 
+
+def enumerate_ctor_names2 {m : Nat} (G : GlobalEnv) (Ss : Vec Ty m) : Option ((n : Nat) × Vec (Vec String m) n) := do
+  -- for each type in Ss get all the possible constructors
+  let ctors <- (Vec.map (lookup_ctor_names G) Ss).sequence
+  let cs : (n : Nat) × Vec (Vec String m) n := Vec.populate2 ctors
+  return cs
+
+
 namespace Test
 
 def Γ : GlobalEnv := [
@@ -100,7 +106,6 @@ def Γ : GlobalEnv := [
               #(("True", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩),
                 ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩))
 ]
-
 
 #eval (Vec.map (lookup_ctor_names Γ) (#( (gt#"Maybe" • gt#"Bool"), gt#"Bool"))).sequence
 #eval! enumerate_ctor_names Γ #( (gt#"Maybe" • gt#"Bool"), gt#"Bool", gt#"Bool")
@@ -172,24 +177,45 @@ exists j'; rw[lem] at lem1; rw[h4] at lem1
 apply Eq.symm lem1
 
 
+theorem fin_shift_lemma {bs cs : Vec _ n} :
+  (∀ (i : Fin (n + 1)), lookup_ctor_names G (b :: bs)[i] = some (c :: cs)[i]) ->
+  ∀ (i : Fin n), lookup_ctor_names G bs[i] = some cs[i] := by
+intro h i
+replace h := h (i.succ); simp at h; apply h
+
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
+  ⊢ G ->
   Query G DataConst.cls q S ->
   enumerate_ctor_names G S = some ⟨ℓ, ref_matrix⟩ ->
   ∃ j : Fin ℓ, ref_matrix[j] = q := by
-intro h1 h2
+intro wf h1 h2
 unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
 replace h3 := Vec.map_seq_sound _ h3
 generalize zdef : Vec.populate_aux ⟨1, #(#())⟩ ctor_names = z at *
-induction ctor_names
+unfold Query at h1;
+induction h1 generalizing ℓ <;> simp at *
 case _ =>
-  simp at zdef; subst z; simp at *;
-  obtain ⟨e1, e2⟩ := h2; subst e1; replace e2 := eq_of_heq e2; subst e2; cases q;
-  cases h1; simp;
-case _ =>
-  cases h1; case _ h1 _ _ _ =>
-  clear h3
+  subst h2; cases ctor_names; simp at zdef;
+  obtain ⟨e1, e2⟩ := zdef; subst e1; replace e2 := eq_of_heq e2; subst e2; simp;
+case _ x _ _ lc _ ih =>
+  cases ctor_names; case _ c cs =>
+  have z_size := Vec.populate_size _ zdef
+  simp at z_size;
+  have h3' := fin_shift_lemma h3
+  replace h3 := h3 0; simp at h3
+  have lem := lookup_ctor_names_sound wf lc h3
+  simp at zdef;
+  generalize zdef' : Vec.populate_aux ⟨1, #() :: #()⟩ cs = z' at *
+  have lem2 := Vec.combine_soundness zdef
+  obtain ⟨j, lem⟩ := lem
+  replace lem2 := lem2 j
+  replace ih := @ih z'.fst (ref_matrix := z'.snd |> cast (by simp only [Nat.zero_add])) _ h3' sorry
+  rcases ih with ⟨j', ih⟩
+  replace lem2 := lem2 j'
+  rcases lem2 with ⟨j'', lem2⟩
+  subst lem; subst ih; simp at *;
 
   sorry
 -- have lem := query_ctor_names h1 h3
@@ -231,10 +257,11 @@ def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : 
 
 
 theorem check_exhaustive_sound {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
+  ⊢ G ->
   Query G DataConst.cls q S ->
   check_exhaustive G S ps = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
   ∃ j : Fin ℓ, ref_matrix[j] = q := by
-intro h1 h2
+intro wf h1 h2
 unfold check_exhaustive at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
@@ -243,6 +270,6 @@ cases h2;
 cases ref_matrix; case _ n ref_matrix =>
 simp at idxs;
 simp at h6; simp
-apply query_in_enumerate_ctors h1 h4
+apply query_in_enumerate_ctors wf h1 h4
 
 end Core
