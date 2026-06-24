@@ -35,13 +35,21 @@ theorem List.firstM_eq_some : ∀ {ℓ}, List.firstM f ℓ = some t -> ∃ (k : 
 --   ∃ ξ, PatternBinders n Ts p[τ:Ty] ξ
 -- := by
 --   sorry
+theorem List.getElem_swap_index {ℓ : List α} {i j : Nat} (e : i = j) (h1 : i < ℓ.length)
+  : ℓ[i] = ℓ[j]
+:= by
+  sorry
 
 theorem Vec.get_list_to_get {v : Vec α (n + 1)} (h : i < n + 1) : v.list[i]'(by simp [h]) = v[Fin.ofNat (n + 1) i] := sorry
 
-theorem List.append_triple_lemma {a b c : List α} {i:Nat} :
-  (a ++ b ++ c)[i]? = some t ->
-  (a[i]? = some t ∧ i < a.length) ∨ ((a ++ b)[i]? = some t ∧ i > a.length) ∨ i > a.length + b.length
-:= sorry
+theorem PatternBinders.ctors_type_length {ss S : Vec _ m} :
+  --(∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
+  PatternBinders G Δ m S p ζ ξ ->
+  Term.IsData v ss ctors ->
+  Pattern.Match ctors p ->
+  ζ.length = (Constructor.subst_type ctors).length
+:= by
+  sorry
 
 theorem PatternBinders.ctors_type {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
@@ -62,39 +70,44 @@ theorem PatternBinders.ctors_type {ss S : Vec _ m} :
     cases h3; case _ m1' m2' n' c'' t' t1 t2 t3 e6 ts' e7 j5 =>
     subst e4; cases e7; case _ =>
     cases e5; case _ =>
+    have lem1 := PatternBinders.ctors_type_length j3 j5 j4
     simp [Constructor.subst_type]
-    sorry
-    -- rcases List.append_triple_lemma h with nh|nh|nh
-    -- case _ =>
-    --   rcases nh with ⟨nh1, nh2⟩
-    --   have lem : i < nb := sorry
-    --   rw [Subst.append_action_lt (by simp [lem])]
-    --   rw [List.getElem?_eq_getElem (by simp [nh2])] at nh1; cases nh1; case _ =>
-
-
-    --   sorry
-    -- case _ =>
-    --   sorry
-    -- case _ =>
-    --   sorry
-    -- cases Nat.decLt i nb
-    -- case _ nh =>
-    --   replace nh : i ≥ nb := by grind
-    --   rw [Subst.append_action_ge (h := by simp [nh])]; simp; simp at h
-    --   rw [List.getElem?_append_right (by simp [nh])] at h; simp at h
-    --   replace h1 := λ (i:Fin n) => h1 i.succ; simp at h1
-    --   apply ih h1 j5 j4 (i - nb) K h
-    -- case _ nh =>
-    --   rw [Subst.append_action_lt (h := by simp [nh])]; simp; simp at h
-    --   rw [List.getElem?_append_left (by simp [nh])] at h
-    --   rw [List.getElem?_eq_getElem (by simp [nh])] at h; cases h; case _ =>
-    --   replace h1 := h1 0; simp at h1; subst e6
-    --   cases h1; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
-    --   rw [j1] at q2; cases q2; case _ =>
-    --   simp; cases nb; cases nh; case _ nb =>
-    --   simp; have lem : nb - i < nb + 1 := by grind
-    --   rw [Vec.get_list_to_get lem, Vec.get_list_to_get lem]
-    --   apply q5
+    cases Nat.decLt i (ℓ1.length + nb)
+    case _ nh =>
+      replace nh : i ≥ ℓ1.length + nb := by grind
+      rw [Subst.append_action_ge (by simp; rw [<-lem1]; simp [nh])]; simp; rw [<-lem1]
+      rw [List.getElem?_append_right (by simp [nh])] at h; simp at h
+      rw [List.getElem?_eq_getElem (by grind)] at h
+      generalize zdef : Δ[i - (ℓ1.length + nb)]'(by grind) = z at *
+      cases h; case _ =>
+      rw [<-zdef]; apply Kinding.var; simp
+    case _ nh =>
+      rw [Subst.append_action_lt (by simp; rw [<-lem1]; simp [nh])]
+      rw [List.getElem?_append_left (by simp [nh])] at h
+      cases Nat.decLt i ℓ1.length
+      case _ nh2 =>
+        replace nh2 : i ≥ ℓ1.length := by grind
+        rw [List.getElem_append_right (by grind)]
+        rw [List.getElem?_append_right (by grind)] at h
+        rw [List.getElem?_eq_getElem (by grind)] at h
+        generalize zdef : Ks2.list.reverse[i - ℓ1.length]'(by grind) = z at *
+        cases h; case _ =>
+        rw [List.getElem_swap_index (i := i - (Constructor.subst_type cs).length) (j := i - ℓ1.length) (by simp [lem1])]
+        rw [<-zdef]; simp
+        replace h1 := h1 0; simp at h1; subst e6
+        cases h1; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
+        rw [j1] at q2; cases q2; case _ =>
+        cases nb; cases Ks2; simp at h; case _ nb =>
+        simp; have lem : nb - (i - ℓ1.length) < nb + 1 := by grind
+        rw [Vec.get_list_to_get lem, Vec.get_list_to_get lem]
+        apply q5
+      case _ nh2 =>
+        rw [List.getElem_append_left (by grind)]
+        rw [List.getElem?_append_left (by grind)] at h
+        replace h1 := λ (i:Fin n) => h1 i.succ; simp at h1
+        replace ih := ih h1 j5 j4 i K (by grind)
+        rw [Subst.append_action_lt (by rw [<-lem1]; simp [nh2])] at ih
+        apply ih
 
 theorem PatternBinders.ctors_term {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
@@ -141,15 +154,6 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
     --   simp; have lem : nc - i < nc + 1 := by grind
     --   rw [Vec.get_list_to_get lem, Vec.get_list_to_get lem]
     --   sorry
-
-theorem PatternBinders.ctors_type_length {ss S : Vec _ m} :
-  --(∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
-  PatternBinders G Δ m S p ζ ξ ->
-  Term.IsData v ss ctors ->
-  Pattern.Match ctors p ->
-  ζ.length = (Constructor.subst_type ctors).length
-:= by
-  sorry
 
 -- theorem PatternBinders.ctors_type_length_lemma {ss S : Vec _ m} :
 --   --(∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
