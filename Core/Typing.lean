@@ -129,6 +129,7 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ (i : Fin m2), G&Δ ⊢ Bs[i] : Ks2[i]) ->
   (∀ (i : Fin n), Typing G Δ Γ (ts i) Ts'[i]) ->
   (∀ c, v = .data c -> lookup_ctor? G c x R) ->
+  (∀ c, v = .data c -> ∀ i, i < m1 -> i + m2 ∈ R) ->
   (v = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
   Typing G Δ Γ (.spctor v x As Bs ts) R'
 | mtch {ss S : Fun.Vec _ m} {ps ts ζ ξ : Fun.Vec _ n} :
@@ -219,25 +220,27 @@ notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G �
 
 inductive PatternPartTyping G Δ : String × (n : Nat) × Vec Ty n × Nat × Nat -> Ty -> Prop
 | valid :
-  lookup_spine_type G c = some ⟨na, Ks, nb1, Bs1, nb2, Bs2, R⟩ ->
-  -- Sequ.append_vec (Vec.map su As) +0 = τ ->
-  (∀ i : Fin na, G&Δ ⊢ As[i] : Ks[i]) ->
-  R' = R[As.list.reverse.map su ++ Subst.id Ty] ->
-  PatternPartTyping G Δ ⟨c, na, As, nb1, nb2⟩ R'
+  lookup_spine_type G c = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
+  (∀ i : Fin m1, G&Δ ⊢ As[i] : Ks1[i]) ->
+  R'⟨.add Ty nb⟩ = R[Subst.lift (k := nb) $ As.list.reverse.map su ++ Subst.id Ty] ->
+  PatternPartTyping G Δ ⟨c, m1, As, m2, n⟩ R'
 
 def PatternTyping (G : List Global) (Δ : List Kind) (ps : Pattern m) (Ts : Vec Ty m) : Prop :=
   VecTyping (PatternPartTyping G Δ) ps Ts
 
--- inductive ConstructorTyping G Δ Γ : Constructor -> Ty -> Prop
--- | valid {ts : Vec Term nt} :
---   lookup_spine_type G c = some ⟨na, Ks, nt1, Ts1, nt2, Ts2, R⟩ ->
---   (∀ i : Fin na, G&Δ ⊢ As[i] : Ks[i]) ->
---   (∀ i : Fin nt, G&Δ,Γ ⊢ ts[i] : Ts[i][As.list.reverse.map su ++ Subst.id Ty]) ->
---   R' = R[τ] ->
---   ConstructorTyping G Δ Γ ⟨c, na, As, nt, ts⟩ R'
+inductive ConstructorTyping G Δ Γ (v : DataConst) : Constructor -> Ty -> Prop
+| valid {ts : Vec Term n} :
+  lookup_spine_type G c = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
+  lookup_ctor? G v x R ->
+  Ts' = Ts[(As.list ++ Bs.list).reverse.map su ++ Subst.id Ty] ->
+  R' = R[(As.list ++ Bs.list).reverse.map su ++ Subst.id Ty] ->
+  (∀ i : Fin m1, G&Δ ⊢ As[i] : Ks1[i]) ->
+  (∀ i : Fin m2, G&Δ ⊢ Bs[i] : Ks2[i]) ->
+  (∀ i : Fin n, G&Δ,Γ ⊢ ts[i] : Ts'[i]) ->
+  ConstructorTyping G Δ Γ v ⟨c, m1, As, m2, Bs, n, ts⟩ R'
 
--- def VecConstructorTyping (G : List Global) (Δ : List Kind) (Γ : List Ty) (cs : Vec Constructor n) (Ts : Vec Ty n) : Prop :=
---   VecTyping (ConstructorTyping G Δ Γ) cs Ts
+def VecConstructorTyping (G : List Global) (Δ : List Kind) (Γ : List Ty) (v : DataConst) (cs : Vec Constructor n) (Ts : Vec Ty n) : Prop :=
+  VecTyping (ConstructorTyping G Δ Γ v) cs Ts
 
 inductive GlobalWf : List Global -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vec (String × SpineTy) n} :

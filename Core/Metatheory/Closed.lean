@@ -338,7 +338,7 @@ theorem PatternBinders.extend Δ
 theorem Typing.extend Δ Γ : G&Δ₁,Γ₁ ⊢ t : A -> G&(Δ₁ ++ Δ),(Γ₁ ++ Γ) ⊢ t : A
 | var (x := x) j1 j2 => var (extend_lemma j1) j2.extend
 | defn j1 j2 => defn j1 j2.extend
-| spctor j1 e1 e2 j2 j3 j4 j5 j6 => sorry --spctor j1 e1 e2 (λ i => (j2 i).extend) (λ i => (j3 i).extend _ _) j4 j5
+| spctor j1 e1 e2 j2 j3 j4 j5 j6 j7 => sorry --spctor j1 e1 e2 (λ i => (j2 i).extend) (λ i => (j3 i).extend _ _) j4 j5
 | mtch j1 j2 j3 j4 j5 =>
   sorry
   -- let j4' := (λ i => (j4 i).extend Δ Γ ▸ congr 1; grind)

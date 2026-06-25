@@ -1,7 +1,6 @@
 
 import Core.Typing
 import Core.Util
-import Core.Metatheory.FreeVars
 import Core.Metatheory.Closed
 
 open Lilac
@@ -321,7 +320,7 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
     have ⟨e1, e2, e3⟩ := GlobalWf.closed_lookup_defn_ren wf j1
     rw [e1 r, e3 r]; exact j1
   defn j1' (j2.rename _ _ h)
-| @spctor G Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R' As Bs ts j1 e1 e2 j2 j3 j4 j5 j6 =>
+| @spctor G Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R' As Bs ts j1 e1 e2 j2 j3 j4 j5 j6 j7 =>
   have j1' : lookup_spine_type G x = (some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)⟨r⟩ := by
     have lem := GlobalWf.closed_lookup_spine_type_ren wf j1 r
     simp; simp at lem; grind
@@ -355,10 +354,10 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
   have j5' : ∀ c, v = .data c → lookup_ctor? G c x R⟨r.lift (m1 + m2)⟩ = true :=
     have lem := GlobalWf.closed_lookup_spine_type_ren wf j1 r
     by simp at lem; simp; rw [lem.2]; exact j5
-  have j6' : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn G Ts⟨r.lift (m1 + m2)⟩[i] := λ e i =>
-    Ty.data?_closed_ren (r.lift (m1 + m2)) (j6 e i) ▸ simp
+  have j7' : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn G Ts⟨r.lift (m1 + m2)⟩[i] := λ e i =>
+    Ty.data?_closed_ren (r.lift (m1 + m2)) (j7 e i) ▸ simp
   spctor (Ts := Ts⟨r.lift (m1 + m2)⟩) (R := R⟨r.lift (m1 + m2)⟩)
-    (j1' ▸ simp) e1' e2' j2' j3' (λ i => j4' i ▸ simp [Term.Ty.rmap_promote]) j5' j6'
+    (j1' ▸ simp) e1' e2' j2' j3' (λ i => j4' i ▸ simp [Term.Ty.rmap_promote]) j5' sorry j7'
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j1' := λ i => (j1 i).rename_type Δr r wf h
   have j2' := λ i => Ty.data?_closed_ren r (j2 i)
@@ -420,7 +419,7 @@ theorem Typing.rename Γr (r : Ren Term) (wf : ⊢ G)
   have j1' : lookup_defn G x = some (A, t⟨r⟩) := by
     rw [e2 r]; exact j1
   defn j1' j2
-| spctor j1 e1 e2 j2 j3 j4 j5 j6 => spctor j1 e1 e2 j2 j3 (λ i => (j4 i).rename _ _ wf h) j5 j6
+| spctor j1 e1 e2 j2 j3 j4 j5 j6 j7 => spctor j1 e1 e2 j2 j3 (λ i => (j4 i).rename _ _ wf h) j5 j6 j7
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j4' : ∀ (i : Fin n), G&(ζ i ++ Δ),(ξ i ++ Γr⟨Ren.add Ty (ζ i).length⟩) ⊢ (ts i)⟨r.lift (ps i).bind⟩ : A⟨Ren.add Ty (ζ i).length⟩ := λ i =>
     have lem1 : (ps i).bind = (ξ i).length := (j3 i).length

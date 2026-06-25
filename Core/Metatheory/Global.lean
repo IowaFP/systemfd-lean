@@ -389,7 +389,7 @@ theorem Query.global_strengthen {S : Vec _ m} (wf : ⊢ (g::G))
 theorem Typing.weaken_global (wf : ⊢ (g::G)) : G&Δ,Γ ⊢ t : A -> (g::G)&Δ,Γ ⊢ t : A
 | var j1 j2 => var j1 (j2.weaken_global wf)
 | defn j1 j2 => defn (lookup_defn_weaken wf j1) (j2.weaken_global wf)
-| spctor j1 e1 e2 j2 j3 j4 j5 j6 =>
+| spctor j1 e1 e2 j2 j3 j4 j5 j6 j7 =>
   sorry
   -- let j1' := lookup_spine_type_weaken wf j1
   -- let j2' := λ i => (j2 i).weaken_global wf

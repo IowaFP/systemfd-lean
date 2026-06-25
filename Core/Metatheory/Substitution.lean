@@ -184,7 +184,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
     have ⟨e1, e2, e3⟩ := GlobalWf.closed_lookup_defn wf j1
     rw [e1 σ, e3 σ]; exact j1
   defn j1' (j2.subst _ _ h)
-| @spctor G Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R' As Bs ts j1 e1 e2 j2 j3 j4 j5 j6 =>
+| @spctor G Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R' As Bs ts j1 e1 e2 j2 j3 j4 j5 j6 j7 =>
   have j1' : lookup_spine_type G x = (some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)[σ] := by
     have lem := GlobalWf.closed_lookup_spine_type wf j1 σ
     simp; simp at lem; grind
@@ -217,10 +217,10 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
   have j5' : ∀ c, v = .data c → lookup_ctor? G c x R[σ.lift (m1 + m2)] = true :=
     have lem := GlobalWf.closed_lookup_spine_type wf j1 σ
     by simp at lem; simp; rw [lem.2]; exact j5
-  have j6' : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn G Ts[σ.lift (m1 + m2)][i] := λ e i =>
-    Ty.data?_closed (σ.lift (m1 + m2)) (j6 e i) ▸ simp
+  have j7' : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn G Ts[σ.lift (m1 + m2)][i] := λ e i =>
+    Ty.data?_closed (σ.lift (m1 + m2)) (j7 e i) ▸ simp
   spctor (Ts := Ts[σ.lift (m1 + m2)]) (R := R[σ.lift (m1 + m2)])
-    (j1' ▸ simp) e1' e2' j2' j3' (λ i => j4' i ▸ simp [Term.Ty.smap_promote]) j5' j6'
+    (j1' ▸ simp) e1' e2' j2' j3' (λ i => j4' i ▸ simp [Term.Ty.smap_promote]) j5' sorry j7'
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j1' := λ i => (j1 i).subst_type Δσ σ wf h
   have j2' := λ i => Ty.data?_closed σ (j2 i)
@@ -382,7 +382,7 @@ theorem Typing.subst Γσ (σ : Subst Term) (wf : ⊢ G)
   have j1' : lookup_defn G x = some (A, t[σ]) := by
     rw [e2 σ]; exact j1
   defn j1' j2
-| spctor j1 e1 e2 j2 j3 j4 j5 j6 => spctor j1 e1 e2 j2 j3 (λ i => (j4 i).subst _ _ wf h) j5 j6
+| spctor j1 e1 e2 j2 j3 j4 j5 j6 j7 => spctor j1 e1 e2 j2 j3 (λ i => (j4 i).subst _ _ wf h) j5 j6 j7
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j4' : ∀ (i : Fin n), G&(ζ i ++ Δ),(ξ i ++ Γσ⟨Ren.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind ◾ Subst.add Ty (ps i).bind_type] : A⟨Ren.add Ty (ζ i).length⟩ := λ i =>
     have lem0 : (ps i).bind_type = (ζ i).length := (j3 i).length_type

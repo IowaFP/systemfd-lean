@@ -157,7 +157,7 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
     apply Typing.var h2 h3
   case _ nc c' na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' j1 j2 e1 e2 e3 j3 ih =>
     intro i A h h5
-    cases h4; case _  c q m1 As1 m2 As2 na2 ts e4 cs e5 j4 =>
+    cases h4; case _ c q m1 As1 m2 As2 na2 ts Bs e4 cs e5 j4 =>
     cases h3; case _ m1' m2' n' c'' t' t1 t2 t3 e6 ts' e7 j5 =>
     subst e4; cases e7; case _ =>
     cases e5; case _ =>
@@ -199,8 +199,8 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
         have hh := h
         simp at h; rw [<-h]; simp
         have h1' := h1 0; simp at h1'; subst e6
-        cases h1'; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
-        rw [j1] at q2; cases q2; case _ =>
+        cases h1'; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 q9 =>
+        rw [j1] at q3; cases q3; case _ =>
         cases nc
         case _ => cases Ts; simp at hh; grind
         case _ nc nch =>
@@ -209,11 +209,21 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
           rw [Vec.get_list_to_get (by grind)]
           rw [<-lem1]
           rw [Subst.compose_left_cons_lift_indirect (h := by simp)] at τdef
-          simp at τdef; subst q6; simp at q7; rw [<-τdef]
-          subst e1 q8; clear h1
+          simp at τdef; subst q7; simp at q8; rw [<-τdef]
+          subst e1 q9; clear h1
           simp at e3
           rw [<-Subst.subst_append_assoc]
-          apply q7
+          have lem : As1 = As := by
+            rw [Subst.subst_append_assoc] at e3
+            have leme1 : (List.map su As2⟨Ren.add Ty nb⟩.list).reverse = List.map su (As2⟨Ren.add Ty nb⟩.list).reverse := by simp
+            have leme2 : (List.map su As1⟨Ren.add Ty nb⟩.list).reverse = List.map su (As1⟨Ren.add Ty nb⟩.list).reverse := by simp
+            have leme3 : (List.map su As⟨Ren.add Ty nb⟩.list).reverse = List.map su (As⟨Ren.add Ty nb⟩.list).reverse := by simp
+            rw [leme1, leme2, leme3] at e3
+            replace e3 := FV.subst_congr_append_append (by simp; apply q1 _ rfl) (by simp) (by simp) e3
+            simp at e3
+            have leme4 : As1⟨Ren.add Ty nb⟩⟨Ren.sub Ty nb⟩ = As⟨Ren.add Ty nb⟩⟨Ren.sub Ty nb⟩ := by rw [e3]
+            simp at leme4; apply leme4
+          subst lem; apply q8
       case _ nh2 =>
         rw [List.getElem_append_left (by grind)]
         rw [List.getElem?_append_left (by simp; apply nh2)] at h
@@ -276,14 +286,14 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
     | isTrue h => preservation_step wf (j1 k) (h1 |> cast (by rw [h]))
     | isFalse h => j1 k |> cast (by rw [h2 k h])
   .mtch j1' j2 j3 j4 j5
-| .spctor j1 j2 j3 j4 j5 j6 j7 j8, .openm_match h1 h2 h3 h4 =>
-    preservation_open_data_match_lemma wf j1 j2 j3 j4 j5 j6 (j8 rfl) h1 h2 h3 h4
-| .spctor (Ts' := Ts') j1 j2 j3 j4 j5 j6 j7 j8, .openm_congr (ts' := ts') i h1 h2 =>
+| .spctor j1 j2 j3 j4 j5 j6 j7 j8 j9, .openm_match h1 h2 h3 h4 =>
+    preservation_open_data_match_lemma wf j1 j2 j3 j4 j5 j6 (j9 rfl) h1 h2 h3 h4
+| .spctor (Ts' := Ts') j1 j2 j3 j4 j5 j6 j7 j8 j9, .openm_congr (ts' := ts') i h1 h2 =>
   let j6' : ∀ k, G&Δ,Γ ⊢ ts' k : Ts'[k] := λ k =>
     match decEq k i with
     | isTrue h => preservation_step wf (j6 k) (h1 |> cast (by rw [h]))
     | isFalse h => j6 k |> cast (by rw [h2 k h])
-  .spctor j1 j2 j3 j4 j5 j6' j7 j8
+  .spctor j1 j2 j3 j4 j5 j6' j7 j8 j9
 | .app (.lam j2 j4) j3, .beta => Typing.beta wf j4 j3
 | .app j1 j2, .app_congr r =>
   let j1' := preservation_step wf j1 r
