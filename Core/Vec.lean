@@ -11,6 +11,16 @@ theorem Vec.length_list : {v : Vec α n} -> v.list.length = n
 | #() => by simp [list]
 | .cons x xs => by simp [list, length_list (v := xs)]
 
+-- do not remove
+@[grind =]
+theorem Vec.get_to {v : Fun.Vec α n} : v.to[i] = v i := by
+  induction v using Fun.Vec.induction
+  case _ => exfalso; apply Fin.elim0 i
+  case cons hd tl ih =>
+    cases i using Fin.cases
+    case _ => simp; unfold Fun.Vec.cons; simp
+    case _ i => simp [ih]; simp [Fun.Vec.cons]
+
 def Vec.rmap [RenMap S T] (r : Ren T) : Vec S n -> Vec S n
 | .nil => .nil
 | .cons x tl => x⟨r⟩ :: rmap r tl

@@ -84,6 +84,20 @@ theorem List.indexing_length_some {t : T} {Δ : List T} {x : Nat} :
   intro h; simp at h;
   simp; apply List.indexing_length_some (t := t) (Δ := Δ) (x := n) h
 
+@[simp]
+theorem List.length_rmap [RenMap S T] {ℓ : List S} {r : Ren T} : ℓ⟨r⟩.length = ℓ.length := by
+  sorry
+
+@[simp]
+theorem List.length_smap [SubstMap S T] {ℓ : List S} {σ : Subst T} : ℓ[σ].length = ℓ.length := by
+  sorry
+
+@[simp]
+theorem List.map_su_eq {ℓ1 ℓ2 : List T} : (ℓ1.map su = ℓ2.map su) = (ℓ1 = ℓ2) := sorry
+
+@[simp]
+theorem Vec.list_eq {v1 v2 : Vec α n} : (v1.list = v2.list) = (v1 = v2) := sorry
+
 -- theorem Ren.add_compose_distributes [RenMap T] [SubstMap T T][SubstMapId T T] {y z : Nat} :
 --   Ren.to (T := T) (λ x => x + y + z) = Subst.compose (T := T) (Ren.to (λ x => x + y)) (Ren.to (λ x => x + z))
 -- := by
@@ -350,14 +364,16 @@ namespace LeanSubst
     rw [Ren.lift_of_succ, compose_ren_left_cons_lift_1]
 
   @[simp, grind =]
-  theorem Subst.compose_ren_left_cons_lift_direct [RenMap T T] [SubstMap T T] {ℓ : List $ Action T} {r : Ren T}
-    : r.lift ℓ.length ∘ (ℓ ++ Subst.id T) = ℓ ++ r.to
+  theorem Subst.compose_ren_left_cons_lift_direct
+    [RenMap T T] [SubstMap T T] {ℓ : List $ Action T} {r : Ren T} {σ : Subst T}
+    : r.lift ℓ.length ∘ (ℓ ++ σ) = ℓ ++ (r ∘ σ)
   := by
     induction ℓ generalizing r <;> simp [-Subst.rewrite_lift_k_ren, *]
 
   @[simp, grind =]
-  theorem Subst.compose_ren_left_cons_lift_indirect [RenMap T T] [SubstMap T T] {ℓ : List $ Action T} {r : Ren T} {h : k = ℓ.length}
-    : r.lift k ∘ (ℓ ++ Subst.id T) = ℓ ++ r.to
+  theorem Subst.compose_ren_left_cons_lift_indirect
+    [RenMap T T] [SubstMap T T] {ℓ : List $ Action T} {r : Ren T} {σ : Subst T} {h : k = ℓ.length}
+    : r.lift k ∘ (ℓ ++ σ) = ℓ ++ (r ∘ σ)
   := by
     induction ℓ generalizing r <;> simp [-Subst.rewrite_lift_k_ren, *]
 
@@ -389,6 +405,11 @@ namespace LeanSubst
     generalize zdef : σ.act i = z
     cases z <;> simp
     congr
+
+  theorem Subst.compose_left_cons_lift_indirect
+    [RenMap T T] [SubstMap T T] {ℓ : List $ Action T} {σ τ : Subst T} {h : k = ℓ.length}
+    : σ.lift k ∘ (ℓ ++ τ) = ℓ ++ (σ ∘ τ)
+  := sorry
 
   @[simp]
   theorem Subst.List.smap_append [SubstMap S T] {a b : List S} {σ : Subst T}

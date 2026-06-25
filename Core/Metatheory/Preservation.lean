@@ -61,6 +61,25 @@ theorem PatternBinders.ctors_type_length {ss S : Vec _ m} :
     simp [Constructor.subst_type]
     rw [ih j5 j4]
 
+theorem PatternBinders.ctors_term_length {ss S : Vec _ m} :
+  PatternBinders G Δ m S p ζ ξ ->
+  Term.IsData v ss ctors ->
+  Pattern.Match ctors p ->
+  ξ.length = (Constructor.subst ctors).length
+:= by
+  intro h1 h2 h3
+  induction h1
+  case _ =>
+    cases ss; cases h2
+    simp [Constructor.subst]
+  case _ nc c' na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' j1 j2 e1 e2 e3 j3 ih =>
+    cases h3; case _  c q m1 As1 m2 As2 na2 ts Bs e4 cs e5 j4 =>
+    cases h2; case _ m1' m2' n' c'' t' t1 t2 t3 e6 ts' e7 j5 =>
+    subst e4; cases e7; case _ =>
+    cases e5; case _ =>
+    simp [Constructor.subst]
+    subst e2; simp; rw [ih j5 j4]
+
 theorem PatternBinders.ctors_type {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
   PatternBinders G Δ m S p ζ ξ ->
@@ -138,79 +157,70 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
     apply Typing.var h2 h3
   case _ nc c' na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' j1 j2 e1 e2 e3 j3 ih =>
     intro i A h h5
-    cases h4; case _  c q m1 As1 m2 As2 na2 ts Bs e4 cs e5 j4 =>
+    cases h4; case _  c q m1 As1 m2 As2 na2 ts e4 cs e5 j4 =>
     cases h3; case _ m1' m2' n' c'' t' t1 t2 t3 e6 ts' e7 j5 =>
     subst e4; cases e7; case _ =>
     cases e5; case _ =>
+    have lem1 := PatternBinders.ctors_term_length j3 j5 j4
+    have lem2 := PatternBinders.ctors_type_length j3 j5 j4
     simp [Constructor.subst_type] at h
+    rw [e1, e2] at h
+    simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_k] at h
+    rw [Subst.subst_append_assoc] at h
+    rw [Subst.compose_ren_left_cons_lift_indirect (h := lem2)] at h
+    rw [Subst.rewrite4_append_add_indirect (h := by simp)] at h
+    rw [Subst.compose_ren_right_assoc] at h
+    rw [Subst.rewrite4_append_add_indirect (h := lem2)] at h
+    generalize σdef : Constructor.subst_type cs ++ Subst.id Ty = σ at h
+    generalize τdef :
+      ((List.map su As.list).reverse ++ Subst.id Ty).lift nb
+        ∘ ((List.map su As2.list).reverse ++ Subst.id Ty) = τ at h
     simp [Constructor.subst]
-    sorry
-    -- cases Nat.decLt i nc
-    -- case _ nh =>
-    --   replace nh : i ≥ nc := by grind
-    --   rw [Subst.append_action_ge (h := by simp [nh])]; simp
-    --   rw [List.getElem?_append_right (by simp [nh])] at h; simp at h
-    --   replace h1 := λ (i:Fin n) => h1 i.succ; simp at h1
-    --   apply ih h1 j5 j4 (i - nc) A _ h5
-    --   sorry
-    -- case _ nh =>
-    --   rw [Subst.append_action_lt (h := by simp [nh])]; simp
-    --   rw [List.getElem?_append_left (by simp [nh])] at h
-    --   rw [List.getElem?_eq_getElem (by simp [nh])] at h; cases h; case _ =>
-    --   replace h1 := h1 0; simp at h1; subst e6
-    --   cases h1; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
-    --   rw [j1] at q2; cases q2; case _ =>
-    --   simp; cases nc; cases nh; case _ nc =>
-    --   simp; have lem : nc - i < nc + 1 := by grind
-    --   rw [Vec.get_list_to_get lem, Vec.get_list_to_get lem]
-    --   sorry
-
--- theorem PatternBinders.ctors_type_length_lemma {ss S : Vec _ m} :
---   --(∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
---   PatternBinders G Δ m S p ζ ξ ->
---   Term.IsData v ss ctors ->
---   Pattern.Match ctors p ->
---   Ren.add Ty ζ.length ∘ (Constructor.subst_type ctors ++ Subst.id Ty) = +0σ
--- := by
---   intro h1 h2 h3
---   have lem := ctors_type_length h1 h2 h3
---   rw [lem]
---   rw [Subst.rewrite4_append_add_direct (ℓ := Constructor.subst_type ctors)]
---   sorry
--- theorem PatternBinders.subst {ss S : Vec _ m} :
---   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
---   PatternBinders G Δ m S p ξ ->
---   Term.IsData v ss ctors ->
---   Pattern.Match ctors p ->
---   Constructor.subst ctors = σ ->
---   ∀ j A, (ξ ++ Γ)[j]? = some A -> G&Δ ⊢ A : ★ -> G&Δ,Γ ⊢ σ j : A
--- := by
---   intro h1 h2 h3 h4 h5 j A h6 h7
---   induction ctors generalizing ξ σ
---   case _ =>
---     simp at *; cases h2; simp at h6
---     unfold Constructor.subst at h5; subst h5; simp
---     apply Typing.var h6 h7
---   case _ n c v ih =>
---     rcases c with ⟨c, As, ts⟩
---     cases ss; case _ sshd sstl =>
---     cases S; case _ Shd Stl =>
---     have lem1 := λ (i : Fin n) => h1 i.succ; simp at lem1
---     replace h1 := h1 0; simp at h1
---     cases h2; case _ v1 v2 q1 q2 q3 q4 q5 q6 q7 =>
---     cases h3; case _ x t2 w1 w2 =>
---     cases h4; case _ Bs n1 ξ e1 e2 h4 =>
---     unfold Constructor.subst at h5;
---     have lem2 := Nat.decLe v1.length j
---     rcases lem2 with lem2 | lem2
---     case _ =>
---       replace h6 : (Vec.to_list v2)[j]? = some A := by sorry
---       sorry
---     case _ =>
---       replace h6 : (v1 ++ Γ)[j]? = some A := sorry
---       replace ih := @ih q5 v1 _ sstl Stl lem1 q7 w2 h4 rfl h6
---       rw [<-h5]
---       sorry
+    cases Nat.decLt i (ℓ2.length + nc)
+    case _ nh =>
+      replace nh : i ≥ ℓ2.length + nc := by grind
+      rw [Subst.append_action_ge (by simp; rw [<-lem1]; simp [nh])]; simp; rw [<-lem1]
+      rw [<-List.append_assoc] at h
+      rw [List.getElem?_append_right (by simp; grind)] at h; simp at h
+      rw [List.getElem?_eq_getElem (by grind)] at h
+      simp at h; rw [<-h]
+      apply Typing.var; simp
+      rw [h]; apply h5
+    case _ nh =>
+      rw [Subst.append_action_lt (by simp; rw [<-lem1]; simp [nh])]
+      rw [<-List.append_assoc] at h
+      rw [List.getElem?_append_left (by simp; grind)] at h
+      cases Nat.decLt i ℓ2.length
+      case _ nh2 =>
+        replace nh2 : i ≥ ℓ2.length := by grind
+        rw [List.getElem_append_right (by grind)]
+        rw [List.getElem?_append_right (by simp; grind)] at h
+        rw [List.getElem?_eq_getElem (by grind)] at h
+        have hh := h
+        simp at h; rw [<-h]; simp
+        have h1' := h1 0; simp at h1'; subst e6
+        cases h1'; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
+        rw [j1] at q2; cases q2; case _ =>
+        cases nc
+        case _ => cases Ts; simp at hh; grind
+        case _ nc nch =>
+          simp
+          rw [Vec.get_list_to_get (by grind), Vec.get_to]
+          rw [Vec.get_list_to_get (by grind)]
+          rw [<-lem1]
+          rw [Subst.compose_left_cons_lift_indirect (h := by simp)] at τdef
+          simp at τdef; subst q6; simp at q7; rw [<-τdef]
+          subst e1 q8; clear h1
+          simp at e3
+          rw [<-Subst.subst_append_assoc]
+          apply q7
+      case _ nh2 =>
+        rw [List.getElem_append_left (by grind)]
+        rw [List.getElem?_append_left (by simp; apply nh2)] at h
+        replace h1 := λ (i:Fin n) => h1 i.succ; simp at h1
+        replace ih := ih h1 j5 j4 i A (by grind) h5
+        rw [Subst.append_action_lt (by rw [<-lem1]; simp [nh2])] at ih
+        apply ih
 
 set_option maxHeartbeats 800000 in
 theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
@@ -234,7 +244,9 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
   .mtch j1' j2 j3 j4 j5
 | .spctor (n := n) (ts := ts) (Ts := Ts) j1 j2 j3 j4 j5 j6 j7 j8,
   .openm_match (p := p) (b := b) h1 h2 h3 h4 =>
-    sorry
+    have lem := GlobalWf.index_instance wf h2
+    match lem with
+    | .inst e1 e2 q1 q2 => sorry
   -- let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
   -- let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
   -- let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders G Δ n Ts' p[τ:Ty] ξ := sorry
