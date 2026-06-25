@@ -170,19 +170,24 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
 
 
 @[simp]
-def pattern_match : Vec Constructor m -> Pattern m' -> Bool
+def pattern_match : Vec Constructor m -> Pattern m -> Bool
 | .nil, .nil => true
-| .cons ⟨q, m, _, n, _, k, _⟩ xs, .cons ⟨q', m', _, n', k'⟩ zs =>
-  pattern_match xs zs && q == q' && m == m' && n == n' && k == k'
+| .cons ⟨q, m, As, n, _, k, _⟩ xs, .cons ⟨q', m', As', n', k'⟩ zs =>
+  pattern_match xs zs && q == q' && m == m' && n == n' && k == k' -- && As.beq As'
 | _, _ => false
 
 def get_instance_aux (x : String) (ctors : (Vec Constructor m)) (i : Nat) :
     (G : List Global) -> Option (Nat × (m : Nat) × Pattern m × Term)
       | .nil => none
-      | .cons (.inst (m := m) y p b) G' =>
-         if x == y && pattern_match ctors p
-         then some ⟨i, m, p, b⟩
-         else get_instance_aux x ctors (i + 1) G'
+      | .cons (.inst (m := n) y p b) G' =>
+         if h : x == y && m == n
+         then by
+              simp at h; rcases h with ⟨h1, h2⟩
+              subst h2;
+              if pattern_match ctors p
+                then apply some ⟨i, m, p, b⟩
+                else apply get_instance_aux x ctors (i + 1) G'
+         else none
       | .cons _ G' => get_instance_aux x ctors (i + 1) G'
 
 def get_instance (x : String) (ctors : (Vec Constructor m)) :

@@ -208,16 +208,26 @@ case _ n x xs ih1 ih2 =>
 -- TODO: change this to Vec.findIdx? once Lilac is fixed
 def Vec.findIdx! {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
 | #() => none
-| .cons x xs => go (x::xs) 0
+| .cons x xs => go p (x::xs) 0
 where
-  go : {n : Nat} -> Vec α n -> Nat -> Option (Fin n)
+  go (p : α -> Bool) : {n : Nat} -> Vec α n -> Nat -> Option (Fin n)
   | _, #(), _ => none
-  | n + 1, .cons x xs, i => if p x then Fin.ofNat (n + 1) i else Fin.succ <$> go xs i
+  | n + 1, .cons x xs, i => if p x then Fin.ofNat (n + 1) i else Fin.succ <$> go p xs i
 
 
 #guard Vec.findIdx! (· == 3) #(3, 1, 2) == some 0
 #guard Vec.findIdx! (· == 4) #(0, 4, 2) == some 1
 #guard Vec.findIdx! (· == 5) #(0, 1, 5) == some 2
+
+theorem Vec.findIdx!_go_sound {vs : Vec α n} {p : α -> Bool}:
+  Vec.findIdx!.go p vs k = some i ->
+  k ≤ i := by
+intro h
+fun_induction findIdx!.go
+cases h
+simp at h; sorry
+sorry
+
 
 theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx! p vs = some i ->
    p vs[i] = true

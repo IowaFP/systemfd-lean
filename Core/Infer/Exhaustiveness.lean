@@ -147,16 +147,14 @@ apply Iff.intro
 theorem pattern_extension_enumerate {G : GlobalEnv} {qs : Vec String (0 + m)} {y : String} {S : Ty} :
   ⊢ G ->
   Vec.populate ctor_names = ⟨ℓ, ref_matrix⟩ ->
-  (∃ j : Fin ℓ, ref_matrix[j] = qs) ->
 
   lookup_ctor? G DataConst.cls y S ->
   lookup_ctor_names G S = some ⟨nc, cs⟩ ->
 
   Vec.populate (⟨nc, cs⟩ :: ctor_names) = ⟨ℓ', ref_matrix'⟩ ->
-  ∃ j' : Fin ℓ', ref_matrix'[j'] = y :: qs
+  ∀ i : Fin ℓ, ∃ j' : Fin ℓ', ref_matrix'[j'] = y :: ref_matrix[i]
 := by
-intro wf h3 h4 h5 h6 h7
-rcases h4 with ⟨j, h4⟩
+intro wf h3 h5 h6 h7 i
 have lem := lookup_ctor_names_sound wf h5 h6
 rcases lem with ⟨k, lem⟩;
 unfold Vec.populate at h7; simp at h7; unfold Vec.populate at h3; rw[h3] at h7
@@ -164,9 +162,9 @@ have comb_size_lem := Vec.combine_size h7; simp at comb_size_lem
 subst ℓ'
 have lem1 := Vec.combine_soundness h7
 simp at lem1;
-replace lem1 := lem1 k j
+replace lem1 := lem1 k i
 rcases lem1 with ⟨j', lem1⟩
-exists j'; rw[lem] at lem1; rw[h4] at lem1
+exists j'; rw[lem] at lem1;
 apply Eq.symm lem1
 
 
@@ -190,6 +188,9 @@ theorem cast_cons {a : α} {b : Vec α n} {e : α = β} :
   cast (by rw[e]) (a :: b) = Vec.cons (cast (by rw[e]) a) (cast (by rw[e]) b)
 := by subst e; simp
 
+-- set_option pp.explicit true
+
+
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
   ⊢ G ->
   Query G DataConst.cls q S ->
@@ -209,50 +210,60 @@ case _ =>
 case _ x _ _ lc _ ih =>
   generalize zdef : Vec.populate_aux ⟨1, #(#())⟩ ctor_names = z at *
   cases ctor_names; case _ c cs =>
+
   have z_size := Vec.populate_size _ zdef
   simp at z_size;
   have h3' := fin_shift_lemma h3
   replace h3 := h3 0; simp at h3
   have lem := lookup_ctor_names_sound wf lc h3
+  obtain ⟨j, lem⟩ := lem
   simp at zdef;
   generalize zdef' : Vec.populate_aux ⟨1, #() :: #()⟩ cs = z' at *
+  rcases z' with ⟨z', z'h⟩
+  rcases z with ⟨z, zh⟩;
+
   have lem2 := Vec.combine_soundness zdef
-  obtain ⟨j, lem⟩ := lem
-  replace lem2 := lem2 j
-  rcases z with ⟨z, zh⟩
+  have lem0 : zh ≍ ref_matrix := by grind
   have lemz : z = ℓ := by grind
   subst z;
-  have lem0 : zh ≍ ref_matrix := by grind
-  rcases z' with ⟨z', z'h⟩
-  subst lem
 
-  have c0 : ((p : Nat) × Vec (Vec String (0 + x)) p) = ((n : Nat) × Vec (Vec String x) n)
-    := enumerate_ctor_names._proof_1
+  -- c + z'h = zh ≍ ref_matrix
 
-  replace ih := @ih z' (ref_matrix := z'h |> cast (by grind)) _ (by {
+  replace lem2 := lem2 j
+
+  subst lem; simp at lem2
+  simp at z_size; subst ℓ
+
+  replace ih := @ih z' (ref_matrix := z'h |> cast (by rw[Nat.zero_add])) _ (by {
     rw[zdef']; grind}) h3'
   rcases ih with ⟨j', ih⟩
   replace lem2 := lem2 j'
   rcases lem2 with ⟨j'', lem2⟩
-  simp at lem2
-  subst ih; simp at *;
-  simp at j''
+
+  have c0 : ((p : Nat) × Vec (Vec String (0 + x)) p) = ((n : Nat) × Vec (Vec String x) n)
+    := enumerate_ctor_names._proof_1
+
+  subst ih;
   exists j''
-  have c1 : Vec String (0 + (x + 1)) = Vec String (x + 1) := of_eq_true
-    (Eq.trans (congrFun' (congrArg Eq (congrArg (Vec String) (Nat.zero_add (x + 1)))) (Vec String (x + 1)))
+  have c1 : Vec String (0 + (x + 1)) = Vec String (x + 1)
+    := of_eq_true (Eq.trans (congrFun' (congrArg Eq (congrArg (Vec String) (Nat.zero_add (x + 1)))) (Vec String (x + 1)))
       (eq_self (Vec String (x + 1))))
-  have c2 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z' := query_in_enumerate_ctors._proof_1_8 z'
-  have c3 : Vec String (0 + x) = Vec String x := by simp
+  have c2 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z'
+       := query_in_enumerate_ctors._proof_1_8 z'
+  have c4 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z'
+       := Eq.mpr (id (congrArg (fun _a => Vec (Vec String _a) z' = Vec (Vec String x) z') (Nat.zero_add x)))
+         (Eq.refl (Vec (Vec String x) z'))
+  have c3 : Vec String (0 + x) = Vec String x := by rw[Nat.zero_add]
+
 
   have e1 : ref_matrix[j''] = cast (by apply c1) zh[j''] := by
-    have h := cast_get_elem (e := by simp) j'' lem0
+    have h := cast_get_elem (e := by rw[Nat.zero_add]) j'' lem0
     rw[<-h]
-  rw_mod_cast[e1]; rw_mod_cast[<-lem2]; norm_cast;
-  subst ℓ;
+  rw[e1]; clear e1; rw[<-lem2]; clear lem2; norm_cast;
+
   have lem' : (Vec.cons (c.snd[j]) (z'h[j'])) ≍ Vec.cons (c.snd[j]) (cast (by rfl) z'h[j']) := by
     simp
 
-  -- c + z'h = zh ≍ ref_matrix
 
   -- rw[cast_get_elem (e := by simp) j'] at lem'
   -- TODO push casts inside Vec.cons and Vec.get_elem

@@ -168,7 +168,8 @@ case _ As _ ih => -- spctor
   · intro i; replace h7 := Vec.seq_sound1 _ h7 i;
     apply ih i; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e; apply h11
-  · intro h; cases h
+  · sorry -- intro h; cases h
+  · sorry
 
 case _ As _ ih => -- openm
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
@@ -195,9 +196,10 @@ case _ As _ ih => -- openm
   · intro i; replace h5 := h5 i; replace h5 := infer_kind_sound h5; apply h5
   · intro i; replace h7 := h7 i; replace ih := @ih i (Ts'.to i) h7; rw[Vec.to_get_elem] at ih; apply ih
   · intro c e; cases e
-  · intro e i; cases e; replace h9 := h9 i;
-    have lem := Vec.units h8 i; rw[lem] at h9
-    replace h9 := data_valid_sound _ h9; apply h9
+  · sorry -- intro e i j j1; cases e; replace h9 := h9 i;
+    -- have lem := Vec.units h8 i; rw[lem] at h9
+    -- replace h9 := data_valid_sound _ h9; apply h9
+  · intros; sorry
 
 case _ m n ss ps ts smτs ih1 ih2 => -- match
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨S, h2, h⟩

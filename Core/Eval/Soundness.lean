@@ -38,43 +38,35 @@ theorem Term.is_data_sound :
     rfl
 
 
+
 theorem get_instance_sound {G : List Global} :
    get_instance x cs G = some ⟨i, _, p, t⟩ ->
    G[i]? = some (Global.inst x p t)
 := by
 intro h
 induction G <;> (unfold get_instance at h; unfold get_instance_aux at h; simp at *)
+case _ hd tl ih =>
+cases hd <;> simp at *
+· sorry
+sorry
+sorry
+sorry
+sorry
 sorry
 
-theorem pattern_match_size {m : Nat} {cs : Vec Constructor m} {ps : Pattern m'} :
-  pattern_match cs ps = true ->
-  m = m'
-:= by
-intro h
-fun_induction pattern_match
-· rfl
-· case _ ih =>
-  simp at h; rcases h with ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩
-  subst h4; replace ih := ih h1
-  subst ih; simp
-· cases h
 
-theorem pattern_match_sound {m : Nat} {cs : Vec Constructor m} {ps : Pattern m'} :
-  (h : pattern_match cs ps = true) ->
-  have e := pattern_match_size h
-  Core.Pattern.Match cs (ps |> cast (by rw[e]))
+theorem pattern_match_sound {m : Nat} {cs : Vec Constructor m} {ps : Pattern m} :
+  pattern_match cs ps = true ->
+  Pattern.Match cs ps
 := by
 intro h
 fun_induction pattern_match <;> simp at *
 apply Pattern.Match.nil
 · case _ ih =>
-  unfold pattern_match at h
-  simp at h; rcases h with ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩
-  subst h5; subst h4; subst h3; subst h2;
-  replace ih := ih h1
-  sorry
-
-· sorry
+  rcases h with ⟨⟨⟨⟨h, e⟩, e1⟩, e2⟩, e3⟩
+  subst e; subst e1; subst e2; subst e3
+  replace ih := ih h
+  apply Pattern.Match.cons ih rfl rfl
 
 theorem get_match_sound {ctors : Vec Constructor m} {ps : Vec (Pattern m) n}:
   get_match ctors ps = some i ->

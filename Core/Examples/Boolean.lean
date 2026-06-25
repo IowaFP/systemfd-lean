@@ -106,7 +106,17 @@ def t1 : Term := ((openm! "eq" #( gt#"Bool" ) #() (Vec.to (#( iBool )))) • Tru
 #guard t1.infer_type EqBoolCtx [] [] == some (gt#"Bool")
 -- def t2 : Term := (g#"eq" •[ gt#"Bool" ]  • (g#"EqBool" •[  gt#"Bool" ] • refl! gt#"Bool") • g#"True") • g#"True"
 
+#eval t1.eval_loop EqBoolCtx
+
+#eval do
+  let ctors <- Term.is_data .opn #(iBool)
+  return (ctors, EqBoolCtx[0]?)
+  -- get_instance "eq" ctors EqBoolCtx
+
+
+
 #guard t1.eval_loop EqBoolCtx == FalseCtor
+
 
 -- def ctx' := List.drop 1 EqBoolCtx
 -- #eval! (Λ[★] λ[(t#0 ~[★]~ gt#"Bool")] λ[t#0] λ[t#0]

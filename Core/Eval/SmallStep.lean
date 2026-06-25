@@ -70,13 +70,18 @@ def Term.eval (G : List Global) : Term ->  Option Term
   | none =>
     let ctors <- Term.is_data .opn ss.to
     let ⟨_, m, p, b⟩ <- get_instance x ctors G
-    if h : m == n && pattern_match ctors p
+    if h : m == n
     then
-      let τ := Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty
-      let σ' := Constructor.subst_type ctors ++ Subst.id Ty
-      let σ := Constructor.subst ctors ++ Subst.id Term
-      return b[σ'][τ][σ]
-    else none -- stuck
+      by
+        have lem := eq_of_beq h; rw[lem] at p
+        if pattern_match ctors p
+        then
+          let τ := Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty
+          let σ' := Constructor.subst_type ctors ++ Subst.id Ty
+          let σ := Constructor.subst ctors ++ Subst.id Term
+          apply some b[σ'][τ][σ]
+        else apply none -- stuck
+    else none
   | some i => do
     let t' <- eval G (ss i)
     if m_ss[i] == t' then
