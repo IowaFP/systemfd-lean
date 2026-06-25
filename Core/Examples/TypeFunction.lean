@@ -27,8 +27,12 @@ namespace Core.Examples
 
 def TypeFunCtx : GlobalEnv := [
 
-  -- .inst "fdF" #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
-  --       (openm! "loop" #(t#1 ~[★]~ t#0) #() #().to),
+  .inst "fdF" #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FIB", 2, #(t#2, t#0), 0, 2⟩)
+        (openm! "loop" #(t#3 ~[★]~ t#2) #() #().to),
+
+
+  .inst "fdF" #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+        (openm! "loop" #(t#3 ~[★]~ t#2) #() #().to),
 
   -- .inst "fdF" #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
   --   (
@@ -85,7 +89,7 @@ def TypeFunCtx : GlobalEnv := [
 
 
 #guard TypeFunCtx.wf_globals == some ()
-#guard GlobalEnv.check_open_exhaustive TypeFunCtx == none
+#guard GlobalEnv.check_open_exhaustive TypeFunCtx == some ()
 
 
 -- f : ∀ t. F Int t → t → t
