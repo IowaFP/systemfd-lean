@@ -193,20 +193,20 @@ some ([★, ★, ★, ★],
 -/
 
 
-#eval! do
-  match lookup "fdF" TypeFunCtx with
-  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
-      if "fdF" == y then
-        let Δ := (Ks1.list ++ Ks2.list).reverse
-        let (ζ, Γ) <- pattern_binders TypeFunCtx Δ n Ts
-            #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
-        let t := openm! "loop" #(t#1 ~[★]~ t#0) #() #().to
-        let R' <- t.infer_type TypeFunCtx ζ Γ
-        -- R⟨Ren.add Ty ζ.length⟩, R' == R⟨Ren.add Ty ζ.length⟩)
-        return (ζ, Γ, R⟨Ren.add Ty ζ.length⟩, R')
+-- #eval! do
+--   match lookup "fdF" TypeFunCtx with
+--   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+--       if "fdF" == y then
+--         let Δ := (Ks1.list ++ Ks2.list).reverse
+--         let (ζ, Γ) <- pattern_binders TypeFunCtx Δ n Ts
+--             #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+--         let t := openm! "loop" #(t#1 ~[★]~ t#0) #() #().to
+--         let R' <- t.infer_type TypeFunCtx ζ Γ
+--         -- R⟨Ren.add Ty ζ.length⟩, R' == R⟨Ren.add Ty ζ.length⟩)
+--         return (ζ, Γ, R⟨Ren.add Ty ζ.length⟩, R')
 
-      else none
-  | _ => none
+--       else none
+--   | _ => none
 
 
 end Core.Examples

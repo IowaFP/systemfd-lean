@@ -276,7 +276,7 @@ def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : 
   let ref_matrix <- enumerate_ctor_names G Ss
 
   -- just keep the constructor names from the patterns
-  let ps' := patterns_to_ctor_names ps.reverse
+  let ps' := patterns_to_ctor_names ps
 
   -- check that each entry in ref_matrix has an associated entry ps'
   let mbs := ref_matrix.2.map (λ r => ps'.findIdx! (λ x => x == r))

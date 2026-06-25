@@ -82,6 +82,7 @@ def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option (((ℓ1 : Nat) × (
   let octors := octors.map (λ cs => Vec.from_list cs)
   let ref_matrix : (p : Nat) × Vec (Vec String (0 + nc)) p := Vec.populate octors
 
+
   -- get all the patterns from instances of this method
   let ιs : List (Pattern nc) := G.filterMap (λ e => match e with
          | (.inst (m := m) y p _) =>
@@ -100,7 +101,7 @@ def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option (((ℓ1 : Nat) × (
 
 
 def GlobalEnv.check_open_exhaustive (G : GlobalEnv) : Option Unit := do
- let _ <- List.mapM (GlobalEnv.check_insts G) G
+ let _ <- List.mapM (GlobalEnv.check_insts G) G.attach
 
 -- For each open method,
 -- collect the instances of the method
