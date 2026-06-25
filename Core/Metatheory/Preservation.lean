@@ -222,6 +222,40 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
         rw [Subst.append_action_lt (by rw [<-lem1]; simp [nh2])] at ih
         apply ih
 
+theorem preservation_open_data_match_lemma {As : Vec Ty m1} {Bs : Vec Ty m2} {ts : Fun.Vec Term n} {i : Nat} (wf : ⊢ G) :
+  lookup_spine_type G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
+  Ts' = Ts[(As.list ++ Bs.list).reverse.map su ++ Subst.id Ty] ->
+  R' = R[(As.list ++ Bs.list).reverse.map su ++ Subst.id Ty] ->
+  (∀ (i:Fin m1), G&Δ ⊢ As[i] : Ks1[i]) ->
+  (∀ (i:Fin m2), G&Δ ⊢ Bs[i] : Ks2[i]) ->
+  (∀ (i:Fin n), G&Δ,Γ ⊢ ts i : Ts'[i]) ->
+  (∀ (i:Fin n), Ty.data? DataConst.opn G Ts[i]) ->
+  Term.IsData .opn ts.to ctors ->
+  G[i]? = some (Global.inst x p b) ->
+  Pattern.Match ctors p ->
+  (t' = b[Constructor.subst_type ctors ++ Subst.id Ty][Bs.list.reverse.map su ++ As.list.reverse.map su ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term]) ->
+  G&Δ,Γ ⊢ t' : R'
+:= by
+  intro j1 e1 e2 j2 j3 j4 j5 j6 j7 j8 e3
+  have lem1 := GlobalWf.index_instance wf j7
+  cases lem1; case _ m1' Ks1' m2' Ks2' R'' Δ' ζ Γ' e4 Ts2 q1 q2 q3 =>
+  unfold lookup_spine_type at j1
+  generalize zdef : lookup x G = z at *
+  cases z; simp at q1; case _ z =>
+  cases q1; case _ =>
+  simp [Entry.spine_type] at j1
+  rcases j1 with ⟨e, j1⟩; subst e; simp at j1
+  rcases j1 with ⟨e, e', j1⟩; subst e e'; simp at j1
+  rcases j1 with ⟨e, e', e''⟩; subst e e' e'' e1 e2 e3 e4
+  have lem1 := PatternBinders.ctors_type_length q2 j6 j8
+  --have lem2 := PatternBinders.ctors_type sorry q2 j6 j8
+  replace q3 := Typing.subst_type (Ks1'.list ++ Ks2'.list).reverse (Constructor.subst_type ctors ++ Subst.id Ty) wf sorry q3
+  simp at q3; rw [Subst.rewrite4_append_add_indirect (h := lem1)] at q3; simp at q3
+  replace q3 := Typing.subst_type [] (List.map su Bs.list.reverse ++ List.map su As.list.reverse ++ Subst.id Ty) wf sorry q3
+  replace q3 := Typing.subst [] (Constructor.subst ctors ++ Subst.id Term) wf sorry q3
+  replace q3 := q3.extend Δ Γ
+  simp at q3; simp; exact q3
+
 set_option maxHeartbeats 800000 in
 theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
 | .defn j1 j2, .defn (A := A) j3 =>
@@ -242,17 +276,8 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
     | isTrue h => preservation_step wf (j1 k) (h1 |> cast (by rw [h]))
     | isFalse h => j1 k |> cast (by rw [h2 k h])
   .mtch j1' j2 j3 j4 j5
-| .spctor (n := n) (ts := ts) (Ts := Ts) j1 j2 j3 j4 j5 j6 j7 j8,
-  .openm_match (p := p) (b := b) h1 h2 h3 h4 =>
-    have lem := GlobalWf.index_instance wf h2
-    match lem with
-    | .inst e1 e2 q1 q2 => sorry
-  -- let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
-  -- let j4' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
-  -- let ⟨ξ, lem2⟩ : ∃ ξ, PatternBinders G Δ n Ts' p[τ:Ty] ξ := sorry
-  -- let lem1 : G&Δ,(ξ ++ Γ) ⊢ b[τ:Ty] : T := sorry
-  -- let lem3 := PatternBinders.subst j4' lem2 h1 sorry h5
-  -- Typing.subst Γ σ wf lem3 (cast (by grind) lem1)
+| .spctor j1 j2 j3 j4 j5 j6 j7 j8, .openm_match h1 h2 h3 h4 =>
+    preservation_open_data_match_lemma wf j1 j2 j3 j4 j5 j6 (j8 rfl) h1 h2 h3 h4
 | .spctor (Ts' := Ts') j1 j2 j3 j4 j5 j6 j7 j8, .openm_congr (ts' := ts') i h1 h2 =>
   let j6' : ∀ k, G&Δ,Γ ⊢ ts' k : Ts'[k] := λ k =>
     match decEq k i with
