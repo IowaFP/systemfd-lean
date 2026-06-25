@@ -46,10 +46,34 @@ intro h
 induction G <;> (unfold get_instance at h; unfold get_instance_aux at h; simp at *)
 sorry
 
-theorem pattern_match_sound {m : Nat} {cs : Vec Constructor m} {ps : Pattern m} :
+theorem pattern_match_size {m : Nat} {cs : Vec Constructor m} {ps : Pattern m'} :
   pattern_match cs ps = true ->
-  Core.Pattern.Match cs ps
+  m = m'
 := by
+intro h
+fun_induction pattern_match
+· rfl
+· case _ ih =>
+  simp at h; rcases h with ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩
+  subst h4; replace ih := ih h1
+  subst ih; simp
+· cases h
+
+theorem pattern_match_sound {m : Nat} {cs : Vec Constructor m} {ps : Pattern m'} :
+  (h : pattern_match cs ps = true) ->
+  have e := pattern_match_size h
+  Core.Pattern.Match cs (ps |> cast (by rw[e]))
+:= by
+intro h
+fun_induction pattern_match <;> simp at *
+apply Pattern.Match.nil
+case _ ih =>
+  unfold pattern_match at h
+  simp at h; rcases h with ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩
+  subst h5; subst h4; subst h3; subst h2;
+  replace ih := ih h1
+  push_cast; norm_cast
+  sorry
 
 sorry
 
@@ -70,6 +94,7 @@ case _ ih => -- openm
   replace h2 := Term.is_data_sound h2
   replace h4 := get_instance_sound h4
   replace h5 := pattern_match_sound (cs := h1) (ps := p) h5
+  simp at h5
   apply Red.openm_match (i := i) (b := t) (b' := N)
   · apply h2
   · apply h4
