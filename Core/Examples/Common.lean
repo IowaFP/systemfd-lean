@@ -13,6 +13,10 @@ open Lilac
 namespace Core.Examples
 
 def CastCtx : GlobalEnv := [
+  .inst "loop" #() (openm! "loop" #(t#0) #() #().to),
+  -- loop : ∀ a. a
+  .openm "loop" ⟨1, #(★), 0, #(), 0, #(), t#0 ⟩,
+
   -- appc : (A ~ B) -> (C ~ D) -> (E ~ F) -> (A • C • E ~ B • D • F)
   .defn "appc2" (∀[★ -:> (★ -:> ★)]∀[★ -:> (★ -:> ★)] ∀[★] ∀[★] ∀[★] ∀[★]
             (t#5 ~[★ -:> (★ -:> ★)]~ t#4) -:> ((t#3 ~[★]~ t#2) -:> (t#1 ~[★]~ t#0) -:>

@@ -26,6 +26,14 @@ namespace Core.Examples
 
 
 def TypeFunCtx : GlobalEnv := [
+
+  -- .inst "fdF" #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+  --       (openm! "loop" #(t#1 ~[★]~ t#0) #() #().to),
+
+  -- .inst "fdF" #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+  --   (
+  --   ),
+
   --   Λ t u v. λ d1 d2.
   --     If FMM[t][u] ← d1 then Λ a' b'. λ (h1: Maybe a' ~  t) (h2 : Maybe b' ~ u) (e1 : F a' b').
   --     If FMM[t][v] ← d2 then Λ a'' b''. λ (k1: Maybe a'' ~ t) (k2 : Maybe b'' ~ v) (e2 : F a'' b'').
@@ -89,7 +97,7 @@ def fnot := Λ[★]λ[(gt#"F" • gt#"Int") • t#0]λ[t#0]
             let h := openm! "fdF" #(gt#"Int", gt#"Bool", t#0) #() #(iFIB, #1).to
             (Term.cast t#0 ((d#"arrowc").mkApps [gt#"Bool", t#0, gt#"Bool", t#0] [h, h]) notTerm) • #0
 
-#eval! fnot.infer_type TypeFunCtx [] []
+#guard (fnot.infer_type TypeFunCtx [] []) == some (∀[★] (((gt#"F" • gt#"Int") • t#0) -:> (t#0 -:> t#0)))
 
 
   --   Λ t u v. λ d1 d2.
@@ -181,20 +189,20 @@ some ([★, ★, ★, ★],
 -/
 
 
--- #eval! do
---   match lookup "fdF" TypeFunCtx with
---   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
---       if "fdF" == y then
---         let Δ := (Ks1.list ++ Ks2.list).reverse
---         let (ζ, Γ) <- pattern_binders TypeFunCtx Δ n Ts
---             #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FIB", 2, #(t#2, t#0), 0, 2⟩)
---         let t := ((d#"sym" •[gt#"Bool"]) •[t#1]) • #2
---         let t1 := ((((d#"seq" •[t#1]) •[gt#"Bool"]) •[t#0]) • t) • #0
---         let R' <- t1.infer_type MaybeBoolCtx (ζ ++ Δ) Γ
---         return (ζ, Γ, R')
+#eval! do
+  match lookup "fdF" TypeFunCtx with
+  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+      if "fdF" == y then
+        let Δ := (Ks1.list ++ Ks2.list).reverse
+        let (ζ, Γ) <- pattern_binders TypeFunCtx Δ n Ts
+            #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+        let t := openm! "loop" #(t#1 ~[★]~ t#0) #() #().to
+        let R' <- t.infer_type TypeFunCtx ζ Γ
+        -- R⟨Ren.add Ty ζ.length⟩, R' == R⟨Ren.add Ty ζ.length⟩)
+        return (ζ, Γ, R⟨Ren.add Ty ζ.length⟩, R')
 
---       else none
---   | _ => none
+      else none
+  | _ => none
 
 
 end Core.Examples

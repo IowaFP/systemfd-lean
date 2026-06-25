@@ -221,24 +221,42 @@ case _ x _ _ lc _ ih =>
   replace lem2 := lem2 j
   rcases z with ⟨z, zh⟩
   have lemz : z = ℓ := by grind
-  have lem0 : zh ≍ ref_matrix := by grind
   subst z;
+  have lem0 : zh ≍ ref_matrix := by grind
   rcases z' with ⟨z', z'h⟩
+  subst lem
+
+  have c0 : ((p : Nat) × Vec (Vec String (0 + x)) p) = ((n : Nat) × Vec (Vec String x) n)
+    := enumerate_ctor_names._proof_1
+
   replace ih := @ih z' (ref_matrix := z'h |> cast (by grind)) _ (by {
     rw[zdef']; grind}) h3'
   rcases ih with ⟨j', ih⟩
   replace lem2 := lem2 j'
   rcases lem2 with ⟨j'', lem2⟩
-  subst lem; subst ih; simp at *;
+  simp at lem2
+  subst ih; simp at *;
   simp at j''
   exists j''
-  have e1 : ref_matrix[j''] = cast (by simp) zh[j''] := by
+  have c1 : Vec String (0 + (x + 1)) = Vec String (x + 1) := of_eq_true
+    (Eq.trans (congrFun' (congrArg Eq (congrArg (Vec String) (Nat.zero_add (x + 1)))) (Vec String (x + 1)))
+      (eq_self (Vec String (x + 1))))
+  have c2 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z' := query_in_enumerate_ctors._proof_1_8 z'
+  have c3 : Vec String (0 + x) = Vec String x := by simp
+
+  have e1 : ref_matrix[j''] = cast (by apply c1) zh[j''] := by
     have h := cast_get_elem (e := by simp) j'' lem0
     rw[<-h]
   rw_mod_cast[e1]; rw_mod_cast[<-lem2]; norm_cast;
   subst ℓ;
+  have lem' : (Vec.cons (c.snd[j]) (z'h[j'])) ≍ Vec.cons (c.snd[j]) (cast (by rfl) z'h[j']) := by
+    simp
+
+  -- c + z'h = zh ≍ ref_matrix
+
+  -- rw[cast_get_elem (e := by simp) j'] at lem'
   -- TODO push casts inside Vec.cons and Vec.get_elem
-  have lem' := cast_cons (α := String) (a := c.snd[j]) (b := z'h[j']) (e := by rfl)
+  -- have lem' := cast_cons (α := String) (a := c.snd[j]) (b := z'h[j']) (e := by rfl)
 
   sorry
 

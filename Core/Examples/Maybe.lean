@@ -11,15 +11,6 @@ import Core.Examples.Common
 open Lilac
 open LeanSubst
 
--- def c1  := mtch' #0 #𝓋[ g#"Nothing" •[t#0] , g#"Just" •[t#0] ]
---                      v[ g#"True" , λ[t#0] g#"False" ]
---                      g#"False"
-
--- def c2 := λ[t#0] match! #1
---               v[ g#"Nothing" •[t#0], g#"Just" •[t#0]]
---               v[ g#"False", λ[t#0] ((((g#"eq" •[ t#0 ]) •(.open) #4) • #1) •#0) ]
---               g#"False"
-
 namespace Core.Examples
 
 def eq_maybe_inst : Term :=
@@ -78,7 +69,7 @@ def MaybeBoolCtx : GlobalEnv := [
 
 #guard MaybeBoolCtx.wf_globals == .some ()
 
-#eval MaybeBoolCtx.check_open_exhaustive == some ()
+#guard MaybeBoolCtx.check_open_exhaustive == some ()
 #guard GlobalEnv.check_open_exhaustive (MaybeBoolCtx.tail) == none
 
 -- #eval lookup "eq" MaybeBoolCtx
@@ -86,26 +77,26 @@ def MaybeBoolCtx : GlobalEnv := [
 -- #eval lookup_spine_type MaybeBoolCtx "EqMaybe"
 -- na = 1, Ks1 = [★], nb = 1, Ks2 := [★], nc := 2, Ts := [t#1 ~ Maybe t#0, Eq #0], R := Eq t
 
-#eval! do
-  match lookup "eq" MaybeBoolCtx with
-  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
-      if "eq" == y then
-        let Δ := (Ks1.list ++ Ks2.list).reverse
-        let (ζ, Γ) <- pattern_binders MaybeBoolCtx Δ n Ts #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩)
+-- #eval! do
+--   match lookup "eq" MaybeBoolCtx with
+--   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+--       if "eq" == y then
+--         let Δ := (Ks1.list ++ Ks2.list).reverse
+--         let (ζ, Γ) <- pattern_binders MaybeBoolCtx Δ n Ts #(⟨"EqMaybe", 1, #(t#0), 1, 2⟩)
 
 
-        -- let t1 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[gt#"Bool"]) •[gt#"Bool"]) • #1) • (refl! gt#"Bool")
-        -- let t2 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[t#1 -:> gt#"Bool"]) •[(gt#"Maybe" • t#0) -:> gt#"Bool"]) • #1) • t1
-        -- let t3 := ((d#"sym" •[t#1 -:> (t#1 -:> gt#"Bool")]) •[(gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> gt#"Bool")]) • t2
+--         -- let t1 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[gt#"Bool"]) •[gt#"Bool"]) • #1) • (refl! gt#"Bool")
+--         -- let t2 := (((((d#"arrowc" •[t#1]) •[gt#"Maybe" • t#0]) •[t#1 -:> gt#"Bool"]) •[(gt#"Maybe" • t#0) -:> gt#"Bool"]) • #1) • t1
+--         -- let t3 := ((d#"sym" •[t#1 -:> (t#1 -:> gt#"Bool")]) •[(gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> gt#"Bool")]) • t2
 
-        -- let t4 := Term.cast t#0 t3 ((d#"eq@Maybe" •[t#0]) • #0)
-        -- let R' <- t4.infer_type MaybeBoolCtx (ζ ++ Δ) Γ
-        return (ζ ++ Δ, Γ) -- R'
+--         -- let t4 := Term.cast t#0 t3 ((d#"eq@Maybe" •[t#0]) • #0)
+--         -- let R' <- t4.infer_type MaybeBoolCtx (ζ ++ Δ) Γ
+--         return (ζ ++ Δ, Γ) -- R'
 
-      else none
-      -- let T <- t.infer_type G Ks.to_list Γ
-      -- if T == R then return () else none
-  | _ => none
+--       else none
+--       -- let T <- t.infer_type G Ks.to_list Γ
+--       -- if T == R then return () else none
+--   | _ => none
 
 
 def NothingCtor (T : Ty) : Term := ctor! "Nothing" #(T) .nil .nil

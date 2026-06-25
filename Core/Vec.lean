@@ -21,6 +21,25 @@ theorem Vec.get_to {v : Fun.Vec α n} : v.to[i] = v i := by
     case _ => simp; unfold Fun.Vec.cons; simp
     case _ i => simp [ih]; simp [Fun.Vec.cons]
 
+theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
+  intro i; induction vs <;> simp at *
+  apply i.elim0
+  case _ ih =>
+  induction i using Fin.induction <;> simp at *
+  rw[Fun.Vec.cons_zero]
+  apply ih
+
+theorem Fun.Vec.to_get_elem (vs : Vec α n) : ∀i, vs i = (Vec.to vs)[i] := by
+  intro i; induction vs using Vec.induction
+  apply i.elim0
+  case _ ih =>
+  induction i using Fin.induction <;> simp at *
+  rw[Fun.Vec.cons_zero]
+  case _ i _ =>
+  rw[Fun.Vec.cons_succ]
+  apply ih i
+
+
 def Vec.rmap [RenMap S T] (r : Ren T) : Vec S n -> Vec S n
 | .nil => .nil
 | .cons x tl => x⟨r⟩ :: rmap r tl
@@ -29,7 +48,6 @@ instance [RenMap S T] : RenMap (Vec S n) T where
   rmap := Vec.rmap
 
 @[simp, grind =]
-
 theorem Vec.index_into_map {v : Vec α n} {i : Fin n} : (Vec.map f v)[i] = f v[i] := by
   fun_induction Vec.map
   case _ => apply Fin.elim0 i
@@ -358,24 +376,6 @@ generalize z_def : populate_aux ⟨1, #(#())⟩ ps = z at *
 have lem := Vec.populate_aux_size _ z_def
 subst h; rw[Nat.mul_one] at lem; assumption
 
-
-theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
-  intro i; induction vs <;> simp at *
-  apply i.elim0
-  case _ ih =>
-  induction i using Fin.induction <;> simp at *
-  rw[Fun.Vec.cons_zero]
-  apply ih
-
-theorem Fun.Vec.to_get_elem (vs : Vec α n) : ∀i, vs i = (Vec.to vs)[i] := by
-  intro i; induction vs using Vec.induction
-  apply i.elim0
-  case _ ih =>
-  induction i using Fin.induction <;> simp at *
-  rw[Fun.Vec.cons_zero]
-  case _ i _ =>
-  rw[Fun.Vec.cons_succ]
-  apply ih i
 
 
 theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :

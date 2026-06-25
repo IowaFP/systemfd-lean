@@ -65,6 +65,7 @@ def Term.eval (G : List Global) : Term ->  Option Term
 
 | .spctor (n := n) .openm x Ts1 Ts2 ss => do
   let m_ss : Vec (Option Term) n := Fun.Vec.to (λ i => eval G (ss i))
+  -- let m_ss : Vec.map (eval G) ss.to makes the lean termination checker complain
   match (m_ss).findIdx! Option.isSome with
   | none =>
     let ctors <- Term.is_data .opn ss.to
@@ -74,11 +75,14 @@ def Term.eval (G : List Global) : Term ->  Option Term
       let τ := Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty
       let σ' := Constructor.subst_type ctors ++ Subst.id Ty
       let σ := Constructor.subst ctors ++ Subst.id Term
-      return b[τ][σ'][σ]
+      return b[σ'][τ][σ]
     else none -- stuck
   | some i => do
     let t' <- eval G (ss i)
-    return (.spctor .openm x Ts1 Ts2 (ss.to.set i t').to)
+    if m_ss[i] == t' then
+      let ss' := ss.to.set i t'
+      return (.spctor .openm x Ts1 Ts2 ss'.to)
+    else none
 
 
 | .mtch m n ss ps bs => do
@@ -86,9 +90,10 @@ def Term.eval (G : List Global) : Term ->  Option Term
   match (m_ss).findIdx! Option.isSome with
   | none =>
     let ctors <- Term.is_data .cls ss.to
+    let τ := Constructor.subst_type ctors ++ Subst.id Ty
     let σ := Constructor.subst ctors ++ Subst.id Term
     let i <- get_match ctors ps.to
-    return (bs i)[σ]
+    return (bs i)[τ][σ]
   | some i => do
     let t' <- eval G (ss i)
     return (.mtch m n (ss.to.set i t').to ps bs)
@@ -118,7 +123,7 @@ def Term.eval (G : List Global) : Term ->  Option Term
   return (.ctor2 .app t1' t2)
 
 -- ∀c
-| .ctor2 .apptc (.tbind .allc _ (.ctor0 (.refl (Ty.all _ t1)))) (.ctor0 (.refl t2)) => do
+| .ctor2 .apptc ((.ctor0 (.refl (Ty.all _ t1)))) (.ctor0 (.refl t2)) => do
   return .ctor0 (.refl t1[su t2::+0σ])
 | .ctor2 .apptc t1 t2 => do
    match eval G t1 with
