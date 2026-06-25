@@ -92,14 +92,32 @@ instance [RenMap S T] [SubstMap S T] [SubstMapId S T]
 where
   apply_id := by intro t; induction t <;> simp [*]
 
+private def apply_ren_compose_left_aux [RenMap S T] [SubstMap S T] [SubstMapRenComposeLeft S T]
+  : ∀ {s : Vec S n} {r : Ren T} {τ : Subst T}, s⟨r⟩[τ] = s[r ∘ τ] := λ {s} =>
+match s with
+| #() => by simp
+| .cons x xs => by simp; apply apply_ren_compose_left_aux
+
 instance [RenMap S T] [SubstMap S T] [SubstMapRenComposeLeft S T] : SubstMapRenComposeLeft (Vec S n) T where
-  apply_ren_compose_left := sorry
+  apply_ren_compose_left := apply_ren_compose_left_aux
+
+private def apply_ren_compose_right_aux [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T]
+  : ∀ {s : Vec S n} {r : Ren T} {σ : Subst T}, s[σ]⟨r⟩ = s[σ ∘ r] := λ {s} =>
+match s with
+| #() => by simp
+| .cons x xs => by simp; apply apply_ren_compose_right_aux
 
 instance [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T] : SubstMapRenComposeRight (Vec S n) T where
-  apply_ren_compose_right := sorry
+  apply_ren_compose_right := apply_ren_compose_right_aux
 
-instance [SubstMap S T] [SubstMap T T] : SubstMapCompose (Vec S n) T where
-  apply_compose := sorry
+private def apply_compose_aux [SubstMap S T] [SubstMap T T] [SubstMapCompose S T]:
+  ∀ {s : Vec S n} {σ τ : Subst T}, s[σ][τ] = s[σ ∘ τ] := λ {s} =>
+  match s with
+  | #() => by rfl
+  | .cons x xs => by simp; apply apply_compose_aux
+
+instance [SubstMap S T] [SubstMap T T] [SubstMapCompose S T] : SubstMapCompose (Vec S n) T where
+  apply_compose := apply_compose_aux
 
 @[grind =]
 theorem Vec.rmap_promote [RenMap S T] {v : Vec S n} {r : Ren T} : Vec.map (·⟨r⟩) v = v⟨r⟩ := by
@@ -112,12 +130,20 @@ theorem Vec.smap_promote [SubstMap S T] {v : Vec S n} {σ : Subst T} : Vec.map (
 @[grind =]
 theorem Vec.to_rmap [RenMap S T] {r : Ren T} {v : Fun.Vec S m}
   : (v.to)⟨r⟩ = Fun.Vec.to (fun i => (v i)⟨r⟩)
-:= sorry
+:= by
+  apply v.induction
+  · simp; rfl
+  · simp; intro n hd tl ih;
+    rw[ih]; simp [Fun.Vec.cons]; rfl
 
 @[grind =]
 theorem Vec.to_smap [SubstMap S T] {σ : Subst T} {v : Fun.Vec S m}
   : (v.to)[σ] = Fun.Vec.to (fun i => (v i)[σ])
-:= sorry
+:= by
+  apply v.induction
+  · simp; rfl
+  · simp; intro n hd tl ih;
+    rw[ih]; simp [Fun.Vec.cons]; rfl
 
 @[simp]
 theorem Vec.smap_index [SubstMap S T] {i : Fin n} {v : Vec S n} {σ : Subst T} : v[i][σ] = v[σ][i] :=
@@ -135,7 +161,8 @@ theorem Vec.rmap_index [RenMap S T] {i : Fin n} {v : Vec S n} {r : Ren T} : v[i]
     induction i using Fin.induction <;> simp at *
     case _ i ih => apply Vec.rmap_index
 
-theorem Vec.get_subst [SubstMap S T] {i : Fin n} {v : Vec S n} {σ : Subst T} : v[i][σ] = v[σ][i] := sorry
+theorem Vec.get_subst [SubstMap S T] {i : Fin n} {v : Vec S n} {σ : Subst T} : v[i][σ] = v[σ][i]
+  := by simp
 
 
 def Vec.reprPrec [Repr T] : {n : Nat} -> Vec T n -> Nat -> Std.Format
@@ -386,7 +413,16 @@ generalize z_def : populate_aux ⟨1, #(#())⟩ ps = z at *
 have lem := Vec.populate_aux_size _ z_def
 subst h; rw[Nat.mul_one] at lem; assumption
 
-
+theorem Vec.sequence_cons {xs : Vec (Option α) n} {zs : Vec α n} {ys : Vec α (n + 1)}:
+  (x :: xs).sequence = some ys ->
+  ∃ z zs, ys = Vec.cons z zs := by
+intro h
+unfold sequence at h; simp at h
+cases x
+simp at h; sorry
+case _ v =>
+  exists v; simp at h
+  sorry
 
 theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Vec.map f vs).sequence = some vs' ->
@@ -394,7 +430,12 @@ theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β)
 := by
 intro h i
 generalize zdef : map f vs = z at *
-sorry
+fun_induction Vec.map
+case _ => apply i.elim0
+case _ ih =>
+  subst zdef; simp at h;
+  sorry
+
 -- fun_induction Vec.sequence
 -- · apply i.elim0
 -- · cases h

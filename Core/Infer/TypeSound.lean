@@ -142,7 +142,7 @@ case _ => -- defn
   apply h4
 
 case _ As _ ih => -- spctor
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨m1', Ks1', m2', Ks2, n', Ts, R⟩, h2, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks1, h4, h⟩;
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks, h5, h⟩;
   simp at h; rcases h with ⟨h5, h⟩
@@ -159,7 +159,7 @@ case _ As _ ih => -- spctor
   replace e1 := Vec.eq_sound_lem e1; subst Ks1
   replace e2 := Vec.eq_sound_lem e2; subst Ks
   replace h12 := Vec.eq_sound_lem h12
-  apply Typing.spctor (R := h1.2.2.2.2.2.2) (Ks2 := h1.2.2.2.1) (Ts' := Ts')
+  apply Typing.spctor
   · rw[h2]
   · simp; apply Eq.symm h12
   · simp; apply Eq.symm h
@@ -168,7 +168,7 @@ case _ As _ ih => -- spctor
   · intro i; replace h7 := Vec.seq_sound1 _ h7 i;
     apply ih i; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e; apply h11
-  · sorry -- intro h; cases h
+  · intro c e; cases e; intro j h; sorry -- intro h; cases h
   · intro h; cases h
 
 case _ As _ ih => -- openm
@@ -196,9 +196,7 @@ case _ As _ ih => -- openm
   · intro i; replace h5 := h5 i; replace h5 := infer_kind_sound h5; apply h5
   · intro i; replace h7 := h7 i; replace ih := @ih i (Ts'.to i) h7; rw[Vec.to_get_elem] at ih; apply ih
   · intro c e; cases e
-  · sorry -- intro e i j j1; cases e; replace h9 := h9 i;
-    -- have lem := Vec.units h8 i; rw[lem] at h9
-    -- replace h9 := data_valid_sound _ h9; apply h9
+  · intro c e; cases e
   · intros e i; cases e; replace h9 := h9 i;
     have lem := Vec.units h8 i; rw[lem] at h9
     replace h9 := data_valid_sound _ h9; apply h9
