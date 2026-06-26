@@ -354,10 +354,14 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
   have j5' : ∀ c, v = .data c → lookup_ctor? G c x R⟨r.lift (m1 + m2)⟩ = true :=
     have lem := GlobalWf.closed_lookup_spine_type_ren wf j1 r
     by simp at lem; simp; rw [lem.2]; exact j5
+  have j6' : ∀ (c : DataConst), v = .data c → ∀ (i : Nat), i < m1 → i + m2 ∈ R⟨r.lift (m1 + m2)⟩ := by
+    intro c h1 i h2
+    have lem := j6 c h1 i h2
+    apply FV.rmap_lift _ lem; grind
   have j7' : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn G Ts⟨r.lift (m1 + m2)⟩[i] := λ e i =>
     Ty.data?_closed_ren (r.lift (m1 + m2)) (j7 e i) ▸ simp
   spctor (Ts := Ts⟨r.lift (m1 + m2)⟩) (R := R⟨r.lift (m1 + m2)⟩)
-    (j1' ▸ simp) e1' e2' j2' j3' (λ i => j4' i ▸ simp [Term.Ty.rmap_promote]) j5' sorry j7'
+    (j1' ▸ simp) e1' e2' j2' j3' (λ i => j4' i ▸ simp [Term.Ty.rmap_promote]) j5' j6' j7'
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j1' := λ i => (j1 i).rename_type Δr r wf h
   have j2' := λ i => Ty.data?_closed_ren r (j2 i)

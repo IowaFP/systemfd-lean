@@ -144,6 +144,54 @@ theorem FV.zero_not_in_succ {T : Ty} : 0 ∉ T⟨.succ Ty⟩ := by
   have lem := @FV.var_not_in_one_more (T := T) 0
   simp at lem; apply lem
 
+theorem Ren.lift_act_gt (h : k > i) {r : Ren T} : (r.lift k).act i = i := by
+  induction k generalizing i; cases h
+  case _ k ih =>
+  cases i; simp; case _ i =>
+  replace ih := @ih i (by omega)
+  rw [Ren.lift_of_succ]
+  simp [-Subst.rewrite_lift_k_ren]
+  apply ih
+
+theorem Subst.lift_act_gt
+  [RenMap T T] [RenMapId T T] [RenMapCompose T T]
+  (h : k > i) {σ : Subst T}
+  : (σ.lift k).act i = re i
+:= by
+  induction k generalizing i; cases h
+  case _ k ih =>
+  cases i; simp; case _ i =>
+  replace ih := @ih i (by omega)
+  rw [Subst.rewrite_lift_succ]
+  simp [-Subst.rewrite_lift_k_ren]
+  rw [ih]; simp
+
+theorem FV.rmap_lift {T : Ty} {r : Ren Ty} (h : k > i) :
+  i ∈ T -> i ∈ T⟨r.lift k⟩
+| .var => by simp [-Subst.rewrite_lift_k_ren]; rw [Ren.lift_act_gt h]; apply Ty.FV.var
+| .arrowr j => .arrowr (rmap_lift h j)
+| .arrowl j => .arrowl (rmap_lift h j)
+| .eqr j => .eqr (rmap_lift h j)
+| .eql j => .eql (rmap_lift h j)
+| .appr j => .appr (rmap_lift h j)
+| .appl j => .appl (rmap_lift h j)
+| .all j =>
+  have j' := rmap_lift (k := k + 1) (r := r) (by omega) j
+  .all (by simp [Ty.rmap_promote]; simp at j'; exact j')
+
+theorem FV.smap_lift {T : Ty} {σ : Subst Ty} (h : k > i) :
+  i ∈ T -> i ∈ T[σ.lift k]
+| .var => by simp [-Subst.rewrite_lift_k]; rw [Subst.lift_act_gt h]; apply Ty.FV.var
+| .arrowr j => .arrowr (smap_lift h j)
+| .arrowl j => .arrowl (smap_lift h j)
+| .eqr j => .eqr (smap_lift h j)
+| .eql j => .eql (smap_lift h j)
+| .appr j => .appr (smap_lift h j)
+| .appl j => .appl (smap_lift h j)
+| .all j =>
+  have j' := smap_lift (k := k + 1) (σ := σ) (by omega) j
+  .all (by simp [Ty.smap_promote]; simp at j'; exact j')
+
 theorem FV.subst_congr_var {ℓ1 ℓ2 : List Ty} (σ τ : Subst Ty)
   (h1 : i < ℓ1.length)
   (h2 : ℓ1.length = ℓ2.length)
