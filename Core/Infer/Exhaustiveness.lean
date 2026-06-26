@@ -4,12 +4,9 @@ import Core.Global
 import Core.Typing
 
 import Core.Vec
-import LeanSubst
-import Lilac
 
 import Core.Metatheory.Global
 
-open LeanSubst
 open Lilac
 
 namespace Core
@@ -190,6 +187,20 @@ theorem cast_cons {a : α} {b : Vec α n} {e : α = β} :
 
 -- set_option pp.explicit true
 
+theorem cast_sigma (c0 : ((p : Nat) × Vec (Vec String (0 + (x + 1))) p) = ((n : Nat) × Vec (Vec String (x + 1)) n)) : cast c0 ⟨ℓ, z⟩ = ⟨ℓ', z'⟩ -> ℓ = ℓ' ∧ ∃ c, z = cast c z' := by
+intro h; grind;
+
+theorem cast_indexing {z'h : Vec (Vec String (0 + x)) z'} {j' : Fin z'} :
+  ∀ c4 : Vec String (0 + x) = Vec String x,
+  ∀ c1 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z',
+   cast c4 (z'h[j']) = (cast c1 z'h)[j'] := by
+induction z'h
+apply j'.elim0
+case _ a as ih =>
+  induction j' using Fin.induction <;> simp at *
+  · intro c1 c2; norm_cast; replace ih := @ih; sorry
+  · case _ j' ih_ => replace ih := @ih j' (by simp) (by simp); sorry
+
 
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
   ⊢ G ->
@@ -240,36 +251,35 @@ case _ x _ _ lc _ ih =>
   replace lem2 := lem2 j'
   rcases lem2 with ⟨j'', lem2⟩
 
-  have c0 : ((p : Nat) × Vec (Vec String (0 + x)) p) = ((n : Nat) × Vec (Vec String x) n)
-    := enumerate_ctor_names._proof_1
+  generalize c0_def : enumerate_ctor_names._proof_1 = c0 at *
 
   subst ih;
   exists j''
-  have c1 : Vec String (0 + (x + 1)) = Vec String (x + 1)
-    := of_eq_true (Eq.trans (congrFun' (congrArg Eq (congrArg (Vec String) (Nat.zero_add (x + 1)))) (Vec String (x + 1)))
-      (eq_self (Vec String (x + 1))))
-  have c2 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z'
-       := query_in_enumerate_ctors._proof_1_8 z'
-  have c4 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z'
-       := Eq.mpr (id (congrArg (fun _a => Vec (Vec String _a) z' = Vec (Vec String x) z') (Nat.zero_add x)))
-         (Eq.refl (Vec (Vec String x) z'))
-  have c3 : Vec String (0 + x) = Vec String x := by rw[Nat.zero_add]
+  generalize c1_def : Eq.mpr (id (congrArg (fun _a => Vec (Vec String _a) z' = Vec (Vec String x) z') (Nat.zero_add x)))
+    (Eq.refl (Vec (Vec String x) z')) = c1 at *
 
-
-  have e1 : ref_matrix[j''] = cast (by apply c1) zh[j''] := by
+  have e1 : ref_matrix[j''] = cast (by simp) zh[j''] := by
     have h := cast_get_elem (e := by rw[Nat.zero_add]) j'' lem0
     rw[<-h]
-  rw[e1]; clear e1; rw[<-lem2]; clear lem2; norm_cast;
+  rw[e1]; rw[<-lem2]; clear lem2; norm_cast;
+  generalize c2_def : of_eq_true
+    (Eq.trans (congrFun' (congrArg Eq (congrArg (Vec String) (Nat.zero_add (x + 1)))) (Vec String (x + 1)))
+      (eq_self (Vec String (x + 1))))  = c2 at *
+  replace h2 := cast_sigma c0 h2;
+  rcases h2 with ⟨_, c3, h3⟩
 
-  have lem' : (Vec.cons (c.snd[j]) (z'h[j'])) ≍ Vec.cons (c.snd[j]) (cast (by rfl) z'h[j']) := by
-    simp
+  have lem : ∃ c1, cast c2 (c.snd[j] :: z'h[j']) = Vec.cons (c.snd[j]) (cast c1 (z'h[j'])) := by
+    grind
+  rcases lem with ⟨c4, lem⟩
+  rw[lem]; congr;
+  apply cast_indexing
+  -- have lem' : (Vec.cons (c.snd[j]) (z'h[j'])) ≍ Vec.cons (c.snd[j]) (cast (by rfl) z'h[j']) := by
+  --   simp
 
 
   -- rw[cast_get_elem (e := by simp) j'] at lem'
   -- TODO push casts inside Vec.cons and Vec.get_elem
   -- have lem' := cast_cons (α := String) (a := c.snd[j]) (b := z'h[j']) (e := by rfl)
-
-  sorry
 
 -- Checks that the patterns are exhaustive
 def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : Option ((ℓ : Nat) × (Vec (Vec String m) ℓ × Vec (Fin n) ℓ)) := do

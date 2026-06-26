@@ -153,7 +153,6 @@ case _ As _ ih => -- spctor
   subst h10;
   rcases h5 with ⟨⟨⟨e1, e2⟩, e3⟩, h5⟩
   subst h5; subst e3
-  -- rcases e0 with ⟨e0, e6⟩
   replace h5 := Vec.map_seq_sound _ h5
   replace h4 := Vec.map_seq_sound _ h4
   replace e1 := Vec.eq_sound_lem e1; subst Ks1
