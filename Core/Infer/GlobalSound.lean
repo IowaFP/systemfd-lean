@@ -110,16 +110,41 @@ case _ ih => -- odata
   · apply ih h2
 
 
+theorem lookup_entry_global {G : GlobalEnv}:
+  lookup x G = some (Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨τ, (Ts, R)⟩)⟩)⟩) ->
+  ∃ i : Nat, G[i]? = some (Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨τ, (Ts, R)⟩)⟩)⟩) := by
+intro h
+fun_induction lookup <;> simp at *
+sorry
+all_goals try (
+  case _ ih _ =>
+  replace ih := ih h
+  rcases ih with ⟨i, ih⟩
+  exists i.succ)
+case _ =>
+  exists 0; simp; apply h
+case _ ih =>
+  replace ih := ih h
+  rcases ih with ⟨i, ih⟩
+  exists i.succ
 
 theorem open_exhaustive_sound {G : GlobalEnv} :
-  G.check_open_exhaustive = some () ->
+  G.check_open_exhaustive = some d ->
   OpenExhaustive G
 := by
 intro h
 unfold OpenExhaustive
 intro x na nb τ Ks1 Ks2 Ts R q lk qh
-unfold GlobalEnv.check_open_exhaustive at h; simp at h
-rw[Option.bind_eq_some_iff] at h; rcases h with ⟨n, h, e⟩; cases e
+unfold GlobalEnv.check_open_exhaustive at h;
+simp at h;
+replace lk := lookup_entry_global lk
+rcases lk with ⟨oi, lk⟩
+have temp := List.mem_of_getElem? lk
+have h' := h (Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨τ, (Ts, R)⟩)⟩)⟩) temp
+unfold GlobalEnv.check_insts at h'
+simp at h'
+rcases h' with ⟨octors, h1, h2, h3⟩
+replace h3 := Vec.map_seq_sound _ h3
 
 sorry
 

@@ -89,7 +89,7 @@ def TypeFunCtx : GlobalEnv := [
 
 
 #guard TypeFunCtx.wf_globals == some ()
-#guard GlobalEnv.check_open_exhaustive TypeFunCtx == some ()
+#guard (GlobalEnv.check_open_exhaustive TypeFunCtx).isSome
 
 
 -- f : ∀ t. F Int t → t → t
