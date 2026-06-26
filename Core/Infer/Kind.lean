@@ -93,7 +93,7 @@ def Ty.kind_preamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Optio
 | _ , _ => none
 
 
-def spine_kinding (G : List Global) (sv : SpCtorVariant) (x : String) (test : Ty -> Bool): SpineTy -> Option Unit
+def spine_kinding (G : List Global) (sv : SpCtorVariant) (_ : String) (test : Ty -> Bool): SpineTy -> Option Unit
 | ⟨_, Ks1, _, Ks2, _, Ts, R⟩ => do
   let Δ1 := Ks1.list
   let Δ2 := Ks2.list

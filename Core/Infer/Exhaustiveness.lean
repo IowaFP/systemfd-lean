@@ -190,17 +190,12 @@ theorem cast_cons {a : α} {b : Vec α n} {e : α = β} :
 theorem cast_sigma (c0 : ((p : Nat) × Vec (Vec String (0 + (x + 1))) p) = ((n : Nat) × Vec (Vec String (x + 1)) n)) : cast c0 ⟨ℓ, z⟩ = ⟨ℓ', z'⟩ -> ℓ = ℓ' ∧ ∃ c, z = cast c z' := by
 intro h; grind;
 
-theorem cast_indexing {z'h : Vec (Vec String (0 + x)) z'} {j' : Fin z'} :
-  ∀ c4 : Vec String (0 + x) = Vec String x,
-  ∀ c1 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z',
-   cast c4 (z'h[j']) = (cast c1 z'h)[j'] := by
-induction z'h
-apply j'.elim0
-case _ a as ih =>
-  induction j' using Fin.induction <;> simp at *
-  · intro c1 c2; norm_cast; replace ih := @ih; sorry
-  · case _ j' ih_ => replace ih := @ih j' (by simp) (by simp); sorry
+theorem cast_indexing {z'h : Vec (Vec String (0 + x)) z'} {j' : Fin z'}
+  {c1 : Vec String (0 + x) = Vec String x}
+  {c2 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z'} :
+  cast c1 (z'h[j']) = (cast c2 z'h)[j'] := by
 
+sorry
 
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
   ⊢ G ->
@@ -273,13 +268,7 @@ case _ x _ _ lc _ ih =>
   rcases lem with ⟨c4, lem⟩
   rw[lem]; congr;
   apply cast_indexing
-  -- have lem' : (Vec.cons (c.snd[j]) (z'h[j'])) ≍ Vec.cons (c.snd[j]) (cast (by rfl) z'h[j']) := by
-  --   simp
 
-
-  -- rw[cast_get_elem (e := by simp) j'] at lem'
-  -- TODO push casts inside Vec.cons and Vec.get_elem
-  -- have lem' := cast_cons (α := String) (a := c.snd[j]) (b := z'h[j']) (e := by rfl)
 
 -- Checks that the patterns are exhaustive
 def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : Option ((ℓ : Nat) × (Vec (Vec String m) ℓ × Vec (Fin n) ℓ)) := do

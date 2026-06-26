@@ -142,15 +142,14 @@ case _ => -- defn
   apply h4
 
 case _ As _ ih => -- spctor
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨m1', Ks1', m2', Ks2, n', Ts, R⟩, h2, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨m1', Ks1, m2', Ks2, n', Ts, R⟩, h2, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks1, h4, h⟩;
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ks, h5, h⟩;
   simp at h; rcases h with ⟨h5, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Ts', h7, h⟩; simp at h
   rcases h with ⟨h8, h⟩
-  rcases h8 with ⟨h9, h10⟩
-  rcases h9 with ⟨h11, h12⟩
-  subst h10;
+  rcases h8 with ⟨⟨⟨h11, h12⟩, h13⟩, h10⟩
+  subst h13;
   rcases h5 with ⟨⟨⟨e1, e2⟩, e3⟩, h5⟩
   subst h5; subst e3
   replace h5 := Vec.map_seq_sound _ h5
@@ -167,7 +166,7 @@ case _ As _ ih => -- spctor
   · intro i; replace h7 := Vec.seq_sound1 _ h7 i;
     apply ih i; rw[Vec.to_get_elem] at h7; apply h7
   · intro c e; cases e; apply h11
-  · intro c e; cases e; intro j h; sorry -- intro h; cases h
+  · intro c e; cases e; intro j h; replace h10 := h10 j h; apply Ty.FV.reflection.2 h10
   · intro h; cases h
 
 case _ As _ ih => -- openm

@@ -94,6 +94,7 @@ def Term.infer_type (G : GlobalEnv) (Δ : List Kind) (Γ : List Ty) : Term -> Op
     let τ := (As.list ++ Bs.list).reverse.map su ++ Subst.id Ty
     let Ts := Ts.map (λ x : Ty => x[τ])
     if lookup_ctor? G d x R && Ts.beq τs && n' == n
+       && List.all ((List.range m1).map (λ j => R.fv (j + m2))) (· == true)
     then return R[τ]
     else none
   none
