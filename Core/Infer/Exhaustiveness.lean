@@ -1,4 +1,3 @@
-
 import Core.Ty
 import Core.Global
 import Core.Typing
@@ -29,34 +28,40 @@ rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
 subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
 exists i; rw[h3]
 
+
 theorem lookup_entry_ctor? :
  ⊢ G ->
  lookup c G = some ent ->
- Entry.ctor? d DataConst.cls ent = true ->
- ∃ c' K spTy tys, ent = Entry.ctor c' K spTy ∧ spTy.2.2.2.2.2.2.spine = some ⟨d, tys⟩
+ Entry.ctor? d dc ent = true ->
+ ∃ c' K spTy tys, (ent = Entry.ctor c' K spTy ∨ ent = Entry.octor c' spTy) ∧ spTy.2.2.2.2.2.2.spine = some ⟨d, tys⟩
 := by
 intro wf h1 h2
 unfold Entry.ctor? at h2
-split at h2 <;> simp at *
 have lem := lookup_name_agrees h1; simp [Entry.name] at lem; subst lem
-case _ c K _ _ _ _ _ _ _ _ =>
-exists c; exists K; simp;
-split at h2
-case _ T sp _ => simp at h2; subst h2; exists sp
-cases h2
+split at h2 <;> simp at *
+case _ c K _ _ _ _ _ _ _ =>
+  exists c; exists K; simp;
+  split at h2
+  case _ sp _ => simp at h2; subst d; exists sp
+  · cases h2
+case _ c _ _ _ _ T sp _ =>
+  exists c; simp;
+  split at h2
+  case _ sp _ => simp at h2; subst d; exists sp
+  case _ => cases h2
 
 
 theorem lookup_ctor_names_sound :
   ⊢ G ->
-  lookup_ctor? G DataConst.cls c T = true ->
+  lookup_ctor? G dc c T = true ->
   lookup_ctor_names G T = some ⟨n, cs⟩ ->
   ∃ j : Fin n, cs[j] = c := by
 intro wf h1 h2
 unfold lookup_ctor? at h1
 unfold lookup_ctor_names at h2; simp at h2
-rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨spT, h4, h2⟩
+rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨⟨Tx, Targs⟩, h4, h2⟩
 split at h1
-· rcases spT with ⟨Tx, Targs⟩; simp at h2;
+· simp at h2;
   rw[Option.getD_eq_iff] at h1; simp at h1
   rcases h1 with ⟨ent, h1, h3⟩
   split at h2
@@ -66,13 +71,26 @@ split at h1
     have lem := lookup_name_agrees h1
     subst e2; simp
     replace h3 := lookup_entry_ctor? wf h1 h3; rcases h3 with ⟨c', K, spTy, tys, e, e2⟩
-    subst e; simp [Entry.name] at lem; subst c';
-    have lem := lookup_name_agrees h2; simp [Entry.name] at lem; subst lem
-    rw[h0] at h4; simp at h4; obtain ⟨e1, e2⟩ := h4
-    subst e1; subst e2;
-    have lem := ctor_data_linked wf h2 h1 e2
-    apply lem
-  case _ h2 => cases h2
+    cases e
+    case _ e =>
+      subst e; simp [Entry.name] at lem; subst c';
+      have lem := lookup_name_agrees h2; simp [Entry.name] at lem; subst lem
+      rw[h0] at h4; simp at h4; obtain ⟨e1, e2⟩ := h4
+      subst e1; subst e2;
+      have lem := ctor_data_linked wf h2 h1 e2
+      apply lem
+    case _ e =>
+      subst e; simp [Entry.name] at lem; subst c';
+      have lem := lookup_name_agrees h2; simp [Entry.name] at lem; subst lem
+      rw[h0] at h4; simp at h4; obtain ⟨e1, e2⟩ := h4
+      subst e1; subst e2;
+      exfalso; sorry
+
+  case _ h2 =>
+    rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨cs, h2, h4⟩
+    simp at h4;
+    sorry -- cases h2
+  cases h2
 
 · cases h1
 
@@ -141,11 +159,11 @@ apply Iff.intro
     rcases h with ⟨_, _, _, h⟩
     cases h; simp; apply ih
 
-theorem pattern_extension_enumerate {G : GlobalEnv} {qs : Vec String (0 + m)} {y : String} {S : Ty} :
+theorem pattern_extension_enumerate {G : GlobalEnv} {S : Ty} :
   ⊢ G ->
   Vec.populate ctor_names = ⟨ℓ, ref_matrix⟩ ->
 
-  lookup_ctor? G DataConst.cls y S ->
+  lookup_ctor? G dc y S ->
   lookup_ctor_names G S = some ⟨nc, cs⟩ ->
 
   Vec.populate (⟨nc, cs⟩ :: ctor_names) = ⟨ℓ', ref_matrix'⟩ ->
@@ -215,7 +233,7 @@ theorem cast_indexing {z'h : Vec (Vec String (0 + x)) z'} {j' : Fin z'}
 
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
   ⊢ G ->
-  Query G DataConst.cls q S ->
+  Query G dc q S ->
   enumerate_ctor_names G S = some ⟨ℓ, ref_matrix⟩ ->
   ∃ j : Fin ℓ, ref_matrix[j] = q := by
 intro wf h1 h2
@@ -266,8 +284,6 @@ case _ x _ _ lc _ ih =>
 
   subst ih;
   exists j''
-  generalize c1_def : Eq.mpr (id (congrArg (fun _a => Vec (Vec String _a) z' = Vec (Vec String x) z') (Nat.zero_add x)))
-    (Eq.refl (Vec (Vec String x) z')) = c1 at *
 
   have e1 : ref_matrix[j''] = cast (by simp) zh[j''] := by
     have h := cast_get_elem (e := by rw[Nat.zero_add]) j'' lem0
@@ -301,7 +317,7 @@ def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : 
 
 theorem check_exhaustive_sound {G : GlobalEnv} {q : Vec String m} {S : Vec Ty m} :
   ⊢ G ->
-  Query G DataConst.cls q S ->
+  Query G dc q S ->
   check_exhaustive G S ps = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
   ∃ j : Fin ℓ, ref_matrix[j] = q := by
 intro wf h1 h2

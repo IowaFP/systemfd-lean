@@ -75,11 +75,7 @@ def List.enumerate (l : List α) : List (Nat × α) :=
   t.snd
 
 
-def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option (((ℓ1 : Nat) × ((m : Nat) × Vec (Pattern m) ℓ1)) × ((ℓ2 : Nat) × (n : Nat) × Vec (Fin n) ℓ2))
-| .openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
-
-
-  -- get all the patterns from instances of this method
+def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) : (ℓ : Nat) × Vec (Pattern nc) ℓ :=
   let ιs : List (Pattern nc) := G.filterMap (λ e => match e with
          | (.inst (m := m) y p _) =>
            if h : y == x && m == nc
@@ -87,18 +83,26 @@ def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option (((ℓ1 : Nat) × (
                 some p'
            else none
          | _ => none )
-  let ιs := Vec.from_list ιs
+  Vec.from_list ιs
 
 
-  let octors <- (Ts.map (λ T : Ty => lookup_octor G T)).sequence
-  let octors := octors.map (λ cs => Vec.from_list cs)
-  let ref_matrix : (p : Nat) × Vec (Vec String (0 + nc)) p := Vec.populate octors
+def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option (((ℓ1 : Nat) × ((m : Nat) × Vec (Pattern m) ℓ1)) × ((ℓ2 : Nat) × (n : Nat) × Vec (Fin n) ℓ2))
+| .openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
 
 
-  let mbs := ref_matrix.2.map (λ r => ((ιs.2.map (λ i => i.to_ctor_names |> cast (by rw[Nat.zero_add]))).findIdx! (· == r)))
-  let mbs <- mbs.sequence
+  -- get all the patterns from instances of this method
+  let ⟨i , ps⟩ := mk_open_patterns G x nc
 
-  return (⟨ιs.1, ⟨nc, ιs.2⟩⟩, ⟨ref_matrix.1, ⟨ιs.1, mbs⟩⟩)
+  let ⟨ℓ, ⟨ref_matrix, mbs⟩⟩ <- check_exhaustive G Ts ps
+
+  -- let octors <- (Ts.map (lookup_ctor_names G ·)).sequence
+  -- let ref_matrix : (p : Nat) × Vec (Vec String (0 + nc)) p := Vec.populate octors
+
+
+  -- let mbs := ref_matrix.2.map (λ r => ((ιs.2.map (λ i => i.to_ctor_names |> cast (by rw[Nat.zero_add]))).findIdx! (· == r)))
+  -- let mbs <- mbs.sequence
+
+  return (⟨i, ⟨nc, ps⟩⟩, ⟨ℓ, ⟨i, mbs⟩⟩)
 | _ => return (⟨0, ⟨0, #()⟩⟩, ⟨0, ⟨0, #()⟩⟩)
 
 

@@ -59,7 +59,7 @@ case _ y _ ih =>
 
 theorem pattern_exhaustive_sound {G : GlobalEnv} {ps : Vec (Pattern m) k} {q : Vec String m} {S : Vec Ty m} :
   ⊢ G ->
-  Query G DataConst.cls q S ->
+  Query G dc q S ->
   check_exhaustive G S ps = some ⟨ℓ, ⟨ref_matrix, idxs⟩⟩ ->
   ∃ i : Fin k, Query.Match q ps[i]
 := by

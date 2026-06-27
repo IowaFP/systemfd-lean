@@ -161,11 +161,22 @@ def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) :
   | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
+def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
+  let ⟨d, _⟩ <- T.spine
+  G.filterMapM (λ g => match g with
+    | .octor n ⟨_, _, _, _, _, _, R⟩ => do
+      let ⟨d', _ ⟩ <- R.spine
+      if d' == d then return (some n) else return none
+    | _ => return none)
+
 def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
   let ⟨d, _⟩ <- T.spine
   match lookup d G with
   | some (.data _ _ ctors) =>
-    return ⟨ctors.length, ctors.map (·.1) ⟩
+    return ⟨ctors.length, ctors.map (·.1)⟩
+  | some (.odata _ _) => do
+    let ocs <- lookup_octor G T
+    return Vec.from_list ocs
   | _ => none
 
 
@@ -209,13 +220,6 @@ def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (
 -- def is_opent G x := lookup x G |> Option.map Entry.is_opent |> Option.get!
 -- def is_openm G x := lookup x G |> Option.map Entry.is_openm |> Option.get!
 -- def is_defn G x := lookup x G |> Option.map Entry.is_defn |> Option.get!
-
-def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
-  let ⟨d, _⟩ <- T.spine
-  G.filterMapM (λ g => match g with
-                   | .octor n ⟨_, _, _, _, _, _, R⟩ => do let ⟨d', _ ⟩ <- R.spine
-                                                          if d' == d then return (some n) else return none
-                   | _ => return none)
 
 
 -- def ctor_idx (G : List Global) (x : String) : Option Nat := do
