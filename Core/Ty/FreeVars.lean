@@ -253,6 +253,37 @@ theorem FV.subst_congr_append_lift_get_lemma {T : Ty} {ℓ : List Ty} {σ τ : S
 := by
   sorry
 
+theorem FV.subst_congr_append_append_get {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ τ : Subst Ty}
+  (h1 : i < ℓ2.length)
+  (h2 : ℓ1.length = ℓ2.length)
+  (h3 : ℓ3.length = k)
+  (h4 : i + ℓ3.length ∈ T)
+  : T[ℓ3.map su ++ (ℓ1.map su ++ σ)] = T[0..k ++ (ℓ2.map su ++ τ)] -> ℓ1[i] = ℓ2[i]
+:= by
+  intro h
+  induction T generalizing i ℓ1 ℓ2 ℓ3 σ τ
+  case var =>
+    cases h4; simp at h; subst h3
+
+    sorry
+  case global => cases h4
+  case arrow ih1 ih2 =>
+    simp at h; cases h4
+    case _ h4 => apply ih1 h1 h2 h3 h4 h.1
+    case _ h4 => apply ih2 h1 h2 h3 h4 h.2
+  case all ih =>
+    simp at h; cases h4; case _ h4 =>
+
+    sorry
+  case app ih1 ih2 =>
+    simp at h; cases h4
+    case _ h4 => apply ih1 h1 h2 h3 h4 h.1
+    case _ h4 => apply ih2 h1 h2 h3 h4 h.2
+  case eq ih1 ih2 =>
+    simp at h; cases h4
+    case _ h4 => apply ih1 h1 h2 h3 h4 h.1
+    case _ h4 => apply ih2 h1 h2 h3 h4 h.2
+
 theorem FV.subst_congr_append_append {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ τ : Subst Ty}
   (h1 : ∀ i, i < ℓ2.length -> i + ℓ3.length ∈ T)
   (h2 : ℓ1.length = ℓ2.length)
