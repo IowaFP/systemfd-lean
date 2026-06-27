@@ -190,12 +190,28 @@ theorem cast_cons {a : α} {b : Vec α n} {e : α = β} :
 theorem cast_sigma (c0 : ((p : Nat) × Vec (Vec String (0 + (x + 1))) p) = ((n : Nat) × Vec (Vec String (x + 1)) n)) : cast c0 ⟨ℓ, z⟩ = ⟨ℓ', z'⟩ -> ℓ = ℓ' ∧ ∃ c, z = cast c z' := by
 intro h; grind;
 
+@[simp]
+theorem Vec.cast_cons
+  {e1 : n = m} {e2 : Vec α n = Vec α m}
+  {x : α} {xs : Vec α n}
+  : cast (by grind) (x :: xs) = x :: cast e2 xs
+:= by
+  cases e1; simp;
+
+@[simp, grind =]
+theorem Vec.cast_get {α β : Type u} {e1 : α = β}
+  : ∀ {n : Nat} {e2 : Vec α n = Vec β n} {i : Fin n}, {v : Vec α n} -> cast e1 (v[i]) = (cast e2 v)[i]
+| 0, e2, i, .nil => by simp [getElem]; grind
+| n + 1, e2, i, .cons x xs => by
+  cases i using Fin.cases
+  case _ => cases e1; cases e2; simp
+  case _ i => cases e1; cases e2; simp
+
 theorem cast_indexing {z'h : Vec (Vec String (0 + x)) z'} {j' : Fin z'}
   {c1 : Vec String (0 + x) = Vec String x}
   {c2 : Vec (Vec String (0 + x)) z' = Vec (Vec String x) z'} :
-  cast c1 (z'h[j']) = (cast c2 z'h)[j'] := by
-
-sorry
+  cast c1 (z'h[j']) = (cast c2 z'h)[j']
+:= by grind
 
 theorem query_in_enumerate_ctors {G : GlobalEnv} {q : Vec String m} {S : Vec Ty  m} :
   ⊢ G ->
