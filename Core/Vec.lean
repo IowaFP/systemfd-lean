@@ -413,16 +413,13 @@ generalize z_def : populate_aux ⟨1, #(#())⟩ ps = z at *
 have lem := Vec.populate_aux_size _ z_def
 subst h; rw[Nat.mul_one] at lem; assumption
 
-theorem Vec.sequence_cons {xs : Vec (Option α) n} {zs : Vec α n} {ys : Vec α (n + 1)}:
-  (x :: xs).sequence = some ys ->
-  ∃ z zs, ys = Vec.cons z zs := by
-intro h
-unfold sequence at h; simp at h
-cases x
-simp at h; sorry
-case _ v =>
-  exists v; simp at h
-  sorry
+@[simp]
+theorem Vec.traverse_nil [Applicative F] {f : α -> F β} : Vec.traverse f (#()) = (pure #() : F (Vec β 0)) := rfl
+
+@[simp]
+theorem Vec.traverse_cons [Applicative F] {xs : Vec α n} (f : α -> F β):
+  Vec.traverse f (Vec.cons x xs) = (Vec.cons · ·) <$> f x <*> traverse f xs
+  := by simp
 
 theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Vec.map f vs).sequence = some vs' ->
@@ -434,8 +431,12 @@ fun_induction Vec.map
 case _ => apply i.elim0
 case _ ih =>
   subst zdef; simp at h;
-  sorry
+  unfold Vec.sequence at h;
+  simp at h
 
+  induction i using Fin.induction <;> simp at *
+  sorry
+  sorry
 -- fun_induction Vec.sequence
 -- · apply i.elim0
 -- · cases h

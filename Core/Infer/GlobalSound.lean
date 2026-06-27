@@ -115,7 +115,15 @@ theorem lookup_entry_global {G : GlobalEnv}:
   ∃ i : Nat, G[i]? = some (Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨τ, (Ts, R)⟩)⟩)⟩) := by
 intro h
 fun_induction lookup <;> simp at *
-sorry
+case _ ctors _ ctors' ih _ =>
+  replace h := Vec.fold_or h
+  cases h
+  case _ h =>
+    replace ih := ih h
+    rcases ih with ⟨i, ih⟩
+    exists i.succ
+  case _ h =>
+    unfold ctors' at h; simp at h
 all_goals try (
   case _ ih _ =>
   replace ih := ih h
@@ -128,11 +136,14 @@ case _ ih =>
   rcases ih with ⟨i, ih⟩
   exists i.succ
 
+
+
 theorem open_exhaustive_sound {G : GlobalEnv} :
+  ⊢ G ->
   G.check_open_exhaustive = some d ->
   OpenExhaustive G
 := by
-intro h
+intro wf h
 unfold OpenExhaustive
 intro x na nb τ Ks1 Ks2 Ts R q lk qh
 unfold GlobalEnv.check_open_exhaustive at h;
