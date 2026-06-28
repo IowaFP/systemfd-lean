@@ -2,11 +2,20 @@ import Core.Term
 import Core.Reduction
 import Core.Typing
 import Core.Metatheory.Closed
+import Core.Metatheory.Substitution
 
 open Lilac
 open LeanSubst
 
 namespace Core
+
+theorem Pattern.Match.closed :
+  ∀ {m : Nat} {c : Vec Constructor m} {p p' : Pattern m} (σ : Subst Ty) (e : p' = p[σ]),
+  Pattern.Match c p' -> Pattern.Match c p
+| 0, #(), #(), #(), σ, e, .nil => Pattern.Match.nil
+| m + 1, .cons c cs, .cons p ps, .cons p' ps', σ, e, .cons (Bs := Bs) j e1 e2 =>
+  have j' := j.closed (p := ps) σ (by sorry)
+  .cons (Bs := Bs) j' e1 sorry
 
 @[grind →]
 theorem spctor_inversion :
@@ -147,7 +156,22 @@ theorem query_match_implies_pattern_match (G : List Global) {n : Nat} {c q p Ts 
     rfl; rfl
   }
 
-theorem progress (oe : OpenExhaustive G) :
+theorem PatternBinders.subst_type_openm_lemma
+  {Ks1 : Vec Kind m1} {Ks2 : Vec Kind m2} {As : Vec Ty m1} {Bs : Vec Ty m2} :
+  (∀ (i : Fin m1), G&Δ ⊢ As[i] : Ks1[i]) ->
+  (∀ (i : Fin m2), G&Δ ⊢ Bs[i] : Ks2[i]) ->
+  ∀ (i : Nat) (K : Kind), ((Ks1.list ++ Ks2.list).reverse ++ Δ)[i]? = some K ->
+    G&Δ ⊢ ↑((List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty).act i) : K
+:= sorry
+
+theorem lookup_spine_type_and_open_data_implies_lookup_openm :
+  lookup_spine_type G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
+  (∀ (i : Fin n), Ty.data? .opn G Ts[i]) ->
+  lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)
+:= sorry
+
+set_option maxHeartbeats 800000 in
+theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
   G&Δ,Γ ⊢ t : T ->
   Γ = [] ->
   Value G t ∨ ∃ t', G ⊢ t ~> t'
@@ -155,21 +179,35 @@ theorem progress (oe : OpenExhaustive G) :
 | .spctor (v := .data .cls) j1 j2 j3 j4 j5 j6 j7 j j9, e => Or.inl $ Value.spctor (by simp)
 | .spctor (v := .data .opn) j1 j2 j3 j4 j5 j6 j7 j8 j9, e => Or.inl $ Value.spctor (by simp)
 | @Typing.spctor G Δ Γ m1 m2 n x .openm Ks1 Ks2 Ts Ts' R R' As Bs ts j1 j2 j3 j4 j5 j6 j7 j8 j9, e =>
-  let j6' := λ i => progress oe (j6 i) e
+  let j6' := λ i => progress oe wf (j6 i) e
   match split_all_or_left j6' with
   | Or.inl vs =>
-    sorry
-  --   let Ts' : Vec Ty n := Vec.map (·[τ]) Ts
-  --   let j1' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j4 |> cast (by subst Ts'; simp)
-  --   let j2' : ∀ (i : Fin n), Ty.data? .opn G Ts'[i] := (j6 rfl) |> cast (by subst Ts'; simp)
-  --   let vs' : ∀ (i : Fin n), Value G ts.to[i] := vs |> cast (by simp)
-  --   let ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
-  --   let lem1 : lookup x G = some (.openm x ⟨m, Ks, n, Ts, R⟩) := sorry
-  --   let ⟨i, b, p, lem2, lem3⟩ := oe (q := Constructor.query ctors) lem1 j2 j3 (by congr) (h3 |> cast (by congr))
-  --   let lem4 : PatternTyping G Δ p Ts' := sorry
-  --   let lem5 := query_match_implies_pattern_match G h1 lem4 rfl lem3
-  --   let σ := Constructor.subst ctors
-  --   Or.inr ⟨_, .openm_match (σ := σ) h2 lem2 j3 lem5 rfl⟩
+    have j1' : ∀ (i : Fin n), G&Δ,Γ ⊢ ts.to[i] : Ts'[i] := j6 |> cast (by simp [Vec.get_to])
+    have j2' : ∀ (i : Fin n), Ty.data? .opn G Ts'[i] := λ i =>
+      Ty.data?_closed (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) (j9 rfl i)
+        |> cast (by simp [j2])
+    have vs' : ∀ (i : Fin n), Value G ts.to[i] := vs |> cast (by simp [Vec.get_to])
+    have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
+    have h3' : Query G DataConst.opn (Constructor.query ctors) Ts := Query.closed wf j2 h3
+    have lem1 := lookup_spine_type_and_open_data_implies_lookup_openm j1 (j9 rfl)
+    have ⟨i, b, p, lem2, lem3⟩ := oe (q := Constructor.query ctors) lem1 h3'
+    have lem4 := GlobalWf.index_instance wf lem2
+    match lem4 with
+    | .inst q1 q2 q3 q4 =>
+      have q3' := PatternBinders.subst_type Δ (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) wf (by {
+        rw [lem1] at q1; cases q1; subst q2
+        apply PatternBinders.subst_type_openm_lemma j4 j5
+      }) (q3.extend Δ)
+      have lem3' : Query.Match (Constructor.query ctors) p[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty] :=
+        Query.Match.subst_type _ lem3
+      have lem5 := PatternBinders.implies_pattern_typing q3'
+      have lem6 : Pattern.Match ctors p[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty] :=
+        query_match_implies_pattern_match G h1 (by {
+          rw [lem1] at q1; cases q1; rw [j2]; simp at lem5; simp; apply lem5
+        }) rfl lem3'
+      have lem6' : Pattern.Match ctors p := Pattern.Match.closed
+        (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) rfl lem6
+      Or.inr ⟨_, .openm_match h2 lem2 lem6' rfl⟩
   | Or.inr ⟨i, t', r⟩ =>
     let ts' := Vec.set ts.to i t'
     let r' : G ⊢ ts i ~> ts'[i] := by subst ts'; simp; exact r
@@ -179,17 +217,16 @@ theorem progress (oe : OpenExhaustive G) :
       rw [Vec.get_to] at lem; rw [<-lem]; simp [getElem]
     })⟩
 | .mtch (m := m) (S := S) (ss := ss) j1 j2 j3 j4 j5, e =>
-  let j1' := λ i => progress oe (j1 i) e
+  let j1' := λ i => progress oe wf (j1 i) e
   match split_all_or_left j1' with
   | Or.inl vs =>
-    let j1' : ∀ (i : Fin m), G&Δ,Γ ⊢ ss.to[i] : S.to[i] := j1 |> cast (by simp [Vec.get_to])
-    let j2' : ∀ (i : Fin m), Ty.data? .cls G S.to[i] := j2 |> cast (by simp [Vec.get_to])
-    let vs' : ∀ (i : Fin m), Value G ss.to[i] := vs |> cast (by simp [Vec.get_to])
-    let ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
-    let ⟨i, h4⟩ := j5 h3
-    let h5 := PatternBinders.implies_pattern_typing (j3 i)
-    let lem1 := query_match_implies_pattern_match G h1 h5 rfl h4
-    let ℓ := Constructor.subst ctors
+    have j1' : ∀ (i : Fin m), G&Δ,Γ ⊢ ss.to[i] : S.to[i] := j1 |> cast (by simp [Vec.get_to])
+    have j2' : ∀ (i : Fin m), Ty.data? .cls G S.to[i] := j2 |> cast (by simp [Vec.get_to])
+    have vs' : ∀ (i : Fin m), Value G ss.to[i] := vs |> cast (by simp [Vec.get_to])
+    have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
+    have ⟨i, h4⟩ := j5 h3
+    have h5 := PatternBinders.implies_pattern_typing (j3 i)
+    have lem1 := query_match_implies_pattern_match G h1 h5 rfl h4
     Or.inr ⟨_, .data_match h2 lem1 rfl⟩
   | Or.inr ⟨i, t', r⟩ =>
     let ss' := Vec.set ss.to i t'
@@ -201,7 +238,7 @@ theorem progress (oe : OpenExhaustive G) :
     })⟩
 | .lam j1 j2, e => Or.inl Value.lam
 | .app j1 j2, e =>
-  match progress oe j1 e with
+  match progress oe wf j1 e with
   | Or.inl v =>
     match v, j1 with
     | .lam, .lam j3 j4 => Or.inr ⟨_, .beta⟩
@@ -209,7 +246,7 @@ theorem progress (oe : OpenExhaustive G) :
   | Or.inr ⟨f', r⟩ => Or.inr ⟨_, .app_congr r⟩
 | .lamt j1 j2, e => Or.inl Value.lamt
 | .appt j1 j2 j3, e =>
-  match progress oe j1 e with
+  match progress oe wf j1 e with
   | Or.inl v =>
     match v, j1 with
     | .lamt, .lamt j3 j4 => Or.inr ⟨_, .betat⟩
@@ -217,14 +254,14 @@ theorem progress (oe : OpenExhaustive G) :
   | Or.inr ⟨f', r⟩ => Or.inr ⟨_, .ctor1_congr r⟩
 | .refl j, e => Or.inl Value.refl
 | .cast (R := R) (t := t) j1 j2 j3 e1, e2 =>
-  match progress oe j2 e2 with
+  match progress oe wf j2 e2 with
   | Or.inl v =>
     match v, j2 with
     | .refl, .refl j4 => Or.inr ⟨t, .cast⟩
     | .spctor h, j4 => by grind
   | Or.inr ⟨c', r⟩ => Or.inr ⟨.cast R c' t, .cast_congr r⟩
 | .prj j1 j2, e =>
-  match progress oe j1 e with
+  match progress oe wf j1 e with
   | Or.inl v =>
     match v, j1, j2 with
     | .refl, .refl j3, .fst_app h => Or.inr ⟨_, .prj_fst_app⟩
@@ -237,14 +274,14 @@ theorem progress (oe : OpenExhaustive G) :
     | .spctor h, j3, .snd_arrow _ => by grind
   | Or.inr ⟨t', r⟩ => Or.inr ⟨_, .ctor1_congr r⟩
 | .allc j1, e =>
-  match progress oe j1 (e |> cast (by grind)) with
+  match progress oe wf j1 (e |> cast (by grind)) with
   | Or.inl v =>
     match v, j1 with
     | .refl, .refl j2 => Or.inr ⟨_, .allc⟩
     | .spctor h, j2 => by grind
   | Or.inr ⟨c', r⟩ => Or.inr ⟨_, .allc_congr r⟩
 | .apptc j1 j2 e1 e2, e3 =>
-  match progress oe j1 e3, progress oe j2 e3 with
+  match progress oe wf j1 e3, progress oe wf j2 e3 with
   | Or.inl v1, Or.inl v2 =>
     match v1, v2, j1, j2 with
     | .refl, .refl, .refl j3, .refl j4 => Or.inr ⟨_, .apptc⟩
