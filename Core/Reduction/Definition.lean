@@ -101,7 +101,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
   Term.IsData .opn ss.to ctors ->
   G[i]? = some (.inst x p b) ->
   Pattern.Match ctors p ->
-  b' = b[Constructor.subst_type ctors ++ Subst.id Ty][Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term] ->
+  b' = b[Constructor.subst_type ctors ++ Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term] ->
   Red G (openm! x Ts1 Ts2 ss) b'
 ----------------------------------------------------------------
 ---- Guard Matching

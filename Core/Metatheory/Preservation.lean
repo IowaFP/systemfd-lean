@@ -17,6 +17,13 @@ open LeanSubst
 
 namespace Core
 
+theorem Pattern.Match.subst_type (σ : Subst Ty)
+  : Pattern.Match c p -> Pattern.Match c p[σ]
+| .nil => .nil
+| .cons (Bs := Bs) j e1 e2 =>
+  have lem := Pattern.Match.subst_type σ j
+  .cons (Bs := Bs[σ]) lem e1 (by rw [e2])
+
 theorem List.getElem_swap_index {ℓ : List α} {i j : Nat} (e : i = j) (h1 : i < ℓ.length)
   : ℓ[i] = ℓ[j]
 := by
@@ -243,12 +250,12 @@ theorem preservation_open_data_match_lemma {As : Vec Ty m1} {Bs : Vec Ty m2} {ts
   Term.IsData .opn ts.to ctors ->
   G[i]? = some (Global.inst x p b) ->
   Pattern.Match ctors p ->
-  (t' = b[Constructor.subst_type ctors ++ Subst.id Ty][Bs.list.reverse.map su ++ As.list.reverse.map su ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term]) ->
+  (t' = b[Constructor.subst_type ctors ++ Bs.list.reverse.map su ++ As.list.reverse.map su ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term]) ->
   G&Δ,Γ ⊢ t' : R'
 := by
   intro j1 e1 e2 j2 j3 j4 j5 j6 j7 j8 e3
   have lem1 := GlobalWf.index_instance wf j7
-  cases lem1; case _ m1' Ks1' m2' Ks2' R'' Δ' ζ Γ' e4 Ts2 q1 q2 q3 =>
+  cases lem1; case _ m1' Ks1' m2' Ks2' R'' Δ' ζ ξ e4 Ts2 q1 q2 q3 =>
   unfold lookup_spine_type at j1
   generalize zdef : lookup x G = z at *
   cases z; simp at q1; case _ z =>
@@ -257,14 +264,110 @@ theorem preservation_open_data_match_lemma {As : Vec Ty m1} {Bs : Vec Ty m2} {ts
   rcases j1 with ⟨e, j1⟩; subst e; simp at j1
   rcases j1 with ⟨e, e', j1⟩; subst e e'; simp at j1
   rcases j1 with ⟨e, e', e''⟩; subst e e' e'' e1 e2 e3 e4
-  have lem1 := PatternBinders.ctors_type_length q2 j6 j8
-  --have lem2 := PatternBinders.ctors_type sorry q2 j6 j8
-  replace q3 := Typing.subst_type (Ks1'.list ++ Ks2'.list).reverse (Constructor.subst_type ctors ++ Subst.id Ty) wf sorry q3
-  simp at q3; rw [Subst.rewrite4_append_add_indirect (h := lem1)] at q3; simp at q3
-  replace q3 := Typing.subst_type [] (List.map su Bs.list.reverse ++ List.map su As.list.reverse ++ Subst.id Ty) wf sorry q3
-  replace q3 := Typing.subst [] (Constructor.subst ctors ++ Subst.id Term) wf sorry q3
-  replace q3 := q3.extend Δ Γ
-  simp at q3; simp; exact q3
+  have lem_len := PatternBinders.ctors_type_length q2 j6 j8
+  have lem0 := PatternBinders.extend Δ q2; clear q2
+  replace lem0 := PatternBinders.subst_type Δ (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) wf (by {
+    intro i K h; simp at h
+    cases Nat.decLt i (m1' + m2')
+    case _ h2 =>
+      replace h2 : i ≥ m1' + m2' := by omega
+      rw [<-List.append_assoc] at h
+      rw [List.getElem?_append_right (by simp; omega)] at h; simp at h
+      rw [Subst.append_action_ge (by simp; omega)]; simp
+      apply Kinding.var h
+    case _ h2 =>
+      rw [<-List.append_assoc] at h
+      rw [List.getElem?_append_left (by simp; omega)] at h
+      rw [Subst.append_action_lt (by simp; omega)]; simp
+      cases Nat.decLt i m2'
+      case _ h3 =>
+        replace h3 : i ≥ m2' := by omega
+        rw [List.getElem?_append_right (by simp; omega)] at h; simp at h
+        rw [List.getElem_append_right (by simp; omega)]; simp
+        rw [List.getElem?_reverse (by simp; omega)] at h; simp at h
+        rw [List.getElem?_eq_getElem (by simp; omega)] at h; cases h
+        cases m1'; grind; case _ m1' =>
+        simp; rw [Vec.get_list_to_get (by omega), Vec.get_list_to_get (by omega)]
+        generalize jdef : Fin.ofNat (m1' + 1) (m1' - (i - m2')) = j
+        apply j2 j
+      case _ h3 =>
+        rw [List.getElem?_append_left (by simp; omega)] at h
+        rw [List.getElem_append_left (by simp; omega)]; simp
+        rw [List.getElem?_reverse (by simp; omega)] at h; simp at h
+        rw [List.getElem?_eq_getElem (by simp; omega)] at h; cases h
+        cases m2'; cases h3; case _ m2' =>
+        simp; rw [Vec.get_list_to_get (by omega), Vec.get_list_to_get (by omega)]
+        generalize jdef : Fin.ofNat (m2' + 1) (m2' - i) = j
+        apply j3 j
+  }) lem0
+  have jb := q3.extend Δ Γ⟨Ren.add Ty ζ.length⟩⟨(Ren.add Ty (m1' + m2')).lift ζ.length⟩
+  replace jb := Typing.subst_type (ζ ++ Δ) ((List.map su Bs.list.reverse ++ List.map su As.list.reverse ++ Subst.id Ty).lift ζ.length) wf (by {
+    intro i K h1
+    rw [List.append_assoc] at h1
+    cases Nat.decLt i ζ.length
+    case _ h2 =>
+      replace h2 : i ≥ ζ.length := by omega
+      rw [List.getElem?_append_right (by omega)] at h1
+      rw [Subst.lift_action_ge (by omega)]
+      cases Nat.decLt (i - ζ.length) (m1' + m2')
+      case _ h3 =>
+        have h4 : i - ζ.length ≥ m1' + m2' := by omega
+        rw [List.getElem?_append_right (by simp; omega)] at h1
+        rw [Subst.append_action_ge (by simp; omega)]; simp
+        apply Kinding.var; simp at h1
+        rw [List.getElem?_append_right (by omega)]; simp; exact h1
+      case _ h3 =>
+        rw [List.getElem?_append_left (by simp; omega)] at h1
+        rw [Subst.append_action_lt (by simp; omega)]; simp; simp at h1
+        cases Nat.decLt (i - ζ.length) m2'
+        case _ h4 =>
+          replace h4 : i - ζ.length ≥ m2' := by omega
+          rw [List.getElem?_append_right (by simp; omega)] at h1
+          rw [List.getElem_append_right (by simp; omega)]
+          rw [List.getElem?_reverse (by simp; omega)] at h1
+          rw [List.getElem?_eq_getElem (by simp; omega)] at h1; cases h1; simp
+          cases m1'; grind; case _ m1' =>
+          simp; rw [Vec.get_list_to_get (by omega), Vec.get_list_to_get (by omega)]
+          generalize jdef : Fin.ofNat (m1' + 1) (m1' - (i - ζ.length - m2')) = j
+          have lem := j2 j
+          apply Kinding.rename (ζ ++ Δ) (Ren.add Ty ζ.length) _ lem
+          intro i; simp
+          rw [List.getElem?_append_right (by omega)]; simp
+        case _ h4 =>
+          rw [List.getElem?_append_left (by simp; omega)] at h1
+          rw [List.getElem_append_left (by simp; omega)]; simp
+          rw [List.getElem?_reverse (by simp; omega)] at h1
+          rw [List.getElem?_eq_getElem (by simp; omega)] at h1; cases h1; simp
+          cases m2'; cases h4; case _ m2' =>
+          simp; rw [Vec.get_list_to_get (by omega), Vec.get_list_to_get (by omega)]
+          generalize jdef : Fin.ofNat (m2' + 1) (m2' - (i - ζ.length)) = j
+          have lem := j3 j
+          apply Kinding.rename (ζ ++ Δ) (Ren.add Ty ζ.length) _ lem
+          intro i; simp
+          rw [List.getElem?_append_right (by omega)]; simp
+    case _ h2 =>
+      rw [List.getElem?_append_left (by omega)] at h1
+      rw [Subst.lift_action_lt (by omega)]
+      apply Kinding.var; grind
+  }) jb
+  have q3' : ∀ (i : Fin n), G&Δ,Γ ⊢ (ts.to)[i] : Ts2[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty][i] := by
+    intro i; rw [Vec.get_to]; apply j4 i
+  have j8' := Pattern.Match.subst_type (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) j8
+  have lem1 := PatternBinders.ctors_type (Γ := Γ) q3' lem0 j6 j8'
+  replace jb := Typing.subst_type Δ (Constructor.subst_type ctors ++ Subst.id Ty) wf lem1 jb
+  have lem2 := PatternBinders.ctors_term (Γ := Γ) q3' lem0 j6 j8'
+  have e1 : List.map su Bs.list.reverse ++ List.map su As.list.reverse = List.map su (As.list ++ Bs.list).reverse := by simp
+  have e2 : ∀ {A : List Ty}, A⟨(Ren.add Ty (m1' + m2')).lift ζ.length⟩[(List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty).lift ζ.length] = A := by
+    intro A; simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren]
+    rw [<-Subst.rewrite_lift_compose_ren_left]
+    rw [Subst.rewrite4_append_add_indirect]; simp; simp; omega
+  have e3 : ∀ {A : List Ty}, A⟨Ren.add Ty ζ.length⟩[Constructor.subst_type ctors ++ Subst.id Ty] = A := by simp [lem_len]
+  rw [Subst.List.smap_append, Subst.List.smap_append, e1, e2, e3] at jb
+  replace jb := Typing.subst Γ (Constructor.subst ctors ++ Subst.id Term) wf lem2 jb
+  simp; simp [-Subst.rewrite_lift_k] at jb
+  rw [<-Subst.compose_commute_add_ren_subst] at jb; simp [-Subst.rewrite_lift_k, lem_len] at jb
+  rw [Subst.compose_lift_append_indirect rfl] at jb
+  apply jb
 
 set_option maxHeartbeats 800000 in
 theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G&Δ,Γ ⊢ t' : T
@@ -326,4 +429,4 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
 | .apptc j1 j2 e1 e2, .apptc_congr2 r =>
   let j2' := preservation_step wf j2 r
   .apptc j1 j2' e1 e2
-| _, _ => sorry
+-- | _, _ => sorry

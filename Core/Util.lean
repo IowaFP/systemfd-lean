@@ -406,6 +406,15 @@ namespace LeanSubst
     cases z <;> simp
     congr
 
+  theorem Subst.compose_lift_append_indirect
+    [RenMap S S] [RenMapId S S] [RenMapCompose S S]
+    [SubstMap S S] [SubstMapId S S]
+    [SubstMapRenComposeLeft S S] [SubstMapCompose S S]
+    {ℓ1 ℓ2 : List (Action S)} (h : k = ℓ2.length)
+    : (ℓ1 ++ Subst.id S).lift k ∘ (ℓ2 ++ Subst.id S) = (ℓ2 ++ ℓ1) ++ Subst.id S
+  := by
+    sorry
+
   theorem Subst.compose_left_cons_lift_indirect
     [RenMap T T] [SubstMap T T] {ℓ : List $ Action T} {σ τ : Subst T} {h : k = ℓ.length}
     : σ.lift k ∘ (ℓ ++ τ) = ℓ ++ (σ ∘ τ)
