@@ -75,35 +75,32 @@ def List.enumerate (l : List α) : List (Nat × α) :=
   t.snd
 
 
-def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) : (ℓ : Nat) × Vec (Pattern nc) ℓ :=
-  let ιs : List (Pattern nc) := G.filterMap (λ e => match e with
-         | (.inst (m := m) y p _) =>
+def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) :
+    List ((y : String) × (p : Pattern nc) × (t: Term) ×' (Global.inst y p t ∈ G)) :=
+  G.attach.filterMap (λ e => match e with
+         | ⟨.inst (m := m) y p t, prop⟩ =>
            if h : y == x && m == nc
            then let p' : Pattern nc := p |> cast (by simp at h; rw[h.2])
-                some p'
+                let prop := prop |> cast (by simp at h; rcases h with ⟨h1, h2⟩; subst h2; grind)
+                let r : (y : String) × (p' : Pattern nc) × (t: Term) ×' (Global.inst y p' t ∈ G) := ⟨y, ⟨p', t, prop⟩⟩
+                some r
            else none
          | _ => none )
-  Vec.from_list ιs
 
 
-def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option (((ℓ1 : Nat) × ((m : Nat) × Vec (Pattern m) ℓ1)) × ((ℓ2 : Nat) × (n : Nat) × Vec (Fin n) ℓ2))
-| .openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
+def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option Unit
+| .openm x ⟨_, _, _, _, nc, Ts, _⟩ => do
 
 
   -- get all the patterns from instances of this method
-  let ⟨i , ps⟩ := mk_open_patterns G x nc
+  let ps := mk_open_patterns G x nc
 
-  let ⟨ℓ, ⟨ref_matrix, mbs⟩⟩ <- check_exhaustive G Ts ps
+  -- check exhaustiveness of these patterns
+  let _ <- check_exhaustive G Ts (Vec.from_list (ps.map (λ p => p.2.1))).snd
 
-  -- let octors <- (Ts.map (lookup_ctor_names G ·)).sequence
-  -- let ref_matrix : (p : Nat) × Vec (Vec String (0 + nc)) p := Vec.populate octors
+  return ()
 
-
-  -- let mbs := ref_matrix.2.map (λ r => ((ιs.2.map (λ i => i.to_ctor_names |> cast (by rw[Nat.zero_add]))).findIdx! (· == r)))
-  -- let mbs <- mbs.sequence
-
-  return (⟨i, ⟨nc, ps⟩⟩, ⟨ℓ, ⟨i, mbs⟩⟩)
-| _ => return (⟨0, ⟨0, #()⟩⟩, ⟨0, ⟨0, #()⟩⟩)
+| _ => return ()
 
 
 def GlobalEnv.check_open_exhaustive (G : GlobalEnv) : Option Unit := do

@@ -136,6 +136,28 @@ case _ ih =>
   rcases ih with ⟨i, ih⟩
   exists i.succ
 
+theorem mk_open_patterns_inversion {G : GlobalEnv} {ps : List _} :
+  mk_open_patterns G x nc = ps ->
+  ∀ i : Nat, (i < ps.length) ->
+  ∃ (j : Nat) (p : Pattern nc) (t : Term), G[j]? = some (.inst x p t) ∧ (ps[i]?.map (·.2.1) = some p)
+:= by
+intro h1 i h2
+unfold mk_open_patterns at h1
+simp at h2;
+induction G <;> simp at *
+subst h1; simp at h2
+case _ hd tl ih =>
+  rw[List.filterMap_cons] at h1;
+  simp at h1;
+  cases hd <;> simp at *
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+
+
 
 
 theorem open_exhaustive_sound {G : GlobalEnv} :
@@ -157,8 +179,20 @@ simp at h'
 rcases h' with ⟨⟨ℓ, ⟨ref_matrix, idxs⟩⟩, h'⟩
 have lem := pattern_exhaustive_sound wf qh h'
 rcases lem with ⟨i, lem⟩;
-
-sorry
+generalize zdef : mk_open_patterns G x nc = z at *
+generalize z2def : Vec.from_list (List.map (fun p => p.2.1) z) = z2 at *
+rcases z2 with ⟨ℓ', z2⟩
+simp at i;
+have e := Vec.from_list_length z2def
+simp at e; subst e;
+have lem2 := mk_open_patterns_inversion zdef i (by grind)
+rcases lem2 with ⟨j, p, t, lem2, e⟩
+exists j; exists t; exists p
+simp at e;
+apply And.intro
+apply lem2; simp at lem; subst e; simp at h'; simp at z2def;
+have lem1 : z2[i] = z[i].snd.fst := by sorry
+rw[lem1] at lem; apply lem;
 
 
 end Core

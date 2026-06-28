@@ -586,5 +586,31 @@ theorem Vec.to_from_list {vs : Vec α n} : Vec.from_list (vs.list) = ⟨n, vs⟩
 induction vs <;> simp [from_list] at *
 case _ ih => rw[ih]; simp
 
+theorem Vec.from_list_length {l : List α} :
+  (Vec.from_list l) = ⟨n, vs⟩ ->
+  l.length = n := by
+intro h
+fun_induction Vec.from_list generalizing n <;> simp at *
+apply h.1
+case _ h2 ih =>
+  replace ih := ih h2; subst ih; apply h.1
+
+theorem Vec.from_list_indexing {l : List α} {vs : Vec α n} {i : Nat} :
+  Vec.from_list l = ⟨n, vs⟩ ->
+  l[i]? = some c ->
+  ∃ i : Fin n, vs[i] = c := by
+intro h1 h2
+induction l generalizing n <;> simp at *
+case _ hd tl ih1 =>
+  simp [Vec.from_list] at h1;
+  rcases h1 with ⟨h1, e⟩; subst h1; simp at e; subst e
+
+  induction i <;> simp at *
+  case _ =>
+    subst h2; exists 0
+  case _ ih2 =>
+
+    sorry
+
 
 end Lilac

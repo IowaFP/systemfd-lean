@@ -76,10 +76,9 @@ def Term.eval (G : List Global) : Term ->  Option Term
         have lem := eq_of_beq h; rw[lem] at p
         if pattern_match ctors p
         then
-          let τ := Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty
-          let σ' := Constructor.subst_type ctors ++ Subst.id Ty
+          let τ := Constructor.subst_type ctors ++ Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty
           let σ := Constructor.subst ctors ++ Subst.id Term
-          apply some b[σ'][τ][σ]
+          apply some b[τ][σ]
         else apply none -- stuck
     else none
   | some i => do

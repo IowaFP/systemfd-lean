@@ -28,6 +28,44 @@ rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
 subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
 exists i; rw[h3]
 
+theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 Tys2 : List Ty}:
+  ⊢ G ->
+  lookup T G = some (Entry.odata T K) ->
+  lookup c G = some (Entry.octor c spTy) ->
+  spTy.2.2.2.2.2.2.spine = some (T, Tys1) ->
+  lookup_octor G R = some ctors ->
+  R.spine = some (T, Tys2) ->
+  ∃ i : Nat, ctors[i]? = some c
+:= by
+intro wf h1 h2 h3 h4 h5
+replace h2 := EntryWf.from_lookup wf h2
+cases h2; case _ h2 h5 =>
+unfold lookup_octor at h4;
+simp at h4;
+rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨h4, h6, h7⟩
+
+sorry
+-- cases h2; case _ i h2 h3 h4 h5 =>
+-- cases h4; case _ h4 _ h6 =>
+-- simp at h6; simp [Ty.is_data] at h4; rw[h6] at h4; simp at h4; subst T
+-- rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
+-- subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
+-- exists i; rw[h3]
+
+theorem lookup_octor_return_type_entry :
+  ⊢ G ->
+  lookup c G = some (Entry.octor c spTy) ->
+  spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
+  ∃ K, lookup T G = some (Entry.odata T K) := by sorry
+
+
+theorem lookup_ctor_return_type_entry :
+  ⊢ G ->
+  lookup c G = some (Entry.ctor c n spTy) ->
+  spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
+  ∃ (K : Kind) (n : Nat) (ctors : Vec (String × SpineTy) n), lookup T G = some (Entry.data (n := n) T K ctors) := by sorry
+
+
 
 theorem lookup_entry_ctor? :
  ⊢ G ->
@@ -84,12 +122,39 @@ split at h1
       have lem := lookup_name_agrees h2; simp [Entry.name] at lem; subst lem
       rw[h0] at h4; simp at h4; obtain ⟨e1, e2⟩ := h4
       subst e1; subst e2;
-      exfalso; sorry
+      exfalso;
+      have lem := lookup_octor_return_type_entry wf h1 e2
+      rcases lem with ⟨K, lem⟩; rw[lem] at h2; simp at h2
 
-  case _ h2 =>
-    rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨cs, h2, h4⟩
-    simp at h4;
-    sorry -- cases h2
+  case _ h4 =>
+    rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨cs, h2, h5⟩
+    have lem := lookup_name_agrees h4; simp [Entry.name] at lem; subst lem;
+    case _ tsp2 _ _ _  tsp1 =>
+    rw[tsp1] at tsp2; simp at tsp2; rcases tsp2 with ⟨e1, e2⟩; subst e1; subst e2
+    have lem := lookup_entry_ctor? wf h1 h3
+    rcases lem with ⟨c1, K, spTy, Tys1, ch, Tys2⟩
+    cases ch
+    case _ ch =>
+      subst ch;
+      have lem := lookup_name_agrees h1; simp [Entry.name] at lem; subst lem;
+      exfalso;
+      unfold Entry.ctor? at h3;
+      split at h3;
+      · case _ e =>
+          simp at e; rcases e with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3; simp at *;
+          rw[Tys2] at h3; simp at h3; clear h3;
+          have lem := lookup_ctor_return_type_entry wf h1 Tys2
+          rcases lem with ⟨K, n, ctors, lem⟩
+          rw[lem] at h4; simp at h4
+      · case _ e => simp at e
+      · cases h3
+
+    case _ ch =>
+      subst ch
+      have lem := lookup_name_agrees h1; simp [Entry.name] at lem; subst lem;
+      have lem := octor_odata_linked wf h4 h1 Tys2 h2 tsp1
+      simp at h5; rcases lem with ⟨i, lem⟩
+      apply Vec.from_list_indexing h5 lem
   cases h2
 
 · cases h1
