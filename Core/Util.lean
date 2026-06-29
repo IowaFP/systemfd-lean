@@ -86,17 +86,26 @@ theorem List.indexing_length_some {t : T} {Δ : List T} {x : Nat} :
 
 @[simp]
 theorem List.length_rmap [RenMap S T] {ℓ : List S} {r : Ren T} : ℓ⟨r⟩.length = ℓ.length := by
-  sorry
+  induction ℓ <;> simp [*]
 
 @[simp]
 theorem List.length_smap [SubstMap S T] {ℓ : List S} {σ : Subst T} : ℓ[σ].length = ℓ.length := by
-  sorry
+  induction ℓ <;> simp [*]
 
 @[simp]
-theorem List.map_su_eq {ℓ1 ℓ2 : List T} : (ℓ1.map su = ℓ2.map su) = (ℓ1 = ℓ2) := sorry
+theorem List.map_su_eq {ℓ1 ℓ2 : List T} : (ℓ1.map su = ℓ2.map su) = (ℓ1 = ℓ2) := by
+  induction ℓ1 generalizing ℓ2; simp
+  case _ hd tl ih =>
+  cases ℓ2; simp at *; case _ hd2 tl2 =>
+  simp [*]
 
 @[simp]
-theorem Vec.list_eq {v1 v2 : Vec α n} : (v1.list = v2.list) = (v1 = v2) := sorry
+theorem Vec.list_eq {v1 v2 : Vec α n} : (v1.list = v2.list) = (v1 = v2) := by
+  induction v1
+  case _ => cases v2; simp
+  case _ hd tl ih =>
+  cases v2; simp at *; case _ hd2 tl2 =>
+  simp [*]
 
 -- theorem Ren.add_compose_distributes [RenMap T] [SubstMap T T][SubstMapId T T] {y z : Nat} :
 --   Ren.to (T := T) (λ x => x + y + z) = Subst.compose (T := T) (Ren.to (λ x => x + y)) (Ren.to (λ x => x + z))
@@ -151,11 +160,11 @@ macro "subst_solve_compose_fix" : tactic => `(tactic| {
 
 namespace LeanSubst
 
-  instance [RenMap S T] [SubstMap S T] : SubstMapRenComposeLeft (List S) T where
-    apply_ren_compose_left := sorry
+  instance [RenMap S T] [SubstMap S T] [SubstMapRenComposeLeft S T] : SubstMapRenComposeLeft (List S) T where
+    apply_ren_compose_left := by intro s r τ; induction s <;> simp [*]
 
-  instance [RenMap S T] [RenMap T T] [SubstMap S T] : SubstMapRenComposeRight (List S) T where
-    apply_ren_compose_right := sorry
+  instance [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T] : SubstMapRenComposeRight (List S) T where
+    apply_ren_compose_right := by intro s r τ; induction s <;> simp [*]
 
   @[simp, grind =]
   theorem Subst.rewrite3_cons_ren_fix [RenMap T T] [SubstMap T T] {σ : Subst T} {r : Ren T}
@@ -193,25 +202,6 @@ namespace LeanSubst
     rw [<-ih]; congr 1; omega
 
   @[grind =]
-  theorem Subst.lift_of_add [RenMap S S] {σ : Subst S} : σ.lift (a + b) = (σ.lift a).lift b := by
-    sorry
-    -- induction a generalizing b; simp
-    -- case _ a ih =>
-    -- rw [Ren.lift_of_succ]
-    -- rw [<-Ren.lift_of_succ_rev]
-    -- rw [<-ih]; congr 1; omega
-
-
-  @[simp]
-  theorem Subst.ren_to_hcompose [SubstMap S T] {r : Ren S} {σ : Subst T} : r.to ◾ σ = r.to := sorry
-
-  @[simp]
-  theorem Subst.ren_to_hcompose_ren [RenMap S T] {r : Ren S} {k : Ren T} : r.to ◾ k = r.to := sorry
-
-  @[simp]
-  theorem Subst.to_append {ℓ : List Nat} {r : Ren T} : (ℓ ++ r).to = ℓ ++ r.to := sorry
-
-  @[grind =]
   theorem Subst.compose_commute_add [RenMap T T] [SubstMap T T] [SubstMapStable T T] {τ : Subst T}
     : τ ∘ add T k = add T k ∘ τ.lift k
   := by
@@ -241,38 +231,6 @@ namespace LeanSubst
   theorem Ren.to_cons {r : Ren T} : (x::r).to = re x :: r.to := by
     simp [to, cons, Subst.cons]; funext; case _ x =>
     cases x <;> simp
-
-  theorem Subst.rewrite1_append_ren_le {T s e} : s..e ++ +r e = .add T (min s e) := by
-    induction e generalizing s; simp
-    case _ e ih =>
-    cases Nat.decLt s (e + 1)
-    case _ h1 =>
-      have lem : s ≥ e + 1 := by omega
-      rw [Ren.range_ge_nil (h := lem)]; simp
-      rw [Nat.min_eq_right lem]
-    case _ h1 =>
-      rw [Ren.range_lt_cons (h := h1)]
-      rw [Nat.min_eq_left (by omega)]
-      simp
-      have lem : (s + 1)..(e + 1) ++ Ren.add T (e + 1) = .succ T ∘ (s..e ++ Ren.add T e) := sorry
-      rw [lem, ih, Nat.min_eq_left (by omega)]
-      sorry
-
-  theorem Subst.rewrite1_append_le {T s e} : s..e ++ +σ e = add T (min s e) := by
-    induction e generalizing s; simp
-    case _ e ih =>
-    cases Nat.decLt s (e + 1)
-    case _ h1 =>
-      have lem : s ≥ e + 1 := by omega
-      rw [Ren.range_ge_nil (h := lem)]; simp
-      rw [Nat.min_eq_right lem]
-    case _ h1 =>
-      rw [Ren.range_lt_cons (h := h1)]
-      rw [Nat.min_eq_left (by omega)]
-      simp
-      have lem : (s + 1)..(e + 1) ++ add T (e + 1) = .succ T ∘ (s..e ++ add T e) := sorry
-      rw [lem, ih, Nat.min_eq_left (by omega)]
-      sorry
 
   @[simp, grind =]
   theorem Subst.rewrite1_append_ren : 0..e ++ +r e = .id T := by
@@ -325,12 +283,6 @@ namespace LeanSubst
     case _ k ih =>
     rw [Ren.lift_of_succ, ih]; simp
     rw [<-Ren.compose_add_succ_right]
-
-  @[simp, grind =]
-  theorem Subst.ren_rewrite1 [RenMap T T] {r : Ren T} : id T ∘ r = r.to := sorry
-
-  @[simp, grind =]
-  theorem Subst.ren_rewrite1_left {r : Ren T} : r ∘ id T = r.to := sorry
 
   @[simp, grind =]
   theorem Subst.rewrite4_cons_ren_add_direct {r : Ren T} {ℓ : List Nat}
@@ -406,43 +358,12 @@ namespace LeanSubst
     cases z <;> simp
     congr
 
-  theorem Subst.compose_lift_append_indirect
-    [RenMap S S] [RenMapId S S] [RenMapCompose S S]
-    [SubstMap S S] [SubstMapId S S]
-    [SubstMapRenComposeLeft S S] [SubstMapCompose S S]
-    {ℓ1 ℓ2 : List (Action S)} (h : k = ℓ2.length)
-    : (ℓ1 ++ Subst.id S).lift k ∘ (ℓ2 ++ Subst.id S) = (ℓ2 ++ ℓ1) ++ Subst.id S
-  := by
-    sorry
-
-  theorem Subst.compose_left_cons_lift_indirect
-    [RenMap T T] [SubstMap T T] {ℓ : List $ Action T} {σ τ : Subst T} {h : k = ℓ.length}
-    : σ.lift k ∘ (ℓ ++ τ) = ℓ ++ (σ ∘ τ)
-  := sorry
+  @[simp]
+  theorem Subst.Vec.rmap_list [RenMap S T] {v : Vec S n} {r : Ren T} : v.list⟨r⟩ = v⟨r⟩.list := by
+    induction v <;> simp [*]
 
   @[simp]
-  theorem Subst.List.smap_append [SubstMap S T] {a b : List S} {σ : Subst T}
-    : (a ++ b)[σ] = a[σ] ++ b[σ]
-  := sorry
-
-  @[simp]
-  theorem Subst.List.rmap_reverse [RenMap S T] {ℓ : List S} {r : Ren T} : ℓ.reverse⟨r⟩ = ℓ⟨r⟩.reverse := sorry
-
-  @[simp]
-  theorem Subst.List.smap_reverse [SubstMap S T] {ℓ : List S} {σ : Subst T} : ℓ.reverse[σ] = ℓ[σ].reverse := sorry
-
-  @[simp]
-  theorem Subst.Vec.rmap_list [RenMap S T] {v : Vec S n} {r : Ren T} : v.list⟨r⟩ = v⟨r⟩.list := sorry
-
-  @[simp]
-  theorem Subst.Vec.smap_list [SubstMap S T] {v : Vec S n} {σ : Subst T}
-    : v.list[σ] = v[σ].list
-  := sorry
-
-  @[simp]
-  theorem Subst.List.rmap_map_su [RenMap T T] {ℓ : List T} {r : Ren T} : (List.map su ℓ)⟨r⟩ = List.map su ℓ⟨r⟩ := sorry
-
-  @[simp]
-  theorem Subst.List.smap_map_su [SubstMap T T] {ℓ : List T} {σ : Subst T} : (List.map su ℓ)[σ] = List.map su ℓ[σ] := sorry
+  theorem Subst.Vec.smap_list [SubstMap S T] {v : Vec S n} {σ : Subst T} : v.list[σ] = v[σ].list := by
+    induction v <;> simp [*]
 
 end LeanSubst
