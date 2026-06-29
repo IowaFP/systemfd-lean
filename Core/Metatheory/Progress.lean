@@ -345,7 +345,7 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
     let r' : G ⊢ ts i ~> ts'[i] := by subst ts'; simp; exact r
     Or.inr ⟨_, .openm_congr i r' (by {
       intro j h; simp [ts']
-      have lem := Vec.get_set_neq (Ne.symm h) (v := ts.to) (x := t')
+      have lem := Vec.get_set_neq (Ne.symm h) (v := ts.to) (a := t')
       rw [Vec.get_to] at lem; rw [<-lem]; simp [getElem]
     })⟩
 | .mtch (m := m) (S := S) (ss := ss) j1 j2 j3 j4 j5, e =>
@@ -365,7 +365,7 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
     let r' : G ⊢ ss i ~> ss'[i] := by subst ss'; simp; exact r
     Or.inr ⟨_, .match_congr i r' (by {
       intro j h; simp [ss']
-      have lem := Vec.get_set_neq (Ne.symm h) (v := ss.to) (x := t')
+      have lem := Vec.get_set_neq (Ne.symm h) (v := ss.to) (a := t')
       rw [Vec.get_to] at lem; rw [<-lem]; simp [getElem]
     })⟩
 | .lam j1 j2, e => Or.inl Value.lam
