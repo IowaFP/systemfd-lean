@@ -144,18 +144,17 @@ theorem mk_open_patterns_inversion {G : GlobalEnv} {ps : List _} :
 intro h1 i h2
 unfold mk_open_patterns at h1
 simp at h2;
-induction G <;> simp at *
-subst h1; simp at h2
-case _ hd tl ih =>
-  rw[List.filterMap_cons] at h1;
-  simp at h1;
-  cases hd <;> simp at *
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
+induction G generalizing nc <;> simp at *
+case nil => subst h1; simp at h2
+case cons hd tl ih =>
+  rw[List.filterMap_cons] at h1; simp at h1;
+  split at h1
+  case _ h1' =>
+    split at h1';
+    · rw[<-h1] at h2;
+      sorry
+    · sorry
+  case _ h1' => sorry
 
 
 
@@ -180,7 +179,7 @@ rcases h' with ⟨⟨ℓ, ⟨ref_matrix, idxs⟩⟩, h'⟩
 have lem := pattern_exhaustive_sound wf qh h'
 rcases lem with ⟨i, lem⟩;
 generalize zdef : mk_open_patterns G x nc = z at *
-generalize z2def : Vec.from_list (List.map (fun p => p.2.1) z) = z2 at *
+generalize z2def : Vec.from_list z = z2 at *
 rcases z2 with ⟨ℓ', z2⟩
 simp at i;
 have e := Vec.from_list_length z2def
@@ -191,8 +190,8 @@ exists j; exists t; exists p
 simp at e;
 apply And.intro
 apply lem2; simp at lem; subst e; simp at h'; simp at z2def;
-have lem1 : z2[i] = z[i].snd.fst := by sorry
+have lem0 := Vec.from_list_to (l := z);
+have lem1 : z2[i] = z[i] := Vec.from_list_indexing2 z2def i
 rw[lem1] at lem; apply lem;
-
 
 end Core

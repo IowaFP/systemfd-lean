@@ -457,55 +457,16 @@ case _ ih =>
   induction i using Fin.induction <;> simp at *
   sorry
   sorry
--- fun_induction Vec.sequence
--- · apply i.elim0
--- · cases h
--- · case _ ih1 =>
---   simp at h
---   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h1, h⟩
---   induction i using Fin.induction
---   · cases vs'; case _ v' vs' =>
---     cases vs; case _ v vs =>
---     simp; simp at h; rcases h with ⟨e1, e2⟩
---     subst e1; subst e2; simp at zdef; apply zdef.1
---   · case _ ih2 =>
---     cases vs'; case _ v' vs' =>
---     cases vs; case _ v vs =>
---     simp; simp at h; rcases h with ⟨e1, e2⟩
---     subst e1; subst e2
---     simp at zdef;
---     apply ih1;
---     apply zdef.2
---     apply h1
 
 theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Fun.Vec.to (λ i => f (vs i))).sequence = some vs' ->
   ∀ i : Fin n, f (vs i) = some (vs'.to i)
 := by sorry
--- generalize zdef : Fun.Vec.to (λ i => f (vs i)) = z at *
--- have lem : Fun.Vec.to (λ i => f (vs i)) = (Vec.map f vs.to) := by
---   induction vs using Fun.Vec.induction
---   simp; cases vs'; cases z; apply zdef
---   case _ v vs ih =>
---   cases vs'; case _ v' vs' =>
---   cases z; case _ hd tl =>
---   simp at *; rw[zdef]; simp
---   replace ih := @ih vs'; sorry
--- intro h i
-
--- sorry
 
 
 theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
   (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).sequence = some vs' ->
   ∀ i : Fin n, f (vs1 i) (vs2 i) = some (vs'.to i) := by sorry
--- intro h1 i
--- match n, vs1, vs2 with
--- | 0, vs1, vs2 => apply i.elim0
--- | n + 1, xs, ys =>
---   induction i using Fin.induction
---   sorry
---   sorry
 
 theorem Vec.seq_sound3
   {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs3 : Fun.Vec γ n}
@@ -615,22 +576,59 @@ apply h.1
 case _ h2 ih =>
   replace ih := ih h2; subst ih; apply h.1
 
+@[simp, grind =]
+theorem Vec.from_list_nil : Vec.from_list ([] : List β) = ⟨0, .nil⟩ := by simp [Vec.from_list]
+
+@[simp]
+theorem Vec.from_list_cons {x : α} {vs : Vec α k} :
+  Vec.from_list (x :: xs) = ⟨k, vs⟩ ->
+  ∃ n vs', Vec.from_list xs = ⟨n, vs'⟩ ∧ ∃ (h : k = n + 1), vs = cast (by rw[h]) (x :: vs')
+ := by
+intro h
+unfold from_list at h;
+split at h
+case _ n vs' h =>
+simp at h; rcases h with ⟨e1, e2⟩
+exists n; exists vs'
+apply And.intro
+apply h
+exists (Eq.symm e1)
+grind
+
 theorem Vec.from_list_indexing {l : List α} {vs : Vec α n} {i : Nat} :
   Vec.from_list l = ⟨n, vs⟩ ->
   l[i]? = some c ->
   ∃ i : Fin n, vs[i] = c := by
 intro h1 h2
-induction l generalizing n <;> simp at *
-case _ hd tl ih1 =>
-  simp [Vec.from_list] at h1;
-  rcases h1 with ⟨h1, e⟩; subst h1; simp at e; subst e
-
+rw[List.getElem?_eq_some_iff] at h2;
+rcases h2 with ⟨e, h2⟩
+have lem := Vec.from_list_length h1
+fun_induction from_list generalizing n i <;> simp at *
+cases e
+case _ l ls _ _ h ih =>
+  subst lem; rcases h1 with ⟨e, h1⟩; simp at e; subst e; simp at h1;
+  subst h1;
   induction i <;> simp at *
-  case _ =>
-    subst h2; exists 0
-  case _ ih2 =>
+  subst h2; exists 0
+  case _ n ih2 =>
+    simp at e;
+    replace ih := ih (i := n) h e h2 rfl
+    rcases ih with ⟨i, ih⟩
+    exists i.succ
 
-    sorry
-
+theorem Vec.from_list_indexing2 {l : List α} {vs : Vec α n} :
+  (h : Vec.from_list l = ⟨n, vs⟩) ->
+  ∀ i: Fin n, vs[i] = l[i]'(by have lem := Vec.from_list_length h; grind)
+:= by
+  intro h i
+  fun_induction Vec.from_list generalizing n <;> simp at *
+  · unfold from_list at h; cases h; apply i.elim0
+  case _ h1 ih =>
+    replace h := Vec.from_list_cons h
+    rcases h with ⟨n1, vs1, h1, h2, ⟨e, h3⟩⟩
+    replace ih := ih h1
+    subst h2; simp at *;
+    induction i using Fin.induction <;> simp at *
+    case _ i _ => apply ih i
 
 end Lilac

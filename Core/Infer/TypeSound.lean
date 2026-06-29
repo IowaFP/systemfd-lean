@@ -13,9 +13,9 @@ open LeanSubst
 
 namespace Core
 
-theorem pattern_binders_sound {G : GlobalEnv} {Δ : KindEnv} {m : Nat} {Ts : Vec Ty m} {p : Pattern m}:
-  pattern_binders G Δ m Ts p = some (ζ, ξ) ->
-  PatternBinders G Δ m Ts p ζ ξ := by
+theorem pattern_binders_sound {v : DataConst} {G : GlobalEnv} {Δ : KindEnv} {m : Nat} {Ts : Vec Ty m} {p : Pattern m}:
+  pattern_binders (.data v) G Δ m Ts p = some (ζ, ξ) ->
+  PatternBinders v G Δ m Ts p ζ ξ := by
 intro h
 induction m generalizing ξ ζ <;> simp at *
 case _ =>

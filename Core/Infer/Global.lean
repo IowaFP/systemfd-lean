@@ -44,7 +44,7 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
     if x == y && m == n
     then
       let Δ := (Ks1.list ++ Ks2.list).reverse
-      let (ζ, Γ) <- pattern_binders G Δ n Ts p
+      let (ζ, Γ) <- pattern_binders (.data .opn) G Δ n Ts p
       let R' <- t.infer_type G (ζ++Δ) Γ
       if R⟨Ren.add Ty ζ.length⟩ == R' then return () else none
     else none
@@ -77,6 +77,12 @@ def List.enumerate (l : List α) : List (Nat × α) :=
 
 def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) :
     List ((y : String) × (p : Pattern nc) × (t: Term) ×' (Global.inst y p t ∈ G)) :=
+  -- let xs := G.attach.filter (λ e => match e with
+  --           | ⟨.inst (m := m) y _ _, _⟩ => y == x && m == nc
+  --           | _ => false)
+
+  -- xs.map (λ e => match e with
+  --        | )
   G.attach.filterMap (λ e => match e with
          | ⟨.inst (m := m) y p t, prop⟩ =>
            if h : y == x && m == nc
@@ -95,8 +101,9 @@ def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option Unit
   -- get all the patterns from instances of this method
   let ps := mk_open_patterns G x nc
 
+  let ⟨_, ps'⟩ := (Vec.from_list ps)
   -- check exhaustiveness of these patterns
-  let _ <- check_exhaustive G Ts (Vec.from_list (ps.map (λ p => p.2.1))).snd
+  let _ <- check_exhaustive G Ts (ps'.map (·.2.1))
 
   return ()
 

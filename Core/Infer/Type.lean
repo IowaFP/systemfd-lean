@@ -48,11 +48,11 @@ def query_patterns (q : Vec String m) (ps : Vec (Pattern m) n) : Option (Fin n)
  := Vec.findIdx! (λ p => (query_match q p).isSome) ps
 
 @[simp]
-def pattern_binders (G : GlobalEnv) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Kind × List Ty)
+def pattern_binders (v : SpCtorVariant) (G : GlobalEnv) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Kind × List Ty)
 | 0, _, _ => some ([], [])
 | m + 1, .cons R' Ss, .cons ⟨c, na, As, nb, nc⟩ ps => do
-  let (ℓ1, ℓ2) <- pattern_binders G Δ m Ss ps
-  let ⟨na', Ks1, nb', Ks2, nc', Ts, R⟩ <- lookup_spine_type G c
+  let (ℓ1, ℓ2) <- pattern_binders v G Δ m Ss ps
+  let ⟨na', Ks1, nb', Ks2, nc', Ts, R⟩ <- lookup_spine_type v G c
   if nb == nb' && na' == na && nc == nc'
   then
     let mAsk := As.map (λ t => t.infer_kind G Δ)
@@ -82,7 +82,7 @@ def Term.infer_type (G : GlobalEnv) (Δ : List Kind) (Γ : List Ty) : Term -> Op
     then return T
     else none
 | spctor (n := n) (m1 := m1) (m2 := m2) (.data d) x As Bs ts => do
-  let ⟨m1', Ks1, m2', Ks2, n', Ts, R⟩ <- lookup_spine_type G x
+  let ⟨m1', Ks1, m2', Ks2, n', Ts, R⟩ <- lookup_spine_type (.data d) G x
   let mKsA := (As.map (λ y => Ty.infer_kind G Δ y))
   let KsA <- mKsA.sequence
   let mKsB := Bs.map (λ y => Ty.infer_kind G Δ y)
@@ -99,7 +99,7 @@ def Term.infer_type (G : GlobalEnv) (Δ : List Kind) (Γ : List Ty) : Term -> Op
     else none
   none
 | spctor (n := n) (m1 := m1) (m2 := m2) .openm x As Bs ts => do
-  let ⟨m1', Ks1, m2', Ks2, n', Ts, R⟩ <- lookup_spine_type G x
+  let ⟨m1', Ks1, m2', Ks2, n', Ts, R⟩ <- lookup_spine_type .openm G x
   let mKsA := (As.map (λ y => Ty.infer_kind G Δ y))
   let KsA <- mKsA.sequence
   let mKsB := Bs.map (λ y => Ty.infer_kind G Δ y)
@@ -123,7 +123,7 @@ def Term.infer_type (G : GlobalEnv) (Δ : List Kind) (Γ : List Ty) : Term -> Op
   let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data .cls G)
   let _ <- mTs.sequence
   -- infer the type of binders
-  let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) n := λ i => pattern_binders (m := m) G Δ Ss (ps i)
+  let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) n := λ i => pattern_binders (.data .cls) (m := m) G Δ Ss (ps i)
   let ζξ <- mξs.to.sequence
   let (ζ , ξ) := ζξ.unzip
   -- infer the type of each branch by updating the typing and kinding ctx
