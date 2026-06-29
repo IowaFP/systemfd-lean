@@ -611,8 +611,8 @@ theorem Vec.any_set {α p} : {a : α} → {n : Nat} → {v : Vec α n} → {i : 
 
 /-! ## findIdx? -/
 
-theorem Vec.findIdx?_eq_some_iff_getElem {α n xs i} {v : Vec α n} {p : α -> Bool} :
-  findIdx? p xs = some i <-> p xs[i] ∧ ∀ (j : Fin n) (hji : j < i), ¬ p xs[j] = true
+theorem Vec.findIdx?_eq_some_iff_getElem {α n i} {v : Vec α n} {p : α -> Bool} :
+  findIdx? p v = some i <-> p v[i] ∧ ∀ (j : Fin n) (hji : j < i), ¬ p v[j] = true
 := sorry
 
 -- TODO
@@ -627,7 +627,7 @@ theorem Vec.findIdx?_eq_some_iff_getElem {α n xs i} {v : Vec α n} {p : α -> B
 
 /-! ## traverse -/
 
-theorem Vec.traverse_eq_pure_iff_getElem [i : Applicative m] {f : α -> m β} :
+theorem Vec.traverse_eq_pure_iff_getElem {m α β n v2} [i : Applicative m] {f : α -> m β} :
   {v1 : Vec α n} ->
   v1.traverse f = pure v2 ->
   ∀ i : Fin n, f v1[i] = pure (v2[i]) := sorry
@@ -637,7 +637,7 @@ theorem Vec.traverse_eq_pure_iff_getElem [i : Applicative m] {f : α -> m β} :
 /-! ## sequence -/
 
 @[simp, grind =]
-theorem Vec.sequence_map [Applicative m] {f : α -> m β} :
+theorem Vec.sequence_map {m α β n} [Applicative m] {f : α -> m β} :
   {v : Vec α n} -> (v.map f).sequence = v.traverse f
 | .nil => by simp [Vec.sequence]
 | .cons x xs =>
