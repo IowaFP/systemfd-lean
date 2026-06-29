@@ -33,14 +33,14 @@ theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 Tys2 : List Ty}:
   lookup T G = some (Entry.odata T K) ->
   lookup c G = some (Entry.octor c spTy) ->
   spTy.2.2.2.2.2.2.spine = some (T, Tys1) ->
-  lookup_octor G R = some ctors ->
+  lookup_octors G R = some ctors ->
   R.spine = some (T, Tys2) ->
   ∃ i : Nat, ctors[i]? = some c
 := by
 intro wf h1 h2 h3 h4 h5
 replace h2 := EntryWf.from_lookup wf h2
 cases h2; case _ h2 h6 =>
-unfold lookup_octor at h4;
+unfold lookup_octors at h4;
 simp at h4;
 rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨h4, h7, h8⟩
 rw[h5] at h7; cases h7;

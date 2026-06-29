@@ -130,9 +130,9 @@ def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) :
   | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
-def lookup_octor (G : GlobalEnv) (T : Ty) : Option (List String) := do
+def lookup_octors (G : GlobalEnv) (T : Ty) : Option (List String) := do
   let ⟨d, _⟩ <- T.spine
-  G.filterMapM (λ g => match g with
+  G.filterMapM (λ g => match g with -- what if we use foldrM instead?
     | .octor n ⟨_, _, _, _, _, _, R⟩ => do
       let ⟨d', _ ⟩ <- R.spine
       if d' == d then return (some n) else return none
@@ -144,7 +144,7 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
   | some (.data _ _ ctors) =>
     return ⟨ctors.length, ctors.map (·.1)⟩
   | some (.odata _ _) => do
-    let ocs <- lookup_octor G T
+    let ocs <- lookup_octors G T
     return Vec.from_list ocs
   | _ => none
 
