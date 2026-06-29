@@ -372,6 +372,11 @@ theorem Vec.tail_append {α} : {n m : Nat} → [NeZero n] → {v1 : Vec α n} �
 
 /-! ## foldl -/
 
+@[simp]
+theorem Vec.foldl_assoc {α n} {op : α -> α -> α} [ha : Std.Associative op] {v : Vec α n} {a b : α}
+  : v.foldl op (op a b) = op a (v.foldl op b)
+:= sorry
+
 -- TODO
 
 /-! ## foldr -/
