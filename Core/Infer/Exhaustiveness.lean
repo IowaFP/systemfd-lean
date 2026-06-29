@@ -39,10 +39,12 @@ theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 Tys2 : List Ty}:
 := by
 intro wf h1 h2 h3 h4 h5
 replace h2 := EntryWf.from_lookup wf h2
-cases h2; case _ h2 h5 =>
+cases h2; case _ h2 h6 =>
 unfold lookup_octor at h4;
 simp at h4;
-rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨h4, h6, h7⟩
+rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨h4, h7, h8⟩
+rw[h5] at h7; cases h7;
+cases h2; simp at h3;
 
 sorry
 -- cases h2; case _ i h2 h3 h4 h5 =>
@@ -51,20 +53,65 @@ sorry
 -- rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
 -- subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
 -- exists i; rw[h3]
+theorem lookup_odata_entry_exists {G : GlobalEnv}:
+  Ty.data? DataConst.opn G R = true ->
+  R.spine = some (T, Tys) ->
+  ∃ K, lookup T G = some (Entry.odata T K)
+:= by
+intro h1 h2
+unfold Ty.data? at h1; rw[h2] at h1; simp at h1;
+unfold is_data at h1;
+generalize zdef : lookup T G = z at *
+cases z; simp at h1
+case _ e =>
+simp at h1; cases e <;> simp [Entry.is_data] at *
+have lem := lookup_name_agrees zdef; subst lem;
+simp [Entry.name]
+
+theorem lookup_data_entry_exists {G : GlobalEnv}:
+  Ty.data? DataConst.cls G R = true ->
+  R.spine = some (T, Tys) ->
+  ∃ (K : Kind) (n : Nat) (ctors : Vec (String × SpineTy) n), lookup T G = some (Entry.data (n := n) T K ctors)
+:= by
+intro h1 h2
+unfold Ty.data? at h1; rw[h2] at h1; simp at h1;
+unfold is_data at h1;
+generalize zdef : lookup T G = z at *
+cases z; simp at h1
+case _ e =>
+simp at h1; cases e <;> simp [Entry.is_data] at *
+have lem := lookup_name_agrees zdef; subst lem;
+simp [Entry.name]
+
+
 
 theorem lookup_octor_return_type_entry :
   ⊢ G ->
   lookup c G = some (Entry.octor c spTy) ->
   spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
-  ∃ K, lookup T G = some (Entry.odata T K) := by sorry
+  ∃ K, lookup T G = some (Entry.odata T K)
+:= by
+intro wf h1 h2
+replace h1 := EntryWf.from_lookup wf h1
+cases h1; case _ h3 h1 =>
+cases h3; case _ h4 _ =>
+simp at h2;
+apply lookup_odata_entry_exists h4 h2
 
 
 theorem lookup_ctor_return_type_entry :
   ⊢ G ->
   lookup c G = some (Entry.ctor c n spTy) ->
   spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
-  ∃ (K : Kind) (n : Nat) (ctors : Vec (String × SpineTy) n), lookup T G = some (Entry.data (n := n) T K ctors) := by sorry
-
+  ∃ (K : Kind) (n : Nat) (ctors : Vec (String × SpineTy) n), lookup T G = some (Entry.data (n := n) T K ctors)
+:= by
+intro wf h1 h2
+replace h1 := EntryWf.from_lookup wf h1
+cases h1; case _ h3 h1 =>
+cases h3; case _ n _ K ctors _ lk _ _ _ _ _ _ _ _ _ _ _ h5 h4 _ =>
+simp at h2;
+unfold Ty.is_data at h5; rw[h2] at h5; simp at h5
+subst h5; exists K; exists n; exists ctors
 
 
 theorem lookup_entry_ctor? :
