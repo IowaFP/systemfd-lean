@@ -145,42 +145,34 @@ cases g <;> simp at *
 rcases h with ⟨⟨e1, e2⟩, p⟩
 subst e1; subst e2; simp at *; assumption
 
-
-
-theorem mk_open_patterns_inversion {G : GlobalEnv} {ps : List _} :
+theorem mk_open_patterns_inversion2 {G : GlobalEnv} {ps : List _} :
   mk_open_patterns G x nc = ps ->
-  ∀ (i : Nat), (i < ps.length) ->
-  ∃ (j : Nat) (t : Term) (p : Pattern nc), G[j]? = some (.inst x p t) ∧ (ps[i]? = some p)
+  ∀ (i : Nat), (h : i < ps.length) ->
+  ∃ (j : Nat) (t : Term), G[j]? = some (.inst x (ps[i]'(by apply h)) t)
 := by
-intro h1 i h2
-induction G generalizing x nc ps <;> simp [mk_open_patterns] at *
-case nil => subst h1; simp at h2
-case cons hd tl ih =>
-  cases hd <;> simp [mk_open_pattern] at h1
-  all_goals try (case _ =>
+ intro h1 i h3
+ induction G generalizing x nc ps <;> simp [mk_open_patterns] at *
+ case nil => subst h1; simp at h3
+ case cons hd tl ih =>
+ cases hd <;> simp [mk_open_pattern] at h1
+ case inst =>
+   split at h1
+   case _ nc x _ _ _ _ h3 =>
+     simp at h3;
+     rcases h3 with ⟨⟨e1, e2⟩, h4⟩
+     subst h1
+     subst e1; subst e2;
+     simp at h3; simp at h4; subst h4; exists 0;
+
+     sorry
+   case _ => sorry
+
+ all_goals try (
+ case _ =>
     subst h1
-    replace ih := ih h2;
-    rcases ih with ⟨n, t, p, y, ih⟩
-    exists n + 1; exists t; simp;
-    exists p)
-
-  case inst =>
-    split at h1
-    case _ nc x _ _ _ _ h3 =>
-      simp at h3; rcases h3 with ⟨⟨e1, e2⟩, h3⟩
-      subst h1
-      subst e1; subst e2; simp at h3; subst h3
-
-      sorry
-
-    case _ h3 =>
-      simp at h3
-      subst h1
-      replace ih := ih h2;
-      rcases ih with ⟨n, t, p, y, ih⟩
-      exists n + 1; exists t; simp;
-      exists p
-
+    replace ih := ih h3;
+    rcases ih with ⟨n, t, ih⟩
+    exists n + 1; exists t)
 
 
 theorem open_exhaustive_sound {G : GlobalEnv} :
@@ -208,14 +200,11 @@ rcases z2 with ⟨ℓ', z2⟩
 simp at i;
 have e := Vec.from_list_length z2def
 simp at e; subst e;
-have lem2 := mk_open_patterns_inversion zdef i (by grind)
-rcases lem2 with ⟨j, t, p, lem2, e⟩
-exists j; exists t; exists p
-simp at e;
-apply And.intro
-apply lem2; simp at lem; subst e; simp at h';
-have lem0 := Vec.from_list_to (l := z);
+simp at lem; simp at h'; simp at idxs
 have lem1 : z2[i] = z[i] := Vec.from_list_indexing2 z2def i
-rw[lem1] at lem; apply lem;
+rw[lem1] at lem; clear lem1
+have lem3 := mk_open_patterns_inversion2 zdef i (by grind)
+rcases lem3 with ⟨j, t, lem3⟩
+exists j; exists t; exists z[i];
 
 end Core

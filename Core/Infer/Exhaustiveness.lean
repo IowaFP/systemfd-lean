@@ -28,28 +28,7 @@ rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
 subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
 exists i; rw[h3]
 
-theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 : List Ty}:
-  ⊢ G ->
-  lookup c G = some (Entry.octor c spTy) ->
-  spTy.2.2.2.2.2.2.spine = some (T, Tys1) ->
-  lookup_octors T G = some ctors ->
-  ∃ i : Nat, ctors[i]? = some c
-:= by
-intro wf h2 h3 h4
-replace h2 := EntryWf.from_lookup wf h2
-cases h2; case _ h2 h6 =>
-cases h2; simp at h3;
 
--- unfold lookup_octors at h4;
--- simp at h4;
-
-sorry
--- cases h2; case _ i h2 h3 h4 h5 =>
--- cases h4; case _ h4 _ h6 =>
--- simp at h6; simp [Ty.is_data] at h4; rw[h6] at h4; simp at h4; subst T
--- rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
--- subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
--- exists i; rw[h3]
 theorem lookup_odata_entry_exists {G : GlobalEnv}:
   Ty.data? DataConst.opn G R = true ->
   R.spine = some (T, Tys) ->
@@ -64,6 +43,32 @@ case _ e =>
 simp at h1; cases e <;> simp [Entry.is_data] at *
 have lem := lookup_name_agrees zdef; subst lem;
 simp [Entry.name]
+
+theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 : List Ty}:
+  ⊢ G ->
+  lookup c G = some (Entry.octor c spTy) ->
+  spTy.2.2.2.2.2.2.spine = some (T, Tys1) ->
+  lookup_octors T G = some ctors ->
+  ∃ i : Nat, ctors[i]? = some c
+:= by
+intro wf h2 h3 h4
+replace h2 := EntryWf.from_lookup wf h2
+cases h2; case _ h2 h6 =>
+cases h2; simp at h3;
+case _ h7 _ =>
+have lem := lookup_odata_entry_exists h7 h3
+rcases lem with ⟨K, lem⟩
+
+-- unfold lookup_octors at h4;
+-- simp at h4;
+
+sorry
+-- cases h2; case _ i h2 h3 h4 h5 =>
+-- cases h4; case _ h4 _ h6 =>
+-- simp at h6; simp [Ty.is_data] at h4; rw[h6] at h4; simp at h4; subst T
+-- rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
+-- subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
+-- exists i; rw[h3]
 
 theorem lookup_data_entry_exists {G : GlobalEnv}:
   Ty.data? DataConst.cls G R = true ->

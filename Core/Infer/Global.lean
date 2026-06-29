@@ -83,6 +83,16 @@ def mk_open_pattern (x : String) (nc : Nat) :
            else none
 | _ => none
 
+def mk_open_patterns_enum (x : String) (nc : Nat) : (G : List (Nat × Global)) ->
+    List (Nat × Pattern nc)
+  | .nil => .nil
+  | .cons (i , g) gs =>
+    let ps := mk_open_patterns_enum x nc gs
+    match mk_open_pattern x nc g with
+    | some p => (i, p) :: ps
+    | none => ps
+
+
 def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) :
     List (Pattern nc) :=
   match G with
