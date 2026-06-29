@@ -222,7 +222,7 @@ def Vec.findIdx? {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
 where
   go : {n : Nat} -> Vec α n -> Nat -> Option (Fin n)
   | _, #(), _ => none
-  | n + 1, x::xs, i => if p x then Fin.ofNat (n + 1) i else Fin.castSucc <$> go xs (i + 1)
+  | n + 1, x::xs, i => if p x then Fin.ofNat (n + 1) i else Fin.succ <$> go xs i
 
 def Vec.erase {α} [BEq α] : {n : Nat} -> Vec α n -> α -> (m : Nat) × Vec α m ×' (n ≤ m + 1)
 | 0, #(), _ => ⟨0, #(), by grind⟩

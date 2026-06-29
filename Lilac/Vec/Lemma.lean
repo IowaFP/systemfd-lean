@@ -611,6 +611,10 @@ theorem Vec.any_set {α p} : {a : α} → {n : Nat} → {v : Vec α n} → {i : 
 
 /-! ## findIdx? -/
 
+theorem Vec.findIdx?_eq_some_iff_getElem {α n xs i} {v : Vec α n} {p : α -> Bool} :
+  findIdx? p xs = some i <-> p xs[i] ∧ ∀ (j : Fin n) (hji : j < i), ¬ p xs[j] = true
+:= sorry
+
 -- TODO
 
 /-! ## erase -/
@@ -623,9 +627,23 @@ theorem Vec.any_set {α p} : {a : α} → {n : Nat} → {v : Vec α n} → {i : 
 
 /-! ## traverse -/
 
+theorem Vec.traverse_eq_pure_iff_getElem [i : Applicative m] {f : α -> m β} :
+  {v1 : Vec α n} ->
+  v1.traverse f = pure v2 ->
+  ∀ i : Fin n, f v1[i] = pure (v2[i]) := sorry
+
 -- TODO
 
 /-! ## sequence -/
+
+@[simp, grind =]
+theorem Vec.sequence_map [Applicative m] {f : α -> m β} :
+  {v : Vec α n} -> (v.map f).sequence = v.traverse f
+| .nil => by simp [Vec.sequence]
+| .cons x xs =>
+  have ih := Vec.sequence_map (f := f) (v := xs)
+  by simp [Vec.sequence] at *; congr; rw [ih]
+
 
 -- TODO
 
