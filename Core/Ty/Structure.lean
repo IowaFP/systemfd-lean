@@ -33,6 +33,9 @@ theorem Ty.spine_all : (∀[K] A).spine = none := by simp [spine]
 @[simp, grind =]
 theorem Ty.spine_eq : (A ~[K]~ B).spine = none := by simp [spine]
 
+theorem Ty.spine_subst {R : Ty} (σ : Subst Ty) : R.spine = some (x, sp) -> R[σ].spine = some (x, sp[σ]) := sorry
+
+
 -- def Ty.apply (t : Ty) : List Ty -> Ty
 -- | [] => t
 -- | .cons a tl => (t • a).apply tl

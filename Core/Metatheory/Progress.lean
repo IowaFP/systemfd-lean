@@ -23,26 +23,52 @@ theorem Pattern.Match.closed :
   }
 
 @[grind →]
-theorem spctor_inversion :
+theorem spctor_inversion (wf : ⊢ G) :
   ¬ v = .openm ->
   G&Δ,Γ ⊢ Term.spctor v s As Bs ts : T ->
   T.spine.isSome
 := by
   intro j1 j2
-  cases j2; case _ j2 j3 j4 j5 j6 j7 j8 j9 =>
-  cases v <;> simp at j1; case _ c =>
-  -- replace j4 := j4 c rfl; subst j8
-  sorry
+  cases j2; case _ R _ _ _ _ j2 j3 j4 j5 j6 j7 j8 j9 j10 =>
+  cases v <;> simp at j1; case _ v =>
+  unfold lookup_spine_type at j5
+  generalize zdef : lookup s G = z at *
+  cases z <;> simp at j5; case _ e =>
+  cases e <;> simp [Entry.spine_type] at j5
+  case ctor =>
+    cases v <;> simp at j5
+    subst j5
+    have lem := EntryWf.from_lookup wf zdef
+    cases lem; case _ q1 q2 q3 q4 =>
+    cases q3; case _ q5 q6 q7 q8 q9 =>
+    unfold Ty.is_data at q9; subst j10
+    generalize wdef : R.spine = w at *
+    cases w <;> simp at q9; case _ w =>
+    rcases w with ⟨w, wh⟩; simp at q9; subst q9
+    have lem := Ty.spine_subst (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) wdef
+    rw [lem]; simp
+  case octor =>
+    cases v <;> simp at j5
+    subst j5
+    have lem := EntryWf.from_lookup wf zdef
+    cases lem; case _ q1 q2 q3 q4 =>
+    cases q3; case _ q5 q6 q7 q8 q9 =>
+    unfold Ty.data? at q9; subst j10
+    generalize wdef : R.spine = w at *
+    cases w <;> simp at q9; case _ w =>
+    rcases w with ⟨w, wh⟩; simp [is_data] at q9
+    have lem := Ty.spine_subst (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) wdef
+    rw [lem]; simp
 
 theorem lookup_ctor?_subst (σ : Subst Ty) : lookup_ctor? G c x R -> lookup_ctor? G c x R[σ] := by
   intro h; unfold lookup_ctor? at *
   generalize zdef : R.spine = z at *
   cases z <;> simp at h; case _ z =>
   rcases z with ⟨z, sp⟩; simp at h
-  have lem : R[σ].spine = some (z, sp[σ]) := sorry
+  have lem : R[σ].spine = some (z, sp[σ]) := Ty.spine_subst σ zdef
   rw [lem]; simp [*]
 
-theorem lookup_ctor?_data?_force_dataconst (σ : Subst Ty) :
+theorem lookup_ctor?_data?_force_dataconst (σ : Subst Ty) (wf : ⊢ G) :
   lookup_ctor? G v1 x R ->
   Ty.data? v2 G R[σ] = true ->
   v2 = v1
@@ -53,10 +79,72 @@ theorem lookup_ctor?_data?_force_dataconst (σ : Subst Ty) :
   generalize zdef : R.spine = z at *
   cases z; simp at *; case _ z =>
   rcases z with ⟨z, sp⟩; simp at *
-  have lem : R[σ].spine = some (z, sp[σ]) := sorry
+  have lem : R[σ].spine = some (z, sp[σ]) := Ty.spine_subst σ zdef
   rw [lem] at h2; simp at h2
   unfold is_data at h2
-  sorry
+  generalize udef : lookup z G = u at *
+  cases u <;> simp at h2; case _ e =>
+  cases e <;> simp [Entry.is_data] at h2
+  case data dx1 _ _ =>
+    cases v2; simp at h2; cases h2
+    generalize vdef : lookup x G = v at *
+    cases v; simp at h1; case _ e =>
+    cases e <;> simp [Entry.ctor?] at h1
+    case ctor dx1 T =>
+      cases v1 <;> simp at h1
+      rcases T with ⟨m1, Ks1, m2, Ks2, n, As, R⟩; simp at h1
+      generalize wdef : R.spine = w at *
+      cases w <;> simp at h1; case _ w =>
+      rcases w with ⟨w, wh⟩; simp at h1; subst h1
+      have lem1 := EntryWf.from_lookup wf vdef
+      cases lem1; case _ j1 j2 =>
+      have lem2 := EntryWf.from_lookup wf udef
+      cases lem2; case _ j3 =>
+      cases j1; case _ q1 q2 q3 q4 q5 =>
+      unfold Ty.is_data at q5; rw [wdef] at q5
+    case octor dx2 T =>
+      cases v1 <;> simp at h1
+      rcases T with ⟨m1, Ks1, m2, Ks2, n, As, R⟩; simp at h1
+      generalize wdef : R.spine = w at *
+      cases w <;> simp at h1; case _ w =>
+      rcases w with ⟨w, wh⟩; simp at h1; subst h1
+      have lem1 := EntryWf.from_lookup wf vdef
+      cases lem1; case _ j1 j2 =>
+      have lem2 := EntryWf.from_lookup wf udef
+      cases lem2; case _ j3 =>
+      cases j1; case _ q1 q2 q3 q4 q5 =>
+      unfold Ty.data? at q5; rw [wdef] at q5; simp at q5
+      unfold is_data at q5; rw [udef] at q5; simp [Entry.is_data] at q5
+  case odata dx1 _ =>
+    cases v2 <;> simp at h2; clear h2
+    generalize vdef : lookup x G = v at *
+    cases v <;> simp at h1; case _ v =>
+    cases v <;> simp [Entry.ctor?] at h1
+    case ctor dx1 T =>
+      cases v1 <;> simp at h1
+      rcases T with ⟨m1, Ks1, m2, Ks2, n, As, R⟩; simp at h1
+      generalize wdef : R.spine = w at *
+      cases w <;> simp at h1; case _ w =>
+      rcases w with ⟨w, wh⟩; simp at h1; subst h1
+      have lem1 := EntryWf.from_lookup wf vdef
+      cases lem1; case _ q1 q2 q3 q4 =>
+      have lem2 := EntryWf.from_lookup wf udef
+      cases lem2; case _ q5 =>
+      cases q3; case _ j1 j2 j3 j4 j5 =>
+      unfold Ty.is_data at j5; rw [wdef] at j5; simp at j5; subst j5
+      rw [q1] at udef; cases udef
+    case octor dx2 T =>
+      cases v1 <;> simp at h1
+      rcases T with ⟨m1, Ks1, m2, Ks2, n, As, R⟩; simp at h1
+      generalize wdef : R.spine = w at *
+      cases w <;> simp at h1; case _ w =>
+      rcases w with ⟨w, wh⟩; simp at h1; subst h1
+      have lem1 := EntryWf.from_lookup wf vdef
+      cases lem1; case _ j1 j2 =>
+      have lem2 := EntryWf.from_lookup wf udef
+      cases lem2; case _ j3 =>
+      cases j1; case _ q1 q2 q3 q4 q5 =>
+      unfold Ty.data? at q5; rw [wdef] at q5
 
 theorem split_all_or_left : ∀ {n} {A B : Fin n -> Prop}, (∀ i, A i ∨ B i) -> (∀ i, A i) ∨ (∃ i, B i)
 | 0, _, _, _ => Or.inl (Fin.elim0 ·)
@@ -95,7 +183,7 @@ theorem Constructor.query_cons {qs : Vec _ _} :
   have lem : s = q ∧ query tl = qs := by simp at e; exact e
   ⟨na, nt, As, ts, tl, by rw [lem.1], lem.2⟩
 
-theorem progress_match_ctors_head {ctors : Vec _ n} :
+theorem progress_match_ctors_head {ctors : Vec _ n} (wf : ⊢ G) :
   G&Δ,Γ ⊢ s : S ->
   Ty.data? cv G S ->
   Value G s ->
@@ -108,7 +196,7 @@ theorem progress_match_ctors_head {ctors : Vec _ n} :
 | .spctor (v := .data cv') (x := x) (m1 := na) (Ks1 := Ks1) (As := As) (m2 := nb) (Bs := Bs) (n := nt) (ts := ts) j1 j2 j3 j4 j5 j6 j7 j8 j9
 , h2, .spctor h, h4, h5, h6 =>
   have lem1 : cv = cv' := lookup_ctor?_data?_force_dataconst
-    (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) (j7 _ rfl) (by subst j3; apply h2)
+    (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) wf (j7 _ rfl) (by subst j3; apply h2)
   let ctors' := ⟨x, na, As, nb, Bs, nt, ts.to⟩::ctors
   have lem2hd : ConstructorTyping G Δ Γ cv ⟨x, na, As, nb, Bs, nt, ts.to⟩ S :=
     .valid (Ks1 := Ks1) (x := x) (j1 |> cast (by simp [lem1])) (j7 cv' rfl |> cast (by simp [lem1])) j2 j3 (j4 |> cast (by simp)) j5 (j6 |> cast (by simp [Vec.get_to]))
@@ -122,7 +210,7 @@ theorem progress_match_ctors_head {ctors : Vec _ n} :
 | .lam j1 j2, h2, .lam, h4, h5, h6 => by simp [Ty.data?, Ty.spine] at h2
 | .lamt j1 j2, h2, .lamt, h4, h5, h6 => by simp [Ty.data?, Ty.spine] at h2
 
-theorem progress_match_ctors :
+theorem progress_match_ctors (wf : ⊢ G):
   {m : Nat} ->
   {S ss : Vec _ m} ->
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
@@ -136,8 +224,8 @@ theorem progress_match_ctors :
   let h1' : ∀ (i : Fin m), G&Δ,Γ ⊢ s[i] : S[i] := λ i => h1 i.succ
   let h2' : ∀ (i : Fin m), Ty.data? c G S[i] := λ i => h2 i.succ
   let h3' : ∀ (i : Fin m), Value G s[i] := λ i => h3 i.succ
-  let ⟨ctors, q1, q2, q3⟩ := progress_match_ctors h1' h2' h3'
-  progress_match_ctors_head (h1 0) (h2 0) (h3 0) q1 q2 q3
+  let ⟨ctors, q1, q2, q3⟩ := progress_match_ctors wf h1' h2' h3'
+  progress_match_ctors_head wf (h1 0) (h2 0) (h3 0) q1 q2 q3
 
 theorem query_match_implies_pattern_match (G : List Global) {n : Nat} {c q p Ts : Vec _ n} :
   VecConstructorTyping G Δ Γ v c Ts ->
@@ -231,7 +319,7 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
       Ty.data?_closed (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) (j9 rfl i)
         |> cast (by simp [j2])
     have vs' : ∀ (i : Fin n), Value G ts.to[i] := vs |> cast (by simp [Vec.get_to])
-    have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
+    have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors wf j1' j2' vs'
     have h3' : Query G DataConst.opn (Constructor.query ctors) Ts := Query.closed wf j2 h3
     have lem1 := lookup_spine_type_and_open_data_implies_lookup_openm wf j1 (j9 rfl)
     have ⟨i, b, p, lem2, lem3⟩ := oe (q := Constructor.query ctors) lem1 h3'
@@ -267,7 +355,7 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
     have j1' : ∀ (i : Fin m), G&Δ,Γ ⊢ ss.to[i] : S.to[i] := j1 |> cast (by simp [Vec.get_to])
     have j2' : ∀ (i : Fin m), Ty.data? .cls G S.to[i] := j2 |> cast (by simp [Vec.get_to])
     have vs' : ∀ (i : Fin m), Value G ss.to[i] := vs |> cast (by simp [Vec.get_to])
-    have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
+    have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors wf j1' j2' vs'
     have ⟨i, h4⟩ := j5 h3
     have h5 := PatternBinders.implies_pattern_typing (j3 i)
     have lem1 := query_match_implies_pattern_match G h1 h5 rfl h4
