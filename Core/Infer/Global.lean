@@ -79,8 +79,7 @@ def mk_open_pattern (x : String) (nc : Nat) :
   Global -> Option (Pattern nc)
 | .inst (m := m) y p t =>
            if h : y == x && m == nc
-           then let p' : Pattern nc := p |> cast (by simp at h; rw[h.2])
-                some p'
+           then some (p |> cast (by simp at h; rw[h.2]))
            else none
 | _ => none
 

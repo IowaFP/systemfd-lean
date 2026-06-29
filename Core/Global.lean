@@ -130,14 +130,16 @@ def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) :
   | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
-def lookup_octors (G : GlobalEnv) (T : Ty) : Option (List String) := do
-  let ⟨d, _⟩ <- T.spine
-  G.foldrM (λ g acc => match g with
-  | .octor n ⟨_, _, _, _, _, _, R⟩ => do
-    let ⟨d', _ ⟩ <- R.spine
-    if d' == d then return (n :: acc) else return acc
-  | _ => return acc
-  ) []
+def lookup_octors (T : String) : (G : GlobalEnv)  -> Option (List String)
+  | .nil => some []
+  | .cons g gs => do
+    let cs <- lookup_octors T gs
+    match g with
+    | .octor n ⟨_, _, _, _, _, _, R⟩ => do
+      let ⟨d', _ ⟩ <- R.spine
+      if d' == T then n :: cs else cs
+    | _ => return cs
+
 
 def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
   let ⟨d, _⟩ <- T.spine
@@ -145,7 +147,7 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
   | some (.data _ _ ctors) =>
     return ⟨ctors.length, ctors.map (·.1)⟩
   | some (.odata _ _) => do
-    let ocs <- lookup_octors G T
+    let ocs <- lookup_octors d G
     return Vec.from_list ocs
   | _ => none
 

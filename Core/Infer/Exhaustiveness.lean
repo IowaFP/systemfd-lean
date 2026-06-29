@@ -28,44 +28,20 @@ rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
 subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
 exists i; rw[h3]
 
-theorem lookup_octors_sound {G : GlobalEnv}:
-  lookup_octors G R = some ctors ->
-  ∀ c ∈ ctors, ∃ (i : Nat) (spTy : SpineTy), G[i]? = some (Global.octor c spTy)
-:= by sorry
-
-theorem lookup_octors_complete {G : GlobalEnv}:
-  (∃ (i : Nat) (spTy : SpineTy), G[i]? = some (Global.octor c spTy)) ->
-  lookup_octors G R = some ctors ->
-  c ∈ ctors
-:= by
-intro h1 h2
-rcases h1 with ⟨i, spTy, h1⟩
-unfold lookup_octors at h2; simp at h2
-rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨⟨T, tys⟩, h4, h2⟩
-
-sorry
-
-
-
-theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 Tys2 : List Ty}:
+theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 : List Ty}:
   ⊢ G ->
-  lookup T G = some (Entry.odata T K) ->
   lookup c G = some (Entry.octor c spTy) ->
   spTy.2.2.2.2.2.2.spine = some (T, Tys1) ->
-  lookup_octors G R = some ctors ->
-  R.spine = some (T, Tys2) ->
+  lookup_octors T G = some ctors ->
   ∃ i : Nat, ctors[i]? = some c
 := by
-intro wf h1 h2 h3 h4 h5
+intro wf h2 h3 h4
 replace h2 := EntryWf.from_lookup wf h2
 cases h2; case _ h2 h6 =>
-
+cases h2; simp at h3;
 
 -- unfold lookup_octors at h4;
 -- simp at h4;
--- rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨h4, h7, h8⟩
--- rw[h5] at h7; cases h7;
--- cases h2; simp at h3;
 
 sorry
 -- cases h2; case _ i h2 h3 h4 h5 =>
@@ -220,7 +196,7 @@ split at h1
     case _ ch =>
       subst ch
       have lem := lookup_name_agrees h1; simp [Entry.name] at lem; subst lem;
-      have lem := octor_odata_linked wf h4 h1 Tys2 h2 tsp1
+      have lem := octor_odata_linked wf h1 Tys2 h2
       simp at h5; rcases lem with ⟨i, lem⟩
       apply Vec.from_list_indexing h5 lem
   cases h2

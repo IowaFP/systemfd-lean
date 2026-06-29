@@ -17,7 +17,10 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
   replace h := Vec.fold_or h
   cases h
   case _ h => apply ih h
-  case _ h => sorry
+  case _ h =>
+    clear ih; rcases h with ⟨i, h⟩; unfold ctors' at h; simp at h;
+    rcases h with ⟨h1, h3⟩
+    rw[<-h3]; subst h1; simp [Entry.name]
 
 
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
@@ -430,22 +433,10 @@ theorem EntryWf.weaken (wf : ⊢ (g::G))
 | defn j1 j2 j3 => defn (j1.weaken_global wf) (j2.weaken_global wf) (lookup_weaken wf j3)
 | octor j1 j2 => octor (j1.weaken_global wf (λ _ => Ty.data?_global_weaken wf)) (lookup_weaken wf j2)
 
-theorem EntryWf.from_lookup_ctor1 :
-  {v : Vec _ n} ->
+theorem EntryWf.from_lookup_ctor1 {v : Vec _ n} :
   v.foldl Option.or (lookup x G) = some e ->
   lookup x G = some e ∨ (∃ (i : Fin n), v[i] = some e)
-| .nil, eq => Or.inl eq
-| .cons a tl, eq => by
-  sorry
-  -- simp at eq; cases eq
-  -- case _ eq => apply Or.inr; exists 0
-  -- case _ eq =>
-  --   have lem := from_lookup_ctor1 eq.2
-  --   cases lem
-  --   case _ lem => apply Or.inl lem
-  --   case _ lem =>
-  --     rcases lem with ⟨i, lem⟩
-  --     apply Or.inr; exists (Fin.succ i)
+:= Vec.fold_or
 
 -- TODO: need decidable equality of Entry
 theorem EntryWf.from_lookup_ctor2 :

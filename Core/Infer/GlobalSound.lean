@@ -166,7 +166,7 @@ case cons hd tl ih =>
 
   case inst =>
     split at h1
-    case _ h3 =>
+    case _ nc x _ _ _ _ h3 =>
       simp at h3; rcases h3 with ⟨⟨e1, e2⟩, h3⟩
       subst h1
       subst e1; subst e2; simp at h3; subst h3
