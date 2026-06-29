@@ -132,11 +132,12 @@ def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) :
 
 def lookup_octors (G : GlobalEnv) (T : Ty) : Option (List String) := do
   let ⟨d, _⟩ <- T.spine
-  G.filterMapM (λ g => match g with -- what if we use foldrM instead?
-    | .octor n ⟨_, _, _, _, _, _, R⟩ => do
-      let ⟨d', _ ⟩ <- R.spine
-      if d' == d then return (some n) else return none
-    | _ => return none)
+  G.foldrM (λ g acc => match g with
+  | .octor n ⟨_, _, _, _, _, _, R⟩ => do
+    let ⟨d', _ ⟩ <- R.spine
+    if d' == d then return (n :: acc) else return acc
+  | _ => return acc
+  ) []
 
 def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String n) := do
   let ⟨d, _⟩ <- T.spine

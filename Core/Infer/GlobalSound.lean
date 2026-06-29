@@ -136,26 +136,50 @@ case _ ih =>
   rcases ih with ⟨i, ih⟩
   exists i.succ
 
+theorem mk_open_pattern_inversion {g : Global}:
+  mk_open_pattern x nc g = some p ->
+  ∃ t, g = .inst x p t := by
+intro h
+unfold mk_open_pattern at h;
+cases g <;> simp at *
+rcases h with ⟨⟨e1, e2⟩, p⟩
+subst e1; subst e2; simp at *; assumption
+
+
+
 theorem mk_open_patterns_inversion {G : GlobalEnv} {ps : List _} :
   mk_open_patterns G x nc = ps ->
-  ∀ i : Nat, (i < ps.length) ->
-  ∃ (j : Nat) (p : Pattern nc) (t : Term), G[j]? = some (.inst x p t) ∧ (ps[i]?.map (·.2.1) = some p)
+  ∀ (i : Nat), (i < ps.length) ->
+  ∃ (j : Nat) (t : Term) (p : Pattern nc), G[j]? = some (.inst x p t) ∧ (ps[i]? = some p)
 := by
 intro h1 i h2
-unfold mk_open_patterns at h1
-simp at h2;
-induction G generalizing nc <;> simp at *
+induction G generalizing x nc ps <;> simp [mk_open_patterns] at *
 case nil => subst h1; simp at h2
 case cons hd tl ih =>
-  rw[List.filterMap_cons] at h1; simp at h1;
-  split at h1
-  case _ h1' =>
-    split at h1';
-    · rw[<-h1] at h2;
-      sorry
-    · sorry
-  case _ h1' => sorry
+  cases hd <;> simp [mk_open_pattern] at h1
+  all_goals try (case _ =>
+    subst h1
+    replace ih := ih h2;
+    rcases ih with ⟨n, t, p, y, ih⟩
+    exists n + 1; exists t; simp;
+    exists p)
 
+  case inst =>
+    split at h1
+    case _ h3 =>
+      simp at h3; rcases h3 with ⟨⟨e1, e2⟩, h3⟩
+      subst h1
+      subst e1; subst e2; simp at h3; subst h3
+
+      sorry
+
+    case _ h3 =>
+      simp at h3
+      subst h1
+      replace ih := ih h2;
+      rcases ih with ⟨n, t, p, y, ih⟩
+      exists n + 1; exists t; simp;
+      exists p
 
 
 
@@ -185,11 +209,11 @@ simp at i;
 have e := Vec.from_list_length z2def
 simp at e; subst e;
 have lem2 := mk_open_patterns_inversion zdef i (by grind)
-rcases lem2 with ⟨j, p, t, lem2, e⟩
+rcases lem2 with ⟨j, t, p, lem2, e⟩
 exists j; exists t; exists p
 simp at e;
 apply And.intro
-apply lem2; simp at lem; subst e; simp at h'; simp at z2def;
+apply lem2; simp at lem; subst e; simp at h';
 have lem0 := Vec.from_list_to (l := z);
 have lem1 : z2[i] = z[i] := Vec.from_list_indexing2 z2def i
 rw[lem1] at lem; apply lem;

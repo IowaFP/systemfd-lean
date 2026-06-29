@@ -75,35 +75,34 @@ def List.enumerate (l : List α) : List (Nat × α) :=
   t.snd
 
 
-def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) :
-    List ((y : String) × (p : Pattern nc) × (t: Term) ×' (Global.inst y p t ∈ G)) :=
-  -- let xs := G.attach.filter (λ e => match e with
-  --           | ⟨.inst (m := m) y _ _, _⟩ => y == x && m == nc
-  --           | _ => false)
-
-  -- xs.map (λ e => match e with
-  --        | )
-  G.attach.filterMap (λ e => match e with
-         | ⟨.inst (m := m) y p t, prop⟩ =>
+def mk_open_pattern (x : String) (nc : Nat) :
+  Global -> Option (Pattern nc)
+| .inst (m := m) y p t =>
            if h : y == x && m == nc
            then let p' : Pattern nc := p |> cast (by simp at h; rw[h.2])
-                let prop := prop |> cast (by simp at h; rcases h with ⟨h1, h2⟩; subst h2; grind)
-                let r : (y : String) × (p' : Pattern nc) × (t: Term) ×' (Global.inst y p' t ∈ G) := ⟨y, ⟨p', t, prop⟩⟩
-                some r
+                some p'
            else none
-         | _ => none )
+| _ => none
 
+def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) :
+    List (Pattern nc) :=
+  match G with
+  | .nil  => .nil
+  | .cons g gs =>
+    let ps := mk_open_patterns gs x nc
+    match mk_open_pattern x nc g with
+    | some p => p :: ps
+    | none => ps
 
 def GlobalEnv.check_insts (G : GlobalEnv) : Global -> Option Unit
 | .openm x ⟨_, _, _, _, nc, Ts, _⟩ => do
-
 
   -- get all the patterns from instances of this method
   let ps := mk_open_patterns G x nc
 
   let ⟨_, ps'⟩ := (Vec.from_list ps)
   -- check exhaustiveness of these patterns
-  let _ <- check_exhaustive G Ts (ps'.map (·.2.1))
+  let _ <- check_exhaustive G Ts ps'
 
   return ()
 
