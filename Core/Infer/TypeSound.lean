@@ -37,7 +37,7 @@ case _ n ih =>
   rcases h5 with ⟨⟨e1, e2⟩, e3⟩
   subst e1; subst e3; subst e2;
   replace ih := ih h2
-  replace h6 := Vec.map_seq_sound _ h6
+  replace h6 := Vec.traverse_eq_pure_iff_getElem h6
   replace h7 := Vec.eq_sound_lem h7; simp at h7; subst h7
   apply PatternBinders.succ
   · apply h4
@@ -68,7 +68,7 @@ have lem := check_exhaustive_sound wf h1 h2
 unfold check_exhaustive at h2; simp at h2;
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
-replace h6 := Vec.map_seq_sound _ h6
+replace h6 := Vec.traverse_eq_pure_iff_getElem h6
 cases h2;
 rcases lem with ⟨j, lem⟩
 replace h6 := h6 j;
@@ -99,7 +99,7 @@ split at h
 · simp at h;
   apply SpineKinding.valid (Δ := (Ks1.list ++ Ks.list).reverse)
   · rfl
-  · intro i; replace h2 := Vec.map_seq_sound _ h2 i; replace h2 := infer_kind_sound h2;
+  · intro i; replace h2 := Vec.traverse_eq_pure_iff_getElem h2 i; replace h2 := infer_kind_sound h2;
     replace h5 := Vec.elems_eq_to_sound h5 i; rw[h5] at h2; simp; apply h2
   · simp; apply infer_kind_sound h4
   · apply h
@@ -108,11 +108,11 @@ split at h
 · rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h6, h, _⟩
   apply SpineKinding.valid (Δ := (Ks1.list ++ Ks.list).reverse)
   · rfl
-  · intro i; replace h2 := Vec.map_seq_sound _ h2 i; replace h2 := infer_kind_sound h2;
+  · intro i; replace h2 := Vec.traverse_eq_pure_iff_getElem h2 i; replace h2 := infer_kind_sound h2;
     replace h5 := Vec.elems_eq_to_sound h5 i; rw[h5] at h2; simp; apply h2
   · simp; apply infer_kind_sound h4
   · simp at *; assumption
-  · intro _ i; replace h := Vec.map_seq_sound _ h i
+  · intro _ i; replace h := Vec.traverse_eq_pure_iff_getElem h i
     apply data_valid_sound; replace h6 := Vec.units h6 i; rw[h6] at h
     apply h
 
@@ -152,8 +152,8 @@ case _ As _ ih => -- spctor
   subst h13;
   rcases h5 with ⟨⟨⟨e1, e2⟩, e3⟩, h5⟩
   subst h5; subst e3
-  replace h5 := Vec.map_seq_sound _ h5
-  replace h4 := Vec.map_seq_sound _ h4
+  replace h5 := Vec.traverse_eq_pure_iff_getElem h5
+  replace h4 := Vec.traverse_eq_pure_iff_getElem h4
   replace e1 := Vec.eq_sound_lem e1; subst Ks1
   replace e2 := Vec.eq_sound_lem e2; subst Ks
   replace h12 := Vec.eq_sound_lem h12
@@ -183,9 +183,9 @@ case _ As _ ih => -- openm
   replace e2 := Vec.eq_sound_lem e2; subst e2
   replace h10 := Vec.eq_sound_lem h10
   replace h7 := Vec.seq_sound1 _ h7
-  replace h4 := Vec.map_seq_sound _ h4
-  replace h5 := Vec.map_seq_sound _ h5
-  replace h9 := Vec.map_seq_sound _ h9
+  replace h4 := Vec.traverse_eq_pure_iff_getElem h4
+  replace h5 := Vec.traverse_eq_pure_iff_getElem h5
+  replace h9 := Vec.traverse_eq_pure_iff_getElem h9
   apply Typing.spctor (R := h1.2.2.2.2.2.2) (Ks2 := h1.2.2.2.1) (Ts' := Ts')
   · rw[h2]
   · simp; apply Eq.symm h10
@@ -209,10 +209,10 @@ case _ m n ss ps ts smτs ih1 ih2 => -- match
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h13, h⟩
   cases h;
   replace h2 := Vec.seq_sound1 _ h2
-  replace h4 := Vec.map_seq_sound _ h4
+  replace h4 := Vec.traverse_eq_pure_iff_getElem h4
   replace h6 := Vec.seq_sound1 _ h6
   replace h8 := Vec.seq_sound3 _ h8
-  replace h10 := Vec.map_seq_sound _ h10
+  replace h10 := Vec.traverse_eq_pure_iff_getElem h10
   replace h12 := Vec.get_elem_if_eq_sound h12
   let ζ := ζξ.unzip.1
   let ξ := ζξ.unzip.2

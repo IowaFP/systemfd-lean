@@ -373,7 +373,7 @@ intro wf h1 h2
 unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
-replace h3 := Vec.map_seq_sound _ h3
+replace h3 := Vec.traverse_eq_pure_iff_getElem h3
 unfold Query at h1;
 induction h1 generalizing ℓ <;> simp at *
 case _ =>
@@ -443,7 +443,7 @@ def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : 
   let ps' := patterns_to_ctor_names ps
 
   -- check that each entry in ref_matrix has an associated entry ps'
-  let mbs := ref_matrix.2.map (λ r => ps'.findIdx! (λ x => x == r))
+  let mbs := ref_matrix.2.map (λ r => ps'.findIdx? (λ x => x == r))
   let idxs <- mbs.sequence
   return ⟨ref_matrix.fst, ⟨ref_matrix.snd , idxs⟩⟩
 
@@ -457,7 +457,7 @@ intro wf h1 h2
 unfold check_exhaustive at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
-replace h6 := Vec.map_seq_sound _ h6
+replace h6 := Vec.traverse_eq_pure_iff_getElem h6
 cases h2;
 cases ref_matrix; case _ n ref_matrix =>
 simp at idxs;

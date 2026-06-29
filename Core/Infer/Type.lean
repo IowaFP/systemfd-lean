@@ -45,7 +45,7 @@ def query_match : Vec String m -> Pattern m -> Option Unit
   if x == y.1 then some () else none
 
 def query_patterns (q : Vec String m) (ps : Vec (Pattern m) n) : Option (Fin n)
- := Vec.findIdx! (λ p => (query_match q p).isSome) ps
+ := Vec.findIdx? (λ p => (query_match q p).isSome) ps
 
 @[simp]
 def pattern_binders (v : SpCtorVariant) (G : GlobalEnv) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern n -> Option (List Kind × List Ty)

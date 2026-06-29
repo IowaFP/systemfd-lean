@@ -434,13 +434,33 @@ theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β
 
 theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
   (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).sequence = some vs' ->
-  ∀ i : Fin n, f (vs1 i) (vs2 i) = some (vs'.to i) := by sorry
+  ∀ i : Fin n, f (vs1 i) (vs2 i) = some (vs'.to i)
+ := by
+   intro h
+   generalize zdef : Fun.Vec.to (λ i => f (vs1 i) (vs2 i)) = z at *
+   have lem := Vec.map_seq_sound (vs := z) (vs' := vs') (f := λ x => x) (h |> cast (by simp))
+   simp at lem; rw[<-zdef] at lem;
+   simp [Vec.to_get_elem]; intro i
+   replace lem := lem i
+   rw [<-Fun.Vec.to_get_elem (vs := fun i => f (vs1 i) (vs2 i))] at lem
+   apply lem
 
-theorem Vec.seq_sound3
+
+ theorem Vec.seq_sound3
   {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs3 : Fun.Vec γ n}
   {vs' : Vec δ n} (f : α -> β -> γ -> Option δ) :
   (Fun.Vec.to (λ i => f (vs1 i) (vs2 i) (vs3 i))).sequence = some vs' ->
-  ∀ i : Fin n, f (vs1 i) (vs2 i) (vs3 i) = some (vs'.to i) := by sorry
+  ∀ i : Fin n, f (vs1 i) (vs2 i) (vs3 i) = some (vs'.to i)
+ := by
+   intro h
+   generalize zdef : Fun.Vec.to (λ i => f (vs1 i) (vs2 i) (vs3 i)) = z at *
+   have lem := Vec.map_seq_sound (vs := z) (vs' := vs') (f := λ x => x) (h |> cast (by simp))
+   simp at lem; rw[<-zdef] at lem;
+   simp [Vec.to_get_elem]; intro i
+   replace lem := lem i
+   rw [<-Fun.Vec.to_get_elem (vs := fun i => f (vs1 i) (vs2 i) (vs3 i))] at lem
+   apply lem
+
 
 
 -- checks if all the elements are unique
