@@ -18,19 +18,12 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
   cases h
   case _ h => apply ih h
   case _ h =>
-<<<<<<< HEAD
-    clear ih; rcases h with ⟨i, h⟩; unfold ctors' at h; simp at h;
-    rcases h with ⟨h1, h3⟩
-    rw[<-h3]; subst h1; simp [Entry.name]
-
-=======
     rcases h with ⟨j, h⟩
     subst ctors'; simp at h
     rcases h with ⟨h1, h3⟩; subst h1
     generalize udef : ctors[j] = u at *
     rcases u with ⟨u, T⟩; simp at *
     subst h3; simp [Entry.name] at *
->>>>>>> 70c37ea (finish global metatheory)
 
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
   intro n wf
@@ -430,12 +423,6 @@ theorem EntryWf.weaken (wf : ⊢ (g::G))
 | defn j1 j2 j3 => defn (j1.weaken_global wf) (j2.weaken_global wf) (lookup_weaken wf j3)
 | octor j1 j2 => octor (j1.weaken_global wf (λ _ => Ty.data?_global_weaken wf)) (lookup_weaken wf j2)
 
-<<<<<<< HEAD
-theorem EntryWf.from_lookup_ctor1 {v : Vec _ n} :
-  v.foldl Option.or (lookup x G) = some e ->
-  lookup x G = some e ∨ (∃ (i : Fin n), v[i] = some e)
-:= Vec.fold_or
-=======
 theorem Vec.option_lemma1 :
   {v : Vec (Option α) n} ->
   (∀ (j : Fin n), v[j] = none) ->
@@ -462,7 +449,6 @@ theorem Vec.option_lemma2 :
     have lem1 := h2 0 (by grind); simp at lem1; subst lem1
     replace h2 := λ (j : Fin _) (e : j ≠ i) => h2 j.succ (by grind); simp at h2
     apply option_lemma2 (v := xs) h1 h2
->>>>>>> 70c37ea (finish global metatheory)
 
 theorem EntryWf.from_lookup_ctor2 :
   {v : Vec (Option Entry) n} ->
