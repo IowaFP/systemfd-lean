@@ -230,7 +230,7 @@ case _ n hd tl ih =>
 
 -- Returns the 1st element if all the elements are equal
 @[simp]
-def Vec.get_elem_if_eq [BEq Q][LawfulBEq Q] (vs : Vec Q n) : Option Q :=
+def Vec.get_elem_if_eq [BEq Q] [LawfulBEq Q] (vs : Vec Q n) : Option Q :=
 match vs with
 | .nil => none
 | .cons x .nil => return x
@@ -252,41 +252,12 @@ case _ n x xs ih1 ih2 =>
   · simp
   · simp; apply ih1 h
 
--- TODO: change this to Vec.findIdx? once Lilac is fixed
-def Vec.findIdx! {α n} (p : α -> Bool) : Vec α n -> Option (Fin n)
-| #() => none
-| .cons x xs => go p (x::xs) 0
-where
-  go (p : α -> Bool) : {n : Nat} -> Vec α n -> Nat -> Option (Fin n)
-  | _, #(), _ => none
-  | n + 1, .cons x xs, i => if p x then Fin.ofNat (n + 1) i else Fin.succ <$> go p xs i
-
-
-#guard Vec.findIdx! (· == 3) #(3, 1, 2) == some 0
-#guard Vec.findIdx! (· == 4) #(0, 4, 2) == some 1
-#guard Vec.findIdx! (· == 5) #(0, 1, 5) == some 2
-
-theorem Vec.findIdx!_go_sound {vs : Vec α n} {p : α -> Bool}:
-  Vec.findIdx!.go p vs k = some i ->
-  k ≤ i := by
-intro h
-fun_induction findIdx!.go
-cases h
-simp at h; sorry
-sorry
-
-
-theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n} : Vec.findIdx! p vs = some i ->
-   p vs[i] = true
+theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n}
+  : Vec.findIdx? p vs = some i -> p vs[i] = true
 := by
   intro h
-  induction vs <;> simp [findIdx!] at *
-  case _ ih =>
-    induction i using Fin.induction <;> simp [findIdx!.go] at *
-    sorry
-    sorry
-
-
+  replace h := findIdx?_eq_some_iff_getElem.1 h
+  apply h.1
 
 theorem Vec.unzip_eta_get_elem {vs : Vec (α × β) n} : ∀ i : Fin n, vs[i] = (vs.unzip.1[i], vs.unzip.2[i])
 := by
@@ -445,24 +416,21 @@ theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β)
   (Vec.map f vs).sequence = some vs' ->
   ∀ i : Fin n, f (vs[i]) = some (vs'[i])
 := by
-intro h i
-generalize zdef : map f vs = z at *
-fun_induction Vec.map
-case _ => apply i.elim0
-case _ ih =>
-  subst zdef; simp at h;
-  unfold Vec.sequence at h;
-  simp at h
-
-  induction i using Fin.induction <;> simp at *
-  sorry
-  sorry
+  intro h
+  simp at h; apply traverse_eq_pure_iff_getElem h
 
 theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Fun.Vec.to (λ i => f (vs i))).sequence = some vs' ->
   ∀ i : Fin n, f (vs i) = some (vs'.to i)
-:= by sorry
-
+:= by
+  intro h
+  generalize zdef : Fun.Vec.to (λ i => f (vs i)) = z at *
+  have lem := Vec.map_seq_sound (vs := z) (vs' := vs') (f := λ x => x) (h |> cast (by simp))
+  simp at lem; rw [<-zdef] at lem
+  simp [Vec.to_get_elem]; intro i
+  replace lem := lem i
+  rw [<-Fun.Vec.to_get_elem (vs := fun i => f (vs i))] at lem
+  apply lem
 
 theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n} (f : α -> β -> Option γ) :
   (Fun.Vec.to (λ i => f (vs1 i) (vs2 i))).sequence = some vs' ->

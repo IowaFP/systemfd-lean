@@ -12,7 +12,7 @@ rev = "e70331d5311e522e2f7a807d56b0c6240693dbb5"
 name = "lilac"
 scope = "amarmaduke"
 git = "https://github.com/amarmaduke/lilac"
-rev = "8ba3950799ee82377d1131d644a98058497e7b0e"
+rev = "50e4bac0041514f121a726a85679986cfbb77cc2"
 
 [[lean_lib]]
 name = "Core"

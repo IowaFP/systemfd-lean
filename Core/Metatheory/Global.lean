@@ -342,12 +342,13 @@ theorem Kinding.weaken_global_ctors (wf : ⊢ (Global.data n y D ctors :: G))
 | app j1 j2 => app (j1.weaken_global_ctors wf) (j2.weaken_global_ctors wf)
 | eq j1 j2 => eq (j1.weaken_global_ctors wf) (j2.weaken_global_ctors wf)
 
-theorem SpineKinding.weaken_global (wf : ⊢ (g::G))
-  : {T : SpineTy} -> SpineKinding v x G tst T -> SpineKinding v x (g::G) tst T
+theorem SpineKinding.weaken_global {tst : List Global -> Ty -> Bool} (wf : ⊢ (g::G))
+  (h : ∀ A, tst G A -> tst (g::G) A)
+  : {T : SpineTy} -> SpineKinding v x G (tst G) T -> SpineKinding v x (g::G) (tst (g::G)) T
 | ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩, valid e j1 j2 j3 j4 =>
   have lem2 : v = .openm → ∀ (i : Fin n), Ty.data? DataConst.opn (g::G) Ts[i] :=
     λ e i => Ty.data?_global_weaken wf (j4 e i)
-  valid e (λ i => (j1 i).weaken_global wf) (j2.weaken_global wf) j3 lem2
+  valid e (λ i => (j1 i).weaken_global wf) (j2.weaken_global wf) (h _ j3) lem2
 
 theorem SpineKinding.weaken_global_ctors (wf : ⊢ (Global.data n y K ctors :: G))
   : SpineKinding v x (Global.data 0 y K #() :: G) tst T ->
@@ -400,7 +401,8 @@ theorem Typing.weaken_global (wf : ⊢ (g::G)) : G&Δ,Γ ⊢ t : A -> (g::G)&Δ,
 | mtch (m := m) (S := S) j1 j2 j3 j4 j5 =>
   let j1' := λ i => (j1 i).weaken_global wf
   let j2' := λ i => Ty.data?_global_weaken wf (j2 i)
-  let j2'' : ∀ (i : Fin m), Ty.data? DataConst.cls G S.to[i] := by sorry
+  let j2'' : ∀ (i : Fin m), Ty.data? DataConst.cls G S.to[i] :=
+    λ i => (j2 i) |> _root_.cast (by simp [Vec.get_to])
   let j3' := λ i => (j3 i).weaken_global wf
   let j4' := λ i => (j4 i).weaken_global wf
   let j5' := λ {q} q' => j5 (q := q) (Query.global_strengthen wf j2'' q')
@@ -420,13 +422,13 @@ theorem EntryWf.weaken (wf : ⊢ (g::G))
 | data j => data (lookup_weaken wf j)
 | ctor z K ctors i j1 e1 j2 j3 =>
   let j1' := lookup_weaken wf j1
-  let j2' := j2.weaken_global wf
+  let j2' := j2.weaken_global (tst := λ _ => (Ty.is_data z)) wf (by simp)
   let j3' := lookup_weaken wf j3
   ctor z K ctors i j1' e1 j2' j3'
 | odata j => odata (lookup_weaken wf j)
-| openm j1 j2 => openm (j1.weaken_global wf) (lookup_weaken wf j2)
+| openm j1 j2 => openm (j1.weaken_global (tst := λ _ _ => true) wf (by simp)) (lookup_weaken wf j2)
 | defn j1 j2 j3 => defn (j1.weaken_global wf) (j2.weaken_global wf) (lookup_weaken wf j3)
-| octor j1 j2 => sorry -- octor (j1.weaken_global wf) (lookup_weaken wf j2)
+| octor j1 j2 => octor (j1.weaken_global wf (λ _ => Ty.data?_global_weaken wf)) (lookup_weaken wf j2)
 
 theorem EntryWf.from_lookup_ctor1 :
   {v : Vec _ n} ->
@@ -510,7 +512,7 @@ theorem EntryWf.from_lookup :
     cases h; cases wf; case _ wf h =>
     cases h; case _ j1 j2 =>
     apply EntryWf.openm
-    apply SpineKinding.weaken_global wf' j2
+    apply SpineKinding.weaken_global (tst := λ _ _ => true) wf' (by simp) j2
     simp [lookup]
   case _ =>
     have wf' := wf
