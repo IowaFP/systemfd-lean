@@ -524,22 +524,19 @@ induction cs
   simp at h
   cases a <;> simp at *
   case _ =>
+    cases d <;> simp at *
     replace ih := ih h
     cases ih
     case _ ih => apply Or.inl ih
     case _ ih =>
       rcases ih with ⟨i, ih⟩; apply Or.inr; exists i.succ
+    grind
   case _ =>
     cases d <;> simp at *
     cases e
     · apply Or.inl rfl
     · apply Or.inr; exists 0; simp; apply Vec.fold_or_val_eq h
-    replace ih := ih h
-    cases ih
-    case _ ih => apply Or.inl ih
-    case _ ih =>
-      rcases ih with ⟨i, ih⟩; apply Or.inr; exists i.succ
-
+    grind
 
 def Vec.from_list : List α -> (n : Nat) × Vec α n
 | .nil => ⟨0, .nil⟩
