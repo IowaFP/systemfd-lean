@@ -6,11 +6,6 @@ import Core.Util
 
 import Core.Metatheory.Rename
 import Core.Metatheory.Substitution
--- import Core.Metatheory.GlobalWf
--- import Core.Metatheory.Uniqueness
--- import Core.Metatheory.Inversion
--- import Core.Metatheory.SpineType
--- import Core.Metatheory.Preservation.Lemmas
 
 open Lilac
 open LeanSubst
@@ -29,29 +24,9 @@ theorem List.getElem_swap_index {ℓ : List α} {i j : Nat} (e : i = j) (h1 : i 
 := by
   induction ℓ generalizing i j <;> simp [*]
 
-@[simp]
-theorem Vec.get_Fin_ofNat_succ {xs : Vec α (n + 1)} (h : i + 1 < n + 2) : (x :: xs)[Fin.ofNat (n + 2) (i + 1)] = xs[Fin.ofNat (n + 1) i] := by
-  unfold Fin.ofNat
-  have lem1 : (i + 1) % (n + 2) = i + 1 := by rw [Nat.mod_eq_of_lt h]
-  have lem2 : i % (n + 1) = i := by rw [Nat.mod_eq_of_lt]; grind
-  simp [lem1, lem2]
-  simp [getElem, Vec.get]
-
-theorem Vec.get_list_to_get : {n:Nat} -> {v : Vec α (n + 1)} -> (h : i < n + 1) -> v.list[i]'(by simp [h]) = v[Fin.ofNat (n + 1) i]
-| n, .cons x xs, h =>
-  match i with
-  | 0 => by simp
-  | i + 1 =>
-    match n with
-    | 0 => by simp at h
-    | n + 1 =>
-      have lem1 : i < n + 1 := by grind
-      have lem2 := get_list_to_get (v := xs) lem1
-      by rw [Vec.get_Fin_ofNat_succ h]; simp [lem2]
-
 theorem PatternBinders.ctors_type_length {ss S : Vec _ m} :
-  PatternBinders G Δ m S p ζ ξ ->
-  Term.IsData v ss ctors ->
+  PatternBinders v1 G Δ m S p ζ ξ ->
+  Term.IsData v2 ss ctors ->
   Pattern.Match ctors p ->
   ζ.length = (Constructor.subst_type ctors).length
 := by
@@ -69,8 +44,8 @@ theorem PatternBinders.ctors_type_length {ss S : Vec _ m} :
     rw [ih j5 j4]
 
 theorem PatternBinders.ctors_term_length {ss S : Vec _ m} :
-  PatternBinders G Δ m S p ζ ξ ->
-  Term.IsData v ss ctors ->
+  PatternBinders v1 G Δ m S p ζ ξ ->
+  Term.IsData v2 ss ctors ->
   Pattern.Match ctors p ->
   ξ.length = (Constructor.subst ctors).length
 := by
@@ -89,7 +64,7 @@ theorem PatternBinders.ctors_term_length {ss S : Vec _ m} :
 
 theorem PatternBinders.ctors_type {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
-  PatternBinders G Δ m S p ζ ξ ->
+  PatternBinders v G Δ m S p ζ ξ ->
   Term.IsData v ss ctors ->
   Pattern.Match ctors p ->
   ∀ (i: Nat) K, (ζ ++ Δ)[i]? = some K → G&Δ ⊢ ((Constructor.subst_type ctors ++ Subst.id Ty).act i) : K
@@ -131,12 +106,12 @@ theorem PatternBinders.ctors_type {ss S : Vec _ m} :
         rw [List.getElem_swap_index (i := i - (Constructor.subst_type cs).length) (j := i - ℓ1.length) (by simp [lem1])]
         rw [<-zdef]; simp
         replace h1 := h1 0; simp at h1; subst e6
-        cases h1; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 =>
-        rw [j1] at q2; cases q2; case _ =>
+        cases h1; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 q9 =>
+        rw [j1] at q4; cases q4; case _ =>
         cases nb; cases Ks2; simp at h; case _ nb =>
         simp; have lem : nb - (i - ℓ1.length) < nb + 1 := by grind
         rw [Vec.get_list_to_get lem, Vec.get_list_to_get lem]
-        apply q5
+        apply q6
       case _ nh2 =>
         rw [List.getElem_append_left (by grind)]
         rw [List.getElem?_append_left (by grind)] at h
@@ -147,7 +122,7 @@ theorem PatternBinders.ctors_type {ss S : Vec _ m} :
 
 theorem PatternBinders.ctors_term {ss S : Vec _ m} :
   (∀ (i : Fin m), G&Δ,Γ ⊢ ss[i] : S[i]) ->
-  PatternBinders G Δ m S p ζ ξ ->
+  PatternBinders v G Δ m S p ζ ξ ->
   Term.IsData v ss ctors ->
   Pattern.Match ctors p ->
   ∀ (i:Nat) A, (ξ[Constructor.subst_type ctors ++ Subst.id Ty] ++ Γ)[i]? = some A ->
@@ -207,7 +182,7 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
         simp at h; rw [<-h]; simp
         have h1' := h1 0; simp at h1'; subst e6
         cases h1'; case _ R'' Ks1' Ks2' Ts' Ts'' q1 q2 q3 q4 q5 q6 q7 q8 q9 =>
-        rw [j1] at q3; cases q3; case _ =>
+        rw [j1] at q4; cases q4; case _ =>
         cases nc
         case _ => cases Ts; simp at hh; grind
         case _ nc nch =>
@@ -240,7 +215,7 @@ theorem PatternBinders.ctors_term {ss S : Vec _ m} :
         apply ih
 
 theorem preservation_open_data_match_lemma {As : Vec Ty m1} {Bs : Vec Ty m2} {ts : Fun.Vec Term n} {i : Nat} (wf : ⊢ G) :
-  lookup_spine_type G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
+  lookup_spine_type .openm G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
   Ts' = Ts[(As.list ++ Bs.list).reverse.map su ++ Subst.id Ty] ->
   R' = R[(As.list ++ Bs.list).reverse.map su ++ Subst.id Ty] ->
   (∀ (i:Fin m1), G&Δ ⊢ As[i] : Ks1[i]) ->

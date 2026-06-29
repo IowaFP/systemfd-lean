@@ -21,6 +21,26 @@ theorem Vec.get_to {v : Fun.Vec α n} : v.to[i] = v i := by
     case _ => simp; unfold Fun.Vec.cons; simp
     case _ i => simp [ih]; simp [Fun.Vec.cons]
 
+@[simp]
+theorem Vec.get_Fin_ofNat_succ {xs : Vec α (n + 1)} (h : i + 1 < n + 2) : (x :: xs)[Fin.ofNat (n + 2) (i + 1)] = xs[Fin.ofNat (n + 1) i] := by
+  unfold Fin.ofNat
+  have lem1 : (i + 1) % (n + 2) = i + 1 := by rw [Nat.mod_eq_of_lt h]
+  have lem2 : i % (n + 1) = i := by rw [Nat.mod_eq_of_lt]; grind
+  simp [lem1, lem2]
+  simp [getElem, Vec.get]
+
+theorem Vec.get_list_to_get : {n:Nat} -> {v : Vec α (n + 1)} -> (h : i < n + 1) -> v.list[i]'(by simp [h]) = v[Fin.ofNat (n + 1) i]
+| n, .cons x xs, h =>
+  match i with
+  | 0 => by simp
+  | i + 1 =>
+    match n with
+    | 0 => by simp at h
+    | n + 1 =>
+      have lem1 : i < n + 1 := by grind
+      have lem2 := get_list_to_get (v := xs) lem1
+      by rw [Vec.get_Fin_ofNat_succ h]; simp [lem2]
+
 theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
   intro i; induction vs <;> simp at *
   apply i.elim0

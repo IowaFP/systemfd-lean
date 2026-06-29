@@ -66,7 +66,7 @@ theorem SpineKinding.closed : {T : SpineTy} -> SpineKinding v x G tst T -> ∀ (
 
 theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
   ⊢ G ->
-  lookup_spine_type G x = some T ->
+  lookup_spine_type v G x = some T ->
   ∀ (σ : Subst Ty), T[σ] = T
 := by
   intro wf h; unfold lookup_spine_type at h
@@ -89,17 +89,20 @@ theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
   case _ =>
     cases wf; case _ wf =>
     cases wf; case _ h1 h2 =>
+    cases v <;> simp at *
     subst h
     apply SpineKinding.closed h2
   case _ =>
     cases wf; case _ wf =>
     cases wf; case _ h1 h2 =>
+    cases v <;> simp at *; case _ c h3 =>
+    cases c <;> simp at h
     subst h
     apply SpineKinding.closed h2
 
 theorem GlobalWf.closed_lookup_spine_type_ren {G : List Global} :
   ⊢ G ->
-  lookup_spine_type G x = some T ->
+  lookup_spine_type v G x = some T ->
   ∀ (r : Ren Ty), T⟨r⟩ = T
 := sorry
 
@@ -331,7 +334,7 @@ theorem CoercionProject.extend Δ
 | snd_arrow j => snd_arrow j.extend
 
 theorem PatternBinders.extend Δ
-  : PatternBinders G Δ₁ m S p ζ ξ -> PatternBinders G (Δ₁ ++ Δ) m S p ζ ξ
+  : PatternBinders v G Δ₁ m S p ζ ξ -> PatternBinders v G (Δ₁ ++ Δ) m S p ζ ξ
 | zero => zero
 | succ j1 j2 e1 e2 e3 j3 => succ j1 (λ i => (j2 i).extend) e1 e2 e3 (j3.extend _)
 

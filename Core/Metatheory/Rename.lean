@@ -249,10 +249,10 @@ theorem Subst.compose_ren_append_id_commute_direct [RenMap S S] {ℓ : List $ Ac
   rw [compose_ren_append_id_commute_indirect rfl]
 
 theorem PatternBinders.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r.act i]?) :
-  PatternBinders G Δ m S p ζ ξ -> PatternBinders G Δr m S⟨r⟩ p⟨r⟩ ζ ξ⟨r.lift ζ.length⟩
+  PatternBinders v G Δ m S p ζ ξ -> PatternBinders v G Δr m S⟨r⟩ p⟨r⟩ ζ ξ⟨r.lift ζ.length⟩
 | zero => zero
-| @succ G Δ nc c na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' e1 j1 e2 e3 e4 j2 =>
-  have e1' : lookup_spine_type G c = (some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩)⟨r⟩ := by
+| @succ v G Δ nc c na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' e1 j1 e2 e3 e4 j2 =>
+  have e1' : lookup_spine_type (.data v) G c = (some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩)⟨r⟩ := by
     have lem := GlobalWf.closed_lookup_spine_type_ren wf e1 r
     simp; simp at lem; grind
   have j1' := λ i => (j1 i).rename Δr r h
@@ -294,7 +294,7 @@ theorem Ren.List.length_rmap [RenMap S T] {ℓ : List S} {r : Ren T} : ℓ⟨r�
 theorem Pattern.bind_zero : {p : Pattern 0} -> p.bind = 0
 | .nil => by simp [Pattern.bind]
 
-theorem PatternBinders.length : PatternBinders G Δ m S p ζ ξ -> p.bind = ξ.length
+theorem PatternBinders.length : PatternBinders v G Δ m S p ζ ξ -> p.bind = ξ.length
 | zero => by simp
 | succ j1 j2 e1 e2 e3 j3 => by
   have lem := j3.length
@@ -304,7 +304,7 @@ theorem PatternBinders.length : PatternBinders G Δ m S p ζ ξ -> p.bind = ξ.l
 theorem Pattern.bind_type_zero : {p : Pattern 0} -> p.bind_type = 0
 | .nil => by simp [Pattern.bind_type]
 
-theorem PatternBinders.length_type : PatternBinders G Δ m S p ζ ξ -> p.bind_type = ζ.length
+theorem PatternBinders.length_type : PatternBinders v G Δ m S p ζ ξ -> p.bind_type = ζ.length
 | zero => by simp
 | succ j1 j2 e1 e2 e3 j3 => by
   have lem := j3.length_type
@@ -321,7 +321,7 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
     rw [e1 r, e3 r]; exact j1
   defn j1' (j2.rename _ _ h)
 | @spctor G Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R' As Bs ts j1 e1 e2 j2 j3 j4 j5 j6 j7 =>
-  have j1' : lookup_spine_type G x = (some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)⟨r⟩ := by
+  have j1' : lookup_spine_type v G x = (some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)⟨r⟩ := by
     have lem := GlobalWf.closed_lookup_spine_type_ren wf j1 r
     simp; simp at lem; grind
   have e1' : Ts'⟨r⟩ = Ts⟨r.lift (m1 + m2)⟩[List.map su (As⟨r⟩.list ++ Bs⟨r⟩.list).reverse ++ Subst.id Ty] := by
@@ -366,7 +366,7 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
   have j1' := λ i => (j1 i).rename_type Δr r wf h
   have j2' := λ i => Ty.data?_closed_ren r (j2 i)
   let ξ' := λ (i : Fin n) => (ξ i)⟨r.lift (ζ i).length⟩
-  have j3' : ∀ (i : Fin n), PatternBinders G Δr m S.to⟨r⟩ (ps i)⟨r⟩ (ζ i) (ξ' i) :=
+  have j3' : ∀ (i : Fin n), PatternBinders .cls G Δr m S.to⟨r⟩ (ps i)⟨r⟩ (ζ i) (ξ' i) :=
     λ i => (j3 i).rename_type Δr r wf h
   have j4' : ∀ (i : Fin n), G&(ζ i ++ Δr),((ξ' i) ++ Γ⟨r⟩⟨.add Ty (ζ i).length⟩) ⊢ (ts i)⟨r.lift (ps i).bind_type⟩ : A⟨r⟩⟨.add Ty (ζ i).length⟩ := λ i => by
     have lem1 := rename_type_lift_k (ζ i) h

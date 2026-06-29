@@ -143,11 +143,11 @@ theorem Query.Match.subst_type (σ : Subst Ty) :
 
 theorem PatternBinders.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
   (h : (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K))
-  : PatternBinders G Δ m S p ζ ξ ->
-  PatternBinders G Δσ m S[σ] p[σ] ζ ξ[σ.lift ζ.length]
+  : PatternBinders v G Δ m S p ζ ξ ->
+  PatternBinders v G Δσ m S[σ] p[σ] ζ ξ[σ.lift ζ.length]
 | zero => zero
-| @succ G Δ nc c na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' e1 j1 e2 e3 e4 j2 =>
-  have e1' : lookup_spine_type G c = (some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩)[σ] := by
+| @succ v G Δ nc c na Ks1 nb Ks2 Ts R As ℓ2' ℓ2 R' n S p ℓ1 Ts' e1 j1 e2 e3 e4 j2 =>
+  have e1' : lookup_spine_type (.data v) G c = (some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩)[σ] := by
     have lem := GlobalWf.closed_lookup_spine_type wf e1 σ
     simp; simp at lem; grind
   have j1' := λ i => (j1 i).subst Δσ σ h
@@ -185,7 +185,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
     rw [e1 σ, e3 σ]; exact j1
   defn j1' (j2.subst _ _ h)
 | @spctor G Δ Γ m1 m2 n x v Ks1 Ks2 Ts Ts' R R' As Bs ts j1 e1 e2 j2 j3 j4 j5 j6 j7 =>
-  have j1' : lookup_spine_type G x = (some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)[σ] := by
+  have j1' : lookup_spine_type v G x = (some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)[σ] := by
     have lem := GlobalWf.closed_lookup_spine_type wf j1 σ
     simp; simp at lem; grind
   have e1' : Ts'[σ] = Ts[σ.lift (m1 + m2)][List.map su (As[σ].list ++ Bs[σ].list).reverse ++ Subst.id Ty] := by
@@ -229,7 +229,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
   have j1' := λ i => (j1 i).subst_type Δσ σ wf h
   have j2' := λ i => Ty.data?_closed σ (j2 i)
   let ξ' := λ (i : Fin n) => (ξ i)[σ.lift (ζ i).length]
-  have j3' : ∀ (i : Fin n), PatternBinders G Δσ m S.to[σ] (ps i)[σ] (ζ i) (ξ' i) :=
+  have j3' : ∀ (i : Fin n), PatternBinders .cls G Δσ m S.to[σ] (ps i)[σ] (ζ i) (ξ' i) :=
     λ i => (j3 i).subst_type Δσ σ wf h
   have j4' : ∀ (i : Fin n), G&(ζ i ++ Δσ),((ξ' i) ++ Γ[σ]⟨.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind_type] : A[σ]⟨.add Ty (ζ i).length⟩ := λ i => by
     have lem1 := subst_type_lift_k (ζ i) h

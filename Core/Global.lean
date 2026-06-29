@@ -112,11 +112,11 @@ def Entry.kind : Entry -> Option Kind
 | odata _ K => K
 | _ => none
 
-def Entry.spine_type : Entry -> Option SpineTy
-| ctor _ _ T => T
-| openm _ T => T
-| octor _ T => T
-| _ => none
+def Entry.spine_type : SpCtorVariant -> Entry -> Option SpineTy
+| .data .cls, ctor _ _ T => T
+| .openm, openm _ T => T
+| .data .opn, octor _ T => T
+| _, _ => none
 
 def Entry.ctor? (data : String) : DataConst -> Entry -> Bool
 | .cls, ctor _ _ ⟨_, _, _, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, _, _, T⟩ =>
@@ -154,7 +154,7 @@ def lookup (x : String) : List Global -> Option Entry
 | .cons (.octor y a) tl =>
   if x == y then return .octor y a else lookup x tl
 
-def lookup_spine_type G c := lookup c G |> Option.map Entry.spine_type |> Option.getD (dflt := none)
+def lookup_spine_type d G c := lookup c G |> Option.map (Entry.spine_type d) |> Option.getD (dflt := none)
 
 def lookup_ctor? (G : List Global) (c : DataConst) (ctor : String) (data : Ty) : Bool :=
   match data.spine with

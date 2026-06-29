@@ -1,3 +1,4 @@
+import Core.Vec
 import Core.Term
 import Core.Reduction
 import Core.Typing
@@ -10,12 +11,16 @@ open LeanSubst
 namespace Core
 
 theorem Pattern.Match.closed :
-  ∀ {m : Nat} {c : Vec Constructor m} {p p' : Pattern m} (σ : Subst Ty) (e : p' = p[σ]),
+  ∀ {m : Nat} {c : Vec Constructor m} {p p' : Pattern m} (σ : Subst Ty) (_ : p' = p[σ]),
   Pattern.Match c p' -> Pattern.Match c p
 | 0, #(), #(), #(), σ, e, .nil => Pattern.Match.nil
-| m + 1, .cons c cs, .cons p ps, .cons p' ps', σ, e, .cons (Bs := Bs) j e1 e2 =>
-  have j' := j.closed (p := ps) σ (by sorry)
-  .cons (Bs := Bs) j' e1 sorry
+| m + 1, .cons c cs, .cons ⟨x, n1, As, n2, n3⟩ ps, .cons p' ps', σ, e, .cons (Bs := Bs) j e1 e2 =>
+  have j' := j.closed (p := ps) σ (by simp at e; cases e; simp [*])
+  by {
+    simp at e; rcases e with ⟨e, e'⟩; subst e e'
+    cases e2; subst e1
+    apply Pattern.Match.cons j' rfl rfl
+  }
 
 @[grind →]
 theorem spctor_inversion :
@@ -66,8 +71,8 @@ theorem split_all_or_left : ∀ {n} {A B : Fin n -> Prop}, (∀ i, A i ∨ B i) 
   | Or.inr ⟨k, lem'⟩ => Or.inr ⟨k.succ, lem'⟩
 
 theorem PatternBinders.implies_pattern_typing :
-  PatternBinders G Δ m S p ζ ξ ->
-  PatternTyping G Δ p S
+  PatternBinders v G Δ m S p ζ ξ ->
+  PatternTyping v G Δ p S
 | .zero => by cases S; cases p; apply VecTyping.nil
 | .succ h1 h2 h3 h4 h5 tl =>
   let tl' := tl.implies_pattern_typing
@@ -100,13 +105,13 @@ theorem progress_match_ctors_head {ctors : Vec _ n} :
   ∃ ctors, VecConstructorTyping G Δ Γ cv ctors (S::SS)
     ∧ Term.IsData cv (s::ss) ctors
     ∧ Query G cv (Constructor.query ctors) (S::SS)
-| .spctor (v := .data cv') (x := x) (m1 := na) (As := As) (m2 := nb) (Bs := Bs) (n := nt) (ts := ts) j1 j2 j3 j4 j5 j6 j7 j8 j9
+| .spctor (v := .data cv') (x := x) (m1 := na) (Ks1 := Ks1) (As := As) (m2 := nb) (Bs := Bs) (n := nt) (ts := ts) j1 j2 j3 j4 j5 j6 j7 j8 j9
 , h2, .spctor h, h4, h5, h6 =>
   have lem1 : cv = cv' := lookup_ctor?_data?_force_dataconst
     (List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty) (j7 _ rfl) (by subst j3; apply h2)
   let ctors' := ⟨x, na, As, nb, Bs, nt, ts.to⟩::ctors
   have lem2hd : ConstructorTyping G Δ Γ cv ⟨x, na, As, nb, Bs, nt, ts.to⟩ S :=
-    .valid (x := x) j1 (j7 cv' rfl |> cast (by simp [lem1])) j2 j3 (j4 |> cast (by simp)) j5 (j6 |> cast (by simp [Vec.get_to]))
+    .valid (Ks1 := Ks1) (x := x) (j1 |> cast (by simp [lem1])) (j7 cv' rfl |> cast (by simp [lem1])) j2 j3 (j4 |> cast (by simp)) j5 (j6 |> cast (by simp [Vec.get_to]))
   have lem2 : VecConstructorTyping G Δ Γ cv ctors' (S :: SS) := VecTyping.cons lem2hd h4
   have lem3 : Term.IsData cv (.spctor (.data cv') x As Bs ts::ss) ctors' :=
     Term.IsData.cons h5 (by simp [lem1]) rfl
@@ -136,7 +141,7 @@ theorem progress_match_ctors :
 
 theorem query_match_implies_pattern_match (G : List Global) {n : Nat} {c q p Ts : Vec _ n} :
   VecConstructorTyping G Δ Γ v c Ts ->
-  PatternTyping G Δ p Ts ->
+  PatternTyping v G Δ p Ts ->
   Constructor.query c = q ->
   Query.Match q p ->
   Pattern.Match c p
@@ -162,13 +167,52 @@ theorem PatternBinders.subst_type_openm_lemma
   (∀ (i : Fin m2), G&Δ ⊢ Bs[i] : Ks2[i]) ->
   ∀ (i : Nat) (K : Kind), ((Ks1.list ++ Ks2.list).reverse ++ Δ)[i]? = some K ->
     G&Δ ⊢ ↑((List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty).act i) : K
-:= sorry
+:= by
+  intro h1 h2 i K h3
+  cases Nat.decLt i (m1 + m2)
+  case _ h4 =>
+    replace h4 : i ≥ m1 + m2 := by omega
+    rw [List.getElem?_append_right (by simp; omega)] at h3; simp at h3
+    rw [Subst.append_action_ge (by simp; omega)]; simp
+    apply Kinding.var h3
+  case _ h4 =>
+    rw [List.getElem?_append_left (by simp; omega)] at h3; simp at h3
+    rw [Subst.append_action_lt (by simp; omega)]; simp
+    cases Nat.decLt i m2
+    case _ h5 =>
+      replace h5 : i ≥ m2 := by omega
+      rw [List.getElem?_append_right (by simp; omega)] at h3; simp at h3
+      rw [List.getElem?_reverse (by simp; omega)] at h3; simp at h3
+      rw [List.getElem_append_right (by simp; omega)]; simp
+      rw [List.getElem?_eq_getElem (by simp; omega)] at h3; cases h3
+      cases m1; grind; case _ m1 =>
+      simp; rw [Vec.get_list_to_get (by omega), Vec.get_list_to_get (by omega)]
+      apply h1
+    case _ h5 =>
+      rw [List.getElem?_append_left (by simp; omega)] at h3
+      rw [List.getElem?_reverse (by simp; omega)] at h3; simp at h3
+      rw [List.getElem_append_left (by simp; omega)]; simp
+      rw [List.getElem?_eq_getElem (by simp; omega)] at h3; cases h3
+      cases m2; grind; case _ m2 =>
+      simp; rw [Vec.get_list_to_get (by omega), Vec.get_list_to_get (by omega)]
+      apply h2
 
-theorem lookup_spine_type_and_open_data_implies_lookup_openm :
-  lookup_spine_type G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
+theorem lookup_spine_type_and_open_data_implies_lookup_openm (wf : ⊢ G) :
+  lookup_spine_type .openm G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
   (∀ (i : Fin n), Ty.data? .opn G Ts[i]) ->
   lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩)
-:= sorry
+:= by
+  intro h1 h2
+  unfold lookup_spine_type at h1
+  generalize zdef : lookup x G = z at *
+  cases z <;> simp at h1; case _ e =>
+  have lem := EntryWf.from_lookup wf zdef
+  cases e <;> simp [Entry.spine_type] at h1
+  case openm =>
+    cases lem; case _ j1 j2 =>
+    subst h1; simp
+    have lem := lookup_name_agrees zdef
+    simp [Entry.name] at lem; rw [lem]
 
 set_option maxHeartbeats 800000 in
 theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
@@ -189,7 +233,7 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
     have vs' : ∀ (i : Fin n), Value G ts.to[i] := vs |> cast (by simp [Vec.get_to])
     have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors j1' j2' vs'
     have h3' : Query G DataConst.opn (Constructor.query ctors) Ts := Query.closed wf j2 h3
-    have lem1 := lookup_spine_type_and_open_data_implies_lookup_openm j1 (j9 rfl)
+    have lem1 := lookup_spine_type_and_open_data_implies_lookup_openm wf j1 (j9 rfl)
     have ⟨i, b, p, lem2, lem3⟩ := oe (q := Constructor.query ctors) lem1 h3'
     have lem4 := GlobalWf.index_instance wf lem2
     match lem4 with

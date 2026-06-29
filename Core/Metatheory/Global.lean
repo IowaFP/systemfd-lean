@@ -277,7 +277,7 @@ theorem lookup_defn_weaken (wf : ⊢ (g::G))
   cases e <;> simp at *; exact h
 
 theorem lookup_spine_type_weaken (wf : ⊢ (g::G))
-  : lookup_spine_type G x = some e -> lookup_spine_type (g::G) x = some e
+  : lookup_spine_type v G x = some e -> lookup_spine_type v (g::G) x = some e
 := by
   intro h; simp_all [lookup_spine_type, Option.map]
   generalize zdef : lookup x G = z at *
@@ -359,7 +359,7 @@ theorem SpineKinding.weaken_global_ctors (wf : ⊢ (Global.data n y K ctors :: G
   valid e j1' j2' j3 j4'
 
 theorem PatternBinders.weaken_global (wf : ⊢ (g::G))
-  : PatternBinders G Δ m S p ζ ξ -> PatternBinders (g::G) Δ m S p ζ ξ
+  : PatternBinders v G Δ m S p ζ ξ -> PatternBinders v (g::G) Δ m S p ζ ξ
 | zero => zero
 | succ j1 j2 e1 e2 e3 j3 =>
   let j1' := lookup_spine_type_weaken wf j1
