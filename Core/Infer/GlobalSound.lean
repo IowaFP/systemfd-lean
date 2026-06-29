@@ -145,14 +145,14 @@ cases g <;> simp at *
 rcases h with ⟨⟨e1, e2⟩, p⟩
 subst e1; subst e2; simp at *; assumption
 
-theorem mk_open_patterns_inversion2 {G : GlobalEnv} {ps : List _} :
+theorem mk_open_patterns_inversion {G : GlobalEnv} {ps : List _} :
   mk_open_patterns G x nc = ps ->
   ∀ (i : Nat), (h : i < ps.length) ->
   ∃ (j : Nat) (t : Term), G[j]? = some (.inst x (ps[i]'(by apply h)) t)
 := by
- intro h1 i h3
+ intro h1 i h2
  induction G generalizing x nc ps <;> simp [mk_open_patterns] at *
- case nil => subst h1; simp at h3
+ case nil => subst h1; simp at h2
  case cons hd tl ih =>
  cases hd <;> simp [mk_open_pattern] at h1
  case inst =>
@@ -162,15 +162,18 @@ theorem mk_open_patterns_inversion2 {G : GlobalEnv} {ps : List _} :
      rcases h3 with ⟨⟨e1, e2⟩, h4⟩
      subst h1
      subst e1; subst e2;
-     simp at h3; simp at h4; subst h4; exists 0;
-
+     simp at h2; simp at h4; subst h4; exists 0;
      sorry
-   case _ => sorry
+   case _ h3 =>
+     simp at h3; subst h1;
+     replace ih := ih h2
+     rcases ih with ⟨n, t, ih⟩
+     exists n + 1; exists t
 
  all_goals try (
  case _ =>
     subst h1
-    replace ih := ih h3;
+    replace ih := ih h2;
     rcases ih with ⟨n, t, ih⟩
     exists n + 1; exists t)
 
@@ -203,7 +206,7 @@ simp at e; subst e;
 simp at lem; simp at h'; simp at idxs
 have lem1 : z2[i] = z[i] := Vec.from_list_indexing2 z2def i
 rw[lem1] at lem; clear lem1
-have lem3 := mk_open_patterns_inversion2 zdef i (by grind)
+have lem3 := mk_open_patterns_inversion zdef i (by grind)
 rcases lem3 with ⟨j, t, lem3⟩
 exists j; exists t; exists z[i];
 

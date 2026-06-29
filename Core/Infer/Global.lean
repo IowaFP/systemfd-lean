@@ -64,15 +64,21 @@ def GlobalEnv.wf_globals : GlobalEnv -> Option Unit
 --   Query G .opn q Ts' ->
 --   ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Query.Match q p
 
-def GlobalEnv.get_openm : GlobalEnv -> GlobalEnv :=
-  List.filter (λ x =>
-    match x with
-    | .openm _ _ => true
-    | _ => false)
-
 def List.enumerate (l : List α) : List (Nat × α) :=
   let t := List.foldl (λ (i, acc) x => (i + 1, acc ++ [(i, x)])) (0, .nil) l
   t.snd
+
+theorem List.enumerate_length {ls : List α} {ls' : List (Nat × α)}:
+  List.enumerate ls = ls' ->
+  ls'.length = ls.length := by sorry
+
+theorem List.enumerate_indexing {ls : List α} {ls' : List (Nat × α)}:
+  ∀ (h : i < ls.length),
+  (h2 : List.enumerate ls = ls') ->
+  ls'[i]'(by rw[List.enumerate_length (ls := ls) (ls' := ls')]; apply h; apply h2) = (i, ls[i]) := by
+
+  sorry
+
 
 
 def mk_open_pattern (x : String) (nc : Nat) :
@@ -91,6 +97,7 @@ def mk_open_patterns_enum (x : String) (nc : Nat) : (G : List (Nat × Global)) -
     match mk_open_pattern x nc g with
     | some p => (i, p) :: ps
     | none => ps
+
 
 
 def mk_open_patterns (G : GlobalEnv) (x : String) (nc : Nat) :
