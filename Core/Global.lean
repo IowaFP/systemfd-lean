@@ -87,26 +87,6 @@ def Entry.is_data : DataConst -> Entry -> Bool
 | .opn, odata _ _ => true
 | _, _ => false
 
--- def Entry.is_ctor : Entry -> Bool
--- | ctor _ _ _ => true
--- | _ => false
-
--- def Entry.is_opent : Entry -> Bool
--- | odata _ _ => true
--- | _ => false
-
--- def Entry.is_openm : Entry -> Bool
--- | openm _ _ _ => true
--- | _ => false
-
--- def Entry.is_defn : Entry -> Bool
--- | defn _ _ _ => true
--- | _ => false
-
--- def Entry.is_instty : Entry -> Bool
--- | octor _ _ => true
--- | _ => false
-
 def Entry.kind : Entry -> Option Kind
 | data _ K _ => K
 | odata _ K => K
@@ -124,17 +104,6 @@ def Entry.ctor? (data : String) : DataConst -> Entry -> Bool
   | some ⟨d, _⟩ => d == data
   | none => false
 | _, _ => false
-
--- def Entry.spctor_type : Entry -> Option Ty
--- | ctor _ _ T => T
--- | octor _ T => T
--- | openm _ _ T => T
--- | _ => none
-
--- def Entry.datatype : Entry -> Option Ty
--- | ctor _ _ T => T
--- | octor _ T => T
--- | _ => none
 
 def lookup (x : String) : List Global -> Option Entry
 | [] => none
@@ -213,7 +182,5 @@ def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
 
 def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.join
 def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
-
-
 
 end Core
