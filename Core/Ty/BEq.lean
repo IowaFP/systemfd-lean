@@ -46,7 +46,7 @@ instance instReflBEq_Ty : ReflBEq Ty where
     all_goals (try case _ ih1 ih2 => constructor; assumption; assumption)
     case _ => assumption
 
-instance instLawfulBeq_Ty : LawfulBEq Ty where
+instance instLawfulBEq_Ty : LawfulBEq Ty where
   eq_of_beq := by
     intro a b h
     induction a, b using Ty.beq.induct <;> simp +instances [instBEq_Ty, Ty.beq] at *

@@ -116,23 +116,33 @@ def Pattern.beq : Pattern m1 -> Pattern m2 -> Bool
 instance instBEq_Pattern : BEq (Pattern n) where
   beq := Pattern.beq
 
-
-private def Pattern.rfl : {p : Pattern n} -> (p == p) = true := by sorry
+private def Pattern.rfl : {n : Nat} -> {p : Pattern n} -> (p == p) = true
+| 0, .nil => by rfl
+| n + 1, .cons p ps => by
+  simp +instances [instBEq_Pattern, Pattern.beq]
+  apply And.intro
+  apply Pattern.rfl
+  apply Vec.beq_refl (a := p.2.2.1)
 
 instance instReflBEq_Pattern : ReflBEq (Pattern n) where
   rfl := Pattern.rfl
 
-private def Pattern.eq_of_beq : ∀ {a b : Pattern n}, (a == b) = true → a = b := by sorry
+private def Pattern.eq_of_beq : {n : Nat} -> {a b : Pattern n} -> (a == b) = true → a = b
+| 0, .nil, .nil => by simp
+| n + 1, .cons a as, .cons b bs => by
+  intro h
+  simp +instances [instBEq_Pattern, Pattern.beq] at *
+  rcases h with ⟨⟨⟨e1, e2⟩, e3⟩, e4, e5⟩;
+  rcases a with ⟨a1, a2, a3, a4⟩
+  rcases b with ⟨b1, b2, b3, b4⟩
+  simp at *; subst e1; subst e2; subst e3; simp;
+
+  apply And.intro
+  · apply Vec.beq_lawful e5
+  · apply eq_of_beq e4
 
 instance instLawfulBEq_Pattern : LawfulBEq (Pattern n) where
   eq_of_beq := Pattern.eq_of_beq
-
-
-instance instReflBEq_Vec [BEq α][ReflBEq α] : ReflBEq (Vec α n) where
-  rfl
-  := by
-     intro a
-     induction a <;> simp at *
 
 def Term.beq : Term -> Term -> Bool
 | var x, var y => x == y
@@ -206,8 +216,8 @@ theorem Term.rfl : {a : Term} -> (a == a) = true
      apply And.intro;
      · apply And.intro
        · simp +instances [instBEq_Ty]
-         apply @Vec.beq_refl Ty (a := Ks1) _ _ instReflBEq_Ty
-       · apply @Vec.beq_refl Ty (a := Ks2) _ _ instReflBEq_Ty
+         apply Vec.beq_refl (a := Ks1)
+       · apply Vec.beq_refl (a := Ks2)
      · case _ i =>
        generalize zdef : Fun.Vec.to (λ i => (Ts i).beq  (Ts i)) = z at *;
        replace zdef := refl_indexing zdef;
@@ -223,20 +233,46 @@ instance instReflBEq_Term : ReflBEq Term where
   rfl := Term.rfl
 
 
+private def Term.eq_of_beq : ∀ {a b : Term}, (a == b) = true → a = b
+:= by
+  intro a b h
+  cases a <;> cases b
+  all_goals (simp +instances [Term.beq, instBEq_Term] at *; repeat assumption)
+  all_goals try (case _ =>
+    rcases h with ⟨h1, h2⟩
+    apply And.intro
+    · apply h1
+    · apply Term.eq_of_beq h2)
+
+  all_goals try (case _ =>
+    rcases h with ⟨⟨h1, h2⟩, h3⟩
+    apply And.intro
+    · apply h1
+    · apply And.intro
+      · apply Term.eq_of_beq h2
+      · apply Term.eq_of_beq h3)
+
+  case tbind.tbind =>
+    rcases h with ⟨⟨h1, h2⟩, h3⟩
+    apply And.intro
+    · apply h1
+    · apply And.intro
+      · apply h2
+      · apply Term.eq_of_beq h3
+
+  case mtch.mtch m1 n1 ss1 ps1 b1 m2 n2 ss2 ps2 b2 =>
+    rcases h with ⟨⟨h1, h2⟩, ⟨h3, h4⟩, h5⟩
+    subst h1; subst h2; simp at *;
+    generalize z1def : Fun.Vec.to (λ i => (ss1 i).beq (ss2 i)) = z1 at *
+    generalize z2def : Fun.Vec.to (λ i => (ps1 i).beq (ps2 i)) = z2 at *
+    generalize z3def : Fun.Vec.to (λ i => (b1 i).beq (b2 i)) = z3 at *
+    rw[Vec.foldl_and_true] at h3
+    sorry
+
+  case spctor.spctor => sorry
+
+
 instance instLawfulBEq_Term : LawfulBEq Term where
-  eq_of_beq := by sorry
-    -- intro a b; cases a <;> simp [instBEq_Term] at *
-    -- all_goals (induction b <;>
-    --   simp [instBEq_Ctor0Variant, instBEq_Ctor1Variant, instBEq_Ctor2Variant, Term.beq] at *)
-    -- case _ => intro e; apply eq_of_beq e
-    -- case _ =>
-    --   intro e1 e2;
-    --   constructor
-    --   apply eq_of_beq e1
-    --   sorry
-    -- sorry
-    -- sorry
-    -- sorry
-    -- sorry
-    -- sorry
+  eq_of_beq := Term.eq_of_beq
+
 end Core
