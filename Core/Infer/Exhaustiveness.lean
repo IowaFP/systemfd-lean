@@ -66,11 +66,6 @@ induction G generalizing ctors
 simp at h4; subst h4; simp [lookup] at h6
 case _ hd tl ih =>
 cases hd <;> simp at h4
-sorry
-sorry
-sorry
-sorry
-sorry
 case octor =>
   rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨ctors', h4, h5⟩
   rw[Option.bind_eq_some_iff] at h5; rcases h5 with ⟨⟨R', _⟩, h5, h6⟩
@@ -88,7 +83,7 @@ case octor =>
     unfold lookup_octors at h4; simp at h4
     replace ih := ih wftl h6 lem h4
     rcases ih with ⟨i, ih⟩; exists i + 1
-  case _ =>
+  case _ e' =>
     simp at h6; subst ctors';
     unfold lookup at h6; simp at h6;
     split at h6;
@@ -99,14 +94,72 @@ case octor =>
       split at lem
       case _ e => subst e; simp at  lem
       cases wf; case _ wftl wfhd =>
-
-      sorry
+      rw[h3] at h5; simp at h5; rcases h5 with ⟨h5, _⟩; symm at h5; contradiction
     cases wf; case _ wftl wfhd =>
     simp [lookup] at lem
     split at lem
     case _ e => subst e; simp at lem
     unfold lookup_octors at h4; simp at h4
     have ih := ih wftl h6 lem h4; apply ih
+
+case data =>
+  cases wf; case _ wftl wfhd =>
+  simp [lookup] at h6;
+  split at h6;
+  case _ e => subst e; simp at h6
+  replace h6 := Vec.fold_or h6
+  cases h6;
+  case _ h6 =>
+    simp [lookup] at lem
+    split at lem
+    · case _ e =>
+      subst e; simp at lem
+    · replace lem := Vec.fold_or lem;
+      cases lem
+      case _ lem =>
+        unfold lookup_octors at h4; simp at h4
+        apply ih wftl h6 lem h4
+      case _ e => simp at e
+  case _ h6 => simp at h6
+case odata =>
+  cases wf; case _ wftl wfhd =>
+  simp [lookup] at h6;
+  split at h6;
+  case _ e =>
+    subst e; simp at h6
+  case _ =>
+    simp [lookup] at lem;
+    split at lem;
+    case _ e =>
+       simp at lem; subst e; simp at lem; subst lem
+       cases wfhd; case _ e =>
+       rw[e] at ih; simp at ih; exfalso
+       have lem := EntryWf.from_lookup wftl h6
+       cases lem; case _ lem _ =>
+       cases lem; case _ h =>
+       unfold Ty.data? at h; simp [h3] at h
+       unfold is_data at h; simp [e] at h;
+    case _ =>
+      unfold lookup_octors at h4; simp at h4
+      apply ih wftl h6 lem h4
+all_goals try (
+case _ =>
+  cases wf; case _ wftl wfhd =>
+  simp [lookup] at h6;
+  split at h6;
+  case _ e =>  simp at h6
+  simp [lookup] at lem;
+  split at lem;
+  case _ e =>
+    subst e; simp at lem
+  unfold lookup_octors at h4; simp at h4
+  apply ih wftl h6 lem h4)
+
+case inst =>
+  cases wf; case _ wftl wfhd =>
+  simp [lookup] at h6;   simp [lookup] at lem;
+  unfold lookup_octors at h4; simp at h4
+  apply ih wftl h6 lem h4
 
 
 theorem lookup_data_entry_exists {G : GlobalEnv}:
