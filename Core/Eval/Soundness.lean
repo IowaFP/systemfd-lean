@@ -40,20 +40,31 @@ theorem Term.is_data_sound :
 
 
 theorem get_instance_sound {G : List Global} :
-   get_instance x cs G = some ⟨i, _, p, t⟩ ->
+   get_instance' x cs G = some ⟨i, _, p, t⟩ ->
    G[i]? = some (Global.inst x p t)
 := by
 intro h
-induction G <;> (unfold get_instance at h; unfold get_instance_aux at h; simp at *)
-case _ hd tl ih =>
-cases hd <;> simp at *
-· sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-
+unfold get_instance' at h; simp at h
+generalize fdef : get_instance_from_idx x cs G = f at *
+generalize odef : instance_idx? x cs G = o at *
+cases o <;> simp at *
+case _ i =>
+unfold instance_idx? at odef; simp at odef;
+rw[List.findIdx?_eq_some_iff_getElem] at odef;
+rcases odef with ⟨i_le, odef1, odef2⟩
+split at odef1
+case _ e =>
+  simp at odef1;
+  rcases odef1 with ⟨⟨e1, e2⟩, odef1⟩
+  subst e1; subst e2; simp at odef1;
+  rw[<-fdef] at h;
+  unfold get_instance_from_idx at h;
+  rw[List.getElem_eq_iff] at e
+  simp [e] at h;
+  split at h;
+  case _ e => simp [e] at odef1; simp at *;  sorry
+  case _ e => simp at e; simp [e] at odef1;  sorry
+cases odef1
 
 theorem pattern_match_sound {m : Nat} {cs : Vec Constructor m} {ps : Pattern m} :
   pattern_match cs ps = true ->
@@ -114,11 +125,11 @@ case _ ss _ i j ih1 ih2 => -- openm
   subst N
   apply Red.openm_congr i
   · have e1 := Vec.to_get_elem (ss.to.set i t') i
-    have e2 := Vec.get_set_eq (x := t') (v := ss.to) (i := i)
+    have e2 := Vec.get_set_eq (a := t') (v := ss.to) (i := i)
     rw[e1, e2]; apply ih1
   · intro j h;
     replace h : i ≠ j := by grind
-    have lem := Vec.get_set_neq h (x := t') (v := ss.to)
+    have lem := Vec.get_set_neq h (a := t') (v := ss.to)
     symm at lem
     simp [<-Vec.to_get_elem] at lem; apply lem
 
@@ -140,11 +151,11 @@ case _ ss _ _ m_ss i j ih1 ih2 => -- mtch congr
   replace ih2 := ih2 h2
   apply Red.match_congr
   · have e1 := Vec.to_get_elem (ss.to.set i h1) i;
-    have e2 := Vec.get_set_eq (x := h1) (v := ss.to) (i := i)
+    have e2 := Vec.get_set_eq (a := h1) (v := ss.to) (i := i)
     rw[e1, e2]; apply ih2
   · intro j h;
     replace h : i ≠ j := by grind
-    have lem := Vec.get_set_neq h (x := h1) (v := ss.to)
+    have lem := Vec.get_set_neq h (a := h1) (v := ss.to)
     symm at lem; simp [<-Vec.to_get_elem] at lem; apply lem
 
 

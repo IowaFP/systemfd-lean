@@ -156,7 +156,7 @@ def lookup_ctor_names (G : GlobalEnv) (T : Ty) : Option ((n : Nat) × Vec String
 def pattern_match : Vec Constructor m -> Pattern m -> Bool
 | .nil, .nil => true
 | .cons ⟨q, m, _, n, _, k, _⟩ xs, .cons ⟨q', m', _, n', k'⟩ zs =>
-  pattern_match xs zs && q == q' && m == m' && n == n' && k == k' -- && As.beq As'
+  pattern_match xs zs && q == q' && m == m' && n == n' && k == k'
 | _, _ => false
 
 def get_instance_aux (x : String) (ctors : (Vec Constructor m)) (i : Nat) :
@@ -173,9 +173,40 @@ def get_instance_aux (x : String) (ctors : (Vec Constructor m)) (i : Nat) :
          else none
       | .cons _ G' => get_instance_aux x ctors (i + 1) G'
 
+def instance_idx? (x : String) (ctors : Vec Constructor m) (G : List Global) : Option Nat :=
+  G.findIdx? (λ g => match g with
+  | .inst (m := n) y p b =>
+    if h : x == y && m == n
+    then by simp at h; rcases h with ⟨h1, h2⟩
+            subst h2; apply pattern_match ctors p
+    else false
+  | _ => false )
+
+
 def get_instance (x : String) (ctors : (Vec Constructor m)) :
   (G : List Global) -> Option (Nat × (m : Nat) × Pattern m × Term) :=
   get_instance_aux x ctors 0
+
+def get_instance_from_idx (x : String) (ctors : Vec Constructor m) (G : GlobalEnv) (i : Nat)
+  : Option (Nat × (m : Nat) × Pattern m × Term) :=
+    match G[i]? with
+    | some (Global.inst (m := n) y p b) =>
+      if h : x == y && m == n
+      then by {
+        simp at h; rcases h with ⟨h1, h2⟩ -- TODO: abstract this as a predicate
+        subst h2; if pattern_match ctors p
+         then apply some ⟨i, ⟨m, p, b⟩⟩
+         else apply none }
+      else none
+    | _ => none
+
+
+def get_instance' (x : String) (ctors : (Vec Constructor m)) (G : GlobalEnv):
+  Option (Nat × (m : Nat) × Pattern m × Term) :=
+  let midx : Option Nat := instance_idx? x ctors G
+  (midx.map (get_instance_from_idx x ctors G)).join
+
+
 
 def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
   let t <- lookup x G
