@@ -33,8 +33,21 @@ theorem Ty.spine_all : (∀[K] A).spine = none := by simp [spine]
 @[simp, grind =]
 theorem Ty.spine_eq : (A ~[K]~ B).spine = none := by simp [spine]
 
-theorem Ty.spine_subst {R : Ty} (σ : Subst Ty) : R.spine = some (x, sp) -> R[σ].spine = some (x, sp[σ]) := sorry
+theorem Ty.spine_subst {R : Ty} (σ : Subst Ty)
+  : R.spine = some (x, sp) -> R[σ].spine = some (x, sp[σ])
+:= sorry
 
+theorem Ty.spine_subst_none {R : Ty} (σ : Subst Ty)
+  : R.spine = none -> R[σ].spine = none
+:= sorry
+
+theorem Ty.spine_ren {R : Ty} (r : Ren Ty)
+  : R.spine = some (x, sp) -> R⟨r⟩.spine = some (x, sp⟨r⟩)
+:= sorry
+
+theorem Ty.spine_ren_none {R : Ty} (r : Ren Ty)
+  : R.spine = none -> R⟨r⟩.spine = none
+:= sorry
 
 -- def Ty.apply (t : Ty) : List Ty -> Ty
 -- | [] => t
