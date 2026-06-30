@@ -224,30 +224,6 @@ intro h
 induction tl <;> simp at *
 case _ ih => rw[ih] at h; cases h
 
-theorem Vec.mem_iff_getElem {α : Type u_1} {l : Vec α n} {i : Fin n} {a : α} :
-  l[i] = a <-> a ∈ l := by sorry
-
-theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l) :
-  ∃ (i : Fin n), l[i] = a := by sorry
-
-def Vec.foldl_and_true {vs : Vec Bool n} :
-  vs.foldl (· && ·) true = true <-> ∀ v ∈ vs, v = true
-:= by
-apply Iff.intro
-· intro h v v_in_vs
-  induction vs
-  · cases v_in_vs
-  · case _ x vs ih =>
-    simp at h
-    cases v_in_vs;
-    sorry
-    sorry
-· intro h
-  induction vs <;> simp at *
-  case _ v vs ih =>
-
-    sorry
-
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
   vs.foldl (λ acc c => c == e && acc) true
 
@@ -658,5 +634,38 @@ theorem Vec.from_list_indexing2 {l : List α} {vs : Vec α n} :
 theorem refl_indexing {v1 v2 : Vec α n} : v1 = v2 -> ∀ (i: Fin n), v1[i] = v2[i]
 := by
 intro h i; cases h; simp;
+
+
+theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l) :  ∃ (i : Fin n), l[i] = a
+ := by
+induction h
+case head => exists 0
+case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
+
+theorem Vec.ne_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
+  ¬(a ∈ b :: vs) -> (a ≠ b) := mt (λ x => by rw [x]; apply Mem.head)
+
+theorem Vec.not_mem_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
+  ¬a ∈ b :: vs -> ¬a ∈ vs := mt (λ x => Mem.tail b x)
+
+def Vec.foldl_and_true {vs : Vec Bool n} :
+  vs.foldl (· && ·) true = true <-> ∀ v ∈ vs, v = true
+:= by
+apply Iff.intro
+· intro h v v_in_vs
+  induction vs
+  · cases v_in_vs
+  · case _ x vs ih =>
+    simp at h
+    cases v_in_vs;
+    sorry
+    sorry
+· intro h
+  induction vs <;> simp at *
+  case _ v vs ih =>
+    have h1 := Vec.not_mem_of_not_mem_cons h
+    have h2 := Vec.ne_of_not_mem_cons h
+    simp at h2; subst v
+    apply ih h1
 
 end Lilac

@@ -267,9 +267,14 @@ private def Term.eq_of_beq : ∀ {a b : Term}, (a == b) = true → a = b
     generalize z2def : Fun.Vec.to (λ i => (ps1 i).beq (ps2 i)) = z2 at *
     generalize z3def : Fun.Vec.to (λ i => (b1 i).beq (b2 i)) = z3 at *
     rw[Vec.foldl_and_true] at h3
+    replace z1def := refl_indexing z1def; simp at *
     sorry
 
-  case spctor.spctor => sorry
+  case spctor.spctor =>
+    rcases h with ⟨⟨⟨⟨h1, h2⟩, h3⟩, h4⟩, h5⟩
+    rcases h5 with ⟨h , h5⟩
+    subst h; simp at *
+    sorry
 
 
 instance instLawfulBEq_Term : LawfulBEq Term where
