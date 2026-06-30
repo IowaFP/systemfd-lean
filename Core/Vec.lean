@@ -139,6 +139,12 @@ private def apply_compose_aux [SubstMap S T] [SubstMap T T] [SubstMapCompose S T
 instance [SubstMap S T] [SubstMap T T] [SubstMapCompose S T] : SubstMapCompose (Vec S n) T where
   apply_compose := apply_compose_aux
 
+instance [RenMap S T] [SubstMap S T] [SubstMapStable S T] : SubstMapStable (Vec S n) T where
+  apply_stable := by
+    intro r σ h; funext; case _ v =>
+    induction v <;> simp [*]
+    case _ ih => rw [Subst.apply_stable h]
+
 @[grind =]
 theorem Vec.rmap_promote [RenMap S T] {v : Vec S n} {r : Ren T} : Vec.map (·⟨r⟩) v = v⟨r⟩ := by
   induction v <;> simp [*]
@@ -181,6 +187,7 @@ theorem Vec.rmap_index [RenMap S T] {i : Fin n} {v : Vec S n} {r : Ren T} : v[i]
     induction i using Fin.induction <;> simp at *
     case _ i ih => apply Vec.rmap_index
 
+@[simp, grind =]
 theorem Vec.get_subst [SubstMap S T] {i : Fin n} {v : Vec S n} {σ : Subst T} : v[i][σ] = v[σ][i]
   := by simp
 

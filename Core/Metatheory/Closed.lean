@@ -54,21 +54,16 @@ theorem GlobalWf.head {G : List Global} : ⊢ (g :: G) -> GlobalWf G g := by
 theorem GlobalWf.tail {G : List Global} : ⊢ (g :: G) -> ⊢ G := by
   intro j; cases j; case _ j _ => exact j
 
+theorem Vec.ext_get {α n} {v1 v2 : Vec α n} (h : ∀ (i : Fin n), v1[i] = v2[i]) : v1 = v2 := sorry
+
 theorem SpineKinding.closed : {T : SpineTy} -> SpineKinding v x G tst T -> ∀ (σ : Subst Ty), T[σ] = T
 | ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩, valid (Δ := Δ) e j1 j2 j3 j4, σ =>
   have e2 : Δ.length = m1 + m2 := by rw [<-e]; simp; omega
   have j1' := λ (i : Fin n) => (j1 i).closed_rep σ
   have j2' := j2.closed_rep σ |> cast (by rw [e2])
   have lem : Ts[σ.lift (m1 + m2)] = Ts := by
-    sorry
+    apply Vec.ext_get; intro i; rw [<-e2, <-j1' i]; grind
   by simp [-Subst.rewrite_lift_k, lem, j2']
-  -- have e2 : Δ.length = m := by rw [<-e]; simp
-  -- have lem1 := λ (i : Fin n) => (j1 i).closed_rep σ
-  -- have lem2 := j2.closed_rep σ |> cast (by rw [e2])
-  -- have lem3 : Ts[σ.lift m:_] = Ts := by sorry
-  --   -- apply Vec.eq_index_ext; rw [e2] at lem1
-  --   -- simp [-rewrite_lift_n] at lem1; exact lem1
-  -- by sorry --simp [-rewrite_lift_n] ; exact ⟨lem3, lem2⟩
 
 theorem GlobalWf.closed_lookup_spine_type {G : List Global} :
   ⊢ G ->
@@ -116,47 +111,51 @@ theorem GlobalWf.closed_lookup_spine_type_ren {G : List Global} :
   ⊢ G ->
   lookup_spine_type v G x = some T ->
   ∀ (r : Ren Ty), T⟨r⟩ = T
-:= sorry
+:= by
+  intro wf h r
+  have lem := closed_lookup_spine_type wf h r.to
+  rcases T with ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩; simp at *
+  rcases lem with ⟨h1, h2⟩
+  apply And.intro
+  rw [Subst.apply_stable rfl]; simp; apply h1
+  rw [Subst.apply_stable rfl]; simp; apply h2
+
+-- theorem Ty.spine_subst_flip {σ : Subst Ty} {T : Ty} :
+--   T[σ].spine = some (x, sp) ->
+--   ∃ sp', T.spine = some (x, sp')
+-- := sorry
 
 theorem GlobalWf.subst_cancel_lookup_ctor? {T T' : Ty} {G : List Global} {σ : Subst Ty} :
+  Ty.data? v G T = true ->
   ⊢ G ->
   (e : T' = T[σ]) ->
   lookup_ctor? G v x T' ->
   lookup_ctor? G v x T
 := by
-  intro wf e j
-  simp [lookup_ctor?] at *
-  generalize zdef : T.spine = z
-  cases z <;> simp
-  case none =>
-    have lem : T'.spine = none := by
-      subst e; apply Ty.spine_subst_none _ zdef
-    rw [lem] at j; simp at j
-  case some z =>
-    rcases z with ⟨z, sp⟩
-    have lem : T'.spine = some (z, sp[σ]) := by
-      subst e; apply Ty.spine_subst _ zdef
-    rw [lem] at j; simp at j; simp; exact j
+  intro h wf e j
+  simp [lookup_ctor?, Ty.data?] at *
+  generalize zdef : T.spine = z at *
+  cases z <;> simp at *; case _ z =>
+  rcases z with ⟨z, sp⟩
+  have lem := Ty.spine_subst σ zdef
+  subst e; rw [lem] at j; simp at j
+  simp; apply j
 
 theorem GlobalWf.subst_cancel_lookup_ctor?_ren {T T' : Ty} {G : List Global} {r : Ren Ty} :
+  Ty.data? v G T = true ->
   ⊢ G ->
   (e : T' = T⟨r⟩) ->
   lookup_ctor? G v x T' ->
   lookup_ctor? G v x T
 := by
-  intro wf e j
-  simp [lookup_ctor?] at *
-  generalize zdef : T.spine = z
-  cases z <;> simp
-  case none =>
-    have lem : T'.spine = none := by
-      subst e; apply Ty.spine_ren_none _ zdef
-    rw [lem] at j; simp at j
-  case some z =>
-    rcases z with ⟨z, sp⟩
-    have lem : T'.spine = some (z, sp⟨r⟩) := by
-      subst e; apply Ty.spine_ren _ zdef
-    rw [lem] at j; simp at j; simp; exact j
+  intro h wf e j
+  simp [lookup_ctor?, Ty.data?] at *
+  generalize zdef : T.spine = z at *
+  cases z <;> simp at *; case _ z =>
+  rcases z with ⟨z, sp⟩
+  have lem := Ty.spine_ren r zdef
+  subst e; rw [lem] at j; simp at j
+  simp; apply j
 
 theorem extend_lemma {ℓ₁ ℓ₂ : List A} : {x : Nat} -> ℓ₁[x]? = some t -> (ℓ₁ ++ ℓ₂)[x]? = some t
 | 0, h =>
@@ -192,115 +191,92 @@ theorem Ty.data?_closed_ren (r : Ren Ty) : Ty.data? v G T -> Ty.data? v G T⟨r�
   have lem := Ty.spine_ren r zdef
   rw [lem]; simp; simp at h; apply h
 
-theorem Query.closed {σ : Subst Ty} (wf : ⊢ G) : {S : Vec Ty n} -> (e : S' = S[σ]) -> Query G v q S' -> Query G v q S
-| .nil, e, .nil => .nil
-| .cons hd tl, e, .cons j1 j2 => by
+theorem Query.closed {σ : Subst Ty} (wf : ⊢ G)
+  : {S : Vec Ty n} ->
+    (∀ (i : Fin n), Ty.data? v G S[i]) ->
+    (e : S' = S[σ]) ->
+    Query G v q S' ->
+    Query G v q S
+| .nil, h, e, .nil => .nil
+| .cons hd tl, h, e, .cons j1 j2 => by
   simp at e; rw [e.1] at j1
-  have lem := Query.closed wf e.2 j2
+  have lem1 := h 0; simp at lem1
+  replace h := λ (i : Fin _) => h i.succ
+  have lem := Query.closed wf h e.2 j2
   apply VecTyping.cons _ lem
-  apply GlobalWf.subst_cancel_lookup_ctor? wf rfl j1
+  apply GlobalWf.subst_cancel_lookup_ctor? lem1 wf rfl j1
 
-theorem Query.closed_ren {r : Ren Ty} (wf : ⊢ G) : {S : Vec Ty n} -> (e : S' = S⟨r⟩) -> Query G v q S' -> Query G v q S
-| .nil, e, .nil => .nil
-| .cons hd tl, e, .cons j1 j2 => by
+theorem Query.closed_ren {r : Ren Ty} (wf : ⊢ G)
+  : {S : Vec Ty n} ->
+    (∀ (i : Fin n), Ty.data? v G S[i]) ->
+    (e : S' = S⟨r⟩) ->
+    Query G v q S' ->
+    Query G v q S
+| .nil, h, e, .nil => .nil
+| .cons hd tl, h, e, .cons j1 j2 => by
   simp at e; rw [e.1] at j1
-  have lem := Query.closed_ren wf e.2 j2
+  have lem1 := h 0; simp at lem1
+  replace h := λ (i : Fin _) => h i.succ
+  have lem := Query.closed_ren wf h e.2 j2
   apply VecTyping.cons _ lem
-  apply GlobalWf.subst_cancel_lookup_ctor?_ren wf rfl j1
+  apply GlobalWf.subst_cancel_lookup_ctor?_ren lem1 wf rfl j1
 
 theorem Typing.closed_type_rep :
   G&Δ,Γ ⊢ t : A ->
-  ∀ (σ : Subst Ty), t[rep Subst.lift σ Δ.length] = t ∧ A[rep Subst.lift σ Δ.length] = A
-:= by
+  ∀ (σ : Subst Ty), t[σ.lift Δ.length] = t ∧ A[σ.lift Δ.length] = A
+| var j1 j2 =>
+  have j2' := j2.closed_rep
+  by simp; intro σ; simp at j2'; apply j2'
+| defn j1 j2 =>
+  have j2' := j2.closed_rep
+  by simp; simp at j2'; intro σ; apply j2'
+| spctor j1 e1 e2 j2 j3 j4 h1 h2 h3 =>
+  by simp; sorry
+| mtch j1 j2 j3 j4 j5 =>
+  by simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift]; sorry
+| lam j1 j2 =>
+  have j1' := j1.closed_rep
+  have j2' := j2.closed_type_rep
+  by {
+    simp; simp at j1' j2'; intro σ
+    exact ⟨⟨j1' σ, (j2' σ).1⟩, j1' σ, (j2' σ).2⟩
+  }
+| app j1 j2 =>
+  have j1' := j1.closed_type_rep
+  have j2' := j2.closed_type_rep
+  by {
+    simp; simp at j1' j2'; intro σ
+    exact ⟨⟨(j1' σ).1, (j2' σ).1⟩, (j1' σ).2.2⟩
+  }
+| lamt j1 j2 =>
+  have j2' := j2.closed_type_rep
+  by simp; simp at j2'; apply j2'
+| appt (P := P) (a := a) j1 j2 e =>
+  have j1' := j1.closed_type_rep
+  have j2' := j2.closed_rep
+  by {
+    simp [e, -Subst.rewrite_lift_k, -Subst.rewrite_lift]
+    simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift] at j1' j2'
+    intro σ; apply And.intro; exact ⟨j2' σ, (j1' σ).1⟩
+    conv =>
+      rhs
+      rw [<-(j1' σ).2]
+    simp [-Subst.rewrite_lift_k]; rw [j2' σ]
+    rw [Subst.compose_ren_right_assoc]; simp
+  }
+| refl j =>
+  have j' := j.closed_rep
+  by simp; simp at j'; apply j'
+| cast j1 j2 j3 e =>
+  have j1' := j1.closed_rep
+  have j2' := j2.closed_type_rep
+  have j3' := j3.closed_type_rep
   sorry
-  -- intro j; induction j <;> intro σ
-  -- case var j1 j2 => simp; apply Kinding.closed_rep j2
-  -- case global j1 j2 => simp; apply Kinding.closed_rep j2
-  -- case mtch j1 j2 j3 j4 j5 j6 j7 j8 ih1 ih2 ih3 ih4 =>
-  --   have lem1 := λ i => (ih3 i σ).1
-  --   have lem4 := λ i => (ih4 i σ).1
-  --   simp; simp at lem1
-  --   exact ⟨⟨(ih1 σ).1, (by funext; apply lem1), (by funext; apply lem4), (ih2 σ).1⟩, (ih2 σ).2⟩
-  -- case guard j1 j2 j3 j4 j5 j6 j7 ih1 ih2 ih3 =>
-  --   simp
-  --   obtain ⟨q1, q2⟩ := ih1 σ
-  --   obtain ⟨q3, q4⟩ := ih2 σ
-  --   obtain ⟨q5, q6⟩ := ih3 σ
-  --   have lem := PrefixTypeMatch.closed_rep σ q2 q6 j7
-  --   exact ⟨⟨q1, q3, q5⟩, lem⟩
-  -- case lam j1 j2 ih =>
-  --   have lem := Kinding.closed_rep j1 σ
-  --   obtain ⟨ih1, ih2⟩ := ih σ
-  --   simp; exact ⟨⟨lem, ih1⟩, ⟨lem, ih2⟩⟩
-  -- case app ih1 ih2 =>
-  --   simp at ih1 ih2; simp
-  --   obtain ⟨q1, q2, q3⟩ := ih1 σ
-  --   exact ⟨⟨q1, (ih2 σ).1⟩, q3⟩
-  -- case lamt ih =>
-  --   simp at ih; simp
-  --   apply ih σ
-  -- case appt j1 j2 j3 ih =>
-  --   have lem := Kinding.closed_rep j2 σ
-  --   obtain ⟨ih1, ih2⟩ := ih σ
-  --   simp at ih1 ih2; simp
-  --   apply And.intro ⟨lem, ih1⟩
-  --   subst j3
-  --   conv => rhs; rw [<-ih2]; simp
-  --   simp; rw [lem]
-  -- case cast ih1 ih2 =>
-  --   simp at ih2; simp
-  --   obtain ⟨q1, q2⟩ := ih1 σ
-  --   obtain ⟨q3, q4, q5⟩ := ih2 σ
-  --   exact ⟨⟨q1, q3⟩, q5⟩
-  -- case refl j =>
-  --   simp; apply Kinding.closed_rep j
-  -- case sym j ih =>
-  --   simp at ih; simp
-  --   obtain ⟨q1, q2, q3⟩ := ih σ
-  --   exact ⟨q1, q3, q2⟩
-  -- case seq ih1 ih2 =>
-  --   simp at ih1 ih2; simp
-  --   obtain ⟨q1, q2, q3⟩ := ih1 σ
-  --   obtain ⟨q4, q5, q6⟩ := ih2 σ
-  --   exact ⟨⟨q1, q4⟩, q2, q6⟩
-  -- case appc ih1 ih2 =>
-  --   simp at ih1 ih2; simp
-  --   obtain ⟨q1, q2, q3⟩ := ih1 σ
-  --   obtain ⟨q4, q5, q6⟩ := ih2 σ
-  --   exact ⟨⟨q1, q4⟩, ⟨q2, q5⟩, q3, q6⟩
-  -- case arrowc ih1 ih2 =>
-  --   simp at ih1 ih2; simp
-  --   obtain ⟨q1, q2, q3⟩ := ih1 σ
-  --   obtain ⟨q4, q5, q6⟩ := ih2 σ
-  --   exact ⟨⟨q1, q4⟩, ⟨q2, q5⟩, q3, q6⟩
-  -- case fst ih =>
-  --   simp at ih; simp
-  --   obtain ⟨q1, ⟨q2, q3⟩, q4, q5⟩ := ih σ
-  --   exact ⟨q1, q2, q4⟩
-  -- case snd ih =>
-  --   simp at ih; simp
-  --   obtain ⟨q1, ⟨q2, q3⟩, q4, q5⟩ := ih σ
-  --   exact ⟨q1, q3, q5⟩
-  -- case allc ih =>
-  --   simp at ih; simp
-  --   apply ih σ
-  -- case apptc j1 j2 ih1 ih2 =>
-  --   simp at ih1 ih2; simp
-  --   obtain ⟨q1, q2, q3⟩ := ih1 σ
-  --   obtain ⟨q4, q5, q6⟩ := ih2 σ
-  --   apply And.intro ⟨q1, q4⟩
-  --   apply And.intro
-  --   subst j1; conv => rhs; rw [<-q2]; simp
-  --   simp; rw [q5]
-  --   subst j2; conv => rhs; rw [<-q3]; simp
-  --   simp; rw [q6]
-  -- case zero j =>
-  --   simp; apply Kinding.closed_rep j
-  -- case choice ih1 ih2 =>
-  --   simp
-  --   obtain ⟨q1, q2⟩ := ih1 σ
-  --   obtain ⟨q3, q4⟩ := ih2 σ
-  --   exact ⟨⟨q1, q3⟩, q4⟩
+| prj j1 j2 =>
+  have j1' := j1.closed_type_rep
+  sorry
+| allc j => sorry
+| apptc j1 j2 e1 e2 => sorry
 
 theorem Typing.closed_type :
   G&[],Γ ⊢ t : A ->
@@ -312,9 +288,38 @@ theorem Typing.closed_type :
 
 theorem Typing.closed_rep :
   G&Δ,Γ ⊢ t : A ->
-  ∀ (σ : Subst Term) (τ : Subst Ty), t[rep Subst.lift σ Γ.length ◾ τ] = t
-:= by
-  sorry
+  ∀ (σ : Subst Term) (τ : Subst Ty), t[σ.lift Γ.length ◾ τ] = t
+| var (x := x) j1 j2 => by
+  have lem : x < Γ.length := Γ.indexing_length_some j1
+  simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift]
+  intro σ τ; rw [subst_lift σ lem]; simp
+| defn j1 j2 => by simp
+| spctor j1 e1 e2 j2 j3 j4 h1 h2 h3 =>
+  have j4' := λ i => (j4 i).closed_rep
+  by simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift, *]
+| mtch j1 j2 j3 j4 j5 =>
+  have j1' := λ i => (j1 i).closed_rep
+  have j4' := λ i => (j4 i).closed_rep
+  by
+    simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift] at j4'
+    simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift, *]
+    sorry
+| lam j1 j2 => sorry
+| app j1 j2 =>
+  have j1' := j1.closed_rep
+  have j2' := j2.closed_rep
+  by simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift, *]
+| lamt j1 j2 => sorry
+| appt j1 j2 e =>
+  have j1' := j1.closed_rep
+  have j2' := j2.closed_rep
+  by simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift, *]
+| refl j => sorry
+| cast j1 j2 j3 e => sorry
+| prj j1 j2 => sorry
+| allc j => sorry
+| apptc j1 j2 e1 e2 => sorry
+
   -- intro j; induction j <;> intro σ τ
   -- all_goals try solve | simp; try grind
   -- case var Γ x A Δ b j1 j2 =>

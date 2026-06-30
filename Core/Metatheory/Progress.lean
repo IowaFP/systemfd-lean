@@ -320,7 +320,7 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
         |> cast (by simp [j2])
     have vs' : ∀ (i : Fin n), Value G ts.to[i] := vs |> cast (by simp [Vec.get_to])
     have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors wf j1' j2' vs'
-    have h3' : Query G DataConst.opn (Constructor.query ctors) Ts := Query.closed wf j2 h3
+    have h3' : Query G DataConst.opn (Constructor.query ctors) Ts := Query.closed wf (j9 rfl) j2 h3
     have lem1 := lookup_spine_type_and_open_data_implies_lookup_openm wf j1 (j9 rfl)
     have ⟨i, b, p, lem2, lem3⟩ := oe (q := Constructor.query ctors) lem1 h3'
     have lem4 := GlobalWf.index_instance wf lem2

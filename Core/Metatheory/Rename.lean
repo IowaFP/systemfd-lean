@@ -377,7 +377,7 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
     rw [<-Subst.compose_commute_add_ren_ren] at lem3
     simp [-Subst.rewrite_lift_k_ren, lem2, ξ']; exact lem3
   have j5' : ∀ {q}, (Query G .cls q S⟨r⟩) → ∃ i, Query.Match q (ps i)⟨r⟩ :=
-    λ q => match j5 (Query.closed_ren wf rfl q) with
+    λ q => match j5 (Query.closed_ren wf (j2 ▸ simp [Vec.get_to]) rfl q) with
           | ⟨i, m⟩ => ⟨i, Query.Match.rename_type r m⟩
   mtch (ζ := ζ) (ξ := ξ') j1' j2'
     (λ i => j3' i ▸ congr 1; grind)

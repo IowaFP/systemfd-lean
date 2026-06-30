@@ -240,7 +240,7 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
     rw [<-Subst.compose_commute_add_ren_subst] at lem3
     simp [-Subst.rewrite_lift_k, lem2, ξ']; exact lem3
   have j5' : ∀ {q}, (Query G .cls q S[σ]) → ∃ i, Query.Match q (ps i)[σ] :=
-    λ q => match j5 (Query.closed wf rfl q) with
+    λ q => match j5 (Query.closed wf (j2 ▸ simp [Vec.get_to]) rfl q) with
           | ⟨i, m⟩ => ⟨i, Query.Match.subst_type σ m⟩
   mtch (ζ := ζ) (ξ := ξ') j1' j2'
     (λ i => j3' i ▸ congr 1; grind)
