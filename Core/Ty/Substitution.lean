@@ -126,7 +126,7 @@ theorem Ty.from_action_compose_ren {x : Nat} {σ : Subst Ty} {r : Ren Ty}
 instance : SubstMapId Ty Ty where
   apply_id := by subst_solve_id
 
-instance : SubstMapStable Ty Ty where
+instance instSubstMapStableTyTy : SubstMapStable Ty Ty where
   apply_stable := by
     intro r σ h; funext; case _ t =>
     induction t generalizing r σ
@@ -195,56 +195,5 @@ instance : SubstMapCompose SpineTy Ty where
 theorem Ty.rmap_promote : Ty.rmap r A = A⟨r⟩ := by simp [RenMap.rmap]
 
 theorem Ty.smap_promote : Ty.smap σ A = A[σ] := by simp [SubstMap.smap]
-
--- theorem Ty.rename_preserves_var_shape {r : Ren Ty} : t#x = T⟨r⟩ -> ∃ y,  (T = t#y ∧ x = r.act y) := by
---   sorry
---   -- intro h
---   -- induction T <;> simp at *
---   -- case var => simp [Ren.to] at h; assumption
-
--- theorem Ty.rename_preserves_global_shape {r : Ren} : gt#x = T[r] -> T = gt#x := by
---   intro h
---   induction T <;> simp at *
---   case var => simp [Ren.to] at h
---   case global => symm at h; assumption
-
--- theorem Ty.rename_preserves_arrow_shape {A B : Ty}{r : Ren} : A -:> B = T[r] ->
---   (∃ A' B' : Ty, (T = A' -:> B') ∧  A = A'[r] ∧ B = B'[r])
--- := by
---   intro h
---   induction T <;> simp at *
---   case var => simp [Ren.to] at h
---   case arrow a1 a2 _ _ => exists a1; exists a2
-
--- theorem Ty.rename_preserves_eq_shape {A B : Ty}{r : Ren} : (A ~[K]~ B) = T[r] ->
---   (∃ A' B' : Ty, (T = A' ~[K]~ B') ∧  A = A'[r] ∧ B = B'[r])
--- := by
---   intro h
---   induction T generalizing K  <;> simp at *
---   case var => simp [Ren.to] at h
---   case eq a1 a2 _ _  =>
---     cases h.1; cases h.2.1; cases h.2.2; clear h
---     exists a1; exists a2
-
--- theorem Ty.rename_preserves_app_shape {A B : Ty}{r : Ren} : (A • B) = T[r] ->
---   (∃ A' B' : Ty, (T = A' • B') ∧  A = A'[r] ∧ B = B'[r])
--- := by
---   intro h
---   induction T <;> simp at *
---   case var => simp [Ren.to] at h
---   case app a1 a2 _ _  =>
---     cases h.1; cases h.2; clear h
---     exists a1; exists a2
-
-
--- theorem Ty.rename_preserves_all_shape {P : Ty}{r : Ren} : (∀[K] P) = T[r] ->
---   (∃ P' : Ty, (T = ∀[K]P') ∧  P = P'[re 0::↑r ∘ +1:Ty])
--- := by
---   intro h
---   induction T generalizing K P <;> simp at *
---   case var => simp [Ren.to] at h
---   case all a ih =>
---     cases h.1; cases h.2; clear h
---     exists a;
 
 end Core

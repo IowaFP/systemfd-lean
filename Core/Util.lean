@@ -42,12 +42,15 @@ instance : Monad List where
   bind l f := List.flatten (List.map f l)
 
 theorem option_lemma :
-  (∀ v, ¬ t = Option.some v) ->
+  (∀ v, ¬ t = Option.some v) <->
   t = .none
 := by
-intro h
-cases t; simp
-case _ v => exfalso; apply h v rfl
+apply Iff.intro
+· intro h
+  cases t; simp
+  case _ v => exfalso; apply h v rfl
+· intro h a h1; simp [h1] at h
+
 
 theorem not_eq_of_beq [BEq T] [LawfulBEq T] {x y : T} : ¬ ((x == y) = true) -> x ≠ y := by
 intro h1 h2; subst h2; apply h1; simp
