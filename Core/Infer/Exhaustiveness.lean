@@ -58,17 +58,56 @@ cases h2; simp at h3;
 case _ h7 _ =>
 have lem := lookup_odata_entry_exists h7 h3
 rcases lem with ⟨K, lem⟩
-
--- unfold lookup_octors at h4;
--- simp at h4;
-
+case _ m1 m2 n Δ R ks1 Ks2 Ts a1 a2 a3 a4 =>
+clear a4 h7 a3 a2 a1;
+unfold lookup_octors at h4;
+simp at h4;
+induction G generalizing ctors
+simp at h4; subst h4; simp [lookup] at h6
+case _ hd tl ih =>
+cases hd <;> simp at h4
 sorry
--- cases h2; case _ i h2 h3 h4 h5 =>
--- cases h4; case _ h4 _ h6 =>
--- simp at h6; simp [Ty.is_data] at h4; rw[h6] at h4; simp at h4; subst T
--- rw[h2] at h1; simp at h1; rcases h1 with ⟨e1, e2, e3⟩;
--- subst e1; subst e2; replace e3 := eq_of_heq e3; subst e3;
--- exists i; rw[h3]
+sorry
+sorry
+sorry
+sorry
+case octor =>
+  rw[Option.bind_eq_some_iff] at h4; rcases h4 with ⟨ctors', h4, h5⟩
+  rw[Option.bind_eq_some_iff] at h5; rcases h5 with ⟨⟨R', _⟩, h5, h6⟩
+  split at h6;
+  case _ e =>
+    subst e; simp at h6; subst ctors;
+    simp at *;
+    cases wf; case _ wftl wfhd =>
+    unfold lookup at h6;  simp at h6
+    split at h6
+    case _ e => subst e; simp at h6; subst h6; exists 0
+    simp [lookup] at lem;
+    split at lem;
+    case _ e => subst e; simp at lem
+    unfold lookup_octors at h4; simp at h4
+    replace ih := ih wftl h6 lem h4
+    rcases ih with ⟨i, ih⟩; exists i + 1
+  case _ =>
+    simp at h6; subst ctors';
+    unfold lookup at h6; simp at h6;
+    split at h6;
+    case _ e =>
+      subst e; simp at h6; subst h6;
+      simp at *
+      simp [lookup] at lem;
+      split at lem
+      case _ e => subst e; simp at  lem
+      cases wf; case _ wftl wfhd =>
+
+      sorry
+    cases wf; case _ wftl wfhd =>
+    simp [lookup] at lem
+    split at lem
+    case _ e => subst e; simp at lem
+    unfold lookup_octors at h4; simp at h4
+    have ih := ih wftl h6 lem h4; apply ih
+
 
 theorem lookup_data_entry_exists {G : GlobalEnv}:
   Ty.data? DataConst.cls G R = true ->
