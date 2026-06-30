@@ -146,77 +146,14 @@ rcases h with ⟨⟨e1, e2⟩, p⟩
 subst e1; subst e2; simp at *; assumption
 
 
-
-
-
 theorem mk_open_patterns_inversion {G : GlobalEnv} {ps : List _} :
   mk_open_patterns G x nc = ps ->
-  ∀ {i : Nat}, (h : i < ps.length) ->
-  ∃ (j : Nat) (t : Term), G[j]? = some (.inst x (ps[i]'h) t)
+  ∀ p ∈ ps,
+  ∃ g ∈ G, (mk_open_pattern x nc g = some p)
 := by
  intro h1 i h2
-
- sorry
- -- induction G generalizing x nc ps <;> simp [mk_open_patterns] at *
- -- case nil => subst h1; simp at h2
- -- case cons hd tl ih =>
- -- cases hd <;> simp [mk_open_pattern] at h1
- -- case inst =>
- --   split at h1
- --   case _ nc x _ _ _ _ h3 =>
- --     simp at h3;
- --     rcases h3 with ⟨⟨e1, e2⟩, h4⟩
- --     subst h1
- --     subst e1; subst e2;
- --     simp at h2; simp at h4; subst h4; exists 0;
- --     sorry
- --   case _ h3 =>
- --     simp at h3; subst h1;
- --     replace ih := ih h2
- --     rcases ih with ⟨n, t, ih⟩
- --     exists n + 1; exists t
-
- -- all_goals try (
- -- case _ =>
- --    subst h1
- --    replace ih := ih h2;
- --    rcases ih with ⟨n, t, ih⟩
- --    exists n + 1; exists t)
-
-
-theorem mk_open_patterns_attach_inversion {G : GlobalEnv} {ps : List _} :
-  mk_open_patterns_attach x nc G = ps ->
-  ∀ p ∈ ps,
-  p.val ∈ G ∧ (∃ (y : String) (n : Nat) (pat : Pattern n) (t : Term), p = Global.inst y pat t)
-:= by
-  intro h p h1
-  cases p; case _ p prop =>
-  simp; unfold mk_open_patterns_attach at h;
-  unfold mk_open_patterns_attach_aux at h;
-
-  sorry
-
--- intro h p p_in_ps
--- unfold mk_open_patterns_attach at h
--- generalize zdef : List.attach G = z at *
--- fun_induction mk_open_patterns_attach_aux generalizing p ps
--- case _ => subst h; simp at p_in_ps
--- case _ ih => subst h; sorry
--- case _ g gs _ h1 ih =>
---   subst h
---   unfold mk_open_pattern_attach at h1;
---   simp at h1;
---   split at h1
---   · case _ =>
---     simp at h1;
---     replace ih := ih p p_in_ps
-
---     sorry
---   ·
---     sorry
-
-
-
+ unfold mk_open_patterns at h1
+ rw[<-List.mem_filterMap]; subst h1; apply h2;
 
 theorem open_exhaustive_sound {G : GlobalEnv} :
   ⊢ G ->
@@ -246,8 +183,16 @@ simp at e; subst e;
 simp at lem; simp at h'; simp at idxs
 have lem1 : z2[i] = z[i] := Vec.from_list_indexing2 z2def i
 rw[lem1] at lem; clear lem1
-have lem3 := mk_open_patterns_inversion zdef (i := i) (by grind)
-rcases lem3 with ⟨j, t, lem3⟩
-exists j; exists t; exists z[i];
+have lem3 := mk_open_patterns_inversion zdef z[i] (by simp)
+rcases lem3 with ⟨g, g_in_gs, lem3⟩
+rw[List.mem_iff_getElem?] at g_in_gs
+rcases g_in_gs with ⟨i, g_in_gs⟩
+simp [mk_open_pattern] at lem3
+split at lem3
+case _ j _ _ _ p t =>
+  simp at lem3; rcases lem3 with ⟨⟨e1, e2⟩, lem3⟩
+  subst e1; subst e2; simp at lem3; subst lem3;
+  exists i; exists t; exists z[j]
+· cases lem3
 
 end Core
