@@ -290,26 +290,6 @@ theorem Query.Match.rename_type (r : Ren Ty) :
 theorem Ren.List.length_rmap [RenMap S T] {ℓ : List S} {r : Ren T} : ℓ⟨r⟩.length = ℓ.length := by
   induction ℓ <;> simp [*]
 
-@[simp]
-theorem Pattern.bind_zero : {p : Pattern 0} -> p.bind = 0
-| .nil => by simp [Pattern.bind]
-
-theorem PatternBinders.length : PatternBinders v G Δ m S p ζ ξ -> p.bind = ξ.length
-| zero => by simp
-| succ j1 j2 e1 e2 e3 j3 => by
-  have lem := j3.length
-  simp [Pattern.bind, e2]; grind
-
-@[simp]
-theorem Pattern.bind_type_zero : {p : Pattern 0} -> p.bind_type = 0
-| .nil => by simp [Pattern.bind_type]
-
-theorem PatternBinders.length_type : PatternBinders v G Δ m S p ζ ξ -> p.bind_type = ζ.length
-| zero => by simp
-| succ j1 j2 e1 e2 e3 j3 => by
-  have lem := j3.length_type
-  simp [Pattern.bind_type]; grind
-
 theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δr[r.act i]?)
   : G&Δ,Γ ⊢ t : A -> G&Δr,Γ⟨r⟩ ⊢ t⟨r⟩ : A⟨r⟩
 | var (x := x) j1 j2 =>

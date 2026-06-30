@@ -5,6 +5,14 @@ open LeanSubst
 
 namespace Lilac
 
+theorem Vec.ext_get {α} : ∀ {n} {v1 v2 : Vec α n} (_ : ∀ (i : Fin n), v1[i] = v2[i]), v1 = v2
+| 0, .nil, .nil, h => rfl
+| n + 1, .cons x xs, .cons y ys, h =>
+  have h0 := h 0
+  have h := λ (i:Fin _) => h i.succ
+  have ih := ext_get (v1 := xs) (v2 := ys) h
+  by simp at h0; simp [*]
+
 -- do not remove
 @[simp]
 theorem Vec.length_list : {v : Vec α n} -> v.list.length = n
