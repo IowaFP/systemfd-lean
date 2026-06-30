@@ -38,33 +38,13 @@ theorem Term.is_data_sound :
     rfl
 
 
-
-theorem get_instance_sound {G : List Global} :
-   get_instance' x cs G = some ⟨i, _, p, t⟩ ->
-   G[i]? = some (Global.inst x p t)
-:= by
+theorem check_instance_eq_sound :
+  check_instance_eq m n x y ctors p = true ->
+  m = n ∧ x = y := by
 intro h
-unfold get_instance' at h; simp at h
-generalize fdef : get_instance_from_idx x cs G = f at *
-generalize odef : instance_idx? x cs G = o at *
-cases o <;> simp at *
-case _ i =>
-unfold instance_idx? at odef; simp at odef;
-rw[List.findIdx?_eq_some_iff_getElem] at odef;
-rcases odef with ⟨i_le, odef1, odef2⟩
-split at odef1
-case _ e =>
-  simp at odef1;
-  rcases odef1 with ⟨⟨e1, e2⟩, odef1⟩
-  subst e1; subst e2; simp at odef1;
-  rw[<-fdef] at h;
-  unfold get_instance_from_idx at h;
-  rw[List.getElem_eq_iff] at e
-  simp [e] at h;
-  split at h;
-  case _ e => simp [e] at odef1; simp at *;  sorry
-  case _ e => simp at e; simp [e] at odef1;  sorry
-cases odef1
+unfold check_instance_eq at h
+simp at h; rcases h with ⟨e , h⟩
+apply And.intro e.2 e.1
 
 theorem pattern_match_sound {m : Nat} {cs : Vec Constructor m} {ps : Pattern m} :
   pattern_match cs ps = true ->
@@ -78,6 +58,36 @@ apply Pattern.Match.nil
   subst e; subst e1; subst e2; subst e3
   replace ih := ih h
   apply Pattern.Match.cons ih rfl rfl
+
+
+theorem get_instance_sound {G : List Global} :
+   get_instance x cs G = some ⟨i, _, p, t⟩ ->
+   G[i]? = some (Global.inst x p t)
+:= by
+intro h
+unfold get_instance at h; simp at h
+generalize fdef : get_instance_from_idx x cs G = f at *
+generalize odef : instance_idx? x cs G = o at *
+cases o <;> simp at *
+case _ i =>
+unfold instance_idx? at odef;
+rw[List.findIdx?_eq_some_iff_getElem] at odef;
+rcases odef with ⟨i_le, odef1, odef2⟩
+split at odef1
+case _ g n y p a e =>
+  unfold get_instance_from_idx at fdef;
+  have lem := check_instance_eq_sound odef1
+  rcases lem with ⟨e1, e2⟩; subst e1; subst e2
+  simp at fdef; rw[<-fdef] at h; simp at h;
+  rw[List.getElem_eq_iff] at e;
+  rw[e] at h; simp at h;
+  rcases h with ⟨h1, h2⟩
+  clear odef1
+  rcases h2 with ⟨e1, e2, e3, e4⟩
+  subst e2; subst e3; simp at e4; rcases e4 with ⟨e4, e5⟩
+  subst e4; subst e5; apply e
+· cases odef1
+
 
 theorem get_match_sound {ctors : Vec Constructor m} {ps : Vec (Pattern m) n}:
   get_match ctors ps = some i ->

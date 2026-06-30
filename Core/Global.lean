@@ -159,49 +159,37 @@ def pattern_match : Vec Constructor m -> Pattern m -> Bool
   pattern_match xs zs && q == q' && m == m' && n == n' && k == k'
 | _, _ => false
 
-def get_instance_aux (x : String) (ctors : (Vec Constructor m)) (i : Nat) :
-    (G : List Global) -> Option (Nat × (m : Nat) × Pattern m × Term)
-      | .nil => none
-      | .cons (.inst (m := n) y p b) G' =>
-         if h : x == y && m == n
-         then by
-              simp at h; rcases h with ⟨h1, h2⟩
-              subst h2;
-              if pattern_match ctors p
-                then apply some ⟨i, m, p, b⟩
-                else apply get_instance_aux x ctors (i + 1) G'
-         else none
-      | .cons _ G' => get_instance_aux x ctors (i + 1) G'
+def check_instance_eq (m n : Nat) (x y : String) (ctors : Vec Constructor m) (pat : Pattern n) : Bool :=
+  if h : x == y && m == n
+  then by {
+    simp at h; rcases h with ⟨h1, h2⟩; subst h2
+    apply pattern_match ctors pat
+  }
+  else false
 
 def instance_idx? (x : String) (ctors : Vec Constructor m) (G : List Global) : Option Nat :=
   G.findIdx? (λ g => match g with
-  | .inst (m := n) y p b =>
-    if h : x == y && m == n
-    then by simp at h; rcases h with ⟨h1, h2⟩
-            subst h2; apply pattern_match ctors p
-    else false
+  | .inst (m := n) y p _ => check_instance_eq m n x y ctors p
   | _ => false )
-
-
-def get_instance (x : String) (ctors : (Vec Constructor m)) :
-  (G : List Global) -> Option (Nat × (m : Nat) × Pattern m × Term) :=
-  get_instance_aux x ctors 0
 
 def get_instance_from_idx (x : String) (ctors : Vec Constructor m) (G : GlobalEnv) (i : Nat)
   : Option (Nat × (m : Nat) × Pattern m × Term) :=
     match G[i]? with
     | some (Global.inst (m := n) y p b) =>
-      if h : x == y && m == n
+      if check_instance_eq m n x y ctors p
       then by {
-        simp at h; rcases h with ⟨h1, h2⟩ -- TODO: abstract this as a predicate
-        subst h2; if pattern_match ctors p
-         then apply some ⟨i, ⟨m, p, b⟩⟩
-         else apply none }
+        if h : m == n
+        then simp at h; cases h -- TODO: abstract this as a predicate
+             if e : pattern_match ctors p
+             then apply some ⟨i, ⟨m, p, b⟩⟩
+             else apply none
+        else apply none
+      }
       else none
     | _ => none
 
 
-def get_instance' (x : String) (ctors : (Vec Constructor m)) (G : GlobalEnv):
+def get_instance (x : String) (ctors : (Vec Constructor m)) (G : GlobalEnv):
   Option (Nat × (m : Nat) × Pattern m × Term) :=
   let midx : Option Nat := instance_idx? x ctors G
   (midx.map (get_instance_from_idx x ctors G)).join

@@ -69,7 +69,7 @@ def Term.eval (G : List Global) : Term ->  Option Term
   match (m_ss).findIdx? Option.isSome with
   | none =>
     let ctors <- Term.is_data .opn ss.to
-    let ⟨_, m, p, b⟩ <- get_instance' x ctors G
+    let ⟨_, m, p, b⟩ <- get_instance x ctors G
     if h : m == n
     then
       by

@@ -12,11 +12,14 @@ namespace Core
 
 -- abbrev SpineTy := (m1 : Nat) × Vec Kind m1 × (m2 : Nat) × Vec Kind m2 × (n : Nat) × Vec Ty n × Ty
 
+@[simp]
+def SpineTy.return_type (spTy : SpineTy) := spTy.2.2.2.2.2.2
+
 theorem ctor_data_linked {ctors : Vec _ n} {T : String} {spTy : SpineTy}{Tys : List Ty}:
   ⊢ G ->
   lookup T G = some (Entry.data T a ctors) ->
   lookup c G = some (Entry.ctor c k spTy) ->
-  spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
+  spTy.return_type.spine = some (T, Tys) ->
   ∃ i : Fin n, ctors[i].1 = c
 := by
 intro wf h1 h2 h3
@@ -47,7 +50,7 @@ simp [Entry.name]
 theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 : List Ty}:
   ⊢ G ->
   lookup c G = some (Entry.octor c spTy) ->
-  spTy.2.2.2.2.2.2.spine = some (T, Tys1) ->
+  spTy.return_type.spine = some (T, Tys1) ->
   lookup_octors T G = some ctors ->
   ∃ i : Nat, ctors[i]? = some c
 := by
@@ -58,7 +61,7 @@ cases h2; simp at h3;
 case _ h7 _ =>
 have lem := lookup_odata_entry_exists h7 h3
 rcases lem with ⟨K, lem⟩
-case _ m1 m2 n Δ R ks1 Ks2 Ts a1 a2 a3 a4 =>
+case _ m1 m2 n Δ R Ks1 Ks2 Ts a1 a2 a3 a4 =>
 clear a4 h7 a3 a2 a1;
 unfold lookup_octors at h4;
 simp at h4;
@@ -182,7 +185,7 @@ simp [Entry.name]
 theorem lookup_octor_return_type_entry :
   ⊢ G ->
   lookup c G = some (Entry.octor c spTy) ->
-  spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
+  spTy.return_type.spine = some (T, Tys) ->
   ∃ K, lookup T G = some (Entry.odata T K)
 := by
 intro wf h1 h2
@@ -196,7 +199,7 @@ apply lookup_odata_entry_exists h4 h2
 theorem lookup_ctor_return_type_entry :
   ⊢ G ->
   lookup c G = some (Entry.ctor c n spTy) ->
-  spTy.2.2.2.2.2.2.spine = some (T, Tys) ->
+  spTy.return_type.spine = some (T, Tys) ->
   ∃ (K : Kind) (n : Nat) (ctors : Vec (String × SpineTy) n), lookup T G = some (Entry.data (n := n) T K ctors)
 := by
 intro wf h1 h2
@@ -212,7 +215,7 @@ theorem lookup_entry_ctor? :
  ⊢ G ->
  lookup c G = some ent ->
  Entry.ctor? d dc ent = true ->
- ∃ c' K spTy tys, (ent = Entry.ctor c' K spTy ∨ ent = Entry.octor c' spTy) ∧ spTy.2.2.2.2.2.2.spine = some ⟨d, tys⟩
+ ∃ c' K spTy tys, (ent = Entry.ctor c' K spTy ∨ ent = Entry.octor c' spTy) ∧ spTy.return_type.spine = some ⟨d, tys⟩
 := by
 intro wf h1 h2
 unfold Entry.ctor? at h2
@@ -509,7 +512,8 @@ case _ x _ _ lc _ ih =>
 
 
 -- Checks that the patterns are exhaustive
-def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n) : Option ((ℓ : Nat) × (Vec (Vec String m) ℓ × Vec (Fin n) ℓ)) := do
+def check_exhaustive (G : GlobalEnv) (Ss : Vec Ty m) (ps : Vec (Pattern m) n)
+  : Option ((ℓ : Nat) × (Vec (Vec String m) ℓ × Vec (Fin n) ℓ)) := do
   let ref_matrix <- enumerate_ctor_names G Ss
 
   -- just keep the constructor names from the patterns
