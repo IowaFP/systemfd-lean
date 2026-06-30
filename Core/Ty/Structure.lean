@@ -60,8 +60,7 @@ theorem Ty.spine_ren {R : Ty} (r : Ren Ty)
 
 
 theorem quantifier_bundle :
-  (∀ (a : α) (b : β) , ¬ t = .some (a, b)) <->
-  ∀ (h : α × β), ¬ t = some h
+  (∀ (a : α) (b : β) , ¬ t = .some (a, b)) <-> ∀ (h : α × β), ¬ t = some h
   := by
   apply Iff.intro
   · intro h p h1

@@ -3,6 +3,8 @@ import Core.Util
 import Core.Vec
 import Core.Term.Definition
 
+import Core.Ty
+
 open LeanSubst
 open Lilac
 
@@ -556,12 +558,6 @@ theorem Term.Ty.subst_match {σ : Subst Ty}
 := by
   simp [SubstMap.smap]
 
--- @[simp]
--- theorem Vec.append_add_same_length
---   : Sequ.append_vec (Vec.map re (Vec.range n)) (Subst.add n) = +0@T
--- := sorry
-
-
 instance : RenMapId Term Ty where
   apply_id := by intro s; induction s <;> simp [*]
 
@@ -752,20 +748,36 @@ instance : SubstMapCompose Term Term where
       try simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift_k_ren, *]
       try grind)
 
+instance : SubstMapStable Ctor0Variant Ty where
+  apply_stable := by subst_solve_stable
+
+instance : SubstMapStable Ctor1Variant Ty where
+  apply_stable := by subst_solve_stable
+
+instance : SubstMapStable Ctor2Variant Ty where
+  apply_stable := by subst_solve_stable
+
+instance [RenMap S T] [SubstMap S T] [SubstMapStable S T] : SubstMapStable (Vec S n) T where
+  apply_stable := by subst_solve_stable
+
 instance : SubstMapStable Term Ty where
   apply_stable := by
-    sorry
-    -- intro r σ h; funext; case _ t =>
-    -- replace h := Eq.symm h
-    -- induction t generalizing r σ <;> simp [*]
-    -- case lam => congr
-    -- case mtch t1 t2 t3 ih1 ih2 =>
-    --   funext; case _ i =>
-    --   rw [<-Ren.to_lift]; simp
-    --   generalize zdef : (0..(t2 i).bind ++ r ∘ Ren.add Term (t2 i).bind) = z
-    --   generalize wdef : (0..(t2 i).bind ++ r.to ∘ Subst.add Term (t2 i).bind) = w
-    --   have lem : z.to = w := by subst zdef wdef; simp
-    --   rw [<-lem]; simp
+    intro r σ h; funext; case _ t =>
+    induction t generalizing r σ <;> simp [*]
+    all_goals try (· rw[Subst.apply_stable h])
+    case mtch t1 t2 t3 ih1 ih2 =>
+      funext; case _ i j =>
+      apply And.intro
+      · funext; case _ x => congr; simp [Pattern] at *; sorry
+      · funext; case _ x => congr; sorry
+      -- generalize zdef : [0..(t2 i).bind ++ r ∘ Ren.add Term (t2 i).bind] = z
+      -- generalize wdef : (0..(t2 i).bind ++ r.to ∘ Subst.add Term (t2 i).bind) = w
+      -- have lem : z.to = w := by subst zdef wdef; simp
+      -- rw [<-lem]; simp
+    case tbind ih => sorry
+    case spctor ih => sorry
+    case cast ih1 ih2 =>  sorry
+
 
 theorem Term.Ty.smap_promote : Term.Ty.smap σ A = A[σ] := by simp [SubstMap.smap]
 

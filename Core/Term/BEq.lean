@@ -103,15 +103,30 @@ instance instLawfulBEq_TyBindVariant : LawfulBEq TyBindVariant where
     intro x b; induction x <;> simp +instances [instBEq_TyBindVariant, TyBindVariant.beq] at *
     all_goals (induction b <;> simp at *)
 
-def Pattern.eq : Pattern m1 -> Pattern m2 -> Bool
+def Pattern.beq : Pattern m1 -> Pattern m2 -> Bool
 | .nil, .nil => true
 | .cons (x1, ⟨n1, v1, k1⟩) xs, .cons (x2, ⟨n2, v2, k2⟩) ys =>
   if n1 == n2 && k1 == k2 && x1 == x2
   then let v1' : Lilac.Vec Ty n1 := v1.to
        let v2' : Lilac.Vec Ty n2 := v2.to
-       Pattern.eq xs ys && Lilac.Vec.beq v1' v2'
+       Pattern.beq xs ys && Lilac.Vec.beq v1' v2'
   else false
 | _, _ => false
+
+instance instBEq_Pattern : BEq (Pattern n) where
+  beq := Pattern.beq
+
+
+private def Pattern.rfl : {p : Pattern n} -> (p == p) = true := by sorry
+
+instance instReflBEq_Pattern : ReflBEq (Pattern n) where
+  rfl := Pattern.rfl
+
+private def Pattern.eq_of_beq : ∀ {a b : Pattern n}, (a == b) = true → a = b := by sorry
+
+instance instLawfulBEq_Pattern : LawfulBEq (Pattern n) where
+  eq_of_beq := Pattern.eq_of_beq
+
 
 instance instReflBEq_Vec [BEq α][ReflBEq α] : ReflBEq (Vec α n) where
   rfl
@@ -135,7 +150,7 @@ def Term.beq : Term -> Term -> Bool
     let p : Lilac.Fun.Vec Bool n1 := λ i =>
       let p1 : Pattern m1 := (b1 i).to
       let p2 : Pattern m2 := (b2 (by simp at h; rw[h.1] at i; exact i)).to
-      Pattern.eq p1 p2
+      Pattern.beq p1 p2
     Vec.foldl (·&&·) true a.to
     && Vec.foldl (·&&·) true c.to
     && Vec.foldl (·&&·) true p.to
@@ -151,38 +166,57 @@ def Term.beq : Term -> Term -> Bool
 instance instBEq_Term : BEq Term where
   beq := Term.beq
 
-
-instance instReflBEq_VecTy : ReflBEq (Vec Ty n) where
-   rfl := by
-          intro a
-          induction a <;> simp at *
-
 theorem Term.rfl : {a : Term} -> (a == a) = true
-| var _ | defn _ | ctor0 _ => by simp +instances [instBEq_Term, Term.beq]
-| ctor1 _ _ | tbind _ _ _ | lam _ _ =>  by simp +instances [instBEq_Term, Term.beq]; apply Term.rfl
-| ctor2 _ _ _ | cast _ _ _ => by simp +instances [instBEq_Term, Term.beq]; apply And.intro; apply Term.rfl; apply Term.rfl
+| var _ | defn _ | ctor0 _ =>
+  by simp +instances [instBEq_Term, Term.beq]
+| ctor1 _ _ | tbind _ _ _ | lam _ _ =>
+  by simp +instances [instBEq_Term, Term.beq]; apply Term.rfl
+| ctor2 _ _ _ | cast _ _ _ =>
+  by simp +instances [instBEq_Term, Term.beq]; apply And.intro; apply Term.rfl; apply Term.rfl
 | mtch m n s p b =>
   by simp +instances [instBEq_Term, Term.beq]
      apply And.intro
      · apply And.intro
        · generalize zdef : Fun.Vec.to (λ i => (s i).beq (s i)) = z at *;
-         generalize fdef : (λ x1 x2 => x1 && x2) = f at *
-         generalize ddef : true = d at *
-         fun_induction Vec.foldl <;> simp at *
-         case _ hd tl ih =>
-         subst f; subst ddef; simp;
-         replace ih := ih s.tail
-         have lem_hd : (s 0).beq (s 0) = hd := by sorry
-         sorry
-
-       · sorry
-     · sorry
-| spctor _ _ _ _ _ =>
+         replace zdef := refl_indexing zdef;
+         rw[Vec.foldl_and_true]
+         intro v v_in_vs
+         replace v_in_vs := Vec.getElem_of_mem v_in_vs
+         rcases v_in_vs with ⟨i, v_in_vs⟩
+         replace zdef := zdef i; rw[v_in_vs] at zdef; simp [<-Vec.to_get_elem] at zdef; rw[<-zdef]
+         apply Term.rfl
+       · generalize zdef : Fun.Vec.to (λ i => (b i).beq  (b i)) = z at *;
+         replace zdef := refl_indexing zdef;
+         rw[Vec.foldl_and_true]
+         intro v v_in_vs
+         replace v_in_vs := Vec.getElem_of_mem v_in_vs
+         rcases v_in_vs with ⟨i, v_in_vs⟩
+         replace zdef := zdef i; rw[v_in_vs] at zdef; simp [<-Vec.to_get_elem] at zdef; rw[<-zdef]
+         apply Term.rfl
+     · generalize zdef : Fun.Vec.to (λ i => (p i).beq  (p i)) = z at *;
+       replace zdef := refl_indexing zdef;
+       rw[Vec.foldl_and_true]
+       intro v v_in_vs
+       replace v_in_vs := Vec.getElem_of_mem v_in_vs
+       rcases v_in_vs with ⟨i, v_in_vs⟩
+       replace zdef := zdef i; rw[v_in_vs] at zdef; simp [<-Vec.to_get_elem] at zdef; rw[<-zdef]
+       apply Pattern.rfl
+| spctor m1 m2 Ks1 Ks2 Ts =>
   by simp +instances [instBEq_Term, Term.beq]
      apply And.intro;
-     apply And.intro; simp +instances [instBEq_Ty]; sorry; sorry
-     sorry
-
+     · apply And.intro
+       · simp +instances [instBEq_Ty]
+         apply @Vec.beq_refl Ty (a := Ks1) _ _ instReflBEq_Ty
+       · apply @Vec.beq_refl Ty (a := Ks2) _ _ instReflBEq_Ty
+     · case _ i =>
+       generalize zdef : Fun.Vec.to (λ i => (Ts i).beq  (Ts i)) = z at *;
+       replace zdef := refl_indexing zdef;
+       rw[Vec.foldl_and_true]
+       intro v v_in_vs
+       replace v_in_vs := Vec.getElem_of_mem v_in_vs
+       rcases v_in_vs with ⟨i, v_in_vs⟩
+       replace zdef := zdef i; rw[v_in_vs] at zdef; simp [<-Vec.to_get_elem] at zdef; rw[<-zdef]
+       apply Term.rfl
 
 
 instance instReflBEq_Term : ReflBEq Term where

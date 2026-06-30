@@ -216,6 +216,29 @@ intro h
 induction tl <;> simp at *
 case _ ih => rw[ih] at h; cases h
 
+theorem Vec.mem_iff_getElem {α : Type u_1} {l : Vec α n} {i : Fin n} {a : α} :
+  l[i] = a <-> a ∈ l := by sorry
+
+theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l) :
+  ∃ (i : Fin n), l[i] = a := by sorry
+
+def Vec.foldl_and_true {vs : Vec Bool n} :
+  vs.foldl (· && ·) true = true <-> ∀ v ∈ vs, v = true
+:= by
+apply Iff.intro
+· intro h v v_in_vs
+  induction vs
+  · cases v_in_vs
+  · case _ x vs ih =>
+    simp at h
+    cases v_in_vs;
+    sorry
+    sorry
+· intro h
+  induction vs <;> simp at *
+  case _ v vs ih =>
+
+    sorry
 
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
   vs.foldl (λ acc c => c == e && acc) true
@@ -622,5 +645,10 @@ theorem Vec.from_list_indexing2 {l : List α} {vs : Vec α n} :
     subst h2; simp at *;
     induction i using Fin.induction <;> simp at *
     case _ i _ => apply ih i
+
+
+theorem refl_indexing {v1 v2 : Vec α n} : v1 = v2 -> ∀ (i: Fin n), v1[i] = v2[i]
+:= by
+intro h i; cases h; simp;
 
 end Lilac
