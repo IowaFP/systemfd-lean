@@ -283,14 +283,10 @@ private def Term.eq_of_beq : ∀ {a b : Term}, (a == b) = true → a = b
       replace z1def := z1def i;
       apply Term.eq_of_beq lem
     · apply And.intro
-      · -- can do his via funext but whatever
-        have lem := @Vec.beq_lawful (Pattern m1) n1 instBEq_Pattern instLawfulBEq_Pattern (v1 := ps1.to) (v2 := ps2.to)
-        have lem2 := Vec.true_elems z2def h5
-        have lem3 := @Vec.beq_get (Pattern m1) instBEq_Pattern n1 ps1 ps2 (by { -- this is BS
-             simp [<-Vec.to_get_elem]; intro i; replace lem2 := lem2 i;
-             apply Pattern.eq_of_beq; unfold BEq.beq; unfold instBEq_Pattern; simp; apply lem2 })
-        simp at lem3; apply Vec.to_eq (vs1 := ps1) (vs2 := ps2) lem3;
-
+      · funext; case _ i =>
+        have lem := Vec.true_elems z2def h5 i
+        replace z2def := z2def i;
+        apply Pattern.eq_of_beq lem
       · funext; case _ i =>
         have lem := Vec.true_elems z3def h4 i;
         replace z3def := z3def i;
