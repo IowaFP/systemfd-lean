@@ -147,17 +147,27 @@ theorem List.getElem?_smap [SubstMap S T] {ℓ : List S} {σ : Subst T} {x : Nat
 @[simp, grind =]
 theorem List.getElem_rmap [RenMap S T] {r : Ren T} {ℓ : List S} (h1 : i < ℓ.length) :
   ℓ⟨r⟩[i]'(by grind) = ℓ[i]⟨r⟩
-  := by
-  rw[List.getElem_eq_iff]; rw[<-List.getElem?_rmap];
-  sorry
+  := by rw[List.getElem_eq_iff]; rw[<-List.getElem?_rmap]; grind
 
 @[simp, grind =]
 theorem List.getElem_smap [SubstMap S T] {s : Subst T} {ℓ : List S} (h1 : i < ℓ.length) :
   ℓ[s][i]'(by grind) = ℓ[i][s]
-  := by
-  rw[List.getElem_eq_iff]
-  sorry
+  := by rw[List.getElem_eq_iff]; rw[<-List.getElem?_smap]; grind
 
+
+theorem subst_lift [RenMap T T] [RenMapId T T] [RenMapCompose T T] (σ : Subst T) :
+  x < n ->
+  (σ.lift n).act x = re x
+:= by
+  intro h; induction n generalizing x σ; cases h
+  case _ n ih =>
+  cases x; simp [Subst.lift]
+  case _ i =>
+  have lem : i < n := by omega
+  replace ih := @ih i σ lem
+  rw [Subst.rewrite_lift_succ]
+  generalize zdef : σ.lift n = z at *
+  simp [Subst.lift]; rw [ih]; simp
 
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst

@@ -64,29 +64,6 @@ theorem iterate_succ {x : Nat} : ((Ren.succ T).act^[n]) x = x + n := by
   induction n <;> simp at *
   case succ n ih => rw [ih]; omega
 
--- theorem lift_iterated_succ_is_re {y : Nat} :
---   ((Ren.lift^[n]) (Ren.succ Ty)).act y = z ->
---   ∃ i, z = re i
---  := by sorry
---   intro h
---   induction n generalizing y z <;> simp [-Subst.rewrite_lift_k] at *
---   case zero => exists y + 1; symm at h; assumption
---   case succ n ih =>
---     cases y <;> simp [-Subst.rewrite_lift_k] at *
---     case zero => exists 0; symm at h; assumption
---     case succ y =>
---       sorry
-      -- simp [-Subst.rewrite_lift_k, Subst.compose] at *
-      -- rcases (@ih y) with ⟨k, ih⟩
-      -- generalize zdef : (((Subst.lift (T := Ty))^[n]) +1) y = z at *
-      -- cases z <;> simp [-Subst.rewrite_lift_k] at *
-      -- case _ a =>
-      --   exists (a + 1); symm at h
-      --   rw [zdef] at h; simp [*]
-      -- case _ a =>
-      --   rw [ih] at zdef
-      --   injection zdef
-
 -- x ∉ T[(x + 1)]
 theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ Ty)⟩) := by
   intro h
@@ -98,19 +75,11 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ 
     cases y <;> simp [-Subst.rewrite_lift_k]  at *
     case zero => cases h
     case succ y =>
+    generalize zdef : (((fun r => 0 :: r ∘ Ren.succ Ty)^[n]) (Ren.succ Ty)).act y = z at *
     replace ih := ih y; simp at ih;
-    have h' : n ∈ t#(((((fun r => 0 :: r ∘ Ren.succ Ty)^[n]) (Ren.succ Ty)).act y)) := by
-      generalize zdef : (((fun r => 0 :: r ∘ Ren.succ Ty)^[n]) (Ren.succ Ty)).act y = z at *
-      unfold Ren.act at zdef;
-      sorry
-    exfalso; apply ih h'
-    -- simp [Subst.compose] at h
-    -- replace ih := ih y
-    -- generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
-    -- have lem := lift_iterated_succ_is_re zdef
-    -- rcases lem with ⟨k , lem⟩
-    -- subst z; simp [-Subst.rewrite_lift_k] at lem; rw [lem] at h; simp at h
-    -- cases h; apply ih; rw[lem]; simp; apply Ty.FV.var
+    cases h
+    rw[zdef] at ih;
+    apply ih (Ty.FV.var)
   case all P ih =>
     cases h; case _ h =>
     apply @ih (x + 1); simp; apply h
