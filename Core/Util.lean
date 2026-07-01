@@ -129,10 +129,6 @@ theorem Vec.map_of_smap_fix [SubstMap A T] {σ : Subst T} : {v : Vec A n} -> Vec
   have lem := Vec.map_of_smap_fix (σ := σ) (v := tl)
   by simp; exact lem
 
--- @[grind =]
--- theorem Fun.Vec.subst_to [RenMap T] [SubstMap T T] {v : Fun.Vec T n}
---   : (v.to)[σ:T] = Fun.Vec.to (λ i => (v i)[σ:T]) := sorry
-
 @[simp, grind =]
 theorem List.getElem?_rmap [RenMap S T] {ℓ : List S} {r : Ren T} {x : Nat}
   : ℓ[x]?⟨r⟩ = ℓ⟨r⟩[x]?

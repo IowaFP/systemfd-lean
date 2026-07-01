@@ -16,21 +16,41 @@ namespace Core
 
 theorem Kinding.unique
   : G&Δ ⊢ A : K -> G&Δ ⊢ A : L -> K = L
-:= sorry
+| var j, var j' => by rw [j] at j'; cases j'; rfl
+| global j, global j' => by rw [j] at j'; cases j'; rfl
+| arrow j1 j2, arrow j1' j2' => rfl
+| all j, all j' => rfl
+| app j1 j2, app j1' j2' =>
+  have lem := unique j1 j1'
+  by cases lem; rfl
+| eq j1 j2, eq j1' j2' => rfl
 
 theorem PatternBinders.unique
   : PatternBinders v G Δ m S1 p ζ1 ξ1 ->
     PatternBinders v G Δ m S2 p ζ2 ξ2 ->
     S1 = S2 ->
     ζ1 = ζ2 ∧ ξ1 = ξ2
-:= sorry
+| zero, zero, e => ⟨rfl, rfl⟩
+| succ j1 j2 j3 j4 j5 j6, succ j1' j2' j3' j4' j5' j6', e => by
+  cases e
+  have lem := unique j6 j6' rfl
+  rcases lem with ⟨e1, e2⟩; subst e1 e2
+  rw [j1] at j1'; cases j1'
+  subst j3 j3'; apply And.intro rfl
+  simp; subst j4 j4'; simp
 
 theorem CoercionProject.unique
   : CoercionProject G Δ n T1 A ->
     CoercionProject G Δ n T2 B ->
     T1 = T2 ->
     A = B
-:= sorry
+| fst_app j, fst_app j', e
+| snd_app j, snd_app j', e
+| fst_arrow j, fst_arrow j', e
+| snd_arrow j, snd_arrow j', e => by
+  cases e
+  have lem := Kinding.unique j j'
+  cases lem; rfl
 
 theorem Typing.unique
   : G&Δ,Γ ⊢ t : A -> G&Δ,Γ ⊢ t : B -> A = B
