@@ -694,7 +694,10 @@ apply Iff.intro
 theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
 | .nil, i => i.elim0
 | .cons x xs, 0 => Mem.head
-| .cons x xs, i => sorry
+| .cons x xs, i => by
+  induction i using Fin.induction
+  simp; apply Mem.head
+  simp; apply Mem.tail; apply Vec.getElem_mem
 
 
 theorem Vec.true_elems {vs : Vec Bool n} {p : Fin n -> Bool}:
@@ -710,11 +713,11 @@ theorem Vec.true_elems {vs : Vec Bool n} {p : Fin n -> Bool}:
   rw[Vec.to_get_elem]
   apply Vec.getElem_mem
 
-theorem Vec.to_eq {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> vs1 = vs2
+theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> vs1 = vs2
 := by
   intro h
   funext; case _ i =>
-  sorry
-
+  rw[Fun.Vec.to_get_elem (vs := vs1), Fun.Vec.to_get_elem (vs := vs2)]
+  rw[h]
 
 end Lilac
