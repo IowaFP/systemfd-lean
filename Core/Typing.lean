@@ -132,13 +132,13 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
   (∀ c, v = .data c -> ∀ i, i < m1 -> i + m2 ∈ R) ->
   (v = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
   Typing G Δ Γ (.spctor v x As Bs ts) R'
-| mtch {ss S : Fun.Vec _ m} {ps ts ζ ξ : Fun.Vec _ n} :
+| mtch {ss S : Fun.Vec _ (m + 1)} {ps ts ζ ξ : Fun.Vec _ (n + 1)} :
   (∀ i, Typing G Δ Γ (ss i) (S i)) ->
   (∀ i, (S i).data? .cls G) ->
-  (∀ i, PatternBinders .cls G Δ m S (ps i) (ζ i) (ξ i)) ->
+  (∀ i, PatternBinders .cls G Δ (m + 1) S (ps i) (ζ i) (ξ i)) ->
   (∀ i, Typing G (ζ i ++ Δ) (ξ i ++ Γ⟨.add Ty (ζ i).length⟩) (ts i) T⟨.add Ty (ζ i).length⟩) ->
   (∀ {q}, Query G .cls q S -> ∃ i, Query.Match q (ps i)) ->
-  Typing G Δ Γ (.mtch m n ss ps ts) T
+  Typing G Δ Γ (.mtch (m + 1) (n + 1) ss ps ts) T
 ----------------------------------------------------------------------------------------------------
 ---- Terms
 ----------------------------------------------------------------------------------------------------

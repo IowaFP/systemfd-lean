@@ -274,16 +274,20 @@ theorem Typing.closed_type_rep (wf : ⊢ G) :
 | defn j1 j2 =>
   have j2' := j2.closed_rep
   by simp; simp at j2'; intro σ; apply j2'
-| spctor j1 e1 e2 j2 j3 j4 h1 h2 h3 =>
+| spctor (As := As) (Bs := Bs) j1 e1 e2 j2 j3 j4 h1 h2 h3 =>
   have j1' := GlobalWf.closed_lookup_spine_type wf j1
   have j2' := λ i => (j2 i).closed_rep
   have j3' := λ i => (j3 i).closed_rep
   have j4' := λ i => (j4 i).closed_type_rep wf
   by
+    intro σ
+    have lem1 : As[σ.lift Δ.length] = As := by
+      apply Vec.ext_get; intro i; rw [<-(j2' i σ)]; grind
+    have lem2 : Bs[σ.lift Δ.length] = Bs := by
+      apply Vec.ext_get; intro i; rw [<-(j3' i σ)]; grind
     simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift]
-    intro σ; apply And.intro; apply And.intro
-    apply Vec.ext_get; intro i; rw [<-(j2' i σ)]; grind
-    apply And.intro; apply Vec.ext_get; intro i; rw [<-(j3' i σ)]; grind
+    apply And.intro; apply And.intro
+    apply lem1; apply And.intro; apply lem2
     funext; case _ i => apply (j4' i σ).1
     simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift] at j1'
     simp [e2, -Subst.rewrite_lift_k, -Subst.rewrite_lift]
@@ -291,8 +295,9 @@ theorem Typing.closed_type_rep (wf : ⊢ G) :
       rhs
       rw [<-(j1' (σ.lift Δ.length)).2]
     simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift]
-    sorry
-| mtch j1 j2 j3 j4 j5 =>
+    rw [Subst.compose_left_cons_lift_indirect (h := by simp; omega)]
+    rw [lem1, lem2]; simp
+| mtch (ζ := ζ) j1 j2 j3 j4 j5 =>
   have j1' := λ i => (j1 i).closed_type_rep wf
   have j3' := λ i => (j3 i).closed_rep
   have j4' := λ i => (j4 i).closed_type_rep wf
@@ -302,8 +307,20 @@ theorem Typing.closed_type_rep (wf : ⊢ G) :
     funext; case _ i => apply (j1' i σ).1
     apply And.intro
     funext; case _ i => apply j3'
-    funext; case _ i => sorry
-    sorry
+    funext; case _ i =>
+      have lem := (j3 i).length_type
+      rw [lem, <-Subst.lift_of_add, Nat.add_comm]
+      rw [<-List.length_append, (j4' i σ).1]
+    have lem := (j4' 0 σ).2
+    simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift] at lem
+    rw [Nat.add_comm (n := (ζ 0).length)] at lem
+    rw [Subst.lift_of_add] at lem
+    rw [<-Subst.compose_commute_add_ren_subst] at lem
+    have lem2 : A[σ.lift Δ.length ∘ Ren.add Ty (ζ 0).length]⟨Ren.sub Ty (ζ 0).length⟩
+        = A⟨Ren.add Ty (ζ 0).length⟩⟨Ren.sub Ty (ζ 0).length⟩
+      := by rw [<-lem]
+    simp [-Subst.rewrite_lift_k, -Subst.rewrite_lift] at lem2
+    apply lem2
 | lam j1 j2 =>
   have j1' := j1.closed_rep
   have j2' := j2.closed_type_rep wf

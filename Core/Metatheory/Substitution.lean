@@ -228,10 +228,10 @@ theorem Typing.subst_type Δσ (σ : Subst Ty) (wf : ⊢ G)
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j1' := λ i => (j1 i).subst_type Δσ σ wf h
   have j2' := λ i => Ty.data?_closed σ (j2 i)
-  let ξ' := λ (i : Fin n) => (ξ i)[σ.lift (ζ i).length]
-  have j3' : ∀ (i : Fin n), PatternBinders .cls G Δσ m S.to[σ] (ps i)[σ] (ζ i) (ξ' i) :=
+  let ξ' := λ (i : Fin (n + 1)) => (ξ i)[σ.lift (ζ i).length]
+  have j3' : ∀ (i : Fin (n + 1)), PatternBinders .cls G Δσ (m + 1) S.to[σ] (ps i)[σ] (ζ i) (ξ' i) :=
     λ i => (j3 i).subst_type Δσ σ wf h
-  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δσ),((ξ' i) ++ Γ[σ]⟨.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind_type] : A[σ]⟨.add Ty (ζ i).length⟩ := λ i => by
+  have j4' : ∀ (i : Fin (n + 1)), G&(ζ i ++ Δσ),((ξ' i) ++ Γ[σ]⟨.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind_type] : A[σ]⟨.add Ty (ζ i).length⟩ := λ i => by
     have lem1 := subst_type_lift_k (ζ i) h
     have lem2 : (ζ i).length = (ps i).bind_type := Eq.symm (j3 i).length_type
     rw [lem2] at lem1
@@ -388,7 +388,7 @@ theorem Typing.subst Γσ (σ : Subst Term) (wf : ⊢ G)
   defn j1' j2
 | spctor j1 e1 e2 j2 j3 j4 j5 j6 j7 => spctor j1 e1 e2 j2 j3 (λ i => (j4 i).subst _ _ wf h) j5 j6 j7
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
-  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δ),(ξ i ++ Γσ⟨Ren.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind ◾ Subst.add Ty (ps i).bind_type] : A⟨Ren.add Ty (ζ i).length⟩ := λ i =>
+  have j4' : ∀ (i : Fin (n + 1)), G&(ζ i ++ Δ),(ξ i ++ Γσ⟨Ren.add Ty (ζ i).length⟩) ⊢ (ts i)[σ.lift (ps i).bind ◾ Subst.add Ty (ps i).bind_type] : A⟨Ren.add Ty (ζ i).length⟩ := λ i =>
     have lem0 : (ps i).bind_type = (ζ i).length := (j3 i).length_type
     have lem1 : (ps i).bind = (ξ i).length := (j3 i).length
     have lem2 (k:Nat) A :

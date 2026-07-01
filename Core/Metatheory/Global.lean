@@ -394,7 +394,7 @@ theorem Typing.weaken_global (wf : ⊢ (g::G)) : G&Δ,Γ ⊢ t : A -> (g::G)&Δ,
 | mtch (m := m) (S := S) j1 j2 j3 j4 j5 =>
   let j1' := λ i => (j1 i).weaken_global wf
   let j2' := λ i => Ty.data?_global_weaken wf (j2 i)
-  let j2'' : ∀ (i : Fin m), Ty.data? DataConst.cls G S.to[i] :=
+  let j2'' : ∀ (i : Fin (m + 1)), Ty.data? DataConst.cls G S.to[i] :=
     λ i => (j2 i) |> _root_.cast (by simp [Vec.get_to])
   let j3' := λ i => (j3 i).weaken_global wf
   let j4' := λ i => (j4 i).weaken_global wf

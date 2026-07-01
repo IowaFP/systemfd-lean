@@ -3,123 +3,79 @@ import Core.Term
 import Core.Reduction
 import Core.Typing
 import Core.Util
+import Core.Vec
 
 import Core.Metatheory.Substitution
 import Core.Metatheory.Rename
-import Core.Metatheory.GlobalWf
+import Core.Metatheory.Closed
+
+open Lilac
+open LeanSubst
 
 namespace Core
 
-theorem Typing.unique_var_typing :
-  G&Δ,Γ ⊢ g#a : A ->
-  G&Δ,Γ ⊢ g#a : T ->
-  A = T := by
-intro j1 j2
-cases j1; cases j2
-case _ j1 _ _ j2 =>
-rw[j1] at j2; injection j2
+theorem Kinding.unique
+  : G&Δ ⊢ A : K -> G&Δ ⊢ A : L -> K = L
+:= sorry
 
-theorem ValidTyHeadVariable.no_valid_head_with_all :
-  ¬ Ty.HeadVariable (∀[A]B) test
-:= by
-intro h; unfold Ty.HeadVariable at h
-cases h; case _ x h =>
-cases h; case _ h1 h2 =>
-  simp [Ty.spine] at h1
+theorem PatternBinders.unique
+  : PatternBinders v G Δ m S1 p ζ1 ξ1 ->
+    PatternBinders v G Δ m S2 p ζ2 ξ2 ->
+    S1 = S2 ->
+    ζ1 = ζ2 ∧ ξ1 = ξ2
+:= sorry
 
-theorem ValidTyHeadVariable.no_valid_head_with_arrow :
-  ¬ Ty.HeadVariable (A -:> B) test
-:= by
-intro h; unfold Ty.HeadVariable at h P
-cases h; case _ x h =>
-cases h; case _ h1 h2 =>
-  simp [Ty.spine] at h1
+theorem CoercionProject.unique
+  : CoercionProject G Δ n T1 A ->
+    CoercionProject G Δ n T2 B ->
+    T1 = T2 ->
+    A = B
+:= sorry
 
-theorem Typing.spine_term_unique_typing :
-  G&Δ,Γ ⊢ a : A ->
-  G&Δ,Γ ⊢ a : T ->
-  a.spine = some (x, sp) ->
-  A = T := by
-intro j1 j2 h
-induction j1 generalizing T sp
-all_goals (try case _ h1 _ => cases j2; case _ h2 => rw[h1] at h2; cases h2; rfl)
-all_goals (try simp [Term.spine] at h)
-case _ b _ _ _ _ _ jf ja ih _ =>
-  cases b
-  all_goals (
-    simp [Term.spine] at *
-    rw[Option.bind_eq_some_iff] at h;
-    rcases h with ⟨w, h1, h2⟩
-    cases h2
-    cases j2; case _ h =>
-    have ih1 := ih h h1
-    have ih2 := ih jf h1
-    rw[ih1] at ih2
-    cases ih2; cases ih1; rfl
-  )
-case _ jf ja e ih =>
-  rw[Option.bind_eq_some_iff] at h
-  rcases h with ⟨w, h1, h2⟩
-  cases h2
-  cases j2; case _ h e' =>
-  have ih1 := ih h h1
-  have ih2 := ih jf h1
-  rw[ih1] at ih2
-  cases ih2; cases ih1
-  subst e'; subst e; rfl
-
-theorem Kinding.unique :
-  G&Δ ⊢ T : K ->
-  G&Δ ⊢ T : K' ->
-  K = K' := by
-intro j1 j2;
-induction j1 generalizing K'
-all_goals (try
-  case _ h1 =>
-    cases j2; case _ h2 =>
-    rw[h1] at h2; cases h2; rfl)
-all_goals (try
-  case _ => cases j2; rfl
-)
-case app jf ja ih1 ih2  =>
-  cases j2; case _ j1 j2 =>
-  replace ih2 := ih2 j1; cases ih2
-  replace ih1 := ih1 j2; cases ih1; rfl
-
--- theorem PrefixTypeMatch.uniqueness :
---   PrefixTypeMatch Δ U V A ->
---   PrefixTypeMatch Δ U V B ->
---   A = B := by
--- intro j1 j2
--- induction V generalizing  Δ U A B
--- any_goals try (
---   case _ =>
---     cases j1; case _ j1 =>
---     cases j2; case _ j2 =>
---       rfl
--- )
--- case arrow ih1 ih2 =>
---   cases j1
---   case _ =>
---     cases j2
---     case _ h1 _ h2 => rw[h1] at h2
---     case _ h _ => simp [Ty.spine] at h
---   case _ =>
---     cases j2
---     case _ h => simp [Ty.spine] at h
---     case _ h1 h2 => apply ih2 h1 h2
--- case all ih =>
---   cases j1
---   case _ =>
---     cases j2
---     case _ h1 _ h2 => rw[h1] at h2
---     case _ h _ => simp [Ty.spine] at h
---   case _ =>
---     cases j2
---     case _ h => simp [Ty.spine] at h
---     case _ h1 h2 =>
---       replace ih := ih h1 h2
---       have lem : A[+1][-1] = B[+1][-1] := by rw[ih];
---       simp at lem; apply lem
+theorem Typing.unique
+  : G&Δ,Γ ⊢ t : A -> G&Δ,Γ ⊢ t : B -> A = B
+| var j1 j2, var j1' j2' => by
+  rw [j1] at j1'; cases j1'; rfl
+| defn j1 j2, defn j1' j2' => by
+  rw [j1] at j1'; cases j1'; rfl
+| spctor j1 e1 e2 j2 j3 j4 j5 j6 j7 , spctor j1' e1' e2' j2' j3' j4' j5' j6' j7' => by
+  rw [j1] at j1'; cases j1'; subst e2 e2'; rfl
+| mtch (S := S) (ζ := ζ) j1 j2 j3 j4 j5, mtch (S := S') j1' j2' j3' j4' j5' =>
+  have lem1 := λ i => unique (j1 i) (j1' i)
+  have lem2 : S.to = S'.to := Vec.ext_get (by simp [Vec.get_to]; exact lem1)
+  have lem3 := PatternBinders.unique (j3 0) (j3' 0) lem2
+  have lem4 := unique (B := B⟨Ren.add Ty (ζ 0).length⟩) (j4 0) (j4' 0 ▸ simp [lem3])
+  have lem5 : A⟨Ren.add Ty (ζ 0).length⟩⟨Ren.sub Ty (ζ 0).length⟩
+    = B⟨Ren.add Ty (ζ 0).length⟩⟨Ren.sub Ty (ζ 0).length⟩ := by rw [lem4]
+  by simp at lem5; exact lem5
+| lam j1 j2, lam j1' j2' =>
+  have lem := unique j2 j2'
+  by simp [lem]
+| app j1 j2, app j1' j2' =>
+  have lem := unique j1 j1'
+  by cases lem; rfl
+| lamt j1 j2, lamt j1' j2' =>
+  have lem := unique j2 j2'
+  by simp [lem]
+| appt j1 j2 e, appt j1' j2' e' =>
+  have lem := unique j1 j1'
+  by cases lem; simp [e, e']
+| refl j1, refl j1' =>
+  have lem := Kinding.unique j1 j1'
+  by simp [lem]
+| cast j1 j2 j3 e, cast j1' j2' j3' e' =>
+  have lem1 := unique j2 j2'
+  have lem2 := unique j3 j3'
+  by cases lem1; simp [e, e']
+| prj j1 j2, prj j1' j2' =>
+  have lem1 := unique j1 j1'
+  CoercionProject.unique j2 j2' lem1
+| allc j1, allc j1' =>
+  have lem := unique j1 j1'
+  by cases lem; rfl
+| apptc j1 j2 e1 e2, apptc j1' j2' e1' e2' =>
+  have lem1 := unique j1 j1'
+  have lem2 := unique j2 j2'
+  by cases lem1; cases lem2; simp [e1, e2, e1', e2']
 
 namespace Core

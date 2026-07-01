@@ -116,18 +116,18 @@ def Term.infer_type (G : GlobalEnv) (Δ : List Kind) (Γ : List Ty) : Term -> Op
     then return R[τ]
     else none
   none
-| .mtch m n ss ps ts => do
+| .mtch (m + 1) (n + 1) ss ps ts => do
   -- infer the type of scrutinees
-  let smτs : Lilac.Fun.Vec (Option Ty) m := λ i => (infer_type G Δ Γ (ss i))
+  let smτs : Lilac.Fun.Vec (Option Ty) (m + 1) := λ i => (infer_type G Δ Γ (ss i))
   let Ss <- smτs.to.sequence
-  let mTs : Vec (Option Unit) m := Ss.map (Ty.valid_data .cls G)
+  let mTs : Vec (Option Unit) (m + 1) := Ss.map (Ty.valid_data .cls G)
   let _ <- mTs.sequence
   -- infer the type of binders
-  let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) n := λ i => pattern_binders (.data .cls) (m := m) G Δ Ss (ps i)
+  let mξs : Lilac.Fun.Vec (Option (List Kind × List Ty)) (n + 1) := λ i => pattern_binders (.data .cls) (m := m + 1) G Δ Ss (ps i)
   let ζξ <- mξs.to.sequence
   let (ζ , ξ) := ζξ.unzip
   -- infer the type of each branch by updating the typing and kinding ctx
-  let mTs' : Lilac.Fun.Vec (Option Ty) n := λ i => (ts i).infer_type G (ζ[i] ++ Δ) (ξ[i] ++ Γ⟨.add Ty ζ[i].length⟩)
+  let mTs' : Lilac.Fun.Vec (Option Ty) (n + 1) := λ i => (ts i).infer_type G (ζ[i] ++ Δ) (ξ[i] ++ Γ⟨.add Ty ζ[i].length⟩)
   let Ts' <- mTs'.to.sequence
   let Ts' := (Ts'.zip ζ).map (λ (T, z) =>
                       if T⟨.sub Ty z.length⟩⟨.add Ty z.length⟩ == T then return T⟨.sub Ty z.length⟩ else none)
@@ -136,7 +136,6 @@ def Term.infer_type (G : GlobalEnv) (Δ : List Kind) (Γ : List Ty) : Term -> Op
   -- check the patterns are exhaustive
   let _ <- check_exhaustive G Ss ps.to
   return T
-
 | .cast R c t => do
   let e <- c.infer_type G Δ Γ
   let (K, A, B) <- e.is_eq_some

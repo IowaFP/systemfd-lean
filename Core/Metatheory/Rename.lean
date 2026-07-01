@@ -345,10 +345,10 @@ theorem Typing.rename_type Δr (r : Ren Ty) (wf : ⊢ G) (h : ∀ i, Δ[i]? = Δ
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
   have j1' := λ i => (j1 i).rename_type Δr r wf h
   have j2' := λ i => Ty.data?_closed_ren r (j2 i)
-  let ξ' := λ (i : Fin n) => (ξ i)⟨r.lift (ζ i).length⟩
-  have j3' : ∀ (i : Fin n), PatternBinders .cls G Δr m S.to⟨r⟩ (ps i)⟨r⟩ (ζ i) (ξ' i) :=
+  let ξ' := λ (i : Fin (n + 1)) => (ξ i)⟨r.lift (ζ i).length⟩
+  have j3' : ∀ (i : Fin (n + 1)), PatternBinders .cls G Δr (m + 1) S.to⟨r⟩ (ps i)⟨r⟩ (ζ i) (ξ' i) :=
     λ i => (j3 i).rename_type Δr r wf h
-  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δr),((ξ' i) ++ Γ⟨r⟩⟨.add Ty (ζ i).length⟩) ⊢ (ts i)⟨r.lift (ps i).bind_type⟩ : A⟨r⟩⟨.add Ty (ζ i).length⟩ := λ i => by
+  have j4' : ∀ (i : Fin (n + 1)), G&(ζ i ++ Δr),((ξ' i) ++ Γ⟨r⟩⟨.add Ty (ζ i).length⟩) ⊢ (ts i)⟨r.lift (ps i).bind_type⟩ : A⟨r⟩⟨.add Ty (ζ i).length⟩ := λ i => by
     have lem1 := rename_type_lift_k (ζ i) h
     have lem2 : (ζ i).length = (ps i).bind_type := Eq.symm (j3 i).length_type
     rw [lem2] at lem1
@@ -405,7 +405,7 @@ theorem Typing.rename Γr (r : Ren Term) (wf : ⊢ G)
   defn j1' j2
 | spctor j1 e1 e2 j2 j3 j4 j5 j6 j7 => spctor j1 e1 e2 j2 j3 (λ i => (j4 i).rename _ _ wf h) j5 j6 j7
 | mtch (n := n) (m := m) (ts := ts) (ps := ps) (S := S) (ζ := ζ) (ξ := ξ) j1 j2 j3 j4 j5 =>
-  have j4' : ∀ (i : Fin n), G&(ζ i ++ Δ),(ξ i ++ Γr⟨Ren.add Ty (ζ i).length⟩) ⊢ (ts i)⟨r.lift (ps i).bind⟩ : A⟨Ren.add Ty (ζ i).length⟩ := λ i =>
+  have j4' : ∀ (i : Fin (n + 1)), G&(ζ i ++ Δ),(ξ i ++ Γr⟨Ren.add Ty (ζ i).length⟩) ⊢ (ts i)⟨r.lift (ps i).bind⟩ : A⟨Ren.add Ty (ζ i).length⟩ := λ i =>
     have lem1 : (ps i).bind = (ξ i).length := (j3 i).length
     have lem {k} : (ξ i ++ Γ⟨Ren.add Ty (ζ i).length⟩)[k]? = (ξ i ++ Γr⟨Ren.add Ty (ζ i).length⟩)[(r.lift (ps i).bind).act k]? := by
       rw [lem1]

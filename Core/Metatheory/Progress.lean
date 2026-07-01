@@ -352,9 +352,9 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
   let j1' := λ i => progress oe wf (j1 i) e
   match split_all_or_left j1' with
   | Or.inl vs =>
-    have j1' : ∀ (i : Fin m), G&Δ,Γ ⊢ ss.to[i] : S.to[i] := j1 |> cast (by simp [Vec.get_to])
-    have j2' : ∀ (i : Fin m), Ty.data? .cls G S.to[i] := j2 |> cast (by simp [Vec.get_to])
-    have vs' : ∀ (i : Fin m), Value G ss.to[i] := vs |> cast (by simp [Vec.get_to])
+    have j1' : ∀ (i : Fin (m + 1)), G&Δ,Γ ⊢ ss.to[i] : S.to[i] := j1 |> cast (by simp [Vec.get_to])
+    have j2' : ∀ (i : Fin (m + 1)), Ty.data? .cls G S.to[i] := j2 |> cast (by simp [Vec.get_to])
+    have vs' : ∀ (i : Fin (m + 1)), Value G ss.to[i] := vs |> cast (by simp [Vec.get_to])
     have ⟨ctors, h1, h2, h3⟩ := progress_match_ctors wf j1' j2' vs'
     have ⟨i, h4⟩ := j5 h3
     have h5 := PatternBinders.implies_pattern_typing (j3 i)
