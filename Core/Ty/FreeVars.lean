@@ -67,7 +67,7 @@ theorem iterate_succ {x : Nat} : ((Ren.succ T).act^[n]) x = x + n := by
 -- theorem lift_iterated_succ_is_re {y : Nat} :
 --   ((Ren.lift^[n]) (Ren.succ Ty)).act y = z ->
 --   ∃ i, z = re i
--- := by
+--  := by sorry
 --   intro h
 --   induction n generalizing y z <;> simp [-Subst.rewrite_lift_k] at *
 --   case zero => exists y + 1; symm at h; assumption
@@ -100,7 +100,8 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ 
     case succ y =>
     replace ih := ih y; simp at ih;
     have h' : n ∈ t#(((((fun r => 0 :: r ∘ Ren.succ Ty)^[n]) (Ren.succ Ty)).act y)) := by
-      generalize zdef : (Subst.lift (T := Ty) ^[n])  = z at *
+      generalize zdef : (((fun r => 0 :: r ∘ Ren.succ Ty)^[n]) (Ren.succ Ty)).act y = z at *
+      unfold Ren.act at zdef;
       sorry
     exfalso; apply ih h'
     -- simp [Subst.compose] at h

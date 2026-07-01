@@ -122,11 +122,6 @@ theorem GlobalWf.closed_lookup_spine_type_ren {G : List Global} :
   rw [Subst.apply_stable rfl]; simp; apply h1
   rw [Subst.apply_stable rfl]; simp; apply h2
 
--- theorem Ty.spine_subst_flip {σ : Subst Ty} {T : Ty} :
---   T[σ].spine = some (x, sp) ->
---   ∃ sp', T.spine = some (x, sp')
--- := sorry
-
 theorem GlobalWf.subst_cancel_lookup_ctor? {T T' : Ty} {G : List Global} {σ : Subst Ty} :
   Ty.data? v G T = true ->
   ⊢ G ->
@@ -571,38 +566,5 @@ theorem GlobalWf.closed_lookup_defn_ren {G : List Global} :
   rw [Subst.apply_stable rfl]; apply lem4
   intro r; rw [Subst.apply_stable rfl]; apply (lem2 r.to).1
   intro r; rw [Subst.apply_stable rfl]; apply lem1
-
--- theorem Kinding.closed_lifting_lemma :
---   ∀ Δ', ⊢ G ->
---   G&Δ ⊢ T : K ->
---   (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K)
--- := by
---   sorry
--- intro Δ' wf j
--- apply @List.reverse_ind (T := Kind)
---   (motive := λ Δ' => ∀ G Δ T K,  ⊢ G -> G&Δ ⊢ T : K -> (G&(Δ' ++ Δ) ⊢ T[Ren.to (λ x => (x + Δ'.length))] : K))
---   Δ'
---   (by intro G Δ T K wf j;
---       have lem : (Ren.to (λ x => x)) = Subst.id (T := Ty) := by rfl
---       simp; rw[lem]; simp; assumption)
---   (by intro K' Δ' ih G Δ T K wf j
---       replace j := Kinding.weaken K' j
---       replace ih := ih G ([K'] ++ Δ) T[+1] K wf j
---       simp at *
---       have lem : ((+1 ∘ Ren.to (T := Ty) (fun x => x + Δ'.length))) = Ren.to (T := Ty) (fun x => x + Δ'.length + 1) := by
---          clear ih j wf;
---          have e := Ren.add_compose_distributes (T := Ty) (y := Δ'.length) (z := 1); rw[e]; simp;
---          replace e := Ren.add_one_commutes (T := Ty) (y := Δ'.length); simp at e; rw[e]
---       rw[lem] at ih; apply ih)
---   G Δ T K wf j
-
--- theorem Kinding.closed_arbitrary_weakening : ∀ Δ',  ⊢ G ->  G&[] ⊢ T : K ->  G&Δ' ⊢ T : K := by
--- intro Δ' wf j
--- have lem1 := Kinding.closed j
--- have lem2 := Kinding.closed_lifting_lemma Δ' wf j
--- simp at *
--- replace lem1 := lem1 (Ren.to (λ x => x + Δ'.length))
--- rw[lem1] at lem2
--- apply lem2
 
 end Core
