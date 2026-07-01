@@ -98,7 +98,11 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ 
     cases y <;> simp [-Subst.rewrite_lift_k]  at *
     case zero => cases h
     case succ y =>
-    sorry
+    replace ih := ih y; simp at ih;
+    have h' : n ∈ t#(((((fun r => 0 :: r ∘ Ren.succ Ty)^[n]) (Ren.succ Ty)).act y)) := by
+      generalize zdef : (Subst.lift (T := Ty) ^[n])  = z at *
+      sorry
+    exfalso; apply ih h'
     -- simp [Subst.compose] at h
     -- replace ih := ih y
     -- generalize zdef : (((Subst.lift (T := Ty))^[n]) +1 y) = z at *
@@ -117,28 +121,6 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ 
     cases h <;> simp at *
     case _ h => apply ih1 h
     case _ h => apply ih2 h)
-
-theorem FV.mem_add {T : Ty} : x ∈ T⟨.add Ty k⟩ -> x ≥ k := by
-  intro h
-  generalize Zdef : T⟨Ren.add Ty k⟩ = Z at *
-  induction h generalizing T k
-  case var =>
-    cases T <;> simp at Zdef
-    subst Zdef; simp
-  case arrowr ih =>
-    cases T <;> simp at Zdef
-    apply ih Zdef.1
-  case arrowl => sorry
-  case eqr => sorry
-  case eql => sorry
-  case appr => sorry
-  case appl => sorry
-  case all A n K j ih =>
-    cases T <;> simp at Zdef
-    case _ K' B =>
-    rcases Zdef with ⟨e1, e2⟩; subst e1 e2
-
-    sorry
 
 theorem FV.zero_not_in_succ {T : Ty} : 0 ∉ T⟨.succ Ty⟩ := by
   have lem := @FV.var_not_in_one_more (T := T) 0
@@ -192,6 +174,34 @@ theorem FV.smap_lift {T : Ty} {σ : Subst Ty} (h : k > i) :
   have j' := smap_lift (k := k + 1) (σ := σ) (by omega) j
   .all (by simp [Ty.smap_promote]; simp at j'; exact j')
 
+theorem FV.mem_add {T : Ty} : x ∈ T⟨.add Ty k⟩ -> x ≥ k := by
+  intro h
+  generalize Zdef : T⟨Ren.add Ty k⟩ = Z at *
+  induction h generalizing T k
+
+  case var =>
+    cases T <;> simp at Zdef
+    subst Zdef; simp
+  all_goals try (case _ ih =>
+    cases T <;> simp at Zdef
+    apply ih Zdef.1)
+  all_goals try (case _ ih =>
+    cases T <;> simp at Zdef
+    apply ih Zdef.2)
+  case eqr ih =>
+    cases T <;> simp at Zdef
+    apply ih Zdef.2.1
+  case eql ih =>
+    cases T <;> simp at Zdef
+    apply ih Zdef.2.2
+  case all A n K j ih =>
+    cases T <;> simp at Zdef
+    case _ K' B =>
+    rcases Zdef with ⟨e1, e2⟩; subst e1 e2
+
+    sorry
+
+
 theorem FV.subst_congr_var {ℓ1 ℓ2 : List Ty} (σ τ : Subst Ty)
   (h1 : i < ℓ1.length)
   (h2 : ℓ1.length = ℓ2.length)
@@ -221,21 +231,22 @@ theorem FV.subst_congr_append_get {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst 
     cases h3; simp at h
     apply subst_congr_var σ τ h1 h2 h
   case global => cases h3
-  case arrow A B ih1 ih2 =>
+  all_goals try (case _ A B ih1 ih2 =>
     simp at h; cases h3
     case _ h3 => apply ih1 h1 h2 h3 h.1
-    case _ h3 => apply ih2 h1 h2 h3 h.2
+    case _ h3 => apply ih2 h1 h2 h3 h.2)
   case all K T ih =>
     simp at h; cases h3; case _ h3 =>
     replace ih := @ih (i + 1) (t#0 :: ℓ1⟨.succ Ty⟩) (t#0 :: ℓ2⟨.succ Ty⟩)
       (σ ∘ Ren.succ Ty) (τ ∘ Ren.succ Ty)
       (by simp [h1]) (by simp [h2]) h3
+    simp at ih;
+
+
     -- simp at ih; replace ih := ih h
-    -- have lem : (ℓ1⟨Ren.succ Ty⟩[i]'(by grind))⟨Ren.pred Ty⟩ = (ℓ2⟨Ren.succ Ty⟩[i]'(by grind))⟨Ren.pred Ty⟩ := by rw [ih]
     -- simp at lem
     sorry
-  case app => sorry
-  case eq => sorry
+
 
 theorem FV.subst_congr_append {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst Ty}
   (h1 : ∀ i, i < ℓ2.length -> i ∈ T)

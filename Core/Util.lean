@@ -87,11 +87,11 @@ theorem List.indexing_length_some {t : T} {Δ : List T} {x : Nat} :
   intro h; simp at h;
   simp; apply List.indexing_length_some (t := t) (Δ := Δ) (x := n) h
 
-@[simp]
+@[simp, grind =]
 theorem List.length_rmap [RenMap S T] {ℓ : List S} {r : Ren T} : ℓ⟨r⟩.length = ℓ.length := by
   induction ℓ <;> simp [*]
 
-@[simp]
+@[simp, grind =]
 theorem List.length_smap [SubstMap S T] {ℓ : List S} {σ : Subst T} : ℓ[σ].length = ℓ.length := by
   induction ℓ <;> simp [*]
 
@@ -142,6 +142,22 @@ theorem List.getElem?_smap [SubstMap S T] {ℓ : List S} {σ : Subst T} {x : Nat
 := by
   induction ℓ generalizing x <;> simp
   case _ hd tl ih => cases x <;> simp [*]
+
+
+@[simp, grind =]
+theorem List.getElem_rmap [RenMap S T] {r : Ren T} {ℓ : List S} (h1 : i < ℓ.length) :
+  ℓ⟨r⟩[i]'(by grind) = ℓ[i]⟨r⟩
+  := by
+  rw[List.getElem_eq_iff]; rw[<-List.getElem?_rmap];
+  sorry
+
+@[simp, grind =]
+theorem List.getElem_smap [SubstMap S T] {s : Subst T} {ℓ : List S} (h1 : i < ℓ.length) :
+  ℓ[s][i]'(by grind) = ℓ[i][s]
+  := by
+  rw[List.getElem_eq_iff]
+  sorry
+
 
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst

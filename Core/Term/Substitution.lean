@@ -757,26 +757,52 @@ instance : SubstMapStable Ctor1Variant Ty where
 instance : SubstMapStable Ctor2Variant Ty where
   apply_stable := by subst_solve_stable
 
-instance [RenMap S T] [SubstMap S T] [SubstMapStable S T] : SubstMapStable (Vec S n) T where
-  apply_stable := by subst_solve_stable
+
+instance : SubstMapStable (Pattern m) Ty where
+  apply_stable := by
+    intro r σ h
+    funext; case _ p =>
+    induction p <;> simp at *
+    case _ ih =>
+    unfold rmap; unfold instRenMapPatternTy; unfold smap; unfold instSubstMapPatternTy; simp
+    apply And.intro
+    rw[Subst.apply_stable (S := Vec Ty _) h]
+    apply ih
 
 instance : SubstMapStable Term Ty where
   apply_stable := by
     intro r σ h; funext; case _ t =>
     induction t generalizing r σ <;> simp [*]
     all_goals try (· rw[Subst.apply_stable h])
+    case tbind ih =>
+      congr;
+      unfold Subst.compose; unfold Subst.compose_ren_right; simp;
+      funext;
+      unfold rmap; unfold smap; unfold instSubstMapAction; unfold instRenMapAction;
+      simp; split; simp; simp; rw[Subst.apply_stable]; simp
     case mtch t1 t2 t3 ih1 ih2 =>
       funext; case _ i j =>
       apply And.intro
-      · funext; case _ x => congr; simp [Pattern] at *; sorry
-      · funext; case _ x => congr; sorry
-      -- generalize zdef : [0..(t2 i).bind ++ r ∘ Ren.add Term (t2 i).bind] = z
-      -- generalize wdef : (0..(t2 i).bind ++ r.to ∘ Subst.add Term (t2 i).bind) = w
-      -- have lem : z.to = w := by subst zdef wdef; simp
-      -- rw [<-lem]; simp
-    case tbind ih => sorry
-    case spctor ih => sorry
-    case cast ih1 ih2 =>  sorry
+      · funext; case _ x => congr; simp +instances [Subst.apply_stable h] at *;
+      · funext; case _ x =>
+          congr; simp +instances [] at *;
+          generalize zdef : (t2 x).bind_type = z at *;
+          unfold Subst.compose; unfold Subst.compose_ren_right; simp;
+          funext;
+          unfold rmap; unfold smap; unfold instSubstMapAction; unfold instRenMapAction;
+          simp; split; simp; simp; rw[Subst.apply_stable]; simp
+
+    case spctor ih =>
+      apply And.intro
+      · rw[Subst.apply_stable h]
+      · rw[Subst.apply_stable h]
+    case cast ih1 ih2 =>
+      rw[Subst.apply_stable]; simp; congr; rw[h];
+      unfold Subst.compose; unfold Subst.compose_ren_right; simp;
+      funext
+      unfold rmap; unfold smap; unfold instSubstMapAction; unfold instRenMapAction;
+      simp; split; simp; simp; rw[Subst.apply_stable]; simp
+
 
 
 theorem Term.Ty.smap_promote : Term.Ty.smap σ A = A[σ] := by simp [SubstMap.smap]
