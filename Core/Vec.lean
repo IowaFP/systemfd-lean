@@ -218,14 +218,14 @@ theorem Vec.units (vs : Vec Unit n) : ∀ i : Fin n, (vs[i]) = () := by
 
 
 def Vec.foldl_and [BEq α][LawfulBEq α] {tl : Vec α n} :
-  Vec.foldl (fun acc c => c == e && acc) false tl = true -> False
+  Vec.foldl (fun acc c => acc && c == e) false tl = true -> False
 := by
 intro h
 induction tl <;> simp at *
 case _ ih => rw[ih] at h; cases h
 
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
-  vs.foldl (λ acc c => c == e && acc) true
+  vs.foldl (λ acc c => acc && c == e) true
 
 theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec Q n} :
   vs.elems_eq_to e = true ->
@@ -630,10 +630,23 @@ theorem Vec.from_list_indexing2 {l : List α} {vs : Vec α n} :
     induction i using Fin.induction <;> simp at *
     case _ i _ => apply ih i
 
+private theorem fin_shift_lemma {a2 a1 : α} {as1 as2 : Vec α n}:
+  (∀ (i : Fin (n + 1)), (a1 :: as1)[i] = (a2 :: as2)[i]) ->
+  ∀ (i : Fin n), as1[i] = as2[i] := by intro h i; apply h i.succ
 
-theorem refl_indexing {v1 v2 : Vec α n} : v1 = v2 -> ∀ (i: Fin n), v1[i] = v2[i]
+theorem Vec.refl_indexing {v1 v2 : Vec α n} : v1 = v2 <-> ∀ (i: Fin n), v1[i] = v2[i]
 := by
-intro h i; cases h; simp;
+apply Iff.intro
+· intro h i; cases h; simp;
+· intro h;
+  induction v1
+  cases v2; rfl
+  case _ n _ as ih =>
+    cases v2;
+    congr;
+    apply h 0
+    apply ih (fin_shift_lemma (n := n) h)
+
 
 
 theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l) :  ∃ (i : Fin n), l[i] = a
@@ -649,17 +662,27 @@ theorem Vec.not_mem_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
   ¬a ∈ b :: vs -> ¬a ∈ vs := mt (λ x => Mem.tail b x)
 
 def Vec.foldl_and_true {vs : Vec Bool n} :
-  vs.foldl (· && ·) true = true <-> ∀ v ∈ vs, v = true
+  vs.foldl (·&&·) true = true <-> ∀ v ∈ vs, v = true
 := by
 apply Iff.intro
 · intro h v v_in_vs
-  induction vs
-  · cases v_in_vs
-  · case _ x vs ih =>
-    simp at h
-    cases v_in_vs;
-    sorry
-    sorry
+  generalize fdef : (·&&·) = f at *
+  generalize idef : true = init at *
+  fun_induction foldl <;> simp at *
+  case _ => cases v_in_vs
+  case _ hd tl ih =>
+    subst idef; rw[<-fdef] at h; simp at h;
+    cases v_in_vs
+    cases v;
+    · have lem := Vec.foldl_and (e := true) (tl := tl); simp at lem; rw[h] at lem;
+      cases lem;
+    · simp
+    case _ v_in_tl =>
+    replace ih := ih v_in_tl; rw[<-fdef] at ih; simp at ih;
+    cases hd
+    · have lem := Vec.foldl_and (e := true) (tl := tl); simp at lem; rw[h] at lem;
+      cases lem
+    · simp at ih; apply ih h
 · intro h
   induction vs <;> simp at *
   case _ v vs ih =>
@@ -667,5 +690,31 @@ apply Iff.intro
     have h2 := Vec.ne_of_not_mem_cons h
     simp at h2; subst v
     apply ih h1
+
+theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
+| .nil, i => i.elim0
+| .cons x xs, 0 => Mem.head
+| .cons x xs, i => sorry
+
+
+theorem Vec.true_elems {vs : Vec Bool n} {p : Fin n -> Bool}:
+  (∀ (i : Fin n), p i = vs.to i) ->
+  (¬false ∈ vs) ->
+  (∀ (i : Fin n), p i = true)
+:= by
+  intro h1 h i
+  replace h1 := h1 i
+  have lem : ∀ v ∈ vs, v = true := by simp [h]
+  replace lem := lem (vs.to i);
+  rw[h1]; apply lem
+  rw[Vec.to_get_elem]
+  apply Vec.getElem_mem
+
+theorem Vec.to_eq {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> vs1 = vs2
+:= by
+  intro h
+  funext; case _ i =>
+  sorry
+
 
 end Lilac
