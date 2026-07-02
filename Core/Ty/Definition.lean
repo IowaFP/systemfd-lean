@@ -61,8 +61,8 @@ instance kindRepr : Repr Kind where
   reprPrec a p := Kind.repr p a
 
 protected def Ty.repr (p : Nat) : (a : Ty) -> Std.Format
-| var n => "t#" ++ Nat.repr n
-| global s => "gt#" ++ s
+| var n => "`" ++ Nat.repr n
+| global s => s
 | arrow t1 t2 => Repr.addAppParen (Ty.repr max_prec t1 ++ " -:> " ++ Ty.repr p t2) p
 | all K t => Repr.addAppParen ("∀[ " ++ repr K ++ " ] " ++ Ty.repr max_prec t) p
 | eq K A B => Repr.addAppParen (Ty.repr max_prec A ++ " ~[" ++ repr K ++ "]~ " ++ Ty.repr max_prec B) p

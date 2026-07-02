@@ -165,6 +165,7 @@ theorem FV.mem_add {T : Ty} : x ∈ T⟨.add Ty k⟩ -> x ≥ k := by
     cases T <;> simp at Zdef
     apply ih Zdef.2.2
   case all A n K j ih =>
+
     cases T <;> simp at Zdef
     case _ K' B =>
     rcases Zdef with ⟨e1, e2⟩; subst e1 e2
@@ -190,6 +191,47 @@ theorem FV.subst_congr_var {ℓ1 ℓ2 : List Ty} (σ τ : Subst Ty)
         simp at ih; apply ih _ _ h
         simp at h2; apply h2
 
+
+theorem Ty.ren_lift_eq {T1 T2 : Ty} {r : Ren Ty} :
+  (T1⟨r.lift p⟩ = T2⟨r.lift p⟩ -> T1 = T2) ->
+  T1⟨r.lift (p + 1)⟩ = T2⟨r.lift (p + 1)⟩ -> T1 = T2
+  := by
+  intro h1 h2
+  induction p generalizing r
+  case zero =>
+    simp at h1; simp at h2
+    sorry
+  case succ p ih =>
+    simp at h2
+    sorry
+
+
+theorem Ty.ren_add_eq {T1 T2 : Ty} {r : Ren Ty} (h1 : r = Ren.add Ty k) : T1⟨r⟩ = T2⟨r⟩ -> T1 = T2
+  := by
+  intro h
+  induction T1 generalizing T2 r <;> induction T2
+  all_goals (simp at h)
+  case _ =>
+     unfold Ren.act at h; congr;
+     subst r; simp at h; apply h
+  case _ => subst h; rfl
+  case _ A1 B1 ih1 ih2 A2 B2 h2 h3  =>
+    simp at h2; simp at h3;
+    replace ih1 := @ih1 A2 r h1 h.1
+    replace ih2 := @ih2 B2 r h1 h.2
+    subst ih1; subst ih2; simp
+  case _ K1 A1 ih _ A2 _ =>
+    rcases h with ⟨e, h⟩; subst e
+    -- replace h := Ty.ren_lift_eq (p := 1) h1 (by simp) h
+    -- rw[h]
+    sorry
+  case _ => sorry
+  case _ => sorry
+
+
+-- theorem test {t : Ty} {ℓ1 : List Ty} {σ : Subst Ty} :
+--         T[re 0 :: σ] = T[su t#0 :: σ] := by sorry
+
 theorem FV.subst_congr_append_get {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst Ty}
   (h1 : i < ℓ1.length)
   (h2 : ℓ1.length = ℓ2.length)
@@ -211,10 +253,10 @@ theorem FV.subst_congr_append_get {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst 
       (σ ∘ Ren.succ Ty) (τ ∘ Ren.succ Ty)
       (by simp [h1]) (by simp [h2]) h3
     simp at ih;
-
-
-    -- simp at ih; replace ih := ih h
-    -- simp at lem
+    rw[<-Ty.ren_add_eq (T1 := ℓ1[i]) (T2 := ℓ2[i]) (k := 1) rfl]
+    simp; rw[<-List.getElem_rmap]; rw[<-List.getElem_rmap]
+    apply ih;
+    clear ih
     sorry
 
 

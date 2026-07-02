@@ -8,19 +8,6 @@ import Core.Examples.Common
 import Core.Examples.Maybe
 open LeanSubst
 
-namespace Core.Term
-
-def mkApps (d : Term) (tys : List Ty) (ts : List Term) : Term :=
-  let d1 := List.foldl (λ f a => f •[a]) d tys
-  List.foldl (λ f a => f • a ) d1 ts
-
-end Core.Term
-
-namespace Core.Ty
-def mkApps (d : Ty) (tys : List Ty) : Ty :=
-  List.foldl (λ f a => f • a ) d tys
-end Core.Ty
-
 
 namespace Core.Examples
 
