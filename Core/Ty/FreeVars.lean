@@ -166,7 +166,7 @@ theorem FV.mem_add {T : Ty} : x ∈ T⟨.add Ty k⟩ -> x ≥ k := by
     apply ih Zdef.2.2
   case all A n K j ih =>
 
-    cases T <;> simp at Zdef
+    cases T <;> simp [-Subst.rewrite_lift] at Zdef
     case _ K' B =>
     rcases Zdef with ⟨e1, e2⟩; subst e1 e2
     replace ih := @ih (k + 1)
@@ -193,19 +193,6 @@ theorem FV.subst_congr_var {ℓ1 ℓ2 : List Ty} (σ τ : Subst Ty)
         simp at h2; apply h2
 
 
-theorem Ty.ren_lift_eq {T1 T2 : Ty} {r : Ren Ty} :
-  (T1⟨r.lift p⟩ = T2⟨r.lift p⟩ -> T1 = T2) ->
-  T1⟨r.lift (p + 1)⟩ = T2⟨r.lift (p + 1)⟩ -> T1 = T2
-  := by
-  intro h1 h2
-  induction p generalizing r
-  case zero =>
-    simp at h1; simp at h2
-    sorry
-  case succ p ih =>
-    simp at h2
-    sorry
-
 
 theorem Ty.ren_act_eq {T: Ty} {r1 r2 : Ren Ty} : T⟨r1⟩ = T⟨r2⟩ -> ∀ i, i ∈ T -> r1.act i = r2.act i
   := by
@@ -226,26 +213,43 @@ theorem Ty.ren_act_eq {T: Ty} {r1 r2 : Ren Ty} : T⟨r1⟩ = T⟨r2⟩ -> ∀ i,
 theorem Ty.sub_act_eq {T: Ty} {σ1 σ2 : Subst Ty} : T[σ1] = T[σ2] -> ∀ i, i ∈ T -> σ1.act i = σ2.act i
   := by
   intro h1 i h2
-  induction T generalizing i σ1 σ2 <;> simp at *
-  all_goals (cases h2)
-  sorry
-  sorry
-  sorry
-  case all.all ih h =>
-    replace ih := ih h1 (i + 1) h; simp at ih
-    generalize z1def : σ1.act i = T1 at *
-    generalize z2def : σ2.act i = T2 at *
+  induction h2 generalizing σ1 σ2
+  case var =>
+    simp at h1;
+    cases σ1; cases σ2;
+    simp +instances [Subst.act_inner] at *
+    sorry
+  case all fv ih =>
+    simp [-Subst.rewrite_lift] at h1
+    replace ih := ih h1; simp at ih
+    -- simp +instances [Subst.act, SubstAction.act] at ih
+    -- cases σ1; cases σ2; simp [Subst.act_inner] at *;
     sorry
   sorry
   sorry
   sorry
   sorry
+  sorry
+  sorry
+
+  -- induction T generalizing i σ1 σ2 <;> simp [-Subst.rewrite_lift] at *
+  -- all_goals (cases h2)
+  -- sorry
+  -- sorry
+  -- sorry
+  -- case all.all ih h =>
+  --   replace ih := ih h1 (i + 1) h; simp at ih
+  --   simp [Subst.act, SubstAction.act] at ih
+  --   -- generalize z1def : σ1.act i = T1 at *
+  --   -- generalize z2def : σ2.act i = T2 at *
+
+  --   sorry
+  -- sorry
+  -- sorry
+  -- sorry
+  -- sorry
 
 
-
-
--- theorem test {t : Ty} {ℓ1 : List Ty} {σ : Subst Ty} :
---         T[re 0 :: σ] = T[su t#0 :: σ] := by sorry
 
 theorem FV.subst_congr_append_get {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst Ty}
   (h1 : i < ℓ1.length)
@@ -256,31 +260,10 @@ theorem FV.subst_congr_append_get {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst 
 
   intro h;
   have lem := Ty.sub_act_eq h _ h3;
-  induction i
-  case _ =>
-    unfold Subst.act at lem; unfold SubstAction.act at lem;
-    unfold instSubstActionNatAction at lem; unfold Subst.inner at lem; simp at lem
-    sorry
-  case _ => sorry
-
-
-  -- induction T generalizing i ℓ1 ℓ2 σ τ
-  -- case var i =>
-  --   cases h3; simp at h
-  --   apply subst_congr_var σ τ h1 h2 h
-  -- case global => cases h3
-  -- all_goals try (case _ A B ih1 ih2 =>
-  --   simp at h; cases h3
-  --   case _ h3 => apply ih1 h1 h2 h3 h.1
-  --   case _ h3 => apply ih2 h1 h2 h3 h.2)
-  -- case all K T ih =>
-  --   simp at h; cases h3; case _ h3 =>
-  --   replace ih := @ih (i + 1) (t#0 :: ℓ1⟨.succ Ty⟩) (t#0 :: ℓ2⟨.succ Ty⟩)
-  --     (σ ∘ Ren.succ Ty) (τ ∘ Ren.succ Ty)
-  --     (by simp [h1]) (by simp [h2]) h3
-  --   simp at ih;
-
-  --  sorry
+  rw[Subst.append_action_lt (by grind)] at lem;
+  rw[Subst.append_action_lt (by grind)] at lem;
+  rw[List.getElem_map] at lem; rw[List.getElem_map] at lem
+  simp at lem; apply lem
 
 
 theorem FV.subst_congr_append {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst Ty}
