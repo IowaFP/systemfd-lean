@@ -277,12 +277,30 @@ theorem FV.subst_congr_append {T : Ty} {ℓ1 ℓ2 : List Ty} {σ τ : Subst Ty}
   have lem := h1 i q2
   apply subst_congr_append_get q1 h2 lem h3
 
-theorem FV.subst_congr_append_lift_get_lemma {T : Ty} {ℓ : List Ty} {σ τ : Subst Ty}
-  : T[ℓ.map su ++ σ] = T[0..ℓ.length ++ τ] -> T[σ.lift ℓ.length] = T[τ.lift ℓ.length]
-:= by
-  sorry
+@[simp, grind <-]
+theorem Subst.hAppend_action_ge {σ : Subst T} {i}
+  : {ℓ : List Nat} -> (h : i ≥ ℓ.length) -> (ℓ ++ σ).act i = σ.act (i - ℓ.length)
+| .nil, h => by simp
+| .cons hd tl, h =>
+  match i with
+  | 0 => by simp at h
+  | i + 1 => hAppend_action_ge (σ := σ) (i := i) (ℓ := tl) (by grind) |> cast (by simp)
 
-theorem FV.subst_congr_append_append_get {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ τ : Subst Ty}
+-- theorem FV.subst_congr_append_lift_get_lemma {T : Ty} {ℓ : List Ty} {σ τ : Subst Ty}
+--   : T[ℓ.map su ++ σ] = T[0..ℓ.length ++ τ] -> T[σ.lift ℓ.length] = T[τ.lift ℓ.length]
+-- := by
+--   sorry
+
+
+theorem Subst.range_length_aux {s e : Nat} (h : s ≤ e) : (s..e).length = e - s
+  := by
+  fun_induction Ren.range <;> grind
+
+theorem Subst.range_length : (0..k).length = k := by
+  have lem := Subst.range_length_aux (s := 0) (e := k) (by grind)
+  simp at lem; apply lem
+
+theorem FV.subst_congr_append_append_get {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ τ : Subst Ty} {i : Nat}
   (h1 : i < ℓ2.length)
   (h2 : ℓ1.length = ℓ2.length)
   (h3 : ℓ3.length = k)
@@ -290,28 +308,16 @@ theorem FV.subst_congr_append_append_get {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ
   : T[ℓ3.map su ++ (ℓ1.map su ++ σ)] = T[0..k ++ (ℓ2.map su ++ τ)] -> ℓ1[i] = ℓ2[i]
 := by
   intro h
-  induction T generalizing i ℓ1 ℓ2 ℓ3 σ τ
-  case var =>
-    cases h4; simp at h; subst h3
+  have lem := Ty.sub_act_eq h (i + ℓ3.length) h4
+  simp at lem;
+  rw[Subst.append_action_lt (by grind)] at lem;
+  rw[List.getElem_map] at lem
+  simp [h3] at lem; rw[Nat.add_comm] at lem;
+  rw[Subst.hAppend_action_ge (ℓ := 0..k) (σ := List.map su ℓ2 ++ τ) (i := k + i) (h := by grind)] at lem
+  rw[Subst.range_length] at lem; simp at lem;
+  rw[Subst.append_action_lt (by grind)] at lem; simp at lem;
+  apply lem
 
-    sorry
-  case global => cases h4
-  case arrow ih1 ih2 =>
-    simp at h; cases h4
-    case _ h4 => apply ih1 h1 h2 h3 h4 h.1
-    case _ h4 => apply ih2 h1 h2 h3 h4 h.2
-  case all ih =>
-    simp at h; cases h4; case _ h4 =>
-
-    sorry
-  case app ih1 ih2 =>
-    simp at h; cases h4
-    case _ h4 => apply ih1 h1 h2 h3 h4 h.1
-    case _ h4 => apply ih2 h1 h2 h3 h4 h.2
-  case eq ih1 ih2 =>
-    simp at h; cases h4
-    case _ h4 => apply ih1 h1 h2 h3 h4 h.1
-    case _ h4 => apply ih2 h1 h2 h3 h4 h.2
 
 theorem FV.subst_congr_append_append {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ τ : Subst Ty}
   (h1 : ∀ i, i < ℓ2.length -> i + ℓ3.length ∈ T)
@@ -320,8 +326,10 @@ theorem FV.subst_congr_append_append {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ τ 
   : T[ℓ3.map su ++ (ℓ1.map su ++ σ)] = T[0..k ++ (ℓ2.map su ++ τ)] -> ℓ1 = ℓ2
 := by
   intro h
-  sorry
--- R[(List.map su As2⟨Ren.add Ty nb⟩.list).reverse ++ (List.map su As1⟨Ren.add Ty nb⟩.list).reverse ++ Subst.add Ty nb] =
---   R[0..nb ++ ((List.map su As⟨Ren.add Ty nb⟩.list).reverse ++ Subst.add Ty nb)]
+  rw[List.ext_getElem_iff]
+  apply And.intro h2
+  intro i h4 h5;
+  replace h1 := h1 i h5
+  apply FV.subst_congr_append_append_get h5 h2 h3 h1 h
 
 end Core
