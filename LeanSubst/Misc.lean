@@ -374,4 +374,34 @@ theorem Subst.List.rmap_map_su [RenMap T T] {ℓ : List T} {r : Ren T} : (List.m
 theorem Subst.List.smap_map_su [SubstMap T T] {ℓ : List T} {σ : Subst T} : (List.map su ℓ)[σ] = List.map su ℓ[σ] := by
   induction ℓ <;> simp ; grind
 
+macro "subst_solve_id" : tactic => `(tactic| {
+  intro t; induction t
+  any_goals solve | simp +instances [*]
+  all_goals try simp at *; simp  +instances [*]; grind
+})
+
+macro "subst_solve_stable" : tactic => `(tactic| {
+  intro r σ h
+  funext; case _ t =>
+  induction t generalizing r σ
+  all_goals
+    simp [-Subst.rewrite_lift, -Subst.rewrite_lift_k, -Subst.rewrite_lift_ren, -Subst.rewrite_lift_k_ren, *] at *
+    try simp +instances [*]
+  all_goals try solve | rw [Subst.apply_stable h]
+  all_goals try solve | (rw [<-h]; simp +instances [Ren.to])
+  all_goals try repeat funext; grind
+})
+
+macro "subst_solve_compose" : tactic => `(tactic| {
+  intro s σ τ
+  induction s generalizing σ τ
+  any_goals solve | simp +instances [*]
+  try any_goals solve | (
+    try simp [-Subst.rewrite_lift, *]
+    try funext; case _ x =>
+    try rw [<-Ren.to_lift]
+    try simp [-Subst.rewrite_lift, *]
+    try grind)
+})
+
 end LeanSubst
