@@ -74,10 +74,6 @@ def Vec.list {α n} : Vec α n -> List α
 | #() => []
 | x::xs => x::xs.list
 
-def Vec.has_dec_eq {α n} [DecidableEq α] : (a b : Vec α n) -> Decidable (a = b) := sorry
-
-instance {α n} [DecidableEq α] : DecidableEq (Vec α n) := Vec.has_dec_eq
-
 @[reducible, simp]
 def Vec.length {α n} (_ : Vec α n) : Nat := n
 
