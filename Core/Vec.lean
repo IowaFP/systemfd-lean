@@ -426,7 +426,7 @@ theorem Vec.traverse_cons [Applicative F] {xs : Vec α n} (f : α -> F β):
   Vec.traverse f (Vec.cons x xs) = (Vec.cons · ·) <$> f x <*> traverse f xs
   := by simp
 
-theorem Vec.traverse_eq_pure_iff_getElem_Option {m α β n v2} {f : α -> Option β} :
+theorem Vec.traverse_eq_pure_iff_getElem_Option {α β n v2} {f : α -> Option β} :
   {v1 : Vec α n} ->
   v1.traverse f = some v2 ->
   ∀ i : Fin n, f v1[i] = some (v2[i])
