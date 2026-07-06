@@ -426,12 +426,34 @@ theorem Vec.traverse_cons [Applicative F] {xs : Vec α n} (f : α -> F β):
   Vec.traverse f (Vec.cons x xs) = (Vec.cons · ·) <$> f x <*> traverse f xs
   := by simp
 
+theorem Vec.traverse_eq_pure_iff_getElem_Option {m α β n v2} {f : α -> Option β} :
+  {v1 : Vec α n} ->
+  v1.traverse f = some v2 ->
+  ∀ i : Fin n, f v1[i] = some (v2[i])
+| .nil, h, i => Fin.elim0 i
+| .cons x xs, h, i => by
+  cases v2; case _ y ys =>
+  simp at h; unfold Seq.seq at h
+  unfold Applicative.toSeq at h
+  unfold Alternative.toApplicative at h
+  unfold instAlternativeOption at h; simp at h
+  unfold Monad.toApplicative at h
+  unfold instMonadOption at h; simp at h
+  cases i using Fin.cases
+  case zero =>
+    simp at *; generalize zdef : (f x) = z at *
+    cases z <;> simp at *; apply h.2
+  case succ i =>
+    simp at *; generalize zdef : (f x) = z at *
+    cases z <;> simp at *
+    apply Vec.traverse_eq_pure_iff_getElem_Option h.1
+
 theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Vec.map f vs).sequence = some vs' ->
   ∀ i : Fin n, f (vs[i]) = some (vs'[i])
 := by
   intro h
-  simp at h; apply traverse_eq_pure_iff_getElem h
+  simp at h; apply traverse_eq_pure_iff_getElem_Option h
 
 theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Fun.Vec.to (λ i => f (vs i))).sequence = some vs' ->
