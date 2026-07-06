@@ -449,7 +449,7 @@ intro wf h1 h2
 unfold enumerate_ctor_names at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ctor_names, h3, h2⟩
 injection h2; case _ h2 =>
-replace h3 := Vec.traverse_eq_pure_iff_getElem h3
+replace h3 := Vec.traverse_eq_pure_iff_getElem_Option h3
 unfold Query at h1;
 induction h1 generalizing ℓ <;> simp at *
 case _ =>
@@ -534,7 +534,7 @@ intro wf h1 h2
 unfold check_exhaustive at h2; simp at h2
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨ref_matrix, h4, h2⟩
 rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨idxs, h6, h2⟩
-replace h6 := Vec.traverse_eq_pure_iff_getElem h6
+replace h6 := Vec.traverse_eq_pure_iff_getElem_Option h6
 cases h2;
 cases ref_matrix; case _ n ref_matrix =>
 simp at idxs;

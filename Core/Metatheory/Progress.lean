@@ -422,4 +422,6 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
   | Or.inr ⟨f', r⟩, _ => Or.inr ⟨_, .apptc_congr1 r⟩
   | _, Or.inr ⟨a', r⟩ => Or.inr ⟨_, .apptc_congr2 r⟩
 
+
+#print axioms progress
 end Core

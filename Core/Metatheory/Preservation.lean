@@ -404,3 +404,5 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
 | .apptc j1 j2 e1 e2, .apptc_congr2 r =>
   let j2' := preservation_step wf j2 r
   .apptc j1 j2' e1 e2
+
+#print axioms preservation_step

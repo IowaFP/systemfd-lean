@@ -25,9 +25,9 @@ case _ n x k ctors G ih => -- ctors
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h4, h5, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h6, h7, h⟩
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h8, h9, h⟩
-  replace h5 := Vec.traverse_eq_pure_iff_getElem h5
-  replace h7 := Vec.traverse_eq_pure_iff_getElem h7
-  replace h9 := Vec.traverse_eq_pure_iff_getElem h9
+  replace h5 := Vec.traverse_eq_pure_iff_getElem_Option h5
+  replace h7 := Vec.traverse_eq_pure_iff_getElem_Option h7
+  replace h9 := Vec.traverse_eq_pure_iff_getElem_Option h9
   replace h4 := Vec.units h4;
   rcases h3 with ⟨h3a, h3b⟩
   replace h3b := Vec.unique_elems_sound h3b;
