@@ -1,2 +1,0 @@
-
-import Lilac.Sequ.Definition

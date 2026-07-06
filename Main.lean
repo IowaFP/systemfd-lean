@@ -1,4 +1,3 @@
--- import SystemFD
 import Core
 
 def hello : String := "System FD"

@@ -1,2 +1,0 @@
-
-import Lilac.Hequ.Definition
