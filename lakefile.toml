@@ -4,27 +4,14 @@ defaultTargets = ["systemfd"]
 
 [[require]]
 name = "lean-subst"
-scope = "amarmaduke"
-git = "https://github.com/amarmaduke/lean-subst"
-rev = "7712e15"
+path = "lean-subst"
 
 [[require]]
 name = "lilac"
-scope = "amarmaduke"
-git = "https://github.com/amarmaduke/lilac"
-rev = "d50e83f"
+path = "lilac"
 
 [[lean_lib]]
 name = "Core"
-
-[[lean_lib]]
-name = "Surface"
-
-[[lean_lib]]
-name = "Translation"
-
-# [[lean_lib]]
-# name = "SystemFD"
 
 [[lean_exe]]
 name = "systemfd"

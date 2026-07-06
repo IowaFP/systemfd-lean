@@ -1,0 +1,8 @@
+[submodule "lean-subst"]
+	path = lean-subst
+	url = git@github.com:amarmaduke/lean-subst.git
+	branch = main
+[submodule "lilac"]
+	path = lilac
+	url = git@github.com:amarmaduke/lilac.git
+	branch = main
