@@ -192,7 +192,7 @@ theorem FV.smap_lift {T : Ty} {σ : Subst Ty} (h : k > i) :
   .all (by simp [Ty.smap_promote]; simp at j'; exact j')
 
 
-theorem FV.mem_add_k {T : Ty} : (x + n) ∈ T⟨(Ren.add Ty k).lift n⟩ -> (x + n) ≥ k := by
+theorem FV.mem_add_k {T : Ty} : (x + n) ∈ T⟨(Ren.add Ty k).lift n⟩ -> x ≥ k := by
   intro h
 
   generalize Zdef : T⟨(Ren.add Ty k).lift n⟩ = Z at *
@@ -212,34 +212,25 @@ theorem FV.mem_add_k {T : Ty} : (x + n) ∈ T⟨(Ren.add Ty k).lift n⟩ -> (x +
      cases T <;> simp [-Subst.rewrite_lift_k_ren, -Subst.rewrite_lift_ren] at Zdef
      rcases Zdef with ⟨e, Zdef⟩; subst e; subst xndef
      rw[<-Ren.lift_of_succ] at Zdef;
-     case _ a =>
-     replace ih := @ih (k + 1) (n + 1) x
-
-     sorry
-  repeat sorry
-  -- case var =>
-  --   cases T <;> simp at Zdef
-  --   subst Zdef; simp
-  -- all_goals try (case _ ih =>
-  --   cases T <;> simp at Zdef
-  --   apply ih Zdef.1)
-  -- all_goals try (case _ ih =>
-  --   cases T <;> simp at Zdef
-  --   apply ih Zdef.2)
-  -- case eqr ih =>
-  --   cases T <;> simp at Zdef
-  --   apply ih Zdef.2.1
-  -- case eql ih =>
-  --   cases T <;> simp at Zdef
-  --   apply ih Zdef.2.2
-  -- case all A n K j ih =>
-  --   -- have lem := @FV.var_not_in_one_more (T := T) x;
-
-  --   cases T <;> simp [-Subst.rewrite_lift] at Zdef
-  --   case _ K' B =>
-  --   rcases Zdef with ⟨e1, e2⟩; subst e1 e2
-  --   replace ih := @ih (k + 1)
-
+     case _ a _ =>
+     replace ih := @ih k (n + 1) x a Zdef rfl
+     apply ih
+  all_goals try (case _ h ih =>
+    cases T <;> simp [-Subst.rewrite_lift_k_ren] at Zdef
+    rcases Zdef with ⟨h1, h2⟩
+    apply @ih k n x _ h1 xndef)
+  all_goals try (case _ h ih =>
+    cases T <;> simp [-Subst.rewrite_lift_k_ren] at Zdef
+    rcases Zdef with ⟨h1, h2⟩
+    apply @ih k n x _ h2 xndef)
+  case eqr ih =>
+    cases T <;> simp [-Subst.rewrite_lift_k_ren] at Zdef
+    rcases Zdef with ⟨e, h1, h2⟩; subst e
+    apply @ih k n x _ h1 xndef
+  case eql ih =>
+    cases T <;> simp [-Subst.rewrite_lift_k_ren] at Zdef
+    rcases Zdef with ⟨e, h1, h2⟩; subst e
+    apply @ih k n x _ h2 xndef
 
 theorem FV.mem_add {T : Ty} : x ∈ T⟨Ren.add Ty k⟩ -> x ≥ k
   := by
