@@ -19,22 +19,43 @@ namespace Core.Examples
 def TruePat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"True", 0 , #(), 0, 0⟩
 def FalsePat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"False", 0 , #(), 0, 0⟩
 
+def LeftPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"Left", 2, #(t#1, t#0), 0, 1⟩
+def RightPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"Right", 2, #(t#1, t#0), 0, 1⟩
+
+def LTPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"LT", 0, #(), 0, 0⟩
+def EQPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"EQ", 0, #(), 0, 0⟩
+def GTPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"GT", 0, #(), 0, 0⟩
+
 def LTCtor : Term := ctor! "LT" #() #() .nil
 def EQCtor : Term := ctor! "EQ" #() #() .nil
 def GTCtor : Term := ctor! "GT" #() #() .nil
 
-def LeftPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"Left", 2, #(t#1, t#0), 0, 1⟩
-def RightPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"Right", 2, #(t#1, t#0), 0, 1⟩
-
 def OrdCtx : GlobalEnv := [
 
+  .inst "eqOfOrd" #(⟨"OrdBy", 1, #(t#0), 0, 1⟩) (inst! "EqOfOrd" #(t#0) #() #(inst! "OrdBy" #(t#0) #() #(#0).to).to),
+  .inst "compare" #(⟨"OrdBy", 1, #(t#0), 0, 1⟩) #0,
+  .octor "OrdBy" ⟨1, #(★), 0, #(), 1, #(t#0 -:> (t#0 -:> gt#"Ordering")), gt#"Ord" • t#0⟩,
 
-  -- .inst "eqOfOrd" (#(⟨"OrdBool", 1, #(t#0), 0, 1⟩)) (sorry),
+
+  .inst "eqOfOrd" (#(⟨"OrdEither", 1, #(t#0), 2, 3⟩)) (
+      let t3 := inst! "OrdEither" #(t#2) #(t#1, t#0) #(#2, #1, #0).to
+      inst! "EqOfOrd" #(t#2) #() #(t3).to
+   ),
+
+  .inst "eqOfOrd" (#(⟨"OrdBool", 1, #(t#0), 0, 1⟩)) (inst! "EqBool" #(t#0) #() #(#0).to),
 
   -- eqOfOrd : ∀ t. Ord t ⇒ Eq t
-  -- .openm "eqOfOrd" ⟨1, #(★), 0, #(), 1, #(gt#"Ord" • t#0), gt#"Eq" • t#0⟩,
+  .openm "eqOfOrd" ⟨1, #(★), 0, #(), 1, #(gt#"Ord" • t#0), gt#"Eq" • t#0⟩,
 
+  .inst "eq" #(⟨"EqOfOrd", 1, #(t#0), 0, 1⟩) (λ[t#0]λ[t#0]
+         mtch' #((openm! "compare" #(t#0) #() #(#2).to).mkApps [] [#1, #0])
+           #( (#(LTPat), FalseCtor)
+            , (#(EQPat), TrueCtor)
+            , (#(GTPat), FalseCtor)
+            )
+  ),
 
+  .octor "EqOfOrd" ⟨1, #(★), 0, #(), 1, #(gt#"Ord" • t#0), gt#"Eq" • t#0⟩,
 
   .inst "compare" #(⟨"OrdEither", 1, #(t#0), 2, 3⟩) (
         let t1 := (d#"arrowc").mkApps [t#2, (gt#"Either" • t#1) • t#0, gt#"Ordering", gt#"Ordering"] [#0, refl! gt#"Ordering"]
@@ -43,6 +64,7 @@ def OrdCtx : GlobalEnv := [
         Term.cast t#0 t3 ((d#"compEither").mkApps [t#1, t#0] [#2, #1])
   ),
 
+  -- OrdEither : ∀ t u v. Ord u, Ord v, t ~ Either u v ⇒ Ord t
   .octor "OrdEither" ⟨1, #(★), 2, #(★, ★), 3, #(gt#"Ord" • t#1, gt#"Ord" • t#0, t#2 ~[★]~ ((gt#"Either" • t#1) • t#0)), (gt#"Ord" • t#2)⟩,
 
   .defn "compEither" (∀[★]∀[★] (gt#"Ord" • t#1) -:> ((gt#"Ord" • t#0) -:> (((gt#"Either" • t#1) • t#0) -:> (((gt#"Either" • t#1) • t#0) -:> gt#"Ordering"))))
@@ -102,6 +124,21 @@ def OrdCtx : GlobalEnv := [
 #guard OrdCtx.check_open_exhaustive == some ()
 
 -- #eval! do
+--   match lookup "eqOfOrd" OrdCtx with
+--   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+--       if "eqOfOrd" == y then
+--         let Δ := (Ks1.list ++ Ks2.list).reverse
+--         let (ζ, Γ) <- pattern_binders (.data .opn) OrdCtx Δ n Ts #(⟨"OrdEither", 1, #(t#0), 2, 3⟩)
+
+--         let t3 := inst! "OrdEither" #(t#2) #(t#1, t#0) #(#2, #1, #0).to
+--         let t4 := inst! "EqOfOrd" #(t#2) #() #(t3).to
+--         let R' := t4.infer_type OrdCtx (ζ ++ Δ) Γ
+--         return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩, R') -- R'
+--       else none
+--   | _ => none
+
+
+-- #eval! do
 --   match lookup "compare" OrdCtx with
 --   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
 --       if "compare" == y then
@@ -114,7 +151,7 @@ def OrdCtx : GlobalEnv := [
 
 --         let t4 := Term.cast t#0 t3 ((d#"compEither").mkApps [t#1, t#0] [#2, #1])
 --         let R' <- t4.infer_type OrdCtx (ζ ++ Δ) Γ
---         return (ζ ++ Δ, Γ, R⟨Ren.add Ty 2⟩, R') -- R'
+--         return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩, R') -- R'
 --       else none
 --   | _ => none
 
