@@ -16,18 +16,44 @@ namespace Core.Examples
 
 
 def ZeroCtor : Term := ctor! "Zero" #() #() .nil
+def OneCtor : Term := ctor! "Succ" #() #() #(ZeroCtor).to
+
+def iEqInt : Term := inst! "EqInt" #(gt#"Int") #() #(refl! gt#"Int").to
 
 def MPCtx : GlobalEnv := [
 
 
-  -- .inst "to" #(⟨"IntIntFun", 1, #(t#1), 1, 2⟩, ⟨"IntIntFun", 1, #(t#0), 1, 2⟩) (
-  --       let t1 := (d#"appc").mkApps [t#0, gt#"->" • gt#"Int", t#1, gt#"Int"] [#0, #1]
-  --       let t2 := (d#"sym").mkApps [t#0 • t#1, (gt#"->" • gt#"Int") • gt#"Int"] [t1]
-  --       let t3 := (d#"slam").mkApps [gt#"Int", gt#"Int"] [(λ[gt#"Int"] #0)]
-  --       (Term.cast t#0 t2 t3)
-  -- ),
+  -- ∀ r s m. MonadReader r m, MonadReader s m ⇒ r -> m s
+  -- .openm "toM" ⟨3, #(★, ★, ★ -:> ★), 0, #(), 2, #((gt#"MonadReader" • t#2) • t#0, (gt#"MonadReader" • t#1) • t#0), t#2 -:> (t#0 • t#1)⟩,
+
+
+  .inst "to" #(⟨"BoolIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"IntIntFun", 2, #(t#1, t#0), 0, 2⟩) (
+     let t0 := (d#"sym").mkApps [t#1, gt#"Int"] [#2]
+     λ[t#2] Term.cast t#0 t0 (mtch' #(Term.cast t#0 #4 #0)
+          #( (#(TruePat), ZeroCtor)
+          ,  (#(FalsePat), OneCtor)))
+  ),
+
+  .inst "to" #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩) (
+    let t0 := (d#"sym").mkApps [t#1, gt#"Bool"] [#2]
+    (λ[t#2] Term.cast t#0 t0 ((openm! "eq" #(gt#"Int") #() #(iEqInt).to).mkApps [] [Term.cast t#0 #4 #0, ZeroCtor]))
+  ),
+
+  .inst "to" #(⟨"BoolIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩) (
+        let t0 := (d#"sym").mkApps [t#1, gt#"Bool"] [#2]
+        let t1 := (d#"seq").mkApps [t#2, gt#"Bool", t#1] [#4, t0]
+        λ[t#2] Term.cast t#0 t1 #0
+  ),
+
+
+  .inst "to" #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"IntIntFun", 2, #(t#1, t#0), 0, 2⟩) (
+        let t0 := (d#"sym").mkApps [t#1, gt#"Int"] [#2]
+        let t1 := (d#"seq").mkApps [t#2, gt#"Int", t#1] [#4, t0]
+        λ[t#2] Term.cast t#0 t1 #0
+  ),
+
   -- ∀ r s m. MonadReader r m, MonadReader s m ⇒ r -> s
-  -- .openm "to" ⟨3, #(★, ★, ★ -:> ★), 0, #(), 2, #((gt#"MonadReader" • t#2) • t#0, (gt#"MonadReader" • t#2) • t#0), t#2 -:> t#1⟩,
+  .openm "to" ⟨3, #(★, ★, ★ -:> ★), 0, #(), 2, #((gt#"MonadReader" • t#2) • t#0, (gt#"MonadReader" • t#1) • t#0), t#2 -:> t#1⟩,
 
   .inst "ask" #(⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩) (
         let t1 := (d#"appc").mkApps [t#0, gt#"->" • gt#"Int", t#1, gt#"Bool"] [#0, #1]
@@ -45,7 +71,7 @@ def MPCtx : GlobalEnv := [
       #( (#(⟨"Zero", 0, #(), 0, 0⟩, ⟨"Zero", 0, #(), 0, 0⟩), TrueCtor)
        , (#(⟨"Zero", 0, #(), 0, 0⟩, ⟨"Succ", 0, #(), 0, 1⟩), FalseCtor)
        , (#(⟨"Succ", 0, #(), 0, 1⟩, ⟨"Zero", 0, #(), 0, 0⟩), FalseCtor)
-       , (#(⟨"Succ", 0, #(), 0, 1⟩, ⟨"Succ", 0, #(), 0, 1⟩), (openm! "eq" #(gt#"Int") #() #(inst! "EqInt" #(gt#"Int") #() #(refl! gt#"Int").to).to).mkApps [] [#1, #0])
+       , (#(⟨"Succ", 0, #(), 0, 1⟩, ⟨"Succ", 0, #(), 0, 1⟩), (openm! "eq" #(gt#"Int") #() #(iEqInt).to).mkApps [] [#1, #0])
        )
    ),
   .octor "EqInt" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Int"), gt#"Eq" • t#0⟩,
@@ -86,16 +112,24 @@ def MPCtx : GlobalEnv := [
 
 ] ++ EqBoolCtx ++ CastCtx
 
--- #eval! do
---   match lookup "to" MPCtx with
---   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
---       if "to" == y then
---         let Δ := (Ks1.list ++ Ks2.list).reverse
---         let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"IntIntFun", 2, #(t#1, t#0), 0, 2⟩)
-
---         return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩) -- R'
---       else none
---   | _ => none
+#eval! do
+  match lookup "to" MPCtx with
+  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+      if "to" == y then
+        let Δ := (Ks1.list ++ Ks2.list).reverse
+        -- let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩)
+        let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"BoolIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"IntIntFun", 2, #(t#1, t#0), 0, 2⟩)
+        let t0 := (d#"sym").mkApps [t#1, gt#"Int"] [#2]
+        -- let t1 := (d#"seq").mkApps [t#2, gt#"Bool", t#1] [#4, t0]
+        -- let t0 := λ[t#2] Term.cast t#0 #4 #0
+        let R' := (λ[t#2] Term.cast t#0 t0 (mtch' #(Term.cast t#0 #4 #0)
+          #( (#(TruePat), ZeroCtor)
+          ,  (#(FalsePat), OneCtor)))
+          ).infer_type MPCtx (ζ ++ Δ) Γ
+        -- let R' := t0.infer_type MPCtx (ζ ++ Δ) Γ
+        return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩, R')
+      else none
+  | _ => none
 
 
 

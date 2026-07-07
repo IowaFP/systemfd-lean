@@ -22,6 +22,9 @@ def BoolCtx : GlobalEnv := [
 def TrueCtor : Term := ctor! "True" #() #() .nil
 def FalseCtor : Term := ctor! "False" #() #() .nil
 
+def TruePat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"True", 0 , #(), 0, 0⟩
+def FalsePat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"False", 0 , #(), 0, 0⟩
+
 #guard TrueCtor.infer_type BoolCtx [] [] == .some gt#"Bool"
 #guard GlobalEnv.wf_globals [] == some ()
 #guard GlobalEnv.wf_globals BoolCtx == some ()
@@ -34,8 +37,8 @@ not = λ x → case x of
 -/
 def notTerm : Core.Term := λ[  gt#"Bool" ]
   mtch' #(#0)
-     #( (#(⟨"True", 0,  #(), 0, 0⟩) , FalseCtor)
-      , (#(⟨"False", 0 , #(), 0, 0⟩) , TrueCtor) )
+     #( (#(TruePat) , FalseCtor)
+      , (#(FalsePat) , TrueCtor) )
 
 #guard Term.infer_type BoolCtx [] [] notTerm == some (gt#"Bool" -:> gt#"Bool")
 
@@ -50,16 +53,16 @@ def notTerm : Core.Term := λ[  gt#"Bool" ]
  -/
 def eqBool : Term := λ[ gt#"Bool" ] λ[ gt#"Bool" ]
   (mtch' #(#1)
-     #( (#(⟨"True", 0 , #() , 0, 0⟩)  ,
+     #( (#(TruePat)  ,
           (mtch' #(#0)
-                 #( (#( ⟨"True", 0 , #() , 0, 0⟩ ), TrueCtor)
-                   , (#( ⟨"False", 0 , #() , 0, 0⟩ ) , FalseCtor))
+                 #( (#( TruePat ), TrueCtor)
+                   , (#( FalsePat ) , FalseCtor))
                    ))
 
-       , (#(⟨"False", 0 , #(), 0, 0⟩)  ,
+       , (#(FalsePat)  ,
           (mtch' #(#0)
-                 #( (#( ⟨"True", 0 , #() , 0, 0⟩ ), FalseCtor)
-                   , (#( ⟨"False", 0 , #() , 0, 0⟩ ) , TrueCtor)
+                 #( (#( TruePat ), FalseCtor)
+                   , (#( FalsePat ) , TrueCtor)
                    )))))
 
 #guard Term.infer_type BoolCtx [] [] eqBool == some (gt#"Bool" -:> (gt#"Bool" -:> gt#"Bool"))

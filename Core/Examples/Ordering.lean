@@ -16,9 +16,6 @@ open LeanSubst
 
 namespace Core.Examples
 
-def TruePat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"True", 0 , #(), 0, 0⟩
-def FalsePat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"False", 0 , #(), 0, 0⟩
-
 def LeftPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"Left", 2, #(t#1, t#0), 0, 1⟩
 def RightPat : String × (n : Nat) × Vec Ty n × Nat × Nat := ⟨"Right", 2, #(t#1, t#0), 0, 1⟩
 
