@@ -5,71 +5,116 @@ import Core.Vec
 
 import Core.Eval.BigStep
 import Core.Infer.Kind
-
 import Core.Typing
 
-namespace Core.Examples.Monad
-/- data Bool = True | False -/
-def BoolCtx : List Global := [
-  .data 2 "Bool" ★ ([ ("True", gt#"Bool") , (("False"), gt#"Bool")]  : Vect 2 (String × Ty))
-  ]
-#guard Ty.infer_kind BoolCtx [] (gt#"Bool") == .some ★
-#guard Ty.infer_kind BoolCtx [] (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") == .some ★
+import Core.Examples.Common
+import Core.Examples.Boolean
 
-/-
-not : Bool -> Bool
-not = λ x → case x of
-               False → True
-               True → False
-               _ → False
--/
-def notTerm : Term := λ[ .global "Bool" ]
-  match! 2 #0
-         [ g#"True", g#"False" ]
-         ([ g# "False", g# "True" ] : Vect 2 Term)
-         g#"False"
+open LeanSubst
 
-/-  eqBool =
-  λ x. λ y. case x of
-              True → case y of
-                       True → True
-                       False → False
-              False → case y of
-                       True → False
-                       False → True
- -/
-def eqBool : Term := λ[ .global "Bool" ] λ[ .global "Bool" ]
-  match! 2  #1
-   [ g#"True", g#"False" ]
-   ([ match! 2 #0 [ g#"True", g#"False" ] ([ g#"True", g#"False" ] : Vect 2 Term) g#"False",
-      match! 2 #0 [ g#"True", g#"False" ] ([ g# "False", g# "False"] : Vect 2 Term) g#"False"
-   ] : Vect 2 Term)
-   g#"False"
-
-def EqBoolCtx := [.defn "notTerm" (gt#"Bool" -:> gt#"Bool") notTerm,
-                  .defn "eqBool" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") eqBool] ++ BoolCtx
+namespace Core.Examples
 
 
-def ListCtx : List Global := [
-  -- data List a
-  -- | Nil : ∀a. List a
-  -- | Cons : ∀a. a → List a → List a
-  .data 2 "List" (★ -:>  ★)
-  ([ ("Nil", ∀[★] (gt#"List" • t#0))
-   , ("Cons", ∀[★] (t#0 -:> (gt#"List" • t#0) -:> (gt#"List" • t#0))) ] : Vect 2 (String × Ty)),
+def ZeroCtor : Term := ctor! "Zero" #() #() .nil
 
-  -- bind : ∀ m a b. Monad m => a → (a -> m b) -> m b
-  .openm "bind" (∀[★ -:> ★] ∀[★] ∀[★] (gt#"Monad" • t#2) -:> (t#1 -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0))),
+def MPCtx : GlobalEnv := [
 
-  -- return : ∀ m a. Monad m => a -> m a
-  .openm "return" (∀[★ -:> ★] ∀[★] (gt#"Monad" • t#1) -:> t#0 -:> (t#1 • t#0)),
 
+  -- .inst "to" #(⟨"IntIntFun", 1, #(t#1), 1, 2⟩, ⟨"IntIntFun", 1, #(t#0), 1, 2⟩) (
+  --       let t1 := (d#"appc").mkApps [t#0, gt#"->" • gt#"Int", t#1, gt#"Int"] [#0, #1]
+  --       let t2 := (d#"sym").mkApps [t#0 • t#1, (gt#"->" • gt#"Int") • gt#"Int"] [t1]
+  --       let t3 := (d#"slam").mkApps [gt#"Int", gt#"Int"] [(λ[gt#"Int"] #0)]
+  --       (Term.cast t#0 t2 t3)
+  -- ),
+  -- ∀ r s m. MonadReader r m, MonadReader s m ⇒ r -> s
+  -- .openm "to" ⟨3, #(★, ★, ★ -:> ★), 0, #(), 2, #((gt#"MonadReader" • t#2) • t#0, (gt#"MonadReader" • t#2) • t#0), t#2 -:> t#1⟩,
+
+  .inst "ask" #(⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩) (
+        let t1 := (d#"appc").mkApps [t#0, gt#"->" • gt#"Int", t#1, gt#"Bool"] [#0, #1]
+        let t2 := (d#"sym").mkApps [t#0 • t#1, (gt#"->" • gt#"Int") • gt#"Bool"] [t1]
+        let t3 := (d#"slam").mkApps [gt#"Int", gt#"Bool"] [
+            λ[gt#"Int"] (openm! "eq" #(gt#"Int") #() #(inst! "EqInt" #(gt#"Int") #() #(refl! gt#"Int").to).to).mkApps []
+                        [#0, ZeroCtor]]
+        (Term.cast t#0 t2 t3)
+   ),
+
+  .octor "BoolIntFun" ⟨2, #(★, ★ -:> ★), 0, #(), 2, #(t#1 ~[★]~ gt#"Bool", t#0 ~[★ -:> ★]~ (gt#"->" • gt#"Int")), (gt#"MonadReader" • t#1) • t#0⟩,
+
+  .inst "eq" #(⟨"EqInt", 1, #(t#0), 0, 1⟩) (λ[t#0]λ[t#0]
+      mtch' #(Term.cast t#0 #2 #1, Term.cast t#0 #2 #0)
+      #( (#(⟨"Zero", 0, #(), 0, 0⟩, ⟨"Zero", 0, #(), 0, 0⟩), TrueCtor)
+       , (#(⟨"Zero", 0, #(), 0, 0⟩, ⟨"Succ", 0, #(), 0, 1⟩), FalseCtor)
+       , (#(⟨"Succ", 0, #(), 0, 1⟩, ⟨"Zero", 0, #(), 0, 0⟩), FalseCtor)
+       , (#(⟨"Succ", 0, #(), 0, 1⟩, ⟨"Succ", 0, #(), 0, 1⟩), (openm! "eq" #(gt#"Int") #() #(inst! "EqInt" #(gt#"Int") #() #(refl! gt#"Int").to).to).mkApps [] [#1, #0])
+       )
+   ),
+  .octor "EqInt" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Int"), gt#"Eq" • t#0⟩,
+
+
+  .inst "ask" #(⟨"IntIntFun", 2, #(t#1, t#0), 0, 2⟩) (
+        let t1 := (d#"appc").mkApps [t#0, gt#"->" • gt#"Int", t#1, gt#"Int"] [#0, #1]
+        let t2 := (d#"sym").mkApps [t#0 • t#1, (gt#"->" • gt#"Int") • gt#"Int"] [t1]
+        let t3 := (d#"slam").mkApps [gt#"Int", gt#"Int"] [(λ[gt#"Int"] #0)]
+        (Term.cast t#0 t2 t3)
+   ),
+
+  -- IntIntFun : ∀ r s. r ~ Int, s ~ (->) Int => MonadReader r s
+  .octor "IntIntFun" ⟨2, #(★, ★ -:> ★), 0, #(), 2, #(t#1 ~[★]~ gt#"Int", t#0 ~[★ -:> ★]~ (gt#"->" • gt#"Int")), (gt#"MonadReader" • t#1) • t#0⟩,
+
+
+  .defn "slam" (∀[★]∀[★] (t#1 -:> t#0) -:> ((gt#"->" • t#1) • t#0)) (Λ[★]Λ[★]λ[t#1 -:> t#0] ctor! "lam" #(t#1, t#0) #() #(#0).to),
+
+  .data 1 "->" (★ -:> (★ -:> ★))
+    #( ⟨"lam", 2, #(★, ★), 0, #(), 1, #(t#1 -:> t#0), (gt#"->" • t#1) • t#0⟩ ),
+
+
+  .openm "ask" ⟨2, #(★, ★ -:> ★), 0, #(), 1, #((gt#"MonadReader" • t#1) • t#0), t#0 • t#1⟩,
+  .odata "MonadReader" (★ -:> ((★ -:> ★) -:> ★)),
+
+  .openm "mpRequirement" ⟨1, #(★ -:> ★), 0, #(), 2, #(gt#"Monad" • t#0, gt#"Alternative" • t#0), gt#"MonadPlus" • t#0⟩,
+  -- class MonadPlus (m : ★ → ★)
+  .odata "MonadPlus" ((★ -:> ★) -:> ★),
+  -- class Alternative (m : ★ → ★)
+  .odata "Alternative" ((★ -:> ★) -:> ★),
   -- class Monad (m : ★ → ★)
-  .opent "Monad" ((★ -:> ★) -:> ◯)
-]
+  .odata "Monad" ((★ -:> ★) -:> ★),
+
+  .data 2 "Int" ★
+    #( ⟨"Zero", 0, #(), 0, #(), 0, #(), gt#"Int"⟩
+     , ⟨"Succ", 0, #(), 0, #(), 1, #(gt#"Int"), gt#"Int"⟩
+     ),
+
+] ++ EqBoolCtx ++ CastCtx
+
+-- #eval! do
+--   match lookup "to" MPCtx with
+--   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+--       if "to" == y then
+--         let Δ := (Ks1.list ++ Ks2.list).reverse
+--         let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"IntIntFun", 2, #(t#1, t#0), 0, 2⟩)
+
+--         return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩) -- R'
+--       else none
+--   | _ => none
 
 
-#guard (∀[★ -:> ★] ∀[★] ∀[★] (gt#"Monad" • t#2) -:> (t#1 -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0))).infer_kind ListCtx []
-       == some ★
 
-end Core.Examples.Monad
+-- #eval! do
+--   match lookup "eq" MPCtx with
+--   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+--       if "eq" == y then
+--         let Δ := (Ks1.list ++ Ks2.list).reverse
+--         let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"EqInt", 1, #(t#0), 0, 1⟩)
+
+--         let R' := (λ[t#0]λ[t#0]λ[gt#"Int"]λ[gt#"Int"] inst! "EqInt" #(gt#"Int") #() #(refl! gt#"Int").to ).infer_type MPCtx (ζ ++ Δ) Γ
+--         return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩, R') -- R'
+--       else none
+--   | _ => none
+
+
+#guard MPCtx.wf_globals == some ()
+#guard MPCtx.check_open_exhaustive == some ()
+
+
+
+end Core.Examples
