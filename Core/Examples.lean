@@ -3,3 +3,5 @@ import Core.Examples.Maybe
 import Core.Examples.FunDeps
 import Core.Examples.TypeFunction
 import Core.Examples.AlternativeMonoid
+import Core.Examples.MonadReaderRelation
+import Core.Examples.MonadReaderTypeFunction

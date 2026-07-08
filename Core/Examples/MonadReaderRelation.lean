@@ -12,7 +12,7 @@ import Core.Examples.Boolean
 
 open LeanSubst
 
-namespace Core.Examples
+namespace Core.Examples.MonadReaderRelation
 
 
 def ZeroCtor : Term := ctor! "Zero" #() #() .nil
@@ -190,4 +190,4 @@ def MRCtx : GlobalEnv := [
 
 
 
-end Core.Examples
+end Core.Examples.MonadReaderRelation
