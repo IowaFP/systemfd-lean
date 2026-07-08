@@ -132,14 +132,6 @@ def MRCtx : GlobalEnv := [
   .openm "ask" ⟨2, #(★, ★ -:> ★), 0, #(), 1, #((gt#"MonadReader" • t#1) • t#0), t#0 • t#1⟩,
   .odata "MonadReader" (★ -:> ((★ -:> ★) -:> ★)),
 
-  .openm "mpRequirement" ⟨1, #(★ -:> ★), 0, #(), 2, #(gt#"Monad" • t#0, gt#"Alternative" • t#0), gt#"MonadPlus" • t#0⟩,
-  -- class MonadPlus (m : ★ → ★)
-  .odata "MonadPlus" ((★ -:> ★) -:> ★),
-  -- class Alternative (m : ★ → ★)
-  .odata "Alternative" ((★ -:> ★) -:> ★),
-  -- class Monad (m : ★ → ★)
-  .odata "Monad" ((★ -:> ★) -:> ★),
-
   .data 2 "Int" ★
     #( ⟨"Zero", 0, #(), 0, #(), 0, #(), gt#"Int"⟩
      , ⟨"Succ", 0, #(), 0, #(), 1, #(gt#"Int"), gt#"Int"⟩

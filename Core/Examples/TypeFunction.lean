@@ -21,10 +21,6 @@ def TypeFunCtx : GlobalEnv := [
   .inst "fdF" #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
         (openm! "loop" #(t#3 ~[★]~ t#2) #() #().to),
 
-  -- .inst "fdF" #(⟨"FIB", 2, #(t#2, t#1), 0, 2⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
-  --   (
-  --   ),
-
   --   Λ t u v. λ d1 d2.
   --     If FMM[t][u] ← d1 then Λ a' b'. λ (h1: Maybe a' ~  t) (h2 : Maybe b' ~ u) (e1 : F a' b').
   --     If FMM[t][v] ← d2 then Λ a'' b''. λ (k1: Maybe a'' ~ t) (k2 : Maybe b'' ~ v) (e2 : F a'' b'').
@@ -77,7 +73,6 @@ def TypeFunCtx : GlobalEnv := [
 
 #guard TypeFunCtx.wf_globals == some ()
 #guard (GlobalEnv.check_open_exhaustive TypeFunCtx).isSome
-
 
 -- f : ∀ t. F Int t → t → t
 --   = Λ t λ (d : F Int t).

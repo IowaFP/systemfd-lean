@@ -121,7 +121,7 @@ def MRCtx : GlobalEnv := [
 --       else none
 --   | _ => none
 
-def fdTy : Ty := ∀[★]∀[★]∀[★ -:> ★] (gt#"MonadReader" • t#2) • t#0 -:> (((gt#"MonadReader" • t#1) • t#0) -:> (t#2 -:> (t#0 • t#1)))
+def fdTy : Ty := ∀[★]∀[★]∀[★ -:> ★] ((gt#"MonadReader" • t#2) • t#0) -:> (((gt#"MonadReader" • t#1) • t#0) -:> (t#2 -:> (t#0 • t#1)))
 
 def fdTerm : Term := Λ[★]Λ[★]Λ[★ -:> ★]λ[(gt#"MonadReader" • t#2) • t#0]λ[(gt#"MonadReader" • t#1) • t#0]λ[t#2] (
   let t1 := openm! "mrDep" #(t#2, t#1, t#0) #() #(#2, #1).to
@@ -129,9 +129,7 @@ def fdTerm : Term := Λ[★]Λ[★]Λ[★ -:> ★]λ[(gt#"MonadReader" • t#2) 
   Term.cast t#0 t2 ((openm! "return" #(t#2, t#0) #() #(#2).to).mkApps [] [#0])
  )
 
-
-#eval fdTerm.infer_type MRCtx [] []
--- #guard fdTerm.infer_type MRCtx [] [] == some fdTy
+#guard fdTerm.infer_type MRCtx [] [] == some fdTy
 
 
 #guard MRCtx.wf_globals == some ()

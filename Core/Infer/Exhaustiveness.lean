@@ -324,13 +324,15 @@ def Γ : GlobalEnv := [
                 ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩))
 ]
 
-#eval (Vec.map (lookup_ctor_names Γ) (#( (gt#"Maybe" • gt#"Bool"), gt#"Bool"))).sequence
-#eval! enumerate_ctor_names Γ #( (gt#"Maybe" • gt#"Bool"), gt#"Bool", gt#"Bool")
+#guard (Vec.map (lookup_ctor_names Γ) (#( (gt#"Maybe" • gt#"Bool"), gt#"Bool"))).sequence
+     == some #(⟨2, #("Nothing", "Just")⟩, ⟨2, #("True", "False")⟩)
+#guard enumerate_ctor_names Γ #( (gt#"Maybe" • gt#"Bool"), gt#"Bool", gt#"Bool")
+     == some ⟨8, #(#("Nothing", "True", "True"), #("Nothing", "True", "False"), #("Nothing", "False", "True"), #("Nothing", "False", "False"), #("Just", "True", "True"), #("Just", "True", "False"), #("Just", "False", "True"), #("Just", "False", "False"))⟩
 
-#eval Vec.append #("Nothing", "Just") #("True" , "False")
-#eval Vec.combine ⟨2, #( #("Nothing", "()"), #("Just" , "()"))⟩ ⟨3 , #( "True" , "False" , "Med" )⟩
-#eval Vec.combine (k := 0) ⟨1, #(#())⟩ ⟨3 , #("True" , "False" , "Med")⟩
-
+#guard Vec.append #("Nothing", "Just") #("True" , "False") == #("Nothing", "Just", "True", "False")
+#guard Vec.combine ⟨2, #( #("Nothing", "()"), #("Just" , "()"))⟩ ⟨3 , #( "True" , "False" , "Med" )⟩
+       == ⟨6, #(#("True", "Nothing", "()"), #("True", "Just", "()"), #("False", "Nothing", "()"), #("False", "Just", "()"), #("Med", "Nothing", "()"), #("Med", "Just", "()"))⟩
+#guard Vec.combine (k := 0) ⟨1, #(#())⟩ ⟨3 , #("True" , "False" , "Med")⟩ == ⟨3, #(#("True"), #("False"), #("Med"))⟩
 end Test
 
 @[simp]
@@ -398,12 +400,6 @@ theorem fin_shift_lemma {bs cs : Vec _ n} :
 intro h i
 replace h := h (i.succ); simp at h; apply h
 
-theorem heq_cast_l {a : α} {b : β} {e : α = β} : a ≍ b -> a = (b |> cast (by rw[e]))
-:= by subst e; simp;
-
-theorem heq_cast_r {a : α} {b : β} {e : α = β}: a ≍ b -> cast (by rw[e]) a = b
-:= by subst e; simp;
-
 theorem cast_get_elem {a : Vec α ℓ} {b : Vec β ℓ} {e : α = β} (i : Fin ℓ):
   a ≍ b -> (cast (by rw[e]) a[i]) = b[i]
 := by intro h; subst e; replace h := eq_of_heq h; subst h; simp
@@ -411,8 +407,6 @@ theorem cast_get_elem {a : Vec α ℓ} {b : Vec β ℓ} {e : α = β} (i : Fin �
 theorem cast_cons {a : α} {b : Vec α n} {e : α = β} :
   cast (by rw[e]) (a :: b) = Vec.cons (cast (by rw[e]) a) (cast (by rw[e]) b)
 := by subst e; simp
-
--- set_option pp.explicit true
 
 theorem cast_sigma (c0 : ((p : Nat) × Vec (Vec String (0 + (x + 1))) p) = ((n : Nat) × Vec (Vec String (x + 1)) n)) : cast c0 ⟨ℓ, z⟩ = ⟨ℓ', z'⟩ -> ℓ = ℓ' ∧ ∃ c, z = cast c z' := by
 intro h; grind;

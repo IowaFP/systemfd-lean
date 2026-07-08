@@ -29,21 +29,6 @@ def GTCtor : Term := ctor! "GT" #() #() .nil
 
 def OrdCtx : GlobalEnv := [
 
-  .inst "eqOfOrd" #(⟨"OrdBy", 1, #(t#0), 0, 1⟩) (inst! "EqOfOrd" #(t#0) #() #(inst! "OrdBy" #(t#0) #() #(#0).to).to),
-  .inst "compare" #(⟨"OrdBy", 1, #(t#0), 0, 1⟩) #0,
-  .octor "OrdBy" ⟨1, #(★), 0, #(), 1, #(t#0 -:> (t#0 -:> gt#"Ordering")), gt#"Ord" • t#0⟩,
-
-
-  .inst "eqOfOrd" (#(⟨"OrdEither", 1, #(t#0), 2, 3⟩)) (
-      let t3 := inst! "OrdEither" #(t#2) #(t#1, t#0) #(#2, #1, #0).to
-      inst! "EqOfOrd" #(t#2) #() #(t3).to
-   ),
-
-  .inst "eqOfOrd" (#(⟨"OrdBool", 1, #(t#0), 0, 1⟩)) (inst! "EqBool" #(t#0) #() #(#0).to),
-
-  -- eqOfOrd : ∀ t. Ord t ⇒ Eq t
-  .openm "eqOfOrd" ⟨1, #(★), 0, #(), 1, #(gt#"Ord" • t#0), gt#"Eq" • t#0⟩,
-
   .inst "eq" #(⟨"EqOfOrd", 1, #(t#0), 0, 1⟩) (λ[t#0]λ[t#0]
          mtch' #((openm! "compare" #(t#0) #() #(#2).to).mkApps [] [#1, #0])
            #( (#(LTPat), FalseCtor)

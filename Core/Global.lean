@@ -41,14 +41,6 @@ abbrev GlobalEnv := List Global
 @[simp] instance instHAppend_GlobalEnv : Append GlobalEnv where
   append x y := by unfold GlobalEnv; unfold GlobalEnv at x; unfold GlobalEnv at y; apply x ++ y
 
--- def GlobalEnv.repr (p : Nat) : GlobalEnv -> Std.Format
--- | .nil => Std.Format.nil
--- | .cons g gl => Global.repr 0 g ++ Std.Format.line ++ GlobalEnv.repr p gl
-
--- @[simp]
--- instance instRepr_GlobalEnv : Repr GlobalEnv where
---   reprPrec a p := GlobalEnv.repr p a
-
 inductive Entry : Type where
 | data : {n : Nat} -> String -> Kind -> Vec (String × SpineTy) n -> Entry
 | ctor : String -> Nat -> SpineTy -> Entry
@@ -179,7 +171,7 @@ def get_instance_from_idx (x : String) (ctors : Vec Constructor m) (G : GlobalEn
       if check_instance_eq m n x y ctors p
       then by {
         if h : m == n
-        then simp at h; cases h -- TODO: abstract this as a predicate
+        then simp at h; cases h
              if e : pattern_match ctors p
              then apply some ⟨i, ⟨m, p, b⟩⟩
              else apply none

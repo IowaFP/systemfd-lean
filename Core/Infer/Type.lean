@@ -18,7 +18,6 @@ def bool_ctors_sig : SpineTy := ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩
 def G : GlobalEnv := [
   .odata "Eq" (★ -:> ★)
   , .data 2 "Bool" ★ #( ("True",  bool_ctors_sig) , ("False", bool_ctors_sig) )
-  -- , .data 0 "Empty" ★ Vec.nil
   ]
 
 
