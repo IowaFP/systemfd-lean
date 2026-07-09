@@ -24,12 +24,21 @@ def iEqInt : Term := inst! "EqInt" #(gt#"Int") #() #(refl! gt#"Int").to
 def MRCtx : GlobalEnv := [
 
   .inst "mrDep" #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolBoolFun", 2, #(t#1, t#0), 0, 2⟩) (
-    openm! "loop" #(t#2 ~[★]~ t#1) #() #().to
+      let t1 := (d#"sym2").mkApps [t#0, gt#"->" • gt#"Bool"] [#0]
+      let t0 := (d#"seq2").mkApps [gt#"->" • gt#"Bool", t#0, gt#"->" • gt#"Int"] [t1, #2]
+      let t2 := (d#"sym").mkApps [gt#"Bool", gt#"Int"] [prj[1] t0]
+      ((openm! "absurd" #() #() #().to).mkApps [] [t2]).mkApps [t#2, t#1] []
   ),
 
   .inst "mrDep" #(⟨"BoolBoolFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"IntIntFun", 2, #(t#1, t#0), 0, 2⟩) (
-    openm! "loop" #(t#2 ~[★]~ t#1) #() #().to
+        let t1 := (d#"sym2").mkApps [t#0, gt#"->" • gt#"Int"] [#0]
+        let t0 := (d#"seq2").mkApps [gt#"->" • gt#"Int", t#0, gt#"->" • gt#"Bool"] [t1, #2]
+        let t2 := prj[1] t0
+       ((openm! "absurd" #() #() #().to).mkApps [] [t2]).mkApps [t#2, t#1] []
   ),
+
+  .inst "absurd" #() (λ[gt#"Int" ~[★]~ gt#"Bool"] (openm! "absurd" #() #() #().to).mkApps [] [#0]),
+  .openm "absurd" ⟨0, #(), 0, #(), 0, #(), (gt#"Int" ~[★]~ gt#"Bool") -:> (∀[★]∀[★] (t#1 ~[★]~ t#0))⟩,
 
 
   .inst "mrDep" #(⟨"BoolBoolFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolBoolFun", 2, #(t#1, t#0), 0, 2⟩) (
@@ -87,6 +96,23 @@ def MRCtx : GlobalEnv := [
 ] ++ EqBoolCtx ++ CastCtx
 
 
+
+def fdTy : Ty := ∀[★]∀[★]∀[★ -:> ★] ((gt#"MonadReader" • t#2) • t#0) -:> (((gt#"MonadReader" • t#1) • t#0) -:> (t#2 -:> (t#0 • t#1)))
+
+def fdTerm : Term := Λ[★]Λ[★]Λ[★ -:> ★]λ[(gt#"MonadReader" • t#2) • t#0]λ[(gt#"MonadReader" • t#1) • t#0]λ[t#2] (
+  let t1 := openm! "mrDep" #(t#2, t#1, t#0) #() #(#2, #1).to
+  let t2 := (d#"appc").mkApps [t#0, t#0, t#2, t#1] [refl! t#0, t1]
+  Term.cast t#0 t2 ((openm! "return" #(t#2, t#0) #() #(#2).to).mkApps [] [#0])
+ )
+
+#guard fdTerm.infer_type MRCtx [] [] == some fdTy
+
+
+#guard MRCtx.wf_globals == some ()
+#guard MRCtx.check_open_exhaustive == some ()
+
+
+
 -- #eval! do
 --   match lookup "return" MRCtx with
 --   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
@@ -111,28 +137,17 @@ def MRCtx : GlobalEnv := [
 --       if "mrDep" == y then
 --         let Δ := (Ks1.list ++ Ks2.list).reverse
 --         -- let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩)
---         let (ζ, Γ) <- pattern_binders (.data .opn) MRCtx Δ n Ts #(⟨"BoolBoolFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolBoolFun", 2, #(t#1, t#0), 0, 2⟩)
---         let t1 := (d#"sym").mkApps [t#1, gt#"Bool"] [#1]
---         let t0 := (d#"seq").mkApps [t#2, gt#"Bool", gt#"Bool"] [#3, refl! gt#"Bool"]
---         let t2 := (d#"seq").mkApps [t#2, gt#"Bool", t#1] [t0, t1]
---         let R' := (t2).infer_type MRCtx (ζ ++ Δ) Γ
+--         let (ζ, Γ) <- pattern_binders (.data .opn) MRCtx Δ n Ts #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolBoolFun", 2, #(t#1, t#0), 0, 2⟩)
+--         let t1 := (d#"sym2").mkApps [t#0, gt#"->" • gt#"Bool"] [#0]
+--         let t0 := (d#"seq2").mkApps [gt#"->" • gt#"Bool", t#0, gt#"->" • gt#"Int"] [t1, #2]
+--         let t2 := (d#"sym").mkApps [gt#"Bool", gt#"Int"] [prj[1] t0]
+--         -- let t2 := (d#"seq").mkApps [t#2, gt#"Bool", t#1] [t0, t1]
+
+--         -- let R' := (((openm! "absurd" #() #() #().to).mkApps [] [t2]).mkApps [t#2, t#1] []).infer_type MRCtx (ζ ++ Δ) Γ
+--         let R' := t2.infer_type MRCtx (ζ ++ Δ) Γ
 
 --         return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩, R')
 --       else none
 --   | _ => none
-
-def fdTy : Ty := ∀[★]∀[★]∀[★ -:> ★] ((gt#"MonadReader" • t#2) • t#0) -:> (((gt#"MonadReader" • t#1) • t#0) -:> (t#2 -:> (t#0 • t#1)))
-
-def fdTerm : Term := Λ[★]Λ[★]Λ[★ -:> ★]λ[(gt#"MonadReader" • t#2) • t#0]λ[(gt#"MonadReader" • t#1) • t#0]λ[t#2] (
-  let t1 := openm! "mrDep" #(t#2, t#1, t#0) #() #(#2, #1).to
-  let t2 := (d#"appc").mkApps [t#0, t#0, t#2, t#1] [refl! t#0, t1]
-  Term.cast t#0 t2 ((openm! "return" #(t#2, t#0) #() #(#2).to).mkApps [] [#0])
- )
-
-#guard fdTerm.infer_type MRCtx [] [] == some fdTy
-
-
-#guard MRCtx.wf_globals == some ()
-#guard MRCtx.check_open_exhaustive == some ()
 
 end Core.Examples.MonadReaderTypeFunction
