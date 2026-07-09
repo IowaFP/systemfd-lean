@@ -94,26 +94,26 @@ def MRCtx : GlobalEnv := [
 
 ] ++ PCtx ++ EqBoolCtx ++ CastCtx
 
-#eval! do
-  match lookup "to" MRCtx with
-  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
-      if "to" == y then
-        let Δ := (Ks1.list ++ Ks2.list).reverse
-        -- let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩)
-        let (ζ, Γ) <- pattern_binders (.data .opn) MRCtx Δ n Ts #(⟨"FlipPairFun", 2, #(t#2, t#0), 2, 2⟩, ⟨"FlipPairFun", 2, #(t#1, t#0), 2, 2⟩)
+-- #eval! do
+--   match lookup "to" MRCtx with
+--   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+--       if "to" == y then
+--         let Δ := (Ks1.list ++ Ks2.list).reverse
+--         -- let (ζ, Γ) <- pattern_binders (.data .opn) MPCtx Δ n Ts #(⟨"IntIntFun", 2, #(t#2, t#0), 0, 2⟩, ⟨"BoolIntFun", 2, #(t#1, t#0), 0, 2⟩)
+--         let (ζ, Γ) <- pattern_binders (.data .opn) MRCtx Δ n Ts #(⟨"FlipPairFun", 2, #(t#2, t#0), 2, 2⟩, ⟨"FlipPairFun", 2, #(t#1, t#0), 2, 2⟩)
 
-        let t0 := (d#"sym2").mkApps [t#4, gt#"->" • ((gt#"Pair" • t#3) • t#2)] [#3]
-        let t1 := (d#"seq2").mkApps [gt#"->" • ((gt#"Pair" • t#3) • t#2), t#4, gt#"->" • ((gt#"Pair" • t#1) • t#0)] [t0, #1]
-        let t2 := (prj[1] t1)
-        let t3 := prj[1] t2
-        let t4 := prj[1] (prj[0]t2)
-        let t5 := Term.cast ((gt#"Pair" • t#1) • t#0) t4 (Term.cast ((gt#"Pair" • t#0) • t#4) t3 (Term.cast t#0 #4 #0))
-        let t6 := (d#"sym").mkApps [t#5, ((gt#"Pair" • t#0) • t#1)] [#2]
-        let R' := (λ[t#6] Term.cast t#0 t6 t5).infer_type MRCtx (ζ ++ Δ) Γ
+--         let t0 := (d#"sym2").mkApps [t#4, gt#"->" • ((gt#"Pair" • t#3) • t#2)] [#3]
+--         let t1 := (d#"seq2").mkApps [gt#"->" • ((gt#"Pair" • t#3) • t#2), t#4, gt#"->" • ((gt#"Pair" • t#1) • t#0)] [t0, #1]
+--         let t2 := (prj[1] t1)
+--         let t3 := prj[1] t2
+--         let t4 := prj[1] (prj[0]t2)
+--         let t5 := Term.cast ((gt#"Pair" • t#1) • t#0) t4 (Term.cast ((gt#"Pair" • t#0) • t#4) t3 (Term.cast t#0 #4 #0))
+--         let t6 := (d#"sym").mkApps [t#5, ((gt#"Pair" • t#0) • t#1)] [#2]
+--         let R' := (λ[t#6] Term.cast t#0 t6 t5).infer_type MRCtx (ζ ++ Δ) Γ
 
-        return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩, R')
-      else none
-  | _ => none
+--         return (ζ ++ Δ, Γ, R⟨Ren.add Ty ζ.length⟩, R')
+--       else none
+--   | _ => none
 
 
 
