@@ -1,8 +1,10 @@
 # System FD
 
+Supplementary material for A Core Language for Extensible Overloading
+
 ### Core
 
-The `Core` folder contains everything related to the core language's metatheory
+The `Core` folder contains everything related to System FD
 
 Specifically:
 
@@ -18,8 +20,8 @@ Specifically:
   - Sec. 2.1.1 Superclasses: Core.Examples.Boolean
   - Sec. 2.1 Open Data and Open Function: Core.Examples.Ordering
   - Sec. 2.2.1 Superclasses and Sec. 2.2.3 Default implementation and local instances: Core.Examples.Superclasses
-  - Sec 2.2.2 Quantified superclasses: Core.Examples.AlternativeMonoid
-  - Sec 2.3.1 Generalized superclasses and class aliases:  Core.Examples.ClassAlias
+  - Sec. 2.2.2 Quantified superclasses: Core.Examples.AlternativeMonoid
+  - Sec. 2.3.1 Generalized superclasses and class aliases:  Core.Examples.ClassAlias
   - Sec. 2.3.2 Type Relationships: Core.Examples.MonadReaderRelation
   - Sec. 2.3.3 Type Relationships in context: Core.Examples.MonadReaderCtxRelation
   - Sec. 2.4 Open Functions and Coercions: Core.Examples.MonadReaderTypeFunction
