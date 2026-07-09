@@ -17,6 +17,11 @@ namespace Core.Examples
 
 def PCtx : GlobalEnv :=  [
 
+  .defn "flipPair" (∀[★]∀[★] ((gt#"Pair" • t#1) • t#0) -:> ((gt#"Pair" • t#0) • t#1)) (
+    Λ[★]Λ[★]λ[(gt#"Pair" • t#1) • t#0]
+      (d#"mkPair").mkApps [t#0, t#1] [(d#"snd").mkApps [t#1, t#0] [#0], (d#"fst").mkApps [t#1, t#0] [#0]]
+
+  ),
 
   .defn "snd" (∀[★]∀[★] ((gt#"Pair" • t#1) • t#0) -:> t#0)
     (Λ[★]Λ[★]λ[(gt#"Pair" • t#1) • t#0]
