@@ -145,6 +145,20 @@ def MRCtx : GlobalEnv := [
 --       else none
 --   | _ => none
 
+-- #eval! do
+--   match lookup "absurd" MRCtx with
+--   | some (.openm y ⟨_, Ks1, _, Ks2, m, Ts, R⟩) =>
+--       if "absurd" == y then
+--         let Δ := (Ks1.list ++ Ks2.list).reverse
+--         let (ζΓ) := pattern_binders (.data .opn) MRCtx Δ m Ts #()
+--         -- let t1 := (d#"appc").mkApps [t#2, gt#"->" • ((gt#"Pair" • t#1) • t#0), t#3, t#1] [#0, #1]
+--         -- let t2 := (d#"sym").mkApps [t#2 • t#3, (gt#"->" • ((gt#"Pair" • t#1) • t#0)) • t#1] [t1]
+--         -- let t3 := (d#"slam").mkApps [(gt#"Pair" • t#1) • t#0, t#1] [λ[(gt#"Pair" • t#1) • t#0] (d#"fst").mkApps [t#1, t#0] [#0]]
+--         -- let R' := (Term.cast t#0 t2 t3).infer_type MRCtx (ζ ++ Δ) Γ
+--         return Δ -- R'
+--       else none
+--   | _ => none
+
 
 #guard MRCtx.wf_globals == some ()
 #guard MRCtx.check_open_exhaustive == some ()
