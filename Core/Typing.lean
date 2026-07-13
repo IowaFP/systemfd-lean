@@ -8,7 +8,10 @@ open LeanSubst
 
 namespace Core
 
+@[simp]
 abbrev KindEnv := List Kind
+
+@[simp]
 abbrev TyEnv := List Ty
 
 inductive VecTyping (J : A -> B -> Prop) : Vec A m -> Vec B m -> Prop
@@ -64,13 +67,6 @@ inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) (test
   test R ->
   (sv = .openm -> ∀ (i : Fin n), Ts[i].data? .opn G) ->
   SpineKinding sv x G test ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
-
--- inductive KindingPreamble (G : List Global) (Δ : List Kind) : List Ty -> Ty -> Ty -> Prop
--- | done : KindingPreamble G Δ [] T T
--- | cons {Ty : List Ty} :
---   G&Δ ⊢ A : K ->
---   KindingPreamble G Δ Ty T1[su A::+0] T2 ->
---   KindingPreamble G Δ (A::Ty) (∀[K] T1) T2
 
 inductive PatternBinders (v : DataConst) (G : List Global) (Δ : List Kind) : (m : Nat) -> Vec Ty m -> Pattern m -> List Kind -> List Ty -> Prop
 | zero : PatternBinders v G Δ 0 ss ps [] []
@@ -187,37 +183,6 @@ inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 
 notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢ " t:170 " : " A:170 => Typing G Δ Γ t A
 
--- inductive ValidCtor (x : String) : Ty -> Prop where
--- | base :
---   T.spine = some (x, sp) ->
---   ValidCtor x T
--- | all :
---   ValidCtor x P ->
---   ValidCtor x (∀[K] P)
--- | arrow :
---   ValidCtor x B ->
---   ValidCtor x (A -:> B)
-
--- inductive ValidOpenKind : Kind -> Prop where
--- | base : ValidOpenKind ★
--- | arrow : ValidOpenKind B -> ValidOpenKind (A -:> B)
-
--- inductive ValidInstTy (G : List Global) (x : String) : List Kind -> Ty -> Prop where
--- | base :
---   T.spine = some (x, sp) ->
---   G&Δ ⊢ T : ★ ->
---   ValidInstTy G x Δ T
--- | all :
---   G& (K::Δ) ⊢ T : ★ ->
---   ValidInstTy G x (K::Δ) T ->
---   ValidInstTy G x Δ (∀[K] T)
--- | arrow :
---   ValidInstTy G x Δ T ->
---   G&Δ ⊢ A : ★ ->
---   ValidInstTy G x Δ (A -:> T)
-
--- (m : Nat) × Vec Kind m × (n : Nat) × Vec Ty n × Ty
-
 inductive PatternPartTyping v G Δ : String × (n : Nat) × Vec Ty n × Nat × Nat -> Ty -> Prop
 | valid :
   lookup_spine_type (.data v) G c = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩ ->
@@ -306,37 +271,5 @@ inductive EntryWf : List Global -> Entry -> Prop where
   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
   lookup x G = some (.octor x T) ->
   EntryWf G (.octor x T)
-
--- inductive TypeMatch : Ty -> Ty -> Prop
--- | refl :
---   TypeMatch R R
--- | arrow :
---   TypeMatch B R ->
---   TypeMatch (A -:> B) R
--- | all A :
---   TypeMatch B[su A::+0] R ->
---   TypeMatch (∀[K] B) R
-
--- inductive SpineType (G : List Global) (Δ : List Kind) (Γ : List Ty) : List SpineElem -> Ty -> Ty -> Prop where
--- | refl :
---   -- G&Δ,Γ ⊢ t : T ->
---   SpineType G Δ Γ [] T T
--- | term :
---   G&Δ ⊢ A : ★ ->
---   G&Δ,Γ ⊢ a : A ->
---   G&Δ ⊢ (A -:> B) : ★ ->
---   SpineType G Δ Γ sp (A -:> B) T ->
---   SpineType G Δ Γ (sp ++ [.term a]) B T
--- | oterm :
---   G&Δ ⊢ A : ◯ ->
---   G&Δ,Γ ⊢ a : A ->
---   SpineType G Δ Γ sp (A -:> B) T ->
---   SpineType G Δ Γ (sp ++ [.oterm a]) B T
--- | type :
---   G&Δ ⊢ a : K ->
---   G&Δ ⊢ ∀[K]P : ★ ->
---   P' = P[su a::+0] ->
---   SpineType G Δ Γ sp (∀[K]P) T ->
---   SpineType G Δ Γ (sp ++ [.type a]) P' T
 
 end Core
