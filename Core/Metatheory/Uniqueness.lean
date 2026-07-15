@@ -44,8 +44,8 @@ theorem CoercionProject.unique
     CoercionProject G Δ n T2 B ->
     T1 = T2 ->
     A = B
-| fst_app j, fst_app j', e
-| snd_app j, snd_app j', e
+| fst_app j j2, fst_app j' j2', e
+| snd_app j j2, snd_app j' j2', e
 | fst_arrow j, fst_arrow j', e
 | snd_arrow j, snd_arrow j', e => by
   cases e

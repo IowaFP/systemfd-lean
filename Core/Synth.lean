@@ -3,6 +3,7 @@ import Core.Ty
 import Core.Global
 import Core.Typing
 import Core.Metatheory
+import Core.Metatheory.Inversion
 
 open LeanSubst
 open Lilac
@@ -53,22 +54,25 @@ inductive SynthTerm (G : GlobalEnv) (Δ : KindEnv) : TyEnv -> Kind -> Ty -> Term
   (∀ i : Fin nc, SynthTerm G Δ (Bs.list ++ As.list ++ Γ) Ks[i] Ts[i] Cs[i]) ->
   SynthTerm G Δ Γ K R' (inst! x As Bs ts)
 
-theorem synth_type_sound :
+theorem synth_type_sound (wf : ⊢ G):
   SynthTerm G Δ Γ K T c ->
   G&Δ,Γ ⊢ c : T
 | .refl j =>
   Typing.refl j
 | @SynthTerm.sym _ _ _ _ A B c _ j e => by
-  have lem := synth_type_sound j
+  have lem := synth_type_sound wf j
+  replace lem1 := terms_have_star_types wf lem
+  cases lem1; case _ lem1a lem1b =>
   subst e
   apply Typing.cast (K := K)
   · apply Kinding.eq;
     apply Kinding.var; simp;
     apply Kinding.weaken;
-    sorry
+    assumption
   · apply lem
   · simp; apply Typing.refl
-    sorry
+    replace lem := terms_have_star_types wf lem
+    cases lem; assumption
   · simp
 | _ => sorry
 
@@ -89,7 +93,13 @@ theorem synth_sound :
   SynthTerm G Δ Γ K T c
  := by
  intro j
- sorry
+ induction T <;> simp [synth_term] at *
+ split at j
+ case _ h =>
+   simp at h; subst h; simp at j; subst j;
+   sorry
+ · sorry
+
 
  -- unfold synth_coe
  -- split

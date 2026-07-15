@@ -313,6 +313,11 @@ case _ ih => -- prj[0]
   · rw[h6, h8, e2]; rw[e2] at h10
     apply CoercionProject.fst_app
     · apply infer_kind_sound h10
+    · rcases AB with ⟨A, B⟩; rcases CD with ⟨C,D⟩;
+      rcases h17 with ⟨K1, K2⟩; rcases h19 with ⟨J1, J2⟩;
+      rcases h3 with ⟨K3, H1, H2⟩
+      simp at *; subst e3; subst e6; subst e2; subst H1; subst H2
+      apply infer_kind_sound h12
 
 case _ ih => -- prj[1]
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩
@@ -339,6 +344,11 @@ case _ ih => -- prj[1]
   · rw[h6, h8];
     apply CoercionProject.snd_app
     · apply infer_kind_sound h14
+    · rcases AB with ⟨A, B⟩; rcases CD with ⟨C,D⟩;
+      rcases h17 with ⟨K1, K2⟩; rcases h19 with ⟨J1, J2⟩;
+      rcases h3 with ⟨K3, H1, H2⟩
+      simp at *; subst e3; subst e6; subst e2; subst H1; subst H2
+      apply infer_kind_sound h16
 
 case _ ih1 ih2 => -- f •c[a]
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨h1, h2, h⟩

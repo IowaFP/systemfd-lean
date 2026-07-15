@@ -57,6 +57,8 @@ theorem Kinding.beta :
   case _ => subst h; exact j2
   case _ i => apply var h
 
+
+
 @[simp]
 theorem Subst.compose_cons_lift
   [RenMap S S] [SubstMap S S] [SubstMapRenComposeLeft S S]
@@ -129,8 +131,8 @@ theorem Typing.subst_type_lift_k {Δ Δσ : List Kind} {σ : Subst Ty} K :
 theorem CoercionProject.subst_type Δσ (σ : Subst Ty)
   (h : (∀ (i : Nat) K, Δ[i]? = some K -> G&Δσ ⊢ σ.act i : K))
   : CoercionProject G Δ n T A -> CoercionProject G Δσ n T[σ] A[σ]
-| fst_app j => fst_app (j.subst _ _ h)
-| snd_app j => snd_app (j.subst _ _ h)
+| fst_app j1 j2 => fst_app (j1.subst _ _ h) (j2.subst _ _ h)
+| snd_app j1 j2 => snd_app (j1.subst _ _ h) (j2.subst _ _ h)
 | fst_arrow j => fst_arrow (j.subst _ _ h)
 | snd_arrow j => snd_arrow (j.subst _ _ h)
 

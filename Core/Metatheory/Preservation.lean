@@ -385,8 +385,8 @@ theorem preservation_step (wf : ⊢ G) : G&Δ,Γ ⊢ t : T -> G ⊢ t ~> t' -> G
 | .cast j1 j2 j3 e, .cast_congr r =>
   let j2' := preservation_step wf j2 r
   .cast j1 j2' j3 e
-| .prj (.refl $ .app j1 j2) (.fst_app j3), .prj_fst_app => .refl j3
-| .prj (.refl $ .app j1 j2) (.snd_app j3), .prj_snd_app => .refl j3
+| .prj (.refl $ .app j1 j2) (.fst_app j3 j4), .prj_fst_app => .refl j3
+| .prj (.refl $ .app j1 j2) (.snd_app j3 j4), .prj_snd_app => .refl j3
 | .prj (.refl $ .arrow j1 j2) (.fst_arrow j3), .prj_fst_arr => .refl j3
 | .prj (.refl $ .arrow j1 j2) (.snd_arrow j3), .prj_snd_arr => .refl j3
 | .prj j1 j2, (.ctor1_congr r) =>

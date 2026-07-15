@@ -82,9 +82,11 @@ inductive PatternBinders (v : DataConst) (G : List Global) (Δ : List Kind) : (m
 inductive CoercionProject (G : List Global) (Δ : List Kind) : Nat -> Ty -> Ty -> Prop where
 | fst_app :
   G&Δ ⊢ A : (K1 -:> K2) ->
+  G&Δ ⊢ B : (K1 -:> K2) ->
   CoercionProject G Δ 0 ((A • C) ~[K2]~ (B • D)) (A ~[K1 -:> K2]~ B)
 | snd_app :
   G&Δ ⊢ C : K1 ->
+  G&Δ ⊢ D : K1 ->
   CoercionProject G Δ 1 ((A • C) ~[K2]~ (B • D)) (C ~[K1]~ D)
 | fst_arrow :
   G&Δ ⊢ A : ★ ->

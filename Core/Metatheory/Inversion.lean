@@ -51,23 +51,44 @@ theorem typing_inversion_lookup_spine_type (wf : ⊢ G) :
    subst e; simp at *; apply h
 
 
+theorem Kinding.beta_many {Δ' : Vec Kind n} {t : Vec Ty n}:
+  G&(Δ'.list ++ Δ) ⊢ A : K ->
+  (∀ i : Fin n, G&Δ ⊢ t[i] : Δ'[i]) ->
+  G&Δ ⊢ A[(List.map su t.list) ++ Subst.id Ty] : K
+:= by
+  intro j1 j2
+  induction Δ' generalizing A
+  case nil => cases t; simp at *; apply j1
+  case cons n K' Δ' ih =>
+  cases t; case _ t ts =>
+  simp;
+  replace ih := @ih (A[su t :: +0σ]) ts
+  simp at j1;
+  have j20 := j2 0; simp at j20
+  -- have lem := Kinding.beta j1 j20
+
+  sorry
+  -- apply Kinding.subst Δ (su t::+0σ) _ j1
+  -- intro i K h; cases i <;> simp at *
+  -- case _ => subst h; exact j2
+  -- case _ i => apply var h
+
+
 theorem terms_have_star_types (wf : ⊢ G):
   G&Δ, Γ ⊢ t : R ->
   G&Δ ⊢ R : ★
 | .var _ h => h
 | .defn _ h => h
-| @Typing.spctor _ _ _ _ _ _ _ v _ _ _ _ _ _ _ _ _ h1 e1 e2 h2 h3 h4 h5 h6 h7 => by
+| .spctor (v := v) h1 e1 e2 h2 h3 h4 h5 h6 h7 => by
   have lem := typing_inversion_lookup_spine_type wf h1
-  cases v
-  · subst e1; subst e2; simp at lem; simp;
-    sorry
-  · case _ c =>
-    cases c
-    subst e1; subst e2; simp at lem; simp; sorry
-    sorry
-| .mtch h1 h2 h3 h4 h5 => by
-  replace h4 := h4 0;
+  subst e2
+  simp at *
+  replace lem := lem.extend (Δ₂ := Δ);
   sorry
+| .mtch (ζ := ζ) h1 h2 h3 h4 h5 => by
+  replace h4 := h4 0
+  have lem := terms_have_star_types wf h4;
+  apply Kinding.strengthening_length (Δ' := (ζ 0)) lem
 | .lam h1 h2 =>
   have lem := terms_have_star_types wf h2
   Kinding.arrow h1 lem
@@ -91,22 +112,30 @@ theorem terms_have_star_types (wf : ⊢ G):
   have lem := terms_have_star_types wf h1
   cases h2
   · cases lem; case _ lem1 lem2 =>
-    cases lem1; case _ lem1' _ _ lem1 =>
+    cases lem1; case _ lem1' lem2' _ _ lem1 =>
     cases lem2; case _ lem2 =>
     have e := Kinding.unique lem1' lem1; simp at e; subst e
+    have e := Kinding.unique lem2' lem2; simp at e; subst e
     apply Kinding.eq; apply lem1
-    sorry
+    apply lem2
 
   · cases lem; case _ lem1 lem2 =>
-    cases lem1; case _ lem1' _ _ lem1 =>
-    cases lem2; case _ lem2' _ _ lem2 =>
+    cases lem1; case _ lem1c lem1d _ _ _ =>
+    cases lem2; case _ lem2c _ _ lem2d _ =>
+    have e := Kinding.unique lem1c lem2c; simp at e; subst e
+    have e := Kinding.unique lem1d lem2d; simp at e; subst e
+    apply Kinding.eq lem1c lem1d
 
-    have e := Kinding.unique lem1' lem2'; simp at e; subst e
-    -- apply Kinding.eq; apply lem1
-    sorry
+  · cases lem; case _ lem1 lem2 =>
+    cases lem1; case _ lem1a lem1c =>
+    cases lem2; case _ lem2b lem2d =>
+    apply Kinding.eq lem1a lem2b
 
-  sorry
-  sorry
+  · cases lem; case _ lem1 lem2 =>
+    cases lem1; case _ lem1a lem1c =>
+    cases lem2; case _ lem2b lem2d =>
+    apply Kinding.eq lem1c lem2d
+
 | .allc  h1 => by
   have lem := terms_have_star_types wf h1
   cases lem; case _ lem1 lem2 =>
@@ -123,6 +152,59 @@ theorem terms_have_star_types (wf : ⊢ G):
   apply Kinding.eq
   · subst e1; apply Kinding.beta lem1a lem2a
   · subst e2; apply Kinding.beta lem1b lem2b
+
+
+theorem arrow_type_value_inversion {G : GlobalEnv} (wf : ⊢ G) :
+  Value G t ->
+  G&Δ, Γ ⊢ t : (A -:> B) ->
+  ∃ t', t = λ[A] t'
+| .spctor not_openm, j => by
+  let lem := spctor_inversion wf not_openm j
+  exfalso; simp at lem
+| @Value.lam _ T t , .lam _ _ => by exists t
+| .lamt , j => by cases j
+| .refl, j => by cases j
+
+theorem all_type_value_inversion {G : GlobalEnv} (wf : ⊢ G) :
+  Value G t ->
+  G&Δ, Γ ⊢ t : (∀[K]B) ->
+  ∃ t', t = Λ[K] t'
+| .spctor not_openm, j => by
+  let lem := spctor_inversion wf not_openm j
+  exfalso; simp at lem
+| .lam , j => by cases j
+| @Value.lamt _ K t, .lamt _ _ => by exists t
+| .refl, j => by cases j
+
+theorem eq_type_value_inversion {G : GlobalEnv} (wf : ⊢ G) :
+  Value G t ->
+  G&Δ, Γ ⊢ t : (A ~[K]~ B) ->
+  (t = refl! A) ∧ A = B
+| .spctor not_openm, j => by
+  let lem := spctor_inversion wf not_openm j
+  exfalso; simp at lem
+| .lam , j => by cases j
+| .lamt, j => by cases j
+| .refl, .refl _ => ⟨rfl, rfl⟩
+
+
+theorem data_type_value_inversion {G : GlobalEnv} (wf : ⊢ G) :
+  Value G t ->
+  G&Δ, Γ ⊢ t : R ->
+  Ty.data? v G R ->
+  ∃ (na nb nc : Nat) (v : DataConst) (x : String) (As : Vec Ty na) (Bs : Vec Ty nb) (ts : Fun.Vec Term nc), t = .spctor (.data v) x As Bs ts
+| .spctor (v := v) not_openm, .spctor h1 h2 h3 h4 h5 h6 h7 h8 h9 , j2 => by
+  have lem := spctor_inversion wf not_openm (.spctor h1 h2 h3 h4 h5 h6 h7 h8 h9)
+  simp [Ty.data?] at j2; rw[Option.isSome_iff_exists] at lem
+  rcases lem with ⟨⟨R, tys⟩, lem⟩
+  rw[lem] at j2; simp at j2
+  simp; cases v
+  simp at not_openm
+  simp
+
+| .lam , j1, j2 => by cases j1; simp [Ty.data?] at j2
+| .lamt, j1, j2 => by cases j1; simp [Ty.data?] at j2
+| .refl, j1, j2 => by cases j1; simp [Ty.data?] at j2
 
 
 end Core

@@ -396,12 +396,12 @@ theorem progress (oe : OpenExhaustive G) (wf : ⊢ G) :
   match progress oe wf j1 e with
   | Or.inl v =>
     match v, j1, j2 with
-    | .refl, .refl j3, .fst_app h => Or.inr ⟨_, .prj_fst_app⟩
-    | .refl, .refl j3, .snd_app h => Or.inr ⟨_, .prj_snd_app⟩
+    | .refl, .refl j3, .fst_app h1 h2 => Or.inr ⟨_, .prj_fst_app⟩
+    | .refl, .refl j3, .snd_app h1 h2 => Or.inr ⟨_, .prj_snd_app⟩
     | .refl, .refl j3, .fst_arrow h => Or.inr ⟨_, .prj_fst_arr⟩
     | .refl, .refl j3, .snd_arrow h => Or.inr ⟨_, .prj_snd_arr⟩
-    | .spctor h, j3, .fst_app _
-    | .spctor h, j3, .snd_app _
+    | .spctor h, j3, .fst_app _ _
+    | .spctor h, j3, .snd_app _ _
     | .spctor h, j3, .fst_arrow _
     | .spctor h, j3, .snd_arrow _ => by grind
   | Or.inr ⟨t', r⟩ => Or.inr ⟨_, .ctor1_congr r⟩

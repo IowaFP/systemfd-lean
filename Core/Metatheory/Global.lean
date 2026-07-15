@@ -363,8 +363,8 @@ theorem PatternBinders.weaken_global (wf : ⊢ (g::G))
 
 theorem CoercionProject.weaken_global (wf : ⊢ (g::G))
   : CoercionProject G Δ n T R -> CoercionProject (g::G) Δ n T R
-| fst_app j => fst_app (j.weaken_global wf)
-| snd_app j => snd_app (j.weaken_global wf)
+| fst_app j1 j2  => fst_app (j1.weaken_global wf) (j2.weaken_global wf)
+| snd_app j1 j2 => snd_app (j1.weaken_global wf) (j2.weaken_global wf)
 | fst_arrow j => fst_arrow (j.weaken_global wf)
 | snd_arrow j => snd_arrow (j.weaken_global wf)
 

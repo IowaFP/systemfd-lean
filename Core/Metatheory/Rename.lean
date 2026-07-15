@@ -139,8 +139,8 @@ theorem Typing.rename_type_lift_k {Δ Δr : List Kind} {r : Ren Ty} K :
 
 theorem CoercionProject.rename_type Δr (r : Ren Ty) (h : ∀ i, Δ[i]? = Δr[r.act i]?)
   : CoercionProject G Δ n T A -> CoercionProject G Δr n T⟨r⟩ A⟨r⟩
-| fst_app j => fst_app (j.rename _ _ h)
-| snd_app j => snd_app (j.rename _ _ h)
+| fst_app j1 j2 => fst_app (j1.rename _ _ h) (j2.rename _ _ h)
+| snd_app j1 j2 => snd_app (j1.rename _ _ h) (j2.rename _ _ h)
 | fst_arrow j => fst_arrow (j.rename _ _ h)
 | snd_arrow j => snd_arrow (j.rename _ _ h)
 
@@ -384,6 +384,19 @@ theorem Typing.weaken_type_list Δ' :
   intro wf j; apply rename_type (Δ'++Δ) (.add Ty Δ'.length) wf _ j
   intro i; simp
   rw [List.getElem?_append_right]; simp; simp
+
+
+theorem Kinding.strengthening_length {Δ' : KindEnv}:
+    G&(Δ' ++ Δ) ⊢ T⟨Ren.add Ty Δ'.length⟩ : K ->
+    G&Δ ⊢ T : K
+:= by
+intro j
+have lem := Kinding.strong_rename (Δ := Δ' ++ Δ) (Δr := Δ) (r := .sub Ty Δ'.length) (T := T⟨Ren.add Ty Δ'.length⟩) j
+simp at lem;
+apply lem
+intro x h
+replace h := FV.mem_add h
+grind
 
 theorem Kinding.strengthening :
   G&(K' :: Δ) ⊢ T⟨.succ Ty⟩ : K ->

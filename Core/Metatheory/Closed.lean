@@ -222,8 +222,8 @@ theorem CoercionProject.closed_rep :
   CoercionProject G Δ n T A ->
   (∀ (σ : Subst Ty), T[σ.lift Δ.length] = T) ->
   ∀ (σ : Subst Ty), A[σ.lift Δ.length] = A
-| fst_app j, h => by simp at h; simp [*]
-| snd_app j, h => by simp at h; simp [*]
+| fst_app j1 j2, h => by simp at h; simp [*]
+| snd_app j1 j2, h => by simp at h; simp [*]
 | fst_arrow j, h => by simp at h; simp [*]
 | snd_arrow j, h => by simp at h; simp [*]
 
@@ -471,8 +471,8 @@ theorem Typing.closed :
 
 theorem CoercionProject.extend Δ
   : CoercionProject G Δ₁ n T A -> CoercionProject G (Δ₁ ++ Δ) n T A
-| fst_app j => fst_app j.extend
-| snd_app j => snd_app j.extend
+| fst_app j1 j2 => fst_app j1.extend j2.extend
+| snd_app j1 j2 => snd_app j1.extend j2.extend
 | fst_arrow j => fst_arrow j.extend
 | snd_arrow j => snd_arrow j.extend
 
