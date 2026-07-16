@@ -50,24 +50,32 @@ theorem typing_inversion_lookup_spine_type (wf : ⊢ G) :
    cases h; case _ e _ _ h _ =>
    subst e; simp at *; apply h
 
+private theorem idx_shift_lemma {ts : List Ty} {Δ' : List Kind} (h : ts.length = Δ'.length):
+  (∀ (i : Nat) (h_1 : i < ts.length + 1), G&Δ ⊢ (t :: ts)[i] : (K' :: Δ')[i]'(by grind)) ->
+  (∀ (i : Nat) (h_1 : i < ts.length), G&Δ ⊢ (ts)[i] : (Δ')[i])
+ := by
+intro h1 i hi
+replace h1 := h1 (i + 1); simp at h1; replace h1 := h1 hi; apply h1
 
-theorem Kinding.beta_many {Δ' : Vec Kind n} {t : Vec Ty n}:
-  G&(Δ'.list ++ Δ) ⊢ A : K ->
-  (∀ i : Fin n, G&Δ ⊢ t[i] : Δ'[i]) ->
-  G&Δ ⊢ A[(List.map su t.list) ++ Subst.id Ty] : K
+
+theorem Kinding.beta_many {Δ' : List Kind} {t : List Ty} (h : t.length = Δ'.length):
+  G&(Δ' ++ Δ) ⊢ A : K ->
+  (∀ i, (h : i < t.length) -> G&Δ ⊢ t[i] : Δ'[i]) ->
+  σ = List.map su t ++ Subst.id Ty ->
+  G&Δ ⊢ A[σ] : K
 := by
-  intro j1 j2
-  induction Δ' generalizing A
-  case nil => cases t; simp at *; apply j1
-  case cons n K' Δ' ih =>
-  cases t; case _ t ts =>
-  simp;
-  replace ih := @ih (A[su t :: +0σ]) ts
-  simp at j1;
-  have j20 := j2 0; simp at j20
-  -- have lem := Kinding.beta j1 j20
+  intro j1 j2 e1
+  induction Δ' generalizing A t σ <;> simp at *
+  case nil => simp at h; subst h; subst e1; simp; apply j1
+  case cons K' Δ' ih =>
+    simp at h;
+    have h' : t.length > 0 := by omega
+    have lem := List.length_gt_zero_exists h'
+    rcases lem with ⟨t, ts, e⟩; subst e; simp at *
+    replace j2 := idx_shift_lemma (by simp at h; apply h) j2
 
-  sorry
+    sorry
+
   -- apply Kinding.subst Δ (su t::+0σ) _ j1
   -- intro i K h; cases i <;> simp at *
   -- case _ => subst h; exact j2
@@ -79,11 +87,18 @@ theorem terms_have_star_types (wf : ⊢ G):
   G&Δ ⊢ R : ★
 | .var _ h => h
 | .defn _ h => h
-| .spctor (v := v) h1 e1 e2 h2 h3 h4 h5 h6 h7 => by
+| .spctor (m1 := m1) (m2 := m2) (Ks1 := Ks1) (Ks2 := Ks2) (As := As) (Bs := Bs) (v := v) h1 e1 e2 h2 h3 h4 h5 h6 h7 => by
   have lem := typing_inversion_lookup_spine_type wf h1
   subst e2
-  simp at *
-  replace lem := lem.extend (Δ₂ := Δ);
+  replace lem := lem.extend (Δ₂ := Δ)
+  simp at lem; simp [List.map_reverse]; rw[<-List.append_assoc] at lem; rw[<-List.map_reverse]; rw[<-List.map_reverse]; rw[<-List.map_append];
+  generalize Δ'def : Ks2.list.reverse ++ Ks1.list.reverse = Δ' at *
+  generalize Zdef : Bs.list.reverse ++ As.list.reverse = Z at *
+  have lem2 := Kinding.beta_many (Δ' := Δ') (t := Z) (σ := List.map su Z ++ Subst.id Ty) (by subst Δ'; subst Z; simp) lem
+  simp at lem2;
+  apply lem2; clear lem2
+  intro i h; rw[<-Zdef] at h; simp at h;
+  rw[<-Vec.list_reverse] at Δ'def Zdef;
   sorry
 | .mtch (ζ := ζ) h1 h2 h3 h4 h5 => by
   replace h4 := h4 0

@@ -110,18 +110,6 @@ theorem Vec.list_eq {v1 v2 : Vec α n} : (v1.list = v2.list) = (v1 = v2) := by
   cases v2; simp at *; case _ hd2 tl2 =>
   simp [*]
 
--- theorem Ren.add_compose_distributes [RenMap T] [SubstMap T T][SubstMapId T T] {y z : Nat} :
---   Ren.to (T := T) (λ x => x + y + z) = Subst.compose (T := T) (Ren.to (λ x => x + y)) (Ren.to (λ x => x + z))
--- := by
---   funext; case _ x =>
---   simp [Ren.to, Subst.compose]
-
--- theorem Ren.add_one_commutes [RenMap T] [SubstMap T T] [SubstMapId T T] {y : Nat} :
---   (Ren.to (T := T) (λ x => x + y)) ∘ Ren.to (T := T) (λ x => x + 1) = Subst.compose (+1) (Ren.to (T := T) (λ x => x + y))
--- := by
---   funext; case _ x =>
---   simp [Ren.to, Subst.compose]; omega
-
 @[simp]
 theorem Vec.map_of_smap_fix [SubstMap A T] {σ : Subst T} : {v : Vec A n} -> Vec.map (λ (x : A) => x[σ]) v = v[σ]
 | .nil => by simp
@@ -168,6 +156,13 @@ theorem subst_lift [RenMap T T] [RenMapId T T] [RenMapCompose T T] (σ : Subst T
   rw [Subst.rewrite_lift_succ]
   generalize zdef : σ.lift n = z at *
   simp [Subst.lift]; rw [ih]; simp
+
+theorem List.length_gt_zero_exists : {l : List α} -> (h : l.length > 0) ->
+ ∃ (a : α) (l' : List α), l = (a :: l')
+| .nil, j => by simp at j
+| .cons a as, j => by simp
+
+
 
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst
