@@ -1,8 +1,9 @@
 import Core.Ty
 import Core.Term
 import Core.Typing
-
 import Core.Metatheory.Inversion
+
+import Core.Infer
 open LeanSubst
 
 namespace Core.Ppcc
@@ -162,7 +163,7 @@ def Node.kind (n : Node G Δ) : Kind := n.payload.2.1
 structure EqGraphNode (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) where
   parent : Nat × Ty × Kind
 
-  rank : Nat
+  -- rank : Nat
   payload : Node G Δ
 
   parent_rel : (t : Term) ×' (G&Δ, Γ ⊢ t : (payload.ty ~[payload.kind]~ parent.2.1))
@@ -179,29 +180,20 @@ def EqGraphNode.parent_kind (n : EqGraphNode G Δ Γ) : Kind := n.parent.2.2
 def EqGraphNode.parent_idx (n : EqGraphNode G Δ Γ) : Nat := n.parent.1
 
 
-
-/- Parent of a union-find node, defaults to self when the node is a root -/
--- def get_parentD (nodes : List (EqGraphNode G Δ Γ)) (i : Nat) : Nat :=
---   if h : i < nodes.length then nodes[i].parent_idx else i
-
-/- Rank of a union-find node, defaults to 0 when the node is a root -/
--- def get_rankD (nodes : List (EqGraphNode G Δ Γ)) (i : Nat) : Nat :=
---   if h : i < nodes.length then nodes[i].rank else 0
-
 structure EqGraph (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) where
   nodes : List (EqGraphNode G Δ Γ)
 
   /-- Validity for parent nodes -/
   -- parent index is less than the length of the nodes
-  parentD_lt : ∀ {i}, (h : i < nodes.length) -> nodes[i].parent_idx < nodes.length
+  parent_lt : ∀ {i}, (h : i < nodes.length) -> nodes[i].parent_idx < nodes.length
 
   parent_idx_lt : ∀{i}, (h : i < nodes.length) -> nodes[i].parent_idx ≤ i
 
   /-- parent kind is equal to the node kind -/
-  parentD_kind_eq : ∀{i}, (h : i < nodes.length) -> nodes[i].parent_kind = nodes[i].kind
+  parent_kind_eq : ∀{i}, (h : i < nodes.length) -> nodes[i].parent_kind = nodes[i].kind
 
   /- parent type matches the type stored in the nodes parent -/
-  parentD_type_eq : ∀{i}, (h : i < nodes.length) -> nodes[i].parent_ty = (nodes[nodes[i].parent_idx]'(parentD_lt _)).ty
+  parent_ty_eq : ∀{i}, (h : i < nodes.length) -> nodes[i].parent_ty = (nodes[nodes[i].parent_idx]'(parent_lt _)).ty
 
 instance instMembershipTyEqGraph {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : Membership Ty (EqGraph G Δ Γ) where
   mem eG T := List.elem T (eG.nodes.map (·.ty))
@@ -209,26 +201,25 @@ instance instMembershipTyEqGraph {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : M
 def EqGraph.elem_node {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (n : Node G Δ)(eG : EqGraph G Δ Γ) : Bool :=
   List.elem (n.ty) (eG.nodes.map (λ n => n.ty))
 
-def EqGraph.parentD {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (eG : EqGraph G Δ Γ) (i : Nat) (h : i < eG.nodes.length) : Nat :=
-  eG.nodes[i].parent_idx
+def EqGraph.empty {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : EqGraph G Δ Γ
+  := { nodes := [], parent_lt := nofun, parent_idx_lt:= nofun, parent_kind_eq := nofun, parent_ty_eq := nofun  }
 
 def EqGraph.push {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}(eG : EqGraph G Δ Γ) (n : Node G Δ) : EqGraph G Δ Γ :=
   if eG.elem_node n
   then eG
   else let new_node := {
          parent := (eG.nodes.length, n.ty, n.kind),
-         rank := 0,
          payload := n,
          parent_rel := ⟨refl! n.ty, by apply Typing.refl; apply n.payload.2.2⟩
          }
        { nodes := eG.nodes ++ [new_node]
-       , parentD_lt := by
+       , parent_lt := by
           intro i h1;
           simp;
           simp only [List.length_append] at h1; simp at h1;
           rw[List.getElem_append]
           split
-          case _ h => have lem := eG.parentD_lt (i := i) h; simp [EqGraphNode.parent_idx] at lem; omega
+          case _ h => have lem := eG.parent_lt (i := i) h; simp [EqGraphNode.parent_idx] at lem; omega
           case _ h =>
             have lem : i = eG.nodes.length := by omega
             subst lem; simp [new_node]
@@ -243,29 +234,24 @@ def EqGraph.push {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}(eG : EqGraph G Δ �
            case _ h =>
              have lem : i = eG.nodes.length := by omega
              subst lem; simp [new_node]
-       -- , rankD_lt := by
-       --     intro i h; simp [rankD] at *;
-       --     split
-       --     case _ h1 => sorry
-       --     case _ h1 => sorry
-       , parentD_kind_eq := by
+       , parent_kind_eq := by
             intro i h1;
             rw[List.getElem_append]
             split
-            case _ h => apply eG.parentD_kind_eq h
+            case _ h => apply eG.parent_kind_eq h
             case _ h =>
               have lem : i = eG.nodes.length := by rw[List.length_append] at h1; simp at h1; omega
               subst i; simp[new_node]; congr; simp; simp
-       , parentD_type_eq := by
+       , parent_ty_eq := by
            intro i h1;
            cases Nat.decLt i eG.nodes.length
            case _ h =>
              have lem : i = eG.nodes.length := by rw[List.length_append] at h1; simp at h1; omega
              subst i; simp [new_node]
            case _ h =>
-             have lem := eG.parentD_lt h
+             have lem := eG.parent_lt h
              have lem2 : (eG.nodes ++ [new_node])[i] = eG.nodes[i] := by rw[List.getElem_append_left]
-             have lem3 := eG.parentD_type_eq h
+             have lem3 := eG.parent_ty_eq h
              simp [EqGraphNode.parent_idx] at lem
              conv =>
                lhs
@@ -286,38 +272,40 @@ theorem EqGraph.push_makes_node {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {eG 
   · assumption
   · unfold instMembershipTyEqGraph; simp
 
-partial def EqGraph.get_rep_aux {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ)
+def EqGraph.get_rep_aux {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ)
   (T1 : Ty) (i : Nat) (h : i < eG.nodes.length) :
-  Option ((T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
+  Option ((Nat) × (T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
     let n := eG.nodes[i]
-    have lem1 := eG.parentD_kind_eq h
-    have lem2 := eG.parentD_type_eq h
+    have lem1 := eG.parent_kind_eq h
+    have lem2 := eG.parent_ty_eq h
     have lem3 := eG.parent_idx_lt h
+    have lem4 := n.parent_rel.2
     if h2 : n.parent_idx == i && n.ty == T1
     then
-      have lem4 := n.parent_rel.2
       by simp at h2;
          rcases h2 with ⟨h2a, h2b⟩
-         apply some ⟨n.parent.2.1, n.kind, n.parent_rel.1, by rw[<-lem1]; rw[<-h2b]; rw[lem1]; simp [n, Node.ty] at lem4; simp [n, Node.ty]; apply lem4⟩
+         apply some ⟨i, n.parent.2.1, n.kind, n.parent_rel.1,
+               by rw[<-lem1]; rw[<-h2b]; rw[lem1]; simp [n, Node.ty] at lem4; simp [n, Node.ty]; apply lem4⟩
     else
       if h2' : n.parent_idx < i && n.ty == T1
-      then do
-        let ⟨T3, k, η, ih⟩ <- EqGraph.get_rep_aux wf eG n.parent_ty n.parent_idx
-          (by simp at h2'; rcases h2' with ⟨e1, e2⟩; unfold EqGraphNode.parent_idx; omega) -- (by unfold n; apply lem2)
-        let lem4 := n.parent_rel.2
-        by
-          if h3 : n.kind == k
+      then { by
+      simp at h2'; rcases h2' with ⟨e1, e2⟩
+      let ih := EqGraph.get_rep_aux wf eG n.parent_ty n.parent_idx
+                        (by unfold EqGraphNode.parent_idx; omega)
+      match ih with
+      | some ⟨i, T3, k, η, ih⟩ =>
+        if h3 : n.kind == k
           then
-            simp at h2'; rcases h2' with ⟨e1, e2⟩;
             simp at h3; simp [Node.kind] at lem4; simp only [e2, h3] at lem4;
             have lem5 := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) n.parent_rel.1 η k T1 n.parent_ty T3 lem4 ih
             rcases lem5 with ⟨η', j⟩
-            apply some ⟨T3, k, η', j⟩
+            apply some ⟨i, T3, k, η', j⟩
           else apply none
+      | none => apply none }
       else none
-  -- termination_by i
+
 -- Gets the representative node if the type exists
-def EqGraph.get_rep {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ) (T1 : Ty) : Option ((T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
+def EqGraph.get_rep {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ) (T1 : Ty) : Option (Nat × (T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
   let i <- eG.nodes.findIdx? (·.ty == T1)
   if h1 : (i < eG.nodes.length)
   then EqGraph.get_rep_aux wf eG T1 i h1
@@ -330,28 +318,215 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG :
   let i2 <- eG.nodes.findIdx? (·.ty == T2)
   match eG.nodes[i1]?, eG.nodes[i2]? with
   | some n1, some n2 => do
-    let r1 <- eG.get_rep wf T1
-    let r2 <- eG.get_rep wf T2
-    sorry
+    let ⟨ip1, pT1, K1, η1, j1⟩ <- eG.get_rep wf T1
+    let ⟨ip2, pT2, K2, η2, j2⟩ <- eG.get_rep wf T2
+    let p1n <- eG.nodes[ip1]?
+    let p2n <- eG.nodes[ip2]?
+    if ip1 == ip2
+    then return eG -- both T1 and T2 are already in the same eq class
+    else
+      if h : ip1 < ip2 && ip2 < eG.nodes.length && K1 == K2 && n2.kind == K1 && n1.kind == K1 && K == K1 && p1n.ty == pT1 && p1n.kind == K1 && p2n.ty == pT2 && p2n.kind == K2
+      then
+        -- pT2 == T2 == T1 == pT1
+        -- symm η2 ; (symm t ; η1)
+        let new_node : EqGraphNode G Δ Γ := {
+          parent := (ip1, pT1, K1)
+          payload := p2n.payload
+          parent_rel :=
+            let ⟨symm_t, j'⟩ := EqGraph.symm (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) t K T1 T2 j
+            let ⟨symm_η2, j2'⟩ := EqGraph.symm (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) η2 K2 T2 pT2 j2
+            let ⟨symm_t_η1, j⟩ := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) symm_t η1 K T2 T1 pT1 j'
+                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; apply j1)
+            let ⟨symm_η2_symm_t_η1, j⟩ := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) symm_η2 symm_t_η1 K2 pT2 T2 pT1 j2'
+                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j)
+            ⟨symm_η2_symm_t_η1, by
+              simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
+              simp only [Node.ty, e8, Node.kind, e9]; apply j⟩ }
+        some { nodes := eG.nodes.set ip2 new_node
+             , parent_lt := by
+                 intro i h1;
+                 simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
+                 simp; -- generalize ndef : (eG.nodes.set ip2 new_node)[i] = n at *;
+                 have lem := List.getElem_mem h1
+                 have lem2 := List.mem_or_eq_of_mem_set lem
+                 cases lem2
+                 case inl h =>
+                   rw[List.mem_iff_getElem] at h;
+                   rcases h with ⟨n, h', e11⟩
+                   rw[<-e11]; apply eG.parent_lt
+                 case inr h => simp only [h, new_node]; omega
+             , parent_idx_lt := by
+                  intro i h1;
+                  simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
+                  simp;
+                  have lem := List.getElem_mem h1
+                  have lem2 := List.mem_or_eq_of_mem_set lem
+                  cases lem2
+                  case inl h =>
+                   rw[List.mem_iff_getElem] at h;
+                   rcases h with ⟨n, h', e11⟩
+                   rw[<-e11]; sorry
+
+                  case inr h => simp only [h, new_node]; sorry
+             , parent_kind_eq := by
+                  intro i h1
+                  simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
+                  simp;
+                  have lem := List.getElem_mem h1
+                  have lem2 := List.mem_or_eq_of_mem_set lem
+                  cases lem2
+                  case inl h =>
+                   rw[List.mem_iff_getElem] at h;
+                   rcases h with ⟨n, h', e11⟩
+                   rw[<-e11]; apply eG.parent_kind_eq
+
+                  case inr h' => rw[h']; simp only [new_node]; symm; apply e9
+
+             , parent_ty_eq := by
+                  intro i h1
+                  simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
+                  simp;
+                  have lem := List.getElem_mem h1
+                  have lem2 := List.mem_or_eq_of_mem_set lem
+                  cases lem2
+                  case inl h =>
+                   rw[List.mem_iff_getElem] at h;
+                   rcases h with ⟨n, h', e11⟩
+                   simp only [<-e11]; sorry
+
+                  case inr h' => simp only [h', new_node]; sorry
+
+             }
+      else if h : ip2 < ip1 && ip1 < eG.nodes.length && K1 == K2 && n2.kind == K1 && n1.kind == K1 && K == K1 && p1n.ty == pT1 && p1n.kind == K1 && p2n.ty == pT2 && p2n.kind == K2
+        then
+        -- pT1 == T1 == T2 == pT2
+        -- sym η1 ; t ; η2
+         let new_node : EqGraphNode G Δ Γ := {
+           parent := (ip2, pT2, K2)
+           payload := p1n.payload
+           parent_rel :=
+            let ⟨symm_η1, j'⟩ := EqGraph.symm (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) η1 K1 T1 pT1 j1
+
+            let ⟨t_η2, j⟩ := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) t η2 K T1 T2 pT2 j
+                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j2)
+            let ⟨symm_η1_t_η2, j⟩ := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) symm_η1 t_η2 K pT1 T1 pT2
+                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j')
+                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j)
+            ⟨symm_η1_t_η2, by
+              simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
+              simp only [Node.ty, Node.kind, e6, e7]; apply j⟩ }
+         some { nodes := eG.nodes.set ip2 new_node
+              , parent_lt := by
+                  intro i h1;
+                  simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
+                  simp;
+                  have lem := List.getElem_mem h1
+                  have lem2 := List.mem_or_eq_of_mem_set lem
+                  cases lem2
+                  case inl h =>
+                    rw[List.mem_iff_getElem] at h;
+                    rcases h with ⟨n, h', e11⟩
+                    rw[<-e11]; apply eG.parent_lt
+                  case inr h => simp only [h, new_node]; omega
+              , parent_idx_lt := sorry
+              , parent_kind_eq := sorry
+              , parent_ty_eq := sorry  }
+        else none
   | _, _ => none
 
 
+-- theorem Typing.app_split {G : GlobalEnv} {Δ : KindEnv} :
+--   G&Δ  ⊢ (A • B) : K ->
+--   ∃ K', G&Δ ⊢ A : (K' -:> K) ∧ G&Δ ⊢ B : K'
+-- | .app (A := K') j1 j2 => by exists K'
 
-theorem EqGraph.union_keeps_nodes {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} {eG eG' : EqGraph G Δ Γ}  {K : Kind} {T1 T2 : Ty}
- (c : (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) (h1 : T1 ∈ eG) (h2 : T2 ∈ eG) :
- eG.union (wf := wf) K T1 T2 c.1 c.2 = eG' ->
- eG.nodes = eG'.nodes := by sorry
+-- theorem Typing.app_first_kind_eq {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G):
+--   G&Δ , Γ ⊢ c : ((A1 • B1) ~[K]~ (A2 • B2)) ->
+--   ∃ K', G&Δ ⊢ A1 : (K' -:> K) ∧ G&Δ ⊢ B1 : (K' -:> K) := by
+--   intro j
+--   have lem := terms_have_star_types wf j
+
+--   sorry
+
+
+-- theorem Typing.app_first {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G):
+--   G&Δ , Γ ⊢ c : ((A1 • B1) ~[K]~ (A2 • B2)) ->
+--   ∃ K', G&Δ,Γ ⊢ (prj[0] c) : (A1 ~[K' -:> K]~ A2) ∧ G&Δ , Γ ⊢ (prj[1] c) : (B1 ~[K']~ B2) := by
+--   intro j
+--   have lem := terms_have_star_types wf j
+--   cases lem; case _ lem1 lem2 =>
+--   cases lem1; cases lem2;
+
+--   sorry
+
 
 
 def EqGraph.process_equation {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG : EqGraph G Δ Γ) (K : Kind) :
   (T1 : Ty) -> (G&Δ ⊢ T1 : K) -> (T2 : Ty) -> (G&Δ ⊢ T2 : K)  -> ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) -> Option (EqGraph G Δ Γ)
+-- | (.app A1 B1), j1, (.app A2 B2), j2, ⟨c, j3⟩ =>
+--   let T1 := A1 • B1
+--   let T2 := A2 • B2
+--   let eG := eG.push ⟨T1, K, j1⟩
+--   let eG := eG.push ⟨T2, K, j2⟩
+--   eG.union (wf := wf) K T1 T2 c j3
+  -- cannot do this
+  -- ⟨K, lem1, lem2⟩ := Typing.app_first_kind_eq j1
+
 | T1, j1, T2, j2, ⟨c, j3⟩ =>
   let eG := eG.push ⟨T1, K, j1⟩
   let eG := eG.push ⟨T2, K, j2⟩
   eG.union (wf := wf) K T1 T2 c j3
 
-def EqGraph.empty {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : EqGraph G Δ Γ
-  := { nodes := [], parentD_lt := nofun, parent_idx_lt:= nofun, parentD_kind_eq := nofun, parentD_type_eq := nofun  /-, rankD_lt := nofun-/ }
+def EqGraph.ask {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG : EqGraph G Δ Γ) (K : Kind)
+  (T1 : Ty) (T2 : Ty) : Option ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))
+:= do
+  let i1 <- eG.nodes.findIdx? (·.ty == T1)
+  let i2 <- eG.nodes.findIdx? (·.ty == T2)
+  match eG.nodes[i1]?, eG.nodes[i2]? with
+  | some n1, some n2 => do
+    let ⟨ip1, pT1, K1, η1, η1_j⟩ <- eG.get_rep wf T1
+    let ⟨ip2, pT2, K2, η2, η2_j⟩ <- eG.get_rep wf T2
+    let p1n <- eG.nodes[ip1]?
+    let p2n <- eG.nodes[ip2]?
+    if h : ip1 == ip2 && pT1 == pT2 && K == K1 && K1 == K2
+    then  -- same class
+      let ⟨symm_η2, j2'⟩ := EqGraph.symm (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) η2 K2 T2 pT2 η2_j
+      let ⟨symm_η2_η1, j⟩ := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) η1 symm_η2 K1 T1 pT1 T2 η1_j
+          (by simp at h; rcases h with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e4; subst e3; subst e2; apply j2')
+      return ⟨symm_η2_η1, by simp at h; rcases h with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e4; subst e3; subst e2; apply j⟩
+    else  -- different class
+      none
+  | _, _ => none
+
+
+def EqGraph.process_ty {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG : EqGraph G Δ Γ) (t : Term) (T : Ty) : Option (EqGraph G Δ Γ) := do
+ match t0h : t.infer_type G Δ Γ with
+ | some T' =>
+   if he : T == T'
+   then
+     match h1 : t, h2 : T with
+     | t, (T1 ~[K]~ T2) => do
+       match t1h : T1.infer_kind G Δ with
+       | some K' =>
+         match t2h : T2.infer_kind G Δ with
+         | some K'' =>
+           if h : K' == K'' && K' == K
+           then
+             have lem0 := infer_type_sound wf t0h
+             have lem1 := infer_kind_sound t1h
+             have lem2 := infer_kind_sound t2h
+             by simp at h; rcases h with ⟨e1, e2⟩;
+                subst K'; subst K''
+                simp at he; subst he;
+                apply eG.process_equation (wf := wf) K T1 lem1 T2 lem2 ⟨t, lem0⟩
+           else none
+         | none => none
+       | none => none
+     | _, _ => return eG
+   else none
+ | none => none
+
+def EqGraph.process_tyenv {G : GlobalEnv} {Δ : KindEnv} {wf : ⊢ G} (Γ : TyEnv): Option (EqGraph G Δ Γ) := (Γ.attach.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) acc #i t.1) EqGraph.empty
 
 
 end Core.Ppcc

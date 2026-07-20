@@ -186,4 +186,5 @@ namespace LeanSubst
   @[simp]
   theorem Subst.Vec.smap_list [SubstMap S T] {v : Vec S n} {σ : Subst T} : v.list[σ] = v[σ].list := by
     induction v <;> simp [*]
+
 end LeanSubst

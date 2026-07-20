@@ -5,6 +5,9 @@ import Core.Typing
 import Core.Metatheory
 import Core.Metatheory.Inversion
 
+import Core.Ppcc.Basic
+import Core.Infer
+
 open LeanSubst
 open Lilac
 namespace Core.Synth
@@ -77,50 +80,34 @@ theorem synth_type_sound (wf : ⊢ G):
 | _ => sorry
 
 
-def synth_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (K : Kind) : Ty -> Option Term
-| (T1 ~[K]~ T2) =>
-  if T1 == T2
-  then refl! T1 else
-  if (Γ.findIdx? (· == T1 ~[K]~ T2)).isSome
-  then do
-    let i <- Γ.findIdx? (· == T1 ~[K]~ T2)
-    return (.var i)
-  else none
+def synth_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (K : Kind) (wf : ⊢ G) : Ty -> Option Term
+| (T1 ~[K]~ T2) => do
+  let K'  <- T1.infer_kind G Δ
+  let K'' <- T2.infer_kind G Δ
+  if K' == K'' && K' == K
+      then do
+        let eG <- Ppcc.EqGraph.process_tyenv (G := G) (Δ := Δ) (Γ := Γ) (wf := wf)
+        let ⟨t, _⟩ <- eG.ask (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) K T1 T2
+        return t
+      else none
 | _ => none
 
-theorem synth_sound :
-  synth_term G Δ Γ K T = some c ->
-  SynthTerm G Δ Γ K T c
+theorem synth_sound (wf : ⊢ G):
+  synth_term G Δ Γ K wf T = some c ->
+  G&Δ, Γ ⊢ c : T
  := by
- intro j
- induction T <;> simp [synth_term] at *
+ intro j;
+ unfold synth_term at j
  split at j
- case _ h =>
-   simp at h; subst h; simp at j; subst j;
-   sorry
- · sorry
-
-
- -- unfold synth_coe
- -- split
- -- case _ h =>
- -- simp at h; rcases h with ⟨e1, e2⟩
- -- subst e1; subst e2
- -- split
- -- case _ h =>
- --   simp
- --   intro h1; simp at h
- --   subst c; subst s
- --   apply Typing.refl
- --   apply j1
- -- · simp;
- --   intro h1 h2
- --   rw[Option.bind_eq_some_iff] at h2; rcases h2 with ⟨i, h4, h2⟩
- --   simp at h2; subst c;
- --   apply Typing.var
- --   rw[List.findIdx?_eq_some_iff_getElem] at h4; rcases h4 with ⟨h, h4, h5⟩
- --   simp at h4; rw[List.getElem?_eq_some_iff]
- --   exists h
- --   apply Kinding.eq j1 j2
+ · simp at j;
+   rw[Option.bind_eq_some_iff] at j; rcases j with ⟨K', j1, j⟩
+   rw[Option.bind_eq_some_iff] at j; rcases j with ⟨K'', j2, j⟩
+   simp at j;
+   rcases j with ⟨⟨e1, e2⟩, j⟩
+   subst e1; subst e2
+   rw[Option.bind_eq_some_iff] at j; rcases j with ⟨eG, j3, j⟩
+   rw[Option.bind_eq_some_iff] at j; rcases j with ⟨⟨t, tj⟩, j4, j⟩
+   simp at j; subst j; apply tj
+ · cases j
 
 end Core.Synth
