@@ -11,7 +11,7 @@ def mEG : Option (Core.Ppcc.EqGraph [] [★, ★, ★, ★] [t#0 ~[★]~ t#1, t#
 
 def test : Option Term := do
   let eG <- mEG
-  let ⟨t, _⟩ <- eG.ask (G := []) (Δ := [★, ★, ★, ★]) (wf := CtxWf) (Γ := [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2]) ★ t#1 t#1
+  let ⟨t, _⟩ <- eG.ask (G := []) (Δ := [★, ★, ★, ★]) (wf := CtxWf) (Γ := [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2]) ★ t#1 t#2
   return t
 
 #eval! test

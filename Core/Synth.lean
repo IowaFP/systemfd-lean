@@ -80,7 +80,7 @@ theorem synth_type_sound (wf : ⊢ G):
 | _ => sorry
 
 
-def synth_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (K : Kind) (wf : ⊢ G) : Ty -> Option Term
+def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (wf : ⊢ G) : Ty -> Option Term
 | (T1 ~[K]~ T2) => do
   let K'  <- T1.infer_kind G Δ
   let K'' <- T2.infer_kind G Δ
@@ -92,12 +92,12 @@ def synth_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (K : Kind) (wf : ⊢ 
       else none
 | _ => none
 
-theorem synth_sound (wf : ⊢ G):
-  synth_term G Δ Γ K wf T = some c ->
+theorem synth_coercion_sound (wf : ⊢ G):
+  synth_coercion_term G Δ Γ wf T = some c ->
   G&Δ, Γ ⊢ c : T
  := by
  intro j;
- unfold synth_term at j
+ unfold synth_coercion_term at j
  split at j
  · simp at j;
    rw[Option.bind_eq_some_iff] at j; rcases j with ⟨K', j1, j⟩
