@@ -6,10 +6,9 @@ import Core.Ppcc.Basic
 
 namespace Core.Ppcc
 
--- maybe need some predicate to say what makes G well formed?
-theorem EqGraph.find_preserves_type (eqG : EqGraph) :
-  eqG.find T1 T2 = some t ->
-  G&Δ, Γ ⊢ t : (T1 ~[K]~ T2) := sorry
-
+theorem EqGraph.ask_type_sound {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ : TyEnv} {eG : EqGraph G Δ Γ} {c : Term} {j : G&Δ, Γ ⊢ c : (T1 ~[K]~ T2)}:
+  eG.ask G wf Δ Γ K T1 T2 = some ⟨c, j⟩ ->
+  G&Δ, Γ ⊢ c : (T1 ~[K]~ T2) :=
+  by intro h; apply j
 
 end Core.Ppcc

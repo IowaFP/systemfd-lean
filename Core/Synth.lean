@@ -80,20 +80,24 @@ theorem synth_type_sound (wf : ⊢ G):
 | _ => sorry
 
 
-def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (wf : ⊢ G) : Ty -> Option Term
+def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Option Term
 | (T1 ~[K]~ T2) => do
   let K'  <- T1.infer_kind G Δ
   let K'' <- T2.infer_kind G Δ
   if K' == K'' && K' == K
       then do
-        let eG <- Ppcc.EqGraph.process_tyenv (G := G) (Δ := Δ) (Γ := Γ) (wf := wf)
-        let ⟨t, _⟩ <- eG.ask (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) K T1 T2
-        return t
+        match h : G.wf_globals with
+        | some () =>
+          let wf := wf_global_sound h
+          let eG <- Ppcc.EqGraph.process_tyenv G wf Δ Γ
+          let ⟨t, _⟩ <- eG.ask G wf Δ Γ K T1 T2
+          return t
+        | _ => none
       else none
 | _ => none
 
-theorem synth_coercion_sound (wf : ⊢ G):
-  synth_coercion_term G Δ Γ wf T = some c ->
+theorem synth_coercion_sound :
+  synth_coercion_term G Δ Γ T = some c ->
   G&Δ, Γ ⊢ c : T
  := by
  intro j;
@@ -105,9 +109,11 @@ theorem synth_coercion_sound (wf : ⊢ G):
    simp at j;
    rcases j with ⟨⟨e1, e2⟩, j⟩
    subst e1; subst e2
-   rw[Option.bind_eq_some_iff] at j; rcases j with ⟨eG, j3, j⟩
-   rw[Option.bind_eq_some_iff] at j; rcases j with ⟨⟨t, tj⟩, j4, j⟩
-   simp at j; subst j; apply tj
+   split at j
+   · rw[Option.bind_eq_some_iff] at j; rcases j with ⟨eG, j3, j⟩
+     rw[Option.bind_eq_some_iff] at j; rcases j with ⟨⟨t, tj⟩, j4, j⟩
+     simp at j; subst j; apply tj
+   · cases j
  · cases j
 
 end Core.Synth
