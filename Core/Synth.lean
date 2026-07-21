@@ -188,6 +188,7 @@ def test2 : Option Ty := do
 
 #guard test2 == some (t#1 ~[★ -:> ★]~ t#0)
 
+
 end Core.EqGraph.Test
 
 

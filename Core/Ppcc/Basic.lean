@@ -66,7 +66,21 @@ theorem succ_succ_subst_lemma {TA TB : Ty} :
 
 theorem succ_succ_succ_subst_lemma {A1 A2 : Ty} :
  A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩[(su A2 :: Subst.id Ty).lift.lift] = A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩
- := by simp; rw[<-Ren.add_one, <-Subst.add_one];  sorry
+ := by
+ simp
+ rw[Subst.compose_ren_left]; simp;
+ generalize σdef : (({ inner := fun n => re (n + 1 + 1) }) : LeanSubst.Subst Ty) = σ at *;
+ generalize rdef : Ren.succ Ty ∘ Ren.succ Ty = r at *
+ have lem : r.to = σ := by
+   rw[<-rdef]; rw[<-σdef]
+   simp; unfold Subst.succ; unfold Subst.compose; simp
+ have lem2 := Subst.apply_stable lem (S := Ty) (T := Ty)
+ unfold SubstMap.smap; unfold instSubstMapTy;
+ unfold RenMap.rmap; unfold instRenMapTy; simp;
+ unfold SubstMap.smap at lem2; unfold instSubstMapTy at lem2;
+ unfold RenMap.rmap at lem2; unfold instRenMapTy at lem2; simp at lem2;
+ rw[lem2]
+
 
 
 def EqGraph.seq (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
@@ -582,13 +596,10 @@ def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : T
          have jB2 := infer_kind_sound hB2
          by simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e1; subst e2; subst e3; subst e4; subst e5
             let ⟨c1, j_c1⟩ := EqGraph.app_prj_fst G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
+            let eG := (eG.map (·.process_equation G wf Δ Γ (KA1a -:> K) A1 jA1 A2 jA2 ⟨c1, j_c1⟩)).join
             let ⟨c2, j_c2⟩ := EqGraph.app_prj_snd G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
-            let eG := eG.map (·.push ⟨A1, (KA1a -:> K), jA1⟩)
-            let eG := eG.map (·.push ⟨A2, (KA1a -:> K), jA2⟩)
-            let eG := (eG.map (·.union (wf := wf) (KA1a -:> K) A1 A2 c1 j_c1)).join
-            let eG := eG.map (·.push ⟨B1, KA1a, jB1⟩)
-            let eG := eG.map (·.push ⟨B2, KA1a, jB2⟩)
-            apply (eG.map (·.union (wf := wf) KA1a B1 B2 c2 j_c2)).join
+            let eG := (eG.map (·.process_equation G wf Δ Γ KA1a B1 jB1 B2 jB2 ⟨c2, j_c2⟩))
+            apply eG.join
        else none
      | _, _, _, _ => none
 -- TODO : Ditto for -:>

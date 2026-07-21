@@ -6,6 +6,9 @@ import Core.Vec
 import Core.Infer.Global
 import Core.Examples.Common
 import Core.Examples.Maybe
+
+import Core.Synth
+
 open LeanSubst
 
 
@@ -103,7 +106,7 @@ def fnot := Λ[★]λ[(gt#"F" • gt#"Int") • t#0]λ[t#0]
 --   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
 --       if "fdF" == y then
 --         let Δ := (Ks1.list ++ Ks2.list).reverse
---         let (ζ, Γ) <- pattern_binders TypeFunCtx Δ n Ts #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+--         let (ζ, Γ) <- pattern_binders (.data .opn) TypeFunCtx Δ n Ts #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
 
 --         let sk1 := Term.mkApps d#"sym" [gt#"Maybe" • t#1, t#6] [#2]
 --         let t := Term.mkApps d#"seq" [gt#"Maybe" • t#3, t#6, gt#"Maybe" • t#1] [#5, sk1]
@@ -194,6 +197,26 @@ some ([★, ★, ★, ★],
 
 --       else none
 --   | _ => none
+
+
+#eval! do
+  match lookup "fdF" TypeFunCtx with
+  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) =>
+      if "fdF" == y then
+        let Δ := (Ks1.list ++ Ks2.list).reverse
+        let (ζ, Γ) <- pattern_binders (.data .opn) TypeFunCtx Δ n Ts #(⟨"FMM", 2, #(t#2, t#1), 2, 3⟩, ⟨"FMM", 2, #(t#2, t#0), 2, 3⟩)
+
+        match h : TypeFunCtx.wf_globals with
+        | some () =>
+          have wf := wf_global_sound h
+          let eG <- Core.Synth.EqGraph.process_tyenv TypeFunCtx wf (ζ ++ Δ) Γ
+          -- let ⟨η, _⟩ := eG.ask TypeFunCtx wf (ζ ++ Δ) Γ ★ (gt#"Maybe" • t#1) (gt#"Maybe" • t#3)
+          return (ζ++Δ, Γ, R⟨Ren.add Ty ζ.length⟩)
+        | none => none
+
+      else none
+  | _ => none
+
 
 
 end Core.Examples
