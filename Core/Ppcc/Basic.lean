@@ -3,7 +3,8 @@ import Core.Term
 import Core.Typing
 import Core.Metatheory.Inversion
 
-import Core.Infer
+import Core.Infer.Kind
+import Core.Infer.KindSound
 import Core.Util
 import Core.Vec
 
@@ -616,46 +617,6 @@ def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : E
     else  -- different class
       none
   | _, _ => none
-
-
-def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (t : Term) (T : Ty) : Option (EqGraph G Δ Γ) := do
- match t0h : t.infer_type G Δ Γ with
- | some T' =>
-   if he : T == T'
-   then
-     match h1 : t, h2 : T with
-     | t, (T1 ~[K]~ T2) => do
-       match t1h : T1.infer_kind G Δ with
-       | some K' =>
-         match t2h : T2.infer_kind G Δ with
-         | some K'' =>
-           if h : K' == K'' && K' == K
-           then
-             have lem0 := infer_type_sound wf t0h
-             have lem1 := infer_kind_sound t1h
-             have lem2 := infer_kind_sound t2h
-             by simp at h; rcases h with ⟨e1, e2⟩;
-                subst K'; subst K''
-                simp at he; subst he;
-                apply eG.process_equation G wf Δ Γ K T1 lem1 T2 lem2 ⟨t, lem0⟩
-           else none
-         | none => none
-       | none => none
-     | _, _ => return eG
-   else none
- | none => none
-
-def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option (EqGraph G Δ Γ)
-  := (Γ.attach.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t.1) EqGraph.empty
-
-
-def TyEnv.is_consistent (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option Unit := do
-  let eG <- EqGraph.process_tyenv G wf Δ Γ
-  -- Get all global types
-
-  -- get a pair of global type of the same kind
-
-  -- Check if eG can build a coercion term for that type
 
 
 end Core.Ppcc

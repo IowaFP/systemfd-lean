@@ -10,6 +10,7 @@ import Core.Infer
 
 open LeanSubst
 open Lilac
+
 namespace Core.Synth
 
 inductive SynthTerm (G : GlobalEnv) (Δ : KindEnv) : TyEnv -> Kind -> Ty -> Term -> Prop where
@@ -80,6 +81,48 @@ theorem synth_type_sound (wf : ⊢ G):
 | _ => sorry
 
 
+def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : Ppcc.EqGraph G Δ Γ) (t : Term) (T : Ty) :
+ Option (Ppcc.EqGraph G Δ Γ) := do
+ match t0h : t.infer_type G Δ Γ with
+ | some T' =>
+   if he : T == T'
+   then
+     match h1 : t, h2 : T with
+     | t, (T1 ~[K]~ T2) => do
+       match t1h : T1.infer_kind G Δ with
+       | some K' =>
+         match t2h : T2.infer_kind G Δ with
+         | some K'' =>
+           if h : K' == K'' && K' == K
+           then
+             have lem0 := infer_type_sound wf t0h
+             have lem1 := infer_kind_sound t1h
+             have lem2 := infer_kind_sound t2h
+             by simp at h; rcases h with ⟨e1, e2⟩;
+                subst K'; subst K''
+                simp at he; subst he;
+                apply eG.process_equation G wf Δ Γ K T1 lem1 T2 lem2 ⟨t, lem0⟩
+           else none
+         | none => none
+       | none => none
+     | _, _ => return eG
+   else none
+ | none => none
+
+def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option (Ppcc.EqGraph G Δ Γ)
+  := (Γ.attach.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t.1) Ppcc.EqGraph.empty
+
+
+def TyEnv.is_consistent (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option Unit := do
+  let eG <- EqGraph.process_tyenv G wf Δ Γ
+  -- Get all global types
+
+  -- get a pair of global type of the same kind
+
+  -- Check if eG can build a coercion term for that type
+
+
+
 def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Option Term
 | (T1 ~[K]~ T2) => do
   let K'  <- T1.infer_kind G Δ
@@ -89,7 +132,7 @@ def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Opti
         match h : G.wf_globals with
         | some () =>
           let wf := wf_global_sound h
-          let eG <- Ppcc.EqGraph.process_tyenv G wf Δ Γ
+          let eG <- EqGraph.process_tyenv G wf Δ Γ
           let ⟨t, _⟩ <- eG.ask G wf Δ Γ K T1 T2
           return t
         | _ => none
@@ -115,5 +158,46 @@ theorem synth_coercion_sound :
      simp at j; subst j; apply tj
    · cases j
  · cases j
+
+
+namespace Core.EqGraph.Test
+
+def CtxWf : ⊢ [] := by constructor
+
+def mEG1 : Option (Core.Ppcc.EqGraph [] [★, ★, ★, ★] [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2])
+  := EqGraph.process_tyenv (G := []) (Δ := [★, ★, ★, ★]) (wf := CtxWf) (Γ := [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2])
+
+def test1 : Option Ty := do
+  let eG <- mEG1
+  let Δ := [★, ★, ★, ★]
+  let Γ := [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2]
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ  ★ t#1 t#2
+  Term.infer_type [] Δ Γ t
+
+#guard test1 == some (t#1 ~[★]~ t#2)
+
+def mEG2 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★] [(t#0 • t#2) ~[★]~ (t#1 • t#3)])
+  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★] [(t#0 • t#2) ~[★]~ (t#1 • t#3)]
+
+def test2 : Option Ty := do
+  let eG <- mEG2
+  let Δ := [★ -:> ★, ★ -:> ★, ★, ★]
+  let Γ := [(t#0 • t#2) ~[★]~ (t#1 • t#3)]
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ (★ -:> ★) t#1 t#0
+  Term.infer_type [] Δ Γ t
+
+#guard test2 == some (t#1 ~[★ -:> ★]~ t#0)
+
+end Core.EqGraph.Test
+
+
+theorem env_consistency {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ : TyEnv} :
+  TyEnv.is_consistent G wf Δ Γ = some () ->
+  ∀ T1 T2 K, T1 ≠ T2 -> ¬ (G&Δ, Γ ⊢ c : (gt#T1 ~[K]~ gt#T2))
+:= by
+ intro h T1 T2 K ne j
+ unfold TyEnv.is_consistent at h; simp at h
+
+ sorry
 
 end Core.Synth
