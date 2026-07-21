@@ -367,7 +367,8 @@ theorem FV.subst_congr_append_append_get {T : Ty} {ℓ1 ℓ2 ℓ3 : List Ty} {σ
   rw[Subst.append_action_lt (by grind)] at lem;
   rw[List.getElem_map] at lem
   simp [h3] at lem; rw[Nat.add_comm] at lem;
-  rw[Subst.hAppend_subst_action_ge (ℓ := 0..k) (σ := List.map su ℓ2 ++ τ) (i := k + i) (h := by rw[Subst.range_length (k := k)]; omega)] at lem
+  rw[Subst.hAppend_subst_action_ge (σ := List.map su ℓ2 ++ τ) (i := k + i)
+    (h := by rw[Subst.range_length (k := k)]; omega)] at lem
   rw[Subst.range_length] at lem; simp at lem;
   rw[Subst.append_action_lt (by grind)] at lem; simp at lem;
   apply lem

@@ -73,7 +73,9 @@ theorem Kinding.beta_many {Δ' : List Kind} {t : List Ty} (h : t.length = Δ'.le
     have lem := List.length_gt_zero_exists h'
     rcases lem with ⟨t, ts, e⟩; subst e; simp at *
     replace j2 := idx_shift_lemma (by simp at h; apply h) j2
-
+    have lem : ts.length = Δ'.length := by simp at h; omega
+    replace ih := @ih A[su t :: +0σ] (List.map su ts ++ Subst.id Ty) ts lem sorry j2 rfl
+    rw[e1]
     sorry
 
   -- apply Kinding.subst Δ (su t::+0σ) _ j1
