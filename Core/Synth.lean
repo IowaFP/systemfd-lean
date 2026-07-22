@@ -81,14 +81,15 @@ theorem synth_type_sound (wf : ⊢ G):
 | _ => sorry
 
 
-def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : Ppcc.EqGraph G Δ Γ) (t : Term) (T : Ty) :
+def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
+ (eG : Ppcc.EqGraph G Δ Γ) (t : Term) (T : Ty) :
  Option (Ppcc.EqGraph G Δ Γ) := do
  match t0h : t.infer_type G Δ Γ with
  | some T' =>
    if he : T == T'
    then
-     match h1 : t, h2 : T with
-     | t, (T1 ~[K]~ T2) => do
+     match h2 : T with
+     | (T1 ~[K]~ T2) => do
        match t1h : T1.infer_kind G Δ with
        | some K' =>
          match t2h : T2.infer_kind G Δ with
@@ -96,22 +97,21 @@ def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) 
            if h : K' == K'' && K' == K
            then
              have lem0 := infer_type_sound wf t0h
-             have lem1 := infer_kind_sound t1h
-             have lem2 := infer_kind_sound t2h
              by simp at h; rcases h with ⟨e1, e2⟩;
                 subst K'; subst K''
                 simp at he; subst he;
-                apply eG.process_equation G wf Δ Γ K T1 lem1 T2 lem2 ⟨t, lem0⟩
+                apply eG.process_equation G wf Δ Γ K T1 T2 ⟨t, lem0⟩
            else none
          | none => none
        | none => none
-     | _, _ => return eG
+     | _ => return eG
    else none
  | none => none
 
 def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option (Ppcc.EqGraph G Δ Γ)
-  := (Γ.attach.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t.1) Ppcc.EqGraph.empty
+  := (Γ.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) Ppcc.EqGraph.empty
 
+#guard List.range 3 == [0, 1, 2]
 
 def TyEnv.is_consistent (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option Unit := do
   let eG <- EqGraph.process_tyenv G wf Δ Γ
@@ -171,13 +171,15 @@ def test1 : Option Ty := do
   let eG <- mEG1
   let Δ := [★, ★, ★, ★]
   let Γ := [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2]
-  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ  ★ t#1 t#2
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ  ★ t#0 t#2
   Term.infer_type [] Δ Γ t
 
-#guard test1 == some (t#1 ~[★]~ t#2)
+#guard test1 == some (t#0 ~[★]~ t#2)
 
 def mEG2 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★] [(t#0 • t#2) ~[★]~ (t#1 • t#3)])
   := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★] [(t#0 • t#2) ~[★]~ (t#1 • t#3)]
+
+#eval! repr mEG2
 
 def test2 : Option Ty := do
   let eG <- mEG2
@@ -187,6 +189,25 @@ def test2 : Option Ty := do
   Term.infer_type [] Δ Γ t
 
 #guard test2 == some (t#1 ~[★ -:> ★]~ t#0)
+
+def test3 : Option Ty := do
+  let eG <- mEG2
+  let Δ := [★ -:> ★, ★ -:> ★, ★, ★]
+  let Γ := [(t#0 • t#2) ~[★]~ (t#1 • t#3)]
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#2) (t#3)
+  Term.infer_type [] Δ Γ t
+
+#guard test3 == some (t#2 ~[★]~ t#3)
+
+
+def test4 : Option Ty := do
+  let eG <- mEG2
+  let Δ := [★ -:> ★, ★ -:> ★, ★, ★]
+  let Γ := [(t#0 • t#2) ~[★]~ (t#1 • t#3)]
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#0 • t#2) (t#0 • t#3)
+  Term.infer_type [] Δ Γ t
+
+#guard test4 == some ((t#0 • t#2) ~[★]~ (t#0 • t#3))
 
 
 end Core.EqGraph.Test

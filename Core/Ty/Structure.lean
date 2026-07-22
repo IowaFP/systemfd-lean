@@ -122,4 +122,11 @@ intro h;
 cases T <;> simp [Ty.is_app_some] at *
 assumption
 
+
+def Ty.subterms : Ty -> List Ty
+| .app x y => [.app x y, x , y] ++ x.subterms ++ y.subterms
+| .arrow x y => [.arrow x y, x , y] ++ x.subterms ++ y.subterms
+| .eq K x y => [.eq K x y, x , y] ++ x.subterms ++ y.subterms
+| x => [x]
+
 end Core

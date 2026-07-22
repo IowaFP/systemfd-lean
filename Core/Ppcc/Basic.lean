@@ -287,6 +287,25 @@ def EqGraph.app_prj_fst (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (t : Term) (
     ⟩
 
 
+  -- appc : (A ~ B) -> C ~ D -> (A • C ~ B • D)
+   -- (∀[★ -:> ★]∀[★ -:> ★]∀[★]∀[★] (t#3 ~[★ -:> ★]~ t#2) -:> (t#1 ~[★]~ t#0) -:> ((t#3 • t#1) ~[★]~ (t#2 • t#0)))
+   --          (Λ[★ -:> ★]Λ[★ -:> ★]Λ[★]Λ[★] λ[t#3 ~[★ -:> ★]~ t#2] λ[t#1 ~[★]~ t#0]
+   --                  (.cast ((t#4 • t#2) ~[★]~ (t#0 • t#1)) #1                           -- A • C ~ B • D
+   --                    (.cast ((t#4 • t#2) ~[★]~ (t#4 • t#0)) #0 (refl! (t#3 • t#1))))), -- A • C ~ A • D
+   --                                                                                  -- A • C ~ A • C
+
+
+def Term.appc (KA KB : Kind): Term :=
+  Λ[KA -:> KB]Λ[KA -:> KB]Λ[KA]Λ[KA]λ[t#3 ~[KA -:> KB]~ t#2] λ[t#1 ~[KA]~ t#0]
+        (.cast ((t#4 • t#2) ~[KB]~ (t#0 • t#1)) #1                           -- A • C ~ B • D
+        (.cast ((t#4 • t#2) ~[KB]~ (t#4 • t#0)) #0 (refl! (t#3 • t#1))))
+
+def EqGraph.appc (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) (t1 t2 : Term) (KA KB : Kind) (A1 A2 B1 B2 : Ty)
+  (j1 : (G&Δ, Γ ⊢ t1 : (A1 ~[KA -:> KB]~ A2))) (j2 : (G&Δ, Γ ⊢ t2 : (B1 ~[KA]~ B2))) :
+  ((t : Term) ×' (G&Δ, Γ ⊢ t : ((A1 • B1) ~[KB]~ (A2 • B2)))) :=
+  ⟨(((((Term.appc KA KB •[A1]) •[A2]) •[B1]) •[B2]) • t1) • t2,
+   by sorry⟩
+
 
 
 /-
@@ -338,6 +357,10 @@ def EqGraphNode.parent_kind (n : EqGraphNode G Δ Γ) : Kind := n.parent.2.2
 def EqGraphNode.parent_idx (n : EqGraphNode G Δ Γ) : Nat := n.parent.1
 
 
+instance {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : Repr (EqGraphNode G Δ Γ) where
+  reprPrec n _ := "⟨" ++  repr n.ty ++ " , "  ++ repr n.kind ++ " , " ++ Std.Format.sbracket (Nat.repr n.parent_idx ++ " , " ++ repr n.parent_ty) ++  "⟩"
+
+
 structure EqGraph (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) where
   nodes : List (EqGraphNode G Δ Γ)
 
@@ -350,6 +373,8 @@ structure EqGraph (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) where
   /-- parent kind is equal to the node kind -/
   parent_kind_eq : ∀{i}, (h : i < nodes.length) -> nodes[i].parent_kind = nodes[i].kind
 
+instance {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : Repr (EqGraph  G Δ Γ) where
+  reprPrec g _ := g.nodes.repr 0
 
 instance instMembershipTyEqGraph {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : Membership Ty (EqGraph G Δ Γ) where
   mem eG T := List.elem T (eG.nodes.map (·.ty))
@@ -379,7 +404,6 @@ def EqGraph.push {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}(eG : EqGraph G Δ �
           case _ h =>
             have lem : i = eG.nodes.length := by omega
             subst lem; simp [new_node]
-
        , parent_idx_lt := by
            intro i h1
            simp;
@@ -399,6 +423,15 @@ def EqGraph.push {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}(eG : EqGraph G Δ �
               have lem : i = eG.nodes.length := by rw[List.length_append] at h1; simp at h1; omega
               subst i; simp[new_node]; congr; simp; simp
         }
+
+def EqGraph.push_ty {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}(eG : EqGraph G Δ Γ) (T : Ty) : Option (EqGraph G Δ Γ)
+ := let Tys := T.subterms
+    Tys.foldlM (λ acc T => do
+      match h : T.infer_kind G Δ  with
+      | some K =>
+        have lem := infer_kind_sound h
+        acc.push (⟨T, K, lem⟩)
+      | none => none) eG
 
 theorem EqGraph.push_makes_node {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {eG eG' : EqGraph G Δ Γ}
   {T : Ty} {K : Kind} {j : G&Δ ⊢ T : K} :
@@ -443,7 +476,8 @@ def EqGraph.get_rep_aux {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G)
       else none
 
 -- Gets the representative node if the type exists
-def EqGraph.get_rep {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ) (T1 : Ty) : Option (Nat × (T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
+def EqGraph.get_rep {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ) (T1 : Ty) :
+  Option (Nat × (T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
   let i <- eG.nodes.findIdx? (·.ty == T1)
   if h1 : (i < eG.nodes.length)
   then EqGraph.get_rep_aux wf eG T1 i h1
@@ -452,31 +486,32 @@ def EqGraph.get_rep {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG
 
 def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG : EqGraph G Δ Γ) (K : Kind)
   (T1 : Ty) (T2 : Ty) (t : Term) (j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) : Option (EqGraph G Δ Γ) := do
-  let i1 <- eG.nodes.findIdx? (·.ty == T1)
-  let i2 <- eG.nodes.findIdx? (·.ty == T2)
+  let i1 <- eG.nodes.findIdx? (·.ty == T1) -- Maybe • 3
+  let i2 <- eG.nodes.findIdx? (·.ty == T2) -- 6
   match eG.nodes[i1]?, eG.nodes[i2]? with
   | some n1, some n2 => do
-    let ⟨ip1, pT1, K1, η1, j1⟩ <- eG.get_rep wf T1
-    let ⟨ip2, pT2, K2, η2, j2⟩ <- eG.get_rep wf T2
+    let ⟨ip1, rep_T1, K1, η1, j1⟩ <- eG.get_rep wf T1 -- Maybe • 3
+    let ⟨ip2, rep_T2, K2, η2, j2⟩ <- eG.get_rep wf T2 -- Maybe • 1
     let p1n <- eG.nodes[ip1]?
     let p2n <- eG.nodes[ip2]?
     if ip1 == ip2
     then return eG -- both T1 and T2 are already in the same eq class
     else
-      if h : ip1 < ip2 && ip2 < eG.nodes.length && K1 == K2 && n2.kind == K1 && n1.kind == K1 && K == K1 && p1n.ty == pT1 && p1n.kind == K1 && p2n.ty == pT2 && p2n.kind == K2
+      if h : ip1 < ip2 && ip2 < eG.nodes.length && K1 == K2 && n2.kind == K1 && n1.kind == K1
+         && K == K1 && p1n.ty == rep_T1 && p1n.kind == K1 && p2n.ty == rep_T2 && p2n.kind == K2
       then
         -- pT2 == T2 == T1 == pT1
         -- symm η2 ; (symm t ; η1)
         let new_node : EqGraphNode G Δ Γ := {
-          parent := (ip1, pT1, K1)
+          parent := (ip1, rep_T1, K1)
           payload := p2n.payload
           parent_rel :=
             let ⟨symm_t, j'⟩ := EqGraph.symm G wf Δ Γ t K T1 T2 j
-            let ⟨symm_η2, j2'⟩ := EqGraph.symm G wf Δ Γ η2 K2 T2 pT2 j2
-            let ⟨symm_t_η1, j⟩ := EqGraph.seq G wf Δ Γ symm_t η1 K T2 T1 pT1 j'
-                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; apply j1)
-            let ⟨symm_η2_symm_t_η1, j⟩ := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) symm_η2 symm_t_η1 K2 pT2 T2 pT1 j2'
-                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j)
+            let ⟨symm_η2, j2'⟩ := EqGraph.symm G wf Δ Γ η2 K2 T2 rep_T2 j2
+            let ⟨symm_t_η1, j⟩ := EqGraph.seq G wf Δ Γ symm_t η1 K T2 T1 rep_T1 j'
+                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨_, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; apply j1)
+            let ⟨symm_η2_symm_t_η1, j⟩ := EqGraph.seq G wf Δ Γ symm_η2 symm_t_η1 K2 rep_T2 T2 rep_T1 j2'
+                         (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨_, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j)
             ⟨symm_η2_symm_t_η1, by
               simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
               simp only [Node.ty, e8, Node.kind, e9]; apply j⟩ }
@@ -484,7 +519,7 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG :
              , parent_lt := by
                  intro i h1;
                  simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
-                 simp; -- generalize ndef : (eG.nodes.set ip2 new_node)[i] = n at *;
+                 simp;
                  have lem := List.getElem_mem h1
                  have lem2 := List.mem_or_eq_of_mem_set lem
                  cases lem2
@@ -502,8 +537,6 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG :
                   simp; split;
                   case _ e => simp only [new_node]; omega
                   case _ => apply parent_idx_lt
-
-
              , parent_kind_eq := by
                   intro i h1
                   simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
@@ -515,29 +548,32 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG :
                    rw[List.mem_iff_getElem] at h;
                    rcases h with ⟨n, h', e11⟩
                    rw[<-e11]; apply eG.parent_kind_eq
-
                   case inr h' => rw[h']; simp only [new_node]; symm; apply e9
-
              }
-      else if h : ip2 < ip1 && ip1 < eG.nodes.length && K1 == K2 && n2.kind == K1 && n1.kind == K1 && K == K1 && p1n.ty == pT1 && p1n.kind == K1 && p2n.ty == pT2 && p2n.kind == K2
+
+      -- TODO : Perform deduction i.e. if pT1 = A1 • B1, and pT2 = A2 • B2
+      -- then add A1 ~ A2 in the same equiv class and B1 B2 in same equiv class
+
+      else if h : ip2 < ip1 && ip1 < eG.nodes.length && K1 == K2 && n2.kind == K1 && n1.kind == K1
+              && K == K1 && p1n.ty == rep_T1 && p1n.kind == K1 && p2n.ty == rep_T2 && p2n.kind == K2
         then
         -- pT1 == T1 == T2 == pT2
         -- sym η1 ; t ; η2
          let new_node : EqGraphNode G Δ Γ := {
-           parent := (ip2, pT2, K2)
+           parent := (ip2, rep_T2, K2)
            payload := p1n.payload
            parent_rel :=
-            let ⟨symm_η1, j'⟩ := EqGraph.symm G wf Δ Γ η1 K1 T1 pT1 j1
+            let ⟨symm_η1, j'⟩ := EqGraph.symm G wf Δ Γ η1 K1 T1 rep_T1 j1
 
-            let ⟨t_η2, j⟩ := EqGraph.seq G wf Δ Γ t η2 K T1 T2 pT2 j
+            let ⟨t_η2, j⟩ := EqGraph.seq G wf Δ Γ t η2 K T1 T2 rep_T2 j
                          (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j2)
-            let ⟨symm_η1_t_η2, j⟩ := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) symm_η1 t_η2 K pT1 T1 pT2
+            let ⟨symm_η1_t_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_η1 t_η2 K rep_T1 T1 rep_T2
                          (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j')
                          (by simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2; apply j)
             ⟨symm_η1_t_η2, by
               simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
               simp only [Node.ty, Node.kind, e6, e7]; apply j⟩ }
-         some { nodes := eG.nodes.set ip2 new_node
+         some { nodes := eG.nodes.set ip1 new_node
               , parent_lt := by
                   intro i h1;
                   simp at h; rcases h with ⟨⟨⟨⟨⟨⟨⟨⟨⟨e0, e1⟩, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩, e8⟩, e9⟩; subst e5; subst e2
@@ -578,15 +614,14 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} {wf : ⊢ G} (eG :
 
 
 def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
-  (T1 : Ty) -> (G&Δ ⊢ T1 : K) -> (T2 : Ty) -> (G&Δ ⊢ T2 : K)  -> ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) -> Option (EqGraph G Δ Γ)
-| (.app A1 B1), j1, (.app A2 B2), j2, ⟨c, j3⟩ =>
+  (T1 : Ty) -> (T2 : Ty) -> ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) -> Option (EqGraph G Δ Γ)
+| (.app A1 B1), (.app A2 B2), ⟨c, j3⟩ => do
   let T1 := A1 • B1
   let T2 := A2 • B2
-  let eG := eG.push ⟨T1, K, j1⟩
-  let eG := eG.push ⟨T2, K, j2⟩
-  let eG := eG.union (wf := wf) K T1 T2 c j3
-  do
-     match hA1 : A1.infer_kind G Δ, hA2 : A2.infer_kind G Δ, hB1 : B1.infer_kind G Δ, hB2 : B2.infer_kind G Δ with
+  let eG <- eG.push_ty T1
+  let eG <- eG.push_ty T2
+  let eG <- eG.union (wf := wf) K T1 T2 c j3
+  do match hA1 : A1.infer_kind G Δ, hA2 : A2.infer_kind G Δ, hB1 : B1.infer_kind G Δ, hB2 : B2.infer_kind G Δ with
      | some (KA1a -:> KA1b), some (KA2a -:> KA2b), some KB1, some KB2 =>
        if h : KA1a == KA2a && KA1b == KA2b && KA1a == KB1 && KA2a == KB2 && K == KA1b
        then
@@ -595,22 +630,39 @@ def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : T
          have jB1 := infer_kind_sound hB1
          have jB2 := infer_kind_sound hB2
          by simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e1; subst e2; subst e3; subst e4; subst e5
-            let ⟨c1, j_c1⟩ := EqGraph.app_prj_fst G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
-            let eG := (eG.map (·.process_equation G wf Δ Γ (KA1a -:> K) A1 jA1 A2 jA2 ⟨c1, j_c1⟩)).join
-            let ⟨c2, j_c2⟩ := EqGraph.app_prj_snd G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
-            let eG := (eG.map (·.process_equation G wf Δ Γ KA1a B1 jB1 B2 jB2 ⟨c2, j_c2⟩))
-            apply eG.join
+            apply do let ⟨c1, j_c1⟩ := EqGraph.app_prj_fst G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
+                     let eG <- EqGraph.process_equation G wf Δ Γ eG (KA1a -:> K) A1 A2 ⟨c1, j_c1⟩
+                     let ⟨c2, j_c2⟩ := EqGraph.app_prj_snd G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
+                     EqGraph.process_equation G wf Δ Γ eG KA1a B1 B2 ⟨c2, j_c2⟩
+
        else none
      | _, _, _, _ => none
 -- TODO : Ditto for -:>
 
-| T1, j1, T2, j2, ⟨c, j3⟩ =>
-  let eG := eG.push ⟨T1, K, j1⟩
-  let eG := eG.push ⟨T2, K, j2⟩
+| T1, T2, ⟨c, j3⟩ => do
+  let eG <- eG.push_ty T1
+  let eG <- eG.push_ty T2
   eG.union (wf := wf) K T1 T2 c j3
 
-def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind)
-  (T1 : Ty) (T2 : Ty) : Option ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
+def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
+  (T1 : Ty) -> (T2 : Ty) -> Option ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))
+ | .app A1 B1, .app A2 B2 => do
+   match h1 : A1.infer_kind G Δ, h2 : A2.infer_kind G Δ , h3 : B1.infer_kind G Δ, h4 : B2.infer_kind G Δ with
+   | some (K1a -:> K1b), some (K2a -:> K2b), some KB1, some KB2 =>
+     if h : K1a == K2a && (K2a == KB1 && (KB1 == KB2 && (K2b == K1b && K == K2b)))
+     then
+       have lem1 := infer_kind_sound h1
+       have lem2 := infer_kind_sound h2
+       have lem3 := infer_kind_sound h3
+       have lem4 := infer_kind_sound h4
+       by simp at h; rcases h with ⟨e1, e2, e3, e4, e5⟩; subst e1; subst e2; subst e3; subst e4; subst e5
+          apply do let ⟨c1, j1⟩ <- EqGraph.ask G wf Δ Γ eG (K1a -:> K) A1 A2
+                   let ⟨c2, j2⟩ <- EqGraph.ask G wf Δ Γ eG K1a B1 B2
+                   return EqGraph.appc G Δ Γ c1 c2 K1a K A1 A2 B1 B2 j1 j2
+     else none
+   | _, _, _, _ => none
+-- TODO : Ditto for -:>
+ | T1, T2 => do
   let i1 <- eG.nodes.findIdx? (·.ty == T1)
   let i2 <- eG.nodes.findIdx? (·.ty == T2)
   match eG.nodes[i1]?, eG.nodes[i2]? with
