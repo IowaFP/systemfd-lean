@@ -164,6 +164,20 @@ theorem List.length_gt_zero_exists : {l : List α} -> (h : l.length > 0) ->
 
 
 
+theorem List.filter_set_length {l : List α} {i : Nat} (h : i < l.length) {f : α -> Bool} :
+  ((l.set i a).filter f).length = if f a then (l.filter f).length else (l.filter f).length - 1
+  := by
+  generalize l'def : l.set i a = l' at *
+  have lem0 : i < l'.length := by simp only [<-l'def]; grind
+  have lem := List.getElem_set (a := a) (i := i) (by simp; apply lem0)
+  sorry
+
+theorem List.unique_set_unique {l : List α} {i : Nat} {j : Nat} {p}
+    (hi : i < l.length) (hj : j < l.length) (hp : p < l.length) :
+    i ≠ j -> l[i] ≠ l[j] -> (l.set p a)[i]'(by grind) ≠ (l.set p a)[j]'(by grind)
+    := by sorry
+
+
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst
 ----------------------------------------------------------------------------------------------------

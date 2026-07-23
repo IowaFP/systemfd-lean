@@ -8,7 +8,7 @@ import Core.Examples.Common
 import Core.Examples.Maybe
 
 import Core.Synth
-
+import Core.Ppcc.Basic
 open LeanSubst
 
 
@@ -213,7 +213,8 @@ some ([★, ★, ★, ★],
           let eG <- Core.Synth.EqGraph.process_tyenv TypeFunCtx wf (ζ ++ Δ) Γ
           -- let ⟨η, _⟩ <- eG.ask TypeFunCtx wf (ζ ++ Δ) Γ ★ (gt#"Maybe" • t#1) (gt#"Maybe" • t#3)
           -- let ⟨η, _⟩ <- eG.ask TypeFunCtx wf (ζ ++ Δ) Γ ★ (t#6) (t#6)
-          return (repr (Δ ++ ζ), repr Γ, repr eG)
+          let ns := Core.Ppcc.EqGraph.get_eq_class wf eG t#4
+          return (repr (Δ ++ ζ), repr Γ,repr eG)
         | none => none
 
       else none

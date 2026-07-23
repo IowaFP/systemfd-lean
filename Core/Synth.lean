@@ -90,26 +90,25 @@ def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
    then
      match h2 : T with
      | (T1 ~[K]~ T2) => do
-       match t1h : T1.infer_kind G Δ with
-       | some K' =>
-         match t2h : T2.infer_kind G Δ with
-         | some K'' =>
-           if h : K' == K'' && K' == K
-           then
-             have lem0 := infer_type_sound wf t0h
-             by simp at h; rcases h with ⟨e1, e2⟩;
-                subst K'; subst K''
-                simp at he; subst he;
-                apply eG.process_equation G wf Δ Γ K T1 T2 ⟨t, lem0⟩
-           else none
-         | none => none
-       | none => none
+        have lem0 := infer_type_sound wf t0h
+        let ⟨i1, rep_T1, K1, _ , _⟩ <- eG.get_rep wf T1
+        let ⟨i2, rep_T2, K2, _, _⟩ <- eG.get_rep wf T2
+        if rep_T1 == rep_T2
+        then return eG
+        else if h : K1 == K2 && K2 == K
+        then by {
+          simp at h; rcases h with ⟨e1, e2⟩; subst K1; subst K2
+          simp at he; subst he
+          apply eG.process_equation G wf Δ Γ K T1 T2 ⟨t, lem0⟩ }
+        else none
      | _ => return eG
    else none
  | none => none
 
 def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option (Ppcc.EqGraph G Δ Γ)
-  := (Γ.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) Ppcc.EqGraph.empty
+  := do let init : Ppcc.EqGraph G Δ Γ := Ppcc.EqGraph.empty
+        let eG <- Γ.foldlM (λ acc T => acc.push_ty T) init
+        (Γ.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
 
 #guard List.range 3 == [0, 1, 2]
 
@@ -173,7 +172,7 @@ def test1 : Option Ty := do
   let Γ := [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2]
   let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ  ★ t#0 t#2
   Term.infer_type [] Δ Γ t
-
+#eval! mEG1
 #guard test1 == some (t#0 ~[★]~ t#2)
 
 def mEG2 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★] [(t#0 • t#2) ~[★]~ (t#1 • t#3)])
@@ -199,15 +198,20 @@ def test3 : Option Ty := do
 
 #guard test3 == some (t#2 ~[★]~ t#3)
 
+def mEG3 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)])
+  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)]
 
 def test4 : Option Ty := do
-  let eG <- mEG2
-  let Δ := [★ -:> ★, ★ -:> ★, ★, ★]
-  let Γ := [(t#0 • t#2) ~[★]~ (t#1 • t#3)]
+  let eG <- mEG3
+  let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★]
+  let Γ := [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)]
   let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#0 • t#2) (t#0 • t#3)
   Term.infer_type [] Δ Γ t
 
-#guard test4 == some ((t#0 • t#2) ~[★]~ (t#0 • t#3))
+#eval! mEG3
+#eval! mEG3.map (Ppcc.EqGraph.get_eq_class CtxWf · t#4)
+#eval! ([t#4, t#0 • t#2].flatMap (λ a => List.map (Prod.mk a) [t#1 • t#3])).filter (λ (n1, n2) => n1 != t#4 || n2 != t#1 • t#3)
+#guard test4 == some ((t#2) ~[★]~ (t#3))
 
 
 end Core.EqGraph.Test
