@@ -208,10 +208,9 @@ def test4 : Option Ty := do
   let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#2) (t#3)
   Term.infer_type [] Δ Γ t
 
-#eval! mEG3
-#eval! mEG3.map (Ppcc.EqGraph.get_eq_class CtxWf · t#4)
+-- #eval! mEG3
+-- #eval! mEG3.map (Ppcc.EqGraph.get_eq_class CtxWf · t#4)
 #guard test4 == some (t#2 ~[★]~ t#3)
-
 
 
 def mEG4 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), (t#0 • t#2) ~[★]~ (t#1 • t#3)])

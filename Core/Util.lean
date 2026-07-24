@@ -178,6 +178,9 @@ theorem List.unique_set_unique {l : List α} {i : Nat} {j : Nat} {p}
     := by sorry
 
 
+theorem List.getElem?_some_iff_len_gt_0 {l : List α} {i : Nat} {a : α} :
+  l[i]? = some a -> l.length > 0 := by sorry
+
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst
 ----------------------------------------------------------------------------------------------------
