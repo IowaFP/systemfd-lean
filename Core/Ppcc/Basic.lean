@@ -685,10 +685,9 @@ def EqGraph.equiv_class_count {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (eG : 
 
 partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
   (T1 : Ty) -> (T2 : Ty) -> ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) -> Option (EqGraph G Δ Γ)
+| .var v1, .var v2, ⟨c, j3⟩ => eG.union K (wf := wf) (.var v1) (.var v2) c j3
+
 | (.app A1 B1), (.app A2 B2), ⟨c, j3⟩ => do
-  let T1 := A1 • B1
-  let T2 := A2 • B2
-  let eG <- eG.union (wf := wf) K T1 T2 c j3
   do match hA1 : A1.infer_kind G Δ, hA2 : A2.infer_kind G Δ, hB1 : B1.infer_kind G Δ, hB2 : B2.infer_kind G Δ with
      | some (KA1a -:> KA1b), some (KA2a -:> KA2b), some KB1, some KB2 =>
        if h : KA1a == KA2a && KA1b == KA2b && KA1a == KB1 && KA2a == KB2 && K == KA1b
@@ -707,15 +706,15 @@ partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv)
      | _, _, _, _ => none
 -- TODO : Ditto for -:>
 
-| T1, T2, ⟨c, j3⟩ => do -- T1 := 4 T2 := 1 • 3
+| T1, T2, ⟨c, j3⟩ => do
   let i1 <- eG.nodes.findIdx? (·.ty == T1)
   let i2 <- eG.nodes.findIdx? (·.ty == T2)
   if i1 == i2 then return eG
   else
-  let ⟨_ ,rep_T1, Kp1, c1, jc1⟩ <- eG.get_rep wf T1 -- 4
-  let ⟨_ ,rep_T2, Kp2, c2, jc2⟩ <- eG.get_rep wf T2 -- 1 • 3
-  let clsT1 := eG.get_eq_class wf T1 -- 4,  0 • 2
-  let clsT2 := eG.get_eq_class wf T2 -- 1 • 3
+  let ⟨_ ,rep_T1, Kp1, c1, jc1⟩ <- eG.get_rep wf T1
+  let ⟨_ ,rep_T2, Kp2, c2, jc2⟩ <- eG.get_rep wf T2
+  let clsT1 := eG.get_eq_class wf T1
+  let clsT2 := eG.get_eq_class wf T2
   let p := (clsT1.flatMap (λ a => List.map (Prod.mk a) clsT2)).filter (λ (n1, n2) => n1.ty != T1 || n2.ty != T2)
   let eG' <- p.foldlM (λ acc (n1, n2) => do
       let ⟨_, pT1, K1, η1, j1⟩ <- eG.get_rep wf n1.ty
@@ -730,11 +729,10 @@ partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv)
                let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
                let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
                let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
-               let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
-               acc.process_equation G Δ Γ (wf := wf) K n1.ty n2.ty ⟨symm_c1_c_c2_symm_η2,  j⟩
+               let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+               acc.process_equation G Δ Γ (wf := wf) K n1.ty n2.ty ⟨η1_symm_c1_c_c2_symm_η2,  j⟩
         else none) eG
-  -- eG'.union (wf := wf) K T1 T2 c j3
-  return eG'
+  eG'.union (wf := wf) K T1 T2 c j3
 
 
 def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
