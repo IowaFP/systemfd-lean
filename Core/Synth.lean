@@ -198,20 +198,34 @@ def test3 : Option Ty := do
 
 #guard test3 == some (t#2 ~[★]~ t#3)
 
-def mEG3 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)])
-  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)]
+def mEG3 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), (t#1 • t#3) ~[★]~ t#4])
+  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), (t#1 • t#3) ~[★]~ t#4]
 
 def test4 : Option Ty := do
   let eG <- mEG3
   let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★]
-  let Γ := [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)]
+  let Γ := [t#4 ~[★]~ (t#0 • t#2), (t#1 • t#3) ~[★]~ t#4]
   let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#2) (t#3)
   Term.infer_type [] Δ Γ t
 
 #eval! mEG3
 #eval! mEG3.map (Ppcc.EqGraph.get_eq_class CtxWf · t#4)
-#eval! ([t#4, t#0 • t#2].flatMap (λ a => List.map (Prod.mk a) [t#1 • t#3])).filter (λ (n1, n2) => n1 != t#4 || n2 != t#1 • t#3)
 #guard test4 == some (t#2 ~[★]~ t#3)
+
+
+
+def mEG4 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), (t#0 • t#2) ~[★]~ (t#1 • t#3)])
+  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), (t#0 • t#2) ~[★]~ (t#1 • t#3)]
+
+def test5 : Option Ty := do
+  let eG <- mEG4
+  let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★]
+  let Γ := [t#4 ~[★]~ (t#0 • t#2), (t#0 • t#2) ~[★]~ (t#1 • t#3)]
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#4) (t#1 • t#3)
+  Term.infer_type [] Δ Γ t
+
+-- #eval! mEG4
+#guard test5 == some (t#4 ~[★]~ (t#1 • t#3))
 
 end Core.EqGraph.Test
 
