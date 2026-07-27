@@ -11,4 +11,6 @@ theorem EqGraph.ask_type_sound {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ :
   G&Δ, Γ ⊢ c : (T1 ~[K]~ T2) :=
   by intro h; apply j
 
+
+
 end Core.Ppcc

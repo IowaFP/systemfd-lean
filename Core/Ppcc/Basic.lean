@@ -806,75 +806,6 @@ theorem EqGraph.union_equiv_class_count {G : GlobalEnv} {wf : ⊢ G} {Δ : KindE
     · cases h
   · cases h
 
-partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
-  (T1 : Ty) -> (T2 : Ty) -> ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) -> Option (EqGraph G Δ Γ)
-| .var v1, .var v2, ⟨c, j3⟩ => do
-  let ⟨ip1, rep_T1, K1, η1, j1⟩ <- eG.get_rep wf (.var v1)
-  let ⟨ip2, rep_T2, K2, η2, j2⟩ <- eG.get_rep wf (.var v2)
-  if ip1 == ip2 && rep_T1 == rep_T2 then return eG
-  else eG.union K (wf := wf) (.var v1) (.var v2) c j3
-
-| (.app A1 B1), (.app A2 B2), ⟨c, j3⟩ => do
-  let eG' <-
-     do match hA1 : A1.infer_kind G Δ, hA2 : A2.infer_kind G Δ, hB1 : B1.infer_kind G Δ, hB2 : B2.infer_kind G Δ with
-        | some (KA1a -:> KA1b), some (KA2a -:> KA2b), some KB1, some KB2 =>
-          if h : KA1a == KA2a && KA1b == KA2b && KA1a == KB1 && KA2a == KB2 && K == KA1b
-          then
-            have jA1 := infer_kind_sound hA1
-            have jA2 := infer_kind_sound hA2
-            have jB1 := infer_kind_sound hB1
-            have jB2 := infer_kind_sound hB2
-            by simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e1; subst e2; subst e3; subst e4; subst e5
-               apply do let ⟨c1, j_c1⟩ := EqGraph.app_prj_fst G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
-                        let eG <- EqGraph.process_equation G wf Δ Γ eG (KA1a -:> K) A1 A2 ⟨c1, j_c1⟩
-                        let ⟨c2, j_c2⟩ := EqGraph.app_prj_snd G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
-                        EqGraph.process_equation G wf Δ Γ eG KA1a B1 B2 ⟨c2, j_c2⟩
-          else none
-        | _, _, _, _ => none
-  let ⟨ip1, rep_T1, K1, η1, j1⟩ <- eG.get_rep wf (.app A1 B1) -- Maybe • 3
-  let ⟨ip2, rep_T2, K2, η2, j2⟩ <- eG.get_rep wf (.app A2 B2) -- Maybe • 1
-  if ip1 == ip2 && rep_T1 == rep_T2
-    then return eG'
-    else eG'.union K (wf := wf) (.app A1 B1) (.app A2 B2) c j3
--- TODO : Ditto for -:>
-
-| T1, T2, ⟨c, j3⟩ => do
-  let i1 <- eG.nodes.findIdx? (·.ty == T1)
-  let i2 <- eG.nodes.findIdx? (·.ty == T2)
-  let ⟨ip1 ,rep_T1, Kp1, c1, jc1⟩ <- eG.get_rep wf T1
-  let ⟨ip2 ,rep_T2, Kp2, c2, jc2⟩ <- eG.get_rep wf T2
-
-  if ip1 == ip2 && rep_T1 == rep_T2 then return eG
-  else
-  let clsT1 := eG.get_eq_class wf T1
-  let clsT2 := eG.get_eq_class wf T2
-  let p := (clsT1.flatMap (λ a => List.map (Prod.mk a) clsT2)).filter (λ (n1, n2) => n1.ty != T1 || n2.ty != T2)
-  let eG' <- p.foldlM (λ acc (n1, n2) => do
-      let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
-      let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep wf n2.ty
-      if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
-        then
-          by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
-             subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
-             apply do
-               -- η1 ; symm c1; c; c2; symm η2
-               let ⟨symm_η2, symm_j2⟩ := EqGraph.symm G wf Δ Γ η2 K n2.ty rep_T2 j2
-               let ⟨symm_c1, symm_jc1⟩ := EqGraph.symm G wf Δ Γ c1 K T1 rep_T1 jc1
-               let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
-               let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
-               let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
-               let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
-               let acc <- acc.process_equation G Δ Γ (wf := wf) K n1.ty n2.ty ⟨η1_symm_c1_c_c2_symm_η2,  j⟩
-               let ⟨ip1, pT1, _, _, _⟩ <- acc.get_rep wf n1.ty
-               let ⟨ip2, pT2, _, _, _⟩ <- acc.get_rep wf n2.ty
-               if ip1 == ip2 && pT1 == pT2 then return acc
-               else acc.union (wf := wf) K n1.ty n2.ty η1_symm_c1_c_c2_symm_η2 j
-        else none) eG
-  let ⟨ip1, pT1, _, _, _⟩ <- eG'.get_rep wf T1
-  let ⟨ip2, pT2, _, _, _⟩ <- eG'.get_rep wf T2
-  if ip1 == ip2 && pT1 == pT2 then return eG'
-  else eG'.union (wf := wf) K T1 T2 c j3
-
 
 def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
   (T1 : Ty) -> (T2 : Ty) -> Option ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))
@@ -913,5 +844,232 @@ def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : E
       none
   | _, _ => none
 
+
+partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
+  (T1 : Ty) -> (T2 : Ty) -> ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) -> Option (EqGraph G Δ Γ)
+| (.app A1 B1), (.app A2 B2), ⟨c, j3⟩ => do
+
+  let eG' <-
+     do match hA1 : A1.infer_kind G Δ, hA2 : A2.infer_kind G Δ, hB1 : B1.infer_kind G Δ, hB2 : B2.infer_kind G Δ with
+        | some (KA1a -:> KA1b), some (KA2a -:> KA2b), some KB1, some KB2 =>
+          if h : KA1a == KA2a && KA1b == KA2b && KA1a == KB1 && KA2a == KB2 && K == KA1b
+          then
+            have jA1 := infer_kind_sound hA1
+            have jA2 := infer_kind_sound hA2
+            have jB1 := infer_kind_sound hB1
+            have jB2 := infer_kind_sound hB2
+            by simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e1; subst e2; subst e3; subst e4; subst e5
+               apply do let ⟨c1, j_c1⟩ := EqGraph.app_prj_fst G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
+                        let eG <- EqGraph.process_equation G wf Δ Γ eG (KA1a -:> K) A1 A2 ⟨c1, j_c1⟩
+                        let ⟨c2, j_c2⟩ := EqGraph.app_prj_snd G Δ Γ c KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 j3
+                        EqGraph.process_equation G wf Δ Γ eG KA1a B1 B2 ⟨c2, j_c2⟩
+          else none
+        | _, _, _, _ => none
+  let ⟨ip1, rep_T1, K1, η1, j1⟩ <- EqGraph.get_rep wf eG' (.app A1 B1) -- Maybe • 3
+  let ⟨ip2, rep_T2, K2, η2, j2⟩ <- eG'.get_rep wf (.app A2 B2) -- Maybe • 1
+  if ip1 == ip2 && rep_T1 == rep_T2
+    then return eG'
+    else eG'.union K (wf := wf) (.app A1 B1) (.app A2 B2) c j3
+-- TODO : Ditto for -:>
+
+| .var v1, .var v2, ⟨c, j3⟩ => do
+  let T1 : Ty := .var v1
+  let T2 : Ty := .var v2
+  let ⟨ip1 ,rep_T1, Kp1, c1, jc1⟩ <- eG.get_rep wf T1
+  let ⟨ip2 ,rep_T2, Kp2, c2, jc2⟩ <- eG.get_rep wf T2
+
+  let clsT1 := eG.get_eq_class wf T1
+  let clsT2 := eG.get_eq_class wf T2
+  let p := (clsT1.flatMap (λ a => List.map (Prod.mk a) clsT2)).filter (λ (n1, n2) => n1.ty != T1 || n2.ty != T2)
+  let (p_app, p_not_app) := p.partition (λ (n1, n2) => n1.ty.is_app && n2.ty.is_app)
+
+  let eG' <- p_app.foldlM (init := eG) (λ acc (n1, n2) => do
+      let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
+      let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep wf n2.ty
+      if pT1 == pT2 then return acc
+      else if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+        then
+          by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+             subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+             apply do
+               -- η1 ; symm c1; c; c2; symm η2
+               let ⟨symm_η2, symm_j2⟩ := EqGraph.symm G wf Δ Γ η2 K n2.ty rep_T2 j2
+               let ⟨symm_c1, symm_jc1⟩ := EqGraph.symm G wf Δ Γ c1 K T1 rep_T1 jc1
+               let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+               let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
+               let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+               let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+               let acc <- acc.process_equation G wf Δ Γ K n1.ty n2.ty ⟨η1_symm_c1_c_c2_symm_η2, j⟩
+               let ⟨ip1, pT1, _, _, _⟩ <- acc.get_rep wf T1
+               let ⟨ip2, pT2, _, _, _⟩ <- acc.get_rep wf T2
+               if ip1 == ip2 && pT1 == pT2 then return acc
+               else acc.union (wf := wf) K T1 T2 c j3
+        else none)
+
+  -- let eG' <- p_not_app.foldlM (init := eG') (λ acc (n1, n2) => do
+  --     let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
+  --     let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep wf n2.ty
+  --     if pT1 == pT2 then return acc
+  --     else if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+  --       then
+  --         by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+  --            subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+  --            apply do
+  --              -- η1 ; symm c1; c; c2; symm η2
+  --              let ⟨symm_η2, symm_j2⟩ := EqGraph.symm G wf Δ Γ η2 K n2.ty rep_T2 j2
+  --              let ⟨symm_c1, symm_jc1⟩ := EqGraph.symm G wf Δ Γ c1 K T1 rep_T1 jc1
+  --              let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+  --              let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
+  --              let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+  --              let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+  --              acc.union (wf := wf) K n1.ty n2.ty η1_symm_c1_c_c2_symm_η2  j
+  --       else none)
+    let ⟨ip1, pT1, _, _, _⟩ <- eG'.get_rep wf T1
+    let ⟨ip2, pT2, _, _, _⟩ <- eG'.get_rep wf T2
+    if ip1 == ip2 && pT1 == pT2 then return eG'
+    else eG'.union (wf := wf) K T1 T2 c j3
+
+| T1, T2, ⟨c, j3⟩ => do
+  let i1 <- eG.nodes.findIdx? (·.ty == T1)
+  let i2 <- eG.nodes.findIdx? (·.ty == T2)
+  let ⟨ip1 ,rep_T1, Kp1, c1, jc1⟩ <- eG.get_rep wf T1
+  let ⟨ip2 ,rep_T2, Kp2, c2, jc2⟩ <- eG.get_rep wf T2
+
+  if ip1 == ip2 && rep_T1 == rep_T2 then return eG
+  else
+  let clsT1 := eG.get_eq_class wf T1
+  let clsT2 := eG.get_eq_class wf T2
+  let p := (clsT1.flatMap (λ a => List.map (Prod.mk a) clsT2)).filter (λ (n1, n2) => n1.ty != T1 || n2.ty != T2)
+  let (p_app, p_not_app) := p.partition (λ (n1, n2) => n1.ty.is_app && n2.ty.is_app)
+
+  let eG' <- p_app.foldlM (init := eG) (λ acc (n1, n2) => do
+      let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
+      let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep wf n2.ty
+      if pT1 == pT2 then return acc
+      else if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+        then
+          by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+             subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+             apply do
+               -- η1 ; symm c1; c; c2; symm η2
+               let ⟨symm_η2, symm_j2⟩ := EqGraph.symm G wf Δ Γ η2 K n2.ty rep_T2 j2
+               let ⟨symm_c1, symm_jc1⟩ := EqGraph.symm G wf Δ Γ c1 K T1 rep_T1 jc1
+               let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+               let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
+               let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+               let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+               acc.process_equation G wf Δ Γ K n1.ty n2.ty ⟨η1_symm_c1_c_c2_symm_η2, j⟩
+        else none)
+
+
+  -- let eG' <- p_not_app.foldlM (init := eG') (λ acc (n1, n2) => do
+  --     let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
+  --     let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep wf n2.ty
+  --     if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+  --       then
+  --         by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+  --            subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+  --            apply do
+  --              -- η1 ; symm c1; c; c2; symm η2
+  --              let ⟨symm_η2, symm_j2⟩ := EqGraph.symm G wf Δ Γ η2 K n2.ty rep_T2 j2
+  --              let ⟨symm_c1, symm_jc1⟩ := EqGraph.symm G wf Δ Γ c1 K T1 rep_T1 jc1
+  --              let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+  --              let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
+  --              let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+  --              let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+  --              let acc <- acc.process_equation G Δ Γ (wf := wf) K n1.ty n2.ty ⟨η1_symm_c1_c_c2_symm_η2,  j⟩
+  --              let ⟨ip1, pT1, _, _, _⟩ <- acc.get_rep wf n1.ty
+  --              let ⟨ip2, pT2, _, _, _⟩ <- acc.get_rep wf n2.ty
+  --              if ip1 == ip2 && pT1 == pT2 then return acc
+  --              else acc.union (wf := wf) K n1.ty n2.ty η1_symm_c1_c_c2_symm_η2 j
+  --       else none)
+  let ⟨ip1, pT1, _, _, _⟩ <- eG'.get_rep wf T1
+  let ⟨ip2, pT2, _, _, _⟩ <- eG'.get_rep wf T2
+  if ip1 == ip2 && pT1 == pT2 then return eG'
+  else eG'.union (wf := wf) K T1 T2 c j3
+
+
+partial def EqGraph.process_equations (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) :
+  List ((K : Kind) × (T1 : Ty) × (T2 : Ty) × ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))) -> Option (EqGraph G Δ Γ)
+| [] => return eG
+| .cons ⟨K, T1, T2, ⟨t, jt⟩⟩ xs =>
+  match eG.ask G wf Δ Γ K T1 T2 with
+  | some _ => eG.process_equations G wf Δ Γ xs
+  | none => do
+    let ⟨ip1 ,rep_T1, Kp1, c1, jc1⟩ <- eG.get_rep wf T1
+    let ⟨ip2 ,rep_T2, Kp2, c2, jc2⟩ <- eG.get_rep wf T2
+    let clsT1 := eG.get_eq_class wf T1
+    let clsT2 := eG.get_eq_class wf T2
+    let p := (clsT1.flatMap (λ a => List.map (Prod.mk a) clsT2)).filter (λ (n1, n2) => n1.ty != T1 || n2.ty != T2)
+    let (p_app, p_not_app) := p.partition (λ (n1, n2) => n1.ty.is_app && n2.ty.is_app)
+
+    match T1, T2 with
+    | .app A1 B1, .app A2 B2 => do
+      let new_eqs : List ((K : Kind) × (T1 : Ty) × (T2 : Ty) × ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))) :=
+        match hA1 : A1.infer_kind G Δ, hA2 : A2.infer_kind G Δ, hB1 : B1.infer_kind G Δ, hB2 : B2.infer_kind G Δ with
+        | some (KA1a -:> KA1b), some (KA2a -:> KA2b), some KB1, some KB2 =>
+          if h : KA1a == KA2a && KA1b == KA2b && KA1a == KB1 && KA2a == KB2 && K == KA1b
+          then
+            have jA1 := infer_kind_sound hA1
+            have jA2 := infer_kind_sound hA2
+            have jB1 := infer_kind_sound hB1
+            have jB2 := infer_kind_sound hB2
+            by simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e1; subst e2; subst e3; subst e4; subst e5
+               apply let ⟨c1, j_c1⟩ := EqGraph.app_prj_fst G Δ Γ t KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 jt
+                     let ⟨c2, j_c2⟩ := EqGraph.app_prj_snd G Δ Γ t KA1a K A1 A2 B1 B2 jA1 jA2 jB1 jB2 jt
+                     [⟨KA1a -:> K, A1, A2, ⟨c1, j_c1⟩⟩, ⟨KA1a, B1, B2, ⟨c2, j_c2⟩⟩]
+          else []
+        | _, _, _, _ => []
+      let eG' <- eG.process_equations G wf Δ Γ (new_eqs ++ xs)
+      eG.union wf K (.app A1 B1) (.app A2 B2) t jt
+
+    | T1, T2 =>
+      let eG' <- p_app.foldlM (λ acc (n1, n2) => do
+        let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
+        let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep wf n2.ty
+        if pT1 == pT2 then return acc
+        else if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+        then
+          by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+             subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+             apply do
+               -- η1 ; symm c1; c; c2; symm η2
+               let ⟨symm_η2, symm_j2⟩ := EqGraph.symm G wf Δ Γ η2 K n2.ty rep_T2 j2
+               let ⟨symm_c1, symm_jc1⟩ := EqGraph.symm G wf Δ Γ c1 K T1 rep_T1 jc1
+               let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+               let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ t c2_symm_η2 K T1 T2 n2.ty jt j
+               let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+               let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+               let new_eqn : (K : Kind) × (T1 : Ty) × (T2 : Ty) × ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := ⟨K, n1.ty, n2.ty, ⟨η1_symm_c1_c_c2_symm_η2, j⟩⟩
+               acc.process_equations G wf Δ Γ (new_eqn :: xs)
+        else none) eG
+
+
+      let eG' <- p_not_app.foldlM (λ acc (n1, n2) => do
+        let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
+        let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep wf n2.ty
+        if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+        then
+          by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+             subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+             apply do
+               -- η1 ; symm c1; c; c2; symm η2
+               let ⟨symm_η2, symm_j2⟩ := EqGraph.symm G wf Δ Γ η2 K n2.ty rep_T2 j2
+               let ⟨symm_c1, symm_jc1⟩ := EqGraph.symm G wf Δ Γ c1 K T1 rep_T1 jc1
+               let ⟨c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+               let ⟨c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ t c2_symm_η2 K T1 T2 n2.ty jt j
+               let ⟨symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+               let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := EqGraph.seq G wf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+               let new_eqn : (K : Kind) × (T1 : Ty) × (T2 : Ty) × ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := ⟨K, n1.ty, n2.ty, ⟨η1_symm_c1_c_c2_symm_η2,  j⟩⟩
+               let acc <- acc.process_equations G Δ Γ (wf := wf) (new_eqn :: xs)
+               let ⟨ip1, pT1, _, _, _⟩ <- acc.get_rep wf n1.ty
+               let ⟨ip2, pT2, _, _, _⟩ <- acc.get_rep wf n2.ty
+               if ip1 == ip2 && pT1 == pT2 then return acc
+               else acc.union (wf := wf) K n1.ty n2.ty η1_symm_c1_c_c2_symm_η2 j
+        else none) eG
+      let ⟨ip1, pT1, _, _, _⟩ <- eG'.get_rep wf T1
+      let ⟨ip2, pT2, _, _, _⟩ <- eG'.get_rep wf T2
+      if ip1 == ip2 && pT1 == pT2 then return eG'
+      else eG'.union (wf := wf) K T1 T2 t jt
 
 end Core.Ppcc

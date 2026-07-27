@@ -83,6 +83,10 @@ def SpineTy.repr : SpineTy -> Std.Format
       ++ R.repr 0 ++"⟩"
 
 
+def Ty.is_app : Ty -> Bool
+| .app _ _ => true
+| _ => false
+
 end Core
 /-
 

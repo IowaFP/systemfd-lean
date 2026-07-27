@@ -105,21 +105,13 @@ def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
    else none
  | none => none
 
-def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option (Ppcc.EqGraph G Δ Γ)
+def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (i : Nat := Γ.length): Option (Ppcc.EqGraph G Δ Γ)
   := do let init : Ppcc.EqGraph G Δ Γ := Ppcc.EqGraph.empty
         let eG <- Γ.foldlM (λ acc T => acc.push_ty T) init
-        (Γ.zip (List.range Γ.length)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
+        (Γ.zip (List.range i)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
+
 
 #guard List.range 3 == [0, 1, 2]
-
-def TyEnv.is_consistent (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) : Option Unit := do
-  let eG <- EqGraph.process_tyenv G wf Δ Γ
-  -- Get all global types
-
-  -- get a pair of global type of the same kind
-
-  -- Check if eG can build a coercion term for that type
-
 
 
 def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Option Term
@@ -198,13 +190,13 @@ def test3 : Option Ty := do
 
 #guard test3 == some (t#2 ~[★]~ t#3)
 
-def mEG3 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), (t#1 • t#3) ~[★]~ t#4])
-  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), (t#1 • t#3) ~[★]~ t#4]
+def mEG3 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)])
+  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)]
 
 def test4 : Option Ty := do
   let eG <- mEG3
   let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★]
-  let Γ := [t#4 ~[★]~ (t#0 • t#2), (t#1 • t#3) ~[★]~ t#4]
+  let Γ := [t#4 ~[★]~ (t#0 • t#2), t#4 ~[★]~ (t#1 • t#3)]
   let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#2) (t#3)
   Term.infer_type [] Δ Γ t
 
@@ -226,16 +218,83 @@ def test5 : Option Ty := do
 -- #eval! mEG4
 #guard test5 == some (t#4 ~[★]~ (t#1 • t#3))
 
+
+
+def mEG5 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#6, t#5 ~[★]~ t#6])
+  := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#6, t#5 ~[★]~ t#6]
+
+
+-- #eval! do
+--   let eG <- mEG5
+--   let T1 := t#4
+--   let T2 := t#5
+--   let K := ★
+--   let G := []
+--   let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★]
+--   let Γ := [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#5]
+--   let c := #2
+--   let EGN := Ppcc.EqGraphNode G Δ Γ
+--   let EG := Ppcc.EqGraph G Δ Γ
+
+--   let j3 : G&Δ, Γ ⊢ c : (t#4 ~[★]~ t#5) := sorry
+--   let ⟨ip1 ,rep_T1, Kp1, c1, jc1⟩ <- eG.get_rep CtxWf T1
+--   let ⟨ip2 ,rep_T2, Kp2, c2, jc2⟩ <- eG.get_rep CtxWf T2
+--   let clsT1 := eG.get_eq_class CtxWf T1
+--   let clsT2 := eG.get_eq_class CtxWf T2
+--   let p : List (EGN × EGN) := (clsT1.flatMap (λ a => List.map (Prod.mk a) clsT2)).filter (λ (n1, n2) => (n1.ty != T1 || n2.ty != T2))
+--   let (p_app, p_not_app) : List (EGN × EGN) × List (EGN × EGN) := p.partition (λ (n1, n2) => n1.ty.is_app && n2.ty.is_app)
+--   let eG' : EG <- p_app.foldlM (s := EG) (α := EGN × EGN) (m := Option) (init := eG) (λ acc (n1, n2) => do
+--       let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep CtxWf (Ppcc.EqGraphNode.ty n1)
+--       let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep CtxWf (Ppcc.EqGraphNode.ty n2)
+--       if pT1 == pT2 then return acc
+--       else if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+--         then
+--           by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+--              subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+--              apply do
+--                -- η1 ; symm c1; c; c2; symm η2
+--                let ⟨symm_η2, symm_j2⟩ := Ppcc.EqGraph.symm [] CtxWf Δ Γ η2 K n2.ty rep_T2 j2
+--                let ⟨symm_c1, symm_jc1⟩ := Ppcc.EqGraph.symm [] CtxWf Δ Γ c1 K T1 rep_T1 jc1
+--                let ⟨c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+--                let ⟨c_c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
+--                let ⟨symm_c1_c_c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+--                let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+--                acc.process_equation G CtxWf Δ Γ K n1.ty n2.ty ⟨η1_symm_c1_c_c2_symm_η2, j⟩
+--         else none)
+
+--   -- let eG' : EG <- p_not_app.foldlM (s := EG) (α := EGN × EGN) (m := Option) (init := eG') (λ acc (n1, n2) => do
+--   --     let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep CtxWf (Ppcc.EqGraphNode.ty n1)
+--   --     let ⟨_, pT2, K2, η2, j2⟩ <- acc.get_rep CtxWf (Ppcc.EqGraphNode.ty n2)
+--   --     if pT1 == pT2 then return acc
+--   --     else if h : K1 == K2 && (K == K1 && (Kp1 == K && (Kp2 == K && (rep_T1 == pT1 && rep_T2 == pT2))))
+--   --       then
+--   --         by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6⟩;
+--   --            subst K1; subst K2; subst Kp1; subst Kp2; subst pT1; subst pT2
+--   --            apply do
+--   --              -- η1 ; symm c1; c; c2; symm η2
+--   --              let ⟨symm_η2, symm_j2⟩ := Ppcc.EqGraph.symm [] CtxWf Δ Γ η2 K n2.ty rep_T2 j2
+--   --              let ⟨symm_c1, symm_jc1⟩ := Ppcc.EqGraph.symm [] CtxWf Δ Γ c1 K T1 rep_T1 jc1
+--   --              let ⟨c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ c2 symm_η2 K T2 rep_T2 n2.ty jc2 symm_j2
+--   --              let ⟨c_c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ c c2_symm_η2 K T1 T2 n2.ty j3 j
+--   --              let ⟨symm_c1_c_c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ symm_c1 c_c2_symm_η2 K rep_T1 T1 n2.ty symm_jc1 j
+--   --              let ⟨η1_symm_c1_c_c2_symm_η2, j⟩ := Ppcc.EqGraph.seq G CtxWf Δ Γ η1 symm_c1_c_c2_symm_η2 K n1.ty rep_T1 n2.ty j1 j
+--   --              acc.union CtxWf K n1.ty n2.ty η1_symm_c1_c_c2_symm_η2 j
+--   --       else none)
+
+--   return (p_app, p_not_app)
+
+-- #eval! mEG5
+
+def test6 : Option Ty := do
+  let eG <- mEG5
+  let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★]
+  let Γ := [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#6, t#5 ~[★]~ t#6]
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#1 • t#2) (t#1 • t#3)
+  Term.infer_type [] Δ Γ t
+
+#guard test6 == some ((t#1 • t#2) ~[★]~ ((t#1 • t#3)))
+
 end Core.EqGraph.Test
 
-
-theorem env_consistency {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ : TyEnv} :
-  TyEnv.is_consistent G wf Δ Γ = some () ->
-  ∀ T1 T2 K, T1 ≠ T2 -> ¬ (G&Δ, Γ ⊢ c : (gt#T1 ~[K]~ gt#T2))
-:= by
- intro h T1 T2 K ne j
- unfold TyEnv.is_consistent at h; simp at h
-
- sorry
 
 end Core.Synth
