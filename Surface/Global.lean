@@ -1,18 +1,19 @@
 import LeanSubst
 import Core.Vec
-import Lilac.Vect
+import Lilac
 import Surface.Ty
 import Surface.Term
 
 open LeanSubst
+open Lilac
 
 namespace Surface
 
 inductive Global : Type where
-| data : {n : Nat} -> String -> Kind -> Vect n (String × Ty) -> Global
+| data : {n : Nat} -> String -> Kind -> Vec (String × Ty) n -> Global
 | defn : String -> Ty -> Term -> Global
-| classDecl : {n : Nat} -> String -> Kind -> /- Fundeps -> Vect k (Nat × Nat) -/  Vect n (String × Ty) -> Global
-| instDecl : {n : Nat} -> Ty -> Vect n (String × Term) -> Global
+| classDecl : {n : Nat} -> String -> Kind -> /- Fundeps -> Vect k (Nat × Nat) -/  Vec (String × Ty) n -> Global
+| instDecl : {n : Nat} -> Ty -> Vec (String × Term) n -> Global
 
 
 def Global.repr (_ : Nat) : (a : Global) -> Std.Format
@@ -47,10 +48,10 @@ instance instRepr_Globals : Repr GlobalEnv where
   reprPrec a p := Globals.repr p a
 
 inductive Entry : Type where
-| data : String -> Kind -> Vect n (String × Ty) -> Entry
+| data : String -> Kind -> Vec (String × Ty) n -> Entry
 | ctor : String -> Nat -> Ty -> Entry
 | defn : String -> Ty -> Term -> Entry
-| opent : String -> Kind -> Vect n (String × Ty) -> Entry
+| opent : String -> Kind -> Vec (String × Ty) n -> Entry
 | openm : String -> Nat -> Ty -> Entry
 
 def Entry.is_data : Entry -> Bool
@@ -88,19 +89,19 @@ def Entry.type : Entry -> Option Ty
 def lookup (x : String) : GlobalEnv -> Option Entry
 | [] => none
 | .cons (.data (n := n) y K ctors) tl =>
-  let ctors' : Vect n (Option Entry) := λ i =>
-    let (z, A) := ctors i
+  let ctors' : Fun.Vec (Option Entry) n := λ i =>
+    let (z, A) := ctors.to i
     if x == z then return .ctor z i A else none
   if x == y then return .data y K ctors
-  else Vect.fold (lookup x tl) Option.or ctors'
+  else ctors'.to.foldl (init := lookup x tl) Option.or
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
 | .cons (.classDecl (n := n) y K ms) tl =>
-  let ms' : Vect n (Option Entry) := λ i =>
-    let (z, A) := ms i
+  let ms' : Fun.Vec (Option Entry) n := λ i =>
+    let (z, A) := ms.to i
     if x == z then return .openm z i A else none
   if x == y then return .opent y K ms
-  else Vect.fold (lookup x tl) Option.or ms'
+  else ms'.to.foldl (init := lookup x tl) Option.or
 | .cons (.instDecl _ _) tl => lookup x tl
 
 def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.get!

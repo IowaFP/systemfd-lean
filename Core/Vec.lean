@@ -50,7 +50,8 @@ theorem Vec.get_list_to_get : {n:Nat} -> {v : Vec α (n + 1)} -> (h : i < n + 1)
       by rw [Vec.get_Fin_ofNat_succ h]; simp [lem2]
 
 theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
-  intro i; induction vs <;> simp at *
+  intro i;
+  induction vs <;> simp at *
   apply i.elim0
   case _ ih =>
   induction i using Fin.induction <;> simp at *

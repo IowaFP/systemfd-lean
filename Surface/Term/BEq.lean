@@ -1,6 +1,8 @@
 import Surface.Ty
 import Surface.Term.Definition
 
+open Lilac
+
 namespace Surface
 
 def Term.beq : Term -> Term -> Bool
@@ -10,13 +12,12 @@ def Term.beq : Term -> Term -> Bool
 | app a1 b1, app a2 b2 => beq a1 a2 && beq b1 b2
 | lamt K1 t1, lamt K2 t2 => K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
-| .match (n := n1) t1 a1 b1 c1 d1, .match (n := n2) t2 a2 b2 c2 d2 =>
-  if h : n1 = n2 then
-    let c : Vect n1 Bool := λ i => beq (c1 i) (c2 (by rw[h] at i; exact i))
-    let p : Vect n1 Bool := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
-    beq a1 a2 && Vect.fold true (·&&·) c && Vect.fold true (·&&·) p && beq d1 d2 && t1 == t2
-  else false
-
+-- | .match (n := n1) t1 a1 b1 c1 d1, .match (n := n2) t2 a2 b2 c2 d2 =>
+--   if h : n1 = n2 then
+--     let c : Fun.Vec Bool n1 := λ i => beq (c1 i) (c2 (by rw[h] at i; exact i))
+--     let p : Fun.Vec Bool n1 := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
+--     beq a1 a2 && c.to.foldl (·&&·) true && p.to.foldl (·&&·)  true && beq d1 d2 && t1 == t2
+--   else false
 | annot t1 A1, annot t2 A2 => beq t1 t2 && A1 == A2
 | _, _ => false
 
@@ -25,13 +26,13 @@ instance instBEq_Term : BEq Term where
 
 instance instReflBEq_Term : ReflBEq Term where
   rfl := by
-    intro a; induction a <;> simp [instBEq_Term, Term.beq] at *
+    intro a; induction a <;> simp +instances [instBEq_Term, Term.beq] at *
     all_goals (repeat assumption)
     constructor; assumption; assumption
-    case «match» ih1 ih2 ih3 ih4 =>
-    constructor
-    · constructor
-      · constructor; assumption;
+    -- case «match» ih1 ih2 ih3 ih4 =>
+    -- constructor
+    -- · constructor
+    --   · constructor; assumption;
         -- apply Vect.induction
           -- (motive := (Vect.fold true (fun x1 x2 => x1 && x2) fun i => (a¹ i).beq (a¹ i)) = true)
         -- unfold Vect.fold;
@@ -45,16 +46,13 @@ instance instReflBEq_Term : ReflBEq Term where
         --   cases h; simp at *
         --   constructor
         --   apply ih3
-          sorry
-      · sorry
-    · assumption
+        --  sorry
 
 instance instLawfulBEq_Term : LawfulBEq Term where
   eq_of_beq := by
-    intro a b; cases a <;> simp [instBEq_Term] at *
+    intro a b; cases a <;> simp +instances [instBEq_Term] at *
     all_goals (induction b <;>
       simp [Term.beq] at *)
-    sorry
     sorry
     sorry
     sorry

@@ -11,8 +11,8 @@ namespace Surface
 
 @[simp]
 def Kind.translate : Surface.Kind -> Core.Kind
-| .base .closed => .base .closed
-| .base .open => .base .open
+| .base .closed => ★
+| .base .open => ★
 | .arrow k1 k2 => .arrow (translate k1) (translate k2)
 notation "⟦" K "⟧" => Surface.Kind.translate K
 
@@ -36,10 +36,11 @@ def TyEnv.translate (Γ : TyEnv) : (List Core.Ty) :=
 notation "⟦" Γ "⟧" => Surface.TyEnv.translate Γ
 
 @[simp]
-def Subst.Ty.translate (σ : Subst Surface.Ty) : Subst Core.Ty :=
-  (λ x => match x with
-  | .re x => .re x
-  | .su T => .su (T.translate)) <$> σ
+def Subst.Ty.translate (σ : Subst Surface.Ty) : Subst Core.Ty := ⟨ λ x =>
+    match σ.inner x with
+    | .re x => .re x
+    | .su T => .su ⟦T⟧ ⟩
+
 notation "⟦" σ "⟧" => Subst.Ty.translate σ
 
 end Surface
@@ -68,16 +69,16 @@ def Ty.mk_all (b : Ty) : Nat -> Ty
 --- C τ1 τ2 ---> ∀ ∀ (1 ~ τ1) (0 ~ τ2)  -> C 0 1
 --- but also
 --- ∀αs. T βs => C τs ------> ∀
-@[simp]
-def Ty.InstEncode (τ : Ty) : Option Ty :=
-  match τ.spine with
-  | .some (x , sp) =>
-    let fvs := fresh_vars sp.length
-    let prefix_τs := (fvs.zip sp).map (λ (n, τ) => t#n ~[★]~ τ )
-    return ((((gt#x).apply (fvs.map (t#·))).mk_arrow prefix_τs).mk_all fvs.length)
-  | _ => none
+-- @[simp]
+-- def Ty.InstEncode (τ : Ty) : Option Ty :=
+--   match τ.spine with
+--   | .some (x , sp) =>
+--     let fvs := fresh_vars sp.length
+--     let prefix_τs := (fvs.zip sp).map (λ (n, τ) => t#n ~[★]~ τ )
+--     return ((((gt`#x).apply (fvs.map (t#·))).mk_arrow prefix_τs).mk_all fvs.length)
+--   | _ => none
 
-#eval Ty.InstEncode ((gt#"C").apply [gt#"a", gt#"b"] )
+-- #eval Ty.InstEncode ((gt#"C").apply [gt#"a", gt#"b"] )
 
 
 def Ty.Apart : Ty -> Ty -> Bool
@@ -91,17 +92,17 @@ def Ty.Apart : Ty -> Ty -> Bool
 | .arrow _ _, _ => true
 | _ , _ => true
 
-#eval Ty.Apart ((gt#"C").apply [gt#"a", gt#"b"] ) ((gt#"C").apply [gt#"a", gt#"b"] )
+-- #eval Ty.Apart ((gt#"C").apply [gt#"a", gt#"b"] ) ((gt#"C").apply [gt#"a", gt#"b"] )
 
 
 
-theorem Ty.InstEncodeKindSound :
-  G&Δ ⊢ τ : ◯ ->
-  some τ' = Ty.InstEncode τ  ->
-  G&Δ ⊢ τ' : ◯ := by
-intro h1 h2
-induction τ <;> simp [Ty.spine, Ty.apply] at *
-case global => subst h2; apply h1
-case app => sorry
+-- theorem Ty.InstEncodeKindSound :
+--   G&Δ ⊢ τ : ★ ->
+--   some τ' = Ty.InstEncode τ  ->
+--   G&Δ ⊢ τ' : ★ := by
+-- intro h1 h2
+-- induction τ <;> simp [Ty.spine, Ty.apply] at *
+-- case global => subst h2; apply h1
+-- case app => sorry
 
 end Core

@@ -41,24 +41,6 @@ theorem Ty.spine_subst {R : Ty} (σ : Subst Ty)
       · rw[<-h.2]; simp
   cases h
 
-theorem Ty.spine_subst {R : Ty} (σ : Subst Ty)
-  : R.spine = some (x, sp) -> R[σ].spine = some (x, sp[σ])
-:= by
-  intro h
-  fun_induction Ty.spine generalizing x sp
-  case _ => simp at h; rcases h with ⟨e1, e2⟩; subst e1; subst e2; simp [Ty.spine]
-  case _ ih =>
-    simp at h; rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨x', sp'⟩, h2, h⟩
-    simp at h; replace ih := ih h2
-    simp[Ty.spine]; rw[Option.bind_eq_some_iff];
-    exists (x', sp'[σ]); simp;
-    apply And.intro
-    · apply ih
-    · apply And.intro;
-      · apply h.1
-      · rw[<-h.2]; simp
-  cases h
-
 theorem Ty.spine_ren {R : Ty} (r : Ren Ty)
   : R.spine = some (x, sp) -> R⟨r⟩.spine = some (x, sp⟨r⟩)
 := by
