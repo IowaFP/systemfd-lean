@@ -283,7 +283,7 @@ def mEG5 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★
 
 --   return (p_app, p_not_app)
 
--- #eval! mEG5
+#eval! mEG5
 
 def test6 : Option Ty := do
   let eG <- mEG5
@@ -293,6 +293,18 @@ def test6 : Option Ty := do
   Term.infer_type [] Δ Γ t
 
 #guard test6 == some ((t#1 • t#2) ~[★]~ ((t#1 • t#3)))
+
+def test7 : Option Ty := do
+  let eG <- mEG5
+  let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★]
+  let Γ := [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#6, t#5 ~[★]~ t#6]
+  let ⟨t1, _, _, _ ⟩ <- eG.get_rep_view CtxWf t#4
+  let ⟨t2, _, _, _ ⟩ <- eG.get_rep_view CtxWf (t#1 • t#2)
+  -- return (t1, t2)
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#4) (t#1 • t#2)
+  Term.infer_type [] Δ Γ t
+
+#guard test7 == some ((t#4) ~[★]~ ((t#1 • t#2)))
 
 end Core.EqGraph.Test
 
