@@ -446,6 +446,8 @@ structure EqGraph (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) where
   /-equiv_class_count_ub : nodes.length > 0 -> equiv_class_count ≤ nodes.length
   equiv_class_count_lb : nodes.length > 0 -> equiv_class_count > 0 -/
 
+def EqGraph.Wf {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (eG : EqGraph G Δ Γ) :=
+  eG.equiv_class_count == ((eG.nodes.zip (List.range eG.nodes.length)).filter (λ n => n.1.parent_idx == n.2)).length
 
 instance {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : Repr (EqGraph  G Δ Γ) where
   reprPrec g _ := g.nodes.repr 0
@@ -783,28 +785,6 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG :
     | _, _ => none
   | _, _ => none
 
-theorem EqGraph.union_equiv_class_count {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
-  {eG eG' : EqGraph G Δ Γ} {K : Kind}
-  {T1 : Ty} {T2 : Ty} {t : Term} {j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)} (inv : eG.equiv_class_count > 0):
-  eG.union (wf := wf) K T1 T2 t j = some eG' ->
-  eG'.equiv_class_count < eG.equiv_class_count
-  := by
-  intro h
-  unfold EqGraph.union at h; simp at h
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨i1, h1, h⟩
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨i2, h2, h⟩
-  split at h
-  · rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ip1, pT1, K1, _, _⟩, h3, h⟩
-    rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ip2, pT2, K2, _, _⟩, h4, h⟩
-    simp at h
-    split at h
-    · simp at h;
-      rcases h with ⟨ne, h⟩
-      split at h <;> simp at h
-      · rw[<-h]; simp; omega
-      · rcases h with ⟨_, h⟩; rw[<-h]; simp; omega
-    · cases h
-  · cases h
 
 partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
   (T1 : Ty) -> (T2 : Ty) -> ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) -> Option (EqGraph G Δ Γ)

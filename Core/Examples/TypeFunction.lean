@@ -213,8 +213,10 @@ some ([★, ★, ★, ★],
           let eG <- Core.Synth.EqGraph.process_tyenv TypeFunCtx wf (ζ ++ Δ) Γ
           -- let ⟨η, _⟩ <- eG.ask TypeFunCtx wf (ζ ++ Δ) Γ ★ (gt#"Maybe" • t#1) (gt#"Maybe" • t#3)
           -- let ⟨η, _⟩ <- eG.ask TypeFunCtx wf (ζ ++ Δ) Γ ★ (t#6) (t#6)
-          let ns := Core.Ppcc.EqGraph.get_eq_class wf eG t#4
-          return (repr (Δ ++ ζ), repr Γ,repr eG)
+          let ⟨rep_T1, _,_ ,_⟩ <- eG.get_rep_view wf ((gt#"F" • t#3) • t#2)
+          let ⟨rep_T2, _,_ ,_⟩ <- eG.get_rep_view wf ((gt#"F" • t#1) • t#0)
+
+          return (repr (Δ ++ ζ), repr Γ,repr eG, repr rep_T1, repr rep_T2)
         | none => none
 
       else none

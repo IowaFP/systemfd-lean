@@ -58,16 +58,6 @@ theorem Ty.spine_ren {R : Ty} (r : Ren Ty)
     · apply ih
     · simp
 
-
-theorem quantifier_bundle :
-  (∀ (a : α) (b : β) , ¬ t = .some (a, b)) <-> ∀ (h : α × β), ¬ t = some h
-  := by
-  apply Iff.intro
-  · intro h p h1
-    replace h := h p.1 p.2; simp at h; apply h h1
-  · intro h a b;
-    apply h (a, b)
-
 theorem Ty.spine_ren_none {R : Ty} (r : Ren Ty)
   : R.spine = none -> R⟨r⟩.spine = none
 := by
@@ -124,9 +114,9 @@ assumption
 
 
 def Ty.subterms : Ty -> List Ty
-| .app x y => [.app x y, x , y] ++ x.subterms ++ y.subterms
-| .arrow x y => [.arrow x y, x , y] ++ x.subterms ++ y.subterms
-| .eq K x y => [.eq K x y, x , y] ++ x.subterms ++ y.subterms
+| .app x y => x.subterms ++ y.subterms ++ [.app x y]
+| .arrow x y => x.subterms ++ y.subterms ++ [.arrow x y]
+| .eq K x y => x.subterms ++ y.subterms ++ [.eq K x y]
 | x => [x]
 
 end Core

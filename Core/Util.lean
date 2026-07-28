@@ -163,6 +163,16 @@ theorem List.length_gt_zero_exists : {l : List α} -> (h : l.length > 0) ->
 | .cons a as, j => by simp
 
 
+
+theorem quantifier_bundle :
+  (∀ (a : α) (b : β) , ¬ t = .some (a, b)) <-> ∀ (h : α × β), ¬ t = some h
+  := by
+  apply Iff.intro
+  · intro h p h1
+    replace h := h p.1 p.2; simp at h; apply h h1
+  · intro h a b;
+    apply h (a, b)
+
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst
 ----------------------------------------------------------------------------------------------------
