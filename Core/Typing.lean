@@ -10,7 +10,6 @@ namespace Core
 
 @[simp]
 abbrev KindEnv := List Kind
-
 @[simp]
 abbrev TyEnv := List Ty
 

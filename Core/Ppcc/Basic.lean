@@ -447,7 +447,7 @@ structure EqGraph (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) where
   equiv_class_count_lb : nodes.length > 0 -> equiv_class_count > 0 -/
 
 def EqGraph.Wf {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (eG : EqGraph G Δ Γ) :=
-  eG.equiv_class_count == ((eG.nodes.zip (List.range eG.nodes.length)).filter (λ n => n.1.parent_idx == n.2)).length
+  eG.equiv_class_count == ((eG.nodes.zipIdx).filter (λ n => n.1.parent_idx == n.2)).length
 
 instance {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} : Repr (EqGraph  G Δ Γ) where
   reprPrec g _ := g.nodes.repr 0
@@ -557,7 +557,6 @@ def EqGraph.get_rep_aux {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G)
   Option ((Nat) × (T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
     let n := eG.nodes[i]
     have lem1 := eG.parent_kind_eq h
-    -- have lem2 := eG.parent_ty_eq h
     have lem3 := eG.parent_idx_lt h
     have lem4 := n.parent_rel.2
     if h2 : n.parent_idx == i && n.ty == T1
@@ -577,7 +576,7 @@ def EqGraph.get_rep_aux {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G)
         if h3 : n.kind == k
           then
             simp at h3; simp [Node.kind] at lem4; simp only [e2, h3] at lem4;
-            have lem5 := EqGraph.seq (G := G) (Δ := Δ) (Γ := Γ) (wf := wf) n.parent_rel.1 η k T1 n.parent_ty T3 lem4 ih
+            have lem5 := EqGraph.seq G wf Δ Γ n.parent_rel.1 η k T1 n.parent_ty T3 lem4 ih
             rcases lem5 with ⟨η', j⟩
             apply some ⟨i, T3, k, η', j⟩
           else apply none
@@ -589,7 +588,12 @@ def EqGraph.get_rep {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG
   Option (Nat × (T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
   let i <- eG.nodes.findIdx? (·.ty == T1)
   if h1 : (i < eG.nodes.length)
-  then EqGraph.get_rep_aux wf eG T1 i h1
+  then let ⟨ip, repT, K, c, j⟩ <- EqGraph.get_rep_aux wf eG T1 i h1
+       if h2 : ip < eG.nodes.length
+       then if h3 : (eG.nodes[ip]'h2).ty == (eG.nodes[ip]'h2).parent_ty && (eG.nodes[ip]'h2).ty == repT
+            then return ⟨ip, repT, K, c, j⟩
+            else none
+       else none
   else none
 
 /-- Get equivalence class for a particular type -/
@@ -810,7 +814,7 @@ partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv)
   let ⟨ip2, rep_T2, K2, η2, j2⟩ <- eG'.get_rep wf (.app A2 B2) -- Maybe • 1
   if ip1 == ip2 && rep_T1 == rep_T2
     then return eG'
-    else eG'.union K (wf := wf) (.app A1 B1) (.app A2 B2) c j3
+    else eG'.union wf K (.app A1 B1) (.app A2 B2) c j3
 -- TODO : Ditto for -:>
 
 | T1, T2, ⟨c, j3⟩ => do

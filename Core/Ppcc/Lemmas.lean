@@ -18,12 +18,14 @@ theorem EqGraph.push_preserves_wf {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}
   {n : Node G Δ} {eG eG' : EqGraph G Δ Γ} (wf : eG.Wf) :
   eG.push n = eG' ->
   eG'.Wf
-:= by sorry
--- intro h; unfold Wf at wf
--- unfold push at h;
--- split at h
--- · subst h; assumption
--- · simp only [<-h, Wf]; simp
+:= by
+  intro h;
+  unfold push at h;
+  split at h
+  subst h; apply wf
+  case _ =>
+    simp at h; rw[<-h, Wf]
+    simp; rw[List.zipIdx_append]; simp; unfold Wf at wf; simp at wf; apply wf
 
 
 theorem EqGraph.union_equiv_class_count {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
@@ -49,9 +51,39 @@ theorem EqGraph.union_equiv_class_count {G : GlobalEnv} {wf : ⊢ G} {Δ : KindE
     · cases h
   · cases h
 
+theorem EqGraph.get_rep_idx_bounded
+  {G : GlobalEnv} {wfg : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
+  {K : Kind} {T1 T2 : Ty} {t : Term} {j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)} {eG : EqGraph G Δ Γ} :
+  eG.get_rep wfg T1 = some ⟨ip, T2, K, t, j⟩ ->
+  ip < eG.nodes.length
+:= by
+intro h; unfold get_rep at h
+simp at h; rw[Option.bind_eq_some_iff] at h; rcases h with ⟨i, h1, h⟩
+simp at h; rcases h with ⟨p, h⟩;
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨i1, repT', K, c, j⟩, h2, h⟩
+simp at h; rcases h with ⟨h3, h4, h5⟩; rcases h3 with ⟨p, h3⟩
+subst h4; apply p
+
+theorem EqGraph.get_rep_sound
+  {G : GlobalEnv} {wfg : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
+  {K : Kind} {T1 T2 : Ty} {t : Term} {j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)} {eG : EqGraph G Δ Γ} :
+  eG.get_rep wfg T1 = some ⟨ip, T2, K, t, j⟩ ->
+  eG.nodes[ip]?.map (·.ty) = some T2 :=  by
+intro h
+have lem_idx := EqGraph.get_rep_idx_bounded h
+simp; exists eG.nodes[ip]; simp;
+unfold get_rep at h; simp at h;
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨i, h1, h⟩
+simp at h; rcases h with ⟨p, h⟩;
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨i1, repT', K, c, j⟩, h2, h⟩
+simp at h; rcases h with ⟨h3, e1, e2, e3⟩; subst e1; subst e2; simp at e3;
+rcases e3 with ⟨e3, e4⟩; subst e3; simp at e4; rcases e4 with ⟨e4, e5⟩; subst e4
+rcases h3 with ⟨p, h3⟩; rcases h3 with ⟨h3, h4⟩; apply h4
+
+
 
 theorem EqGraph.union_preserves_wf
-{G : GlobalEnv} {wfg : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
+  {G : GlobalEnv} {wfg : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
   {K : Kind} {T1 T2 : Ty} {t : Term} {j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)} {eG eG' : EqGraph G Δ Γ}
   (wf : eG.Wf) :
   eG.union wfg K T1 T2 t j = some eG' ->
