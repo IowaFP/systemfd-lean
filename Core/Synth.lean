@@ -105,14 +105,11 @@ def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
    else none
  | none => none
 
-def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (i : Nat := Γ.length) :
+def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) :
   Option (Ppcc.EqGraph G Δ Γ)
   := do let init : Ppcc.EqGraph G Δ Γ := Ppcc.EqGraph.empty
         let eG <- Γ.foldlM (λ acc T => acc.push_ty T) init
-        (Γ.zip (List.range i)).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
-
-
-#guard List.range 3 == [0, 1, 2]
+        (Γ.zipIdx).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
 
 
 def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Option Term

@@ -173,6 +173,20 @@ theorem quantifier_bundle :
   · intro h a b;
     apply h (a, b)
 
+theorem List.filter_set_neq {f : α -> Bool} {l l' : List α} {a : α} (i : Nat) (h : i < l.length) :
+  f l[i] -> ¬ f a ->
+  (List.filter f (l.set i a)).length = (List.filter f l).length - 1 := by sorry
+
+
+theorem List.zipIdx_set {l : List α} {a : α} {i : Nat} (h : i < l.length) :
+  (l.set i a).zipIdx = l.zipIdx.set i (a, i) := by induction l generalizing i <;> simp at *; case _ hd tl ih =>
+  sorry
+
+@[grind =]
+theorem List.zipIdx_length {l : List α} :
+  l.length = l.zipIdx.length := by induction l <;> simp at *
+
+
 ----------------------------------------------------------------------------------------------------
 --- To be added to LeanSubst
 ----------------------------------------------------------------------------------------------------

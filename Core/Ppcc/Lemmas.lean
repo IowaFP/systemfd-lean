@@ -6,12 +6,11 @@ import Core.Ppcc.Basic
 
 namespace Core.Ppcc
 
-theorem EqGraph.ask_type_sound {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ : TyEnv} {eG : EqGraph G Δ Γ} {c : Term} {j : G&Δ, Γ ⊢ c : (T1 ~[K]~ T2)}:
+theorem EqGraph.ask_type_sound {G : GlobalEnv} {wf : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
+  {eG : EqGraph G Δ Γ} {c : Term} {j : G&Δ, Γ ⊢ c : (T1 ~[K]~ T2)} :
   eG.ask G wf Δ Γ K T1 T2 = some ⟨c, j⟩ ->
   G&Δ, Γ ⊢ c : (T1 ~[K]~ T2) :=
   by intro h; apply j
-
-
 
 
 theorem EqGraph.push_preserves_wf {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}
@@ -64,6 +63,21 @@ rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨i1, repT', K, c, j⟩, h2,
 simp at h; rcases h with ⟨h3, h4, h5⟩; rcases h3 with ⟨p, h3⟩
 subst h4; apply p
 
+
+theorem EqGraph.get_rep_idx_eq
+  {G : GlobalEnv} {wfg : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
+  {K : Kind} {T1 T2 : Ty} {t : Term} {j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)} {eG : EqGraph G Δ Γ} :
+  eG.get_rep wfg T1 = some ⟨ip, T2, K, t, j⟩ ->
+  eG.nodes[ip]?.map (·.parent_idx) = ip
+:= by
+intro h; unfold get_rep at h
+simp at h; rw[Option.bind_eq_some_iff] at h; rcases h with ⟨i, h1, h⟩
+simp at h; rcases h with ⟨p, h⟩;
+rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨i1, repT', K, c, j⟩, h2, h⟩
+simp at h; rcases h with ⟨h3, h4, h5⟩; rcases h3 with ⟨p, h3, h6, h7⟩
+subst h4; simp; exists eG.nodes[i1]; apply And.intro; simp; apply h7
+
+
 theorem EqGraph.get_rep_sound
   {G : GlobalEnv} {wfg : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
   {K : Kind} {T1 T2 : Ty} {t : Term} {j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)} {eG : EqGraph G Δ Γ} :
@@ -78,9 +92,7 @@ simp at h; rcases h with ⟨p, h⟩;
 rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨i1, repT', K, c, j⟩, h2, h⟩
 simp at h; rcases h with ⟨h3, e1, e2, e3⟩; subst e1; subst e2; simp at e3;
 rcases e3 with ⟨e3, e4⟩; subst e3; simp at e4; rcases e4 with ⟨e4, e5⟩; subst e4
-rcases h3 with ⟨p, h3⟩; rcases h3 with ⟨h3, h4⟩; apply h4
-
-
+rcases h3 with ⟨p, h3⟩; rcases h3 with ⟨h3, h4, h5⟩; apply h4
 
 theorem EqGraph.union_preserves_wf
   {G : GlobalEnv} {wfg : ⊢ G} {Δ : KindEnv} {Γ : TyEnv}
@@ -95,14 +107,34 @@ rw[Option.bind_eq_some_iff] at h; rcases h with ⟨i1, h1, h⟩
 rw[Option.bind_eq_some_iff] at h; rcases h with ⟨i2, h2, h⟩
 split at h
 case _ h3 h4 =>
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨rep_T1, h5, h⟩
-  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨rep_T2, h6, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ip1, rep_T1⟩, h5, h⟩
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨⟨ip2, rep_T2⟩, h6, h⟩
   split at h
   case _ h7 h8 =>
     simp at h; rcases h with ⟨h9, h⟩
     split at h
-    case _ h10 => simp at h; simp only [<-h, Wf]; simp; sorry
-    sorry
+    case _ h10 =>
+      simp at h; simp only [<-h, Wf]; simp;
+      unfold Wf at wf; simp at wf;
+      simp at h7 h8;
+      have lem_idx : ip2 < eG.nodes.length := by grind
+      have lem_idx2 : ip2 < eG.nodes.zipIdx.length := by grind
+      rw[List.zipIdx_set (h := lem_idx)]; rw[List.filter_set_neq (h := lem_idx2)];
+      rw[wf]
+      simp; replace h6 := EqGraph.get_rep_idx_eq h6; rw[List.getElem?_eq_getElem (h := lem_idx)] at h6; simp at h6; apply h6
+      simp; apply h9
+      apply eG.nodes.zipIdx
+    case _ h10 =>
+      simp at h; rcases h with ⟨h, e⟩; simp only [<-e, Wf]; simp;
+      unfold Wf at wf; simp at wf;
+      simp at h7 h8;
+      have lem_idx : ip1 < eG.nodes.length := by grind
+      have lem_idx2 : ip1 < eG.nodes.zipIdx.length := by grind
+      rw[List.zipIdx_set (h := lem_idx)]; rw[List.filter_set_neq (h := lem_idx2)];
+      rw[wf]
+      simp; replace h6 := EqGraph.get_rep_idx_eq h5; rw[List.getElem?_eq_getElem (h := lem_idx)] at h6; simp at h6; apply h6
+      simp; grind
+      apply eG.nodes.zipIdx
   case _ => cases h
 case _ => cases h
 

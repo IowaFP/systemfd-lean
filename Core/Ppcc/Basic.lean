@@ -590,7 +590,7 @@ def EqGraph.get_rep {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG
   if h1 : (i < eG.nodes.length)
   then let ⟨ip, repT, K, c, j⟩ <- EqGraph.get_rep_aux wf eG T1 i h1
        if h2 : ip < eG.nodes.length
-       then if h3 : (eG.nodes[ip]'h2).ty == (eG.nodes[ip]'h2).parent_ty && (eG.nodes[ip]'h2).ty == repT
+       then if h3 : (eG.nodes[ip]'h2).ty == (eG.nodes[ip]'h2).parent_ty && ((eG.nodes[ip]'h2).ty == repT && (eG.nodes[ip]'h2).parent_idx == ip)
             then return ⟨ip, repT, K, c, j⟩
             else none
        else none
@@ -715,10 +715,13 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG :
             let ⟨symm_η1, j'⟩ := EqGraph.symm G wf Δ Γ η1 K1 T1 rep_T1 j1
 
             let ⟨t_η2, j⟩ := EqGraph.seq G wf Δ Γ t η2 K T1 T2 rep_T2 j
-                         (by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩; subst e5; subst e7; subst e9; subst e3; subst e6; apply j2)
+                         (by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩;
+                             subst e5; subst e7; subst e9; subst e3; subst e6; apply j2)
             let ⟨symm_η1_t_η2, j⟩ := EqGraph.seq G wf Δ Γ symm_η1 t_η2 K rep_T1 T1 rep_T2
-                         (by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩; subst e5; subst e7; subst e9; subst e3; subst e6; apply j')
-                         (by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩; subst e5; subst e7; subst e9; subst e3; subst e6; apply j)
+                         (by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩;
+                             subst e5; subst e7; subst e9; subst e3; subst e6; apply j')
+                         (by simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩;
+                             subst e5; subst e7; subst e9; subst e3; subst e6; apply j)
             ⟨symm_η1_t_η2, by
               simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩; subst e5; subst e6; subst e9; subst e3;
               simp only [Node.ty, Node.kind, e8, e7]; apply j⟩ }
@@ -855,7 +858,6 @@ partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv)
   if ip1 == ip2 && pT1 == pT2 then return eG'
   else eG'.union (wf := wf) K T1 T2 c j3
 
-
 /-- traverses over the structure and replaces variables with their representative elements -/
 def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ) :
   (T1 : Ty) -> Option ((T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))
@@ -904,22 +906,6 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
 
 def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
   (T1 : Ty) -> (T2 : Ty) -> Option ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))
- | .app A1 B1, .app A2 B2 => do
-   match h1 : A1.infer_kind G Δ, h2 : A2.infer_kind G Δ , h3 : B1.infer_kind G Δ, h4 : B2.infer_kind G Δ with
-   | some (K1a -:> K1b), some (K2a -:> K2b), some KB1, some KB2 =>
-     if h : K1a == K2a && (K2a == KB1 && (KB1 == KB2 && (K2b == K1b && K == K2b)))
-     then
-       have lem1 := infer_kind_sound h1
-       have lem2 := infer_kind_sound h2
-       have lem3 := infer_kind_sound h3
-       have lem4 := infer_kind_sound h4
-       by simp at h; rcases h with ⟨e1, e2, e3, e4, e5⟩; subst e1; subst e2; subst e3; subst e4; subst e5
-          apply do let ⟨c1, j1⟩ <- EqGraph.ask G wf Δ Γ eG (K1a -:> K) A1 A2
-                   let ⟨c2, j2⟩ <- EqGraph.ask G wf Δ Γ eG K1a B1 B2
-                   return EqGraph.appc G wf Δ Γ c1 c2 K1a K A1 A2 B1 B2 j1 j2
-     else none
-   | _, _, _, _ => none
--- TODO : Ditto for -:>
  | T1, T2 => do
   let ⟨repv_T1, K1, η1, η1_j⟩ <- eG.get_rep_view wf T1
   let ⟨repv_T2, K2, η2, η2_j⟩ <- eG.get_rep_view wf T2
