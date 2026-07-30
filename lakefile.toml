@@ -21,10 +21,10 @@ name = "Core"
 name = "Surface"
 
 [[lean_lib]]
-name = "Translation"
+name = "Intermediate"
 
-# [[lean_lib]]
-# name = "SystemFD"
+[[lean_lib]]
+name = "Translation"
 
 [[lean_exe]]
 name = "systemfd"

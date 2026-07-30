@@ -19,6 +19,8 @@ notation "`★" => Surface.Kind.base Surface.BaseKind.closed
 notation "`◯" => Surface.Kind.base Surface.BaseKind.open
 infixr:64 " `-:> " => Surface.Kind.arrow
 
+def Kind.mk_kind : Vec Kind n -> Kind := Vec.foldl (init := `★) (λ acc n => n `-:> acc)
+
 inductive Ty : Type where
 | var : Nat -> Ty
 | global : String -> Ty

@@ -831,7 +831,7 @@ partial def EqGraph.process_equation (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv)
   let clsT1 := eG.get_eq_class wf T1
   let clsT2 := eG.get_eq_class wf T2
   let p := (clsT1.flatMap (λ a => List.map (Prod.mk a) clsT2)).filter (λ (n1, n2) => n1.ty != T1 || n2.ty != T2)
-  let (p_app, p_not_app) := p.partition (λ (n1, n2) => n1.ty.is_app && n2.ty.is_app)
+  let (p_app, _) := p.partition (λ (n1, n2) => n1.ty.is_app && n2.ty.is_app)
 
   let eG' <- p_app.foldlM (init := eG) (λ acc (n1, n2) => do
       let ⟨_, pT1, K1, η1, j1⟩ <- acc.get_rep wf n1.ty
