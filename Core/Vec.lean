@@ -743,4 +743,12 @@ theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> 
   rw[Fun.Vec.to_get_elem (vs := vs1), Fun.Vec.to_get_elem (vs := vs2)]
   rw[h]
 
+
+-- def Vec.mapM  {m : Type u → Type v} [Monad m] {α : Type w} (f : α → m β) : {n : Nat} -> Vec α n -> m (Vec β n)
+-- | 0, #() => return #()
+-- | _ + 1, .cons x xs => do
+--   let ys <- Vec.mapM f xs
+--   let y <- f x
+--   return (y :: ys)
+
 end Lilac

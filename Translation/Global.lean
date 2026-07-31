@@ -11,16 +11,19 @@ import Lilac
 
 open LeanSubst
 
-
 namespace Translation
+
 
 -- Kind check the types, leaves the terms as surface
 def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv := List.foldrM (init := []) (λ g Γ =>
   match g with
-  | .data (n := n) s K ctors =>
-    return .cons (.data n s ⟦ K ⟧  (ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, sorry)))) Γ
-  | .defn s T t => sorry
-  | .classDecl s Ks fds mτs => sorry
+  | .data (n := n) s K ctors => do
+    let ctors' : Lilac.Vec (String × Core.SpineTy) n := ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
+    return .cons (.data n s ⟦ K ⟧ ctors') Γ
+  | .defn s T t => return .cons (.defn s ⟦T⟧ t) Γ
+  | .classDecl s Ks fds mτs =>
+
+    sorry
   | .instDecl iname clname iτs ts => sorry
 )
 
@@ -45,7 +48,7 @@ def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv := List.foldr
     let Δ := (Ks1.list ++ Ks2.list).reverse
     if s == y && m == n
     then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) acc Δ n Ts p
-         let t' <- t.type_directed_translate acc (Δ ++ ζ) Γ R⟨Ren.add Core.Ty ζ.length⟩
+         let t' <- t.type_directed_translate acc (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
          return .cons (.inst s p t') acc
     else none
   | _ => none)

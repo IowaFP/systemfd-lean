@@ -23,7 +23,6 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
     Std.Format.nest 4 <| ctorN ++ " : " ++ SpineTy.repr ctorTy ++ Std.Format.line
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
       ++ "#" ++ Std.Format.paren (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
-
 | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
 | .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line ++ t.repr max_prec

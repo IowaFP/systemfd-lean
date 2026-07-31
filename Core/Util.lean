@@ -173,14 +173,58 @@ theorem quantifier_bundle :
   · intro h a b;
     apply h (a, b)
 
-theorem List.filter_set_neq {f : α -> Bool} {l l' : List α} {a : α} (i : Nat) (h : i < l.length) :
+theorem List.filter_gt_0 {f : α -> Bool} {l : List α} {i : Nat} (h : i < l.length):
+  f l[i] -> (l.filter f).length > 0
+:= by
+  intro h1
+  induction l generalizing i <;> simp at *
+  cases h; case _ hd tl ih =>
+  cases i
+  case zero =>
+    simp at h1; apply Or.inl h1
+  case succ n =>
+    simp at h1; simp at h;
+    apply Or.inr
+    apply ih h h1
+
+theorem List.filter_set_neq {f : α -> Bool} {l : List α} {a : α} (i : Nat) (h : i < l.length) :
   f l[i] -> ¬ f a ->
-  (List.filter f (l.set i a)).length = (List.filter f l).length - 1 := by sorry
+  (List.filter f (l.set i a)).length = (List.filter f l).length - 1
+:= by
+intro h1 h2
+induction l generalizing i <;> simp at *
+case _ hd tl ih =>
+  cases i <;> simp at *
+  · rw[List.filter_cons]; rw[List.filter_cons];
+    rw[h2]; simp
+    conv =>
+      rhs
+      rw[ite_cond_eq_true (h := by grind)]
+    simp
+  case succ n =>
+    simp at h
+    replace ih := @ih n h h1
+    rw[List.filter_cons]; rw[List.filter_cons]
+    generalize zdef : f hd = z at *
+    cases z <;> simp at *
+    · apply ih
+    · rw[ih]
+      have lem : (filter f tl).length > 0 := by apply List.filter_gt_0 h h1
+      omega
+
 
 
 theorem List.zipIdx_set {l : List α} {a : α} {i : Nat} (h : i < l.length) :
-  (l.set i a).zipIdx = l.zipIdx.set i (a, i) := by induction l generalizing i <;> simp at *; case _ hd tl ih =>
-  sorry
+  (l.set i a).zipIdx k = (l.zipIdx k).set i (a, (i + k))
+:= by
+  induction l generalizing i k <;> simp at *
+  case _ hd tl ih =>
+  cases i
+  case zero => simp
+  case succ n =>
+    simp at *
+    have lem : n + 1 + k = n + (k + 1) := by omega
+    replace ih := @ih (k + 1) n h; rw[lem]; apply ih
 
 @[grind =]
 theorem List.zipIdx_length {l : List α} :

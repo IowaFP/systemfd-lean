@@ -123,7 +123,6 @@ case _ h3 h4 =>
       rw[wf]
       simp; replace h6 := EqGraph.get_rep_idx_eq h6; rw[List.getElem?_eq_getElem (h := lem_idx)] at h6; simp at h6; apply h6
       simp; apply h9
-      apply eG.nodes.zipIdx
     case _ h10 =>
       simp at h; rcases h with ⟨h, e⟩; simp only [<-e, Wf]; simp;
       unfold Wf at wf; simp at wf;
@@ -134,7 +133,6 @@ case _ h3 h4 =>
       rw[wf]
       simp; replace h6 := EqGraph.get_rep_idx_eq h5; rw[List.getElem?_eq_getElem (h := lem_idx)] at h6; simp at h6; apply h6
       simp; grind
-      apply eG.nodes.zipIdx
   case _ => cases h
 case _ => cases h
 
