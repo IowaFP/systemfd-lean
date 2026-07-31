@@ -19,6 +19,8 @@ notation "★" => Kind.base
 -- notation "◯" => Kind.base BaseKind.open
 infixr:64 " -:> " => Kind.arrow
 
+-- def Kind.mk_kind : Vec Kind n -> Kind := Vec.foldl (init := ★) (λ acc n => n -:> acc)
+
 inductive Ty : Type where
 | var : Nat -> Ty
 | global : String -> Ty

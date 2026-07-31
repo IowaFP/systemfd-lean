@@ -17,20 +17,20 @@ inductive Global where
   Vec (String × Ty) sc ->
   Vec (String × Fin kc × Fin kc) fc ->
   Vec (String × SpineTy) mc -> Global
-| instDecl : {kc mc : Nat} -> String -> String -> Vec Ty kc -> Vec (String × Term) mc -> Global
+| instDecl : {mc : Nat} -> String -> SpineTy -> Vec (String × Term) mc -> Global
 
 
 def Global.repr (_ : Nat) : (a : Global) -> Std.Format
 | .data s K ctors =>
   (Std.Format.text ".data ") ++ (Std.Format.text s) ++ " : "
-    ++ (Kind.repr max_prec K) ++ (Std.Format.text "where") ++
+    ++ (Kind.repr max_prec K) ++ (Std.Format.text " where ") ++
     Std.Format.line ++ Std.Format.nest 4 (ctors.reprPrec 0)
 | .defn n T t => ".defn " ++ n ++ " " ++ (T.repr max_prec) ++ t.repr max_prec
 | classDecl s Ks scs fds methods =>
-  ".class " ++ s ++ " : " ++ Ks.repr max_prec ++ "|"  ++ scs.repr max_prec ++ "|" ++ fds.repr max_prec
+  ".class " ++ s ++ " : " ++ Ks.repr max_prec ++ "|"  ++ scs.repr max_prec ++ "|" ++ fds.repr max_prec ++ (Std.Format.text " where ")
     ++ Std.Format.line ++ (methods.reprPrec 0)
-| instDecl i_name cl_name tys methods =>
-  (Std.Format.text ".inst ") ++ i_name ++ " : " ++ cl_name ++ "⟨" ++ tys.repr max_prec ++ "⟩"++ " : "
+| instDecl i_name spTy methods =>
+  (Std.Format.text ".inst ") ++ i_name ++ " : " ++ "⟨" ++ spTy.repr max_prec ++ "⟩"
     ++ Std.Format.line ++ Std.Format.nest 4 (methods.reprPrec max_prec)
 
 @[simp]
@@ -90,10 +90,11 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
     if x == z then return .openm z i A else none
   if x == y then return .odata y Ks
   else ms'.to.foldl (init := lookup x tl) Option.or
-| .cons (.instDecl _ _ _ _) tl => lookup x tl
+| .cons (.instDecl s spTy _) tl =>
+  if x == s then return .octor s spTy
+  else lookup x tl
 
 def lookup_kind (G : GlobalEnv) (x : String) : Option Kind := lookup x G |> Option.map Entry.kind |> Option.get!
--- def lookup_type (G :GlobalEnv) (x : String) : Option Ty := lookup x G |> Option.map Entry.type |> Option.get!
 
 
 def is_ctor (G : GlobalEnv) x := lookup x G |> Option.map Entry.is_ctor |> Option.get!
