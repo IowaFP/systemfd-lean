@@ -7,12 +7,22 @@ import Surface.Typing
 import Translation.Ty
 import Translation.Term
 
+import Lilac
+
 open LeanSubst
+
 
 namespace Translation
 
-
-def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv := List.foldrM (init := []) (λ g acc => sorry)
+-- Kind check the types, leaves the terms as surface
+def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv := List.foldrM (init := []) (λ g Γ =>
+  match g with
+  | .data (n := n) s K ctors =>
+    return .cons (.data n s ⟦ K ⟧  (ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, sorry)))) Γ
+  | .defn s T t => sorry
+  | .classDecl s Ks fds mτs => sorry
+  | .instDecl iname clname iτs ts => sorry
+)
 
 
 

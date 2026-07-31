@@ -10,7 +10,7 @@ open Lilac
 namespace Surface
 
 inductive Global : Type where
-| data : {n : Nat} -> String -> Kind -> Vec (String × Ty) n -> Global
+| data : {n : Nat} -> String -> Kind -> Vec (String × SpineTy) n -> Global
 | defn : String -> Ty -> Term -> Global
 | classDecl : {mc kc fc : Nat} -> String -> Vec Kind kc -> Vec (String × Fin kc × Fin kc) fc ->  Vec (String × Ty) mc -> Global
 | instDecl : {kc mc : Nat} -> String -> String -> Vec Ty kc -> Vec (String × Term) mc -> Global
@@ -37,8 +37,8 @@ instance instRepr_Global : Repr (Global) where
 abbrev GlobalEnv := List (Global)
 
 inductive Entry : Type where
-| data : {n : Nat} -> String -> Kind -> Vec (String × Ty) n -> Entry
-| ctor : String -> Nat -> Ty -> Entry
+| data : {n : Nat} -> String -> Kind -> Vec (String × SpineTy) n -> Entry
+| ctor : String -> Nat -> SpineTy -> Entry
 | defn : String -> Ty -> Term -> Entry
 | opent : {n : Nat} -> String -> Vec Kind n -> Entry
 | openm : String -> Nat -> Ty -> Entry
@@ -66,12 +66,6 @@ def Entry.is_defn : Entry -> Bool
 def Entry.kind : Entry -> Option Kind
 | data _ K _ => K
 | opent _ Ks => Kind.mk_kind Ks
-| _ => none
-
-def Entry.type : Entry -> Option Ty
-| ctor _ _ T => T
-| openm _ _ T => T
-| defn _ T _ => T
 | _ => none
 
 
