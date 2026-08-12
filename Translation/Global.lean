@@ -3,31 +3,38 @@ import Core.Global
 import Intermediate.Global
 
 import Surface.Typing
+import Intermediate.Typing
 
 import Translation.Ty
 import Translation.Term
 
 import Lilac
 
+open Lilac
 open LeanSubst
 
 namespace Translation
 
 
--- Kind check the types, leaves the terms as surface
+-- Kind check the types, leaves the terms untouched
 def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv := List.foldrM (init := []) (λ g Γ =>
   match g with
   | .data (n := n) s K ctors => do
     let ctors' : Lilac.Vec (String × Core.SpineTy) n := ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
     return .cons (.data n s ⟦ K ⟧ ctors') Γ
   | .defn s T t => return .cons (.defn s ⟦T⟧ t) Γ
-  | .classDecl s Ks fds mτs =>
+  | .classDecl s sups Ks fds mτs =>
 
     sorry
-  | .instDecl iname clname iτs ts => sorry
+  | .instDecl iname spTy ts => sorry
 )
 
 
+def Intermediate.OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
+  ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q},
+  Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
+  Intermediate.Query G .opn q Ts ->
+  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Intermediate.Query.Match q p
 
 def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv := List.foldrM (init := []) (λ g acc =>
   match g with
@@ -54,16 +61,15 @@ def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv := List.foldr
   | _ => none)
 
 
--- def Intermediate.OpenExhaustive (G : List Global) : Prop :=
---   ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q},
---   lookup x G = some (.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
---   Query G .opn q Ts ->
---   ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Query.Match q p
+theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} :
+  translate_SI G = some G' ->
+  Intermediate.OpenExhaustive G' := by sorry
 
 
--- theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} :
---   translate_SI G = some G' ->
---   Core.OpenExhaustive G' := by sorry
+theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
+  Intermediate.OpenExhaustive G ->
+  translate_IC G = some G' ->
+  Core.OpenExhaustive G' := by sorry
 
 -- inductive Translation.GlobalWf : Surface.GlobalEnv -> Core.GlobalEnv -> Surface.Global -> Prop where
 -- | data {ctors : Vect n (String × Surface.Ty)} {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}:

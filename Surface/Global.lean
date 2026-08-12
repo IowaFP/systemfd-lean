@@ -27,7 +27,8 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
     Std.Format.line ++ Std.Format.nest 4 (ctors.reprPrec 0)
 | .defn n T t => ".defn " ++ n ++ " " ++ (T.repr max_prec) ++ t.repr max_prec
 | classDecl s Ks scs fds methods =>
-  ".class " ++ s ++ " : " ++ Ks.repr max_prec ++ "|"  ++ scs.repr max_prec ++ "|" ++ fds.repr max_prec ++ (Std.Format.text " where ")
+  ".class " ++ s ++ " : " ++ Ks.repr max_prec ++ "|"  ++ scs.repr max_prec
+    ++ "|" ++ fds.repr max_prec ++ (Std.Format.text " where ")
     ++ Std.Format.line ++ (methods.reprPrec 0)
 | instDecl i_name spTy methods =>
   (Std.Format.text ".inst ") ++ i_name ++ " : " ++ "⟨" ++ spTy.repr max_prec ++ "⟩"

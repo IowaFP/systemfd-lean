@@ -23,5 +23,31 @@ inductive Global : Type where
 @[simp]
 abbrev GlobalEnv := List Global
 
+inductive Entry : Type where
+| data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
+| ctor : String -> Nat -> Core.SpineTy -> Entry
+| odata : String -> Core.Kind -> Entry
+| openm : String -> Core.SpineTy -> Entry
+| defn : String -> Core.Ty -> Surface.Term -> Entry
+| octor : String -> Core.SpineTy -> Entry
+
+def lookup (x : String) : List Global -> Option Entry := sorry
+
+inductive DataConst where
+| opn
+| cls
+
+def Entry.ctor? (data : String) : DataConst -> Entry -> Bool
+| .cls, ctor _ _ ⟨_, _, _, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, _, _, T⟩ =>
+  match T.spine with
+  | some ⟨d, _⟩ => d == data
+  | none => false
+| _, _ => false
+
+def lookup_ctor? (G : GlobalEnv) (c : DataConst) (ctor : String) (data : Core.Ty) : Bool :=
+  match data.spine with
+  | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
+  | none => false
+
 
 end Intermediate
