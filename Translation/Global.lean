@@ -20,13 +20,13 @@ namespace Translation
 def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv := List.foldrM (init := []) (λ g Γ =>
   match g with
   | .data (n := n) s K ctors => do
-    let ctors' : Lilac.Vec (String × Core.SpineTy) n := ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
+    let ctors' : Lilac.Vec (String × Core.SpineTy) n :=
+      ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
     return .cons (.data n s ⟦ K ⟧ ctors') Γ
   | .defn s T t => return .cons (.defn s ⟦T⟧ t) Γ
-  | .classDecl s sups Ks fds mτs =>
-
-    sorry
-  | .instDecl iname spTy ts => sorry
+  | .classDecl s sups Ks fds mτs => none
+    -- sorry
+  | .instDecl iname spTy ts => none -- sorry
 )
 
 
@@ -34,7 +34,7 @@ def Intermediate.OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
   ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q},
   Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
   Intermediate.Query G .opn q Ts ->
-  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Intermediate.Query.Match q p
+  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Core.Query.Match q p
 
 def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv := List.foldrM (init := []) (λ g acc =>
   match g with
@@ -62,14 +62,73 @@ def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv := List.foldr
 
 
 theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} :
+  --
   translate_SI G = some G' ->
-  Intermediate.OpenExhaustive G' := by sorry
+  Intermediate.OpenExhaustive G' := by
+intro h
+unfold translate_SI at h
+intro x na nb nc Ks1 Ks2 Ts R q h1 h2
+
+sorry
+
+theorem translate_IC_indexing_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
+  translate_IC G = some G' ->
+  G'[i]? = some (Core.Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
+  G[i]? = some (Intermediate.Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩)
+   := by
+intro h1 h2
+unfold translate_IC at h1
+simp at h1 h2
+sorry
+
+theorem translate_IC_indexing_inst {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
+  translate_IC G = some G' ->
+  G[i]? = some (Intermediate.Global.inst x p b) ->
+  ∃ b', G'[i]? = some (Core.Global.inst x p b')
+   := by
+intro h1 h2
+unfold translate_IC at h1
+simp at h1 h2
+sorry
+
+
+
+theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
+  translate_IC G = some G' ->
+  Core.lookup x G' = some (Core.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
+  Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) := by
+intro h1 h2
+unfold translate_IC at h1
+simp at h1 h2
+sorry
+
+
+
+theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
+  translate_IC G = some G' ->
+  Core.Query G' Core.DataConst.opn q Ts ->
+  Intermediate.Query G Intermediate.DataConst.opn q Ts := by
+intro h1 h2
+unfold translate_IC at h1
+simp at h1 h2
+
+sorry
 
 
 theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
   Intermediate.OpenExhaustive G ->
   translate_IC G = some G' ->
-  Core.OpenExhaustive G' := by sorry
+  Core.OpenExhaustive G' := by
+intro oe h1
+intro x na nb nc Ks1 Ks2 Ts R q h2 h3
+simp at h1 h2 h3
+have lem1 := translate_IC_lookup_openm h1 h2
+have lem2 := translate_IC_query h1 h3
+replace oe := @oe x na nb nc Ks1 Ks2 Ts R q lem1 lem2
+rcases oe with ⟨i, b, p, oe1, oe2⟩
+have lem3 := translate_IC_indexing_inst h1 oe1
+rcases lem3 with ⟨b', lem3⟩
+exists i; exists b'; exists p
 
 -- inductive Translation.GlobalWf : Surface.GlobalEnv -> Core.GlobalEnv -> Surface.Global -> Prop where
 -- | data {ctors : Vect n (String × Surface.Ty)} {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}:

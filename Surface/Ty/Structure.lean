@@ -107,4 +107,8 @@ def Ty.subterms : Ty -> List Ty
 | x => [x]
 
 
+def Ty.mkApps (T : Ty) : List Ty -> Ty := List.foldl (init := T) (λ acc t => acc `• t)
+
+def Ty.mkApps_nats (T : Ty) : List Nat -> Ty := List.foldl (init := T) (λ acc t => acc `• t`#t)
+
 end Surface
