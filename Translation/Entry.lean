@@ -1,8 +1,8 @@
-import Surface.Global
-import Core.Global
+-- import Surface.Global
+-- import Core.Global
 
-import Translation.Ty
-import Translation.Term
+-- import Translation.Ty
+-- import Translation.Term
 
 
 -- def Surface.Entry.translate : Surface.Entry -> Core.Entry

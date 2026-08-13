@@ -31,7 +31,7 @@ theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv} (wf
   Intermediate.Query ((Intermediate.Global.data n s K ctors)::Γ) Intermediate.DataConst.opn q Ts ->
   Intermediate.Query Γ Intermediate.DataConst.opn q Ts := by sorry
 
-theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} :
+theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G):
   translate_SI G = some G' ->
   Intermediate.OpenExhaustive G' := by
 intro h
@@ -39,6 +39,7 @@ intro x na nb nc Ks1 Ks2 Ts R q h1 h2
 fun_induction translate_SI generalizing G' x <;> simp at *
 · subst h; simp [Intermediate.lookup] at h1
 case _ ih =>
+  cases wf; case _ wftl wfhd =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h3, h⟩
   simp at h; subst G'
   simp [Intermediate.lookup] at h1;
@@ -48,7 +49,7 @@ case _ ih =>
     replace h1 := Vec.fold_or h1
     cases h1
     case _ h1 =>
-      replace ih := @ih _ h3 x h1
+      replace ih := @ih _ wftl h3 x h1
       sorry
     case _ h1 => sorry
 case _ ih => sorry

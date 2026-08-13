@@ -1,2 +1,2 @@
-import Translation.Entry
-import Translation.Global
+-- import Translation.Entry
+-- import Translation.Global

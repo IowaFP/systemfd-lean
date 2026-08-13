@@ -99,4 +99,9 @@ def lookup_defn (G : List Global) (x : String) : Option (Core.Ty × Surface.Term
 def lookup_kind G x := lookup x G |> Option.map Intermediate.Entry.kind |> Option.join
 def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 
+inductive SpCtorVariant : Type where
+| openm
+| data (c : DataConst)
+
+
 end Intermediate

@@ -124,4 +124,9 @@ def Kind.mk_kind : Vec Kind n -> Kind := Vec.foldl (init := ★) (λ acc n => n 
 def Ty.mkApps (T : Ty) : List Ty -> Ty := List.foldl (init := T) (λ acc t => acc • t)
 def Ty.mkApps_nats (T : Ty) : List Nat -> Ty := List.foldl (init := T) (λ acc t => acc • t#t)
 
+def Ty.is_data (data1 : String) (A : Ty) : Bool :=
+  match A.spine with
+  | some (data2, _) => data1 == data2
+  | none => false
+
 end Core

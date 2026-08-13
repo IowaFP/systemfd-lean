@@ -43,12 +43,7 @@ notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
 def Ty.data? (c : DataConst) (G : List Global) (A : Ty) : Bool :=
   match A.spine with
-  | some (x, _) => is_data c G x
-  | none => false
-
-def Ty.is_data (data1 : String) (A : Ty) : Bool :=
-  match A.spine with
-  | some (data2, _) => data1 == data2
+  | some (x, _) => Core.is_data c G x
   | none => false
 
 inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : List Global) (test : Ty -> Bool) : SpineTy -> Prop where
