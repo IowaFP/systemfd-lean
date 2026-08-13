@@ -255,3 +255,11 @@ namespace LeanSubst
     induction v <;> simp [*]
 
 end LeanSubst
+
+
+inductive VecTyping (J : A -> B -> Prop) : Vec A m -> Vec B m -> Prop
+| nil : VecTyping J .nil .nil
+| cons :
+  J a b ->
+  VecTyping J as bs ->
+  VecTyping J (a::as) (b::bs)

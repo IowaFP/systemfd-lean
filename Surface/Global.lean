@@ -110,18 +110,18 @@ def lookup_kind (G : GlobalEnv) (x : String) : Option Kind := lookup x G |> Opti
 -- def is_openm (G : GlobalEnv) x := lookup x G |> Option.map Entry.is_openm |> Option.get!
 -- def is_defn (G : GlobalEnv) x := lookup x G |> Option.map Entry.is_defn |> Option.get!
 
-def ctor_idx (x : String) (G : GlobalEnv) : Option Nat := do
-  let t <- lookup x G
-  match t with
-  | .ctor _ n _ => n
-  | _ => none
+-- def ctor_idx (x : String) (G : GlobalEnv) : Option Nat := do
+--   let t <- lookup x G
+--   match t with
+--   | .ctor _ n _ => n
+--   | _ => none
 
-def Entry.name : Entry -> String
-| .data n _ _
-| .ctor n _ _
-| .defn n _ _
-| .odata n _
-| .octor n _
-| .openm n _ => n
+-- def Entry.name : Entry -> String
+-- | .data n _ _
+-- | .ctor n _ _
+-- | .defn n _ _
+-- | .odata n _
+-- | .octor n _
+-- | .openm n _ => n
 
 end Surface

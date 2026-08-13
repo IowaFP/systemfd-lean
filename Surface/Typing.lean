@@ -75,4 +75,5 @@ inductive ValidClassInstTy (x : String) : Ty -> Prop where
   T.spine = some (x, sp) ->
   ValidClassInstTy x T
 
+
 end Surface

@@ -17,17 +17,20 @@ namespace Translation
 
 
 -- Kind check the types, leaves the terms untouched
-def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv := List.foldrM (init := []) (λ g Γ =>
-  match g with
-  | .data (n := n) s K ctors => do
-    let ctors' : Lilac.Vec (String × Core.SpineTy) n :=
+def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
+| .nil => return .nil
+| .cons (.data (n := n) s K ctors) Γ => do
+  let Γ' <- translate_SI Γ
+  let ctors' : Lilac.Vec (String × Core.SpineTy) n :=
       ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
-    return .cons (.data n s ⟦ K ⟧ ctors') Γ
-  | .defn s T t => return .cons (.defn s ⟦T⟧ t) Γ
-  | .classDecl s sups Ks fds mτs => none
+  return .cons (.data n s ⟦ K ⟧ ctors') Γ'
+| .cons (.defn s T t) Γ => do
+  let Γ' <- translate_SI Γ
+  return .cons (.defn s ⟦T⟧ t) Γ'
+| .cons (.classDecl s Ks scs fds mτs) Γ => none
     -- sorry
-  | .instDecl iname spTy ts => none -- sorry
-)
+| .cons (.instDecl iname spTy ts) Γ => none -- sorry
+
 
 
 def Intermediate.OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
@@ -36,29 +39,35 @@ def Intermediate.OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
   Intermediate.Query G .opn q Ts ->
   ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Core.Query.Match q p
 
-def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv := List.foldrM (init := []) (λ g acc =>
-  match g with
-| (.data n s K ctors) => do
-  return (.data n s K ctors) :: acc
-| .defn n T t => do
-  let t' : Core.Term <- Surface.Term.type_directed_translate acc [] [] T t
-  return (.defn n T t') :: acc
-| .odata s K => do
-  return .cons (.odata s K) acc
-| .openm s spTy => do
-  return .cons (.openm s spTy) acc
-| .octor s spTy => do
-  return .cons (.octor s spTy) acc
-| .inst (m := m) s p t =>
-  match Core.lookup s acc with
+def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
+| .nil => return .nil
+| .cons (.data n s K ctors) Γ => do
+  let Γ' <- translate_IC Γ
+  return (.data n s K ctors) :: Γ'
+| .cons (.defn n T t) Γ => do
+  let Γ' <- translate_IC Γ
+  let t' : Core.Term <- Surface.Term.type_directed_translate Γ' [] [] T t
+  return (.defn n T t') :: Γ'
+| .cons (.odata s K) Γ => do
+  let Γ' <- translate_IC Γ
+  return .cons (.odata s K) Γ'
+| .cons (.openm s spTy) Γ => do
+  let Γ' <- translate_IC Γ
+  return .cons (.openm s spTy) Γ'
+| .cons (.octor s spTy) Γ => do
+  let Γ' <- translate_IC Γ
+  return .cons (.octor s spTy) Γ'
+| .cons (.inst (m := m) s p t) Γ => do
+  let Γ' <- translate_IC Γ
+  match Core.lookup s Γ' with
   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
     let Δ := (Ks1.list ++ Ks2.list).reverse
     if s == y && m == n
-    then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) acc Δ n Ts p
-         let t' <- t.type_directed_translate acc (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
-         return .cons (.inst s p t') acc
+    then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) Γ' Δ n Ts p
+         let t' <- t.type_directed_translate Γ' (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
+         return .cons (.inst s p t') Γ'
     else none
-  | _ => none)
+  | _ => none
 
 
 theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} :
@@ -66,10 +75,23 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
   translate_SI G = some G' ->
   Intermediate.OpenExhaustive G' := by
 intro h
-unfold translate_SI at h
 intro x na nb nc Ks1 Ks2 Ts R q h1 h2
+fun_induction translate_SI generalizing G' <;> simp at *
+· subst h; simp [Intermediate.lookup] at h1
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h3, h⟩
+  simp at h; subst G'
+  simp [Intermediate.lookup] at h1;
+  split at h1
+  case _ e => subst e; simp at h1
+  case _ e =>
+    replace h1 := Vec.fold_or h1
+    cases h1
+    case _ h1 => sorry
+    case _ h1 => sorry
+case _ ih => sorry
 
-sorry
+
 
 theorem translate_IC_indexing_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
   translate_IC G = some G' ->
@@ -77,9 +99,30 @@ theorem translate_IC_indexing_openm {G : Intermediate.GlobalEnv} {G' : Core.Glob
   G[i]? = some (Intermediate.Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩)
    := by
 intro h1 h2
-unfold translate_IC at h1
-simp at h1 h2
-sorry
+fun_induction translate_IC generalizing G' i <;> simp at *
+case _ => -- nil
+  subst h1; simp at h2
+all_goals try (
+case _ ih => -- data
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
+  simp at h1; subst G'
+  replace ih := ih (i := i - 1) h3
+  cases i <;> simp at *
+  apply ih h2)
+
+· sorry
+· sorry
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
+  split at h1
+  · simp at h1
+    sorry
+    -- subst G'
+    -- replace ih := ih (i := i - 1) h3
+    -- cases i <;> simp at *
+    -- apply ih h2
+  · cases h1
+
 
 theorem translate_IC_indexing_inst {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
   translate_IC G = some G' ->
@@ -87,9 +130,36 @@ theorem translate_IC_indexing_inst {G : Intermediate.GlobalEnv} {G' : Core.Globa
   ∃ b', G'[i]? = some (Core.Global.inst x p b')
    := by
 intro h1 h2
-unfold translate_IC at h1
 simp at h1 h2
-sorry
+fun_induction translate_IC generalizing G' i <;> simp at *
+all_goals try (case _ ih =>
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
+  simp at h3; subst G'
+  replace ih := ih (i := i - 1) h1
+  cases i <;> simp at *
+  apply ih h2)
+case _ ih => -- defn
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩;
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨t', h4, h1⟩
+  simp at h1; subst G'
+  replace ih := ih (i := i - 1) h3
+  cases i <;> simp at *
+  apply ih h2
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩;
+  split at h1
+  · simp at h1;
+    rcases h1 with ⟨⟨e1, e2⟩, h1⟩;
+    rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨ps', h4, h1⟩
+    rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨t', h5, h1⟩
+    simp at h1; subst G'
+    replace ih := ih (i := i - 1) h3
+    cases i <;> simp at *
+    · subst e1; subst e2;
+      rcases h2 with ⟨e1, e2, e3, e4⟩; subst e1; subst e2; simp at e3; subst e3; subst e4; simp
+    · apply ih h2
+  · cases h1
+
 
 
 
@@ -98,8 +168,31 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
   Core.lookup x G' = some (Core.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
   Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) := by
 intro h1 h2
-unfold translate_IC at h1
 simp at h1 h2
+fun_induction translate_IC generalizing G' x <;> simp at *
+case _ =>
+  subst h1; simp [Core.lookup] at h2
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h2, h1⟩
+  simp at h1; subst h1; simp [Core.lookup] at h2
+  split at h2
+  case _ e =>
+    subst e; simp at h2
+  case _ e =>
+    replace h2 := Vec.fold_or h2
+    cases h2
+    case _ h3 =>
+      replace ih := ih h2 h3;
+      simp [Intermediate.lookup]; rw[ite_cond_eq_false]
+      · rw[ih]; rw[Vec.fold_or_val_eq]
+      · simp; apply e
+    case _ h3 => rcases h3 with ⟨i, h3⟩; simp at h3
+case _ ih =>  -- defn
+  sorry
+case _ ih => --odata
+  sorry
+sorry
+sorry
 sorry
 
 
@@ -109,10 +202,24 @@ theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
   Core.Query G' Core.DataConst.opn q Ts ->
   Intermediate.Query G Intermediate.DataConst.opn q Ts := by
 intro h1 h2
-unfold translate_IC at h1
 simp at h1 h2
-
+fun_induction translate_IC generalizing G' <;> simp at *
+· subst h1;
+  simp [Intermediate.Query, Core.Query, Core.lookup_ctor?] at *
+  simp [Intermediate.lookup_ctor?, Core.lookup, Intermediate.lookup] at *
+  apply h2
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
+  simp at h1; subst G'
+  replace ih := ih h3
+  -- need some weakening/strengthening laws for Query
+  sorry
 sorry
+sorry
+sorry
+sorry
+sorry
+
 
 
 theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :

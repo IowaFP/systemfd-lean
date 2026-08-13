@@ -13,13 +13,6 @@ abbrev KindEnv := List Kind
 @[simp]
 abbrev TyEnv := List Ty
 
-inductive VecTyping (J : A -> B -> Prop) : Vec A m -> Vec B m -> Prop
-| nil : VecTyping J .nil .nil
-| cons :
-  J a b ->
-  VecTyping J as bs ->
-  VecTyping J (a::as) (b::bs)
-
 def Ty.HeadVariable (A : Ty) (test : String -> Bool) : Prop :=
   ∃ x sp, A.spine = some (x, sp) ∧ test x
 

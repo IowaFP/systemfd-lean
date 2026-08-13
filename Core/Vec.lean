@@ -544,12 +544,17 @@ case _ ih =>
 #guard Vec.foldl Option.or (none : Option Nat) (#(none, none)) = none
 #guard Vec.foldl Option.or none #(some 1, none) = some 1
 
-theorem Vec.fold_or_val_eq : foldl Option.or (some v1) as = some v2 -> v1 = v2
+theorem Vec.fold_or_val_eq : foldl Option.or (some v1) as = some v2 <-> v1 = v2
 := by
-  intro h
-  induction as <;> simp at *
-  apply h
-  case _ ih => apply ih h
+  apply Iff.intro
+  · intro h
+    induction as <;> simp at *
+    apply h
+    case _ ih => apply ih h
+  · intro h
+    subst h;
+    induction as <;> simp [Vec.foldl]
+    case _ ih => apply ih
 
 theorem Vec.fold_or {cs : Vec _ n}: Vec.foldl Option.or d cs = e ->
   d = e ∨ ∃ i : Fin n, cs[i] = e
@@ -572,7 +577,7 @@ induction cs
     cases d <;> simp at *
     cases e
     · apply Or.inl rfl
-    · apply Or.inr; exists 0; simp; apply Vec.fold_or_val_eq h
+    · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
     grind
 
 def Vec.from_list : List α -> (n : Nat) × Vec α n

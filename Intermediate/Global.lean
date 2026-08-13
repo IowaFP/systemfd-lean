@@ -45,7 +45,24 @@ inductive Entry : Type where
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
 
-def lookup (x : String) : GlobalEnv -> Option Entry := sorry
+def lookup (x : String) : GlobalEnv -> Option Entry
+| [] => none
+| .cons (.data _ y K ctors) tl =>
+  let ctors' := Vec.map
+    (λ ((z, A), i) => if x == z then some (Entry.ctor z i A) else none)
+    (Vec.zipIdx ctors)
+  if x == y then return .data y K ctors
+  else Vec.foldl Option.or (lookup x tl) ctors'
+| .cons (.odata y a) tl =>
+  if x == y then return .odata y a else lookup x tl
+| .cons (.openm y a) tl =>
+  if x == y then return .openm y a else lookup x tl
+| .cons (.defn y a b) tl =>
+  if x == y then return .defn y a b else lookup x tl
+| .cons (.inst _ _ _) tl => lookup x tl
+| .cons (.octor y a) tl =>
+  if x == y then return .octor y a else lookup x tl
+
 
 inductive DataConst where
 | opn
