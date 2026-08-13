@@ -1,6 +1,6 @@
 import LeanSubst
 import Surface.Term.Definition
-import Surface.Ty
+-- import Surface.Ty
 
 open LeanSubst
 
@@ -43,7 +43,7 @@ instance instRenMap_Term : RenMap Term Term where
   rmap := Term.rmap
 
 @[simp]
-def Term.Ty.rmap (r : Ren Ty) : Term -> Term
+def Term.Ty.rmap (r : Ren Core.Ty) : Term -> Term
 | `#x => `#x
 | g`#x => g`#x
 | lamt A t => lamt A (rmap r.lift t)
@@ -53,11 +53,11 @@ def Term.Ty.rmap (r : Ren Ty) : Term -> Term
 -- | .match m t0 t1 t2 t3 t4 =>  .match m t0⟨r⟩ (rmap r t1) (rmap r <$> t2) (rmap r <$> t3) (rmap r t4)
 | annot t1 A => annot (rmap r t1) A⟨r⟩
 
-instance : RenMap Term Ty where
+instance : RenMap Term Core.Ty where
   rmap := Term.Ty.rmap
 
 @[simp]
-def Term.Ty.smap (σ : Subst Ty) : Term -> Term
+def Term.Ty.smap (σ : Subst Core.Ty) : Term -> Term
 | `#x => `#x
 | g`#x => g`#x
 | app t1 t2 => app (smap σ t1) (smap σ t2)
@@ -67,7 +67,7 @@ def Term.Ty.smap (σ : Subst Ty) : Term -> Term
 -- | .match n t0 t1 t2 t3 t4  => .match n t0 (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
 | annot t1 A => annot (smap σ t1) A[σ]
 
-instance instSubstMap_TermTy : SubstMap Term Ty where
+instance instSubstMap_TermTy : SubstMap Term Core.Ty where
   smap := Term.Ty.smap
 
 @[simp]
@@ -100,7 +100,7 @@ def Term.smap (σ : Subst Term) : Term -> Term
 | g`#x => g`#x
 | app t1 t2 => app (smap σ t1) (smap σ t2)
 | appt t1 t2 => appt (smap σ t1) t2
-| lamt A t => lamt A (smap (σ ◾ Ren.succ Ty) t)
+| lamt A t => lamt A (smap (σ ◾ Ren.succ Core.Ty) t)
 | lam A t => lam A (smap σ.lift t)
 -- | .match n t0 t1 t2 t3 t4 => .match n t0 (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
 | annot t1 A => annot (smap σ t1) A
@@ -132,7 +132,7 @@ theorem Term.subst_annoτ {σ : Subst Term} : (annot t1 t2)[σ] = annot t1[σ] t
 
 
 @[simp]
-theorem Term.subst_lamt {σ : Subst Term} : (lamt A t)[σ] = lamt A t[σ ◾ Ren.succ Ty] := by
+theorem Term.subst_lamt {σ : Subst Term} : (lamt A t)[σ] = lamt A t[σ ◾ Ren.succ Core.Ty] := by
   simp [SubstMap.smap]
 
 @[simp]
@@ -154,34 +154,34 @@ theorem Term.from_action_compose {x : Nat} {σ τ : Subst Term}
   cases z <;> simp [Term.from_action]
 
 @[simp]
-theorem Term.Ty.ren_var {r : Ren Ty} : (`#x)⟨r⟩ = `#x := by simp [RenMap.rmap]
+theorem Term.Ty.ren_var {r : Ren Core.Ty} : (`#x)⟨r⟩ = `#x := by simp [RenMap.rmap]
 
 
 @[simp]
-theorem Term.Ty.subst_var {σ : Subst Ty} : (`#x)[σ] = `#x := by
+theorem Term.Core.Ty.subst_var {σ : Subst Core.Ty} : (`#x)[σ] = `#x := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Term.Ty.subst_global {σ : Subst Ty} : (g`#x)[σ] = g`#x := by
+theorem Term.Core.Ty.subst_global {σ : Subst Core.Ty} : (g`#x)[σ] = g`#x := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Term.Ty.subst_app {σ : Subst Ty} : (app t1 t2)[σ] = app t1[σ] t2[σ] := by
+theorem Term.Core.Ty.subst_app {σ : Subst Core.Ty} : (app t1 t2)[σ] = app t1[σ] t2[σ] := by
   simp [SubstMap.smap]
 @[simp]
-theorem Term.Ty.subst_appt {σ : Subst Ty} : (appt t1 t2)[σ] = appt t1[σ] t2[σ] := by
-  simp [SubstMap.smap]
-
-@[simp]
-theorem Term.Ty.subst_lamt {σ : Subst Ty} : (lamt A t)[σ] = lamt A t[σ.lift] := by
+theorem Term.Core.Ty.subst_appt {σ : Subst Core.Ty} : (appt t1 t2)[σ] = appt t1[σ] t2[σ] := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Term.Ty.subst_lam {σ : Subst Ty} : (lam A t)[σ] = lam A[σ] t[σ] := by
+theorem Term.Core.Ty.subst_lamt {σ : Subst Core.Ty} : (lamt A t)[σ] = lamt A t[σ.lift] := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Term.Ty.subst_annoτ {σ : Subst Ty} : (annot t A)[σ] = annot t[σ] A[σ] := by
+theorem Term.Core.Ty.subst_lam {σ : Subst Core.Ty} : (lam A t)[σ] = lam A[σ] t[σ] := by
+  simp [SubstMap.smap]
+
+@[simp]
+theorem Term.Core.Ty.subst_annoτ {σ : Subst Core.Ty} : (annot t A)[σ] = annot t[σ] A[σ] := by
   simp [SubstMap.smap]
 
 
@@ -192,11 +192,11 @@ theorem Term.Ty.subst_annoτ {σ : Subst Ty} : (annot t A)[σ] = annot t[σ] A[�
 --   simp [SubstMap.smap]
 
 
-instance instSubstMapId_Ty_TermTy : SubstMapId Term Ty where
+instance instSubstMapId_Ty_TermTy : SubstMapId Term Core.Ty where
   apply_id := by subst_solve_id
 
 @[simp]
-theorem Term.hcompose_var {x : Nat}{σ : Subst Term} {τ : Subst Ty}
+theorem Term.hcompose_var {x : Nat}{σ : Subst Term} {τ : Subst Core.Ty}
   : (σ ◾ τ).act x = (Term.from_action (σ.act x))[τ]
 := by
   simp [Subst.hcompose, Term.from_action]
@@ -205,7 +205,15 @@ theorem Term.hcompose_var {x : Nat}{σ : Subst Term} {τ : Subst Ty}
 
 theorem Term.apply_stable (r : Ren Term) (σ : Subst Term)
   : r.to = σ -> rmap r =  smap σ
-:= by sorry
+:= by
+  intro h
+  cases r; cases σ; simp [Ren.to] at h; subst h
+  funext; case _ x =>
+  induction x <;> simp at *
+  all_goals try simp_all
+  case _ => sorry
+  case _ => sorry
+
 
 
 instance instSubstMapStable_Term : SubstMapStable Term Term where

@@ -1,6 +1,6 @@
 import Core.Ty
 import Core.Term
-import Surface.Ty
+-- import Surface.Ty
 import Surface.Term
 import Core.Typing
 import Core.Synth
@@ -185,18 +185,18 @@ def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
 | `#x => return #x
 | g`#x => d#x
 | .lamt K t => do
-  let t' <- t.translate G (K.translate :: Δ) Γ[Subst.succ Core.Ty]
-  return (Λ[K.translate] t')
+  let t' <- t.translate G (K :: Δ) Γ[Subst.succ Core.Ty]
+  return (Λ[K] t')
 | .lam A t => do
-  let t' <- t.translate G Δ (A.translate :: Γ)
-  return λ[A.translate] t'
+  let t' <- t.translate G Δ (A :: Γ)
+  return λ[A] t'
 | .app t1 t2 => do
   let t1' <- t1.translate G Δ Γ
   let t2' <- t2.translate G Δ Γ
   return (t1' • t2')
 | .appt t1 t2 => do
   let t1' <- t1.translate G Δ Γ
-  let t2' <- t2.translate
+  let t2' <- t2
   return (t1' •[ t2' ])
 -- | .match (n := n) _ s ps cs d => do
 --   let s' <- s.translate G Δ Γ
@@ -230,14 +230,14 @@ def Surface.Term.type_directed_translate
 | .lamt K t => do
   match τ with
   | .all K' τ' =>
-    let t' <- t.type_directed_translate G (K.translate :: Δ) Γ[Subst.succ Core.Ty] τ'
-    if ⟦K⟧ == K' then return (Λ[K.translate] t') else none
+    let t' <- t.type_directed_translate G (K :: Δ) Γ[Subst.succ Core.Ty] τ'
+    if K == K' then return (Λ[K] t') else none
   | _ => none
 | .lam A t => do
   match τ with
   | .arrow A' B =>
-    let t' <- t.type_directed_translate G Δ (⟦A⟧ :: Γ) B
-    if ⟦A⟧ == A' then return λ[A.translate] t' else none
+    let t' <- t.type_directed_translate G Δ (A :: Γ) B
+    if A == A' then return λ[A] t' else none
   | _ => none
 -- Elimination forms are a little annoying
 -- | .match (n := n) R s ps cs d => do
@@ -249,8 +249,8 @@ def Surface.Term.type_directed_translate
 --   let d' <- d.type_directed_translate G Δ Γ τ
 --   return match! n s' ps' cs' d'
 | .annot t τt => do
-  let t' <- t.type_directed_translate G Δ Γ ⟦τt⟧
-  let c <- Core.Ty.synth_coercion G Δ Γ ⟦τt⟧ τ
+  let t' <- t.type_directed_translate G Δ Γ τt
+  let c <- Core.Ty.synth_coercion G Δ Γ τt τ
   return .cast τ t' c
 | _ => none
 

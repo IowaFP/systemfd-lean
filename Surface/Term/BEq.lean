@@ -1,4 +1,4 @@
-import Surface.Ty
+-- import Surface.Ty
 import Surface.Term.Definition
 
 open Lilac

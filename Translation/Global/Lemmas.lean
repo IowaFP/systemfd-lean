@@ -15,7 +15,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
   Intermediate.OpenExhaustive G' := by
 intro h
 intro x na nb nc Ks1 Ks2 Ts R q h1 h2
-fun_induction translate_SI generalizing G' <;> simp at *
+fun_induction translate_SI generalizing G' x <;> simp at *
 · subst h; simp [Intermediate.lookup] at h1
 case _ ih =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h3, h⟩
@@ -26,10 +26,34 @@ case _ ih =>
   case _ e =>
     replace h1 := Vec.fold_or h1
     cases h1
-    case _ h1 => sorry
+    case _ h1 =>
+      replace ih := @ih _ h3 x h1
+      sorry
     case _ h1 => sorry
 case _ ih => sorry
 
+theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
+  translate_IC G = some G' ->
+  Core.Query G' Core.DataConst.opn q Ts ->
+  Intermediate.Query G Intermediate.DataConst.opn q Ts := by
+intro h1 h2
+simp at h1 h2
+fun_induction translate_IC generalizing G' <;> simp at *
+· subst h1;
+  simp [Intermediate.Query, Core.Query, Core.lookup_ctor?] at *
+  simp [Intermediate.lookup_ctor?, Core.lookup, Intermediate.lookup] at *
+  apply h2
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
+  simp at h1; subst G'
+  replace ih := ih h3
+  -- need some weakening/strengthening laws for Query
+  sorry
+sorry
+sorry
+sorry
+sorry
+sorry
 
 
 theorem translate_IC_indexing_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
@@ -115,8 +139,6 @@ case _ ih =>
   · cases h1
 
 
-
-
 theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
   translate_IC G = some G' ->
   Core.lookup x G' = some (Core.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
@@ -182,31 +204,6 @@ case _ ih => -- inst
     simp [Intermediate.lookup]
     apply ih h3 h2
   · cases h1
-
-theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
-  translate_IC G = some G' ->
-  Core.Query G' Core.DataConst.opn q Ts ->
-  Intermediate.Query G Intermediate.DataConst.opn q Ts := by
-intro h1 h2
-simp at h1 h2
-fun_induction translate_IC generalizing G' <;> simp at *
-· subst h1;
-  simp [Intermediate.Query, Core.Query, Core.lookup_ctor?] at *
-  simp [Intermediate.lookup_ctor?, Core.lookup, Intermediate.lookup] at *
-  apply h2
-case _ ih =>
-  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
-  simp at h1; subst G'
-  replace ih := ih h3
-  -- need some weakening/strengthening laws for Query
-  sorry
-sorry
-sorry
-sorry
-sorry
-sorry
-
-
 
 theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
   Intermediate.OpenExhaustive G ->

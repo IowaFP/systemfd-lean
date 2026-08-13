@@ -1,5 +1,6 @@
 import LeanSubst
-import Surface.Ty
+-- import Surface.Ty
+import Core.Ty
 import Core.Vec
 
 open LeanSubst
@@ -10,12 +11,12 @@ namespace Surface
 inductive Term : Type where
 | var : Nat -> Term
 | global : String -> Term
-| appt : Term -> Ty -> Term
+| appt : Term -> Core.Ty -> Term
 | app : Term -> Term -> Term
-| lamt :  Kind -> Term -> Term
-| lam : Ty -> Term -> Term
+| lamt :  Core.Kind -> Term -> Term
+| lam : Core.Ty -> Term -> Term
 -- | «match» : (n : Nat) -> Ty -> Term -> Fun.Vec Term n -> Fun.Vec Term n -> Term -> Term
-| annot : Term -> Ty -> Term
+| annot : Term -> Core.Ty -> Term
 
 
 prefix:max "`#" => Term.var
@@ -39,7 +40,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .app t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++ Term.repr p t2) p
 | .appt t1 t2 =>
-  Repr.addAppParen (Term.repr max_prec t1 ++ " •" ++ Std.Format.sbracket (Ty.repr p t2)) p
+  Repr.addAppParen (Term.repr max_prec t1 ++ " •" ++ Std.Format.sbracket (t2.repr p)) p
 | .lamt K t =>
   Repr.addAppParen ("Λˢ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λˢ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p

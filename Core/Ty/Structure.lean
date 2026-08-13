@@ -119,4 +119,9 @@ def Ty.subterms : Ty -> List Ty
 | .eq K x y => x.subterms ++ y.subterms ++ [.eq K x y]
 | x => [x]
 
+
+def Kind.mk_kind : Vec Kind n -> Kind := Vec.foldl (init := ★) (λ acc n => n -:> acc)
+def Ty.mkApps (T : Ty) : List Ty -> Ty := List.foldl (init := T) (λ acc t => acc • t)
+def Ty.mkApps_nats (T : Ty) : List Nat -> Ty := List.foldl (init := T) (λ acc t => acc • t#t)
+
 end Core

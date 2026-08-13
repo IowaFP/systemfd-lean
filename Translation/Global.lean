@@ -21,12 +21,12 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
 | .nil => return .nil
 | .cons (.data (n := n) s K ctors) Γ => do
   let Γ' <- translate_SI Γ
-  let ctors' : Lilac.Vec (String × Core.SpineTy) n :=
-      ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
-  return .cons (.data n s ⟦ K ⟧ ctors') Γ'
+  -- let ctors' : Lilac.Vec (String × Core.SpineTy) n :=
+  --     ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
+  return .cons (.data n s K ctors) Γ'
 | .cons (.defn s T t) Γ => do
   let Γ' <- translate_SI Γ
-  return .cons (.defn s ⟦T⟧ t) Γ'
+  return .cons (.defn s T t) Γ'
 | .cons (.classDecl s Ks scs fds mτs) Γ => none
     -- sorry
 | .cons (.instDecl iname spTy ts) Γ => none -- sorry

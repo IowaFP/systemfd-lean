@@ -53,7 +53,7 @@ prefix:max "gt`#" => Surface.Ty.global
 infixr:64 " `-:> " => Surface.Ty.arrow
 infixr:64 " `=:> " => Surface.Ty.then
 notation "`∀[" K "]" B => Surface.Ty.all K B
-infixl:54 " `• " => Surface.Ty.app
+-- infixl:54 " `• " => Surface.Ty.app
 
 protected def Kind.repr (p : Nat) : (a : Kind) -> Std.Format
 | base .closed => "`★"
