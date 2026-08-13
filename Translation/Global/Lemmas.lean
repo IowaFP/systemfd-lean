@@ -9,8 +9,29 @@ open Lilac
 
 namespace Translation
 
+theorem Core.Query.opn_strengthen_ctor :
+  Core.Query (Core.Global.data n s K ctors :: Γ) Core.DataConst.opn q Ts ->
+  Core.Query Γ Core.DataConst.opn q Ts := by sorry
+
+theorem Core.Query.opn_weaken_ctor :
+  Core.Query Γ Core.DataConst.opn q Ts ->
+  Core.Query (Core.Global.data n s K ctors :: Γ) Core.DataConst.opn q Ts
+   := by sorry
+
+
+theorem Intermediate.Query.opn_weaken_ctor {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
+  Intermediate.Query Γ Intermediate.DataConst.opn q Ts ->
+  Intermediate.Query (Intermediate.Global.data n s K ctors :: Γ) Intermediate.DataConst.opn q Ts := by
+intro h
+induction h generalizing n s K ctors
+constructor
+sorry
+
+theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
+  Intermediate.Query ((Intermediate.Global.data n s K ctors)::Γ) Intermediate.DataConst.opn q Ts ->
+  Intermediate.Query Γ Intermediate.DataConst.opn q Ts := by sorry
+
 theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} :
-  --
   translate_SI G = some G' ->
   Intermediate.OpenExhaustive G' := by
 intro h
@@ -32,7 +53,8 @@ case _ ih =>
     case _ h1 => sorry
 case _ ih => sorry
 
-theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
+
+theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
   translate_IC G = some G' ->
   Core.Query G' Core.DataConst.opn q Ts ->
   Intermediate.Query G Intermediate.DataConst.opn q Ts := by
@@ -46,9 +68,10 @@ fun_induction translate_IC generalizing G' <;> simp at *
 case _ ih =>
   rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
   simp at h1; subst G'
-  replace ih := ih h3
-  -- need some weakening/strengthening laws for Query
-  sorry
+  replace h2 := Core.Query.opn_strengthen_ctor h2
+  cases wf; case _ wftl wfhd =>
+  replace ih := ih wftl h3 h2
+  apply Intermediate.Query.opn_weaken_ctor wftl ih
 sorry
 sorry
 sorry
@@ -205,7 +228,7 @@ case _ ih => -- inst
     apply ih h3 h2
   · cases h1
 
-theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
+theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
   Intermediate.OpenExhaustive G ->
   translate_IC G = some G' ->
   Core.OpenExhaustive G' := by
@@ -213,7 +236,7 @@ intro oe h1
 intro x na nb nc Ks1 Ks2 Ts R q h2 h3
 simp at h1 h2 h3
 have lem1 := translate_IC_lookup_openm h1 h2
-have lem2 := translate_IC_query h1 h3
+have lem2 := translate_IC_query wf h1 h3
 replace oe := @oe x na nb nc Ks1 Ks2 Ts R q lem1 lem2
 rcases oe with ⟨i, b, p, oe1, oe2⟩
 have lem3 := translate_IC_indexing_inst h1 oe1

@@ -45,6 +45,21 @@ inductive Entry : Type where
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
 
+
+inductive DataConst where
+| opn
+| cls
+
+def Entry.is_data : DataConst -> Entry -> Bool
+| .cls, data _ _ _ => true
+| .opn, odata _ _ => true
+| _, _ => false
+
+def Entry.kind : Entry -> Option Core.Kind
+| data _ K _ => K
+| odata _ K => K
+| _ => none
+
 def lookup (x : String) : GlobalEnv -> Option Entry
 | [] => none
 | .cons (.data _ y K ctors) tl =>
@@ -63,11 +78,6 @@ def lookup (x : String) : GlobalEnv -> Option Entry
 | .cons (.octor y a) tl =>
   if x == y then return .octor y a else lookup x tl
 
-
-inductive DataConst where
-| opn
-| cls
-
 def Entry.ctor? (data : String) : DataConst -> Entry -> Bool
 | .cls, ctor _ _ ⟨_, _, _, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, _, _, T⟩ =>
   match T.spine with
@@ -80,5 +90,13 @@ def lookup_ctor? (G : GlobalEnv) (c : DataConst) (ctor : String) (data : Core.Ty
   | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
 
+def lookup_defn (G : List Global) (x : String) : Option (Core.Ty × Surface.Term) := do
+  let t <- lookup x G
+  match t with
+  | .defn _ T t => return ⟨T, t⟩
+  | _ => none
+
+def lookup_kind G x := lookup x G |> Option.map Intermediate.Entry.kind |> Option.join
+def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 
 end Intermediate
