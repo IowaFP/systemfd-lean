@@ -94,6 +94,8 @@ def OpenExhaustive (G : List Global) : Prop :=
   Query G .opn q Ts ->
   ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Query.Match q p
 
+notation:175 "Ω " G:175 => OpenExhaustive G
+
 inductive Typing (G : List Global) : List Kind -> List Ty -> Term -> Ty -> Prop
 | var :
   Γ[x]? = some A ->

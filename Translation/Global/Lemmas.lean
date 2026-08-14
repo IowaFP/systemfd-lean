@@ -2,6 +2,7 @@ import Translation.Global
 import Surface.Global
 import Core.Global
 import Surface.Typing
+import Intermediate.Typing
 import Core.Typing
 
 import Lilac
@@ -32,7 +33,7 @@ theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv} (wf
   Intermediate.Query Γ Intermediate.DataConst.opn q Ts := by sorry
 
 theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G):
-  translate_SI G = some G' ->
+  ⟦ G ⟧ = some G' ->
   Intermediate.OpenExhaustive G' := by
 intro h
 intro x na nb nc Ks1 Ks2 Ts R q h1 h2
@@ -56,7 +57,7 @@ case _ ih => sorry
 
 
 theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
-  translate_IC G = some G' ->
+  ⟦ G ⟧ = some G' ->
   Core.Query G' Core.DataConst.opn q Ts ->
   Intermediate.Query G Intermediate.DataConst.opn q Ts := by
 intro h1 h2
@@ -81,7 +82,7 @@ sorry
 
 
 theorem translate_IC_indexing_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
-  translate_IC G = some G' ->
+  ⟦ G ⟧ = some G' ->
   G'[i]? = some (Core.Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
   G[i]? = some (Intermediate.Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩)
    := by
@@ -127,7 +128,7 @@ case _ ih =>
 
 
 theorem translate_IC_indexing_inst {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
-  translate_IC G = some G' ->
+  ⟦ G ⟧ = some G' ->
   G[i]? = some (Intermediate.Global.inst x p b) ->
   ∃ b', G'[i]? = some (Core.Global.inst x p b')
    := by
@@ -164,7 +165,7 @@ case _ ih =>
 
 
 theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
-  translate_IC G = some G' ->
+  ⟦ G ⟧ = some G' ->
   Core.lookup x G' = some (Core.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
   Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) := by
 intro h1 h2
@@ -230,9 +231,9 @@ case _ ih => -- inst
   · cases h1
 
 theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
-  Intermediate.OpenExhaustive G ->
-  translate_IC G = some G' ->
-  Core.OpenExhaustive G' := by
+  Ω G ->
+  ⟦ G ⟧ = some G' ->
+  Ω G' := by
 intro oe h1
 intro x na nb nc Ks1 Ks2 Ts R q h2 h3
 simp at h1 h2 h3

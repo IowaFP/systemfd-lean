@@ -1,6 +1,7 @@
 import Intermediate.Global
 import Core.Ty
 import Surface.Term
+import Core.Typing
 
 import Lilac
 open Lilac
@@ -88,5 +89,13 @@ inductive ListGlobalWf : List Global -> Prop where
 | cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
 
 notation:175 "⊢ " G:175 => ListGlobalWf G
+
+def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
+  ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q},
+  Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
+  Intermediate.Query G .opn q Ts ->
+  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Core.Query.Match q p
+
+notation:175 "Ω " G:175 => OpenExhaustive G
 
 end Intermediate

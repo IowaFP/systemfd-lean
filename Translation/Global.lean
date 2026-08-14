@@ -15,28 +15,49 @@ open LeanSubst
 
 namespace Translation
 
+def mk_cls_kind : Vec Core.Kind kc -> Core.Kind
+| .nil => ★
+| .cons K Ks => K -:> mk_cls_kind Ks
+
+def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String) (sc_params : List (Fin kc)) : Core.SpineTy :=
+  let cls_ty := (gt#cls).mkApps_nats (List.range cls_params.length)
+  let sc_ty := (gt#sc).mkApps_nats sc_params
+  ⟨kc, cls_params, 0, #(), 1, #(cls_ty), sc_ty⟩
+
+def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineTy) : Core.SpineTy :=
+  let ⟨na, Ks1, nb, Ks2, nc, cts, R⟩ := R
+  let ski := (List.range cls_params.length).map (· + na)
+  ⟨kc + na, Ks1 ++ cls_params, nb, Ks2, nc + 1, .cons ((gt#cls).mkApps_nats ski) cts, R⟩
+
 -- Kind check the types, leaves the terms untouched
 def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
 | .nil => return .nil
 | .cons (.data (n := n) s K ctors) Γ => do
   let Γ' <- translate_SI Γ
-  -- let ctors' : Lilac.Vec (String × Core.SpineTy) n :=
-  --     ctors.map (λ (s, ⟨n1, v1, n2, v2, n3, v3, R⟩) => (s, ⟨n1, v1.map (·.translate) , n2, v2.map (·.translate), n3, v3.map (·.translate), ⟦R⟧⟩))
-  return .cons (.data n s K ctors) Γ'
+  -- TODO : Kind check each of the constructor types
+  if (Intermediate.lookup s Γ').isNone
+  then return .cons (.data n s K ctors) Γ'
+  else none
 | .cons (.defn s T t) Γ => do
   let Γ' <- translate_SI Γ
-  return .cons (.defn s T t) Γ'
-| .cons (.classDecl s Ks scs fds mτs) Γ => none
-    -- sorry
+  -- TODO: Kind check T
+  if (Intermediate.lookup s Γ').isNone
+  then return .cons (.defn s T t) Γ'
+  else none
+| .cons (.classDecl s Ks scs fds mτs) Γ => do
+  let Γ' <- translate_SI Γ
+  if (Intermediate.lookup s Γ').isNone
+  then
+    let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
+    let scs : Intermediate.GlobalEnv := scs.map (λ (n, sc, params) => .openm n (mk_superclass_om s Ks sc params))
+    let mτs : Intermediate.GlobalEnv := mτs.map (λ (n, spTy) => .openm n (mk_method_om s Ks spTy))
+    -- TODO: s and ns are distinct
+    scs ++ mτs ++ (od :: Γ')
+  else none
+
 | .cons (.instDecl iname spTy ts) Γ => none -- sorry
 
-
-
-def Intermediate.OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
-  ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q},
-  Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
-  Intermediate.Query G .opn q Ts ->
-  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Core.Query.Match q p
+notation: 175 "⟦" G "⟧" => translate_SI G
 
 def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
 | .nil => return .nil
@@ -67,6 +88,8 @@ def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
          return .cons (.inst s p t') Γ'
     else none
   | _ => none
+
+notation: 175 "⟦" G "⟧" => translate_IC G
 
 
 end Translation
