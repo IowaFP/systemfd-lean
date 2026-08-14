@@ -26,10 +26,6 @@ inductive Kinding (G : GlobalEnv) : KindEnv -> Core.Ty -> Core.Kind -> Prop
   Kinding G Δ A ★ ->
   Kinding G Δ B ★ ->
   Kinding G Δ (A -:> B) ★
--- | «then» :
---   Kinding G Δ A ★ ->
---   Kinding G Δ B (.base b2) ->
---   Kinding G Δ (A `=:> B) `★
 | all :
   Kinding G (K::Δ) P ★ ->
   Kinding G Δ (∀[K] P) ★

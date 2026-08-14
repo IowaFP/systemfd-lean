@@ -25,24 +25,67 @@ theorem Intermediate.Query.opn_weaken_ctor {Γ : Intermediate.GlobalEnv} (wf : �
   Intermediate.Query (Intermediate.Global.data n s K ctors :: Γ) Intermediate.DataConst.opn q Ts := by
 intro h
 induction h generalizing n s K ctors
-constructor
-sorry
+· constructor
+· constructor
+  · sorry
+  · sorry
+
+theorem Intermediate.Query.opn_weaken {Γ : Intermediate.GlobalEnv} (wf : ⊢ (g::Γ)) :
+  Intermediate.Query Γ Intermediate.DataConst.opn q Ts ->
+  Intermediate.Query (g :: Γ) Intermediate.DataConst.opn q Ts := by
+intro h
+induction h generalizing g
+· constructor
+· constructor
+  · sorry
+  · sorry
+
 
 theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
   Intermediate.Query ((Intermediate.Global.data n s K ctors)::Γ) Intermediate.DataConst.opn q Ts ->
   Intermediate.Query Γ Intermediate.DataConst.opn q Ts := by sorry
 
-theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G):
+theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) :
   ⟦ G ⟧ = some G' ->
-  Intermediate.OpenExhaustive G' := by
+  ⊢ G' := by
 intro h
+fun_induction translate_SI generalizing G' <;> simp at *
+case _ =>
+  subst h; constructor
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h1, h⟩
+  simp at h; rcases h with ⟨h2, h⟩
+  subst h; cases wf; case _ wftl wfhd =>
+  cases wfhd; case _ hd1 hd2 hd3 =>
+  constructor
+  · constructor
+    · intro i y T e
+      apply And.intro
+      · sorry
+      · have lem := hd3 i y T e; rcases lem with ⟨h3, h4⟩; apply And.intro
+        · apply h3
+        · sorry
+    · apply hd2
+    · apply h2
+  · apply ih wftl h1
+sorry
+sorry
+sorry
+
+
+theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) :
+  ⟦ G ⟧ = some G' ->
+  Ω G' := by
+intro h
+have wf' := translate_SI_wf_sound wf h
 intro x na nb nc Ks1 Ks2 Ts R q h1 h2
 fun_induction translate_SI generalizing G' x <;> simp at *
 · subst h; simp [Intermediate.lookup] at h1
-case _ ih =>
+case _ ih => -- data
   cases wf; case _ wftl wfhd =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h3, h⟩
-  simp at h; subst G'
+  simp at h; rcases h with ⟨h, h2⟩; subst G'
+  cases wf'; case _ wftl' wfhd' =>
   simp [Intermediate.lookup] at h1;
   split at h1
   case _ e => subst e; simp at h1
@@ -50,9 +93,16 @@ case _ ih =>
     replace h1 := Vec.fold_or h1
     cases h1
     case _ h1 =>
-      replace ih := @ih _ wftl h3 x h1
-      sorry
-    case _ h1 => sorry
+      replace h2 := Intermediate.Query.opn_strengthen_ctor wftl' h2
+      replace ih := @ih _ wftl h3 wftl' x h1 h2
+      rcases ih with ⟨i, b, p, ih1, ih2⟩
+      exists i + 1; exists b; exists p
+    case _ h1 => rcases h1 with ⟨i, h1⟩; simp at h1
+case _ ih =>
+  rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h3, h⟩
+  simp at h
+  sorry
+case _ ih => sorry
 case _ ih => sorry
 
 
@@ -244,6 +294,17 @@ rcases oe with ⟨i, b, p, oe1, oe2⟩
 have lem3 := translate_IC_indexing_inst h1 oe1
 rcases lem3 with ⟨b', lem3⟩
 exists i; exists b'; exists p
+
+theorem translate_open_exhaustive_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} {G'' : Core.GlobalEnv} (wf : ⊢ G) :
+  ⟦ G ⟧ = some G' ->
+  ⟦ G' ⟧ = some G'' ->
+  Ω G'' := by
+intro h1 h2
+have wf' := translate_SI_wf_sound wf h1
+have lem : Ω G' := translate_SI_sound wf h1
+have lem2 : Ω G'' := translate_IC_sound wf' lem h2
+apply lem2
+
 
 -- inductive Translation.GlobalWf : Surface.GlobalEnv -> Core.GlobalEnv -> Surface.Global -> Prop where
 -- | data {ctors : Vect n (String × Surface.Ty)} {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}:

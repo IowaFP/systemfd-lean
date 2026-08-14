@@ -69,15 +69,16 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
     let mτs : Intermediate.GlobalEnv := mτs.map (λ (n, spTy) => .openm n (mk_method_om s Ks spTy))
     -- TODO: names s and scs fds mτs are distinct
     -- TODO: FunDep structure validation
-    let fds : Intermediate.GlobalEnv := fds.map (λ ⟨n, _, dems, det ⟩ => .openm n (mk_fds_om s Ks dems det) )
+    let fds : Intermediate.GlobalEnv := fds.map (λ ⟨n, _, dems, det⟩ => .openm n (mk_fds_om s Ks dems det))
     fds ++ scs ++ mτs ++ (od :: Γ')
   else none
 
 | .cons (.instDecl iname spTy ts) Γ => do
   let Γ' <- translate_SI Γ
-  if (Intermediate.lookup iname Γ').isNone
-  then none
-  none -- sorry
+  match Intermediate.lookup iname Γ' with
+  | some (.odata _ _) => none
+  | _ => none
+
 
 notation: 175 "⟦" G "⟧" => translate_SI G
 
