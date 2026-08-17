@@ -44,16 +44,16 @@ def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
-def mk_inst_mths (Γ' : Intermediate.GlobalEnv) (C iname : String) : List (String × Surface.Term) -> Option Intermediate.GlobalEnv
-| List.nil => some .nil
-| .cons (mn, tm) ts => do
-  let ts' <- mk_inst_mths Γ' C iname ts
-  match Intermediate.lookup mn Γ' with
-  | some (.openm mn' cls spTy) =>
-    if mn == mn' && C == cls
-    then return ((.inst (m := 1) mn C #(⟨iname, 1, #(t#0), 0, 1⟩) tm) :: ts') -- TODO: Fix Pattern
-    else none
-  | _ => none
+def mk_inst_mths (Γ' : Intermediate.GlobalEnv) (C iname : String) : List (String × Surface.Term) -> Option Intermediate.InstDeclFrame := sorry
+-- | List.nil => some .nil
+-- | .cons (mn, tm) ts => do
+--   let ts' <- mk_inst_mths Γ' C iname ts
+--   match Intermediate.lookup mn Γ' with
+--   | some (.openm mn' cls spTy) =>
+--     if mn == mn' && C == cls
+--     then return (.cons (.inst (m := 1) mn C #(⟨iname, 1, #(t#0), 0, 1⟩) tm) :: ts') -- TODO: Fix Pattern
+--     else none
+--   | _ => none
 
 -- Kind check the types, leaves the terms untouched
 def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
@@ -62,76 +62,88 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
   let Γ' <- translate_SI Γ
   -- TODO : Kind check each of the constructor types
   if (Intermediate.lookup s Γ').isNone
-  then return .cons (.data n s K ctors) Γ'
+  then return .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ'
   else none
 | .cons (.defn s T t) Γ => do
   let Γ' <- translate_SI Γ
   -- TODO: Kind check T
   if (Intermediate.lookup s Γ').isNone
-  then return .cons (.defn s T t) Γ'
+  then return .cons (.defn ⟨s, T, t⟩) Γ'
   else none
 | .cons (.classDecl s Ks scs fds mτs) Γ => do
   let Γ' <- translate_SI Γ
   if (Intermediate.lookup s Γ').isNone
   then
-    let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
-    let scs : Intermediate.GlobalEnv := scs.map (λ (n, sc, params) => .openm n s (mk_superclass_om s Ks sc params))
-    let mτs : Intermediate.GlobalEnv := mτs.map (λ (n, spTy) => .openm n s (mk_method_om s Ks spTy))
+    -- let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
+    let scs := scs.map (λ (n, sc, params) =>  ⟨n, (mk_superclass_om s Ks sc params)⟩)
+    let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (mk_method_om s Ks spTy)⟩)
     -- TODO: names s and scs fds mτs are distinct
     -- TODO: FunDep structure validation
-    let fds : Intermediate.GlobalEnv := fds.map (λ ⟨n, _, dems, det⟩ => .openm n s (mk_fds_om s Ks dems det))
-    fds ++ scs ++ mτs ++ (od :: Γ')
+    let fds := fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
+    return (.classDecl ⟨s, (mk_cls_kind Ks), fds, scs, mτs⟩ :: Γ')
   else none
 
-| .cons (.instDecl iname spTy@⟨na, Ks1, nb, Ks2, nc, As, R⟩ ts) Γ => do
+| .cons (.instDecl iname ⟨na, Ks1, nb, Ks2, nc, As, R⟩ ts) Γ => do
   let Γ' <- translate_SI Γ
-  match Intermediate.lookup iname Γ' with
-  | some _ => none
-  | none =>
-    match R.spine with
-    | none => none
-    | some (C, Tys) =>
-      match Intermediate.lookup C Γ' with
-      | some (.odata cls _) => do
-        if C == cls then
-        let ts' : Intermediate.GlobalEnv <- mk_inst_mths Γ' C iname ts
-        return ts' ++
-          (.octor iname spTy) :: Γ'
+  match R.spine with
+  | some (cls_name, _) =>
+    match Intermediate.lookup cls_name Γ' with
+    | some (.odata _ _) => do
+      let mths <- ts.mapM (λ (mn, b) =>
+      match Intermediate.lookup mn Γ' with
+      | some (.openm mn' cls' ⟨na', Ks1', nb', Ks2', nc', As', R'⟩) =>
+        if mn' == mn && cls' == cls_name then
+        return ⟨mn, 1, #(⟨iname, nc, As, nb, 0⟩), b⟩ -- TODO : This is bogus
         else none
-      | _ => none
+      | _ => none)
+      return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
+    | _ => none
+  | _ => none
 
 
 notation: 175 "⟦" G "⟧" => translate_SI G
 
 def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
 | .nil => return .nil
-| .cons (.data n s K ctors) Γ => do
+| .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ => do
   let Γ' <- translate_IC Γ
   return (.data n s K ctors) :: Γ'
-| .cons (.defn n T t) Γ => do
+| .cons (.defn ⟨s, T, t⟩) Γ => do
   let Γ' <- translate_IC Γ
   let t' : Core.Term <- Surface.Term.type_directed_translate Γ' [] [] T t
-  return (.defn n T t') :: Γ'
-| .cons (.odata s K) Γ => do
+  return (.defn s T t') :: Γ'
+| .cons (.classDecl ⟨s, K, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
-  return .cons (.odata s K) Γ'
-| .cons (.openm s _ spTy) Γ => do
+  return mths.map (λ (n, spTy) => .openm n spTy)
+         -- ++ scs.map (λ (n, spTy) => .openm n spTy)
+         -- ++ fds.map (λ (n, spTy) => .openm n spTy)
+         ++ [.odata s K] ++ Γ'
+
+| .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
-  return .cons (.openm s spTy) Γ'
-| .cons (.octor s spTy) Γ => do
-  let Γ' <- translate_IC Γ
-  return .cons (.octor s spTy) Γ'
-| .cons (.inst (m := m) s _ p t) Γ => do
-  let Γ' <- translate_IC Γ
-  match Core.lookup s Γ' with
-  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
-    let Δ := (Ks1.list ++ Ks2.list).reverse
-    if s == y && m == n
-    then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) Γ' Δ n Ts p
-         let t' <- t.type_directed_translate Γ' (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
-         return .cons (.inst s p t') Γ'
-    else none
-  | _ => none
+  -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
+  let mths' <- mths.mapM (λ ⟨mn, m, p, t⟩ => do
+    match Core.lookup mn Γ' with
+    | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
+      let Δ := (Ks1.list ++ Ks2.list).reverse
+      if mn == y && m == n
+      then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) Γ' Δ n Ts p
+           let t' <- t.type_directed_translate Γ' (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
+           return (.inst mn p t')
+      else none
+    | _ => none
+  )
+  -- match Core.lookup s Γ' with
+  -- | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
+  --   let Δ := (Ks1.list ++ Ks2.list).reverse
+  --   if s == y && m == n
+  --   then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) Γ' Δ n Ts p
+  --        let t' <- t.type_directed_translate Γ' (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
+  --        return .cons (.inst s p t') Γ'
+  --   else none
+  return mths' ++ -- fds' ++
+         [.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ] ++ Γ'
+
 
 notation: 175 "⟦" G "⟧" => translate_IC G
 

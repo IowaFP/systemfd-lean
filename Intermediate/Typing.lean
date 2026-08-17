@@ -56,33 +56,33 @@ inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : GlobalEnv) (test :
 inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vec (String × Core.SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
-    SpineKinding (.data .cls) y ((.data 0 x K #())::G) (Core.Ty.is_data x) T
+    SpineKinding (.data .cls) y ((.data ⟨x, K, ⟨0, #()⟩⟩)::G) (Core.Ty.is_data x) T
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
   lookup x G = none ->
-  GlobalWf G (.data n x K ctors)
-| odata :
-  lookup x G = none ->
-  GlobalWf G (.odata x K)
-| openm :
-  SpineKinding .openm x G (λ _ => true) T ->
-  lookup x G = none ->
-  GlobalWf G (.openm x cls T)
+  GlobalWf G (.data ⟨x, K, ⟨n, ctors⟩⟩)
+-- | odata :
+--   lookup x G = none ->
+--   GlobalWf G (.odata x K)
+-- | openm :
+--   SpineKinding .openm x G (λ _ => true) T ->
+--   lookup x G = none ->
+--   GlobalWf G (.openm x T)
 | defn {G : GlobalEnv} :
   G&[] ⊢ T : ★ ->
   -- G&[],[] ⊢ t : T ->
   lookup x G = none ->
-  GlobalWf G (.defn x T t)
+  GlobalWf G (.defn ⟨x, T, t⟩)
 | inst :
-  lookup x G = some (.openm x cls ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
-  (Ks1.list ++ Ks2.list).reverse = Δ ->
+  lookup cls_name G = some (.odata cls_name K) ->
+  -- (Ks1.list ++ Ks2.list).reverse = Δ ->
   -- Core.PatternBinders .opn G Δ n Ts p ζ Γ ->
-  GlobalWf G (.inst x cls p t)
-| octor :
-  SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
-  lookup x G = none ->
-  GlobalWf G (.octor x T)
+  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩)
+-- | octor :
+--   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
+--   lookup x G = none ->
+--   GlobalWf G (.octor x T)
 
 inductive ListGlobalWf : List Global -> Prop where
 | nil : ListGlobalWf []
@@ -94,7 +94,10 @@ def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
   ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q} {cls},
   Intermediate.lookup x G = some (Intermediate.Entry.openm x cls ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
   Intermediate.Query G .opn q Ts ->
-  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x cls p b) ∧ Core.Query.Match q p
+  ∃ (i : Nat), ∃ n cls_name k1 k2 k3 Ks1 Ks2 tys fds scs mths, G[i]? = some (.instDecl ⟨n, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩)
+    ∧ ∃ (j : Nat), ((∃ b p, fds[j]? = some ⟨x, nc, p, b⟩ ∧ Core.Query.Match q p)
+                   ∨ (∃ b p, scs[j]? = some ⟨x, nc, p, b⟩ ∧ Core.Query.Match q p)
+                   ∨ (∃ b p, mths[j]? = some ⟨x, nc, p, b⟩ ∧ Core.Query.Match q p))
 
 notation:175 "Ω " G:175 => OpenExhaustive G
 
