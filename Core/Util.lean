@@ -263,3 +263,29 @@ inductive VecTyping (J : A -> B -> Prop) : Vec A m -> Vec B m -> Prop
   J a b ->
   VecTyping J as bs ->
   VecTyping J (a::as) (b::bs)
+
+
+namespace List
+
+theorem flatten_idx_getElem {ll : List (List α)} {l : List α} :
+  ll.flatten = l ->
+  ∀ i : Nat, l[i]? = some a ->
+  ∃ (i' j' : Nat) (l' : List α), (ll[i']? = some l' ∧ l'[j']? = some a) :=
+by
+intro h1 i h2
+fun_induction List.flatten generalizing l i <;> simp at *
+case _ => subst l; exfalso; simp at h2
+case _ l ll ih =>
+  subst l
+  cases Nat.decLt i l.length
+  case _ h =>
+    rw[List.getElem?_append_right (by grind)] at h2;
+    replace ih := ih (i - l.length) h2
+    rcases ih with ⟨i', j', l', ih⟩
+    exists i' + 1; simp; exists j'; exists l'
+  case _ h =>
+    rw[List.getElem?_append_left (hn := h)] at h2;
+    exists 0; exists i; exists l
+
+
+end List
