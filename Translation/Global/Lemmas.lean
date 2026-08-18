@@ -105,6 +105,32 @@ case _ ih =>
 case _ ih => sorry
 case _ ih => sorry
 
+theorem translate_IC_lookup_same {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}:
+  ⟦ G ⟧ = some G' ->
+  Core.lookup x G' = Core.Entry.octor y R ->
+  Intermediate.lookup x G = Intermediate.Entry.octor y R
+:= by
+intro h1 h2
+fun_induction translate_IC generalizing G' <;> simp at *
+case _ => -- nil
+  subst G'; simp [Core.lookup] at h2
+case _ ih =>
+  simp [Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
+  subst h3; simp [Core.lookup] at h2
+  split at h2
+  simp at h2
+  replace h2 := Vec.fold_or h2; cases h2
+  case _ h2 =>
+     simp [Intermediate.lookup]; rw[ite_cond_eq_false (h := by grind)]
+     replace ih := ih h1 h2; rw[ih]
+     rw[Vec.fold_or_val_eq]
+  case _ h =>
+    rcases h with ⟨i, h4⟩; simp at h4
+sorry
+sorry
+sorry
+sorry
+sorry
 
 theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
   ⟦ G ⟧ = some G' ->
@@ -112,23 +138,81 @@ theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (w
   Intermediate.Query G Intermediate.DataConst.opn q Ts := by
 intro h1 h2
 simp at h1 h2
-fun_induction translate_IC generalizing G' <;> simp at *
-· subst h1;
-  simp [Intermediate.Query, Core.Query, Core.lookup_ctor?] at *
-  simp [Intermediate.lookup_ctor?, Core.lookup, Intermediate.lookup] at *
-  apply h2
-case _ ih =>
-  rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
-  simp at h1; subst G'
-  replace h2 := Core.Query.opn_strengthen_ctor h2
-  cases wf; case _ wftl wfhd =>
-  replace ih := ih wftl h3 h2
-  apply Intermediate.Query.opn_weaken_ctor wftl ih
-sorry
-sorry
-sorry
-sorry
-sorry
+induction h2
+case nil  => constructor
+case cons h _ ih =>
+  constructor
+  simp [Core.lookup_ctor?] at h;
+  split at h;
+  · simp [Option.getD_eq_iff] at h;
+    rcases h with ⟨ent, lk, h⟩
+    cases ent <;> simp [Core.Entry.ctor?] at h
+    split at h;
+    simp at h; subst h; case _ oc R _ _ _ e1 e2 =>
+      simp [Intermediate.lookup_ctor?]; rw[e2]; simp; simp [Option.getD_eq_iff];
+      exists Intermediate.Entry.octor oc R
+      apply And.intro
+      case _ => apply translate_IC_lookup_same h1 lk
+      simp [Intermediate.Entry.ctor?, e1]
+    cases h
+  · cases h
+  apply ih
+-- induction G generalizing G' q Ts <;> simp [translate_IC] at *
+-- case nil =>
+--   subst h1; cases h2; constructor; case _ h2 _ =>
+--   simp [Core.lookup_ctor?] at h2;
+--   split at h2
+--   simp [Core.lookup] at h2
+--   cases h2
+-- case cons g G ih =>
+--   cases g <;> simp [translate_IC] at h1
+--   sorry
+--   sorry
+--   sorry
+--   sorry
+--   sorry
+--   sorry
+
+-- fun_induction translate_IC generalizing G' q Ts <;> simp at *
+-- · subst h1;
+--   simp [Intermediate.Query, Core.Query, Core.lookup_ctor?] at *
+--   simp [Intermediate.lookup_ctor?, Core.lookup, Intermediate.lookup] at *
+--   apply h2
+-- case _ ih =>
+--   rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
+--   simp at h1; subst G'
+--   replace h2 := Core.Query.opn_strengthen_ctor h2
+--   cases wf; case _ wftl wfhd =>
+--   replace ih := ih wftl h3 h2
+--   apply Intermediate.Query.opn_weaken_ctor wftl ih
+-- sorry
+-- sorry
+-- sorry
+-- sorry
+-- case _ ih1 =>
+--   cases wf; case _ wftl wfhd =>
+--   rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
+--   split at h1
+--   case _ h1 h4 =>
+--     simp at h1;
+--     rcases h1 with ⟨⟨e1, e2⟩, h1⟩; subst e1; subst e2
+--     rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨⟨Δ, ζ⟩, h1, h5⟩
+--     rw[Option.bind_eq_some_iff] at h5; rcases h5 with ⟨t', h5, h1⟩
+--     simp at h1; subst h1
+--     induction h2
+--     case _ => constructor
+--     case _ q T _ qs Ts lk vt ih2 =>
+--       simp [Core.lookup_ctor?] at lk;
+--       split at lk
+--       simp [Core.lookup, Option.getD_eq_iff] at lk;
+--       rcases lk with ⟨ent, lk, h6⟩
+--       cases ent <;> simp [Core.Entry.ctor?] at h6
+--       split at h6;
+--       simp at h6; subst h6;
+--       sorry
+--       cases h6
+--       cases lk
+--   case _ h1 => cases h1
 
 
 theorem translate_IC_indexing_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
