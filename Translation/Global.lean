@@ -73,11 +73,33 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
     fds ++ scs ++ mτs ++ (od :: Γ')
   else none
 
-| .cons (.instDecl iname spTy ts) Γ => do
+| .cons (.instDecl iname spTy@⟨na, Ks1, nb, Ks2, nc, As, R⟩ ts) Γ => do
   let Γ' <- translate_SI Γ
   match Intermediate.lookup iname Γ' with
-  | some (.odata _ _) => none
-  | _ => none
+  | some _ => none
+  | none =>
+    match R.spine with
+    | none => none
+    | some (C, Tys) =>
+      match Intermediate.lookup C Γ' with
+      | some (.odata _ _) => do
+        -- let mτs := Γ'.filter (λ g =>
+        --   match g with
+        --   | .openm mn ⟨_, _, _, _, _, .cons A As, R⟩ =>
+        --     match A.spine with
+        --     | some (C', _) => C == C'
+        --     | none => false
+        --   | _ => false
+        --  )
+        let ts' : Intermediate.GlobalEnv <- ts.mapM (λ (mn, tm) =>
+          match Intermediate.lookup mn Γ' with
+          | some (.openm mn' spTy) => if mn == mn'
+            then return (.inst (m := 1) mn #(⟨iname, 1, #(t#0), 0, 1⟩) tm)
+            else none
+          | _ => none)
+        return ts' ++
+          (.octor iname spTy) :: Γ'
+      | _ => none
 
 
 notation: 175 "⟦" G "⟧" => translate_SI G

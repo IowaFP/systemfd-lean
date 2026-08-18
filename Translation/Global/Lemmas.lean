@@ -106,7 +106,26 @@ case _ ih =>
   replace ih := ih wftl h3
   sorry
 case _ ih => sorry
-case _ ih => sorry
+case _ ih =>
+  simp [Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h, h3⟩
+  split at h3
+  · simp at h3
+  · split at h3
+    · simp at h3
+    · split at h3
+      · simp [Option.bind_eq_some_iff] at h3; rcases h3 with ⟨insts, h3, h4⟩
+        subst h4;
+      -- subst G';
+      -- cases wf'; case _ wftl' wfhd' =>
+      -- cases wf; case _ wftl wfhd =>
+      -- replace ih := @ih _ wftl h wftl' x
+      -- simp [Intermediate.lookup] at h1
+      -- split at h1
+      -- case _ e => subst e; simp at h1
+      -- case _ e => replace ih := ih h1;
+
+        sorry
+      · cases h3
 
 theorem translate_IC_lookup_same {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}:
   ⟦ G ⟧ = some G' ->
@@ -364,7 +383,6 @@ theorem translate_open_exhaustive_sound {G : Surface.GlobalEnv} {G' : Intermedia
   ⟦ G' ⟧ = some G'' ->
   Ω G'' := by
 intro h1 h2
--- have wf' := translate_SI_wf_sound wf h1
 have lem : Ω G' := translate_SI_sound wf h1
 have lem2 : Ω G'' := translate_IC_sound lem h2
 apply lem2

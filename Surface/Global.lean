@@ -14,9 +14,10 @@ inductive Global where
 | defn : String -> Core.Ty -> Term -> Global
 | classDecl : {kc : Nat} ->
   String -> Vec Core.Kind kc -> -- TODO Change Vec to List for SC and determiners of FDs and methods
-  List (String × String × List (Fin kc)) ->
-  List (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) ->
-  List (String × Core.SpineTy) -> Global
+  List (String × String × List (Fin kc)) -> -- SCS
+  List (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) -> -- FDS
+  List (String × Core.SpineTy) -> -- methods
+  Global
 | instDecl : String -> Core.SpineTy -> List (String × Term) -> Global  -- what to do with instance constraints and ty params?
 
 
