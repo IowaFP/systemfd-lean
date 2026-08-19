@@ -73,12 +73,35 @@ sorry
 sorry
 
 
+theorem mk_inst_mths_sound {Γ' : Intermediate.GlobalEnv} :
+  mk_inst_mths Γ' C iname ts = some insts ->
+  ∀ i ∈ insts, ∃ (mn : String) (n na nb : Nat) (v : Vec Core.Ty n) (t : Surface.Term), i = .inst mn C #(⟨iname, n, v, na, nb⟩) t := by
+intro h i h1
+fun_induction mk_inst_mths generalizing insts
+case _ => simp at h; subst h; simp at h1
+case _ ih =>
+  simp [Option.bind_eq_some_iff] at h; rcases h with ⟨is, h2, h3⟩
+  split at h3 <;> simp at h3
+  rcases h3 with ⟨⟨e1, e2⟩, h3⟩; subst e1; subst e2;
+  subst h3
+  simp at h1
+  cases h1
+  case _ => subst i; simp
+  case _ h => apply ih h2 h
+
+theorem Intermediate.Query.string_ne {Γ : Intermediate.GlobalEnv} :
+  Intermediate.lookup x Γ = none ->
+  Intermediate.Query Γ v qs Ts ->
+  x ∉ qs := by sorry
+
+theorem GlobalWf.drop_wf {Γ : Intermediate.GlobalEnv} (n : Nat): ⊢ Γ -> ⊢ Γ.drop n := by sorry
+
 theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) :
   ⟦ G ⟧ = some G' ->
   Ω G' := by
 intro h
 have wf' := translate_SI_wf_sound wf h
-intro x na nb nc Ks1 Ks2 Ts R q h1 h2
+intro x na nb nc Ks1 Ks2 Ts R q _ h1 h2
 fun_induction translate_SI generalizing G' x <;> simp at *
 · subst h; simp [Intermediate.lookup] at h1
 case _ ih => -- data
@@ -99,14 +122,17 @@ case _ ih => -- data
       -- rcases ih with ⟨i, b, p, ih1, ih2⟩
       -- exists i + 1; exists b; exists p
     case _ h1 => rcases h1 with ⟨i, h1⟩; simp at h1
-case _ ih =>
+case _ ih => -- defn decl
   cases wf; case _ wftl wfhd =>
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h3, h⟩
   simp at h
   replace ih := ih wftl h3
   sorry
-case _ ih => sorry
-case _ ih =>
+case _ ih => -- class Decl
+  sorry
+case _ iname _ _ _ _ _ _ _ _ _ ih =>
+  cases wf; case _ wftl wfhd =>
+  cases wfhd; case _ q1 q2 q3 =>
   simp [Option.bind_eq_some_iff] at h; rcases h with ⟨Γ', h, h3⟩
   split at h3
   · simp at h3
@@ -123,7 +149,9 @@ case _ ih =>
       -- split at h1
       -- case _ e => subst e; simp at h1
       -- case _ e => replace ih := ih h1;
-
+        replace h3 := mk_inst_mths_sound h3
+        replace wf' := GlobalWf.drop_wf (insts.length + 1) wf'; simp at wf'
+        replace ih := @ih _ wftl h wf' x
         sorry
       · cases h3
 
@@ -217,7 +245,7 @@ case cons h _ ih =>
 theorem translate_IC_indexing_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
   ⟦ G ⟧ = some G' ->
   G'[i]? = some (Core.Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
-  G[i]? = some (Intermediate.Global.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩)
+  ∃ cls, G[i]? = some (Intermediate.Global.openm x cls ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩)
    := by
 intro h1 h2
 fun_induction translate_IC generalizing G' i <;> simp at *
@@ -262,7 +290,7 @@ case _ ih =>
 
 theorem translate_IC_indexing_inst {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} :
   ⟦ G ⟧ = some G' ->
-  G[i]? = some (Intermediate.Global.inst x p b) ->
+  G[i]? = some (Intermediate.Global.inst x cls p b) ->
   ∃ b', G'[i]? = some (Core.Global.inst x p b')
    := by
 intro h1 h2
@@ -291,8 +319,7 @@ case _ ih =>
     simp at h1; subst G'
     replace ih := ih (i := i - 1) h3
     cases i <;> simp at *
-    · subst e1; subst e2;
-      rcases h2 with ⟨e1, e2, e3, e4⟩; subst e1; subst e2; simp at e3; subst e3; subst e4; simp
+    · rcases h2 with ⟨e1, e2, e3, e4, e5⟩; subst e1; subst e2; subst e3; simp at e4; subst e4; subst e5; simp
     · apply ih h2
   · cases h1
 
@@ -300,7 +327,7 @@ case _ ih =>
 theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
   ⟦ G ⟧ = some G' ->
   Core.lookup x G' = some (Core.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) ->
-  Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) := by
+  ∃ cls, Intermediate.lookup x G = some (Intermediate.Entry.openm x cls ⟨na, (Ks1, ⟨nb, (Ks2, ⟨nc, (Ts, R)⟩)⟩)⟩) := by
 intro h1 h2
 simp at h1 h2
 fun_induction translate_IC generalizing G' x <;> simp at *
@@ -318,7 +345,7 @@ case _ ih =>
     case _ h3 =>
       replace ih := ih h2 h3;
       simp [Intermediate.lookup]; rw[ite_cond_eq_false]
-      · rw[ih]; rw[Vec.fold_or_val_eq]
+      · rcases ih with ⟨cls, ih⟩; exists cls; rw[ih]; rw[Vec.fold_or_val_eq]
       · simp; apply e
     case _ h3 => rcases h3 with ⟨i, h3⟩; simp at h3
 case _ ih =>  -- defn
@@ -371,8 +398,9 @@ intro oe h1
 intro x na nb nc Ks1 Ks2 Ts R q h2 h3
 simp at h1 h2 h3
 have lem1 := translate_IC_lookup_openm h1 h2
+rcases lem1 with ⟨cls, lem1⟩
 have lem2 := translate_IC_query h1 h3
-replace oe := @oe x na nb nc Ks1 Ks2 Ts R q lem1 lem2
+replace oe := @oe x na nb nc Ks1 Ks2 Ts R q cls lem1 lem2
 rcases oe with ⟨i, b, p, oe1, oe2⟩
 have lem3 := translate_IC_indexing_inst h1 oe1
 rcases lem3 with ⟨b', lem3⟩
@@ -387,184 +415,5 @@ have lem : Ω G' := translate_SI_sound wf h1
 have lem2 : Ω G'' := translate_IC_sound lem h2
 apply lem2
 
-
--- inductive Translation.GlobalWf : Surface.GlobalEnv -> Core.GlobalEnv -> Surface.Global -> Prop where
--- | data {ctors : Vect n (String × Surface.Ty)} {G : Surface.GlobalEnv}{G' : Core.GlobalEnv}:
---   (∀ i y T, ctors i = (y, T) ->
---     (Surface.Global.data x K Vect.nil :: G)&[] ⊢s T : `★
---     ∧ Surface.ValidCtor x T
---     ∧ x ≠ y
---     ∧ Surface.lookup y G = none) ->
---   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
---   Surface.lookup x G = none ->
---   GlobalWf G G' (Surface.Global.data x K ctors)
--- | defn :
---   Surface.lookup x G = none ->
---   G&[] ⊢s T : `★ ->
---   Surface.Term.Elab G G' .chk [] [] t T t' ->
---   GlobalWf G G' (Surface.Global.defn x T t)
--- | classDecl :
---   Surface.lookup s G = none ->
---   Surface.ValidOpenKind K ->
---   (∀ i j, (ms i).1 ≠ (ms j).1) ->
---   (∀ i y T, ms i = (y, T) ->
---     (Surface.Global.classDecl s K Vect.nil :: G)&[] ⊢s T : `★
---     ∧ Surface.ValidClassMethodTy s T
---     ∧ s ≠ y
---     ∧ Surface.lookup y G = none) ->
---   GlobalWf G G' (Surface.Global.classDecl s K ms)
--- | instDecl :
---   Surface.ValidClassInstTy C T ->
---   -- TODO: Do Non-overlapping check here
---   Surface.lookup C G = some (.opent C K ms') ->
---   -- TODO: check for method types
---   GlobalWf G G' (.instDecl T ms)
-
-
--- inductive ValidClassDecl (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (x : String) (K: Surface.Kind) :
---           {n : Nat} -> (Vect n (String × Surface.Ty)) -> Core.GlobalEnv -> Prop where
--- | nil :
---   Surface.lookup x G = none ->
---   Surface.ValidOpenKind K ->
---   ValidClassDecl G G' x K Vect.nil (List.cons (.opent x K.translate) G')
--- | cons {n : Nat} {ms : Vect n (String × Surface.Ty)} {m : String} {τ : Surface.Ty} :
---   ms' = ms.to_list.map (λ (x, τ) => Core.Global.openm x τ.translate) ->
---   ValidClassDecl G G' x K ms (ms' ++ List.cons (.opent x K.translate) G')  ->
-
---   -- method names are unique
---   Surface.lookup m (.classDecl x K ms :: G) = none ->
-
---   -- method type is okayg
---   Surface.ValidClassMethodTy x τ ->
---   (.classDecl x K ms :: G)&[] ⊢s τ : `★ ->
-
---   ValidClassDecl G G' x K (n := n + 1)
---                  (Vect.cons (m , τ) ms)
---                  (List.cons (Core.Global.openm m τ.translate)
---                  (ms' ++ List.cons (.opent x K.translate) G'))
-
-
--- inductive ValidInstDecl (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) :
---           Ty -> Vect n (String × Surface.Term) -> Core.GlobalEnv -> Prop where
-
-
-
--- inductive Surface.Global.Elab : Surface.GlobalEnv -> Core.GlobalEnv -> Prop
--- | nil : Surface.Global.Elab [] []
-
--- | defn :
---   Surface.Global.Elab G G' ->
-
---   Surface.lookup x G = none ->
---   G&[] ⊢s T : `★ ->
---   Surface.Term.Elab G G' .chk [] [] t T t' ->
-
---   Surface.Global.Elab (.cons (.defn x T t) G) ((.defn x (T.translate) t') :: G')
-
--- | data {n : Nat} {ctors : Vect n (String × Ty)} {ctors' : Vect n (String × Core.Ty)} :
---   Surface.Global.Elab G G' ->
-
---   (∀ i y T, ctors i = (y, T) ->
---     (Surface.Global.data x K Vect.nil :: G)&[] ⊢s T : `★
---     ∧ Surface.ValidCtor x T
---     ∧ x ≠ y
---     ∧ Surface.lookup y G = none) ->
---   (∀ i j, (ctors i).1 ≠ (ctors j).1) ->
---   Surface.lookup x G = none ->
-
---   ctors' = (λ i => ((ctors i).1 , (ctors i).2.translate)) ->
-
---   Surface.Global.Elab (.cons (.data (n := n) x K ctors) G) (.cons (.data n x K.translate ctors') G')
-
--- | classDecl {n : Nat} {ms : Vect n (String × Ty)} {Δ : Core.GlobalEnv} :
---   Surface.Global.Elab G G' ->
---   ValidClassDecl G G' x K ms Δ ->
---   Surface.Global.Elab ((.classDecl x K ms) :: G) Δ
-
--- | instDecl {n} {ms : Vect n (String × Term)} {Δ : Core.GlobalEnv} :
---   Surface.Global.Elab G G' ->
---   ValidInstDecl G G' τ ms Δ ->
---   Surface.Global.Elab G Δ
-
-
--- notation:170 G:170 " -↪ " G':170 => Surface.Global.Elab G G'
-
-
--- theorem Translation.ValidOpenKind.Sound {K : Surface.Kind}:
---   Surface.ValidOpenKind K -> Core.ValidOpenKind K.translate := by
---   intro h
---   induction h <;> simp at *
---   constructor
---   constructor; assumption
-
--- theorem Surface.Global.ValidClassDecl.sound :
---   G -↪ G' ->
---   ⊢ G' ->
---   ValidClassDecl G G' x K ms Δ ->
---   ⊢ Δ ∧ Core.Global.Determined Δ := by
--- intro h1 h2 h3
--- induction h3
--- case nil lk vk =>
---   apply And.intro
---   · apply Core.ListGlobalWf.cons _ h2
---     apply Core.GlobalWf.opent (Translation.ValidOpenKind.Sound vk)
---     · apply Translation.GlobalEnv.lookup_none_sound x h1 lk
---   · sorry
--- case cons Δ oms τ ms m T k2 lk k3 k4 k5 ih =>
---   apply And.intro
---   · apply Core.ListGlobalWf.cons
---     apply Core.GlobalWf.openm
---     · sorry
---     · rw[k2]; simp
-
---       sorry
---     · sorry
---     apply ih.1
---   sorry
-
-
-
--- theorem Surface.Global.Elab.sound :
---   G -↪ G' ->
---   ⊢ G' ∧ Core.Global.Determined G' := by
--- intro h
--- induction h
--- case nil =>
---   apply And.intro
---   · apply Core.ListGlobalWf.nil;
---   · simp [Core.Global.Determined, Core.Determined.openm, Core.Determined.defn, Core.lookup];
--- case defn x T t t' j0 lk j1 j2 ih =>
---   replace j1 := Translation.Ty.sound j1 j0
---   replace j2 := Translation.Term.Sound j0 j2
---   apply And.intro
---   · apply Core.ListGlobalWf.cons _ ih.1
---     apply Core.GlobalWf.defn j1 j2.2
---     apply Translation.GlobalEnv.lookup_none_sound x j0 lk
---   · simp[Core.Global.Determined]; intro x
---     apply And.intro
---     sorry
---     sorry
-
--- case data G G' x K n ctors ctors' j0 h1 h2 h3 ctors'def ih  =>
---   apply And.intro
---   · apply Core.ListGlobalWf.cons _ ih.1;
---     apply Core.GlobalWf.data
---     · intro i y T h1';
---       simp [ctors'def] at h1'; rcases h1' with ⟨h1a, h1b⟩
---       replace h1 := h1 i (ctors i).fst (ctors i).snd rfl;
---       rcases h1 with ⟨h2a, h2b, h2c, h2d⟩
---       have wkn_j0 : Elab (.data x K Vect.nil :: G) (.cons (.data 0 x K.translate Vect.nil) G') := by
---         apply Elab.data j0; simp; simp; apply h3; simp
-
---       replace h2a := Translation.Ty.sound h2a wkn_j0
---       subst y; subst T
---       replace h2d := Translation.GlobalEnv.lookup_none_sound (ctors i).fst j0 h2d
---       grind
---     · intro i j; simp [ctors'def]; apply h2
---     · apply Translation.GlobalEnv.lookup_none_sound x j0 h3
---   · sorry
--- case classDecl G G' x K n ms Δ j0 h1 h2 =>
---   apply Surface.Global.ValidClassDecl.sound j0 h2.1 h1
--- case instDecl => sorry
 
 end Translation

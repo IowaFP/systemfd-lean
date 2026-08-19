@@ -68,17 +68,17 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | openm :
   SpineKinding .openm x G (λ _ => true) T ->
   lookup x G = none ->
-  GlobalWf G (.openm x T)
+  GlobalWf G (.openm x cls T)
 | defn {G : GlobalEnv} :
   G&[] ⊢ T : ★ ->
   -- G&[],[] ⊢ t : T ->
   lookup x G = none ->
   GlobalWf G (.defn x T t)
 | inst :
-  lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
+  lookup x G = some (.openm x cls ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
   (Ks1.list ++ Ks2.list).reverse = Δ ->
   -- Core.PatternBinders .opn G Δ n Ts p ζ Γ ->
-  GlobalWf G (.inst x p t)
+  GlobalWf G (.inst x cls p t)
 | octor :
   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
   lookup x G = none ->
@@ -91,10 +91,10 @@ inductive ListGlobalWf : List Global -> Prop where
 notation:175 "⊢ " G:175 => ListGlobalWf G
 
 def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
-  ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q},
-  Intermediate.lookup x G = some (Intermediate.Entry.openm x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
+  ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q} {cls},
+  Intermediate.lookup x G = some (Intermediate.Entry.openm x cls ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
   Intermediate.Query G .opn q Ts ->
-  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x p b) ∧ Core.Query.Match q p
+  ∃ (i : Nat), ∃ b p, G[i]? = some (.inst x cls p b) ∧ Core.Query.Match q p
 
 notation:175 "Ω " G:175 => OpenExhaustive G
 

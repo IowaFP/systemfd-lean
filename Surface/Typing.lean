@@ -80,27 +80,25 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   lookup x G = none ->
   GlobalWf G (.data (n := n) x K ctors)
 | defn :
-  -- G&[] ⊢ T : ★ ->
-  -- G&[],[] ⊢ t : T ->
   lookup x G = none ->
   GlobalWf G (.defn x T t)
--- | odata :
---   lookup x G = none ->
---   GlobalWf G (.odata x K)
--- | openm :
---   SpineKinding .openm x G (λ _ => true) T ->
---   lookup x G = none ->
---   GlobalWf G (.openm x T)
--- | inst :
---   lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
---   -- (Ks1.list ++ Ks2.list).reverse = Δ ->
---   -- PatternBinders .opn G Δ n Ts p ζ Γ ->
---   -- G&(ζ ++ Δ),Γ ⊢ t : R⟨.add Ty ζ.length⟩ ->
---   GlobalWf G (.inst x p t)
--- | octor :
---   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
---   lookup x G = none ->
---   GlobalWf G (.octor x T)
+| classDecl {mτs : List (String × _)}:
+  lookup s G = none ->
+  ∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1 ->
+  (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, T) ->
+    mn ≠ s ∧ lookup mn G = none) ->
+  GlobalWf G (.classDecl s Ks fds scs mτs)
+| inst {ts : List (String × _)}:
+  lookup x G = some (.odata x K mτs) ->
+  -- TODO : ts cover all methods
+  mτs.length = ts.length ->
+  (∀ i : Nat, (hi : i < ts.length) -> (ts[i]'hi).1 = mn ->
+    ∃ j, (hj : j < mτs.length) ->  mτs[j].1 = mn) ->
+  -- lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
+  -- (Ks1.list ++ Ks2.list).reverse = Δ ->
+  -- PatternBinders .opn G Δ n Ts p ζ Γ ->
+  -- G&(ζ ++ Δ),Γ ⊢ t : R⟨.add Ty ζ.length⟩ ->
+  GlobalWf G (.instDecl x spTy ts)
 
 inductive ListGlobalWf : GlobalEnv -> Prop where
 | nil : ListGlobalWf []

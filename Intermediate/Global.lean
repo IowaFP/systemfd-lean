@@ -14,10 +14,10 @@ inductive Global : Type where
 | defn : String -> Core.Ty -> Surface.Term -> Global
 -- | classDecl : {mc kc fc : Nat} -> String -> Vec Kind kc -> Vec (String × Fin kc × Fin kc) fc ->  Vec (String × Ty) mc -> Global
 | odata : String -> Core.Kind -> Global
-| openm : String -> Core.SpineTy -> Global
+| openm : String -> String -> Core.SpineTy -> Global
 -- | instDecl : {kc mc : Nat} -> String -> String -> Vec Ty kc -> Vec (String × Term) mc -> Global
 | octor  : String -> Core.SpineTy -> Global
-| inst : {m : Nat} -> String -> Core.Pattern m -> Surface.Term -> Global
+| inst : {m : Nat} -> String -> String -> Core.Pattern m -> Surface.Term -> Global
 
 
 def Global.repr (_ : Nat) : (a : Global) -> Std.Format
@@ -25,9 +25,9 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   ".data " ++ s ++ " : " ++ Core.Kind.repr max_prec K  ++ " where " ++ Std.Format.line
      ++ Std.Format.nest 4 (ctors.reprPrec 0)
 | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
-| .openm n ty => ".openm " ++ n ++ " : " ++ Core.SpineTy.repr ty
+| .openm n cls ty => ".openm " ++ n ++ "⟨" ++ cls ++ "⟩"++ " : " ++ Core.SpineTy.repr ty
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line ++ t.repr max_prec
-| .inst n p t => ".inst " ++ n ++ " " ++ p.repr ++ " => " ++ t.repr max_prec
+| .inst n cls p t => ".inst " ++ n ++ " " ++ cls ++ " " ++ p.repr ++ " => " ++ t.repr max_prec
 | .octor n ty => ".octor " ++ n ++ " " ++ Core.SpineTy.repr ty
 
 @[simp]
@@ -41,7 +41,7 @@ inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
 | odata : String -> Core.Kind -> Entry
-| openm : String -> Core.SpineTy -> Entry
+| openm : String -> String -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
 
@@ -70,11 +70,11 @@ def lookup (x : String) : GlobalEnv -> Option Entry
   else Vec.foldl Option.or (lookup x tl) ctors'
 | .cons (.odata y a) tl =>
   if x == y then return .odata y a else lookup x tl
-| .cons (.openm y a) tl =>
-  if x == y then return .openm y a else lookup x tl
+| .cons (.openm y cls a) tl =>
+  if x == y then return .openm y cls a else lookup x tl
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.inst _ _ _) tl => lookup x tl
+| .cons (.inst _ _ _ _) tl => lookup x tl
 | .cons (.octor y a) tl =>
   if x == y then return .octor y a else lookup x tl
 

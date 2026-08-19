@@ -13,12 +13,13 @@ inductive Global where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Global
 | defn : String -> Core.Ty -> Term -> Global
 | classDecl : {kc : Nat} ->
-  String -> Vec Core.Kind kc -> -- TODO Change Vec to List for SC and determiners of FDs and methods
+  String -> Vec Core.Kind kc ->
   List (String × String × List (Fin kc)) -> -- SCS
   List (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) -> -- FDS
   List (String × Core.SpineTy) -> -- methods
   Global
-| instDecl : String -> Core.SpineTy -> List (String × Term) -> Global  -- what to do with instance constraints and ty params?
+
+| instDecl : String -> Core.SpineTy -> List (String × Term) -> Global
 
 
 def Global.repr (_ : Nat) : (a : Global) -> Std.Format
@@ -46,7 +47,7 @@ inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Term -> Entry
-| odata : {n : Nat} -> String -> Vec Core.Kind n -> Entry
+| odata : {n : Nat} -> String -> Vec Core.Kind n -> List (String × Core.SpineTy) -> Entry
 | octor : String -> Core.SpineTy -> Entry
 | openm : String -> Core.SpineTy -> Entry
 
@@ -59,7 +60,7 @@ def Entry.is_ctor : Entry -> Bool
 | _ => false
 
 def Entry.is_odata : Entry -> Bool
-| odata _ _ => true
+| odata _ _ _ => true
 | _ => false
 
 def Entry.is_openm : Entry -> Bool
@@ -72,7 +73,7 @@ def Entry.is_defn : Entry -> Bool
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ Ks => Core.Kind.mk_kind Ks
+| odata _ Ks _ => Core.Kind.mk_kind Ks
 | _ => none
 
 
@@ -87,15 +88,17 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
 | .cons (.classDecl (kc := kc) y Ks scs fds ms) tl =>
+  if x == y then return .odata y Ks ms else
+
   let ms_mb : Option (String × Core.SpineTy) := ms.find? (λ (mn, _) => x == mn)
   let ms := ms_mb.map (λ (x, mn) => .openm x mn)
-  let scs_mb : Option (String × String × List (Fin kc)) := scs.find? (λ (sc, _, _) => x == sc)
-  let scs := scs_mb.map (λ (scn, cls, tys) => .openm scn ⟨kc, Ks, 0, #(), 1, #((gt#y).mkApps_nats (List.range kc)), (gt#cls).mkApps_nats tys⟩ )
+  -- TODO Extensions for fundeps and superclasses
+  -- let scs_mb : Option (String × String × List (Fin kc)) := scs.find? (λ (sc, _, _) => x == sc)
+  -- let scs := scs_mb.map (λ (scn, cls, tys) => .openm scn ⟨kc, Ks, 0, #(), 1, #((gt#y).mkApps_nats (List.range kc)), (gt#cls).mkApps_nats tys⟩ )
   -- let fds_mb : Option (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) := fds.find? (λ ⟨fdn, _, _, _⟩ => x == fdn)
   -- let fds := fds_mb.map (λ ⟨fdn, n, dns, dt⟩ => Entry.openm fdn ⟨kc, Ks, 0, #(), 2, #(sorry, sorry), t`#0 ⟩)
-  if x == y then return .odata y Ks
-  else if ms.isSome then ms
-  else if scs.isSome then scs
+  if ms.isSome then ms
+  -- else if scs.isSome then scs
   -- else if fds.isSome then fds
   else lookup x tl
 | .cons (.instDecl s spTy _) tl =>
