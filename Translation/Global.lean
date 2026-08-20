@@ -92,18 +92,12 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
     | none => none
     | some (C, Tys) =>
       match Intermediate.lookup C Γ' with
-      | some (.odata _ _) => do
-        -- let mτs := Γ'.filter (λ g =>
-        --   match g with
-        --   | .openm mn ⟨_, _, _, _, _, .cons A As, R⟩ =>
-        --     match A.spine with
-        --     | some (C', _) => C == C'
-        --     | none => false
-        --   | _ => false
-        --  )
+      | some (.odata cls _) => do
+        if C == cls then
         let ts' : Intermediate.GlobalEnv <- mk_inst_mths Γ' C iname ts
         return ts' ++
           (.octor iname spTy) :: Γ'
+        else none
       | _ => none
 
 

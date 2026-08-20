@@ -580,6 +580,8 @@ induction cs
     · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
     grind
 
+theorem Vec.fold_or_val_eq_none : foldl Option.or d vs = none <-> d = none ∧ ∀ v ∈ vs, v = none := by sorry
+
 def Vec.from_list : List α -> (n : Nat) × Vec α n
 | .nil => ⟨0, .nil⟩
 | .cons x xs =>

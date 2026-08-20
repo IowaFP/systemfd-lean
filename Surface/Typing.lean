@@ -92,8 +92,8 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   lookup x G = some (.odata x K mτs) ->
   -- TODO : ts cover all methods
   mτs.length = ts.length ->
-  (∀ i : Nat, (hi : i < ts.length) -> (ts[i]'hi).1 = mn ->
-    ∃ j, (hj : j < mτs.length) ->  mτs[j].1 = mn) ->
+  (∀ i : Nat, (hi : i < ts.length) ->
+    ∃ j, (hj : j < mτs.length) ->  mτs[j].1 = (ts[i]'hi).1) ->
   -- lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
   -- (Ks1.list ++ Ks2.list).reverse = Δ ->
   -- PatternBinders .opn G Δ n Ts p ζ Γ ->
