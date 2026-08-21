@@ -44,16 +44,17 @@ def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
-def mk_inst_mths (Γ' : Intermediate.GlobalEnv) (C iname : String) : List (String × Surface.Term) -> Option Intermediate.InstDeclFrame := sorry
--- | List.nil => some .nil
--- | .cons (mn, tm) ts => do
---   let ts' <- mk_inst_mths Γ' C iname ts
---   match Intermediate.lookup mn Γ' with
---   | some (.openm mn' cls spTy) =>
---     if mn == mn' && C == cls
---     then return (.cons (.inst (m := 1) mn C #(⟨iname, 1, #(t#0), 0, 1⟩) tm) :: ts') -- TODO: Fix Pattern
---     else none
---   | _ => none
+def mk_inst_mths (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × SpineTy)) : List (String × Surface.Term) ->
+ Option (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
+| List.nil => return List.nil
+| .cons (mn, tm) ts => do
+  let ts' <- mk_inst_mths Γ' C iname mτs ts
+  match List.lookup mn mτs with
+  | some _ =>
+    return (List.cons ⟨mn, 1, #(⟨iname, 1, #(t#0), 0, 1⟩), tm⟩ ts') -- TODO: Fix Pattern
+  | _ => none
+
+
 
 -- Kind check the types, leaves the terms untouched
 def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
@@ -61,7 +62,7 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
 | .cons (.data (n := n) s K ctors) Γ => do
   let Γ' <- translate_SI Γ
   -- TODO : Kind check each of the constructor types
-  if (Intermediate.lookup s Γ').isNone
+  if (Intermediate.lookup s Γ').isNone && ctors.all (λ (c, _) => (Intermediate.lookup c Γ').isNone)
   then return .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ'
   else none
 | .cons (.defn s T t) Γ => do
@@ -88,15 +89,18 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
   match R.spine with
   | some (cls_name, _) =>
     match Intermediate.lookup cls_name Γ' with
-    | some (.odata _ _) => do
-      let mths <- ts.mapM (λ (mn, b) =>
-      match Intermediate.lookup mn Γ' with
-      | some (.openm mn' cls' ⟨na', Ks1', nb', Ks2', nc', As', R'⟩) =>
-        if mn' == mn && cls' == cls_name then
-        return ⟨mn, 1, #(⟨iname, nc, As, nb, 0⟩), b⟩ -- TODO : This is bogus
-        else none
-      | _ => none)
-      return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
+    | some (.odata cls_name' K' mτs) =>
+      if cls_name' == cls_name && mτs.length == ts.length
+      then let mths <- mk_inst_mths Γ' cls_name iname mτs ts
+               -- ts.mapM (λ (mn, b) => do
+               -- match mτs.lookup mn with
+               -- | some (⟨na', Ks1', nb', Ks2', nc', As', R'⟩) =>
+               --   return ⟨mn, 1, #(⟨iname, nc, As, nb, 0⟩), b⟩ -- TODO : This is bogus
+               -- | none => none)
+           if mτs.length == mths.length then
+             return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
+           else none
+      else none
     | _ => none
   | _ => none
 

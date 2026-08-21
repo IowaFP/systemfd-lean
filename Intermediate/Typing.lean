@@ -75,10 +75,14 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   lookup x G = none ->
   GlobalWf G (.defn ⟨x, T, t⟩)
 | inst :
-  lookup cls_name G = some (.odata cls_name K) ->
+  lookup x G = none ->
+  lookup cls_name G = some (.odata cls_name K mths) ->
+  (e : mths.length = mths_impl.length) ->
+  (∀ (i : Nat), (hi : i < mths_impl.length) ->
+    ∃ (j : Nat), (hj : j < mths.length) -> mths[j].1 = (mths_impl[i]'hi).1) ->
   -- (Ks1.list ++ Ks2.list).reverse = Δ ->
   -- Core.PatternBinders .opn G Δ n Ts p ζ Γ ->
-  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩)
+  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths_impl⟩)
 -- | octor :
 --   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
 --   lookup x G = none ->

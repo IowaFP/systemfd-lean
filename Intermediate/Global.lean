@@ -87,7 +87,7 @@ abbrev GlobalEnv := List Global
 inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
-| odata : String -> Core.Kind -> Entry
+| odata : String -> Core.Kind -> List (String × Core.SpineTy) -> Entry
 | openm : String -> String -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
@@ -99,12 +99,12 @@ inductive DataConst where
 
 def Entry.is_data : DataConst -> Entry -> Bool
 | .cls, data _ _ _ => true
-| .opn, odata _ _ => true
+| .opn, odata _ _ _ => true
 | _, _ => false
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ K => K
+| odata _ K _ => K
 | _ => none
 
 
@@ -120,7 +120,7 @@ def lookup (x : String) : GlobalEnv -> Option Entry
 | .cons (.defn ⟨y, a, b⟩) tl =>
   if x == y then return .defn y a b else lookup x tl
 | .cons (.classDecl ⟨cls_name, K, fds, scs, mths⟩) tl =>
-  if x == cls_name then return (.odata cls_name K)
+  if x == cls_name then return (.odata cls_name K mths)
   else match h : mths.findIdx? (λ ⟨n, _⟩ => x == n) with
        | none => lookup x tl
        | some i => match mths[i]? with

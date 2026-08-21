@@ -287,5 +287,33 @@ case _ l ll ih =>
     rw[List.getElem?_append_left (hn := h)] at h2;
     exists 0; exists i; exists l
 
+theorem List.mapM_length {f : α -> Option β} {Γ : List α} {Δ : List β} :
+  Γ.mapM f = some Δ ->
+  Γ.length = Δ.length
+:= by
+intro h
+rw[<-List.mapM'_eq_mapM] at h
+fun_induction mapM' generalizing Δ <;> simp at *
+subst h; simp
+case _ g Γ' ih =>
+  simp [Option.bind_eq_some_iff] at h; rcases h with ⟨d, h, Δ', h2, e⟩; subst e
+  simp; apply ih h2
+
+theorem mapM_getElem? {f : α -> Option β} {Γ : List α} {Δ : List β} :
+  (h : Γ.mapM f = some Δ) ->
+  ∀ (j : Nat), (hj : j < Δ.length) ->
+  f (Γ[j]'(by rw[<-List.mapM_length h] at hj; apply hj)) = some (Δ[j]'hj)
+:= by
+intro h j hj
+rw[<-List.mapM'_eq_mapM] at h
+fun_induction mapM' generalizing Δ j <;> simp at *
+subst h; simp at hj
+case _ g Γ' ih h1 =>
+simp [Option.bind_eq_some_iff] at h; rcases h with ⟨d, h, h2, h3, e⟩
+subst e; simp at hj
+cases j <;> simp
+apply h
+apply ih; rw[<-List.mapM'_eq_mapM]; apply h3; apply h3
+
 
 end List

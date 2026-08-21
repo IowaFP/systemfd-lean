@@ -757,5 +757,9 @@ theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> 
 --   let ys <- Vec.mapM f xs
 --   let y <- f x
 --   return (y :: ys)
+@[simp]
+theorem Vec.all_eq_true {α : Type u_1} {v : Vec α n} {p : α -> Bool} :
+  v.all p = true <-> ∀ x ∈ v, p x = true := by sorry
+
 
 end Lilac
