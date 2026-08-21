@@ -204,4 +204,12 @@ def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
 def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.join
 def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 
+theorem lookup_append {e : Entry} :
+  Core.lookup x (G1 ++ G2) = some e ->
+  Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
+:= by
+  intro h1
+  sorry
+
+
 end Core
