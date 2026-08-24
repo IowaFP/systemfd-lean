@@ -179,7 +179,7 @@ case _ ih => -- instance
     assumption
     apply lk
     apply h3
-    sorry -- should come from mk_inst_mths_sound
+    intro i hi; sorry -- should come from mk_inst_mths_sound
   · apply ih wftl h1
 
 
@@ -199,18 +199,6 @@ case _ mn tm ts ih =>
   cases p_in_insts
   case _ p => subst p; simp
   case _ p_in_insts' => apply ih h p_in_insts'
--- intro h i h1
--- fun_induction mk_inst_mths generalizing insts
--- case _ => simp at h; subst h; simp at h1
--- case _ ih =>
---   simp [Option.bind_eq_some_iff] at h; rcases h with ⟨is, h2, h3⟩
---   split at h3 <;> simp at h3
---   rcases h3 with ⟨⟨e1, e2⟩, h3⟩; subst e1; subst e2;
---   subst h3
---   simp at h1
---   cases h1
---   case _ => subst i; simp
---   case _ h => apply ih h2 h
 
 theorem Intermediate.Query.string_ne {Γ : Intermediate.GlobalEnv} :
   Intermediate.lookup x Γ = none ->
@@ -218,6 +206,13 @@ theorem Intermediate.Query.string_ne {Γ : Intermediate.GlobalEnv} :
   x ∉ qs := by sorry
 
 theorem GlobalWf.drop_wf {Γ : Intermediate.GlobalEnv} (n : Nat): ⊢ Γ -> ⊢ Γ.drop n := by sorry
+
+
+theorem Intermediate.lookup_openm {G : Intermediate.GlobalEnv} (wf : ⊢ G):
+  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls spTy) ->
+  ∃ K mths, Intermediate.lookup cls G = some (.odata cls K mths)
+    ∧ ∃ (j : Nat), mths[j]? = .some ⟨mn, spTy⟩
+:= by sorry
 
 theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) :
   ⟦ G ⟧ = some G' ->
@@ -260,21 +255,23 @@ case _ cls iname _ _ _ _ _ _ _ _ _ ih =>
   split at h3 <;> try simp at h3
   split at h3 <;> try simp at h3
   split at h3 <;> try simp [Option.bind_eq_some_iff] at h3
-  rcases h3 with ⟨⟨e1, e2⟩, ⟨mths, h3, h4, h5⟩⟩
+  rcases h3 with ⟨⟨e1, e2⟩, ⟨mths_impls, h3, h4, h5⟩⟩
   subst G'; subst e1;
   case _ cls_name _ _ _ _ =>
   cases wf'; case _ wftl' wfhd' =>
-  cases wfhd'; case _ na Ks1 nb Ks2 nc As R _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ q1' q2' q3' =>
+  cases wfhd'; case _ na Ks1 nb Ks2 nc As R _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ q1' q2' q3' =>
   have lem := mk_inst_mths_sound h3;
   cases String.decEq cls cls_name <;> (simp [Intermediate.lookup] at h1; split at h1 <;> try simp at h1)
   case isFalse.isFalse =>
 
     sorry
 
-  -- exists 0; simp; exists iname; exists cls_name; exists na; exists nb; exists nc; simp;
-  -- exists Ks1; exists Ks2; exists As; exists []; exists []; exists mths; simp;
-
-  case isTrue.isFalse => sorry
+  case isTrue.isFalse =>
+  exists 0; simp; exists iname; exists cls_name; exists na; exists nb; exists nc; simp;
+  exists Ks1; exists Ks2; exists As; exists []; exists []; exists mths_impls; simp;
+  have lem := Intermediate.lookup_openm wftl' h1
+  rcases lem with ⟨K, mths, lem1, lem2⟩
+  sorry
 
 
 theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :

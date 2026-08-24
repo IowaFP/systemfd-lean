@@ -14,8 +14,8 @@ inductive Global where
 | defn : String -> Core.Ty -> Term -> Global
 | classDecl : {kc : Nat} ->
   String -> Vec Core.Kind kc ->
-  List (String × String × List (Fin kc)) -> -- SCS
-  List (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) -> -- FDS
+  -- List (String × String × List (Fin kc)) -> -- SCS
+  -- List (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) -> -- FDS
   List (String × Core.SpineTy) -> -- methods
   Global
 
@@ -28,9 +28,11 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
     ++ (K.repr max_prec) ++ (Std.Format.text " where ") ++
     Std.Format.line ++ Std.Format.nest 4 (ctors.reprPrec 0)
 | .defn n T t => ".defn " ++ n ++ " " ++ (T.repr max_prec) ++ t.repr max_prec
-| classDecl s Ks scs fds methods =>
-  ".class " ++ s ++ " : " ++ Ks.repr max_prec ++ "|"  ++ scs.repr max_prec
-    ++ "|" ++ fds.repr max_prec ++ (Std.Format.text " where ")
+| classDecl s Ks /-scs fds-/ methods =>
+  ".class " ++ s ++ " : " ++ Ks.repr max_prec
+    -- ++ "|"  ++ scs.repr max_prec
+    -- ++ "|" ++ fds.repr max_prec
+    ++ (Std.Format.text " where ")
     ++ Std.Format.line ++ (methods.repr max_prec)
 | instDecl i_name spTy methods =>
   (Std.Format.text ".inst ") ++ i_name ++ " : " ++ "⟨" ++ spTy.repr ++ "⟩"
@@ -87,7 +89,7 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
   else ctors'.to.foldl (init := lookup x tl) Option.or
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.classDecl (kc := kc) y Ks scs fds ms) tl =>
+| .cons (.classDecl (kc := kc) y Ks /-scs fds-/ ms) tl =>
   if x == y then return .odata y Ks ms else
 
   let ms_mb : Option (String × Core.SpineTy) := ms.find? (λ (mn, _) => x == mn)

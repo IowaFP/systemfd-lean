@@ -87,7 +87,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   ∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1 ->
   (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, T) ->
     mn ≠ s ∧ lookup mn G = none) ->
-  GlobalWf G (.classDecl s Ks fds scs mτs)
+  GlobalWf G (.classDecl s Ks /-fds scs-/ mτs)
 | inst {ts : List (String × _)}:
   lookup x G = some (.odata x K mτs) ->
   -- TODO : ts cover all methods
