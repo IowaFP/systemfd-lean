@@ -70,16 +70,16 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
   if (Intermediate.lookup s Γ').isNone
   then return .cons (.defn ⟨s, T, t⟩) Γ'
   else none
-| .cons (.classDecl s Ks scs fds mτs) Γ => do
+| .cons (.classDecl s Ks /-scs fds-/ mτs) Γ => do
   let Γ' <- translate_SI Γ
   if (Intermediate.lookup s Γ').isNone
   then
     -- let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
-    let scs := scs.map (λ (n, sc, params) =>  ⟨n, (mk_superclass_om s Ks sc params)⟩)
+    let scs := [] -- scs.map (λ (n, sc, params) =>  ⟨n, (mk_superclass_om s Ks sc params)⟩)
+    let fds := [] -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
     let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (mk_method_om s Ks spTy)⟩)
     -- TODO: names s and scs fds mτs are distinct
     -- TODO: FunDep structure validation
-    let fds := fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
     return (.classDecl ⟨s, (mk_cls_kind Ks), fds, scs, mτs⟩ :: Γ')
   else none
 
