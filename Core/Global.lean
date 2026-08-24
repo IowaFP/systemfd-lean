@@ -209,7 +209,23 @@ theorem lookup_append {e : Entry} :
   Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
 := by
   intro h1
-  sorry
+  induction G1
+  · apply Or.inr;
+    simp [Core.lookup] at *;
+    sorry
+  case _ hd tl ih =>
+    have leme : hd :: tl ++ G2 = hd :: (tl ++ G2) := by grind
+    rw[leme] at h1;
+    cases hd <;> simp [lookup] at h1
+    case _ n s k ctors =>
+      split at h1
+      case _ e => subst e; simp at h1; subst e; apply Or.inl; simp [lookup]
+      case _ => sorry
+    sorry
+    sorry
+    sorry
+    sorry
+    sorry
 
 
 end Core
