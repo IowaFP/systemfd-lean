@@ -55,7 +55,6 @@ def mk_inst_mths (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List 
   | _ => none
 
 
-
 -- Kind check the types, leaves the terms untouched
 def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
 | .nil => return .nil
@@ -86,26 +85,50 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
 
 | .cons (.instDecl iname ⟨na, Ks1, nb, Ks2, nc, As, R⟩ ts) Γ => do
   let Γ' <- translate_SI Γ
-  match R.spine with
-  | some (cls_name, _) =>
-    match Intermediate.lookup cls_name Γ' with
-    | some (.odata cls_name' K' mτs) =>
-      if cls_name' == cls_name && mτs.length == ts.length
-      then let mths <- mk_inst_mths Γ' cls_name iname mτs ts
+  match Intermediate.lookup iname Γ' with
+  | none =>
+    match R.spine with
+    | some (cls_name, _) =>
+      match Intermediate.lookup cls_name Γ' with
+      | some (.odata cls_name' K' mτs) =>
+        if cls_name' == cls_name && mτs.length == ts.length
+        then let mths <- mk_inst_mths Γ' cls_name iname mτs ts
                -- ts.mapM (λ (mn, b) => do
                -- match mτs.lookup mn with
                -- | some (⟨na', Ks1', nb', Ks2', nc', As', R'⟩) =>
                --   return ⟨mn, 1, #(⟨iname, nc, As, nb, 0⟩), b⟩ -- TODO : This is bogus
                -- | none => none)
-           if mτs.length == mths.length then
-             return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
-           else none
-      else none
+             if mτs.length == mths.length then
+                return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
+             else none
+        else none
+      | _ => none
     | _ => none
   | _ => none
 
 
 notation: 175 "⟦" G "⟧" => translate_SI G
+
+def mk_inst_mth_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) (t : Surface.Term) :
+  Option Core.Global := do
+  match Core.lookup mn G with
+  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
+    let Δ := (Ks1.list ++ Ks2.list).reverse
+    if mn == y && m == n
+    then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) G Δ n Ts p
+         let t' <- t.type_directed_translate G (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
+         return .inst mn p t'
+    else none
+  | _ => none
+
+def mk_inst_mths_IC (G : Core.GlobalEnv) :
+  List (String × (m : Nat) × Core.Pattern m × Surface.Term) ->
+  Option Core.GlobalEnv
+| .nil => return .nil
+| .cons ⟨mn, m, p, t⟩ ms => do
+  let ms' <- mk_inst_mths_IC G ms
+  let i' <- mk_inst_mth_IC G mn m p t
+  return (i' :: ms')
 
 def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
 | .nil => return .nil
@@ -126,25 +149,7 @@ def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
-  let mths' <- mths.mapM (λ ⟨mn, m, p, t⟩ => do
-    match Core.lookup mn Γ' with
-    | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
-      let Δ := (Ks1.list ++ Ks2.list).reverse
-      if mn == y && m == n
-      then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) Γ' Δ n Ts p
-           let t' <- t.type_directed_translate Γ' (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
-           return (.inst mn p t')
-      else none
-    | _ => none
-  )
-  -- match Core.lookup s Γ' with
-  -- | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
-  --   let Δ := (Ks1.list ++ Ks2.list).reverse
-  --   if s == y && m == n
-  --   then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) Γ' Δ n Ts p
-  --        let t' <- t.type_directed_translate Γ' (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
-  --        return .cons (.inst s p t') Γ'
-  --   else none
+  let mths' <- mk_inst_mths_IC Γ' mths
   return mths' ++ -- fds' ++
          [.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ] ++ Γ'
 
