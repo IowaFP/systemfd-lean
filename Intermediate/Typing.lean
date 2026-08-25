@@ -62,31 +62,24 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
   lookup x G = none ->
   GlobalWf G (.data ⟨x, K, ⟨n, ctors⟩⟩)
--- | odata :
---   lookup x G = none ->
---   GlobalWf G (.odata x K)
--- | openm :
---   SpineKinding .openm x G (λ _ => true) T ->
---   lookup x G = none ->
---   GlobalWf G (.openm x T)
 | defn {G : GlobalEnv} :
   G&[] ⊢ T : ★ ->
-  -- G&[],[] ⊢ t : T ->
   lookup x G = none ->
   GlobalWf G (.defn ⟨x, T, t⟩)
-| inst :
+| clsDecl :
+  lookup s G = none ->
+  ∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1 ->
+  (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, T) ->
+    mn ≠ s ∧ lookup mn G = none) ->
+  GlobalWf G (.classDecl ⟨s, K, [],[], mτs⟩)
+
+| inst {mτs : List (String × Core.SpineTy)} {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}:
   lookup x G = none ->
-  lookup cls_name G = some (.odata cls_name K mths) ->
-  (e : mths.length = mths_impl.length) ->
-  (∀ (i : Nat), (hi : i < mths_impl.length) ->
-    ∃ (j : Nat), (hj : j < mths.length) -> mths[j].1 = (mths_impl[i]'hi).1) ->
-  -- (Ks1.list ++ Ks2.list).reverse = Δ ->
-  -- Core.PatternBinders .opn G Δ n Ts p ζ Γ ->
-  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths_impl⟩)
--- | octor :
---   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
---   lookup x G = none ->
---   GlobalWf G (.octor x T)
+  lookup cls_name G = some (.odata cls_name K mτs) ->
+  (e : mτs.length = mths_impl.length) ->
+  (∀ i : Nat, (hi : i < mτs.length) ->
+    ∃ j, ∃ (hj : j < mths_impl.length), ((mτs[i]'hi).1 = mths_impl[j].1) ∧ ((mτs[i]'hi).2.2.2.2.2.1 = (mths_impl[j]'hj).2.1)) ->
+  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, As, [], [], mths_impl⟩)
 
 inductive ListGlobalWf : List Global -> Prop where
 | nil : ListGlobalWf []

@@ -44,15 +44,23 @@ def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
-def mk_inst_mths (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × SpineTy)) : List (String × Surface.Term) ->
+def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy)) (mn : String) (tm : Surface.Term) :
+  Option (String × (m : Nat) × Core.Pattern m × Surface.Term) :=
+  match List.lookup mn mτs with
+  | .some ⟨na, Ks1, nb, Ks2, nc, As, R⟩ =>
+    if nc == 1 then
+    return ⟨mn, 1, #(⟨iname, 1, #(t#0), 0, 1⟩), tm⟩ -- TODO: Fix Pattern
+    else none
+  | _ => none
+
+
+def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy)) : List (String × Surface.Term) ->
  Option (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
 | List.nil => return List.nil
 | .cons (mn, tm) ts => do
-  let ts' <- mk_inst_mths Γ' C iname mτs ts
-  match List.lookup mn mτs with
-  | some _ =>
-    return (List.cons ⟨mn, 1, #(⟨iname, 1, #(t#0), 0, 1⟩), tm⟩ ts') -- TODO: Fix Pattern
-  | _ => none
+  let ts' <- mk_inst_mths_SI Γ' C iname mτs ts
+  let t <- mk_inst_mth_SI Γ' C iname mτs mn tm
+  return (t :: ts')
 
 
 -- Kind check the types, leaves the terms untouched
@@ -92,12 +100,7 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
       match Intermediate.lookup cls_name Γ' with
       | some (.odata cls_name' K' mτs) =>
         if cls_name' == cls_name && mτs.length == ts.length
-        then let mths <- mk_inst_mths Γ' cls_name iname mτs ts
-               -- ts.mapM (λ (mn, b) => do
-               -- match mτs.lookup mn with
-               -- | some (⟨na', Ks1', nb', Ks2', nc', As', R'⟩) =>
-               --   return ⟨mn, 1, #(⟨iname, nc, As, nb, 0⟩), b⟩ -- TODO : This is bogus
-               -- | none => none)
+        then let mths <- mk_inst_mths_SI Γ' cls_name iname mτs ts
              if mτs.length == mths.length then
                 return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
              else none
