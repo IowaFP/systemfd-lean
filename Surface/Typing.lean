@@ -88,16 +88,19 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, T) ->
     mn ≠ s ∧ lookup mn G = none) ->
   GlobalWf G (.classDecl s Ks /-fds scs-/ mτs)
-| inst {ts : List (String × _)}:
-  lookup x G = some (.odata x K mτs) ->
+| inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
+  lookup x G = none ->
+  spTy = ⟨na, Ks1, nb, Ks2, nc, As, R⟩ ->
+  R.spine = some (cls, Tys) ->
+  Δ = (Ks1 ++ Ks2).list.reverse ->
+  (∀ i : Fin nc, G&Δ ⊢s As[i] : ★) ->
+  G&Δ ⊢s R : ★ ->
+  lookup cls G = some (.odata cls K mτs) ->
   -- TODO : ts cover all methods
   mτs.length = ts.length ->
-  (∀ i : Nat, (hi : i < ts.length) ->
-    ∃ j, (hj : j < mτs.length) ->  mτs[j].1 = (ts[i]'hi).1) ->
-  -- lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
-  -- (Ks1.list ++ Ks2.list).reverse = Δ ->
-  -- PatternBinders .opn G Δ n Ts p ζ Γ ->
-  -- G&(ζ ++ Δ),Γ ⊢ t : R⟨.add Ty ζ.length⟩ ->
+  (∀ i : Nat, (hi : i < mτs.length) ->
+    ∃ j, ∃ (hj : j < ts.length), (mτs[i].1 = (ts[j]'hj).1)) ->
+
   GlobalWf G (.instDecl x spTy ts)
 
 inductive ListGlobalWf : GlobalEnv -> Prop where
