@@ -44,6 +44,15 @@ namespace Translation
 -- theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
 --   Intermediate.Query ((Intermediate.Global.data n s K ctors)::Γ) Intermediate.DataConst.opn q Ts ->
 --   Intermediate.Query Γ Intermediate.DataConst.opn q Ts := by sorry
+theorem Core.lookup_append_none {G1 G2 : Core.GlobalEnv} :
+  Core.lookup x (G1 ++ G2) = none ->
+  Core.lookup x G1 = none ∧ Core.lookup x G2 = none
+:= by
+ intro h1
+ induction G1 generalizing G2 <;> simp at *
+ sorry
+ sorry
+
 
 theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}:
   ⟦ G ⟧ = some G' ->
@@ -93,8 +102,15 @@ case _ ih =>
     split
     case _ e =>
       subst e; simp;
-      sorry
-    sorry
+      replace h2 := Core.lookup_append_none h2; rcases h2 with ⟨_, h2⟩
+      simp [Core.lookup] at h2
+    case _ e =>
+      split
+      case _ => sorry
+      case _ =>
+        split
+        · sorry
+        · sorry
   -- simp [Core.lookup] at h2
   -- split at h2
   -- case _ e =>

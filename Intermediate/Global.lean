@@ -69,7 +69,7 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
 -- | .openm n ty => ".openm " ++ n ++ " : " ++ Core.SpineTy.repr ty
 
 | .instDecl ⟨s, cls_name, _, _, _, Ks1, Ks2, tys, fds, scs, mths⟩ => "instDecl " ++
-  s ++ " " ++ cls_name ++ " " ++ tys.repr max_prec ++ Std.Format.line
+  s ++ " for " ++ cls_name ++ " " ++ tys.repr max_prec ++ Std.Format.line
   ++ fds.repr max_prec ++ Std.Format.line
   ++ scs.repr max_prec ++ Std.Format.line
   ++ mths.repr max_prec ++ Std.Format.line

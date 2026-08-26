@@ -242,6 +242,7 @@ def test7 : Option Ty := do
 
 #guard test7 == some ((t#4) ~[★]~ ((t#1 • t#2)))
 
+
 end Core.EqGraph.Test
 
 

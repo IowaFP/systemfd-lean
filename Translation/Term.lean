@@ -217,8 +217,10 @@ def Surface.Term.type_directed_translate
 | `#x =>
   match Γ[x]? with
   | some τ' => do
+    if τ == τ' then
+    return #x else
     let c <- Core.Ty.synth_coercion G Δ Γ τ' τ
-    return (.cast τ c #x)
+    return (.cast t#0 c #x)
   | _ => none
 
 -- | g`#x =>
@@ -237,7 +239,8 @@ def Surface.Term.type_directed_translate
   match τ with
   | .arrow A' B =>
     let t' <- t.type_directed_translate G Δ (A :: Γ) B
-    if A == A' then return λ[A] t' else none
+    let c <- Core.Ty.synth_coercion G Δ Γ (A -:> B) (A' -:> B)
+    return (Core.Term.cast t#0 c (λ[A] t'))
   | _ => none
 -- Elimination forms are a little annoying
 -- | .match (n := n) R s ps cs d => do
@@ -251,7 +254,7 @@ def Surface.Term.type_directed_translate
 | .annot t τt => do
   let t' <- t.type_directed_translate G Δ Γ τt
   let c <- Core.Ty.synth_coercion G Δ Γ τt τ
-  return .cast τ t' c
+  return .cast t#0 c t'
 | _ => none
 
 
