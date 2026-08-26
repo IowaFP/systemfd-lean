@@ -24,7 +24,23 @@ def benv : GlobalEnv := [
 #eval benv
 #eval Translation.translate_SI benv
 #eval! do
-  let benv' <- Translation.translate_SI benv
-  Translation.translate_IC benv'
+  match (Translation.translate_SI benv) with
+  | some benv' =>  match Translation.translate_IC benv' with
+               | Except.error e => e
+               | Except.ok e => e.repr max_prec
+  | none => "S to I"
+
+#eval! do
+  let t : Term := λˢ[gt#"Bool"] λˢ[gt#"Bool"] `#0
+  let G : Option Core.GlobalEnv := do
+    let benv' <- Translation.translate_SI benv
+    match Translation.translate_IC benv' with
+               | Except.error e => none
+               | Except.ok e => some e
+
+  let Δ := [★]
+  let Γ := [t#0 ~[★]~ gt#"Bool"]
+  let G' : Core.GlobalEnv <- G
+  return ((λˢ[gt#"Bool"]`#0).type_directed_translate G' Δ Γ (t#0 -:> gt#"Bool"))
 
 end Surface.Examples.Boolean

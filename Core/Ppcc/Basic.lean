@@ -364,13 +364,26 @@ def EqGraph.appc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (t1 t2
                 · apply jA1
                 · simp
               · apply jA2
-              · rw[Ty.subst_all, Ty.subst_all, Ty.subst_arr, Ty.subst_arr, Ty.subst_eq, Ty.subst_eq, Ty.subst_eq, Ty.subst_app, Ty.subst_app, succ_succ_succ_subst_lemma]; simp
+              · rw[Ty.subst_all, Ty.subst_all, Ty.subst_arr, Ty.subst_arr, Ty.subst_eq, Ty.subst_eq,
+                   Ty.subst_eq, Ty.subst_app, Ty.subst_app, succ_succ_succ_subst_lemma]; simp
             · apply jB1
             · rw[Ty.subst_all, Ty.subst_arr, Ty.subst_arr, Ty.subst_eq, Ty.subst_eq, Ty.subst_eq, Ty.subst_app, Ty.subst_app, succ_succ_subst_lemma, succ_succ_subst_lemma]; simp
           · apply jB2
           · simp
         · apply j1
       · apply j2 ⟩
+
+def Term.arrowc (KA KB : Kind): Term :=
+  Λ[KA]Λ[KA]Λ[KB]Λ[KB]λ[t#3 ~[KA]~ t#2] λ[t#1 ~[KB]~ t#0]
+        (.cast ((t#4 -:> t#2) ~[KB]~ (t#0 -:> t#1)) #1                           -- A -:> C ~ B -:> D
+        (.cast ((t#4 -:> t#2) ~[KB]~ (t#4 -:> t#0)) #0 (refl! (t#3 -:> t#1))))
+
+
+def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (t1 t2 : Term) (KA KB : Kind) (A1 A2 B1 B2 : Ty)
+  (j1 : (G&Δ, Γ ⊢ t1 : (A1 ~[KA]~ A2))) (j2 : (G&Δ, Γ ⊢ t2 : (B1 ~[KB]~ B2))) :
+  ((t : Term) ×' (G&Δ, Γ ⊢ t : ((A1 -:> B1) ~[★]~ (A2 -:> B2)))) :=
+  ⟨ ((((((Term.arrowc KA KB) •[A1]) •[A2]) •[B1]) •[B2]) • t1) • t2
+  , sorry⟩
 
 
 
@@ -882,20 +895,20 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
           apply some ⟨(rep_T1 • rep_T2), K, η, j⟩
      else none
   |_, _ => none
--- | .arrow A B => do
-  -- let ⟨rep_T1, K1, c1, j1⟩ <- eG.get_rep_view wf A
-  -- let ⟨rep_T2, K2, c2, j2⟩ <- eG.get_rep_view wf B
-  -- match h1 : A.infer_kind G Δ, h2 : B.infer_kind G Δ with
-  -- | some (K1a -:> K), some K1b =>
-  --    if h : K1a == K1b && ((K1 == K1a -:> K) && K2 == K1b)
-  --    then
-  --      have lem1 := infer_kind_sound h1
-  --      have lem2 := infer_kind_sound h2
-  --      by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3
-  --         let ⟨η, j⟩ := EqGraph.arrowc G wf Δ Γ c1 c2 K2 K A rep_T1 B rep_T2 j1 j2
-  --         apply some ⟨(rep_T1 -:> rep_T2), K, η, j⟩
-  --    else none
-  -- |_, _ => none
+| .arrow A B => do
+  let ⟨rep_T1, K1, c1, j1⟩ <- eG.get_rep_view wf A
+  let ⟨rep_T2, K2, c2, j2⟩ <- eG.get_rep_view wf B
+  match h1 : A.infer_kind G Δ, h2 : B.infer_kind G Δ with
+  | some K1a, some K1b =>
+     if h : K1 == K1a && K2 == K1b
+     then
+       have lem1 := infer_kind_sound h1
+       have lem2 := infer_kind_sound h2
+       by simp at h; rcases h with ⟨e1, e2⟩; subst e1; subst e2
+          let ⟨η, j⟩ := EqGraph.arrowc G wf Δ Γ c1 c2 K1 K2 A rep_T1 B rep_T2 j1 j2
+          apply some ⟨(rep_T1 -:> rep_T2), ★, η, j⟩
+     else none
+  |_, _ => none
 | T => do
   let i <- eG.nodes.findIdx? (·.ty == T)
   if h1 : (i < eG.nodes.length)

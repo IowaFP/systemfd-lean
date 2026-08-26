@@ -112,35 +112,44 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
 
 notation: 175 "⟦" G "⟧" => translate_SI G
 
+def toExcept (e : Std.Format) : Option α -> Except Std.Format α
+| none => Except.error e
+| some e => Except.ok e
+
 def mk_inst_mth_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) (t : Surface.Term) :
-  Option Core.Global := do
+  Except Std.Format Core.Global := do
   match Core.lookup mn G with
   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
     let Δ := (Ks1.list ++ Ks2.list).reverse
     if mn == y && m == n
-    then let ⟨ζ, Γ⟩ <- Core.pattern_binders (.data .opn) G Δ n Ts p
-         let t' <- t.type_directed_translate G (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length]
+    then let ⟨ζ, Γ⟩ <- toExcept "Pattern Binders" (Core.pattern_binders (.data .opn) G Δ n Ts p)
+         let t' <- toExcept
+           ("G :" ++ G.repr max_prec ++  Std.Format.line ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
+            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+            ++ "t : " ++  t.repr max_prec ++ Std.Format.line
+            ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
+           (t.type_directed_translate G (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length])
          return .inst mn p t'
-    else none
-  | _ => none
+    else Except.error "pat sizes don't match"
+  | _ => Except.error "lookup failed"
 
 def mk_inst_mths_IC (G : Core.GlobalEnv) :
   List (String × (m : Nat) × Core.Pattern m × Surface.Term) ->
-  Option Core.GlobalEnv
+  Except Std.Format Core.GlobalEnv
 | .nil => return .nil
 | .cons ⟨mn, m, p, t⟩ ms => do
   let ms' <- mk_inst_mths_IC G ms
   let i' <- mk_inst_mth_IC G mn m p t
   return (i' :: ms')
 
-def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
+def translate_IC : Intermediate.GlobalEnv -> Except Std.Format Core.GlobalEnv
 | .nil => return .nil
 | .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ => do
   let Γ' <- translate_IC Γ
   return (.data n s K ctors) :: Γ'
 | .cons (.defn ⟨s, T, t⟩) Γ => do
   let Γ' <- translate_IC Γ
-  let t' : Core.Term <- Surface.Term.type_directed_translate Γ' [] [] T t
+  let t' : Core.Term <- toExcept "defn translate" (t.type_directed_translate Γ' [] [] T)
   return (.defn s T t') :: Γ'
 | .cons (.classDecl ⟨s, K, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
@@ -152,9 +161,11 @@ def translate_IC : Intermediate.GlobalEnv -> Option Core.GlobalEnv
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
-  let mths' <- mk_inst_mths_IC Γ' mths
-  return mths' ++ -- fds' ++
-         [.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ] ++ Γ'
+  let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, (tys.zip (Vec.range tys.length)).map (λ (T, n) => t#n ~[★]~ T),
+                       (gt#cls_name).mkApps_nats (List.range tys.length).reverse⟩ ]
+  let mths' <- (mk_inst_mths_IC (octor ++ Γ') mths)
+  return (mths' ++ octor ++ Γ')
+
 
 
 notation: 175 "⟦" G "⟧" => translate_IC G
