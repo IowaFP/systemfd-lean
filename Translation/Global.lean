@@ -15,6 +15,20 @@ open LeanSubst
 
 namespace Translation
 
+@[simp] abbrev TM α := Except Std.Format α
+
+
+namespace Option
+def toTM (e : Std.Format) : Option α -> Except Std.Format α
+| none => Except.error e
+| some e => Except.pure e
+end Option
+
+instance : MonadLift TM IO where
+  monadLift tm := match tm with
+  | .ok a => return a
+  | .error s => .throw (.userError s.pretty)
+
 def mk_cls_kind : Vec Core.Kind kc -> Core.Kind
 | .nil => ★
 | .cons K Ks => K -:> mk_cls_kind Ks
@@ -44,18 +58,23 @@ def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
-def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy)) (mn : String) (tm : Surface.Term) :
-  Option (String × (m : Nat) × Core.Pattern m × Surface.Term) :=
+def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
+  (mτs : List (String × Core.SpineTy)) (mn : String) (tm : Surface.Term) :
+  TM (String × (m : Nat) × Core.Pattern m × Surface.Term) :=
   match List.lookup mn mτs with
   | .some ⟨na, Ks1, nb, Ks2, nc, As, R⟩ =>
-    if nc == 1 then
-    return ⟨mn, 1, #(⟨iname, 1, #(t#0), 0, 1⟩), tm⟩ -- TODO: Fix Pattern
-    else none
-  | _ => none
+    match Intermediate.lookup iname Γ' with
+    | some (.octor iname' _) =>
+      if nc == 1 && iname == iname' then
+      return ⟨mn, 1, #(⟨iname, 1, #(t#0), 0, 1⟩), tm⟩ -- TODO: Fix Pattern
+      else .error "mk_inst_mth_SI"
+    | _ => .error "mk_inst_mth_SI iname lookup"
+  | _ => .error "mk_inst_mth_SI"
 
 
-def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy)) : List (String × Surface.Term) ->
- Option (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
+def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy))
+ : List (String × Surface.Term) ->
+ TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
 | List.nil => return List.nil
 | .cons (mn, tm) ts => do
   let ts' <- mk_inst_mths_SI Γ' C iname mτs ts
@@ -64,20 +83,20 @@ def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : Li
 
 
 -- Kind check the types, leaves the terms untouched
-def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
+def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
 | .nil => return .nil
 | .cons (.data (n := n) s K ctors) Γ => do
   let Γ' <- translate_SI Γ
   -- TODO : Kind check each of the constructor types
   if (Intermediate.lookup s Γ').isNone && ctors.all (λ (c, _) => (Intermediate.lookup c Γ').isNone)
   then return .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ'
-  else none
+  else .error "translate_SI data"
 | .cons (.defn s T t) Γ => do
   let Γ' <- translate_SI Γ
   -- TODO: Kind check T
   if (Intermediate.lookup s Γ').isNone
   then return .cons (.defn ⟨s, T, t⟩) Γ'
-  else none
+  else .error "translate_SI defn"
 | .cons (.classDecl s Ks /-scs fds-/ mτs) Γ => do
   let Γ' <- translate_SI Γ
   if (Intermediate.lookup s Γ').isNone
@@ -89,41 +108,35 @@ def translate_SI : Surface.GlobalEnv -> Option Intermediate.GlobalEnv
     -- TODO: names s and scs fds mτs are distinct
     -- TODO: FunDep structure validation
     return (.classDecl ⟨s, (mk_cls_kind Ks), fds, scs, mτs⟩ :: Γ')
-  else none
+  else .error "translate_SI classDecl"
 
 | .cons (.instDecl iname ⟨na, Ks1, nb, Ks2, nc, As, R⟩ ts) Γ => do
   let Γ' <- translate_SI Γ
   match Intermediate.lookup iname Γ' with
   | none =>
-    match R.spine with
-    | some (cls_name, _) =>
-      match Intermediate.lookup cls_name Γ' with
-      | some (.odata cls_name' K' mτs) =>
+    let (cls_name, _) <- Option.toTM "translate_SI R.spine" (R.spine)
+    match Intermediate.lookup cls_name Γ' with
+    | some (.odata cls_name' K' mτs) =>
         if cls_name' == cls_name && mτs.length == ts.length
         then let mths <- mk_inst_mths_SI Γ' cls_name iname mτs ts
              if mτs.length == mths.length then
                 return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
-             else none
-        else none
-      | _ => none
-    | _ => none
-  | _ => none
+             else .error "translate_SI instDecl mτs.length"
+        else .error "translate_SI instDecl cls_name"
+    | _ => .error "translate_SI instDecl odata"
+  | _ => .error "translate_SI instDecl lookup cls_name"
 
 
 notation: 175 "⟦" G "⟧" => translate_SI G
 
-def toExcept (e : Std.Format) : Option α -> Except Std.Format α
-| none => Except.error e
-| some e => Except.ok e
-
 def mk_inst_mth_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) (t : Surface.Term) :
-  Except Std.Format Core.Global := do
+  TM Core.Global := do
   match Core.lookup mn G with
   | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
     let Δ := (Ks1.list ++ Ks2.list).reverse
     if mn == y && m == n
-    then let ⟨ζ, Γ⟩ <- toExcept "Pattern Binders" (Core.pattern_binders (.data .opn) G Δ n Ts p)
-         let t' <- toExcept
+    then let ⟨ζ, Γ⟩ <- Option.toTM "Pattern Binders" (Core.pattern_binders (.data .opn) G Δ n Ts p)
+         let t' <- Option.toTM
            ("G :" ++ G.repr max_prec ++  Std.Format.line ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
             ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
             ++ "t : " ++  t.repr max_prec ++ Std.Format.line
@@ -135,21 +148,21 @@ def mk_inst_mth_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Patter
 
 def mk_inst_mths_IC (G : Core.GlobalEnv) :
   List (String × (m : Nat) × Core.Pattern m × Surface.Term) ->
-  Except Std.Format Core.GlobalEnv
+  TM Core.GlobalEnv
 | .nil => return .nil
 | .cons ⟨mn, m, p, t⟩ ms => do
   let ms' <- mk_inst_mths_IC G ms
   let i' <- mk_inst_mth_IC G mn m p t
   return (i' :: ms')
 
-def translate_IC : Intermediate.GlobalEnv -> Except Std.Format Core.GlobalEnv
+def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
 | .nil => return .nil
 | .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ => do
   let Γ' <- translate_IC Γ
   return (.data n s K ctors) :: Γ'
 | .cons (.defn ⟨s, T, t⟩) Γ => do
   let Γ' <- translate_IC Γ
-  let t' : Core.Term <- toExcept "defn translate" (t.type_directed_translate Γ' [] [] T)
+  let t' : Core.Term <- Option.toTM "defn translate" (t.type_directed_translate Γ' [] [] T)
   return (.defn s T t') :: Γ'
 | .cons (.classDecl ⟨s, K, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
