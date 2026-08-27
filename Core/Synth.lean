@@ -242,6 +242,22 @@ def test7 : Option Ty := do
 
 #guard test7 == some ((t#4) ~[★]~ ((t#1 • t#2)))
 
+def mEG6 :=  EqGraph.process_tyenv [] CtxWf [★, ★, ★] [t#0 ~[★]~ t#1, t#2 ~[★]~ t#2]
+
+#eval! mEG6
+
+def test8 := do
+  let Δ := [★, ★, ★]
+  let Γ := [t#0 ~[★]~ t#1, t#2 ~[★]~ t#2]
+  let eG <- mEG6
+  -- let ⟨t1, _⟩ <- eG.get_rep_view CtxWf (t#1 -:> t#2)
+  -- let ⟨t2, _ ⟩ <- eG.get_rep_view CtxWf (t#0 -:> t#2)
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ  Γ ★ (t#0 -:> t#2) (t#1 -:> t#2)
+  -- return (t1, t2, t)
+  -- return eG
+  Term.infer_type [] Δ Γ t
+
+#guard test8 == some (t#0 -:> t#2 ~[★]~ (t#1 -:> t#2))
 
 end Core.EqGraph.Test
 
