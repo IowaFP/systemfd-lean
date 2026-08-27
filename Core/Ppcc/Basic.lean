@@ -888,8 +888,6 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
   | some (K1a -:> K), some K1b =>
      if h : K1a == K1b && ((K1 == K1a -:> K) && K2 == K1b)
      then
-       have lem1 := infer_kind_sound h1
-       have lem2 := infer_kind_sound h2
        by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3
           let ⟨η, j⟩ := EqGraph.appc G wf Δ Γ c1 c2 K2 K A rep_T1 B rep_T2 j1 j2
           apply some ⟨(rep_T1 • rep_T2), K, η, j⟩
@@ -902,8 +900,6 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
   | some K1a, some K1b =>
      if h : K1 == K1a && K2 == K1b
      then
-       have lem1 := infer_kind_sound h1
-       have lem2 := infer_kind_sound h2
        by simp at h; rcases h with ⟨e1, e2⟩; subst e1; subst e2
           let ⟨η, j⟩ := EqGraph.arrowc G wf Δ Γ c1 c2 K1 K2 A rep_T1 B rep_T2 j1 j2
           apply some ⟨(rep_T1 -:> rep_T2), ★, η, j⟩
@@ -922,6 +918,13 @@ def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : E
  | T1, T2 => do
   let ⟨repv_T1, K1, η1, η1_j⟩ <- eG.get_rep_view wf T1
   let ⟨repv_T2, K2, η2, η2_j⟩ <- eG.get_rep_view wf T2
+
+  if h : K == K1 && (repv_T1 == repv_T2 && K1 == K2)
+  then -- T1 == repv_T1 == T2
+    by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3
+       let ⟨symm_η2, j2'⟩ := EqGraph.symm G wf Δ Γ η2 K T2 repv_T1 η2_j
+       apply some (EqGraph.seq G wf Δ Γ η1 symm_η2 K T1 repv_T1 T2 η1_j j2')
+  else  -- try harder for var ~ app or var ~ A -> B cases
 
   let ⟨ip1, pT1, K1', η1', η1_j'⟩ <- eG.get_rep wf repv_T1
   let ⟨ip2, pT2, K2', η2', η2_j'⟩ <- eG.get_rep wf repv_T2

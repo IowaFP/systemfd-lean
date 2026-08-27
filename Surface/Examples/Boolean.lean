@@ -11,7 +11,7 @@ def benv : GlobalEnv := [
   -- .instDecl  "IdI" ⟨1, #(`★), 0, #(), 2, #(t`#0, t`#0), (gt`#"Id" `• t`#0) `• t`#0 ⟩ #(),
   -- .classDecl "Id" #(★, ★) [] [⟨"fd", 0, #(0), 1⟩, ⟨"bwk", 0, #(1), 0⟩] [],
 
-  -- .instDecl "EqBoolI" ⟨1, #(★), 0, #(), 1, #(gt#"Bool"), gt#"Eq" • t#0⟩ [("eq", λˢ[gt#"Bool"] λˢ[gt#"Bool"] `#0)],
+  .instDecl "EqBoolI" ⟨1, #(★), 0, #(), 1, #(gt#"Bool"), gt#"Eq" • t#0⟩ [("eq", λˢ[gt#"Bool"] λˢ[gt#"Bool"] `#0)],
   .classDecl "Ord" #(★) /-[("supOrd", "Eq", [0])] []-/ [("leq", ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Ordering")⟩)],
   .classDecl "Eq" #(★) /-[] []-/ [("eq",  ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Bool")⟩)],
   .data (n := 2) "Bool" ★ #(("True", ⟨0, #(), 0, #(), 0,  #(), gt#"Bool"⟩),
@@ -29,18 +29,5 @@ def benv : GlobalEnv := [
                | Except.error e => e
                | Except.ok e => e.repr max_prec
   | none => "S to I"
-
-#eval! do
-  let t : Term := λˢ[gt#"Bool"] λˢ[gt#"Bool"] `#0
-  let G : Option Core.GlobalEnv := do
-    let benv' <- Translation.translate_SI benv
-    match Translation.translate_IC benv' with
-               | Except.error e => none
-               | Except.ok e => some e
-
-  let Δ := [★]
-  let Γ := [t#0 ~[★]~ gt#"Bool"]
-  let G' : Core.GlobalEnv <- G
-  return ((λˢ[gt#"Bool"]`#0).type_directed_translate G' Δ Γ (t#0 -:> gt#"Bool"))
 
 end Surface.Examples.Boolean
