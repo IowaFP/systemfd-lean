@@ -22,12 +22,9 @@ def benv : GlobalEnv := [
   ]
 
 #eval benv
-#eval Translation.translate_SI benv
+#eval  Translation.translate_SI benv
 #eval! do
-  match (Translation.translate_SI benv) with
-  | some benv' =>  match Translation.translate_IC benv' with
-               | Except.error e => e
-               | Except.ok e => e.repr max_prec
-  | none => "S to I"
+  let benv' <- (Translation.translate_SI benv)
+  Translation.translate_IC benv'
 
 end Surface.Examples.Boolean
