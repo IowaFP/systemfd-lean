@@ -53,6 +53,11 @@ inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : GlobalEnv) (test :
   SpineKinding sv x G test ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
 
 
+@[simp, reducible] def method_pattern_size : String × (m : Nat) × Core.Pattern m × Surface.Term -> Nat := λ ⟨_, m, _, _⟩ => m
+@[simp, reducible] def method_name : String × (m : Nat) × Core.Pattern m × Surface.Term -> String := λ ⟨s, _, _, _⟩ => s
+@[simp, reducible] def spine_pattern_size : Core.SpineTy -> Nat := λ ⟨_, _, _, _, nc, _, _⟩ => nc
+
+
 inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vec (String × Core.SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
@@ -66,11 +71,11 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   G&[] ⊢ T : ★ ->
   lookup x G = none ->
   GlobalWf G (.defn ⟨x, T, t⟩)
-| clsDecl :
+| classDecl :
   lookup s G = none ->
   ∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1 ->
-  (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, T) ->
-    mn ≠ s ∧ lookup mn G = none) ->
+  (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ->
+    mn ≠ s ∧ lookup mn G = none ∧ T.spine = some (s, tys) ∧ tys.length = Ks1.length ∧ G&Ks1.list.reverse ⊢ R : ★) ->
   GlobalWf G (.classDecl ⟨s, K, [],[], mτs⟩)
 
 | inst {mτs : List (String × Core.SpineTy)} {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}:
@@ -78,7 +83,9 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   lookup cls_name G = some (.odata cls_name K mτs) ->
   (e : mτs.length = mths_impl.length) ->
   (∀ i : Nat, (hi : i < mτs.length) ->
-    ∃ j, ∃ (hj : j < mths_impl.length), ((mτs[i]'hi).1 = mths_impl[j].1) ∧ ((mτs[i]'hi).2.2.2.2.2.1 = (mths_impl[j]'hj).2.1)) ->
+    ∃ j, ∃ (hj : j < mths_impl.length),
+    ((mτs[i]'hi).1 = mths_impl[j].1) ∧
+    (spine_pattern_size (mτs[i]'hi).2 = method_pattern_size (mths_impl[j]'hj))) ->
   GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, As, [], [], mths_impl⟩)
 
 inductive ListGlobalWf : List Global -> Prop where

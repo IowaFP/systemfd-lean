@@ -62,11 +62,17 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
   (mτs : List (String × Core.SpineTy)) (mn : String) (tm : Surface.Term) :
   TM (String × (m : Nat) × Core.Pattern m × Surface.Term) :=
   match List.lookup mn mτs with
-  | .some ⟨na, Ks1, nb, Ks2, nc, As, R⟩ =>
+  | .some ⟨na, Ks1, 0, _, 1, #(T), _⟩ =>
+    -- open method spines don't introduce existentials
+    -- methods only analyze the instance class object (should be generalized)
     match Intermediate.lookup iname Γ' with
-    | some (.octor iname' _) =>
-      if nc == 1 && iname == iname' then
-      return ⟨mn, 1, #(⟨iname, 1, #(t#0), 0, 1⟩), tm⟩ -- TODO: Fix Pattern
+    | some (.octor iname' ⟨nai, Ks1i, nbi, _, nci, _, Ri⟩) => do
+      let ⟨C', _⟩ <- Option.toTM "mk_inst_mth R.spine" Ri.spine
+      let ⟨C'', _⟩ <- Option.toTM "mk_inst_mth R.spine" T.spine
+      if
+        (C'' == C &&  -- check that iname belongs to T type
+        (iname == iname' && C' == C)) then
+      return ⟨mn, 1, #(⟨iname, 1, #(t#0), nbi, nci⟩), tm⟩
       else .error "mk_inst_mth_SI"
     | _ => .error "mk_inst_mth_SI iname lookup"
   | _ => .error "mk_inst_mth_SI"
@@ -118,7 +124,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
     match Intermediate.lookup cls_name Γ' with
     | some (.odata cls_name' K' mτs) =>
         if cls_name' == cls_name && mτs.length == ts.length
-        then let mths <- mk_inst_mths_SI Γ' cls_name iname mτs ts
+        then let mths <- mk_inst_mths_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname mτs ts
              if mτs.length == mths.length then
                 return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
              else .error "translate_SI instDecl mτs.length"
@@ -137,7 +143,8 @@ def mk_inst_mth_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Patter
     if mn == y && m == n
     then let ⟨ζ, Γ⟩ <- Option.toTM "Pattern Binders" (Core.pattern_binders (.data .opn) G Δ n Ts p)
          let t' <- Option.toTM
-           ("G :" ++ G.repr max_prec ++  Std.Format.line ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
+           ("G :" ++ G.repr max_prec ++  Std.Format.line
+            ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
             ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
             ++ "t : " ++  t.repr max_prec ++ Std.Format.line
             ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)

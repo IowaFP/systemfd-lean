@@ -85,8 +85,8 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 | classDecl {mτs : List (String × _)}:
   lookup s G = none ->
   ∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1 ->
-  (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, T) ->
-    mn ≠ s ∧ lookup mn G = none) ->
+  (∀ i : Nat, (hi : i < mτs.length) -> mτs[i]'hi = (mn, ⟨na, Ks1, 0, #(), 0, #(), R⟩) ->
+    mn ≠ s ∧ lookup mn G = none ∧ G&Ks1.list.reverse ⊢s R : ★) ->
   GlobalWf G (.classDecl s Ks /-fds scs-/ mτs)
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
@@ -96,7 +96,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   (∀ i : Fin nc, G&Δ ⊢s As[i] : ★) ->
   G&Δ ⊢s R : ★ ->
   lookup cls G = some (.odata cls K mτs) ->
-  -- TODO : ts cover all methods
+  -- Cover all methods
   mτs.length = ts.length ->
   (∀ i : Nat, (hi : i < mτs.length) ->
     ∃ j, ∃ (hj : j < ts.length), (mτs[i].1 = (ts[j]'hj).1)) ->
