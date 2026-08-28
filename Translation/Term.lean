@@ -214,6 +214,7 @@ def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
 def Surface.Term.type_directed_translate
   (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
   Surface.Term -> Option Core.Term
+-- TODO: Treat vars and globals as if they are applications
 | `#x =>
   match Γ[x]? with
   | some τ' => do
@@ -224,11 +225,15 @@ def Surface.Term.type_directed_translate
   | _ => none
 
 -- | g`#x =>
---   match G.lookup_type x with
---   | some τ' => do
---     let c <- Core.Ty.synth_coercion G Δ Γ τ' τ
---     return (.cast τ c d#x)
+--   match Core.lookup x G with
+--   | .some (.ctor x' _ ⟨0, _, 0, _, 0, _, R⟩) => do
+--     let c <- Core.Ty.synth_coercion G Δ Γ R τ
+--     if x == x'
+--     then return (.cast t#0 c (ctor! x #() #() .nil))
+--     else none
 --   | _ => none
+
+
 | .lamt K t => do
   match τ with
   | .all K' τ' =>

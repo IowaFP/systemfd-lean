@@ -198,8 +198,11 @@ intro h
 unfold mk_inst_mth_SI at h <;> simp at h
 split at h
 case _ h =>
-  split at h <;> try simp [pure, Except.pure] at h;
-  rcases h with ⟨e, h⟩; case _ e => subst e; simp
+  split at h <;> try simp [pure, Except.pure, bind, Except.bind_eq_ok_iff] at h;
+  rcases h with ⟨s, h1, b, h2, a1, b1, h3⟩;
+  split at h3 <;> simp at h3
+  subst i;
+  case _ e => rcases e with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3; simp
 simp at h
 
 theorem mk_inst_mths_SI_sound {Γ' : Intermediate.GlobalEnv} :
@@ -515,6 +518,15 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
 
     sorry
   case _ iname cls_name k1 k2 k3 Ks1 Ks2 tys _ _ _ _ ih => -- inst
+    simp [bind, Except.bind_eq_ok_iff] at h1
+    rcases h1 with ⟨Γ', h1, h2⟩
+    simp [Functor.map, Except.map] at h2
+    split at h2 <;> simp at *
+    subst G'
+    cases wf; case _ mths_comp wftl wfhd =>
+    cases wfhd
+    rcases h3 with ⟨j1, b, p, h3, h4⟩
+    -- replace h4 := mk_inst_mths_indexing mths_comp h3
     sorry
     -- generalize odef : [Core.Global.octor iname ⟨k1, (Ks1, ⟨k2, (Ks2, ⟨k3, (tys, (gt#cls_name).mkApps_nats (List.range k1).reverse)⟩)⟩)⟩] = octor at *
     -- simp [Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h1, e⟩;
