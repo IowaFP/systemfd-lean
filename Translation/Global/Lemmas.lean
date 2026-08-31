@@ -304,10 +304,27 @@ case _ ih => -- instance
   · apply ih wftl h1
 
 
-theorem Intermediate.Query.string_ne {Γ : Intermediate.GlobalEnv} :
-  Intermediate.lookup x Γ = none ->
-  Intermediate.Query Γ v qs Ts ->
-  x ∉ qs := by sorry
+
+theorem Intermediate.Query.strength_inst1 {Γ : Intermediate.GlobalEnv} {qs : Vec String n} {Ts : Vec Core.Ty n}:
+  Intermediate.Query (.cons (.instDecl ⟨iname, cls, na, nb, nc, KsU, KsE , Tys , fds , scs, mths⟩) Γ) v qs Ts ->
+  Ts.findIdxs (Intermediate.is_this_cls v Γ cls) = [] ->
+  Intermediate.Query Γ v qs Ts
+  := by
+  intro h1 h2
+  induction Ts <;> cases qs
+  · constructor
+  · case _ T Ts ih q qs =>
+    simp [Vec.findIdxs] at h2; split at h2 <;> simp at h2
+    constructor
+    · sorry
+    · sorry
+
+theorem Intermediate.Query.strength_inst2 {Γ : Intermediate.GlobalEnv} {qs : Vec String n} {Ts : Vec Core.Ty n}:
+  Intermediate.Query (.cons (.instDecl ⟨iname, cls, na, nb, nc, KsU, KsE , Tys , fds , scs, mths⟩) Γ) v qs Ts ->
+  ¬ (Ts.findIdxs (Intermediate.is_this_cls v Γ cls) = []) ->
+  iname ∉ qs ->
+  Intermediate.Query Γ v qs Ts := by sorry
+
 
 theorem GlobalWf.drop_wf {Γ : Intermediate.GlobalEnv} (n : Nat): ⊢ Γ -> ⊢ Γ.drop n := by sorry
 
@@ -323,7 +340,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
   Ω G' := by
 intro h
 have wf' := translate_SI_wf_sound wf h
-intro mn na nb nc Ks1 Ks2 Ts R q _ h1 h2
+intro mn na nb nc Ks1 Ks2 Ts R qs _ h1 h2
 fun_induction translate_SI generalizing G' mn <;> simp [pure, Except.pure] at *
 · subst h; simp [Intermediate.lookup] at h1
 case _ ih => -- data
@@ -352,7 +369,7 @@ case _ ih => -- defn decl
   sorry
 case _ ih => -- class Decl
   sorry
-case _ cls1 iname _ _ _ _ _ _ _ _ _ ih =>
+case _ cls1 iname na Ks1 nb Ks2 nc As R _ _ ih =>
   cases wf; case _ wftl wfhd =>
   cases wfhd; case _ cls2 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ q1 q2 q3 =>
   simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h3⟩
@@ -362,15 +379,49 @@ case _ cls1 iname _ _ _ _ _ _ _ _ _ ih =>
       repeat (split at h3 <;> try simp at h3)
       subst G';
       cases wf'; case _ wftl' wfhd' =>
-      cases wfhd'; case _ rsp _ _ _ _ lks _ _ _ _ rsp' _ _ e _ _ _ _ lki1 e1 _ _ mths_comp _ _ _ _ lki2 _ _ =>
+      cases wfhd'; case _ rsp _ _ _ lks _ _ _ _ _ rsp' _ _ e _ _ _ _ lki1 e1 _ v mths_comp _ _ _ _ lki2 _ _ =>
       cases e; rcases e1 with ⟨e1, e2⟩; cases e1
       simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1; simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1
       rcases q1 with ⟨e1, q1⟩; subst e1; simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1;
       rcases q1 with ⟨e1, q1⟩; subst e1; simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1; subst q1
       rw[rsp] at rsp'; simp at rsp'; rcases rsp' with ⟨e1, e2⟩; rw[lki1] at lki2; cases lki2
       simp at lki1; simp at *;
+      simp [Intermediate.lookup] at h1
+      split at h1
+      simp at h1
+      have e := translate_SI_lookup_odata wftl h lks lki1
+      rcases e with ⟨e1, e2⟩; subst e1; subst e2
+      let Ts' := Ts.findIdxs (Intermediate.is_this_cls Intermediate.DataConst.opn Γ' cls2)
+      cases decEq Ts' []
+      case _ h4 =>
+        simp at h4;
+        if Decidable.decide (iname ∈ qs)
+        then
+          cases decEq cls1 cls2
+          case _ e =>
+          -- mths should have the pattern, soundness of
+            exists 0; exists iname; exists cls2; exists na; exists nb; exists nc;
+            exists Ks1; exists Ks2; exists As; exists []; exists []; exists v; simp
+            sorry
+          case _ e =>
+            subst e
+            exists 0; exists iname; exists cls1; exists na; exists nb; exists nc;
+            exists Ks1; exists Ks2; exists As; exists []; exists []; exists v; simp
 
-      sorry
+            sorry
+        else -- strengthen
+          have lem : iname ∉ qs := by grind
+          replace lem := Intermediate.Query.strength_inst2 h2 h4 lem
+          replace ih := ih wftl h wftl' h1 lem
+          rcases ih with ⟨i, n, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths, ih⟩
+          exists i + 1; exists n; exists cls_name; exists k1; exists k2; exists k3; exists Ks1; exists Ks2
+          exists As; exists fds; exists scs; exists mths
+      case _ h4 =>
+        have lem := Intermediate.Query.strength_inst1 h2 h4
+        replace ih := ih wftl h wftl' h1 lem
+        rcases ih with ⟨i, n, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths, ih⟩
+        exists i + 1; exists n; exists cls_name; exists k1; exists k2; exists k3; exists Ks1; exists Ks2
+        exists As; exists fds; exists scs; exists mths
 
   · simp at h3
 
