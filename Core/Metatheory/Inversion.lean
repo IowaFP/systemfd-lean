@@ -3,7 +3,7 @@ import Core.Term
 import Core.Reduction
 import Core.Typing
 import Core.Util
-import Core.Vec
+import Common.Vec
 
 import Core.Metatheory.Substitution
 import Core.Metatheory.Rename

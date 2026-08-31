@@ -6,7 +6,7 @@ import Core.Metatheory.Inversion
 import Core.Infer.Kind
 import Core.Infer.KindSound
 import Core.Util
-import Core.Vec
+import Common.Vec
 
 open LeanSubst
 

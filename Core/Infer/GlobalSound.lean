@@ -4,7 +4,7 @@ import Core.Infer.Global
 
 import Core.Global
 
-import Core.Vec
+import Common.Vec
 
 open Lilac
 

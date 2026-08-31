@@ -1,6 +1,6 @@
 import Core.Ty
 import Core.Term.Definition
-import Core.Vec
+import Common.Vec
 
 open Lilac
 

@@ -1,5 +1,5 @@
 import Core.Term
-import Core.Vec
+import Common.Vec
 import Core.Reduction
 import Core.Typing
 import Core.Util

@@ -1,4 +1,4 @@
-import Core.Vec
+import Common.Vec
 import Core.Util
 import Core.Ty.Definition
 

@@ -5,7 +5,7 @@ import Core.Ty
 import Core.Typing
 import LeanSubst
 
-import Core.Vec
+import Common.Vec
 import Lilac
 open Lilac
 open LeanSubst

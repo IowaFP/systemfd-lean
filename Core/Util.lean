@@ -1,7 +1,7 @@
 import Lilac
 import LeanSubst
 import Lean.Parser
-import Core.Vec
+import Common.Vec
 
 open Lilac
 open LeanSubst
