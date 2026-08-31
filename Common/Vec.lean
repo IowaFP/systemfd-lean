@@ -759,7 +759,17 @@ theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> 
 --   return (y :: ys)
 
 theorem Vec.all_eq_true {α : Type u_1} {v : Vec α n} {p : α -> Bool} :
-  v.all p = true <-> ∀ x ∈ v, p x = true := by sorry
+  v.all p = true <-> ∀ x ∈ v, p x = true
+:= by
+apply Iff.intro
+· intro h x x_in_v;
+  induction v <;> simp [all] at h
+  cases x_in_v
+  case _ ih =>
+  rcases h with ⟨h1, h2⟩; cases x_in_v
+  apply h1
+  case _ x_in_v => sorry
+· sorry
 
 def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) -> List (Fin n)
 | 0, _ => []

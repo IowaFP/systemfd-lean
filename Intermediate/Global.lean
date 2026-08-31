@@ -102,6 +102,12 @@ def Entry.is_data : DataConst -> Entry -> Bool
 | .opn, odata _ _ _ => true
 | _, _ => false
 
+def Entry.is_this_data : String -> DataConst -> Entry -> Bool
+| s, .cls, data d _ _
+| s, .opn, odata d _ _ => d == s
+| _, _, _ => false
+
+
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
 | odata _ K _ => K
@@ -156,6 +162,11 @@ def lookup_defn (G : List Global) (x : String) : Option (Core.Ty × Surface.Term
 
 def lookup_kind G x := lookup x G |> Option.map Intermediate.Entry.kind |> Option.join
 def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
+
+def is_this_cls (c : DataConst) (G : List Global) (clss : String) (x : Core.Ty) :=
+ match (x.spine) with
+ | some (x, _) => lookup x G |> Option.map (Entry.is_this_data clss c) |> Option.getD (dflt := false)
+ | none => false
 
 inductive SpCtorVariant : Type where
 | openm
