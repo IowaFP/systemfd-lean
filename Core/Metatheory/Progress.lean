@@ -1,4 +1,4 @@
-import Core.Vec
+import Common.Vec
 import Core.Term
 import Core.Reduction
 import Core.Typing

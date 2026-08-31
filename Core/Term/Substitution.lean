@@ -1,6 +1,6 @@
 import LeanSubst
 import Core.Util
-import Core.Vec
+import Common.Vec
 import Core.Term.Definition
 
 import Core.Ty

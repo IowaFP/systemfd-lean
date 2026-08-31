@@ -3,7 +3,7 @@ import Surface.Term
 import Surface.Global
 import Translation.Global
 import Translation.Term
-import Core.Vec
+import Common.Vec
 
 
 def Surface.BoolCtx : Surface.GlobalEnv := [

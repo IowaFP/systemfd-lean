@@ -1,7 +1,7 @@
 import Core.Ty
 import Core.Term
 import Core.Global
-import Core.Vec
+import Common.Vec
 import Core.Infer
 
 import Core.Eval.BigStep

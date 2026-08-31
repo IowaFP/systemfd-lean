@@ -2,7 +2,7 @@ import Core.Ty
 import Core.Global
 import Core.Typing
 
-import Core.Vec
+import Common.Vec
 
 import Core.Metatheory.Global
 

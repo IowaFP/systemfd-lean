@@ -3,7 +3,7 @@ import Core.Ty
 import Core.Infer.Kind
 import Core.Infer.Exhaustiveness
 import Core.Global
-import Core.Vec
+import Common.Vec
 import Lilac
 
 open LeanSubst

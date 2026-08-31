@@ -1,5 +1,5 @@
 import LeanSubst
-import Core.Vec
+import Common.Vec
 
 -- import Surface.Ty
 import Surface.Term

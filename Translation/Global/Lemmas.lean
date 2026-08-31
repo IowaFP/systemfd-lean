@@ -248,8 +248,8 @@ case _ =>
   subst h; constructor
 case _ ctors _ ih =>
   simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h1, h⟩
-  rcases h with ⟨h2, h3, h⟩;
-  subst h2; case _ h => sorry --
+  split at h <;> simp at h
+  subst G'; case _ h => rcases h with ⟨h2, h⟩; sorry
   -- case _ h =>
   -- simp at h; sorry -- subst h; cases wf; case _ wftl wfhd =>
   -- cases wfhd; case _ hd1 hd2 hd3 =>
@@ -329,7 +329,8 @@ fun_induction translate_SI generalizing G' mn <;> simp [pure, Except.pure] at *
 case _ ih => -- data
   cases wf; case _ wftl wfhd =>
   simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h3, h⟩
-  rcases h with ⟨h, h2⟩; subst G'
+  split at h <;> simp at *
+  subst G'
   cases wf'; case _ wftl' wfhd' =>
   simp [Intermediate.lookup] at h1;
   split at h1
@@ -351,18 +352,26 @@ case _ ih => -- defn decl
   sorry
 case _ ih => -- class Decl
   sorry
-case _ cls iname _ _ _ _ _ _ _ _ _ ih =>
+case _ cls1 iname _ _ _ _ _ _ _ _ _ ih =>
   cases wf; case _ wftl wfhd =>
-  cases wfhd; case _ q1 q2 q3 =>
+  cases wfhd; case _ cls2 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ q1 q2 q3 =>
   simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h3⟩
   split at h3
   · simp [Option.toTM] at h3
     · split at h3 <;> simp [Except.bind] at h3
-      split at h3 <;> try simp at h3
-      split at h3 <;> try simp at h3
-      split at h3
+      repeat (split at h3 <;> try simp at h3)
+      subst G';
+      cases wf'; case _ wftl' wfhd' =>
+      cases wfhd'; case _ rsp _ _ _ _ lks _ _ _ _ rsp' _ _ e _ _ _ _ lki1 e1 _ _ mths_comp _ _ _ _ lki2 _ _ =>
+      cases e; rcases e1 with ⟨e1, e2⟩; cases e1
+      simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1; simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1
+      rcases q1 with ⟨e1, q1⟩; subst e1; simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1;
+      rcases q1 with ⟨e1, q1⟩; subst e1; simp at q1; rcases q1 with ⟨e1, q1⟩; subst e1; subst q1
+      rw[rsp] at rsp'; simp at rsp'; rcases rsp' with ⟨e1, e2⟩; rw[lki1] at lki2; cases lki2
+      simp at lki1; simp at *;
+
       sorry
-      sorry
+
   · simp at h3
 
   -- rcases h3 with ⟨⟨e1, e2⟩, ⟨mths_impls, h3, h4, h5⟩⟩

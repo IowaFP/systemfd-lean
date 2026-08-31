@@ -1,7 +1,7 @@
 import LeanSubst
 -- import Surface.Ty
 import Core.Ty
-import Core.Vec
+import Common.Vec
 
 open LeanSubst
 open Lilac

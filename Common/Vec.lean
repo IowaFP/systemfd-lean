@@ -757,9 +757,19 @@ theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> 
 --   let ys <- Vec.mapM f xs
 --   let y <- f x
 --   return (y :: ys)
-@[simp]
+
 theorem Vec.all_eq_true {α : Type u_1} {v : Vec α n} {p : α -> Bool} :
   v.all p = true <-> ∀ x ∈ v, p x = true := by sorry
 
+def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) -> List (Fin n)
+| 0, _ => []
+| n + 1, .cons v vs =>
+  let idxs := vs.findIdxs p
+  if p v then .cons ((Fin.ofNat (n + 1) n).rev) (idxs.map (·.succ)) else (idxs.map (·.succ))
+
+#guard #(0, 1, 1, 2, 1, 3).findIdxs (· == 1) == [1, 2, 4]
+#guard #(0, 1, 2, 3).findIdxs (· == 3) == [3]
+#guard #(0, 1, 2, 3).findIdxs (· == 0) == [0]
+#guard #(0, 1, 2, 3).findIdxs (· == 4) == []
 
 end Lilac

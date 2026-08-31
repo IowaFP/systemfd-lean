@@ -15,6 +15,9 @@ git = "https://github.com/amarmaduke/lilac"
 rev = "d50e83f"
 
 [[lean_lib]]
+name = "Common"
+
+[[lean_lib]]
 name = "Core"
 
 [[lean_lib]]
