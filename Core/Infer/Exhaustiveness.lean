@@ -393,7 +393,7 @@ apply Eq.symm lem1
 
 
 theorem fin_shift_lemma {bs cs : Vec _ n} :
-  (∀ (i : Fin (n + 1)), lookup_ctor_names G (b :: bs)[i] = some (c :: cs)[i]) ->
+  (∀ (i : Fin (n + 1)), lookup_ctor_names G (Vec.cons b bs)[i] = some (c :: cs)[i]) ->
   ∀ (i : Fin n), lookup_ctor_names G bs[i] = some cs[i] := by
 intro h i
 replace h := h (i.succ); simp at h; apply h

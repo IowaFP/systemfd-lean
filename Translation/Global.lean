@@ -38,6 +38,13 @@ def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String
   let sc_ty := (gt#sc).mkApps_nats sc_params
   ⟨kc, cls_params, 0, #(), 1, #(cls_ty), sc_ty⟩
 
+def check_om : (String × Core.SpineTy) -> Option Unit
+| (s, ⟨na, Ks1, 0, #(), 0, #(), R⟩) => some ()
+| _ => none
+
+def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x => check_om x == .some ())
+
+
 def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineTy) : Core.SpineTy :=
   let ⟨na, Ks1, nb, Ks2, nc, cts, R⟩ := R
   let ski := (List.range cls_params.length).map (· + na + nb)
@@ -103,17 +110,19 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   if (Intermediate.lookup s Γ').isNone
   then return .cons (.defn ⟨s, T, t⟩) Γ'
   else .error "translate_SI defn"
-| .cons (.classDecl s Ks /-scs fds-/ mτs) Γ => do
+| .cons (.classDecl (kc := kc) s Ks /-scs fds-/ mτs) Γ => do
   let Γ' <- translate_SI Γ
   if (Intermediate.lookup s Γ').isNone
   then
     -- let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
     let scs := [] -- scs.map (λ (n, sc, params) =>  ⟨n, (mk_superclass_om s Ks sc params)⟩)
     let fds := [] -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
-    let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (mk_method_om s Ks spTy)⟩)
+    if check_oms mτs then
+      let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (mk_method_om s Ks spTy)⟩)
     -- TODO: names s and scs fds mτs are distinct
     -- TODO: FunDep structure validation
-    return (.classDecl ⟨s, (mk_cls_kind Ks), fds, scs, mτs⟩ :: Γ')
+      return (.classDecl ⟨s, kc, Ks, fds, scs, mτs⟩ :: Γ')
+    else .error "translate_SI check_oms"
   else .error "translate_SI classDecl"
 
 | .cons (.instDecl iname ⟨na, Ks1, nb, Ks2, nc, As, R⟩ ts) Γ => do
@@ -171,12 +180,12 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
   let Γ' <- translate_IC Γ
   let t' : Core.Term <- Option.toTM "defn translate" (t.type_directed_translate Γ' [] [] T)
   return (.defn s T t') :: Γ'
-| .cons (.classDecl ⟨s, K, fds, scs, mths⟩) Γ => do
+| .cons (.classDecl ⟨s, _, K, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   return mths.map (λ (n, spTy) => .openm n spTy)
          -- ++ scs.map (λ (n, spTy) => .openm n spTy)
          -- ++ fds.map (λ (n, spTy) => .openm n spTy)
-         ++ [.odata s K] ++ Γ'
+         ++ [.odata s (mk_cls_kind K)] ++ Γ'
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ

@@ -30,7 +30,7 @@ theorem Vec.get_to {v : Fun.Vec α n} : v.to[i] = v i := by
     case _ i => simp [ih]; simp [Fun.Vec.cons]
 
 @[simp]
-theorem Vec.get_Fin_ofNat_succ {xs : Vec α (n + 1)} (h : i + 1 < n + 2) : (x :: xs)[Fin.ofNat (n + 2) (i + 1)] = xs[Fin.ofNat (n + 1) i] := by
+theorem Vec.get_Fin_ofNat_succ {xs : Vec α (n + 1)} (h : i + 1 < n + 2) : (Vec.cons x xs)[Fin.ofNat (n + 2) (i + 1)] = xs[Fin.ofNat (n + 1) i] := by
   unfold Fin.ofNat
   have lem1 : (i + 1) % (n + 2) = i + 1 := by rw [Nat.mod_eq_of_lt h]
   have lem2 : i % (n + 1) = i := by rw [Nat.mod_eq_of_lt]; grind
@@ -580,7 +580,26 @@ induction cs
     · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
     grind
 
-theorem Vec.fold_or_val_eq_none : foldl Option.or d vs = none <-> d = none ∧ ∀ v ∈ vs, v = none := by sorry
+theorem Vec.fold_or_val_eq_none : foldl Option.or d vs = none <-> (d = none ∧ ∀ v ∈ vs, v = none)
+  := by
+ apply Iff.intro
+ · intro h;
+   fun_induction Vec.foldl
+   apply And.intro
+   assumption; intro v x; cases x
+   case _ d _ v vs ih =>
+   cases d <;> simp at *
+   replace ih := ih h; intro v' v'_in_vs; rcases ih with ⟨ih1, ih2⟩; subst ih1;
+   cases v'_in_vs <;> simp at *
+   case _ v'_in_vs => apply ih2; unfold Membership.mem; unfold instMembershipVec; simp; apply v'_in_vs
+   apply ih h
+ · intro h; rcases h with ⟨h1, h2⟩
+   fun_induction Vec.foldl <;> subst h1
+   rfl
+   case _ v vs ih =>
+   replace h2' := h2 v (by simp; sorry); simp [Option.or] at *
+   sorry
+
 
 def Vec.from_list : List α -> (n : Nat) × Vec α n
 | .nil => ⟨0, .nil⟩
@@ -661,7 +680,7 @@ theorem Vec.from_list_indexing2 {l : List α} {vs : Vec α n} :
     case _ i _ => apply ih i
 
 private theorem fin_shift_lemma {a2 a1 : α} {as1 as2 : Vec α n}:
-  (∀ (i : Fin (n + 1)), (a1 :: as1)[i] = (a2 :: as2)[i]) ->
+  (∀ (i : Fin (n + 1)), (Vec.cons a1 as1)[i] = (a2 :: as2)[i]) ->
   ∀ (i : Fin n), as1[i] = as2[i] := by intro h i; apply h i.succ
 
 theorem Vec.refl_indexing {v1 v2 : Vec α n} : v1 = v2 <-> ∀ (i: Fin n), v1[i] = v2[i]
@@ -759,7 +778,7 @@ theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> 
 --   return (y :: ys)
 
 theorem Vec.all_eq_true {α : Type u_1} {v : Vec α n} {p : α -> Bool} :
-  v.all p = true <-> ∀ x ∈ v, p x = true
+  v.all p = true <-> (∀ x ∈ v, p x = true)
 := by
 apply Iff.intro
 · intro h x x_in_v;
@@ -768,8 +787,14 @@ apply Iff.intro
   case _ ih =>
   rcases h with ⟨h1, h2⟩; cases x_in_v
   apply h1
-  case _ x_in_v => sorry
-· sorry
+  case _ x_in_v => apply ih h2 x_in_v
+· intro h
+  induction v <;> simp at *
+  case _ v vs ih =>
+  have lem := h v (by simp [Membership.mem]; constructor);
+  have lem2 : (∀ x, x ∈ vs → p x = true) := by intro v v_in_vs; replace h := h v (by constructor; apply v_in_vs); apply h
+  apply And.intro; apply lem; apply ih lem2
+
 
 def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) -> List (Fin n)
 | 0, _ => []
