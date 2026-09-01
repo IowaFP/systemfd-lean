@@ -212,7 +212,8 @@ theorem lookup_append {e : Entry} :
   induction G1
   · apply Or.inr;
     simp [Core.lookup] at *;
-    sorry
+    have lem : [] ++ G2 = G2 := by grind;
+    simp [lem] at h1; apply h1
   case _ hd tl ih =>
     have leme : hd :: tl ++ G2 = hd :: (tl ++ G2) := by grind
     rw[leme] at h1;

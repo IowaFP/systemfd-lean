@@ -586,7 +586,7 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
     cases wf; case _ mths_comp wftl wfhd =>
     cases wfhd
     rcases h3 with ⟨j1, b, p, h3, h4⟩
-    -- replace h4 := mk_inst_mths_indexing mths_comp h3
+    -- replace h3 := mk_inst_mths_indexing mths_comp h3
     sorry
     -- generalize odef : [Core.Global.octor iname ⟨k1, (Ks1, ⟨k2, (Ks2, ⟨k3, (tys, (gt#cls_name).mkApps_nats (List.range k1).reverse)⟩)⟩)⟩] = octor at *
     -- simp [Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h1, e⟩;
@@ -703,29 +703,32 @@ case _ cls_name _ _ _ _ _ ih => -- openm
   --   exists cls;
     sorry
 case _ cls_name _ _ _ _ _ _ _ _ _ _ ih => -- inst
-  -- rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
-  -- rw[Option.bind_eq_some_iff] at h1; rcases h1 with ⟨mths', h4, h1⟩
-  -- simp at h1; subst G'
-  -- cases wf; case _ wftl wfhd =>
-  -- replace ih := @ih mn _ wftl h3
-  -- replace h2 := Core.lookup_append h2
-  -- cases h2
-  -- case _ h2 =>
-  --   cases wfhd;
-  --   exfalso
-  --   replace h2 := Core.lookup_append h2
-  --   cases h2
-  --   case _ h2 => apply mk_inst_mths_IC_lookup h4 h2
-  --   case _ h2 => rcases h2 with ⟨e, h2⟩; simp [Core.lookup] at h2
-  -- case _ h2 =>
-  --   rcases h2 with ⟨h2, h5⟩
-  --   replace ih := ih h5; rcases ih with ⟨cls, ih⟩
-  --   exists cls; simp [Intermediate.lookup];
-  --   split
-  --   case _ e =>
-  --     exfalso; subst e; cases wfhd; case _ lk _ _ _ => rw[lk] at ih; simp at ih
-  --   apply ih
-  sorry
+  simp[bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
+  simp [Functor.map, Except.map] at h1
+  repeat (split at h1 <;> simp at h1)
+  -- simp at h1;
+  subst G'
+  case _ h1 =>
+  cases wf; case _ wftl wfhd =>
+  replace ih := @ih mn _ wftl h3
+  replace h2 := Core.lookup_append h2
+  cases h2
+  case _ h2 =>
+    cases wfhd;
+    exfalso
+    replace h2 := Core.lookup_append h2
+    cases h2
+    case _ h2 => apply mk_inst_mths_IC_lookup h1 h2
+    case _ h2 => rcases h2 with ⟨e, h2⟩; simp [Core.lookup] at h2
+  case _ h2 =>
+    rcases h2 with ⟨h2, h5⟩
+    replace ih := ih h5; rcases ih with ⟨cls, ih⟩
+    exists cls; simp [Intermediate.lookup];
+    split
+    case _ e =>
+      exfalso; subst e; cases wfhd; case _ lk _ _ _ => rw[lk] at ih; simp at ih
+    apply ih
+
 
 -- theorem translate_IC_lookup_openm2 {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
 --   ⟦ G ⟧ = .ok G' ->
