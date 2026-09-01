@@ -20,7 +20,8 @@ structure DefnFrame where
 
 structure ClassDeclFrame where
   name : String
-  kind : Core.Kind
+  kcU : Nat
+  kind : Vec Core.Kind kcU
   fds : List (String × Core.SpineTy)
   scs : List (String × Core.SpineTy)
   mths : List (String × Core.SpineTy)
@@ -59,7 +60,7 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   ".data " ++ s ++ " : " ++ Core.Kind.repr max_prec K  ++ " where " ++ Std.Format.line
      ++ Std.Format.nest 4 (ctors.reprPrec 0)
 | .defn ⟨n, T, t⟩ => ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line ++ t.repr max_prec
-| .classDecl ⟨s, K, fds, scs, mths⟩ => "classDecl " ++
+| .classDecl ⟨s, _, K, fds, scs, mths⟩ => "classDecl " ++
   s ++ " " ++ K.repr max_prec ++ Std.Format.line
   ++ fds.repr max_prec ++ Std.Format.line
   ++ scs.repr max_prec ++ Std.Format.line
@@ -87,7 +88,7 @@ abbrev GlobalEnv := List Global
 inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
-| odata : String -> Core.Kind -> List (String × Core.SpineTy) -> Entry
+| odata : {n : Nat} -> String -> Vec Core.Kind n -> List (String × Core.SpineTy) -> Entry
 | openm : String -> String -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
@@ -110,7 +111,7 @@ def Entry.is_this_data : String -> DataConst -> Entry -> Bool
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ K _ => K
+| odata _ K _ => Core.Kind.mk_kind K
 | _ => none
 
 
@@ -125,7 +126,7 @@ def lookup (x : String) : GlobalEnv -> Option Entry
   else Vec.foldl Option.or (lookup x tl) ctors'
 | .cons (.defn ⟨y, a, b⟩) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.classDecl ⟨cls_name, K, fds, scs, mths⟩) tl =>
+| .cons (.classDecl ⟨cls_name, _, K, fds, scs, mths⟩) tl =>
   if x == cls_name then return (.odata cls_name K mths)
   else match h : mths.findIdx? (λ ⟨n, _⟩ => x == n) with
        | none => lookup x tl

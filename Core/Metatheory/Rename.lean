@@ -71,7 +71,7 @@ case all K Δ P _ ih =>
 
 theorem Kinding.rename_lift {Δ Δr : List Kind} K (r : Ren Ty) :
   (∀ i, Δ[i]? = Δr[r.act i]?) ->
-  ∀ i, (K::Δ)[i]? = (K::Δr)[r.lift.act i]?
+  ∀ i, (K::Δ)[i]? = (List.cons K Δr)[r.lift.act i]?
 := by
   intro h i
   cases i <;> simp [Ren.lift] at *
@@ -97,7 +97,7 @@ theorem Typing.rename_rename {Γ Γr : List Ty} (r1 : Ren Term) (r2 : Ren Ty) :
 
 theorem Typing.rename_lift {Γ Γr : List Ty} (r : Ren Term) T :
   (∀ {i}, Γ[i]? = Γr[r.act i]?) ->
-  ∀ {i}, (T::Γ)[i]? = (T::Γr)[r.lift.act i]?
+  ∀ {i}, (T::Γ)[i]? = (List.cons T Γr)[r.lift.act i]?
 := by
   intro h1 i
   cases i <;> simp [Ren.lift] at *

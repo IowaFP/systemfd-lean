@@ -1,14 +1,14 @@
-{"version": "1.1.0",
+{"version": "1.2.0",
  "packagesDir": ".lake/packages",
  "packages":
  [{"url": "https://github.com/amarmaduke/lilac",
    "type": "git",
    "subDir": null,
    "scope": "amarmaduke",
-   "rev": "d50e83f8ad994bfd31d62f5c3b61795eacd29bce",
+   "rev": "5e7f7a518be4731f53d06a96e931868cd14140b9",
    "name": "lilac",
    "manifestFile": "lake-manifest.json",
-   "inputRev": "d50e83f",
+   "inputRev": "5e7f7a5",
    "inherited": false,
    "configFile": "lakefile.toml"},
   {"url": "https://github.com/amarmaduke/lean-subst",
@@ -22,4 +22,5 @@
    "inherited": false,
    "configFile": "lakefile.toml"}],
  "name": "systemfd",
- "lakeDir": ".lake"}
+ "lakeDir": ".lake",
+ "fixedToolchain": false}

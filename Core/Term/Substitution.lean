@@ -296,7 +296,7 @@ theorem Pattern.ren_nil {r : Ren Ty} : (.nil : Pattern 0)⟨r⟩ = .nil := by
   simp [RenMap.rmap]
 
 @[simp]
-theorem Pattern.ren_cons {r : Ren Ty} {tl : Pattern m} : (⟨s, i, ℓ, j⟩::tl)⟨r⟩ = ⟨s, i, ℓ⟨r⟩, j⟩::tl⟨r⟩ := by
+theorem Pattern.ren_cons {r : Ren Ty} {tl : Pattern m} : (Vec.cons ⟨s, i, ℓ, j⟩ tl)⟨r⟩ = ⟨s, i, ℓ⟨r⟩, j⟩::tl⟨r⟩ := by
   simp [RenMap.rmap]
 
 instance : RenMapId (Pattern m) Ty where
@@ -324,7 +324,7 @@ theorem Pattern.subst_nil {σ : Subst Ty} : (.nil : Pattern 0)[σ] = .nil := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Pattern.subst_cons {σ : Subst Ty} {tl : Pattern m} : (⟨s, i, ℓ, j⟩::tl)[σ] = ⟨s, i, ℓ[σ], j⟩::tl[σ] := by
+theorem Pattern.subst_cons {σ : Subst Ty} {tl : Pattern m} : (Vec.cons ⟨s, i, ℓ, j⟩ tl)[σ] = ⟨s, i, ℓ[σ], j⟩::tl[σ] := by
   simp [SubstMap.smap]
 
 instance : SubstMapId (Pattern m) Ty where
