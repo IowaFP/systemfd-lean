@@ -108,6 +108,9 @@ def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
 def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) :
   Option (Ppcc.EqGraph G Δ Γ)
   := do let init : Ppcc.EqGraph G Δ Γ := Ppcc.EqGraph.empty
+        let init <- G.foldlM (λ acc g => match g with
+          | .data _ s _ _ => acc.push_ty gt#s
+          | _ => acc) init
         let eG <- Γ.foldlM (λ acc T => acc.push_ty T) init
         (Γ.zipIdx).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
 
@@ -117,7 +120,10 @@ def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Opti
   let K'  <- T1.infer_kind G Δ
   let K'' <- T2.infer_kind G Δ
   if K' == K'' && K' == K
-      then do
+  then
+    if T1 == T2 then return (refl! T1)
+    else
+    do
         match h : G.wf_globals with
         | some () =>
           let wf := wf_global_sound h
@@ -125,7 +131,7 @@ def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Opti
           let ⟨t, _⟩ <- eG.ask G wf Δ Γ K T1 T2
           return t
         | _ => none
-      else none
+  else none
 | _ => none
 
 theorem synth_coercion_sound :
@@ -142,10 +148,14 @@ theorem synth_coercion_sound :
    rcases j with ⟨⟨e1, e2⟩, j⟩
    subst e1; subst e2
    split at j
-   · rw[Option.bind_eq_some_iff] at j; rcases j with ⟨eG, j3, j⟩
-     rw[Option.bind_eq_some_iff] at j; rcases j with ⟨⟨t, tj⟩, j4, j⟩
-     simp at j; subst j; apply tj
-   · cases j
+   · case _ e =>
+     simp at e; subst e; simp at j; subst c;
+     have lem := infer_kind_sound j1; constructor; apply lem
+   · split at j;
+     · rw[Option.bind_eq_some_iff] at j; rcases j with ⟨eG, j3, j⟩
+       rw[Option.bind_eq_some_iff] at j; rcases j with ⟨⟨t, tj⟩, j4, j⟩
+       simp at j; subst j; apply tj
+     · cases j
  · cases j
 
 
@@ -258,6 +268,30 @@ def test8 := do
   Term.infer_type [] Δ Γ t
 
 #guard test8 == some (t#0 -:> t#2 ~[★]~ (t#1 -:> t#2))
+
+def BoolCtx : GlobalEnv := [
+  Global.data 2 "Bool" ★
+             #( ("True", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)
+               , ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)),
+  Global.data 2 "Ordering" ★
+             #( ("LT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩)
+               , ("GT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩))
+
+  ]
+
+def WfBoolCtx : ⊢ BoolCtx := sorry
+
+def mEG7 := EqGraph.process_tyenv BoolCtx WfBoolCtx [★] [t#0 ~[★]~ gt#"Bool"]
+
+def test9 := do
+  let Δ := [★]
+  let Γ := [t#0 ~[★]~ gt#"Bool"]
+  let eG <- mEG7
+  let ⟨t, _⟩ <- eG.ask BoolCtx WfBoolCtx Δ Γ ★ (t#0 -:> gt#"Ordering") (gt#"Bool" -:> gt#"Ordering")
+  return t
+
+#eval! mEG7
+#eval! test9
 
 end Core.EqGraph.Test
 
