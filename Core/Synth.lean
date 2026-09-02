@@ -269,29 +269,29 @@ def test8 := do
 
 #guard test8 == some (t#0 -:> t#2 ~[★]~ (t#1 -:> t#2))
 
-def BoolCtx : GlobalEnv := [
-  Global.data 2 "Bool" ★
-             #( ("True", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)
-               , ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)),
-  Global.data 2 "Ordering" ★
-             #( ("LT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩)
-               , ("GT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩))
+-- def BoolCtx : GlobalEnv := [
+--   Global.data 2 "Bool" ★
+--              #( ("True", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)
+--                , ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)),
+--   Global.data 2 "Ordering" ★
+--              #( ("LT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩)
+--                , ("GT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩))
 
-  ]
+--   ]
 
-def WfBoolCtx : ⊢ BoolCtx := sorry
+-- def WfBoolCtx : ⊢ BoolCtx := sorry
 
-def mEG7 := EqGraph.process_tyenv BoolCtx WfBoolCtx [★] [t#0 ~[★]~ gt#"Bool"]
+-- def mEG7 := EqGraph.process_tyenv BoolCtx WfBoolCtx [★] [t#0 ~[★]~ gt#"Bool"]
 
-def test9 := do
-  let Δ := [★]
-  let Γ := [t#0 ~[★]~ gt#"Bool"]
-  let eG <- mEG7
-  let ⟨t, _⟩ <- eG.ask BoolCtx WfBoolCtx Δ Γ ★ (t#0 -:> gt#"Ordering") (gt#"Bool" -:> gt#"Ordering")
-  return t
+-- def test9 := do
+--   let Δ := [★]
+--   let Γ := [t#0 ~[★]~ gt#"Bool"]
+--   let eG <- mEG7
+--   let ⟨t, _⟩ <- eG.ask BoolCtx WfBoolCtx Δ Γ ★ (t#0 -:> gt#"Ordering") (gt#"Bool" -:> gt#"Ordering")
+--   return t
 
-#eval! mEG7
-#eval! test9
+-- #eval! mEG7
+-- #eval! test9
 
 end Core.EqGraph.Test
 
