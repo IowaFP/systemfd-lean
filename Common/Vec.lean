@@ -544,6 +544,12 @@ case _ ih =>
 #guard Vec.foldl Option.or (none : Option Nat) (#(none, none)) = none
 #guard Vec.foldl Option.or none #(some 1, none) = some 1
 
+#guard Vec.foldr Option.or (some 1) #(none, some 2) = some 2
+#guard Vec.foldr Option.or (none : Option Nat) (#(none, none)) = none
+#guard Vec.foldr Option.or none #(some 1, none) = some 1
+
+
+
 theorem Vec.fold_or_val_eq : foldl Option.or (some v1) as = some v2 <-> v1 = v2
 := by
   apply Iff.intro
@@ -580,6 +586,27 @@ induction cs
     · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
     grind
 
+
+theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
+  (∃ i : Fin n, cs[i] = e) ∨ ((∀ c ∈ cs, c = none) ∧ d = e)
+:= by
+  intro h
+  fun_induction Vec.foldr  <;> simp at *
+  apply And.intro; intro c c_in_cs; cases c_in_cs; apply h
+  case _ x xs ih =>
+    cases x <;> simp at *
+    case _ =>
+      replace ih := ih h;
+      cases ih
+      case _ ih =>
+        rcases ih with ⟨i, ih⟩; apply Or.inl; exists i.succ
+      case _ ih =>
+        rcases ih with ⟨ih1, ih2⟩; apply Or.inr;
+        apply And.intro; intro c c_in_cs'; cases c_in_cs'; case _ c_in_cs => rfl
+        case _ c_in_cs => apply ih1 c; apply c_in_cs
+        apply ih2
+    case _ v => apply Or.inl; exists 0
+
 theorem Vec.fold_or_val_eq_none : foldl Option.or d vs = none <-> (d = none ∧ ∀ v ∈ vs, v = none)
   := by
  apply Iff.intro
@@ -597,8 +624,9 @@ theorem Vec.fold_or_val_eq_none : foldl Option.or d vs = none <-> (d = none ∧ 
    fun_induction Vec.foldl <;> subst h1
    rfl
    case _ v vs ih =>
-   replace h2' := h2 v (by simp; sorry); simp [Option.or] at *
-   sorry
+   replace h2' := h2 v (by simp; unfold Membership.mem; unfold instMembershipVec; simp; constructor); simp [Option.or] at *
+   have lem : ∀ v ∈ vs, v = none := by intro v v_in_vs; replace h2 := h2 v; subst h2'; apply h2; sorry
+   subst h2'; apply ih rfl; intro v v_in_vs; replace h2 := h2 v; apply h2;  sorry
 
 
 def Vec.from_list : List α -> (n : Nat) × Vec α n
