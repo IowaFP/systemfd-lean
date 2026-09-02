@@ -209,7 +209,7 @@ theorem lookup_append {e : Entry} :
   Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
 := by
   intro h1
-  induction G1
+  induction G1 generalizing G2
   · apply Or.inr;
     simp [Core.lookup] at *;
     have lem : [] ++ G2 = G2 := by grind;
@@ -221,7 +221,22 @@ theorem lookup_append {e : Entry} :
     case _ n s k ctors =>
       split at h1
       case _ e => subst e; simp at h1; subst e; apply Or.inl; simp [lookup]
-      case _ => sorry
+      case _ =>
+        -- cases leme
+        replace h1 := Vec.fold_or h1
+
+
+
+        -- cases h1
+        -- case _ h1 =>
+        --   have lem : (x = s) = False := by grind
+        --   apply Or.inl; simp [lookup]; simp [ite_cond_eq_false (h := lem)];
+        --   replace ih := ih h1
+        --   cases ih
+        --   case _ ih => simp[ih, Vec.fold_or_val_eq]
+        --   case _ ih => sorry
+        -- case _ h1 => sorry
+        sorry
     sorry
     sorry
     sorry

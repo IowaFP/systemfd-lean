@@ -68,17 +68,19 @@ theorem Except.ite_false_eq_ok_iff {α : Type u_1} {t : TM α} {t' : α} {b : Bo
 --   · sorry
 
 
--- theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
---   Intermediate.Query ((Intermediate.Global.data n s K ctors)::Γ) Intermediate.DataConst.opn q Ts ->
---   Intermediate.Query Γ Intermediate.DataConst.opn q Ts := by sorry
-theorem Core.lookup_append_none {G1 G2 : Core.GlobalEnv} :
-  Core.lookup x (G1 ++ G2) = none ->
-  Core.lookup x G1 = none ∧ Core.lookup x G2 = none
-:= by
- intro h1
- induction G1 generalizing G2 <;> simp at *
- sorry
- sorry
+theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv}
+  (wf : ⊢ (Intermediate.Global.data ⟨s, K, ⟨n, ctors⟩⟩ :: Γ)) :
+  Intermediate.Query ((Intermediate.Global.data ⟨s, K, ⟨n, ctors⟩⟩ :: Γ)) Intermediate.DataConst.opn q Ts ->
+  Intermediate.Query Γ Intermediate.DataConst.opn q Ts := by sorry
+
+-- theorem Core.lookup_append_none {G1 G2 : Core.GlobalEnv} :
+--   Core.lookup x (G1 ++ G2) = none ->
+--   Core.lookup x G1 = none ∧ Core.lookup x G2 = none
+-- := by
+--  intro h1
+--  induction G1 generalizing G2 <;> simp at *
+--  sorry
+--  sorry
 
 
 theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}:
@@ -366,11 +368,14 @@ case _ ih => -- data
     replace h1 := Vec.fold_or h1
     cases h1
     case _ h1 =>
-      sorry
-      -- replace h2 := Intermediate.Query.opn_strengthen_ctor wftl' h2
-      -- replace ih := @ih _ wftl h3 wftl' x h1 h2
+      replace h2 := Intermediate.Query.opn_strengthen_ctor (by constructor; apply wfhd'; apply wftl') h2
+      replace ih := @ih _ wftl h3 wftl' mn h1 h2
       -- rcases ih with ⟨i, b, p, ih1, ih2⟩
-      -- exists i + 1; exists b; exists p
+      -- exists i + 1; exists b; exists p; simp;
+      -- rcases ih2 with ⟨k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths, ih2⟩
+      -- exists k1; exists k2; exists k3; exists Ks1; exists Ks2;
+      sorry
+
     case _ h1 => rcases h1 with ⟨i, h1⟩; simp at h1
 case _ ih => -- defn decl
   simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h3, h⟩
@@ -583,40 +588,34 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
     simp [Functor.map, Except.map] at h2
     split at h2 <;> simp at *
     subst G'
-    cases wf; case _ mths_comp wftl wfhd =>
+    cases wf; case _ mths' mths_comp wftl wfhd =>
     cases wfhd
     rcases h3 with ⟨j1, b, p, h3, h4⟩
-    -- replace h3 := mk_inst_mths_indexing mths_comp h3
-    sorry
-    -- generalize odef : [Core.Global.octor iname ⟨k1, (Ks1, ⟨k2, (Ks2, ⟨k3, (tys, (gt#cls_name).mkApps_nats (List.range k1).reverse)⟩)⟩)⟩] = octor at *
-    -- simp [Option.bind_eq_some_iff] at h1; rcases h1 with ⟨Γ', h1, e⟩;
-    -- rcases e with ⟨mths', h4, h5⟩; subst G'
-    -- cases i <;> simp at *
-    -- · rcases h2 with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11⟩
-    --   subst e1; subst e2; subst e3; subst e4; subst e5; subst e6; subst e7; subst e8; subst e9;
-    --   subst e10; subst e11
-    --   rcases h3 with ⟨j1, b, p, h6, h7⟩
-    --   cases wf; case _ wfhd =>
-    --   cases wfhd; exists j1;
-    --   replace h4 := mk_inst_mths_indexing h4 h6
-    --   rcases h4 with ⟨b', h4⟩
-    --   exists b'; exists p;
-    --   apply And.intro
-    --   have lem := List.getElem?_append_left (l₁ := mths') (l₂ := octor ++ Γ') (i := j1) (hn := by grind)
-    --   grind
-    --   apply h7
-    -- · case _ i =>
-    --   cases wf; case _ wftl _ =>
-    --   replace ih := ih wftl h1 h2
-    --   rcases ih with ⟨j1, b, p, ih1, ih2⟩
-    --   exists mths'.length + 1 + j1; exists b; exists p;
-    --   apply And.intro
-    --   · conv =>
-    --     lhs
-    --     apply List.getElem?_append_right (l₁ := mths' ++ octor) (l₂ := Γ') (i := (mths'.length + 1) + j1) (by grind)
-    --     grind
-    --   · apply ih2
+    generalize octor_def : [Core.Global.octor iname
+                ⟨k1,Ks1,k2,Ks2,k3, (Vec.map (fun x => t#x.snd ~[★]~ x.fst) (tys.zip (Vec.range k3))),
+                            (gt#cls_name).mkApps_nats (List.range k3).reverse⟩] = octor at *
 
+    cases i <;> simp at *
+    case _ =>
+      rcases h2 with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11⟩
+      subst e1; subst e2; subst e3; subst e4; subst e5; subst e6; subst e7; subst e8; subst e9;
+      subst e10; subst e11
+      replace h3 := mk_inst_mths_indexing mths_comp h3
+      rcases h3 with ⟨b, h3⟩;
+      exists j1; exists b; exists p
+      have lem := List.getElem?_append_left (l₁ := mths') (l₂ := octor ++ Γ') (i := j1) (hn := by grind)
+      grind
+
+    case _ =>
+      replace ih := ih wftl h1 h2
+      rcases ih with ⟨j1, b, p, ih1, ih2⟩
+      exists mths'.length + 1 + j1; exists b; exists p;
+      apply And.intro
+      · conv =>
+        lhs
+        apply List.getElem?_append_right (l₁ := mths' ++ octor) (l₂ := Γ') (i := (mths'.length + 1) + j1) (by grind)
+        grind
+      · apply ih2
 
 
 theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) :
