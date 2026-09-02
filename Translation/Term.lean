@@ -224,14 +224,14 @@ def Surface.Term.type_directed_translate
     return (.cast t#0 c #x)
   | _ => none
 
--- | g`#x =>
---   match Core.lookup x G with
---   | .some (.ctor x' _ ⟨0, _, 0, _, 0, _, R⟩) => do
---     let c <- Core.Ty.synth_coercion G Δ Γ R τ
---     if x == x'
---     then return (.cast t#0 c (ctor! x #() #() .nil))
---     else none
---   | _ => none
+| g`#x =>
+  match Core.lookup x G with
+  | .some (.ctor x' _ ⟨0, _, 0, _, 0, _, R⟩) => do
+    let c <- Core.Ty.synth_coercion G Δ Γ R τ
+    if x == x'
+    then return (.cast t#0 c (ctor! x #() #() .nil))
+    else none
+  | _ => none
 
 
 | .lamt K t => do
