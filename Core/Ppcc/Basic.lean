@@ -383,7 +383,18 @@ def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (t1 
   (j1 : (G&Δ, Γ ⊢ t1 : (A1 ~[KA]~ A2))) (j2 : (G&Δ, Γ ⊢ t2 : (B1 ~[KB]~ B2))) :
   ((t : Term) ×' (G&Δ, Γ ⊢ t : ((A1 -:> B1) ~[★]~ (A2 -:> B2)))) :=
   ⟨ ((((((Term.arrowc KA KB) •[A1]) •[A2]) •[B1]) •[B2]) • t1) • t2
-  , sorry⟩
+  , by
+  have lem1 := terms_have_star_types wf j1
+  have lem2 := terms_have_star_types wf j2
+  cases lem1; cases lem2;
+  simp [Term.arrowc]
+  apply Typing.app (A := B1 ~[KB]~ B2)
+  · apply Typing.app (A := A1 ~[KA]~ A2)
+    · sorry
+    · apply j1
+  · apply j2
+
+ ⟩
 
 
 
