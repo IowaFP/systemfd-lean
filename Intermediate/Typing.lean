@@ -74,8 +74,12 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | classDecl {na : Nat} {Ks1 : Vec Core.Kind na}:
   lookup s G = none ->
   (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
-  (∀ (i : Nat) mn R, (hi : i < mτs.length) -> mτs[i]'hi = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
-    mn ≠ s ∧ lookup mn G = none ∧ T.spine = some (s, tys) ∧ tys.length = Ks1.length ∧ G&Ks1.list.reverse ⊢ R : ★) ->
+  (∀ (i : Nat) mn R T (tys : List Core.Ty), (hi : i < mτs.length) ->
+   (T.spine = .some (s, tys)) ->
+   (tys = ((List.range na).map (t#·)).reverse) ->
+   mτs[i]'hi = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
+    mn ≠ s ∧ lookup mn G = none ∧
+    G&Ks1.list.reverse ⊢ R : ★) ->
   GlobalWf G (.classDecl ⟨s, na, Ks1, [],[], mτs⟩)
 
 | inst {mτs : List (String × Core.SpineTy)} {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}:

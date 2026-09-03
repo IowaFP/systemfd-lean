@@ -108,7 +108,8 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   let Γ' <- translate_SI Γ
   -- TODO: Kind check T
   if (Intermediate.lookup s Γ').isNone
-  then return .cons (.defn ⟨s, T, t⟩) Γ'
+  then
+    return .cons (.defn ⟨s, T, t⟩) Γ'
   else .error "translate_SI defn"
 | .cons (.classDecl (kc := kc) s Ks /-scs fds-/ mτs) Γ => do
   let Γ' <- translate_SI Γ
