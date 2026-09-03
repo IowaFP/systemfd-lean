@@ -204,44 +204,4 @@ def lookup_defn (G : List Global) (x : String) : Option (Ty × Term) := do
 def lookup_kind G x := lookup x G |> Option.map Entry.kind |> Option.join
 def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 
-theorem lookup_append {e : Entry} :
-  Core.lookup x (G1 ++ G2) = some e ->
-  Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
-:= by
-  intro h1
-  induction G1 generalizing G2
-  · apply Or.inr;
-    simp [Core.lookup] at *;
-    have lem : [] ++ G2 = G2 := by grind;
-    simp [lem] at h1; apply h1
-  case _ hd tl ih =>
-    have leme : hd :: tl ++ G2 = hd :: (tl ++ G2) := by grind
-    rw[leme] at h1;
-    cases hd <;> simp [lookup] at h1
-    case _ n s k ctors =>
-      split at h1
-      case _ e => subst e; simp at h1; subst e; apply Or.inl; simp [lookup]
-      case _ =>
-        -- cases leme
-        replace h1 := Vec.fold_or h1
-
-
-
-        -- cases h1
-        -- case _ h1 =>
-        --   have lem : (x = s) = False := by grind
-        --   apply Or.inl; simp [lookup]; simp [ite_cond_eq_false (h := lem)];
-        --   replace ih := ih h1
-        --   cases ih
-        --   case _ ih => simp[ih, Vec.fold_or_val_eq]
-        --   case _ ih => sorry
-        -- case _ h1 => sorry
-        sorry
-    sorry
-    sorry
-    sorry
-    sorry
-    sorry
-
-
 end Core
