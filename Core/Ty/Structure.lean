@@ -129,6 +129,11 @@ def Ty.is_data (data1 : String) (A : Ty) : Bool :=
   | some (data2, _) => data1 == data2
   | none => false
 
-theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats ts).spine = some (T, ts.map (t#·)) := by sorry
+theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats ts).spine = some (T, (ts.map (t#·)).reverse)
+:= by
+  induction ts <;> simp [mkApps_nats, spine] at *
+  case _ t ts ih =>
+
+  sorry
 
 end Core
