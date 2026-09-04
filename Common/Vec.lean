@@ -586,6 +586,20 @@ induction cs
     · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
     grind
 
+theorem Vec.foldl_or_eq {vs : Vec (Option α) n} : vs.foldl Option.or d = e <-> d = e ∨ ∃ i : Fin n, vs[i] = e
+  := by
+ apply Iff.intro
+ intro h; apply Vec.fold_or h
+ intro h; induction vs generalizing d e <;> simp at *
+ apply h
+ case _ v vs ih =>
+ cases h
+ case _ h => replace ih := @ih d e (by apply Or.inl h); subst h; cases d; simp; sorry; simp
+ case _ h =>
+   rcases h with ⟨i, h⟩
+   induction i using Fin.induction <;> simp at *
+   sorry
+   case _ i h1 => sorry
 
 theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
   (∃ i : Fin n, cs[i] = e) ∨ ((∀ c ∈ cs, c = none) ∧ d = e)
@@ -607,7 +621,7 @@ theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
         apply ih2
     case _ v => apply Or.inl; exists 0
 
-theorem Vec.fold_or_val_eq_none : foldl Option.or d vs = none <-> (d = none ∧ ∀ v ∈ vs, v = none)
+theorem Vec.fold_or_val_eq_none {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ v ∈ vs, v = none))
   := by
  apply Iff.intro
  · intro h;
@@ -621,12 +635,35 @@ theorem Vec.fold_or_val_eq_none : foldl Option.or d vs = none <-> (d = none ∧ 
    case _ v'_in_vs => apply ih2; unfold Membership.mem; unfold instMembershipVec; simp; apply v'_in_vs
    apply ih h
  · intro h; rcases h with ⟨h1, h2⟩
-   fun_induction Vec.foldl <;> subst h1
-   rfl
+   subst h1
+   induction vs <;> simp at *
    case _ v vs ih =>
-   replace h2' := h2 v (by simp; unfold Membership.mem; unfold instMembershipVec; simp; constructor); simp [Option.or] at *
-   have lem : ∀ v ∈ vs, v = none := by intro v v_in_vs; replace h2 := h2 v; subst h2'; apply h2; sorry
-   subst h2'; apply ih rfl; intro v v_in_vs; replace h2 := h2 v; apply h2;  sorry
+   replace h2' := h2 v (by constructor);
+   subst v; apply ih; intro v v_in_vs; apply h2; cases v; constructor
+   constructor; apply v_in_vs
+
+theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
+| .nil, i => i.elim0
+| .cons x xs, 0 => Mem.head
+| .cons x xs, i => by
+  induction i using Fin.induction
+  simp; apply Mem.head
+  simp; apply Mem.tail; apply Vec.getElem_mem
+
+theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l) :  ∃ (i : Fin n), l[i] = a
+ := by
+induction h
+case head => exists 0
+case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
+
+
+theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
+  := by
+  apply Iff.intro
+  intro h1; simp [Vec.fold_or_val_eq_none] at h1; rcases h1 with ⟨h1, h2⟩;
+  apply And.intro; apply h1; intro i; replace h2 := h2 vs[i]; apply h2; apply Vec.getElem_mem
+  intro h1; simp [Vec.fold_or_val_eq_none]; rcases h1 with ⟨h1, h2⟩; apply And.intro; apply h1; intro v v_in_vs;
+  replace v_in_vs := Vec.getElem_of_mem v_in_vs; rcases v_in_vs with ⟨i, v_in_vs⟩; replace h2 := h2 i; simp [<-v_in_vs, h2]
 
 
 def Vec.from_list : List α -> (n : Nat) × Vec α n
@@ -725,13 +762,6 @@ apply Iff.intro
     apply ih (fin_shift_lemma (n := n) h)
 
 
-
-theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l) :  ∃ (i : Fin n), l[i] = a
- := by
-induction h
-case head => exists 0
-case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
-
 theorem Vec.ne_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
   ¬(a ∈ b :: vs) -> (a ≠ b) := mt (λ x => by rw [x]; apply Mem.head)
 
@@ -768,14 +798,6 @@ apply Iff.intro
     simp at h2; subst v
     apply ih h1
 
-theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
-| .nil, i => i.elim0
-| .cons x xs, 0 => Mem.head
-| .cons x xs, i => by
-  induction i using Fin.induction
-  simp; apply Mem.head
-  simp; apply Mem.tail; apply Vec.getElem_mem
-
 
 theorem Vec.true_elems {vs : Vec Bool n} {p : Fin n -> Bool}:
   (∀ (i : Fin n), p i = vs.to i) ->
@@ -797,13 +819,6 @@ theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> 
   rw[Fun.Vec.to_get_elem (vs := vs1), Fun.Vec.to_get_elem (vs := vs2)]
   rw[h]
 
-
--- def Vec.mapM  {m : Type u → Type v} [Monad m] {α : Type w} (f : α → m β) : {n : Nat} -> Vec α n -> m (Vec β n)
--- | 0, #() => return #()
--- | _ + 1, .cons x xs => do
---   let ys <- Vec.mapM f xs
---   let y <- f x
---   return (y :: ys)
 
 theorem Vec.all_eq_true {α : Type u_1} {v : Vec α n} {p : α -> Bool} :
   v.all p = true <-> (∀ x ∈ v, p x = true)
