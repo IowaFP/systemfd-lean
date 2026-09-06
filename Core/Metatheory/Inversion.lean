@@ -58,6 +58,18 @@ intro h1 i hi
 replace h1 := h1 (i + 1); simp at h1; replace h1 := h1 hi; apply h1
 
 
+theorem Kinding.vec_list_getElem {n : Nat} {As : Vec Ty n} {Ks : Vec Kind n} :
+  (∀ i : Fin n, G&Δ ⊢ As[i] : Ks[i]) -> (∀ j : Nat, (h : j < n) -> G&Δ ⊢ (As.list)[j]'(by simp [h]) : Ks.list[j]'(by simp [h]))
+  := by
+intro h j hj
+cases n
+cases hj
+case _ n =>
+ have j' : Fin (n + 1) := Fin.ofNat (n+1) j
+ replace h := h j'
+
+ sorry
+
 theorem Kinding.beta_many {Δ' : List Kind} {t : List Ty} (h : t.length = Δ'.length):
   G&(Δ' ++ Δ) ⊢ A : K ->
   (∀ i, (h : i < t.length) -> G&Δ ⊢ t[i] : Δ'[i]) ->
@@ -93,7 +105,7 @@ theorem terms_have_star_types (wf : ⊢ G):
   have lem := typing_inversion_lookup_spine_type wf h1
   subst e2
   replace lem := lem.extend (Δ₂ := Δ)
-  simp at lem; simp [List.map_reverse]; rw[<-List.append_assoc] at lem; rw[<-List.map_reverse]; rw[<-List.map_reverse]; rw[<-List.map_append];
+  simp at lem; simp[<-List.append_assoc] at lem;  simp [List.map_reverse]; rw[<-List.map_reverse, <-List.map_reverse, <-List.map_append];
   generalize Δ'def : Ks2.list.reverse ++ Ks1.list.reverse = Δ' at *
   generalize Zdef : Bs.list.reverse ++ As.list.reverse = Z at *
   have lem2 := Kinding.beta_many (Δ' := Δ') (t := Z) (σ := List.map su Z ++ Subst.id Ty) (by subst Δ'; subst Z; simp) lem
@@ -101,7 +113,25 @@ theorem terms_have_star_types (wf : ⊢ G):
   apply lem2; clear lem2
   intro i h; rw[<-Zdef] at h; simp at h;
   rw[<-Vec.list_reverse] at Δ'def Zdef;
-  sorry
+  have lemBsr : Bs.reverse.length = m2 := by grind
+  have lemAsr : As.reverse.length = m1 := by grind
+  have lemBs : Bs.reverse.list.length = m2 := by simp
+  have lemAs : As.reverse.list.length = m1 := by simp
+  have lemKs1 : Ks1.list.reverse.length = m1 := by simp
+  have lemKs2 : Ks2.list.reverse.length = m2 := by simp
+  cases Nat.decLt i m2
+  case _ e =>
+    have lemBsAs := List.getElem_append_right (as := Bs.list.reverse) (bs := As.list.reverse) (i := i) (h₁ := by grind) (h₂ := by grind)
+    have lemKs2Ks1 := List.getElem_append_right (as := Ks2.list.reverse) (bs := Ks1.list.reverse) (i := i) (h₁ := by grind) (h₂ := by grind)
+    simp only [<-Zdef,<-Δ'def]; simp; rw[lemBsAs, lemKs2Ks1];
+    replace h2 := Kinding.vec_list_getElem h2 (m1 - 1 - (i - m2)) (by grind)
+    simp; apply h2
+  case _ e =>
+    have lemBsAs := List.getElem_append_left (as := Bs.list.reverse) (bs := As.list.reverse) (i := i) (h := by grind) (h' := by grind)
+    have lemKs2Ks1 := List.getElem_append_left (as := Ks2.list.reverse) (bs := Ks1.list.reverse) (i := i) (h := by grind) (h' := by grind)
+    simp only [<-Zdef,<-Δ'def]; simp; rw[lemBsAs, lemKs2Ks1];
+    replace h3 := Kinding.vec_list_getElem h3 (m2 - 1 - i) (by grind)
+    simp; apply h3
 | .mtch (ζ := ζ) h1 h2 h3 h4 h5 => by
   replace h4 := h4 0
   have lem := terms_have_star_types wf h4;
