@@ -65,7 +65,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
-  lookup x G = none ->
+  (lookup x G = none) ->
   GlobalWf G (.data ⟨x, K, ⟨n, ctors⟩⟩)
 | defn {G : GlobalEnv} :
   G&[] ⊢ T : ★ ->

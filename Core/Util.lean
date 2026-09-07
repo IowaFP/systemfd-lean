@@ -26,16 +26,16 @@ def prefix_equal [BEq T] : List T -> List T -> Option (List T)
 theorem prefix_equal_law [BEq T] [LawfulBEq T] {p t1 t2 : List T}
   : prefix_equal t1 t2 = some p -> t2 = t1 ++ p
 := by
-intro h
-induction t1, t2 using prefix_equal.induct generalizing p
-case _ => simp at h; subst h; simp
-case _ => simp at h
-case _ h2 ih =>
-    replace h2 := LawfulBEq.eq_of_beq h2; subst h2
-    simp at h; rw [ih h]; simp
-case _ h2 =>
-  simp at *; exfalso
-  apply h2; apply h.1
+  intro h
+  induction t1, t2 using prefix_equal.induct generalizing p
+  case _ => simp at h; subst h; simp
+  case _ => simp at h
+  case _ h2 ih =>
+      replace h2 := LawfulBEq.eq_of_beq h2; subst h2
+      simp at h; rw [ih h]; simp
+  case _ h2 =>
+    simp at *; exfalso
+    apply h2; apply h.1
 
 instance : Monad List where
   pure a := List.cons a List.nil
@@ -45,15 +45,15 @@ theorem option_lemma :
   (∀ v, ¬ t = Option.some v) <->
   t = .none
 := by
-apply Iff.intro
-· intro h
-  cases t; simp
-  case _ v => exfalso; apply h v rfl
-· intro h a h1; simp [h1] at h
+  apply Iff.intro
+  · intro h
+    cases t; simp
+    case _ v => exfalso; apply h v rfl
+  · intro h a h1; simp [h1] at h
 
 
 theorem not_eq_of_beq [BEq T] [LawfulBEq T] {x y : T} : ¬ ((x == y) = true) -> x ≠ y := by
-intro h1 h2; subst h2; apply h1; simp
+  intro h1 h2; subst h2; apply h1; simp
 
 @[simp]
 def rep (f : T -> T) (x : T) : Nat -> T
@@ -191,26 +191,26 @@ theorem List.filter_set_neq {f : α -> Bool} {l : List α} {a : α} (i : Nat) (h
   f l[i] -> ¬ f a ->
   (List.filter f (l.set i a)).length = (List.filter f l).length - 1
 := by
-intro h1 h2
-induction l generalizing i <;> simp at *
-case _ hd tl ih =>
-  cases i <;> simp at *
-  · rw[List.filter_cons]; rw[List.filter_cons];
-    rw[h2]; simp
-    conv =>
-      rhs
-      rw[ite_cond_eq_true (h := by grind)]
-    simp
-  case succ n =>
-    simp at h
-    replace ih := @ih n h h1
-    rw[List.filter_cons]; rw[List.filter_cons]
-    generalize zdef : f hd = z at *
-    cases z <;> simp at *
-    · apply ih
-    · rw[ih]
-      have lem : (filter f tl).length > 0 := by apply List.filter_gt_0 h h1
-      omega
+  intro h1 h2
+  induction l generalizing i <;> simp at *
+  case _ hd tl ih =>
+    cases i <;> simp at *
+    · rw[List.filter_cons]; rw[List.filter_cons];
+      rw[h2]; simp
+      conv =>
+        rhs
+        rw[ite_cond_eq_true (h := by grind)]
+      simp
+    case succ n =>
+      simp at h
+      replace ih := @ih n h h1
+      rw[List.filter_cons]; rw[List.filter_cons]
+      generalize zdef : f hd = z at *
+      cases z <;> simp at *
+      · apply ih
+      · rw[ih]
+        have lem : (filter f tl).length > 0 := by apply List.filter_gt_0 h h1
+        omega
 
 
 
@@ -272,48 +272,48 @@ theorem flatten_idx_getElem {ll : List (List α)} {l : List α} :
   ∀ i : Nat, l[i]? = some a ->
   ∃ (i' j' : Nat) (l' : List α), (ll[i']? = some l' ∧ l'[j']? = some a) :=
 by
-intro h1 i h2
-fun_induction List.flatten generalizing l i <;> simp at *
-case _ => subst l; exfalso; simp at h2
-case _ l ll ih =>
-  subst l
-  cases Nat.decLt i l.length
-  case _ h =>
-    rw[List.getElem?_append_right (by grind)] at h2;
-    replace ih := ih (i - l.length) h2
-    rcases ih with ⟨i', j', l', ih⟩
-    exists i' + 1; simp; exists j'; exists l'
-  case _ h =>
-    rw[List.getElem?_append_left (hn := h)] at h2;
-    exists 0; exists i; exists l
+  intro h1 i h2
+  fun_induction List.flatten generalizing l i <;> simp at *
+  case _ => subst l; exfalso; simp at h2
+  case _ l ll ih =>
+    subst l
+    cases Nat.decLt i l.length
+    case _ h =>
+      rw[List.getElem?_append_right (by grind)] at h2;
+      replace ih := ih (i - l.length) h2
+      rcases ih with ⟨i', j', l', ih⟩
+      exists i' + 1; simp; exists j'; exists l'
+    case _ h =>
+      rw[List.getElem?_append_left (hn := h)] at h2;
+      exists 0; exists i; exists l
 
 theorem List.mapM_length {f : α -> Option β} {Γ : List α} {Δ : List β} :
   Γ.mapM f = some Δ ->
   Γ.length = Δ.length
 := by
-intro h
-rw[<-List.mapM'_eq_mapM] at h
-fun_induction mapM' generalizing Δ <;> simp at *
-subst h; simp
-case _ g Γ' ih =>
-  simp [Option.bind_eq_some_iff] at h; rcases h with ⟨d, h, Δ', h2, e⟩; subst e
-  simp; apply ih h2
+  intro h
+  rw[<-List.mapM'_eq_mapM] at h
+  fun_induction mapM' generalizing Δ <;> simp at *
+  subst h; simp
+  case _ g Γ' ih =>
+    simp [Option.bind_eq_some_iff] at h; rcases h with ⟨d, h, Δ', h2, e⟩; subst e
+    simp; apply ih h2
 
 theorem mapM_getElem? {f : α -> Option β} {Γ : List α} {Δ : List β} :
   (h : Γ.mapM f = some Δ) ->
   ∀ (j : Nat), (hj : j < Δ.length) ->
   f (Γ[j]'(by rw[<-List.mapM_length h] at hj; apply hj)) = some (Δ[j]'hj)
 := by
-intro h j hj
-rw[<-List.mapM'_eq_mapM] at h
-fun_induction mapM' generalizing Δ j <;> simp at *
-subst h; simp at hj
-case _ g Γ' ih h1 =>
-simp [Option.bind_eq_some_iff] at h; rcases h with ⟨d, h, h2, h3, e⟩
-subst e; simp at hj
-cases j <;> simp
-apply h
-apply ih; rw[<-List.mapM'_eq_mapM]; apply h3; apply h3
+  intro h j hj
+  rw[<-List.mapM'_eq_mapM] at h
+  fun_induction mapM' generalizing Δ j <;> simp at *
+  subst h; simp at hj
+  case _ g Γ' ih h1 =>
+  simp [Option.bind_eq_some_iff] at h; rcases h with ⟨d, h, h2, h3, e⟩
+  subst e; simp at hj
+  cases j <;> simp
+  apply h
+  apply ih; rw[<-List.mapM'_eq_mapM]; apply h3; apply h3
 
 
 end List

@@ -218,12 +218,12 @@ theorem Vec.units (vs : Vec Unit n) : ∀ i : Fin n, (vs[i]) = () := by
  simp
 
 
-def Vec.foldl_and [BEq α][LawfulBEq α] {tl : Vec α n} :
+theorem Vec.foldl_and [BEq α][LawfulBEq α] {tl : Vec α n} :
   Vec.foldl (fun acc c => acc && c == e) false tl = true -> False
 := by
-intro h
-induction tl <;> simp at *
-case _ ih => rw[ih] at h; cases h
+ intro h
+ induction tl <;> simp at *
+ case _ ih => rw[ih] at h; cases h
 
 def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
   vs.foldl (λ acc c => acc && c == e) true
@@ -231,9 +231,9 @@ def Vec.elems_eq_to [BEq Q] {n : Nat} (e : Q) (vs : Vec Q n) : Bool :=
 theorem Vec.elems_eq_to_sound [BEq Q] [LawfulBEq Q] {e : Q} {vs : Vec Q n} :
   vs.elems_eq_to e = true ->
   ∀ i : Fin n, vs[i] = e := by
-intro h
-induction vs <;> simp [Vec.elems_eq_to] at *
-case _ n hd tl ih =>
+ intro h
+ induction vs <;> simp [Vec.elems_eq_to] at *
+ case _ n hd tl ih =>
   generalize zdef : (hd == e) = z at *
   cases z <;> simp at *
   · exfalso; apply Vec.foldl_and h
@@ -256,10 +256,10 @@ match vs with
 theorem Vec.get_elem_if_eq_sound [BEq Q] [LawfulBEq Q] {vs : Vec Q n} {t : Q} :
   vs.get_elem_if_eq = some t ->
   ∀ i : Fin n, vs[i] = t := by
-intro h;
-fun_induction Vec.get_elem_if_eq <;> simp at *
-case _ => assumption
-case _ n x xs ih1 ih2 =>
+ intro h;
+ fun_induction Vec.get_elem_if_eq <;> simp at *
+ case _ => assumption
+ case _ n x xs ih1 ih2 =>
   intro i
   rw[Option.bind_eq_some_iff] at h; rcases h with ⟨_, h⟩
   simp at h; cases h.2.1; cases h.2.2; simp at h
@@ -276,11 +276,11 @@ theorem Vec.findIdx_sound {p : T -> Bool} {vs : Vec T n}
 
 theorem Vec.unzip_eta_get_elem {vs : Vec (α × β) n} : ∀ i : Fin n, vs[i] = (vs.unzip.1[i], vs.unzip.2[i])
 := by
-intro i
-induction vs
-apply i.elim0
-induction i using Fin.induction <;> simp [Vec.unzip]
-case _ ih1 i ih2 => apply ih1
+ intro i
+ induction vs
+ apply i.elim0
+ induction i using Fin.induction <;> simp [Vec.unzip]
+ case _ ih1 i ih2 => apply ih1
 
 theorem Vec.eq_sound_lem [BEq α][LawfulBEq α] {v1 v2 : Vec α n} : (h : v1.beq v2) -> v1 = v2 := by
   intro h;
@@ -302,13 +302,13 @@ theorem Vec.paste_soundness {rm : Vec (Vec String m) n} {rm' : Vec (Vec String (
   Vec.paste b rm = rm' ->
   ∀ i : Fin n, rm'[i] = b :: (rm[i])
 := by
-intro h i
-fun_induction Vec.paste
-apply i.elim0
-case _ ih =>
-  subst h;
-  induction i using Fin.induction <;> simp at *
-  case _ ih => apply ih
+  intro h i
+  fun_induction Vec.paste
+  apply i.elim0
+  case _ ih =>
+    subst h;
+    induction i using Fin.induction <;> simp at *
+    case _ ih => apply ih
 
 @[simp]
 def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) :
@@ -322,19 +322,19 @@ def Vec.combine (base : (m : Nat) × Vec (Vec String k) m) :
 theorem Vec.combine_size {base : (m : Nat) × Vec (Vec String k) m} {x : ((n : Nat) × Vec String n)} :
   combine base x = ⟨p, ys⟩ ->
   p = x.fst * base.fst := by
-intro h
-fun_induction Vec.combine generalizing ys p <;> simp at *
-apply Eq.symm h.1
-case _ vs _ h ih =>
-  rcases h with ⟨h1, h2⟩
-  subst h1; replace h2 := eq_of_heq h2; subst h2
-  replace ih := ih h
-  subst ih; rw[Nat.right_distrib]; simp
+  intro h
+  fun_induction Vec.combine generalizing ys p <;> simp at *
+  apply Eq.symm h.1
+  case _ vs _ h ih =>
+    rcases h with ⟨h1, h2⟩
+    subst h1; replace h2 := eq_of_heq h2; subst h2
+    replace ih := ih h
+    subst ih; rw[Nat.right_distrib]; simp
 
 theorem Vec.append_indexing_left {vs : Vec α n}{vs' : Vec α m} (i : Fin n) :
   ∃ j : Fin (m + n), vs[i] = (vs.append vs')[j]
 := by
-  induction vs <;> simp at *
+  induction vs <;> try simp at *
   apply i.elim0
   case _ i ih =>
   induction i using Fin.induction <;> simp at *
@@ -347,7 +347,7 @@ theorem Vec.append_indexing_left {vs : Vec α n}{vs' : Vec α m} (i : Fin n) :
 theorem Vec.append_indexing_right {vs : Vec α n}{vs' : Vec α m} (i : Fin m) :
   ∃ j : Fin (m + n), vs'[i] = (vs.append vs')[j]
 := by
-  induction vs <;> simp at *
+  induction vs <;> try simp at *
   exists i
   case _ ih =>
     rcases ih with ⟨j, ih⟩
@@ -356,26 +356,26 @@ theorem Vec.append_indexing_right {vs : Vec α n}{vs' : Vec α m} (i : Fin m) :
 theorem Vec.combine_soundness :
   Vec.combine rm1 cs = rm2 ->
   ∀ (i : Fin cs.1) (i' : Fin rm1.1), ∃ j : Fin rm2.1, cs.2[i] :: rm1.2[i'] = rm2.2[j] := by
-intro h i i'
-fun_induction Vec.combine generalizing rm2 <;> simp at i
-case _ => apply i.elim0
-case _ n x vs _ vs' ch ih =>
-  subst h; simp at *;
-  induction i using Fin.induction
-  · case _ =>
-    simp
-    have lem := Vec.combine_size ch; subst lem; simp at *
-    rw[ch] at ih; simp at ih
-    generalize p_def : paste x rm1.snd = p at *
-    have lem := Vec.paste_soundness p_def; rw[<-p_def] at lem; replace lem := lem i'
-    subst p; rw[<-lem]; apply Vec.append_indexing_left i'
-  case _ i _ =>
-    simp; replace ih := ih i;
-    rcases ih with ⟨j, ih⟩
-    generalize zdef : combine rm1 ⟨n, vs⟩ = z at *
-    have lem := Vec.combine_size zdef; simp at lem; subst ch; simp at *; subst lem; simp at j
-    rw[ih]
-    apply Vec.append_indexing_right (vs := paste x rm1.snd) j
+  intro h i i'
+  fun_induction Vec.combine generalizing rm2 <;> simp at i
+  case _ => apply i.elim0
+  case _ n x vs _ vs' ch ih =>
+    subst h; simp at *;
+    induction i using Fin.induction
+    · case _ =>
+      simp
+      have lem := Vec.combine_size ch; subst lem; simp at *
+      rw[ch] at ih; simp at ih
+      generalize p_def : paste x rm1.snd = p at *
+      have lem := Vec.paste_soundness p_def; rw[<-p_def] at lem; replace lem := lem i'
+      subst p; rw[<-lem]; apply Vec.append_indexing_left i'
+    case _ i _ =>
+      simp; replace ih := ih i;
+      rcases ih with ⟨j, ih⟩
+      generalize zdef : combine rm1 ⟨n, vs⟩ = z at *
+      have lem := Vec.combine_size zdef; simp at lem; subst ch; simp at *; subst lem; simp at j
+      rw[ih]
+      apply Vec.append_indexing_right (vs := paste x rm1.snd) j
 
 @[simp]
 def Vec.populate_aux (base : (m : Nat) × Vec (Vec String k) m) :
@@ -393,17 +393,18 @@ def Vec.prod : Vec Nat n -> Nat
 
 theorem Vec.populate_aux_size (ps : Vec ((n : Nat) × Vec String n) ℓ) :
   populate_aux (k := k) ⟨bℓ, bs⟩ ps = vs ->
-  vs.fst = (Vec.prod (ps.map (·.1))) * bℓ := by
-intro h
-induction ps generalizing bs bℓ <;> simp at *
-cases h; simp
-case _ ps pss ih =>
-  generalize z_def : populate_aux ⟨bℓ, bs⟩ pss = z at h
-  have lem := combine_size h
-  rw[Nat.mul_assoc]
-  rw[lem]; congr
-  have ih := @ih bℓ bs
-  rw[z_def] at ih; apply ih;
+  vs.fst = (Vec.prod (ps.map (·.1))) * bℓ
+  := by
+  intro h
+  induction ps generalizing bs bℓ <;> simp at *
+  cases h; simp
+  case _ ps pss ih =>
+    generalize z_def : populate_aux ⟨bℓ, bs⟩ pss = z at h
+    have lem := combine_size h
+    rw[Nat.mul_assoc]
+    rw[lem]; congr
+    have ih := @ih bℓ bs
+    rw[z_def] at ih; apply ih;
 
 @[simp]
 def Vec.populate (ps : Vec ((n : Nat) × Vec String n) ℓ) : ((p : Nat) × Vec (Vec String (0 + ℓ)) p)
@@ -413,11 +414,11 @@ theorem Vec.populate_size (ps : Vec ((n : Nat) × Vec String n) ℓ) :
   populate ps = vs ->
   vs.fst = (Vec.prod (ps.map (·.1)))
 := by
-intro h
-unfold populate at h
-generalize z_def : populate_aux ⟨1, #(#())⟩ ps = z at *
-have lem := Vec.populate_aux_size _ z_def
-subst h; rw[Nat.mul_one] at lem; assumption
+  intro h
+  unfold populate at h
+  generalize z_def : populate_aux ⟨1, #(#())⟩ ps = z at *
+  have lem := Vec.populate_aux_size _ z_def
+  subst h; rw[Nat.mul_one] at lem; assumption
 
 @[simp]
 theorem Vec.traverse_nil [Applicative F] {f : α -> F β} : Vec.traverse f (#()) = (pure #() : F (Vec β 0)) := rfl
@@ -463,7 +464,7 @@ theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β
   intro h
   generalize zdef : Fun.Vec.to (λ i => f (vs i)) = z at *
   have lem := Vec.map_seq_sound (vs := z) (vs' := vs') (f := λ x => x) (h |> cast (by simp))
-  simp at lem; rw [<-zdef] at lem
+  rw [<-zdef] at lem
   simp [Vec.to_get_elem]; intro i
   replace lem := lem i
   rw [<-Fun.Vec.to_get_elem (vs := fun i => f (vs i))] at lem
@@ -476,7 +477,7 @@ theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n
    intro h
    generalize zdef : Fun.Vec.to (λ i => f (vs1 i) (vs2 i)) = z at *
    have lem := Vec.map_seq_sound (vs := z) (vs' := vs') (f := λ x => x) (h |> cast (by simp))
-   simp at lem; rw[<-zdef] at lem;
+   rw[<-zdef] at lem;
    simp [Vec.to_get_elem]; intro i
    replace lem := lem i
    rw [<-Fun.Vec.to_get_elem (vs := fun i => f (vs1 i) (vs2 i))] at lem
@@ -492,7 +493,7 @@ theorem Vec.seq_sound2 {vs1 : Fun.Vec α n} {vs2 : Fun.Vec β n} {vs' : Vec γ n
    intro h
    generalize zdef : Fun.Vec.to (λ i => f (vs1 i) (vs2 i) (vs3 i)) = z at *
    have lem := Vec.map_seq_sound (vs := z) (vs' := vs') (f := λ x => x) (h |> cast (by simp))
-   simp at lem; rw[<-zdef] at lem;
+   rw[<-zdef] at lem;
    simp [Vec.to_get_elem]; intro i
    replace lem := lem i
    rw [<-Fun.Vec.to_get_elem (vs := fun i => f (vs1 i) (vs2 i) (vs3 i))] at lem
@@ -514,31 +515,31 @@ def Vec.unique_elems [BEq α][LawfulBEq α] : Vec α n -> Bool
 theorem Vec.unique_elems_sound [BEq α][LawfulBEq α] {vs : Vec α n} :
   vs.unique_elems = true ->
   (∀ i j : Fin n, i ≠ j -> (vs[i] ≠ vs[j])) := by
-intro h i j e
-induction vs
-apply i.elim0
-case _ ih =>
-  simp [unique_elems] at h
-  rcases h with ⟨h1, h2⟩
-  replace h1 := Vec.elems_eq_to_sound h1
-  intro h
-  cases i using Fin.cases
-  case _ =>
-    cases j using Fin.cases
-    apply e; rfl
+  intro h i j e
+  induction vs
+  apply i.elim0
+  case _ ih =>
+    simp [unique_elems] at h
+    rcases h with ⟨h1, h2⟩
+    replace h1 := Vec.elems_eq_to_sound h1
+    intro h
+    cases i using Fin.cases
+    case _ =>
+      cases j using Fin.cases
+      apply e; rfl
+      case _ i =>
+      simp at e; simp at h;
+      replace h1 := h1 i
+      simp at h1; apply h1 (Eq.symm h)
     case _ i =>
-    simp at e; simp at h;
-    replace h1 := h1 i
-    simp at h1; apply h1 (Eq.symm h)
-  case _ i =>
-    replace ih := ih h2
-    simp at h
-    cases j using Fin.cases
-    · simp at *;
-      apply h1 i h
-    · case _ j =>
-      simp at *;
-      apply ih i j e h
+      replace ih := ih h2
+      simp at h
+      cases j using Fin.cases
+      · simp at *;
+        apply h1 i h
+      · case _ j =>
+        simp at *;
+        apply ih i j e h
 
 #guard Vec.foldl Option.or (some 1) #(none, some 2) = some 1
 #guard Vec.foldl Option.or (none : Option Nat) (#(none, none)) = none
@@ -565,26 +566,26 @@ theorem Vec.fold_or_val_eq : foldl Option.or (some v1) as = some v2 <-> v1 = v2
 theorem Vec.fold_or {cs : Vec _ n}: Vec.foldl Option.or d cs = e ->
   d = e ∨ ∃ i : Fin n, cs[i] = e
 := by
-intro h
-induction cs
-· simp at h; apply Or.inl h
-· case _ a as ih =>
-  simp at h
-  cases a <;> simp at *
-  case _ =>
-    cases d <;> simp at *
-    replace ih := ih h
-    cases ih
-    case _ ih => apply Or.inl ih
-    case _ ih =>
-      rcases ih with ⟨i, ih⟩; apply Or.inr; exists i.succ
-    grind
-  case _ =>
-    cases d <;> simp at *
-    cases e
-    · apply Or.inl rfl
-    · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
-    grind
+  intro h
+  induction cs
+  · simp at h; apply Or.inl h
+  · case _ a as ih =>
+    simp at h
+    cases a <;> try simp at *
+    case _ =>
+      cases d <;> simp at *
+      replace ih := ih h
+      cases ih
+      case _ ih => apply Or.inl ih
+      case _ ih =>
+        rcases ih with ⟨i, ih⟩; apply Or.inr; exists i.succ
+      grind
+    case _ =>
+      cases d <;> simp at *
+      cases e
+      · apply Or.inl rfl
+      · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
+      grind
 
 theorem Vec.foldl_or_eq {vs : Vec (Option α) n} : vs.foldl Option.or d = e <-> d = e ∨ ∃ i : Fin n, vs[i] = e
   := by
@@ -631,7 +632,7 @@ theorem Vec.fold_or_val_eq_none {vs : Vec (Option α) n} : foldl Option.or d vs 
    case _ d _ v vs ih =>
    cases d <;> simp at *
    replace ih := ih h; intro v' v'_in_vs; rcases ih with ⟨ih1, ih2⟩; subst ih1;
-   cases v'_in_vs <;> simp at *
+   cases v'_in_vs <;> try simp at *
    case _ v'_in_vs => apply ih2; unfold Membership.mem; unfold instMembershipVec; simp; apply v'_in_vs
    apply ih h
  · intro h; rcases h with ⟨h1, h2⟩
@@ -652,9 +653,9 @@ theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
 
 theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l) :  ∃ (i : Fin n), l[i] = a
  := by
-induction h
-case head => exists 0
-case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
+  induction h
+  case head => exists 0
+  case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
 
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
@@ -673,21 +674,21 @@ def Vec.from_list : List α -> (n : Nat) × Vec α n
   ⟨n + 1, x :: v⟩
 
 theorem Vec.from_list_to {l : List α} : (Vec.from_list l).2.list = l := by
-induction l <;> simp [from_list] at *
-case _ ih => apply ih
+  induction l <;> simp [from_list] at *
+  case _ ih => apply ih
 
 theorem Vec.to_from_list {vs : Vec α n} : Vec.from_list (vs.list) = ⟨n, vs⟩ := by
-induction vs <;> simp [from_list] at *
-case _ ih => rw[ih]; simp
+  induction vs <;> simp [from_list] at *
+  case _ ih => rw[ih]; simp
 
 theorem Vec.from_list_length {l : List α} :
   (Vec.from_list l) = ⟨n, vs⟩ ->
   l.length = n := by
-intro h
-fun_induction Vec.from_list generalizing n <;> simp at *
-apply h.1
-case _ h2 ih =>
-  replace ih := ih h2; subst ih; apply h.1
+  intro h
+  fun_induction Vec.from_list generalizing n <;> simp at *
+  apply h.1
+  case _ h2 ih =>
+    replace ih := ih h2; subst ih; apply h.1
 
 @[simp, grind =]
 theorem Vec.from_list_nil : Vec.from_list ([] : List β) = ⟨0, .nil⟩ := by simp [Vec.from_list]
@@ -697,37 +698,37 @@ theorem Vec.from_list_cons {x : α} {vs : Vec α k} :
   Vec.from_list (x :: xs) = ⟨k, vs⟩ ->
   ∃ n vs', Vec.from_list xs = ⟨n, vs'⟩ ∧ ∃ (h : k = n + 1), vs = cast (by rw[h]) (x :: vs')
  := by
-intro h
-unfold from_list at h;
-split at h
-case _ n vs' h =>
-simp at h; rcases h with ⟨e1, e2⟩
-exists n; exists vs'
-apply And.intro
-apply h
-exists (Eq.symm e1)
-grind
+  intro h
+  unfold from_list at h;
+  split at h
+  case _ n vs' h =>
+  simp at h; rcases h with ⟨e1, e2⟩
+  exists n; exists vs'
+  apply And.intro
+  apply h
+  exists (Eq.symm e1)
+  grind
 
 theorem Vec.from_list_indexing {l : List α} {vs : Vec α n} {i : Nat} :
   Vec.from_list l = ⟨n, vs⟩ ->
   l[i]? = some c ->
   ∃ i : Fin n, vs[i] = c := by
-intro h1 h2
-rw[List.getElem?_eq_some_iff] at h2;
-rcases h2 with ⟨e, h2⟩
-have lem := Vec.from_list_length h1
-fun_induction from_list generalizing n i <;> simp at *
-cases e
-case _ l ls _ _ h ih =>
-  subst lem; rcases h1 with ⟨e, h1⟩; simp at e; subst e; simp at h1;
-  subst h1;
-  induction i <;> simp at *
-  subst h2; exists 0
-  case _ n ih2 =>
-    simp at e;
-    replace ih := ih (i := n) h e h2 rfl
-    rcases ih with ⟨i, ih⟩
-    exists i.succ
+  intro h1 h2
+  rw[List.getElem?_eq_some_iff] at h2;
+  rcases h2 with ⟨e, h2⟩
+  have lem := Vec.from_list_length h1
+  fun_induction from_list generalizing n i <;> simp at *
+  cases e
+  case _ l ls _ _ h ih =>
+    subst lem; rcases h1 with ⟨e, h1⟩; simp at e; subst e; simp at h1;
+    subst h1;
+    induction i <;> simp at *
+    subst h2; exists 0
+    case _ n ih2 =>
+      simp at e;
+      replace ih := ih (i := n) h e h2 rfl
+      rcases ih with ⟨i, ih⟩
+      exists i.succ
 
 theorem Vec.from_list_indexing2 {l : List α} {vs : Vec α n} :
   (h : Vec.from_list l = ⟨n, vs⟩) ->
@@ -750,16 +751,16 @@ private theorem fin_shift_lemma {a2 a1 : α} {as1 as2 : Vec α n}:
 
 theorem Vec.refl_indexing {v1 v2 : Vec α n} : v1 = v2 <-> ∀ (i: Fin n), v1[i] = v2[i]
 := by
-apply Iff.intro
-· intro h i; cases h; simp;
-· intro h;
-  induction v1
-  cases v2; rfl
-  case _ n _ as ih =>
-    cases v2;
-    congr;
-    apply h 0
-    apply ih (fin_shift_lemma (n := n) h)
+  apply Iff.intro
+  · intro h i; cases h; simp;
+  · intro h;
+    induction v1
+    cases v2; rfl
+    case _ n _ as ih =>
+      cases v2;
+      congr;
+      apply h 0
+      apply ih (fin_shift_lemma (n := n) h)
 
 
 theorem Vec.ne_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
@@ -771,32 +772,32 @@ theorem Vec.not_mem_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
 def Vec.foldl_and_true {vs : Vec Bool n} :
   vs.foldl (·&&·) true = true <-> ∀ v ∈ vs, v = true
 := by
-apply Iff.intro
-· intro h v v_in_vs
-  generalize fdef : (·&&·) = f at *
-  generalize idef : true = init at *
-  fun_induction foldl <;> simp at *
-  case _ => cases v_in_vs
-  case _ hd tl ih =>
-    subst idef; rw[<-fdef] at h; simp at h;
-    cases v_in_vs
-    cases v;
-    · have lem := Vec.foldl_and (e := true) (tl := tl); simp at lem; rw[h] at lem;
-      cases lem;
-    · simp
-    case _ v_in_tl =>
-    replace ih := ih v_in_tl; rw[<-fdef] at ih; simp at ih;
-    cases hd
-    · have lem := Vec.foldl_and (e := true) (tl := tl); simp at lem; rw[h] at lem;
-      cases lem
-    · simp at ih; apply ih h
-· intro h
-  induction vs <;> simp at *
-  case _ v vs ih =>
-    have h1 := Vec.not_mem_of_not_mem_cons h
-    have h2 := Vec.ne_of_not_mem_cons h
-    simp at h2; subst v
-    apply ih h1
+  apply Iff.intro
+  · intro h v v_in_vs
+    generalize fdef : (·&&·) = f at *
+    generalize idef : true = init at *
+    fun_induction foldl <;> simp at *
+    case _ => cases v_in_vs
+    case _ hd tl ih =>
+      subst idef; rw[<-fdef] at h; simp at h;
+      cases v_in_vs
+      cases v;
+      · have lem := Vec.foldl_and (e := true) (tl := tl); simp at lem; rw[h] at lem;
+        cases lem;
+      · simp
+      case _ v_in_tl =>
+      replace ih := ih v_in_tl; rw[<-fdef] at ih; simp at ih;
+      cases hd
+      · have lem := Vec.foldl_and (e := true) (tl := tl); simp at lem; rw[h] at lem;
+        cases lem
+      · simp at ih; apply ih h
+  · intro h
+    induction vs <;> simp at *
+    case _ v vs ih =>
+      have h1 := Vec.not_mem_of_not_mem_cons h
+      have h2 := Vec.ne_of_not_mem_cons h
+      simp at h2; subst v
+      apply ih h1
 
 
 theorem Vec.true_elems {vs : Vec Bool n} {p : Fin n -> Bool}:
@@ -823,20 +824,20 @@ theorem Vec.to_eq {α : Type u_1} {vs1 vs2 : Fun.Vec α n} : vs1.to = vs2.to -> 
 theorem Vec.all_eq_true {α : Type u_1} {v : Vec α n} {p : α -> Bool} :
   v.all p = true <-> (∀ x ∈ v, p x = true)
 := by
-apply Iff.intro
-· intro h x x_in_v;
-  induction v <;> simp [all] at h
-  cases x_in_v
-  case _ ih =>
-  rcases h with ⟨h1, h2⟩; cases x_in_v
-  apply h1
-  case _ x_in_v => apply ih h2 x_in_v
-· intro h
-  induction v <;> simp at *
-  case _ v vs ih =>
-  have lem := h v (by simp [Membership.mem]; constructor);
-  have lem2 : (∀ x, x ∈ vs → p x = true) := by intro v v_in_vs; replace h := h v (by constructor; apply v_in_vs); apply h
-  apply And.intro; apply lem; apply ih lem2
+  apply Iff.intro
+  · intro h x x_in_v;
+    induction v <;> simp [all] at h
+    cases x_in_v
+    case _ ih =>
+    rcases h with ⟨h1, h2⟩; cases x_in_v
+    apply h1
+    case _ x_in_v => apply ih h2 x_in_v
+  · intro h
+    induction v <;> simp at *
+    case _ v vs ih =>
+    have lem := h v (by simp [Membership.mem]; constructor);
+    have lem2 : (∀ x, x ∈ vs → p x = true) := by intro v v_in_vs; replace h := h v (by constructor; apply v_in_vs); apply h
+    apply And.intro; apply lem; apply ih lem2
 
 
 def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) -> List (Fin n)

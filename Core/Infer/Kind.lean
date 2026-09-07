@@ -13,9 +13,9 @@ def Kind.is_arrow : (K : Kind) -> Option (Kind × Kind)
 theorem Kind.is_arrow_sound {K : Kind} :
   K.is_arrow = some (K1, K2) ->
   K = K1 -:> K2 := by
-intro h
-cases K <;> simp [Kind.is_arrow] at *
-assumption
+  intro h
+  cases K <;> simp [Kind.is_arrow] at *
+  assumption
 
 def Kind.base_kind : (K : Kind) -> Option Unit
 | .base => some ()

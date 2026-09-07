@@ -54,21 +54,20 @@ private theorem idx_shift_lemma {ts : List Ty} {Δ' : List Kind} (h : ts.length 
   (∀ (i : Nat) (h_1 : i < ts.length + 1), G&Δ ⊢ (t :: ts)[i] : (K' :: Δ')[i]'(by grind)) ->
   (∀ (i : Nat) (h_1 : i < ts.length), G&Δ ⊢ (ts)[i] : (Δ')[i])
  := by
-intro h1 i hi
-replace h1 := h1 (i + 1); simp at h1; replace h1 := h1 hi; apply h1
+  intro h1 i hi
+  replace h1 := h1 (i + 1); simp at h1; replace h1 := h1 hi; apply h1
 
 
 theorem Kinding.vec_list_getElem {n : Nat} {As : Vec Ty n} {Ks : Vec Kind n} :
   (∀ i : Fin n, G&Δ ⊢ As[i] : Ks[i]) -> (∀ j : Nat, (h : j < n) -> G&Δ ⊢ (As.list)[j]'(by simp [h]) : Ks.list[j]'(by simp [h]))
-  := by
-intro h j hj
-cases n
-cases hj
-case _ n =>
- have j' : Fin (n + 1) := Fin.ofNat (n+1) j
- replace h := h j'
-
- sorry
+:= by
+  intro h j hj
+  cases n
+  cases hj
+  case _ n =>
+  let j' : Fin (n + 1) := Fin.ofNat (n+1) j
+  replace h := h j'
+  rw [<-Vec.get_list_to_get hj] at h; rw [<-Vec.get_list_to_get hj] at h; apply h
 
 theorem Kinding.beta_many {Δ' : List Kind} {t : List Ty} (h : t.length = Δ'.length):
   G&(Δ' ++ Δ) ⊢ A : K ->
@@ -86,7 +85,6 @@ theorem Kinding.beta_many {Δ' : List Kind} {t : List Ty} (h : t.length = Δ'.le
     rcases lem with ⟨t, ts, e⟩; subst e; simp at *
     replace j2 := idx_shift_lemma (by simp at h; apply h) j2
     have lem : ts.length = Δ'.length := by simp at h; omega
-    replace ih := @ih A[su t :: +0σ] (List.map su ts ++ Subst.id Ty) ts lem sorry j2 rfl
     rw[e1]
     sorry
 
@@ -169,8 +167,8 @@ theorem terms_have_star_types (wf : ⊢ G):
   · cases lem; case _ lem1 lem2 =>
     cases lem1; case _ lem1c lem1d _ _ _ =>
     cases lem2; case _ lem2c _ _ lem2d _ =>
-    have e := Kinding.unique lem1c lem2c; simp at e; subst e
-    have e := Kinding.unique lem1d lem2d; simp at e; subst e
+    have e := Kinding.unique lem1c lem2c; subst e
+    have e := Kinding.unique lem1d lem2d; subst e
     apply Kinding.eq lem1c lem1d
 
   · cases lem; case _ lem1 lem2 =>
