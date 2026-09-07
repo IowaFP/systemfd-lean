@@ -205,7 +205,7 @@ inductive GlobalWf : List Global -> Global -> Prop where
     ∧ x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
-  lookup x G = none ->
+  (lookup x G = none) ->
   GlobalWf G (.data n x K ctors)
 | odata :
   lookup x G = none ->

@@ -52,7 +52,7 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
   lookup x G = some t
 := by
   intro wf j
-  induction wf generalizing n <;> simp at *
+  induction wf generalizing n <;> try simp at *
   case nil => exact j
   case cons G j1 j2 wf ih =>
     cases n <;> simp at *

@@ -122,7 +122,7 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ 
     case zero => cases h
     case succ y =>
     generalize zdef : (((fun r => 0 :: r ∘ Ren.succ Ty)^[n]) (Ren.succ Ty)).act y = z at *
-    replace ih := ih y; simp at ih;
+    replace ih := ih y; try simp at ih;
     cases h
     rw[zdef] at ih;
     apply ih (Ty.FV.var)
@@ -134,7 +134,7 @@ theorem FV.var_not_in_one_more {T : Ty} : (x ∉ T⟨((Ren.lift)^[x]) (Ren.succ 
   case _ ih1 ih2 =>
     replace ih1 := @ih1 x
     replace ih2 := @ih2 x
-    cases h <;> simp at *
+    cases h <;> try simp at *
     case _ h => apply ih1 h
     case _ h => apply ih2 h)
 
@@ -254,7 +254,7 @@ theorem FV.subst_congr_var {ℓ1 ℓ2 : List Ty} (σ τ : Subst Ty)
       case _ => simp; simp at h; apply h
       case _ i =>
         simp at h; simp
-        simp at ih; apply ih _ _ h
+        apply ih _ _ h
         simp at h2; apply h2
 
 

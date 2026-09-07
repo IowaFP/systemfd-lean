@@ -633,7 +633,8 @@ def EqGraph.get_eq_class {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
 
 /-- Merges two equivalence classes for given types, if they belong to the same class it fails -/
 def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG : EqGraph G Δ Γ) (K : Kind)
-  (T1 : Ty) (T2 : Ty) (t : Term) (j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) : Option (EqGraph G Δ Γ) := do
+  (T1 : Ty) (T2 : Ty) (t : Term) (j : G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) : Option (EqGraph G Δ Γ)
+:= do
   let i1 <- eG.nodes.findIdx? (·.ty == T1) -- Maybe • 3
   let i2 <- eG.nodes.findIdx? (·.ty == T2) -- 6
   match h1 : eG.nodes[i1]?, h2 : eG.nodes[i2]? with
@@ -682,7 +683,7 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG :
                   simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩; subst e5; subst e6; subst e3
                   simp;
                   have lem := List.getElem_set h1
-                  simp at lem; simp only [lem]; split;
+                  simp only [lem]; split;
                   case _ e => simp only [new_node]; omega
                   case _ => apply parent_idx_lt
              , parent_kind_eq := by
@@ -768,8 +769,8 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG :
                   simp at h; rcases h with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10⟩; subst e5; subst e6; subst e9; subst e3
                   simp;
                   have lem := List.getElem_set h1
-                  simp at lem; rw[lem]
-                  simp; split;
+                  simp [lem]
+                  split;
                   case _ e => simp only [new_node]; omega
                   case _ => apply parent_idx_lt
               , parent_kind_eq := by

@@ -11,63 +11,63 @@ namespace Core
 theorem Kinding.strong_rename_lift {T : Ty} {Δr Δ : List Kind} {r : Ren Ty} K :
   (∀ x, x + 1 ∈ T -> Δr[r.act x]? = Δ[x]?) ->
   ∀ x, x ∈ T -> (K::Δr)[r.lift.act x]? = (K ::Δ)[x]? := by
-intro h1 x h2
-induction x
-case _ => simp [Ren.lift] at *
-case succ n ih =>
-  replace h1 := h1 n h2
-  simp [Ren.lift]; assumption
+  intro h1 x h2
+  induction x
+  case _ => simp [Ren.lift] at *
+  case succ n ih =>
+    replace h1 := h1 n h2
+    simp [Ren.lift]; assumption
 
 theorem Kinding.strong_rename {Δ Δr : List Kind} {T : Ty} (r : Ren Ty)  :
   G&Δ ⊢ T : K ->
   (∀ x : Nat,  x ∈ T -> Δr[r.act x]? = Δ[x]?) ->
   G&Δr ⊢ T⟨r⟩ : K := by
-intro j h
-induction j generalizing Δr r <;> simp [-Subst.rewrite_lift_k] at *
-case var x K j =>
-  replace h := h x (by apply Ty.FV.var)
-  apply Kinding.var
-  rw[<-j]; assumption
-case global => apply Kinding.global; assumption
-case arrow A B j1 j2 ih1 ih2 =>
-  apply Kinding.arrow
-  apply ih1
-  · intro i h
-    replace h : i ∈ (A -:> B) := by apply Ty.FV.arrowr; assumption
-    revert i; apply h
-  apply ih2
-  · intro i h1
-    replace h1 : i ∈ (A -:> B) := by apply Ty.FV.arrowl; assumption
-    revert i; apply h
-case eq A K B _ _ ih1 ih2 =>
-  apply Kinding.eq
-  apply ih1
-  · intro i h
-    replace h : i ∈ (A ~[K]~ B) := by apply Ty.FV.eqr; assumption
-    revert i; apply h
-  apply ih2
-  · intro i h1
-    replace h1 : i ∈ (A ~[K]~ B) := by apply Ty.FV.eql; assumption
-    revert i; apply h
-case app A _ _ B _ _ ih1 ih2 =>
-  apply Kinding.app
-  apply ih1
-  · intro i h
-    replace h : i ∈ (A • B) := by apply Ty.FV.appr; assumption
-    revert i; apply h
-  apply ih2
-  · intro i h1
-    replace h1 : i ∈ (A • B) := by apply Ty.FV.appl; assumption
-    revert i; apply h
-case all K Δ P _ ih =>
-  have lem : ∀ (x : Nat), x + 1 ∈ P → (Δr)[r.act x]? = Δ[x]? := by
-    intro i x
-    replace x := Ty.FV.all (K := K) x
-    replace h := @h i x; simp at h; assumption
-  replace lem := Kinding.strong_rename_lift K lem
-  apply Kinding.all
-  replace ih := @ih (K :: Δr) r.lift
-  simp [-Subst.rewrite_lift_k] at ih; grind
+  intro j h
+  induction j generalizing Δr r <;> simp [-Subst.rewrite_lift_k] at *
+  case var x K j =>
+    replace h := h x (by apply Ty.FV.var)
+    apply Kinding.var
+    rw[<-j]; assumption
+  case global => apply Kinding.global; assumption
+  case arrow A B j1 j2 ih1 ih2 =>
+    apply Kinding.arrow
+    apply ih1
+    · intro i h
+      replace h : i ∈ (A -:> B) := by apply Ty.FV.arrowr; assumption
+      revert i; apply h
+    apply ih2
+    · intro i h1
+      replace h1 : i ∈ (A -:> B) := by apply Ty.FV.arrowl; assumption
+      revert i; apply h
+  case eq A K B _ _ ih1 ih2 =>
+    apply Kinding.eq
+    apply ih1
+    · intro i h
+      replace h : i ∈ (A ~[K]~ B) := by apply Ty.FV.eqr; assumption
+      revert i; apply h
+    apply ih2
+    · intro i h1
+      replace h1 : i ∈ (A ~[K]~ B) := by apply Ty.FV.eql; assumption
+      revert i; apply h
+  case app A _ _ B _ _ ih1 ih2 =>
+    apply Kinding.app
+    apply ih1
+    · intro i h
+      replace h : i ∈ (A • B) := by apply Ty.FV.appr; assumption
+      revert i; apply h
+    apply ih2
+    · intro i h1
+      replace h1 : i ∈ (A • B) := by apply Ty.FV.appl; assumption
+      revert i; apply h
+  case all K Δ P _ ih =>
+    have lem : ∀ (x : Nat), x + 1 ∈ P → (Δr)[r.act x]? = Δ[x]? := by
+      intro i x
+      replace x := Ty.FV.all (K := K) x
+      replace h := @h i x; assumption
+    replace lem := Kinding.strong_rename_lift K lem
+    apply Kinding.all
+    replace ih := @ih (K :: Δr) r.lift
+    simp [-Subst.rewrite_lift_k] at ih; grind
 
 theorem Kinding.rename_lift {Δ Δr : List Kind} K (r : Ren Ty) :
   (∀ i, Δ[i]? = Δr[r.act i]?) ->
@@ -390,22 +390,22 @@ theorem Kinding.strengthening_length {Δ' : KindEnv}:
     G&(Δ' ++ Δ) ⊢ T⟨Ren.add Ty Δ'.length⟩ : K ->
     G&Δ ⊢ T : K
 := by
-intro j
-have lem := Kinding.strong_rename (Δ := Δ' ++ Δ) (Δr := Δ) (r := .sub Ty Δ'.length) (T := T⟨Ren.add Ty Δ'.length⟩) j
-simp at lem;
-apply lem
-intro x h
-replace h := FV.mem_add h
-grind
+  intro j
+  have lem := Kinding.strong_rename (Δ := Δ' ++ Δ) (Δr := Δ) (r := .sub Ty Δ'.length) (T := T⟨Ren.add Ty Δ'.length⟩) j
+  simp at lem;
+  apply lem
+  intro x h
+  replace h := FV.mem_add h
+  grind
 
 theorem Kinding.strengthening :
   G&(K' :: Δ) ⊢ T⟨.succ Ty⟩ : K ->
   G&Δ ⊢ T : K := by
-intro j
-have lem := Kinding.strong_rename (Δ := K' :: Δ) (Δr := Δ) (r := .pred Ty) (T := T⟨.succ Ty⟩) j
-  (by intro x h; simp at *
-      induction x <;> simp at *
-      case zero => exfalso; apply FV.zero_not_in_succ h)
-simp at lem; apply lem
+  intro j
+  have lem := Kinding.strong_rename (Δ := K' :: Δ) (Δr := Δ) (r := .pred Ty) (T := T⟨.succ Ty⟩) j
+    (by intro x h; simp at *
+        induction x <;> simp at *
+        case zero => exfalso; apply FV.zero_not_in_succ h)
+  simp at lem; apply lem
 
 end Core

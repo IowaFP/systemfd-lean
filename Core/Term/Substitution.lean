@@ -762,7 +762,7 @@ instance : SubstMapStable (Pattern m) Ty where
   apply_stable := by
     intro r σ h
     funext; case _ p =>
-    induction p <;> simp at *
+    induction p <;> try simp at *
     case _ ih =>
     unfold rmap; unfold instRenMapPatternTy; unfold smap; unfold instSubstMapPatternTy; simp
     apply And.intro
