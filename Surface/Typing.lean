@@ -71,6 +71,21 @@ inductive ValidClassInstTy (x : String) : Core.Ty -> Prop where
   T.spine = some (x, sp) ->
   ValidClassInstTy x T
 
+def Ty.data? (c : Core.DataConst) (G : List Global) (A : Core.Ty) : Bool :=
+  match A.spine with
+  | some (x, _) => is_data c G x
+  | none => false
+
+inductive SpineKinding (sv : Core.SpCtorVariant) (x : String) (G : GlobalEnv) (test : Core.Ty -> Bool) : Core.SpineTy -> Prop where
+| valid {Ks1 : Vec Core.Kind m1} {Ks2 : Vec Core.Kind m2} {Ts : Vec _ n} :
+  (Ks1.list ++ Ks2.list).reverse = Δ ->
+  (∀ (i : Fin n), G&Δ ⊢s Ts[i] : ★) ->
+  G&Δ ⊢s R : ★ ->
+  test R ->
+  (sv = .openm -> ∀ (i : Fin n), Surface.Ty.data? .opn G Ts[i]) ->
+  SpineKinding sv x G test ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
+
+
 inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 | data {n : Nat} {G : GlobalEnv} {ctors : Vec (String × Core.SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
@@ -90,18 +105,14 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   GlobalWf G (.classDecl s Ks1 /-fds scs-/ mτs)
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
-  spTy = ⟨na, Ks1, nb, Ks2, nc, As, R⟩ ->
-  R.spine = some (cls, Tys) ->
-  Δ = (Ks1 ++ Ks2).list.reverse ->
-  (∀ i : Fin nc, G&Δ ⊢s As[i] : ★) ->
-  G&Δ ⊢s R : ★ ->
-  lookup cls G = some (.odata cls K mτs) ->
+  lookup cls_name G = some (.odata cls_name K mτs) ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ->
   -- Cover all methods
-  mτs.length = ts.length ->
+  (mτs.length = ts.length) ->
   (∀ i : Nat, (hi : i < mτs.length) ->
     ∃ j, ∃ (hj : j < ts.length), (mτs[i].1 = (ts[j]'hj).1)) ->
 
-  GlobalWf G (.instDecl x spTy ts)
+  GlobalWf G (.instDecl x ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ts)
 
 inductive ListGlobalWf : GlobalEnv -> Prop where
 | nil : ListGlobalWf []
