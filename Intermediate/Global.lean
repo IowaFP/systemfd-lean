@@ -1,4 +1,3 @@
-
 import Surface.Global
 import Core.Global
 import Core.Ty
@@ -94,16 +93,12 @@ inductive Entry : Type where
 | octor : String -> Core.SpineTy -> Entry
 
 
-inductive DataConst where
-| opn
-| cls
-
-def Entry.is_data : DataConst -> Entry -> Bool
+def Entry.is_data : Core.DataConst -> Entry -> Bool
 | .cls, data _ _ _ => true
 | .opn, odata _ _ _ => true
 | _, _ => false
 
-def Entry.is_this_data : String -> DataConst -> Entry -> Bool
+def Entry.is_this_data : String -> Core.DataConst -> Entry -> Bool
 | s, .cls, data d _ _
 | s, .opn, odata d _ _ => d == s
 | _, _, _ => false
@@ -143,14 +138,14 @@ def lookup (x : String) : GlobalEnv -> Option Entry
 -- | .cons (.octor y a) tl =>
 --   if x == y then return .octor y a else lookup x tl
 
-def Entry.ctor? (data : String) : DataConst -> Entry -> Bool
+def Entry.ctor? (data : String) : Core.DataConst -> Entry -> Bool
 | .cls, ctor _ _ ⟨_, _, _, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, _, _, T⟩ =>
   match T.spine with
   | some ⟨d, _⟩ => d == data
   | none => false
 | _, _ => false
 
-def lookup_ctor? (G : GlobalEnv) (c : DataConst) (ctor : String) (data : Core.Ty) : Bool :=
+def lookup_ctor? (G : GlobalEnv) (c : Core.DataConst) (ctor : String) (data : Core.Ty) : Bool :=
   match data.spine with
   | some (x, _) => lookup ctor G |> Option.map (Entry.ctor? x c) |> Option.getD (dflt := false)
   | none => false
@@ -164,14 +159,9 @@ def lookup_defn (G : List Global) (x : String) : Option (Core.Ty × Surface.Term
 def lookup_kind G x := lookup x G |> Option.map Intermediate.Entry.kind |> Option.join
 def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 
-def is_this_cls (c : DataConst) (G : List Global) (clss : String) (x : Core.Ty) :=
+def is_this_cls (c : Core.DataConst) (G : List Global) (clss : String) (x : Core.Ty) :=
  match (x.spine) with
  | some (x, _) => lookup x G |> Option.map (Entry.is_this_data clss c) |> Option.getD (dflt := false)
  | none => false
-
-inductive SpCtorVariant : Type where
-| openm
-| data (c : DataConst)
-
 
 end Intermediate
