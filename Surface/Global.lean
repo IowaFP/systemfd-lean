@@ -3,6 +3,7 @@ import Common.Vec
 import Lilac
 -- import Surface.Ty
 import Surface.Term
+import Core.Term
 
 open LeanSubst
 open Lilac
@@ -53,9 +54,10 @@ inductive Entry : Type where
 | octor : String -> Core.SpineTy -> Entry
 | openm : String -> Core.SpineTy -> Entry
 
-def Entry.is_data : Entry -> Bool
-| data _ _ _ => true
-| _ => false
+def Entry.is_data : Core.DataConst -> Entry -> Bool
+| .cls, .data _ _ _ => true
+| .opn, .octor _ _ => true
+| _, _ => false
 
 def Entry.is_ctor : Entry -> Bool
 | ctor _ _ _ => true
@@ -108,7 +110,7 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
   else lookup x tl
 
 def lookup_kind (G : GlobalEnv) (x : String) : Option Core.Kind := lookup x G |> Option.map Entry.kind |> Option.get!
-
+def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (dflt := false)
 
 -- def is_ctor (G : GlobalEnv) x := lookup x G |> Option.map Entry.is_ctor |> Option.get!
 -- def is_data (G : GlobalEnv) x := lookup x G |> Option.map Entry.is_data |> Option.get!

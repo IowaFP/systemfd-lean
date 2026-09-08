@@ -124,12 +124,17 @@ def Kind.mk_kind : Vec Kind n -> Kind := Vec.foldl (init := ★) (λ acc n => n 
 def Ty.mkApps (T : Ty) : List Ty -> Ty := List.foldl (init := T) (λ acc t => acc • t)
 def Ty.mkApps_nats (T : Ty) : List Nat -> Ty := List.foldl (init := T) (λ acc t => acc • t#t)
 
+#eval Ty.mkApps (gt#"F") [t#0, t#1]
+#eval (Ty.mkApps (gt#"F") [t#0, t#1]).spine
+
 def Ty.is_data (data1 : String) (A : Ty) : Bool :=
   match A.spine with
   | some (data2, _) => data1 == data2
   | none => false
 
-theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats ts).spine = some (T, (ts.map (t#·)).reverse)
+
+
+theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats ts).spine = some (T, (ts.map (t#·)))
 := by
   induction ts <;> simp [mkApps_nats, spine] at *
   case _ t ts ih =>

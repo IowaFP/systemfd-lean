@@ -608,26 +608,6 @@ theorem Vec.fold_or_val_eq_none {vs : Vec (Option α) n} : foldl Option.or d vs 
    subst v; apply ih; intro v v_in_vs; apply h2; cases v; constructor
    constructor; apply v_in_vs
 
-theorem Vec.foldl_or_eq_some {vs : Vec (Option α) n} : vs.foldl Option.or d = e <-> (d = e ∨ ∃ i : Fin n, vs[i] = e)
-  := by
- apply Iff.intro
- intro h; cases e;
- case _ => apply Or.inl; sorry
- case _ => sorry
- -- intro h; cases h
- -- case _ h =>
- --   subst h;
- --   induction vs <;> simp at *; assumption
- -- case _ h =>
- -- induction vs generalizing d e <;> simp at *
- -- case _ v vs ih =>
- -- rcases h with ⟨i, h⟩;
-
- -- cases i using Fin.cases <;> simp at *
- -- subst h; replace ih := @ih (some e); apply Or.inr sorry
- -- case _ i => apply Or.inr;
- sorry
-
 
 theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
   (∃ i : Fin n, cs[i] = e) ∨ ((∀ c ∈ cs, c = none) ∧ d = e)

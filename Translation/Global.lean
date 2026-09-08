@@ -188,11 +188,10 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
          -- ++ fds.map (λ (n, spTy) => .openm n spTy)
          ++ [.odata s (mk_cls_kind K)] ++ Γ'
 
-| .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) Γ => do
+| .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
-  let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, (tys.zip (Vec.range tys.length)).map (λ (T, n) => t#n ~[★]~ T),
-                       (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ]
+  let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ]
   let mths' <- (mk_inst_mths_IC (octor ++ Γ') mths)
   return (mths' ++ octor ++ Γ')
 
