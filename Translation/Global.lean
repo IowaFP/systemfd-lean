@@ -192,7 +192,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
   let Γ' <- translate_IC Γ
   -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
   let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, (tys.zip (Vec.range tys.length)).map (λ (T, n) => t#n ~[★]~ T),
-                       (gt#cls_name).mkApps_nats (List.range tys.length).reverse⟩ ]
+                       (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ]
   let mths' <- (mk_inst_mths_IC (octor ++ Γ') mths)
   return (mths' ++ octor ++ Γ')
 

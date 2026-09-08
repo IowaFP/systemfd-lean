@@ -9,7 +9,7 @@ open Lilac
 namespace Intermediate
 
 
-def Query (G : GlobalEnv) (c : DataConst) (qs : Vec String m) (Ts : Vec Core.Ty m) : Prop :=
+def Query (G : GlobalEnv) (c : Core.DataConst) (qs : Vec String m) (Ts : Vec Core.Ty m) : Prop :=
   VecTyping (lookup_ctor? G c · ·) qs Ts
 
 inductive Kinding (G : List Intermediate.Global) : List Core.Kind -> Core.Ty -> Core.Kind -> Prop
@@ -37,13 +37,13 @@ inductive Kinding (G : List Intermediate.Global) : List Core.Kind -> Core.Ty -> 
 
 notation:170 G:170 "&" Δ:170 " ⊢ " A:170 " : " K:170 => Kinding G Δ A K
 
-def Ty.data? (c : DataConst) (G : List Global) (A : Core.Ty) : Bool :=
+def Ty.data? (c : Core.DataConst) (G : List Global) (A : Core.Ty) : Bool :=
   match A.spine with
   | some (x, _) => is_data c G x
   | none => false
 
 
-inductive SpineKinding (sv : SpCtorVariant) (x : String) (G : GlobalEnv) (test : Core.Ty -> Bool) : Core.SpineTy -> Prop where
+inductive SpineKinding (sv : Core.SpCtorVariant) (x : String) (G : GlobalEnv) (test : Core.Ty -> Bool) : Core.SpineTy -> Prop where
 | valid {Ks1 : Vec Core.Kind m1} {Ks2 : Vec Core.Kind m2} {Ts : Vec _ n} :
   (Ks1.list ++ Ks2.list).reverse = Δ ->
   (∀ (i : Fin n), G&Δ ⊢ Ts[i] : ★) ->
@@ -85,6 +85,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | inst {mτs : List (String × Core.SpineTy)} {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}:
   lookup x G = none ->
   lookup cls_name G = some (.odata cls_name K mτs) ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ->
   (e : mτs.length = mths_impl.length) ->
   (∀ i : Nat, (hi : i < mτs.length) ->
     ∃ j, ∃ (hj : j < mths_impl.length),

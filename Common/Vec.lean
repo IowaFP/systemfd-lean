@@ -587,41 +587,6 @@ theorem Vec.fold_or {cs : Vec _ n}: Vec.foldl Option.or d cs = e ->
       · apply Or.inr; exists 0; simp; rw[Vec.fold_or_val_eq] at h; apply h
       grind
 
-theorem Vec.foldl_or_eq {vs : Vec (Option α) n} : vs.foldl Option.or d = e <-> d = e ∨ ∃ i : Fin n, vs[i] = e
-  := by
- apply Iff.intro
- intro h; apply Vec.fold_or h
- intro h; induction vs generalizing d e <;> simp at *
- apply h
- case _ v vs ih =>
- cases h
- case _ h => replace ih := @ih d e (by apply Or.inl h); subst h; cases d; simp; sorry; simp
- case _ h =>
-   rcases h with ⟨i, h⟩
-   induction i using Fin.induction <;> simp at *
-   sorry
-   case _ i h1 => sorry
-
-theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
-  (∃ i : Fin n, cs[i] = e) ∨ ((∀ c ∈ cs, c = none) ∧ d = e)
-:= by
-  intro h
-  fun_induction Vec.foldr  <;> simp at *
-  apply And.intro; intro c c_in_cs; cases c_in_cs; apply h
-  case _ x xs ih =>
-    cases x <;> simp at *
-    case _ =>
-      replace ih := ih h;
-      cases ih
-      case _ ih =>
-        rcases ih with ⟨i, ih⟩; apply Or.inl; exists i.succ
-      case _ ih =>
-        rcases ih with ⟨ih1, ih2⟩; apply Or.inr;
-        apply And.intro; intro c c_in_cs'; cases c_in_cs'; case _ c_in_cs => rfl
-        case _ c_in_cs => apply ih1 c; apply c_in_cs
-        apply ih2
-    case _ v => apply Or.inl; exists 0
-
 theorem Vec.fold_or_val_eq_none {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ v ∈ vs, v = none))
   := by
  apply Iff.intro
@@ -642,6 +607,47 @@ theorem Vec.fold_or_val_eq_none {vs : Vec (Option α) n} : foldl Option.or d vs 
    replace h2' := h2 v (by constructor);
    subst v; apply ih; intro v v_in_vs; apply h2; cases v; constructor
    constructor; apply v_in_vs
+
+theorem Vec.foldl_or_eq_some {vs : Vec (Option α) n} : vs.foldl Option.or d = e <-> (d = e ∨ ∃ i : Fin n, vs[i] = e)
+  := by
+ apply Iff.intro
+ intro h; cases e;
+ case _ => apply Or.inl; sorry
+ case _ => sorry
+ -- intro h; cases h
+ -- case _ h =>
+ --   subst h;
+ --   induction vs <;> simp at *; assumption
+ -- case _ h =>
+ -- induction vs generalizing d e <;> simp at *
+ -- case _ v vs ih =>
+ -- rcases h with ⟨i, h⟩;
+
+ -- cases i using Fin.cases <;> simp at *
+ -- subst h; replace ih := @ih (some e); apply Or.inr sorry
+ -- case _ i => apply Or.inr;
+ sorry
+
+
+theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
+  (∃ i : Fin n, cs[i] = e) ∨ ((∀ c ∈ cs, c = none) ∧ d = e)
+:= by
+  intro h
+  fun_induction Vec.foldr  <;> simp at *
+  apply And.intro; intro c c_in_cs; cases c_in_cs; apply h
+  case _ x xs ih =>
+    cases x <;> simp at *
+    case _ =>
+      replace ih := ih h;
+      cases ih
+      case _ ih =>
+        rcases ih with ⟨i, ih⟩; apply Or.inl; exists i.succ
+      case _ ih =>
+        rcases ih with ⟨ih1, ih2⟩; apply Or.inr;
+        apply And.intro; intro c c_in_cs'; cases c_in_cs'; case _ c_in_cs => rfl
+        case _ c_in_cs => apply ih1 c; apply c_in_cs
+        apply ih2
+    case _ v => apply Or.inl; exists 0
 
 theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
 | .nil, i => i.elim0
