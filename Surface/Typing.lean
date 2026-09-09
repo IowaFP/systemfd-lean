@@ -33,6 +33,10 @@ inductive Kinding (G : GlobalEnv) : KindEnv -> Core.Ty -> Core.Kind -> Prop
   Kinding G Δ f (A -:> B) ->
   Kinding G Δ a A ->
   Kinding G Δ (f • a) B
+| eq :
+  Kinding G Δ A K ->
+  Kinding G Δ B K ->
+  Kinding G Δ (A ~[K]~ B) ★
 
 
 notation:170 G:170 "&" Δ:170 " ⊢s " A:170 " : " K:170 => Kinding G Δ A K
@@ -106,7 +110,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
   lookup cls_name G = some (.odata cls_name K mτs) ->
-  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range na).reverse⟩ ->
   -- Cover all methods
   (mτs.length = ts.length) ->
   (∀ i : Nat, (hi : i < mτs.length) ->
