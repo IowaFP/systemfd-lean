@@ -76,7 +76,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
   (∀ (i : Nat) mn R T (tys : List Core.Ty), (hi : i < mτs.length) ->
    (T.spine = .some (s, tys)) ->
-   (tys = ((List.range na).map (t#·)).reverse) ->
+   (tys = (List.range na).reverse.map (t#·)) ->
    mτs[i]'hi = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
     mn ≠ s ∧ lookup mn G = none ∧
     G&Ks1.list.reverse ⊢ R : ★) ->
@@ -110,10 +110,10 @@ def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
 
 notation:175 "Ω " G:175 => OpenExhaustive G
 
-theorem well_typed_spine {G : GlobalEnv} :
-  G & Δ ⊢ R : ★ ->
-  R.spine = some (T, Ts) ->
-  ∃ e, Intermediate.lookup T G = some e ∧ ∀ T ∈ Ts, ∃ K, G&Δ ⊢ T : K := by sorry
+-- theorem well_typed_spine {G : GlobalEnv} :
+--   G&Δ ⊢ R : ★ ->
+--   R.spine = some (T, Ts) ->
+--   ∃ e, Intermediate.lookup T G = some e ∧ ∀ T ∈ Ts, ∃ K, G&Δ ⊢ T : K := by sorry
 
 
 end Intermediate
