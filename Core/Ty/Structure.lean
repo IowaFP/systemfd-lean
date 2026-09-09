@@ -138,7 +138,16 @@ theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats 
 := by
   induction ts <;> simp [mkApps_nats, spine] at *
   case _ t ts ih =>
-
   sorry
+
+theorem Ty.mkApps_nats_spine_eta {T : Ty} {s : String} {tys : List Nat} :
+  T.spine = some (s, tys.map (t#·)) -> T = (gt#s).mkApps_nats tys
+:= by
+· intro h; induction T generalizing tys <;> simp [spine] at *;
+  · rcases h with ⟨e1, e2⟩; subst e1; subst e2; simp [mkApps_nats]
+  · case _ ih _ =>
+    simp [Option.bind_eq_some_iff] at h;
+    rcases h with ⟨s', tys', h1, h2, h3⟩; subst h2;
+    sorry
 
 end Core

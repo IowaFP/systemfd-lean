@@ -93,6 +93,7 @@ inductive SpineKinding (sv : Core.SpCtorVariant) (x : String) (G : GlobalEnv) (t
 inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 | data {n : Nat} {G : GlobalEnv} {ctors : Vec (String × Core.SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
+    SpineKinding (.data .cls) y ((.data x K #())::G) (Core.Ty.is_data x) T ∧
     x ≠ y
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
@@ -100,6 +101,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   GlobalWf G (.data (n := n) x K ctors)
 | defn :
   lookup x G = none ->
+  G&[] ⊢s T : ★ ->
   GlobalWf G (.defn x T t)
 | classDecl {na : Nat} {Ks1 : Vec Core.Kind na} {mτs : List (String × _)}:
   lookup s G = none ->
