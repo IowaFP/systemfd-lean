@@ -404,8 +404,12 @@ theorem kinding_SI_transfer {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv
 theorem lookup_is_data_SI_some {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') :
   Surface.is_data c G x -> Intermediate.is_data c G' x
 := by
-  intro h
-  sorry
+  intro h1
+  simp [Surface.is_data, Option.getD_eq_iff] at h1;
+  rcases h1 with ⟨e, h2, h3⟩
+  cases e <;> (simp [Surface.Entry.is_data] at * <;> cases c <;> simp at *)
+  simp [Intermediate.is_data, Option.getD_eq_iff]; sorry
+  simp [Intermediate.is_data, Option.getD_eq_iff]; sorry
 
 
 theorem Ty.data?_SI_transfer {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') (T : Core.Ty) :
@@ -1065,7 +1069,13 @@ theorem lookup_kind_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (
   case odata => subst h1; sorry
 
 theorem lookup_is_data_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') :
-  Intermediate.is_data c G x -> Core.is_data c G' x := by sorry
+  Intermediate.is_data c G x -> Core.is_data c G' x
+:= by
+  intro h1
+  simp [Intermediate.is_data, Option.getD_eq_iff] at h1; rcases h1 with ⟨e, h1, h2⟩
+  cases e <;> (cases c <;> simp [Intermediate.Entry.is_data] at h2)
+  case _ => simp [Core.is_data, Option.getD_eq_iff]; sorry
+  case _ => simp [Core.is_data, Option.getD_eq_iff]; sorry
 
 theorem kinding_IC_transfer {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') :
   G&Δ ⊢ T : K ->  G'&Δ ⊢ T : K
