@@ -643,6 +643,21 @@ theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l)
   case head => exists 0
   case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
 
+theorem Vec.foldl_or_none_default {vs : Vec (Option α) n} : foldl Option.or none vs = some e <-> (∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none)
+:= by
+  apply Iff.intro
+  · intro h;
+    induction vs <;> simp at *
+    case _ =>
+    case _ v vs ih =>
+      cases v;
+      replace ih := ih h; rcases ih with ⟨i, ih1, ih2⟩; exists i.succ; apply And.intro; sorry; sorry
+      simp [Vec.fold_or_val_eq] at h; subst h; exists 0; simp
+  · intro h
+    induction vs <;> simp at *
+    case _ hd tl ih =>
+
+    sorry
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
   := by
@@ -836,5 +851,6 @@ def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) 
 #guard #(0, 1, 2, 3).findIdxs (· == 3) == [3]
 #guard #(0, 1, 2, 3).findIdxs (· == 0) == [0]
 #guard #(0, 1, 2, 3).findIdxs (· == 4) == []
+
 
 end Lilac
