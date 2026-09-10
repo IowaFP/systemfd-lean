@@ -325,8 +325,8 @@ theorem Intermediate.Query.opn_strengthen_class {Γ : Intermediate.GlobalEnv}
 
 
 theorem mk_inst_mth_SI_sound {Γ' : Intermediate.GlobalEnv} :
-  mk_inst_mth_SI Γ' C iname mτs mn tm = .ok i ->
-  ∃ n v na nb, i = ⟨mn, 1, #(⟨iname, n, v, na, nb⟩), tm⟩
+  mk_inst_mth_SI Γ' C iname τ tm = .ok i ->
+  ∃ n v na nb, i = ⟨1, #(⟨iname, n, v, na, nb⟩), tm⟩
 := by
   intro h
   unfold mk_inst_mth_SI at h <;> simp at h
@@ -346,15 +346,25 @@ theorem mk_inst_mths_SI_sound {Γ' : Intermediate.GlobalEnv} :
   intro h p p_in_insts
   fun_induction mk_inst_mths_SI generalizing insts <;> simp [pure, Except.pure] at *
   subst h; simp at p_in_insts
-  case _ mn tm ts ih =>
+  case _ mτs mn tm ts ih =>
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨insts', h, h1⟩
-    rcases h1 with ⟨mn, b, h1, h2⟩; subst h2
-    simp at p_in_insts; cases p_in_insts
-    case _ h =>
-      subst h; exists mn; replace h1 := mk_inst_mth_SI_sound h1; rcases h1 with ⟨p, h1⟩;
-      simp at h1; rcases h1 with ⟨e, b⟩
-      subst e; rcases b with ⟨n, v, na, nb⟩; subst b; simp
-    case _ h2 => apply ih h h2
+    split at h1 <;> try simp at h1
+    case _ i h2 =>
+    simp [List.findIdx?_eq_some_iff_getElem] at h2
+    rcases h2 with ⟨hi, h2, h3⟩
+    simp [List.getElem?_eq_getElem hi] at h1
+    simp [h2, Except.bind_eq_ok_iff] at h1;
+    rcases h1 with ⟨p, h1, h4⟩; subst h4;
+    replace h1 := mk_inst_mth_SI_sound h1
+    sorry
+
+    -- rcases h1 with ⟨mn, b, h1, h2⟩; subst h2
+    -- simp at p_in_insts; cases p_in_insts
+    -- case _ h =>
+    --   subst h; exists mn; replace h1 := mk_inst_mth_SI_sound h1; rcases h1 with ⟨p, h1⟩;
+    --   simp at h1; rcases h1 with ⟨e, b⟩
+    --   subst e; rcases b with ⟨n, v, na, nb⟩; subst b; simp
+    -- case _ h2 => apply ih h h2
 
 theorem mk_inst_mths_SI_indexing
 {Γ' : Intermediate.GlobalEnv} :

@@ -65,11 +65,31 @@ def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
+-- def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
+--   (mτs : List (String × Core.SpineTy)) (mn : String) (tm : Surface.Term) :
+--   TM (String × (m : Nat) × Core.Pattern m × Surface.Term) :=
+--   match List.lookup mn mτs with
+--   | .some ⟨na, Ks1, 0, _, 1, #(T), _⟩ =>
+--     -- open method spines don't introduce existentials
+--     -- methods only analyze the instance class object (should be generalized)
+--     match Intermediate.lookup iname Γ' with
+--     | some (.octor iname' ⟨nai, Ks1i, nbi, _, nci, _, Ri⟩) => do
+--       let ⟨C', _⟩ <- Option.toTM "mk_inst_mth R.spine" Ri.spine
+--       let ⟨C'', _⟩ <- Option.toTM "mk_inst_mth R.spine" T.spine
+--       if
+--         (C'' == C &&  -- check that iname belongs to T type
+--         (iname == iname' && C' == C)) then
+--       return ⟨mn, 1, #(⟨iname, 1, #(t#0), nbi, nci⟩), tm⟩
+--       else .error "mk_inst_mth_SI"
+--     | _ => .error "mk_inst_mth_SI iname lookup"
+--   | _ => .error "mk_inst_mth_SI"
+
+
 def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
-  (mτs : List (String × Core.SpineTy)) (mn : String) (tm : Surface.Term) :
-  TM (String × (m : Nat) × Core.Pattern m × Surface.Term) :=
-  match List.lookup mn mτs with
-  | .some ⟨na, Ks1, 0, _, 1, #(T), _⟩ =>
+  (τ : Core.SpineTy) (tm : Surface.Term) :
+  TM ((m : Nat) × Core.Pattern m × Surface.Term) :=
+  match τ with
+  | ⟨na, Ks1, 0, _, 1, #(T), _⟩ =>
     -- open method spines don't introduce existentials
     -- methods only analyze the instance class object (should be generalized)
     match Intermediate.lookup iname Γ' with
@@ -79,10 +99,11 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
       if
         (C'' == C &&  -- check that iname belongs to T type
         (iname == iname' && C' == C)) then
-      return ⟨mn, 1, #(⟨iname, 1, #(t#0), nbi, nci⟩), tm⟩
+      return ⟨1, #(⟨iname, 1, #(t#0), nbi, nci⟩), tm⟩
       else .error "mk_inst_mth_SI"
     | _ => .error "mk_inst_mth_SI iname lookup"
   | _ => .error "mk_inst_mth_SI"
+
 
 
 def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy))
@@ -90,9 +111,17 @@ def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : Li
  TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
 | .nil => return .nil
 | .cons (mn, tm) ts => do
-  let ts' <- mk_inst_mths_SI Γ' C iname mτs ts
-  let t <- mk_inst_mth_SI Γ' C iname mτs mn tm
-  return (t :: ts')
+  let ts' <- mk_inst_mths_SI Γ' C iname (mτs.eraseP (λ (x, _) => x == mn)) ts
+  match mτs.findIdx? (λ (x , _) => x == mn) with
+  | some i =>
+    match mτs[i]? with
+    | some (mn', τ) =>
+      if mn == mn' then
+      let t <- mk_inst_mth_SI Γ' C iname τ tm
+      return ((mn, t) :: ts')
+      else .error "mk_insts_mths_SI"
+    | none => .error "mk_inst_mths_SI"
+  | none => .error "mk_inst_mths_SI"
 
 
 -- Kind check the types, leaves the terms untouched
