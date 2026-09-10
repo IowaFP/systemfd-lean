@@ -643,6 +643,12 @@ theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l)
   case head => exists 0
   case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
 
+theorem Vec.foldl_or_some_default {vs : Vec (Option α) n} : foldl Option.or (some e) vs = some e
+:= by
+  induction vs <;> simp at *
+  assumption
+
+
 theorem Vec.foldl_or_none_default {vs : Vec (Option α) n} : foldl Option.or none vs = some e <-> (∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none)
 := by
   apply Iff.intro
@@ -657,14 +663,16 @@ theorem Vec.foldl_or_none_default {vs : Vec (Option α) n} : foldl Option.or non
       case _ i => simp; replace ih2 := ih2 i; apply ih2; grind
       simp [Vec.fold_or_val_eq] at h; subst h; exists 0; simp
   · intro h
+    rcases h with ⟨i, h1, h2⟩
     induction vs <;> simp at *
+    apply i.elim0
     case _ hd tl ih =>
+    cases i using Fin.cases <;> simp at *
+    cases hd; simp at *; cases h1; apply Vec.foldl_or_some_default
+    case _ i =>
     cases hd
-    case none => sorry
-    case some =>
-      simp [Vec.fold_or_val_eq]
-      rcases h with ⟨i, h1, h2⟩
-      replace h2 := h2 i; sorry
+    apply ih i h1; intro j hj; replace h2 := h2 j.succ; simp at h2; apply h2; apply hj
+    exfalso; replace h2 := h2 0 (by grind); simp at h2
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
   := by

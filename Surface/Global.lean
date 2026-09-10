@@ -56,7 +56,7 @@ inductive Entry : Type where
 
 def Entry.is_data : Core.DataConst -> Entry -> Bool
 | .cls, .data _ _ _ => true
-| .opn, .octor _ _ => true
+| .opn, .odata _ _ _ => true
 | _, _ => false
 
 def Entry.is_ctor : Entry -> Bool
@@ -131,5 +131,30 @@ def is_data c G x := lookup x G |> Option.map (Entry.is_data c) |> Option.getD (
 -- | .odata n _
 -- | .octor n _
 -- | .openm n _ => n
+def Entry.name : Entry -> String
+| data x _ _ => x
+| ctor x _ _ => x
+| octor x _ => x
+| openm x _ => x
+| defn x _ _ => x
+| odata x _ _ => x
+
+
+theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
+  intro h; fun_induction lookup <;> simp_all
+  all_goals try solve | subst h; simp [Entry.name]
+  case _ n y K ctors tl ctors' h2 ih =>
+    generalize zdef : lookup x tl = z at *
+    replace h := Vec.fold_or h
+    cases h
+    case _ h => apply ih h
+    case _ h =>
+      rcases h with ⟨j, h⟩
+      subst ctors'; simp [Vec.get_to] at h
+      rcases h with ⟨h1, h3⟩; subst h1
+      subst e; simp[Entry.name]
+  case _ ms_mb ms _ =>
+    simp [ms, ms_mb] at h; rcases h with ⟨a, b, h, h1⟩
+    simp [<-h1, Entry.name]; subst e; simp [List.find?_eq_some_iff_getElem] at h; symm; apply h.1
 
 end Surface

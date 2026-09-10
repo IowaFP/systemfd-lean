@@ -88,7 +88,7 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
 def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy))
  : List (String × Surface.Term) ->
  TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
-| List.nil => return List.nil
+| .nil => return .nil
 | .cons (mn, tm) ts => do
   let ts' <- mk_inst_mths_SI Γ' C iname mτs ts
   let t <- mk_inst_mth_SI Γ' C iname mτs mn tm

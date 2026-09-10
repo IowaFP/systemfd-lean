@@ -164,4 +164,33 @@ def is_this_cls (c : Core.DataConst) (G : List Global) (clss : String) (x : Core
  | some (x, _) => lookup x G |> Option.map (Entry.is_this_data clss c) |> Option.getD (dflt := false)
  | none => false
 
+
+def Entry.name : Entry -> String
+| data x _ _ => x
+| ctor x _ _ => x
+| octor x _ => x
+| openm x _ _ => x
+| defn x _ _ => x
+| odata x _ _ => x
+
+theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
+  intro h; fun_induction lookup <;> simp_all
+  all_goals try solve | subst h; simp [Entry.name]
+  case _ n y K ctors tl ctors' h2 ih =>
+    generalize zdef : lookup x tl = z at *
+    replace h := Vec.fold_or h
+    cases h
+    case _ h => apply ih h
+    case _ h =>
+      rcases h with ⟨j, h⟩
+      subst ctors'; simp at h
+      rcases h with ⟨h1, h3⟩; subst h1
+      subst e; simp[Entry.name]
+  case _ ms_mb ms h1 =>
+    subst e; simp [Entry.name];
+    simp [List.findIdx?_eq_some_iff_getElem] at ms;
+    rcases ms with ⟨h, ms⟩; simp [List.getElem?_eq_getElem h] at h1
+    rw[h1] at ms; simp at ms; grind
+
+
 end Intermediate
