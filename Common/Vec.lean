@@ -651,13 +651,20 @@ theorem Vec.foldl_or_none_default {vs : Vec (Option α) n} : foldl Option.or non
     case _ =>
     case _ v vs ih =>
       cases v;
-      replace ih := ih h; rcases ih with ⟨i, ih1, ih2⟩; exists i.succ; apply And.intro; sorry; sorry
+      replace ih := ih h; rcases ih with ⟨i, ih1, ih2⟩; exists i.succ; apply And.intro; simp; apply ih1;
+      intro j  hj; cases j using Fin.cases
+      rfl
+      case _ i => simp; replace ih2 := ih2 i; apply ih2; grind
       simp [Vec.fold_or_val_eq] at h; subst h; exists 0; simp
   · intro h
     induction vs <;> simp at *
     case _ hd tl ih =>
-
-    sorry
+    cases hd
+    case none => sorry
+    case some =>
+      simp [Vec.fold_or_val_eq]
+      rcases h with ⟨i, h1, h2⟩
+      replace h2 := h2 i; sorry
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
   := by
