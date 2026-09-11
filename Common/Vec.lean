@@ -608,6 +608,23 @@ theorem Vec.fold_or_val_eq_none {vs : Vec (Option α) n} : foldl Option.or d vs 
    subst v; apply ih; intro v v_in_vs; apply h2; cases v; constructor
    constructor; apply v_in_vs
 
+theorem Vec.foldr_or_val_eq_none {vs : Vec (Option α) n} : foldr Option.or d vs = none <-> (d = none ∧ (∀ v ∈ vs, v = none))
+  := by
+ apply Iff.intro
+ · intro h; fun_induction foldr;
+   · apply And.intro; apply h; intros _ v_in_vs; cases v_in_vs
+   · case _ ih =>
+     simp at h; rcases h with ⟨h1, h2⟩;
+     subst h1; replace ih := ih h2; apply And.intro; apply ih.1; intro v v_in_vs; apply ih.2;
+     cases v_in_vs; sorry; assumption
+ · intro h
+   fun_induction foldr
+   apply h.1
+   case _ v vs ih =>
+
+   sorry
+
+
 
 theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
   (∃ i : Fin n, cs[i] = e) ∨ ((∀ c ∈ cs, c = none) ∧ d = e)
@@ -628,6 +645,14 @@ theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
         case _ c_in_cs => apply ih1 c; apply c_in_cs
         apply ih2
     case _ v => apply Or.inl; exists 0
+
+theorem Vec.foldr_or_some  {cs : Vec _ n} : Vec.foldr Option.or none cs = some e <->
+  (∃ i : Fin n, cs[i] = some e ∧ ∀ j < i, cs[i] = none)
+:= by
+  apply Iff.intro
+  sorry
+  sorry
+
 
 theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
 | .nil, i => i.elim0
@@ -673,6 +698,12 @@ theorem Vec.foldl_or_none_default {vs : Vec (Option α) n} : foldl Option.or non
     cases hd
     apply ih i h1; intro j hj; replace h2 := h2 j.succ; simp at h2; apply h2; apply hj
     exfalso; replace h2 := h2 0 (by grind); simp at h2
+
+theorem Vec.foldr_or_none_default {vs : Vec (Option α) n} :
+  foldr Option.or none vs = some e <-> (∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none)
+:= by
+
+  sorry
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
   := by

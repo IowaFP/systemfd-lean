@@ -25,10 +25,10 @@ theorem lookup_append_none {G1 G2 : List Global} :
     cases hd <;> simp [lookup] at *
     case data s _ _ =>
       split at h1 <;> try simp at h1
-      simp [Vec.fold_or_val_eq_none] at h1;
+      simp [Vec.foldr_or_val_eq_none] at h1;
       rcases h1 with ⟨h1, h2⟩
       replace e : (x = s) = False := by grind;
-      simp [ite_cond_eq_false (h := e), Vec.fold_or_val_eq_none];
+      simp [ite_cond_eq_false (h := e), Vec.foldr_or_val_eq_none];
       apply And.intro
       grind
       replace ih := ih h1; apply ih.2
@@ -53,8 +53,8 @@ theorem lookup_append_none {G1 G2 : List Global} :
       split at h1 <;> try simp at h1
       case _ e =>
         replace e : (x = s) = False := by grind;
-        simp [ite_cond_eq_false (h := e), Vec.fold_or_val_eq_none];
-        simp [Vec.fold_or_val_eq_none] at h1; rcases h1 with ⟨h1, h3⟩
+        simp [ite_cond_eq_false (h := e), Vec.foldr_or_val_eq_none];
+        simp [Vec.foldr_or_val_eq_none] at h1; rcases h1 with ⟨h1, h3⟩
         apply And.intro
         apply ih h1 h2
         apply h3
@@ -93,15 +93,22 @@ theorem lookup_append_some {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2
       case _ =>
         have lem : (x = s) = False := by grind
         simp [lookup, ite_cond_eq_false (h := lem)]
-        replace h1 := Vec.fold_or h1
+        replace h1 := Vec.foldr_or h1
         cases h1
+        case _ h =>
+          rcases h with ⟨i, h⟩; apply Or.inl;
+          replace c3 := c3 i ctors[i].1 ctors[i].2 rfl
+          rcases c3 with ⟨c3a, c3b, c3c⟩;
+          simp at h; rw[<-h.1] at c3c; simp [lookup_append_none] at c3c; rcases c3c with ⟨c3c, c3d⟩
+          rw [c3c]; simp [Vec.foldr_or_none_default]; exists i; apply And.intro; apply h
+          intro j hi; rw[h.1]; apply c2 i j; grind
         case _ h1 =>
-          replace ih := ih wftl h1
+          replace ih := ih wftl h1.2
           cases ih
-          case _ e => apply Or.inl; simp [e, Vec.fold_or_val_eq]
+          case _ e => rcases h1 with ⟨h1, h2⟩; apply Or.inl; simp [e]; sorry -- apply Or.inl; simp [e, Vec.fold_or_val_eq]
           case _ ih =>
             rcases ih with ⟨ih1, ih2⟩; rw[ih1];
-            apply Or.inr; apply And.intro; simp [Vec.fold_or_val_eq_none];
+            apply Or.inr; apply And.intro; simp [Vec.foldr_or_val_eq_none];
             · intro v v_in_vs; clear lem; clear c1; clear c2
               replace v_in_vs := Vec.getElem_of_mem v_in_vs
               rcases v_in_vs with ⟨i, v_in_vs⟩; simp at v_in_vs;
@@ -111,13 +118,6 @@ theorem lookup_append_some {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2
               simp [c3] at h1;
               symm; apply v_in_vs
             · apply ih2
-        case _ h =>
-          rcases h with ⟨i, h⟩; apply Or.inl;
-          replace c3 := c3 i ctors[i].1 ctors[i].2 rfl
-          rcases c3 with ⟨c3a, c3b, c3c⟩;
-          simp at h; rw[<-h.1] at c3c; simp [lookup_append_none] at c3c; rcases c3c with ⟨c3c, c3d⟩
-          rw [c3c]; simp [Vec.foldl_or_none_default]; exists i; apply And.intro; apply h
-          intro j hi; rw[h.1]; apply c2 i j; grind
     all_goals try (case _ s _ => -- odata, openm
       split at h1;
       case _ e => subst e; simp at h1; subst e; apply Or.inl; simp [lookup]
@@ -137,65 +137,64 @@ theorem lookup_append_some {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2
         simp [lookup]
         apply ih wftl h1
 
--- theorem lookup_append_some2 {G1 G2 : List Global} {e : Entry} :
---   Core.lookup x G1 = some e ∨ Core.lookup x G2 = some e ->
---   Core.lookup x (G1 ++ G2) = some e
--- := by
---   intro h1
---   cases h1
---   · induction G2 generalizing G1;
---     simp; assumption
---     sorry
---   sorry
---   intro h1
---   induction G1 generalizing G2 <;> simp [Core.lookup] at *
---   apply h1
---   case _ hd tl ih =>
---     cases hd <;> simp [Core.lookup] at *
---     case data s _ ctors =>
---       split at h1
---       cases h1; subst x; simp
---       case _ e =>
---         replace e : (x = s) = False := by grind
---         simp [ite_cond_eq_false (h := e)];
---         replace h1 := Vec.fold_or h1;
---         cases h1
---         case _ h1 =>
---           replace ih := ih h1
---           cases ih
---           case _ ih => simp [ih, Vec.foldl_or_some_default]
---           apply Or.inr; assumption
---         case _ ent _ _ h1 =>
---           rcases h1 with ⟨i, h1⟩
---           simp at h1; rcases h1 with ⟨e1, e2⟩
---           apply Or.inl;
---           sorry
---     case inst =>
---       apply ih h1
---     case odata s _ =>
---       split at h1
---       subst x; simp; simp at h1; subst e; simp
---       case _ e =>
---         replace e : (x = s) = False := by grind
---         simp [ite_cond_eq_false (h := e)]; apply ih h1
---     case openm s _ =>
---       split at h1
---       subst x; simp; simp at h1; subst e; simp
---       case _ e =>
---         replace e : (x = s) = False := by grind
---         simp [ite_cond_eq_false (h := e)]; apply ih h1
---     case defn s _ _ =>
---       split at h1
---       subst x; simp; simp at h1; subst e; simp
---       case _ e =>
---         replace e : (x = s) = False := by grind
---         simp [ite_cond_eq_false (h := e)]; apply ih h1
---     case octor s _ =>
---       split at h1
---       subst x; simp; simp at h1; subst e; simp
---       case _ e =>
---         replace e : (x = s) = False := by grind
---         simp [ite_cond_eq_false (h := e)]; apply ih h1
+theorem lookup_append_some2 {G1 G2 : List Global} {e : Entry} :
+  Core.lookup x G1 = some e ∨ Core.lookup x G2 = some e ->
+  Core.lookup x (G1 ++ G2) = some e
+:= by
+  -- intro h1
+  -- cases h1
+  -- · induction G2 generalizing G1;
+  --   simp; assumption
+  --   sorry
+  intro h1
+  induction G1 generalizing G2 <;> simp [Core.lookup] at *
+  apply h1
+  case _ hd tl ih =>
+    cases hd <;> simp [Core.lookup] at *
+    case data s _ ctors =>
+      split at h1
+      cases h1; subst x; simp
+      case _ e =>
+        replace e : (x = s) = False := by grind
+        simp [ite_cond_eq_false (h := e)];
+        replace h1 := Vec.fold_or h1;
+        cases h1
+        case _ h1 =>
+          replace ih := ih h1
+          cases ih
+          case _ ih => simp [ih, Vec.foldl_or_some_default]
+          apply Or.inr; assumption
+        case _ ent _ _ h1 =>
+          rcases h1 with ⟨i, h1⟩
+          simp at h1; rcases h1 with ⟨e1, e2⟩
+          apply Or.inl;
+          sorry
+    case inst =>
+      apply ih h1
+    case odata s _ =>
+      split at h1
+      subst x; simp; simp at h1; subst e; simp
+      case _ e =>
+        replace e : (x = s) = False := by grind
+        simp [ite_cond_eq_false (h := e)]; apply ih h1
+    case openm s _ =>
+      split at h1
+      subst x; simp; simp at h1; subst e; simp
+      case _ e =>
+        replace e : (x = s) = False := by grind
+        simp [ite_cond_eq_false (h := e)]; apply ih h1
+    case defn s _ _ =>
+      split at h1
+      subst x; simp; simp at h1; subst e; simp
+      case _ e =>
+        replace e : (x = s) = False := by grind
+        simp [ite_cond_eq_false (h := e)]; apply ih h1
+    case octor s _ =>
+      split at h1
+      subst x; simp; simp at h1; subst e; simp
+      case _ e =>
+        replace e : (x = s) = False := by grind
+        simp [ite_cond_eq_false (h := e)]; apply ih h1
 
 end Core
 
@@ -261,14 +260,14 @@ theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv}
       cases wfhd
       split at lk
       case _ e => subst e; cases lk; case _ lk _ => exfalso; simp [Intermediate.Entry.ctor?] at h1
-      replace lk := Vec.fold_or lk;
+      replace lk := Vec.foldr_or lk;
       cases lk
-      case _ e => simp [e]; apply h1
       case _ lk =>
         exfalso
         rcases lk with ⟨i, lk⟩
         cases ent <;> simp at *
         simp [Intermediate.Entry.ctor?] at h1
+      case _ e => simp [e]; apply h1
     apply ih
 
 
@@ -435,12 +434,13 @@ theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
       case _ e =>
         replace e : (cls = s) = False := by grind
         cases h3; simp [Intermediate.lookup, ite_cond_eq_false (h := e)];
-        replace h2 := Vec.fold_or h2
+        replace h2 := Vec.foldr_or h2
         cases h2;
-        case _ h =>
-          replace ih := ih h1 h; rcases ih with ⟨mτs', ih⟩
-          simp [ih, Vec.foldl_or_some_default]
         case _ h => rcases h with ⟨i, h⟩; simp [Vec.get_to] at h
+        case _ h =>
+          replace ih := ih h1 h.2; rcases ih with ⟨mτs', ih⟩
+          -- simp [ih, Vec.foldl_or_some_default]
+          sorry
   case _ s _ _ _ ih =>
     simp [bind, Except.bind_eq_ok_iff] at h1;
     split at h2
@@ -509,15 +509,15 @@ theorem lookup_SI_data {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
       rcases h1 with ⟨Γ', h1, h3⟩;
       split at h3 <;> try simp at *
       cases h3; simp [Intermediate.lookup]
-    replace h2 := Vec.fold_or h2;
+    replace h2 := Vec.foldr_or h2;
     simp [bind, Except.bind_eq_ok_iff] at h1
     rcases h1 with ⟨Γ', h1, h3⟩
     split at h3 <;> try simp at *
     cases h3;
     have e : (x = s) = False := by grind
     simp [Intermediate.lookup, ite_cond_eq_false (h := e)]; cases h2
-    case _ h2 => replace ih := ih h1 h2; simp [ih, Vec.foldl_or_some_default]
-    case _ h2 => rcases h2 with ⟨i, h2⟩; simp [Vec.get_to] at h2
+    case _ h2 => replace ih := ih h1 h2; sorry -- simp [ih, Vec.foldl_or_some_default]
+    -- case _ h2 => rcases h2 with ⟨i, h2⟩; simp [Vec.get_to] at h2
   case _ s _ _ _ ih => -- defn
     simp [bind, Except.bind_eq_ok_iff] at h1;
     split at h2
@@ -582,15 +582,15 @@ theorem translate_SI_lookup_none {G : Surface.GlobalEnv} {G' : Intermediate.Glob
     split at h3 <;> simp at *
     split at h2 <;> try simp at *
     cases h3;
-    simp[Vec.fold_or_val_eq_none_idx] at h2
+    simp[Vec.foldr_or_val_eq_none] at h2
     rcases h2 with ⟨h2, h3⟩;
     simp [Intermediate.lookup];
     split
     case _ e => subst e; contradiction
-    simp [Vec.fold_or_val_eq_none_idx]
+    simp [Vec.foldr_or_val_eq_none]
     apply And.intro
     apply ih h1 h2
-    intro i v_in_vs; replace h3 := h3 i; simp [Vec.get_to, Vec.to_get_elem]at h3; contradiction
+    intro i v_in_vs; sorry -- replace h3 := h3 i; simp [Vec.get_to, Vec.to_get_elem]at h3; contradiction
   case _ s _ _ _ ih => -- defn
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
     split at h3 <;> try simp at *
@@ -857,10 +857,10 @@ theorem Intermediate.lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ =>
-        replace h := Vec.fold_or h
+        replace h := Vec.foldr_or h
         cases h
-        case _ h => apply ih h
         case _ h => rcases h with ⟨i, h⟩; simp at h
+        case _ h => apply ih h.2
     case defn =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
@@ -905,14 +905,14 @@ theorem Intermediate.lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ 
     cases gs; case _ c1 c2 c3 =>
     simp [Intermediate.lookup] at h1 h2
     split at h1 <;> simp at *
-    replace h1 := Vec.fold_or h1;
+    replace h1 := Vec.foldr_or h1;
     cases h1
+    case _ h2 => simp at h2
     case _ h1 =>
       split at h2 <;> simp at *
-      simp [Vec.fold_or_val_eq_none] at h2
+      simp [Vec.foldr_or_val_eq_none] at h2
       rcases h2 with ⟨h2, _⟩
-      apply ih h1 h2
-    case _ h2 => simp at h2
+      apply ih h1.2 h2
   case classDecl =>
     cases gs; case _ c1 c2 =>
     simp [Intermediate.lookup] at h1 h2
@@ -954,15 +954,18 @@ theorem Intermediate.lookup_openm_index {G : Intermediate.GlobalEnv} (wf : ⊢ G
  case data =>
    split at h1 <;> simp at *
    split at h2 <;> try simp at *;
-   replace h1 := Vec.fold_or h1;
+   replace h1 := Vec.foldr_or h1;
    cases h1
    case _ h1 =>
-     replace h2 := Vec.fold_or h2
+     replace h2 := Vec.foldr_or h2
      cases h2
-     case _ h2 => apply ih h1 h2
      case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
+     case _ h2 => rcases h1 with ⟨_, h1⟩; simp at h1
    case _ h1 =>
-     rcases h1 with ⟨i, h1⟩; simp at h1;
+     replace h2 := Vec.foldr_or h2
+     cases h2
+     sorry; sorry
+     -- rcases h1 with ⟨i, h1⟩; simp at h1;
  case defn =>
    split at h1 <;> simp at *
    split at h2 <;> try simp at *;
@@ -1034,17 +1037,17 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     split at h1
     case _ e => subst e; simp at h1
     case _ e =>
-      replace h1 := Vec.fold_or h1
+      replace h1 := Vec.foldr_or h1
       cases h1
+      case _ h1 => rcases h1 with ⟨i, h1⟩; simp at h1
       case _ h1 =>
         replace h2 := Intermediate.Query.opn_strengthen_ctor (by constructor; apply wfhd'; apply wftl') h2
-        replace ih := @ih _ wftl h3 wftl' mn h1 h2
+        replace ih := @ih _ wftl h3 wftl' mn h1.2 h2
         rcases ih with ⟨i, n, cls, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths, ih⟩
         exists i + 1; exists n; exists cls; exists k1; exists k2; exists k3;
         exists Ks1; exists Ks2;
         exists tys; exists fds
         exists scs; exists mths
-      case _ h1 => rcases h1 with ⟨i, h1⟩; simp at h1
   case _ ih => -- defn decl
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h3, h⟩
     split at h <;> simp at *
@@ -1205,14 +1208,15 @@ theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.G
     subst G'
     simp [Core.lookup] at h2;
     split at h2 <;> try simp at *
-    replace h2 := Vec.fold_or h2; cases h2
+    replace h2 := Vec.foldr_or h2; cases h2
     case _ h1 _ h2 =>
       cases wf; case _ wftl wfhd =>
       simp [Intermediate.lookup]; rw[ite_cond_eq_false (h := by grind)]
-      replace ih := ih wftl h1 h2; rw[ih]
-      rw[Vec.fold_or_val_eq]
+      sorry
+      -- replace ih := ih wftl h1 h2; rw[ih]
+      -- rw[Vec.fold_or_val_eq]
     case _ h =>
-      rcases h with ⟨i, h4⟩; simp at h4
+      rcases h with ⟨i, h4⟩; sorry -- simp at h4
   case _ ih => -- defn
     simp [bind, Except.bind] at h1;
     split at h1 <;> simp at *
@@ -1448,10 +1452,10 @@ theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     · subst x; simp at h2; simp [Core.lookup]; apply h2
     · have e : (x = s) = False := by grind
       simp [Core.lookup, ite_cond_eq_false (h := e)]
-      replace h2 := Vec.fold_or h2
+      replace h2 := Vec.foldr_or h2
       cases h2
-      case _ h2 => have lem := ih h1 h2; simp [lem, Vec.fold_or_val_eq]
       case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
+      case _ h2 => have lem := ih h1 h2.2; sorry -- simp [lem, Vec.fold_or_val_eq]
   case _ s _ _ _ ih =>
     simp [bind, Except.bind_eq_ok_iff] at h1;
     rcases h1 with ⟨Γ', h1, h3⟩
@@ -1559,17 +1563,18 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
   case _ => cases h1; simp [Core.lookup]
   case _ s _ _ ctors _ ih =>
     simp [Intermediate.lookup] at h2; split at h2; cases h2
-    simp [Vec.fold_or_val_eq_none_idx] at h2; rcases h2 with ⟨h2, h3⟩
+    simp [Vec.foldr_or_val_eq_none] at h2; rcases h2 with ⟨h2, h3⟩
     simp [Functor.map, Except.map_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h2⟩
     subst h2; simp [Core.lookup]
     case _ e =>
     replace e : (x = s) = False := by grind
-    simp [ite_cond_eq_false (h := e), Vec.fold_or_val_eq_none]
+    simp [ite_cond_eq_false (h := e), Vec.foldr_or_val_eq_none]
     apply And.intro;
     apply ih h1 h2
     intro v v_in_vs; replace v_in_vs := Vec.getElem_of_mem v_in_vs;
-    rcases v_in_vs with ⟨i, v_in_vs⟩; replace h3 := h3 i; simp at v_in_vs; replace e : (x = ctors[i].1) = False := by grind
-    subst v; simp [ite_cond_eq_false (h := e)]
+    rcases v_in_vs with ⟨i, v_in_vs⟩;
+    sorry -- replace h3 := h3 i; simp at v_in_vs; replace e : (x = ctors[i].1) = False := by grind
+    -- subst v; simp [ite_cond_eq_false (h := e)]
   case _ s _ _ _ ih =>
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
     simp [Intermediate.lookup] at h2
@@ -1725,16 +1730,17 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
     simp [Functor.map, Except.map_eq_ok_iff] at h1;
     rcases h1 with ⟨Γ', h1, h2⟩; subst G'
     simp [Core.lookup] at h2; split at h2 <;> try simp at h2
-    replace h2 := Vec.fold_or h2
+    replace h2 := Vec.foldr_or h2
     cases h2
+    exfalso; case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
     case _ h2 =>
       cases wf'; case _ wftl' wfhd' =>
-      replace ih := ih wftl h1 h2 wftl'; rcases ih with ⟨cls, ih⟩;
+      replace ih := ih wftl h1 h2.2 wftl'; rcases ih with ⟨cls, ih⟩;
       simp[Intermediate.lookup]; exists cls
       split
       contradiction
-      rw[ih]; simp [Vec.fold_or_val_eq]
-    exfalso; case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
+      rw[ih]; sorry -- simp [Vec.fold_or_val_eq]
+
   case _ ih =>  -- defn
     cases wf; case _ wftl _ =>
     simp [bind, Except.bind_eq_ok_iff] at h1

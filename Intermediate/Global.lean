@@ -118,7 +118,7 @@ def lookup (x : String) : GlobalEnv -> Option Entry
     (λ ((z, A), i) => if x == z then some (Entry.ctor z i A) else none)
     (Vec.zipIdx ctors)
   if x == y then return .data y K ctors
-  else Vec.foldl Option.or (lookup x tl) ctors'
+  else ctors'.foldr Option.or (lookup x tl)
 | .cons (.defn ⟨y, a, b⟩) tl =>
   if x == y then return .defn y a b else lookup x tl
 | .cons (.classDecl ⟨cls_name, _, K, fds, scs, mths⟩) tl =>
@@ -178,14 +178,14 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
   all_goals try solve | subst h; simp [Entry.name]
   case _ n y K ctors tl ctors' h2 ih =>
     generalize zdef : lookup x tl = z at *
-    replace h := Vec.fold_or h
+    replace h := Vec.foldr_or h
     cases h
-    case _ h => apply ih h
     case _ h =>
       rcases h with ⟨j, h⟩
       subst ctors'; simp at h
       rcases h with ⟨h1, h3⟩; subst h1
       subst e; simp[Entry.name]
+    case _ h => apply ih h.2
   case _ ms_mb ms h1 =>
     subst e; simp [Entry.name];
     simp [List.findIdx?_eq_some_iff_getElem] at ms;

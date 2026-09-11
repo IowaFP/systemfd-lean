@@ -117,14 +117,14 @@ theorem lookup_entry_global {G : GlobalEnv}:
   intro h
   fun_induction lookup <;> simp at *
   case _ ctors _ ctors' ih _ =>
-    replace h := Vec.fold_or h
+    replace h := Vec.foldr_or h
     cases h
     case _ h =>
-      replace ih := ih h
+      unfold ctors' at h; simp at h
+    case _ h =>
+      replace ih := ih h.2
       rcases ih with ⟨i, ih⟩
       exists i.succ
-    case _ h =>
-      unfold ctors' at h; simp at h
   all_goals try (
     case _ ih _ =>
     replace ih := ih h
