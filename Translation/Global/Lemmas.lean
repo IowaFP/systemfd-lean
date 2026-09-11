@@ -324,7 +324,7 @@ theorem Intermediate.Query.opn_strengthen_class {Γ : Intermediate.GlobalEnv}
     apply ih
 
 
-theorem mk_inst_mth_SI_sound {Γ' : Intermediate.GlobalEnv} :
+theorem mk_inst_mth_SI_shape {Γ' : Intermediate.GlobalEnv} :
   mk_inst_mth_SI Γ' C iname τ tm = .ok i ->
   ∃ n v na nb, i = ⟨1, #(⟨iname, n, v, na, nb⟩), tm⟩
 := by
@@ -339,44 +339,84 @@ theorem mk_inst_mth_SI_sound {Γ' : Intermediate.GlobalEnv} :
     case _ e => rcases e with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3; simp
   simp at h
 
-theorem mk_inst_mths_SI_sound {Γ' : Intermediate.GlobalEnv} :
+theorem mk_inst_mths_SI_shape {Γ' : Intermediate.GlobalEnv} :
+  ts.length = mτs.length ->
   mk_inst_mths_SI Γ' C iname ts mτs = .ok insts ->
   ∀ i ∈ insts, ∃ (mn : String) (n na nb : Nat) (v : Vec Core.Ty n) (t : Surface.Term), i = ⟨mn, 1, #(⟨iname, n, v, na, nb⟩), t⟩
 := by
-  intro h p p_in_insts
-  fun_induction mk_inst_mths_SI generalizing insts <;> simp [pure, Except.pure] at *
-  subst h; simp at p_in_insts
-  case _ mτs mn tm ts ih =>
-    simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨insts', h, h1⟩
-    split at h1 <;> try simp at h1
-    case _ i h2 =>
-    simp [List.findIdx?_eq_some_iff_getElem] at h2
-    rcases h2 with ⟨hi, h2, h3⟩
-    simp [List.getElem?_eq_getElem hi] at h1
-    simp [h2, Except.bind_eq_ok_iff] at h1;
-    rcases h1 with ⟨p, h1, h4⟩; subst h4;
-    replace h1 := mk_inst_mth_SI_sound h1
-    sorry
+  intro h h2 p p_in_insts
+  -- fun_induction mk_inst_mths_SI generalizing insts <;> simp [pure, Except.pure] at *
+  -- subst h; subst h2; cases p_in_insts
+  -- case _ mτs mn tm ts _ _ ih =>
+  --   simp [bind, Except.bind_eq_ok_iff] at h2; rcases h2 with ⟨insts', h2, h3⟩
+  --   split at h3 <;> try simp at h3
+  --   case _ i h4 =>
+  --   simp [List.findIdx?_eq_some_iff_getElem] at h4
+  --   rcases h4 with ⟨hi, h4, h5⟩
+  --   simp [List.getElem?_eq_getElem hi] at h3
+  --   simp [h4, Except.bind_eq_ok_iff] at h3
+  --   rcases h3 with ⟨p, h3, h6⟩; subst h4;
+  --   replace h3 := mk_inst_mth_SI_sound h3
+  --   cases p_in_insts
+  --   sorry
+  --   sorry
+  -- exists mτsi[]; rcases h1 with ⟨n, v, na, nb, h1⟩; exists n; exists na; exists nb; exists v; exists tm; simp; apply h1
+  -- case _ p_in_insts =>
+  -- apply ih h p_in_insts
+  sorry
 
-    -- rcases h1 with ⟨mn, b, h1, h2⟩; subst h2
-    -- simp at p_in_insts; cases p_in_insts
-    -- case _ h =>
-    --   subst h; exists mn; replace h1 := mk_inst_mth_SI_sound h1; rcases h1 with ⟨p, h1⟩;
-    --   simp at h1; rcases h1 with ⟨e, b⟩
-    --   subst e; rcases b with ⟨n, v, na, nb⟩; subst b; simp
-    -- case _ h2 => apply ih h h2
+theorem match_τs_mths_indexing {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)}:
+  match_τs_mths mτs ts = .ok ts' ->
+  ∀ (i : Nat) mn t τ, ts'[i]? = some (mn, τ, t) ->
+  (∃ j : Nat, mτs[j]? = some (mn, τ)) ∧ (∃ k : Nat, ts[k]? = some (mn, t)) := by sorry
 
-theorem mk_inst_mths_SI_indexing
-{Γ' : Intermediate.GlobalEnv} :
+theorem match_τs_mths_length {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)} :
+  match_τs_mths mτs ts = .ok ts' ->
+  mτs.length = ts.length ->
+  mτs.length = ts'.length := by sorry
+
+theorem mk_inst_mths_SI_aux_indexing {Γ' : Intermediate.GlobalEnv} :
+  mk_inst_mths_SI_aux Γ' C iname ts' = Except.ok insts ->
+  ∀ (i : Nat) mn n p t, insts[i]? = some ⟨mn, n, p, t⟩ ->
+  ∃ (j : Nat) (τ : Core.SpineTy), ts'[j]? = some (mn, τ, t) := by sorry
+
+theorem mk_inst_mths_SI_indexing {Γ' : Intermediate.GlobalEnv} :
+  mτs.length = ts.length ->
   mk_inst_mths_SI Γ' C iname mτs ts  = .ok insts ->
-  (∀ i : Nat, (hi : i < mτs.length) -> ∃ j, ∃ (h : j < insts.length),
-    insts[j].1 = mτs[i].1 ∧ insts[j].2.1 = mτs[i].2.2.2.2.2.1)
+  (∀ k : Nat, (hi : k < mτs.length) -> ∃ j, ∃ (h : j < insts.length),
+    insts[j].1 = mτs[k].1 ∧ insts[j].2.1 = mτs[k].2.2.2.2.2.1)
 := by
- intro h j hj
- fun_induction mk_inst_mths_SI generalizing insts <;> simp [pure] at h
- cases h; simp; sorry
- simp [bind, Except.bind_eq_ok_iff] at h;
- sorry
+  intro e h k hk
+  unfold mk_inst_mths_SI at h
+  simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨ts', h, h1⟩
+  have h' := match_τs_mths_indexing h
+  have h1' := mk_inst_mths_SI_aux_indexing h1
+  have hlen := match_τs_mths_length h e
+
+  sorry
+ -- intro h j k hk
+ -- fun_induction mk_inst_mths_SI generalizing insts <;> simp at *
+ -- case _ => cases j; subst h; simp; cases hk
+ -- case _ mτs mn tm ts mτs' e ih =>
+ --   simp [bind, Except.bind_eq_ok_iff] at j; rcases j with ⟨ts', j, j1⟩
+ --   split at j1 <;> try simp at *
+ --   case _ i h1  =>
+ --   split at j1 <;> try simp at j1
+ --   case _ e1 =>
+ --     split at j1 <;> try simp at j1
+ --     case _ e2 =>
+ --       simp [List.findIdx?_eq_some_iff_getElem] at h1; rcases h1 with ⟨hk, h1, h3⟩
+ --       subst e2; simp [List.getElem?_eq_getElem hk] at e1;
+ --       simp [Functor.map, Except.map_eq_ok_iff] at j1; rcases j1 with ⟨p', j2, j3⟩; subst insts
+ --       replace ih := ih e j
+ --       generalize zdef : List.eraseP (fun x => match x with | (x, snd) => x == mn) mτs = z at *
+ --       simp [List.eraseP_eq_eraseIdx] at zdef;
+ --       split at zdef
+ --       case _ h => subst zdef; simp at h; exfalso; replace h := h mτs[i].fst mτs[i].snd (by grind); contradiction
+ --       case _ j hj =>
+ --         simp [List.findIdx?_eq_some_iff_getElem] at hj; rcases hj with ⟨hj, h1, h2⟩
+ --         subst mn; sorry
+
 
 theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
   {K : Vec Core.Kind nc} :
@@ -768,8 +808,8 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         apply lem
       · apply h7
       · intro i hi;
-        have lem := mk_inst_mths_SI_sound h6
-        have lem2 := mk_inst_mths_SI_indexing h6 i hi
+        have lem := mk_inst_mths_SI_shape e2 h6
+        have lem2 := mk_inst_mths_SI_indexing e2 h6 i hi
         rcases lem2 with ⟨j, h, lem2, lem3⟩
         exists j; exists h; apply And.intro
         symm; assumption
@@ -1134,8 +1174,8 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
             subst e
             exists 0; exists q; exists cls1; exists na'; exists nb'; exists nc'; exists Ks1'; exists Ks2';
             exists As'; exists []; exists []; exists mths; simp
-            have lem := mk_inst_mths_SI_sound h4
-            have lem1 := mk_inst_mths_SI_indexing h4
+            have lem := mk_inst_mths_SI_shape (by assumption) h4
+            have lem1 := mk_inst_mths_SI_indexing (by assumption) h4
             have lem2 := Intermediate.lookup_openm_index wftl' h1 lki2
             rcases lem2 with ⟨j, hj, lem2⟩; subst lem2
             replace lem1 := lem1 j hj

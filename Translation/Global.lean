@@ -105,23 +105,50 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
   | _ => .error "mk_inst_mth_SI"
 
 
+-- | .nil => return .nil
+-- | .cons (mn, tm) ts => do
+--   let mτs' := (mτs.eraseP (λ (x, _) => x == mn))
+--   if mτs'.length = ts.length then
+--     let ts' <- mk_inst_mths_SI Γ' C iname mτs' ts
+--      match mτs.findIdx? (λ (x , _) => x == mn) with
+--     | some i =>
+--       match mτs[i]? with
+--       | some (mn', τ) =>
+--         if mn == mn' then
+--         let t <- mk_inst_mth_SI Γ' C iname τ tm
+--         return ((mn, t) :: ts')
+--         else .error "mk_insts_mths_SI"
+--       | none => .error "mk_inst_mths_SI"
+--     | none => .error "mk_inst_mths_SI"
+--   else .error "mk_inst_mths_SI length"
 
-def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (mτs : List (String × Core.SpineTy))
- : List (String × Surface.Term) ->
+
+def match_τs_mths (mτs : List (String × Core.SpineTy)) :  List (String × Surface.Term) ->
+  TM (List (String × Core.SpineTy × Surface.Term))
+| .nil => return List.nil
+| .cons (mn, tm) ts => do
+  let ts' <- match_τs_mths mτs ts
+  match mτs.findIdx? (λ x => x.fst == mn) with
+  | .some i =>
+    match mτs[i]? with
+    | .none => .error "match τs mths shouldn't happen"
+    | .some (mn', τ) => if mn == mn' then return (mn, τ, tm)::ts' else .error "shouldn't happen match_τs_mths"
+  | .none => .error "match τs mths"
+
+def mk_inst_mths_SI_aux (Γ' : Intermediate.GlobalEnv) (C iname : String) : List (String × Core.SpineTy × Surface.Term) ->
  TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
 | .nil => return .nil
-| .cons (mn, tm) ts => do
-  let ts' <- mk_inst_mths_SI Γ' C iname (mτs.eraseP (λ (x, _) => x == mn)) ts
-  match mτs.findIdx? (λ (x , _) => x == mn) with
-  | some i =>
-    match mτs[i]? with
-    | some (mn', τ) =>
-      if mn == mn' then
-      let t <- mk_inst_mth_SI Γ' C iname τ tm
-      return ((mn, t) :: ts')
-      else .error "mk_insts_mths_SI"
-    | none => .error "mk_inst_mths_SI"
-  | none => .error "mk_inst_mths_SI"
+| .cons (mn, τ, tm) ts => do
+    let ts' <- mk_inst_mths_SI_aux Γ' C iname ts
+    let t <- mk_inst_mth_SI Γ' C iname τ tm
+    return ((mn, t) :: ts')
+
+def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
+  (mτs : List (String × Core.SpineTy)) (mths : List (String × Surface.Term)) :
+ TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term)) := do
+ let τs_mths : List (String × Core.SpineTy × Surface.Term) <- match_τs_mths mτs mths
+ mk_inst_mths_SI_aux Γ' C iname τs_mths
+
 
 
 -- Kind check the types, leaves the terms untouched
