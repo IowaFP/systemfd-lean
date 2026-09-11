@@ -100,7 +100,7 @@ def lookup (x : String) : List Global -> Option Entry
     (λ ((z, A), i) => if x == z then some (Entry.ctor z i A) else none)
     (Vec.zipIdx ctors)
   if x == y then return .data y K ctors
-  else Vec.foldl Option.or (lookup x tl) ctors'
+  else Vec.foldr Option.or (lookup x tl) ctors'
 | .cons (.odata y a) tl =>
   if x == y then return .odata y a else lookup x tl
 | .cons (.openm y a) tl =>

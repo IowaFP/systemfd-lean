@@ -110,20 +110,30 @@ theorem octor_odata_linked {T : String} {spTy : SpineTy}{Tys1 : List Ty}:
     simp [lookup] at h6;
     split at h6;
     case _ e => subst e; simp at h6
-    replace h6 := Vec.fold_or h6
+    replace h6 := Vec.foldr_or h6
     cases h6;
     case _ h6 =>
       simp [lookup] at lem
       split at lem
       · case _ e =>
         subst e; simp at lem
-      · replace lem := Vec.fold_or lem;
+      · replace lem := Vec.foldr_or lem;
         cases lem
         case _ lem =>
           unfold lookup_octors at h4; simp at h4
-          apply ih wftl h6 lem h4
-        case _ e => simp at e
-    case _ h6 => simp at h6
+          rcases h6 with ⟨i, h6⟩; simp at h6;
+        case _ e => rcases h6 with ⟨i, h6⟩; simp at h6
+    case _ h6 =>
+      simp [lookup] at lem;
+      split at lem <;> try simp at lem
+      replace lem := Vec.foldr_or lem
+      cases lem
+      case _ lem => rcases lem with ⟨_, lem⟩; simp at lem
+      case _ lem =>
+        rcases lem with ⟨_, lem⟩;
+        apply ih wftl h6.2 lem
+        unfold lookup_octors at h4; simp [bind] at h4
+        apply h4
   case odata =>
     cases wf; case _ wftl wfhd =>
     simp [lookup] at h6;

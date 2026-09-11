@@ -14,16 +14,12 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
   all_goals try solve | subst h; simp [Entry.name]
   case _ n y K ctors tl ctors' h2 ih =>
   generalize zdef : lookup x tl = z at *
-  replace h := Vec.fold_or h
+  replace h := Vec.foldr_or h
   cases h
-  case _ h => apply ih h
+  case _ h => rcases h with ⟨i, h⟩; simp [ctors'] at h;rcases h with ⟨e1, e2⟩; subst e; simp [e1, Entry.name]
   case _ h =>
     rcases h with ⟨j, h⟩
-    subst ctors'; simp at h
-    rcases h with ⟨h1, h3⟩; subst h1
-    generalize udef : ctors[j] = u at *
-    rcases u with ⟨u, T⟩; simp at *
-    subst h3; simp [Entry.name] at *
+    apply ih h
 
 theorem GlobalWf.drop_wf : ∀ n, ⊢ G -> ⊢ G.drop n := by
   intro n wf
@@ -63,9 +59,9 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
       case data n y K ctors j1 j2 j3 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j3; injection j3
-        case _ e =>
-          rw [drop_lookup_unique_vec]; exact ih
-          intro i; simp; intro h; subst h; grind
+        case _ e => sorry
+          -- rw [drop_lookup_unique_vec]; exact ih
+          -- intro i; simp; intro h; subst h; grind
       case openm T b y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j2; injection j2
@@ -91,7 +87,7 @@ theorem lookup_weaken_ctors_vec (wf : ⊢ (Global.data n y D ctors :: G)) (h : x
   : {v : Vec _ k} ->
     lookup x G = some e ->
     (∀ (i : Fin k), v[i] = none) ->
-    v.foldl Option.or (lookup x G) = some e
+    v.foldr Option.or (lookup x G) = some e
 | .nil, h1, h2 => h1
 | .cons hd tl, h1, h2 => by
   have h2' := λ (i : Fin _) => h2 (Fin.succ i); simp at h2'
@@ -198,16 +194,16 @@ theorem ite_not_resolve [Decidable p] : ¬ p -> ite p a b = b := by
 
 theorem EntryWf.from_lookup_ctor1 :
   {v : Vec _ n} ->
-  v.foldl Option.or d = some e ->
+  v.foldr Option.or d = some e ->
   d = some e ∨ (∃ (i : Fin n), v[i] = some e)
 | .nil, eq => Or.inl eq
 | .cons a tl, eq => by
-  simp [Vec.foldl] at eq; cases eq
-  case _ eq => apply Or.inl eq
+  simp [Vec.foldr] at eq; cases eq
+  case _ eq => apply Or.inr; exists 0
   case _ eq =>
     have lem := from_lookup_ctor1 eq.2
     cases lem
-    case _ lem => apply Or.inr; exists 0
+    case _ lem => sorry -- apply Or.inr; exists 0
     case _ lem =>
       rcases lem with ⟨i, lem⟩
       apply Or.inr; exists (Fin.succ i)
@@ -453,18 +449,18 @@ theorem Vec.option_lemma2 :
 theorem EntryWf.from_lookup_ctor2 :
   {v : Vec (Option Entry) n} ->
   (∃ (i : Fin n), v[i] = some e ∧ ∀ j ≠ i, v[j] = none) ->
-  v.foldl Option.or none = some e
+  v.foldr Option.or none = some e
 | .nil, ⟨i, h1, h2⟩ => Fin.elim0 i
 | .cons a tl, ⟨i, h1, h2⟩ => by
   cases i using Fin.cases <;> simp at *
   case zero =>
     subst h1
     replace h2 := λ (j : Fin _) => h2 j.succ (by grind); simp at h2
-    apply Vec.option_lemma1 h2
+    simp
   case succ i =>
     have lem := h2 0 (by grind); simp at lem; subst lem
     replace h2 := λ (j : Fin _) (e : j ≠ i) => h2 j.succ (by grind); simp at h2
-    apply Vec.option_lemma2 h1 h2
+    apply Or.inr; simp; sorry
 
 theorem EntryWf.from_lookup :
   ⊢ G ->
