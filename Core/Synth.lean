@@ -99,7 +99,7 @@ def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
         then by {
           simp at h; rcases h with ⟨e1, e2⟩; subst K1; subst K2
           simp at he; subst he
-          apply eG.process_equation G wf Δ Γ K T1 T2 ⟨t, lem0⟩ }
+          subst T; apply eG.process_equation G wf Δ Γ K T1 T2 ⟨t, lem0⟩ }
         else none
      | _ => return eG
    else none
