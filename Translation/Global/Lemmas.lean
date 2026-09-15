@@ -1296,7 +1296,7 @@ theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.G
   fun_induction translate_IC generalizing G' <;> simp at *
   case _ => -- nil
     simp [pure, Except.pure] at h1; subst G'; simp [Core.lookup] at h2
-  case _ ih => -- data
+  case _ s _ _ ctors  _ ih => -- data
     simp [Functor.map, Except.map] at h1;
     split at h1 <;> simp at *
     subst G'
@@ -1306,11 +1306,23 @@ theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.G
     case _ h1 _ h2 =>
       cases wf; case _ wftl wfhd =>
       simp [Intermediate.lookup]; rw[ite_cond_eq_false (h := by grind)]
-      sorry
-      -- replace ih := ih wftl h1 h2; rw[ih]
-      -- rw[Vec.fold_or_val_eq]
+      simp at h2
     case _ h =>
-      rcases h with ⟨i, h4⟩; sorry -- simp at h4
+      rcases h with ⟨hi, h4⟩;
+      have e : (x = s) = False := by grind
+      simp [Intermediate.lookup, ite_cond_eq_false (h := e), Vec.foldr_or_val_some]
+      cases wf; case _ wf _ =>
+      apply And.intro
+      have e := Core.lookup_name_agrees h4; simp [Core.Entry.name] at e; subst e;
+      apply ih wf; assumption; apply h4
+      intro i h5;
+      generalize zdef : Vec.map (fun x_1 => if x = x_1.1.fst then some (Core.Entry.ctor x_1.1.fst x_1.snd x_1.1.snd) else none)
+          ctors.zipIdx = z at *
+      have lem : z[i] = z[i] := rfl
+      conv at lem =>
+        lhs
+        rw[<-zdef]
+      simp [h5] at lem; replace hi := hi z[i] Vec.getElem_mem; rw[<-lem] at hi; simp at hi
   case _ ih => -- defn
     simp [bind, Except.bind] at h1;
     split at h1 <;> simp at *
@@ -1364,23 +1376,39 @@ theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.G
         sorry
 
 
-  case _ ih => -- inst decl
+  case _ iname cls_name _ _ _ _ _ _ _ _ _ _ ih => -- inst decl
     simp [bind, Except.bind] at h1;
     split at h1 <;> try simp at h1
     simp [Functor.map, Except.map] at h1
     split at h1 <;> try simp at h1
     subst G'
-    case _ h1 _ _ h3 =>
+    case _ Γ' h1 _ Γ'' h3 =>
     simp [Intermediate.lookup];
     split
     case _ e =>
       subst e;
-
+      have e := Core.lookup_name_agrees h2; simp [Core.Entry.name] at e; subst e;
+      replace h2 := Core.lookup_append_some wf h2
+      cases h2
+      exfalso; sorry
       -- replace h2 := Core.lookup_append  h2
       -- cases h2
       -- case _ h2 => sorry
-      sorry
-    sorry
+      case _ h =>
+        rcases h with ⟨h1, h2⟩; simp [Core.lookup] at h2; subst h2; rfl
+    case _ =>
+      have e := Core.lookup_name_agrees h2; simp [Core.Entry.name] at e; subst e;
+      replace h2 := Core.lookup_append_some wf h2
+      cases h2
+      exfalso; sorry
+      case _ h2 =>
+        rcases h2 with ⟨h2, h3⟩;
+        have e : (y = iname) = False := by grind
+        simp [Core.lookup, ite_cond_eq_false (h := e)] at h3;
+        have wf : ⊢ Γ' := by
+          have lem := Core.GlobalWf.drop_wf Γ''.length wf;  simp at lem;
+          cases lem; assumption
+        apply ih wf h1 h3
 
 
 theorem translate_IC_query {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G'):
@@ -1667,8 +1695,14 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
     apply ih h1 h2
     intro v v_in_vs; replace v_in_vs := Vec.getElem_of_mem v_in_vs;
     rcases v_in_vs with ⟨i, v_in_vs⟩;
-    sorry -- replace h3 := h3 i; simp at v_in_vs; replace e : (x = ctors[i].1) = False := by grind
-    -- subst v; simp [ite_cond_eq_false (h := e)]
+    simp at v_in_vs;
+    generalize zdef : Vec.map (fun x_1 => if x = x_1.1.fst then some (Intermediate.Entry.ctor x_1.1.fst x_1.snd x_1.1.snd) else none) ctors.zipIdx  = z at *;
+    replace h3 := h3 z[i] Vec.getElem_mem; subst v; simp; intro h; subst x;
+    have lem : z[i] = z[i] := rfl
+    conv at lem  =>
+      lhs
+      rw[<-zdef]
+    simp at lem; simp [h3] at lem
   case _ s _ _ _ ih =>
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
     simp [Intermediate.lookup] at h2
@@ -1869,11 +1903,18 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
       have lem : (mn = cls_name) = False := by grind
       simp [Intermediate.lookup, ite_cond_eq_false (h := lem)];
       split
-      apply ih wftl h1 h2 (by have lem := Core.GlobalWf.drop_wf (mths.length + 1) wf'; sorry)
+      have wf' : ⊢ Γ' := by
+        have lem := Core.GlobalWf.drop_wf mths.length wf';
+        simp at lem; cases lem; assumption
+      apply ih wftl h1 h2 wf'
       cases wfhd; case _ c1 c2 c3 =>
-      case _ i h =>
-      exfalso;
-      simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩; sorry
+      case _ h3 _ i h =>
+        simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, e1, e2⟩
+        clear h2 c1 c2 c3 e2 wf' ih; exfalso;
+        generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths = z at *
+        have l3 : z.length = mths.length := by grind
+        have lem2 := List.getElem_of_eq (Eq.symm zdef) (i := i) (by grind); simp at lem2;
+        sorry
 
 
 
