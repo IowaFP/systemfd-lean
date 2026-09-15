@@ -650,7 +650,7 @@ theorem Vec.foldr_or_some  {cs : Vec _ n} : Vec.foldr Option.or none cs = some e
   (∃ i : Fin n, cs[i] = some e ∧ ∀ j < i, cs[i] = none)
 := by
   apply Iff.intro
-  sorry
+  · intro h; replace h := Vec.foldr_or h; cases h; sorry; case _ h => simp at h
   sorry
 
 
@@ -702,7 +702,11 @@ theorem Vec.foldl_or_none_default {vs : Vec (Option α) n} : foldl Option.or non
 theorem Vec.foldr_or_none_default {vs : Vec (Option α) n} :
   foldr Option.or none vs = some e <-> (∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none)
 := by
+  sorry
 
+theorem Vec.foldr_or_val_some {vs : Vec (Option α) n} :
+  foldr Option.or d vs = some e <-> ((∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none) ∨ (d = e ∧ ∀ i : Fin n, vs[i] = none) )
+:= by
   sorry
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
@@ -897,6 +901,10 @@ def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) 
 #guard #(0, 1, 2, 3).findIdxs (· == 3) == [3]
 #guard #(0, 1, 2, 3).findIdxs (· == 0) == [0]
 #guard #(0, 1, 2, 3).findIdxs (· == 4) == []
+
+
+theorem Vec.zipIdx_map {α : Type u_1} {β : Type u_2} {n : Nat} {vs : Vec α n} {k : Nat} {f : α → β} :
+  (Vec.map f vs).zipIdx k = Vec.map (Prod.map f id) (vs.zipIdx k) := by sorry
 
 
 end Lilac

@@ -143,7 +143,7 @@ theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats 
 theorem Ty.mkApps_nats_spine_eta {T : Ty} {s : String} {tys : List Nat} :
   T.spine = some (s, tys.map (t#·)) -> T = (gt#s).mkApps_nats tys
 := by
-· intro h; induction T generalizing tys <;> simp [spine] at *;
+  intro h; induction T generalizing tys <;> simp [spine] at *;
   · rcases h with ⟨e1, e2⟩; subst e1; subst e2; simp [mkApps_nats]
   · case _ ih _ =>
     simp [Option.bind_eq_some_iff] at h;
