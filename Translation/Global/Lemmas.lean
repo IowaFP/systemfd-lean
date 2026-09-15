@@ -70,6 +70,77 @@ theorem lookup_append_none {G1 G2 : List Global} :
         simp [ite_cond_eq_false (h := e)]; apply ih h1 h2
     case inst => apply ih h1 h2
 
+theorem lookup_append_weaken_right {G1 G2 : List Global} {e : Entry} :
+  Core.lookup x G1 = some e -> Core.lookup x (G1 ++ G2) = some e
+:= by
+  intro h
+  induction G1
+  simp [lookup] at h
+  case _ hd tl ih =>
+    have lem : (hd :: tl ++ G2) = hd :: (tl ++ G2) := by grind
+    simp [lem]; clear lem
+    cases hd
+    · simp [lookup] at h; split at h <;> try simp at h
+      case _ e => subst x; simp [lookup]; apply h
+      case _ e =>
+      simp [lookup, e];
+      simp [Vec.foldr_or_val_some]; simp [Vec.foldr_or_val_some] at h;
+      cases h
+      case _ h => apply Or.inl; apply h
+      case _ h =>
+        apply Or.inr; apply And.intro;
+        apply ih h.1
+        apply h.2
+    case _ s _ =>
+      simp [lookup] at h; split at h <;> try simp at h
+      subst x; simp [lookup]; apply h
+      have e : (x = s) = False := by grind
+      simp [lookup, e]; apply ih h
+    case _ s _ =>
+      simp [lookup] at h; split at h <;> try simp at h
+      subst x; simp [lookup]; apply h
+      have e : (x = s) = False := by grind
+      simp [lookup, e]; apply ih h
+    case _ s _ _ =>
+      simp [lookup] at h; split at h <;> try simp at h
+      subst x; simp [lookup]; apply h
+      have e : (x = s) = False := by grind
+      simp [lookup, e]; apply ih h
+    case _ => simp [lookup]; simp [lookup] at h; apply ih h
+    case _ s _ =>
+      simp [lookup] at h; split at h <;> try simp at h
+      subst x; simp [lookup]; apply h
+      have e : (x = s) = False := by grind
+      simp [lookup, e]; apply ih h
+
+theorem lookup_append_weaken_left {G1 G2 : List Global} {e : Entry} :
+  Core.lookup x G1 = none -> Core.lookup x G2 = some e -> Core.lookup x (G1 ++ G2) = some e
+:= by
+  intro h1 h2
+  induction G1 generalizing G2 <;> simp at *
+  apply h2
+  case _ hd tl ih =>
+    have lem : hd :: tl = [hd] ++ tl := by grind
+    rw[lem] at h1; rw [lookup_append_none] at h1
+    rcases h1 with ⟨h1, h3⟩
+    replace ih := ih h3 h2
+    cases hd <;> simp [Core.lookup] at *
+    sorry
+    sorry
+    sorry
+    sorry
+    sorry
+    sorry
+
+theorem lookup_append_some_mpr {G1 G2 : List Global} {e : Entry} :
+  Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e) ->
+  Core.lookup x (G1 ++ G2) = some e
+:= by
+  intro h; cases h
+  case _ h => apply lookup_append_weaken_right h
+  case _ h =>
+  rcases h with ⟨h1, h2⟩
+  apply lookup_append_weaken_left h1 h2
 
 theorem lookup_append_some {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2)): -- needs wf in data constructor case
   Core.lookup x (G1 ++ G2) = some e ->
@@ -148,6 +219,15 @@ theorem lookup_append_some {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2
         simp [lookup]
         apply ih wftl h1
 
+theorem lookup_append_some_iff {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2)): -- needs wf in data constructor case
+  Core.lookup x (G1 ++ G2) = some e <->
+  Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
+:= by
+  apply Iff.intro
+  apply lookup_append_some wf
+  apply lookup_append_some_mpr
+
+
 theorem lookup_none_strengthen {g} {G} :
   lookup x (g :: G) = none ->
   lookup x G = none
@@ -188,7 +268,15 @@ theorem lookup_none_idx_some_contra {G : GlobalEnv} {i : Nat} :
 theorem lookup_some_idx_some {G : GlobalEnv} {i : Nat} :
   G[i]? = some (Core.Global.openm mn τ) ->
   Core.lookup mn G = some (Core.Entry.openm mn τ)
-  := by sorry
+:= by
+  intro h; sorry
+
+
+theorem lookup_some_idx_some_mpr {G : GlobalEnv} :
+  Core.lookup mn G = some (Core.Entry.openm mn τ) ->
+  ∃ i : Nat, G[i]? = some (Core.Global.openm mn τ)
+:= by
+  intro h; sorry
 
 
 end Core
@@ -356,116 +444,6 @@ theorem mk_inst_mths_SI_shape {Γ' : Intermediate.GlobalEnv} :
     rcases h3 with ⟨pat, e1, e2, e3⟩
     grind
   case _ p_in_insts => apply ih h h2 p_in_insts
-
--- theorem match_τs_mths_len {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)}:
---   match_τs_mths ts mτs = .ok ts' ->
---   ts.length = ts'.length := by sorry
-
--- theorem match_τs_mths_nil :
---   match_τs_mths mτs [] = .ok [] := by simp [match_τs_mths, pure, Except.pure]
-
--- theorem match_τs_mths_cons {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)} {τ' : Core.SpineTy}:
---   match_τs_mths mτs ((mn, tm) :: ts) = .ok ((mn', τ', tm') :: ts') ->
---   mn = mn' ∧ tm = tm' ∧ (∃ j : Nat, mτs[j]? = .some (mn, τ')) ∧ match_τs_mths mτs ts = .ok ts'
--- := by sorry
-
-
--- theorem match_τs_mths_name {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)}:
---   (p : match_τs_mths ts mτs = .ok ts') ->
---   ∀ (h : i < ts.length), ts[i].1 = (ts'[i]'(by have lem := match_τs_mths_len p; simp [lem] at h; apply h)).1
--- := by
---   intro h1 h2
-  -- fun_induction match_τs_mths generalizing ts' i
-  -- cases h2
-  -- case _ ih =>
-  --   simp [match_τs_mths, bind, Except.bind_eq_ok_iff] at h1
-  --   rcases h1 with ⟨ts'', h1, h2⟩
-  --   split at h2 <;> simp at *
-  --   case _ j h3 =>
-  --   simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
-  --   simp [List.getElem?_eq_getElem hi, h3, pure, Except.pure] at h2; cases h2
-  --   case _ h1' _ =>
-  --   replace h1 := match_τs_mths_cons h1
-  --   simp at h1;
-  --   cases i <;> simp at *
-  --   case _ i =>
-  --   replace ih := ih (i := i) h1'; apply ih
-  -- sorry
-
--- theorem match_τs_mths_indexing {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)}:
---   match_τs_mths ts mτs = .ok ts' ->
---   ∀ (i : Nat) mn t τ, ts'[i]? = some (mn, τ, t) ->
---   (∃ j : Nat, mτs[j]? = some (mn, τ)) ∧ (∃ k : Nat, ts[k]? = some (mn, t))
--- := by
---   intro h
---   sorry
-  -- fun_induction match_τs_mths generalizing ts'
-  -- cases h; simp
-  -- case _ ih =>
-  -- simp [bind, Except.bind_eq_ok_iff] at h
-  -- rcases h with ⟨ts'', h1, h2⟩
-  -- split at h2 <;> simp at *
-  -- case _ i h3 =>
-  -- simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
-  -- simp [List.getElem?_eq_getElem hi, h3, pure, Except.pure] at h2; cases h2
-  -- intro j mn t τ h
-  -- cases j <;> simp at *
-  -- rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
-  -- apply And.intro
-  -- · exists i; simp [<-h3, List.getElem?_eq_getElem hi]
-  -- · exists 0
-  -- case _ i =>
-  -- replace ih := ih h1 i mn t τ h; rcases ih with ⟨ih1, ih⟩
-  -- apply And.intro
-  -- apply ih1
-  -- rcases ih with ⟨k, ih⟩; exists k+1
--- theorem match_τs_mths_indexing {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)}:
---   match_τs_mths ts mτs = .ok ts' ->
---   ∀ (i : Nat) mn τ, mτs[i]? = some (mn, τ) ->
---   ∃ j : Nat, ∃ (hj : j < ts.length), ∀ t, ts[j]? = some (mn, t) ∧ (ts'[j]? = some (mn, τ, t))
--- := by
---   intro h
---   fun_induction match_τs_mths generalizing ts' <;> simp at *
---   case _ => intro i mn τs h1; sorry
-
-
-
--- theorem match_τs_mths_length {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)} :
---   match_τs_mths ts mτs = .ok ts' ->
---   mτs.length = ts'.length
--- := by
---   intro h
---   fun_induction match_τs_mths generalizing ts' <;> simp at *
---   cases h; simp
---   case _ ih e =>
---   subst e;
---   simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨ts', h1, h2⟩
---   subst h2; simp; apply ih h1
-
--- theorem match_τs_mths_indexing_name {mτs : List (String × Core.SpineTy)} {ts : List (String × Surface.Term)}:
---   mτs.length = ts.length ->
---   match_τs_mths ts mτs = .ok ts' ->
---   ∀ (i : Nat) mn t, ts[i]? = some (mn, t) ->
---   ∃ τ, ts'[i]? = some (mn, τ, t) := by sorry
-
--- theorem mk_inst_mths_SI_aux_length {Γ' : Intermediate.GlobalEnv} :
---   mk_inst_mths_SI_aux Γ' C iname ts' = Except.ok insts ->
---   ts'.length = insts.length
--- := by
---   intro h
---   fun_induction mk_inst_mths_SI_aux generalizing insts <;> simp at *
---   cases h; simp
---   case _ m τ t is ih =>
---     simp [bind, Except.bind_eq_ok_iff] at h
---     rcases h with ⟨is', h1, h2⟩
---     simp [Functor.map, Except.map_eq_ok_iff] at h2
---     rcases h2 with ⟨_, h2, h3⟩
---     subst insts; simp; apply ih h1
-
--- theorem mk_inst_mths_SI_aux_indexing {Γ' : Intermediate.GlobalEnv} :
---   (p : mk_inst_mths_SI_aux Γ' C iname ts' = Except.ok insts) ->
---   ∀ (i : Nat) mn τ t n p, ts'[i]? = some ⟨mn, τ, t⟩ ->
---   insts[i]? = some ⟨mn, n, p, t⟩ := by sorry
 
 theorem mk_inst_mths_SI_length {Γ' : Intermediate.GlobalEnv} :
   mk_inst_mths_SI Γ' C iname mτs ts = .ok insts ->
@@ -1329,6 +1307,20 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
             constructor; grind; simp; constructor
     · simp at h3
 
+theorem mk_inst_mths_IC_length {Γ : Core.GlobalEnv} :
+  mk_inst_mths_IC Γ mths = .ok insts ->
+  mths.length = insts.length
+:= by
+  intro h
+  fun_induction mk_inst_mths_IC generalizing insts <;> simp at *
+  cases h; simp
+  case _ ih =>
+    simp [bind, Except.bind_eq_ok_iff] at h
+    rcases h with ⟨insts', h1, h2⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨i, h2, h3⟩
+    subst h3; simp; apply ih h1
+
+
 
 theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G'):
   ⟦ G ⟧ = .ok G' ->
@@ -1433,17 +1425,18 @@ theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.G
       have e := Core.lookup_name_agrees h2; simp [Core.Entry.name] at e; subst e;
       replace h2 := Core.lookup_append_some wf h2
       cases h2
-      exfalso; sorry
-      -- replace h2 := Core.lookup_append  h2
-      -- cases h2
-      -- case _ h2 => sorry
+      case _ h2 =>
+        exfalso;  -- needs shape lemma for mk_mths_insts_IC
+        sorry
       case _ h =>
         rcases h with ⟨h1, h2⟩; simp [Core.lookup] at h2; subst h2; rfl
     case _ =>
       have e := Core.lookup_name_agrees h2; simp [Core.Entry.name] at e; subst e;
       replace h2 := Core.lookup_append_some wf h2
       cases h2
-      case _ h2 => exfalso; sorry
+      case _ h2 =>
+        exfalso;  -- needs shape lemma for mk_mths_insts_IC
+        sorry
       case _ h2 =>
         rcases h2 with ⟨h2, h3⟩;
         have e : (y = iname) = False := by grind
@@ -1515,7 +1508,7 @@ theorem mk_inst_mths_IC_lookup :
  replace h4 := mk_inst_mth_IC_shape h4; rcases h4 with ⟨b', h4⟩
  subst h4; simp [Core.lookup] at h2; apply ih h3 h2
 
-theorem mk_inst_mths_indexing {j : Nat} :
+theorem mk_inst_mths_IC_indexing {j : Nat} :
   mk_inst_mths_IC Γ ms = Except.ok mths' ->
   ms[j]? = .some ⟨x, nc, p, b⟩ ->
   ∃ b', mths'[j]? = .some (Core.Global.inst (m := nc) x p b')
@@ -1592,7 +1585,7 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
       rcases h2 with ⟨e1, e2, e3, e4, e5, e6, e7, e8, e9, e10, e11⟩
       subst e1; subst e2; subst e3; subst e4; subst e5; subst e6; subst e7; subst e8; subst e9;
       subst e10; subst e11
-      replace h3 := mk_inst_mths_indexing mths_comp h3
+      replace h3 := mk_inst_mths_IC_indexing mths_comp h3
       rcases h3 with ⟨b, h3⟩;
       exists j1; exists b; exists p; grind
 
@@ -1602,7 +1595,7 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
       exists mths'.length + 1 + j1; exists b; exists p;
       grind
 
-theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
+theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G)
   {K : Core.Kind} :
   ⟦ G ⟧ = .ok G' ->
   Intermediate.lookup x G = Intermediate.Entry.data x K ctors ->
@@ -1620,7 +1613,101 @@ theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
       replace h2 := Vec.foldr_or h2
       cases h2
       case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
-      case _ h2 => have lem := ih h1 h2.2; sorry -- simp [lem, Vec.fold_or_val_eq]
+      case _ h2 =>
+      cases wf; case _ wf _ =>
+      have lem := ih wf h1 h2.2;
+      rcases h2 with ⟨h2, h3⟩
+      simp [Vec.foldr_or_val_some]
+      apply And.intro
+      · apply ih wf h1 h3
+      · intro i h;
+        generalize zdef : Vec.map (fun y => if x = y.1.fst then some (Intermediate.Entry.ctor y.1.fst y.snd y.1.snd) else none) ctors.zipIdx = z at *
+        have lem : z[i] = z[i] := rfl
+        conv at lem =>
+          rhs
+          rw[<-zdef]
+        simp [h] at lem; replace h2 := h2 z[i] Vec.getElem_mem; simp [h2] at lem
+  case _ s _ _ _ ih =>
+    simp [bind, Except.bind_eq_ok_iff] at h1;
+    rcases h1 with ⟨Γ', h1, h3⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨_, h3, h4⟩; subst G'
+    cases wf; case _ wf _ =>
+    split at h2
+    · subst x; simp at h2
+    · have e : (x = s) = False := by grind
+      simp [Core.lookup, ite_cond_eq_false (h := e)]; apply ih wf h1 h2
+  case _ s _ _ _ _ mths _ ih => -- openm
+    simp [Functor.map, Except.map_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩;
+    subst G'; split at h2
+    · subst x; simp at h2
+    · split at h2
+      case _ h2 h3 =>
+        simp at h3
+        cases wf; case _ wf wfhd =>
+        replace ih := ih wf h1 h2
+        apply Core.lookup_append_some_mpr
+        apply Or.inr;
+        apply And.intro
+        clear ih h2 h1 Γ' wfhd;
+        induction mths <;> simp [Core.lookup]
+        case _ hd tl ih =>
+          split
+          case _ e => simp; apply h3 hd.1 hd.2; simp; apply e
+          apply ih
+          intro a b h; apply h3 a b; constructor; apply h;
+        have e : (x = s) = False := by grind
+        simp [Core.lookup, e]; apply ih
+
+      case _ h3 =>
+        simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
+        simp [List.getElem?_eq_getElem hi] at h2
+  case _ iname cls_name _ _ _ _ _ _ _ _  mths _ ih =>  -- inst
+    simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨mths', h3, h4⟩
+    subst h4;
+    cases wf; case _ wf wfhd =>
+    split at h2 <;> try simp at h2
+    apply Core.lookup_append_some_mpr
+    apply Or.inr
+    apply And.intro
+    · cases wfhd; case _ c1 c2 c3 => sorry -- needs mk_mths_insts_IC_shape
+    · have e : (x = iname) = False := by grind
+      simp [Core.lookup, e]; apply ih wf h1 h2
+
+
+
+
+theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
+  {Ks : Vec Core.Kind kc}:
+  ⟦ G ⟧ = .ok G' ->
+  Intermediate.lookup x G = Intermediate.Entry.odata x Ks mths ->
+  Core.lookup x G' = Core.Entry.odata x (Core.Kind.mk_kind Ks)
+:= by
+  intro h1 h2
+  fun_induction translate_IC generalizing G' <;> simp [Intermediate.lookup] at *
+  case _ s _ _ ctors _ ih =>
+    simp [Functor.map, Except.map_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩;
+    subst G';
+    split at h2
+    · subst x; simp at h2;
+    · have e : (x = s) = False := by grind
+      simp [Core.lookup, ite_cond_eq_false (h := e)]
+      replace h2 := Vec.foldr_or h2
+      cases h2
+      case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
+      case _ h2 =>
+      have lem := ih h1 h2.2;
+      rcases h2 with ⟨h2, h3⟩
+      simp [Vec.foldr_or_val_some]
+      apply And.intro
+      · apply ih h1 h3
+      · intro i h;
+        generalize zdef : Vec.map (fun y => if x = y.1.fst then some (Intermediate.Entry.ctor y.1.fst y.snd y.1.snd) else none) ctors.zipIdx = z at *
+        have lem : z[i] = z[i] := rfl
+        conv at lem =>
+          rhs
+          rw[<-zdef]
+        simp [h] at lem; replace h2 := h2 z[i] Vec.getElem_mem; simp [h2] at lem
   case _ s _ _ _ ih =>
     simp [bind, Except.bind_eq_ok_iff] at h1;
     rcases h1 with ⟨Γ', h1, h3⟩
@@ -1629,31 +1716,48 @@ theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     · subst x; simp at h2
     · have e : (x = s) = False := by grind
       simp [Core.lookup, ite_cond_eq_false (h := e)]; apply ih h1 h2
-  case _ s _ _ _ _ _ _ ih =>
+  case _ s _ _ _ _ mths _ ih =>
     simp [Functor.map, Except.map_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩;
     subst G'; split at h2
-    · subst x; simp at h2
+    · subst x; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
+      apply Core.lookup_append_some_mpr; apply Or.inr
+      apply And.intro
+      sorry -- needs wf of intermediate ctx
+      simp [Core.lookup]; rfl
     · split at h2
       case _ h2 h3 =>
         simp at h3
         replace ih := ih h1 h2
-        sorry
+        apply Core.lookup_append_some_mpr
+        apply Or.inr;
+        apply And.intro
+        clear ih h2 h1 Γ';
+        induction mths <;> simp [Core.lookup]
+        case _ hd tl ih =>
+          split
+          case _ e => simp; apply h3 hd.1 hd.2; simp; apply e
+          apply ih
+          intro a b h; apply h3 a b; constructor; apply h
+        have e : (x = s) = False := by grind
+        simp [Core.lookup, e]; apply ih
+
       case _ h3 =>
         simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
         simp [List.getElem?_eq_getElem hi] at h2
-  sorry
+  case _ iname cls_name _ _ _ _ _ _ _ _  mths _ ih =>  -- inst
+    simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨mths', h3, h4⟩
+    subst h4;
+    split at h2 <;> try simp at h2
+    apply Core.lookup_append_some_mpr
+    apply Or.inr
+    apply And.intro
+    · sorry -- needs mk_mths_insts_IC_shape
+    · have e : (x = iname) = False := by grind
+      simp [Core.lookup, e]; apply ih h1 h2
 
 
-
-
-theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
-  {Ks : Vec Core.Kind kc}:
-  ⟦ G ⟧ = .ok G' ->
-  Intermediate.lookup x G = Intermediate.Entry.odata x Ks ctors ->
-  Core.lookup x G' = Core.Entry.odata x (Core.Kind.mk_kind Ks)
-  := by sorry
-
-theorem lookup_kind_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (h : ⟦ G ⟧ = .ok G') :
+theorem lookup_kind_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') :
   Intermediate.lookup_kind G x = some K -> Core.lookup_kind G' x = some K
 := by
   intro h1
@@ -1667,7 +1771,7 @@ theorem lookup_kind_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (
   case data =>
     subst h1;
     have e := Intermediate.lookup_name_agrees lki_def; simp [Intermediate.Entry.name] at e; subst e
-    have lem := lookup_IC_data h lki_def
+    have lem := lookup_IC_data wf h lki_def
     simp [lem] at lkc_def; subst lks; simp [Core.Entry.kind];
   case odata =>
     subst h1;
@@ -1675,7 +1779,7 @@ theorem lookup_kind_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (
     have lem := lookup_IC_odata h lki_def;
     simp [lem] at lkc_def; subst lks; simp [Core.Entry.kind];
 
-theorem lookup_is_data_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (h : ⟦ G ⟧ = .ok G') :
+theorem lookup_is_data_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') :
   Intermediate.is_data c G x -> Core.is_data c G' x
 := by
   intro h1
@@ -1684,38 +1788,38 @@ theorem lookup_is_data_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv
   case _ =>
     simp [Core.is_data, Option.getD_eq_iff];
     have e := Intermediate.lookup_name_agrees h1; simp [Intermediate.Entry.name] at e; subst e
-    replace h1 := lookup_IC_data h h1; simp [h1, Core.Entry.is_data]
+    replace h1 := lookup_IC_data wf h h1; simp [h1, Core.Entry.is_data]
   case _ =>
     simp [Core.is_data, Option.getD_eq_iff];
     have e := Intermediate.lookup_name_agrees h1; simp [Intermediate.Entry.name] at e; subst e
     replace h1 := lookup_IC_odata h h1; simp [h1, Core.Entry.is_data]
 
 
-theorem kinding_IC_transfer {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (h : ⟦ G ⟧ = .ok G') :
+theorem kinding_IC_transfer {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') :
   G&Δ ⊢ T : K ->  G'&Δ ⊢ T : K
 | .var h1 => .var h1
-| .global h1 => .global (lookup_kind_IC_some h h1)
-| .app h1 h2 => .app (kinding_IC_transfer h h1) (kinding_IC_transfer h h2)
-| .arrow h1 h2 => .arrow (kinding_IC_transfer h h1) (kinding_IC_transfer h h2)
-| .all h1 => .all (kinding_IC_transfer h h1)
-| .eq h1 h2 => .eq (kinding_IC_transfer h h1) (kinding_IC_transfer h h2)
+| .global h1 => .global (lookup_kind_IC_some wf h h1)
+| .app h1 h2 => .app (kinding_IC_transfer  wf h h1) (kinding_IC_transfer wf h h2)
+| .arrow h1 h2 => .arrow (kinding_IC_transfer  wf h h1) (kinding_IC_transfer wf h h2)
+| .all h1 => .all (kinding_IC_transfer wf h h1)
+| .eq h1 h2 => .eq (kinding_IC_transfer wf h h1) (kinding_IC_transfer wf h h2)
 
 
-theorem Ty.data?_transfer {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (h : ⟦ G ⟧ = .ok G') (T : Core.Ty) :
+theorem Ty.data?_transfer {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') (T : Core.Ty) :
   Intermediate.Ty.data? c G T -> Core.Ty.data? c G' T
  := by
  intro h1; simp [Intermediate.Ty.data?] at h1; split at h1 <;> simp at *;
- case _ sp => simp [Core.Ty.data?]; rw[sp]; simp; apply lookup_is_data_IC_some h h1
+ case _ sp => simp [Core.Ty.data?]; rw[sp]; simp; apply lookup_is_data_IC_some wf h h1
 
-theorem spine_kinding_IC_transfer {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (h : ⟦ G ⟧ = .ok G') (h' : (∀ T, test T -> test' T)):
+theorem spine_kinding_IC_transfer {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') (h' : (∀ T, test T -> test' T)):
   Intermediate.SpineKinding v x G test T ->
   Core.SpineKinding v x G' test' T
 | .valid h1 h2 h3 h4 h5 =>
   .valid h1
-    (by intro i; have lem := h2 i;  apply kinding_IC_transfer h lem)
-    (kinding_IC_transfer h h3)
+    (by intro i; have lem := h2 i;  apply kinding_IC_transfer wf h lem)
+    (kinding_IC_transfer wf h h3)
     (by apply h' _ h4)
-    (by intro e i; replace h5 := h5 e i; apply Ty.data?_transfer h T.2.2.2.2.2.fst[i] h5)
+    (by intro e i; replace h5 := h5 e i; apply Ty.data?_transfer wf h T.2.2.2.2.2.fst[i] h5)
 
 
 theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} :
@@ -1798,7 +1902,7 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
       apply ih h1 h2
 
 
-theorem translate_IC_spine_kinding {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (ht : ⟦G⟧ = Except.ok G') :
+theorem translate_IC_spine_kinding {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ (Intermediate.Global.data { name := s, kind := K, ctors := ⟨0, #()⟩ } :: G)) (ht : ⟦G⟧ = Except.ok G') :
   Intermediate.SpineKinding (Core.SpCtorVariant.data Core.DataConst.cls) y (Intermediate.Global.data { name := s, kind := K, ctors := ⟨0, #()⟩ } :: G) (Core.Ty.is_data s) T ->
   Core.SpineKinding (Core.SpCtorVariant.data Core.DataConst.cls) y (Core.Global.data 0 s K #() :: G') (Core.Ty.is_data s) T
 := by
@@ -1808,8 +1912,10 @@ theorem translate_IC_spine_kinding {G : Intermediate.GlobalEnv} {G' : Core.Globa
   apply h1
   intro i; replace h2 := h2 i;
   apply kinding_IC_transfer (G' := (Core.Global.data 0 s K #() :: G'))
+    wf
     (by simp [translate_IC, Functor.map, Except.map_eq_ok_iff, ht]) h2;
   apply kinding_IC_transfer (G' := (Core.Global.data 0 s K #() :: G'))
+    wf
     (by simp [translate_IC, Functor.map, Except.map_eq_ok_iff, ht])
     h3
   apply h4
@@ -1824,7 +1930,11 @@ theorem mk_inst_mths_IC_wf_sound {G' : Core.GlobalEnv} (wf : ⊢ (Core.Global.oc
   (∀ (i : Nat) (hi : i < mτs.length),
     ∃ (j : Nat) (hj : j < mths.length),
       mτs[i].fst = mths[j].fst ∧ Intermediate.spine_pattern_size mτs[i].snd = Intermediate.method_pattern_size mths[j]) ->
-  ⊢ (G1 ++ Core.Global.octor iname spTy :: G') := by sorry
+  ⊢ (G1 ++ Core.Global.octor iname spTy :: G')
+:= by
+  intro h1 h2 h3 e i
+
+  sorry
 
 theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
   ⟦ G ⟧ = .ok G' ->
@@ -1842,7 +1952,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     apply Core.ListGlobalWf.cons
     apply Core.GlobalWf.data
     intro i y T e; replace c3 := c3 i y T e; rcases c3 with ⟨c1', c2', c3'⟩;
-    apply And.intro; apply translate_IC_spine_kinding h c1'; apply And.intro; apply c2'; apply translate_IC_lookup_none h c3'
+    apply And.intro; apply translate_IC_spine_kinding (by constructor; constructor; intro i; apply i.elim0; simp; apply c1; apply wftl) h c1'; apply And.intro; apply c2'; apply translate_IC_lookup_none h c3'
     apply c2
     apply translate_IC_lookup_none h c1
     apply ih wftl h
@@ -1853,7 +1963,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     cases wfhd; case _ lk h2 =>
     constructor
     constructor
-    · apply kinding_IC_transfer h h2
+    · apply kinding_IC_transfer wftl h h2
     · apply type_directed_translation_soundness (ih wftl h) h1
     · apply translate_IC_lookup_none h lk
     apply ih wftl h
@@ -1873,8 +1983,8 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     replace ih := ih wftl h
     have lem : Core.GlobalWf Γ' (.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩)
     := by constructor;
-          · apply spine_kinding_IC_transfer h (test := Intermediate.Ty.data? Core.DataConst.opn G)
-            (intro T c; apply Ty.data?_transfer h T c)
+          · apply spine_kinding_IC_transfer wftl h (test := Intermediate.Ty.data? Core.DataConst.opn G)
+            (intro T c; apply Ty.data?_transfer wftl h T c)
             apply h6 -- spine Kinding
           · apply translate_IC_lookup_none h h4
     replace ih := Core.ListGlobalWf.cons lem ih
@@ -1893,9 +2003,9 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
   fun_induction translate_IC generalizing G' mn <;> try simp at *
   case _ =>
     simp [pure, Except.pure] at h1; subst h1; simp [Core.lookup] at h2
-  case _ ih =>
+  case _ s _ _ ctors _ ih =>
     cases wf; case _ wftl wfhd =>
-    cases wfhd;
+    cases wfhd; case _ c1 c2 c3 =>
     simp [Functor.map, Except.map_eq_ok_iff] at h1;
     rcases h1 with ⟨Γ', h1, h2⟩; subst G'
     simp [Core.lookup] at h2; split at h2 <;> try simp at h2
@@ -1908,7 +2018,16 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
       simp[Intermediate.lookup]; exists cls
       split
       contradiction
-      rw[ih]; sorry -- simp [Vec.fold_or_val_eq]
+      rw[ih];
+      rcases h2 with ⟨h2, h3⟩
+      simp [Vec.foldr_or_val_some]
+      intro i h;
+      generalize zdef : Vec.map (fun x => if mn = x.1.fst then some (Core.Entry.ctor x.1.fst x.snd x.1.snd) else none) ctors.zipIdx = z at *
+      have lem : z[i] = z[i] := rfl
+      conv at lem =>
+        rhs
+        rw[<-zdef]
+      simp [h] at lem; replace h2 := h2 z[i] Vec.getElem_mem; simp[lem] at h2
 
   case _ ih =>  -- defn
     cases wf; case _ wftl _ =>
@@ -1933,12 +2052,28 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
     case _ h2 =>
       cases wfhd; case _ c1 c2 c3 =>
       exists cls_name; simp [Intermediate.lookup]; split
-      case _ e => subst e; simp at *; exfalso; sorry
+      case _ e =>
+        subst e; simp at *; exfalso;
+        replace h2 := Core.lookup_some_idx_some_mpr h2;
+        rcases h2 with ⟨i, h2⟩; simp at h2
+        replace c3 := c3 i mn R ((gt#mn).mkApps_nats (List.range kU).reverse) (List.map (t#·) (List.range kU).reverse) (by grind) (by apply Core.Ty.mkApps_nats_spine) (by simp)
+        rcases c3 with ⟨_, _,_⟩; contradiction
       split
-      exfalso; sorry
+      case _ h =>
+        exfalso; clear c1 c2 c3;
+        clear wf' h1 wftl ih
+        simp at h;
+        induction mths
+        simp [Core.lookup] at h2
+        case _ hd tl ih =>
+        simp [Core.lookup] at h2
+        split at h2
+        simp at h2; subst mn; replace h := h hd.1 hd.2 (by simp); contradiction
+        apply ih h2; intro a b h; case _ h1 h3 =>
+        replace h1 := h1 a b; apply h1; simp; apply Or.inr; apply h
       case _ i h =>
       simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩;
-      replace c3 := c3 i mn R ((gt#cls_name).mkApps_nats (List.range kU).reverse) (List.map (t#·) (List.range kU).reverse) hi (by sorry) (by simp); rcases c3 with ⟨c3i, c3j⟩
+      replace c3 := c3 i mn R ((gt#cls_name).mkApps_nats (List.range kU).reverse) (List.map (t#·) (List.range kU).reverse) hi (by apply Core.Ty.mkApps_nats_spine) (by simp); rcases c3 with ⟨c3i, c3j⟩
       rw[List.getElem?_eq_getElem hi]; simp; apply And.intro; simp[c3i];
       generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths = z at *
       have hi' : i < z.length := by grind
@@ -1975,12 +2110,22 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
     case _ h1 =>
     cases wf; case _ Γ wftl wfhd =>
     replace ih := @ih mn _ wftl h3
-    cases wfhd;
+    cases wfhd; case _ c1 c2 c3 c4 =>
     simp [Intermediate.lookup]; split
-    exfalso; case _ e => subst e; sorry
+    case _ e =>
+      exfalso; subst e;
+      replace h2 := Core.lookup_append_some wf' h2;
+      cases h2
+      case _ h2 => sorry
+      case _ h2 => simp [Core.lookup] at h2
     replace h2 := Core.lookup_append_some wf' h2;
     cases h2;
-    exfalso; sorry
+    case _ h2 =>
+      replace h2 := Core.lookup_some_idx_some_mpr h2
+      rcases h2 with ⟨i, h2⟩
+
+      -- need mk_inst_mths_IC lemma
+      sorry
     case _ e h2 =>
       rcases h2 with ⟨_, h2⟩; simp [Core.lookup] at h2;
       have lem : (mn = iname) = False := by grind
