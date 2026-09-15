@@ -614,16 +614,26 @@ theorem Vec.foldr_or_val_eq_none {vs : Vec (Option α) n} : foldr Option.or d vs
  · intro h; fun_induction foldr;
    · apply And.intro; apply h; intros _ v_in_vs; cases v_in_vs
    · case _ ih =>
-     simp at h; rcases h with ⟨h1, h2⟩;
-     subst h1; replace ih := ih h2; apply And.intro; apply ih.1; intro v v_in_vs; apply ih.2;
-     cases v_in_vs; sorry; assumption
+     simp at h; rcases h with ⟨h1, h2⟩
+     replace ih := ih h2; rcases ih with ⟨ih1, ih2⟩
+     apply And.intro
+     apply ih1
+     intro v v_in_vs;
+     cases v_in_vs;
+     apply h1
+     apply ih2; assumption
  · intro h
    fun_induction foldr
    apply h.1
    case _ v vs ih =>
-
-   sorry
-
+   rcases h with ⟨h1, h2⟩
+   have h2' := h2 v (by constructor); subst h2'; simp;
+   apply ih
+   apply And.intro
+   apply h1
+   intro v v_in_vs; cases v; rfl;
+   case _ val =>
+   replace h2 := h2 (some val) (by constructor; apply v_in_vs); apply h2
 
 
 theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
@@ -645,14 +655,6 @@ theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
         case _ c_in_cs => apply ih1 c; apply c_in_cs
         apply ih2
     case _ v => apply Or.inl; exists 0
-
-theorem Vec.foldr_or_some  {cs : Vec _ n} : Vec.foldr Option.or none cs = some e <->
-  (∃ i : Fin n, cs[i] = some e ∧ ∀ j < i, cs[i] = none)
-:= by
-  apply Iff.intro
-  · intro h; replace h := Vec.foldr_or h; cases h; sorry; case _ h => simp at h
-  sorry
-
 
 theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
 | .nil, i => i.elim0
@@ -702,11 +704,38 @@ theorem Vec.foldl_or_none_default {vs : Vec (Option α) n} : foldl Option.or non
 theorem Vec.foldr_or_none_default {vs : Vec (Option α) n} :
   foldr Option.or none vs = some e <-> (∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none)
 := by
-  sorry
+  apply Iff.intro
+  intro h
+  induction vs <;> simp at h
+  case _ hd tl ih =>
+    cases h
+    exists 0; simp; assumption
+    case _ h =>
+      rcases h with ⟨h1, h2⟩; replace ih := ih h2; rcases ih with ⟨i, ih⟩; exists (i.succ); simp;
+      rcases ih with ⟨ih1, ih2⟩
+      apply And.intro
+      apply ih1
+      intro j h;
+      cases j using Fin.cases
+      simp; apply h1
+      simp; apply ih2; simp at h; apply h
+  intro h
+  rcases h with ⟨i, h1, h2⟩
+  fun_induction foldr
+  apply i.elim0
+  case _ v vs ih =>
+  cases i using Fin.cases
+  simp at h1; subst h1; simp
+  case _ i =>
+  simp at h1; cases v;
+  case _ => simp; apply ih; apply h1; intro j hj; replace h2 := h2 j.succ; apply h2; simp; apply hj
+  case _ => replace h2 := h2 0 (by grind); simp at h2
 
 theorem Vec.foldr_or_val_some {vs : Vec (Option α) n} :
-  foldr Option.or d vs = some e <-> ((∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none) ∨ (d = e ∧ ∀ i : Fin n, vs[i] = none) )
+  foldr Option.or d vs = some e <-> ((∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none) ∨ (d = e ∧ ∀ i : Fin n, vs[i] = none))
 := by
+  apply Iff.intro
+  sorry
   sorry
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
@@ -902,9 +931,9 @@ def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) 
 #guard #(0, 1, 2, 3).findIdxs (· == 0) == [0]
 #guard #(0, 1, 2, 3).findIdxs (· == 4) == []
 
-
-theorem Vec.zipIdx_map {α : Type u_1} {β : Type u_2} {n : Nat} {vs : Vec α n} {k : Nat} {f : α → β} :
-  (Vec.map f vs).zipIdx k = Vec.map (Prod.map f id) (vs.zipIdx k) := by sorry
+-- theorem Vec.zipIdx_map {α : Type u_1} {β : Type u_2} {n : Nat} {vs : Vec α n} {k : Nat} {f : α → β} :
+--   (Vec.map f vs).zipIdx k = Vec.map (Prod.map f id) (vs.zipIdx k)
+-- := by sorry
 
 
 end Lilac

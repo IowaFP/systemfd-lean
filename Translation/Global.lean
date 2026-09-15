@@ -29,9 +29,7 @@ instance : MonadLift TM IO where
   | .ok a => return a
   | .error s => .throw (.userError s.pretty)
 
-def mk_cls_kind : Vec Core.Kind kc -> Core.Kind
-| .nil => ★
-| .cons K Ks => K -:> mk_cls_kind Ks
+def mk_cls_kind : Vec Core.Kind kc -> Core.Kind := Core.Kind.mk_kind
 
 def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String) (sc_params : List (Fin kc)) : Core.SpineTy :=
   let cls_ty := (gt#cls).mkApps_nats (List.range cls_params.length)
