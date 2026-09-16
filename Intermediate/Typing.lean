@@ -110,10 +110,5 @@ def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
 
 notation:175 "Ω " G:175 => OpenExhaustive G
 
--- theorem well_typed_spine {G : GlobalEnv} :
---   G&Δ ⊢ R : ★ ->
---   R.spine = some (T, Ts) ->
---   ∃ e, Intermediate.lookup T G = some e ∧ ∀ T ∈ Ts, ∃ K, G&Δ ⊢ T : K := by sorry
-
 
 end Intermediate

@@ -103,7 +103,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   lookup x G = none ->
   G&[] ⊢s T : ★ ->
   GlobalWf G (.defn x T t)
-| classDecl {na : Nat} {Ks1 : Vec Core.Kind na} {mτs : List (String × _)}:
+| classDecl {na : Nat} {Ks1 : Vec Core.Kind na} {mτs : List (String × Core.SpineTy)}:
   lookup s G = none ->
   (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
   (∀ (i : Nat) mn R, (hi : i < mτs.length) -> mτs[i]'hi = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
