@@ -735,8 +735,53 @@ theorem Vec.foldr_or_val_some {vs : Vec (Option α) n} :
   foldr Option.or d vs = some e <-> ((∃ i : Fin n, vs[i] = some e ∧ ∀ j, j < i -> vs[j] = none) ∨ (d = e ∧ ∀ i : Fin n, vs[i] = none))
 := by
   apply Iff.intro
-  sorry
-  sorry
+  · intro h;
+    cases d
+    apply Or.inl; simp [foldr_or_none_default] at h; apply h
+    case _ v =>
+    fun_induction foldr <;> simp at *
+    apply h
+    case _ hd tl ih =>
+    cases h
+    case _ e => subst e; apply Or.inl; exists 0; simp
+    case _ e =>
+      rcases e with ⟨e1, e2⟩; subst e1; replace ih := ih e2;
+      cases ih
+      case _ ih =>
+        rcases ih with ⟨i, ih1, ih2⟩; apply Or.inl; exists i.succ; simp; apply And.intro; apply ih1;
+        intro j hj; cases j using Fin.cases
+        simp
+        case _ j => simp; apply ih2; simp at hj; apply hj
+      case _ ih =>
+        rcases ih with ⟨ih1, ih2⟩; apply Or.inr; apply And.intro
+        apply ih1
+        intro i; cases i using Fin.cases
+        simp
+        simp; apply ih2
+
+  · intro h
+    cases h
+    case _ h =>
+      rcases h with ⟨i, h1, h2⟩
+      fun_induction foldr
+      apply i.elim0
+      case _ x xs ih =>
+      cases i using Fin.cases
+      case _ => simp at h1; subst h1; simp
+      case _ i =>
+      cases x; simp at *
+      · apply ih; apply h1; intro j hj; replace h2 := h2 j.succ (by simp; apply hj); simp at h2; apply h2
+      · simp at h1; simp; replace h2 := h2 0 (by simp); simp at h2
+    case _ h =>
+      rcases h with ⟨h1, h2⟩
+      subst d;
+      fun_induction foldr
+      rfl
+      case _ hd tl ih =>
+      have h2' := h2 0; simp; simp at h2'
+      apply Or.inr;
+      apply And.intro; apply h2'
+      apply ih; intro i; replace h2 := h2 i.succ; simp at h2; apply h2
 
 theorem Vec.fold_or_val_eq_none_idx {vs : Vec (Option α) n} : foldl Option.or d vs = none <-> (d = none ∧ (∀ i : Fin n, vs[i] = none))
   := by
