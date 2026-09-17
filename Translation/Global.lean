@@ -192,12 +192,12 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
 
 notation: 175 "⟦" G "⟧" => translate_SI G
 
-def mk_inst_mth_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) (t : Surface.Term) :
+def mk_inst_mth_IC (G : Core.GlobalEnv) (τ : Core.SpineTy) (mn : String) (m : Nat) (p : Core.Pattern m) (t : Surface.Term) :
   TM Core.Global := do
-  match Core.lookup mn G with
-  | some (.openm y ⟨_, Ks1, _, Ks2, n, Ts, R⟩) => do
+  match τ with
+  | ⟨_, Ks1, _, Ks2, n, Ts, R⟩ => do
     let Δ := (Ks1.list ++ Ks2.list).reverse
-    if mn == y && m == n
+    if m == n
     then let ⟨ζ, Γ⟩ <- Option.toTM "Pattern Binders" (Core.pattern_binders (.data .opn) G Δ n Ts p)
          let t' <- Option.toTM
            ("G :" ++ G.repr max_prec ++  Std.Format.line
@@ -205,19 +205,27 @@ def mk_inst_mth_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Patter
             ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
             ++ "t : " ++  t.repr max_prec ++ Std.Format.line
             ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
-           (t.type_directed_translate G (Δ ++ ζ) Γ R[Subst.add Core.Ty ζ.length])
+           (t.type_directed_translate G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩)
          return .inst mn p t'
     else Except.error "pat sizes don't match"
-  | _ => Except.error "lookup failed"
 
 def mk_inst_mths_IC (G : Core.GlobalEnv) :
+  List (String × Core.SpineTy) ->
   List (String × (m : Nat) × Core.Pattern m × Surface.Term) ->
   TM Core.GlobalEnv
-| .nil => return .nil
-| .cons ⟨mn, m, p, t⟩ ms => do
-  let ms' <- mk_inst_mths_IC G ms
-  let i' <- mk_inst_mth_IC G mn m p t
-  return (i' :: ms')
+| .nil, .nil => return .nil
+| .cons (mn', τ) mτs, .cons ⟨mn, m, p, t⟩ ms => do
+  if mn == mn' then
+    match Core.lookup mn G with
+    | .some (.openm mn' spTy) =>
+      if spTy.2.2.2.2.1 == m && (spTy == τ && mn == mn') then
+      let ms' <- mk_inst_mths_IC G mτs ms
+      let i' <- mk_inst_mth_IC (ms'++G) τ mn m p t
+      return (i' :: ms')
+      else .error "mk_inst_mths_IC mth lookup"
+    | _ => .error "mk_inst_mths_IC mth lookup"
+  else .error "mk_inst_mths_IC mth don't match"
+| _, _ => .error "mk_inst_mths_IC don't match"
 
 def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
 | .nil => return .nil
@@ -237,10 +245,17 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
-  -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
-  let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ]
-  let mths' <- (mk_inst_mths_IC (octor ++ Γ') mths)
-  return (mths' ++ octor ++ Γ')
+  match Intermediate.lookup cls_name Γ with
+  | some (.odata s K mτs) =>
+    if s == cls_name
+    then
+    -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
+    let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ]
+    let mths' <- (mk_inst_mths_IC (octor ++ Γ') mτs mths)
+    return (mths' ++ octor ++ Γ')
+    else .error "translate_IC inst"
+  | _ => .error "translate_IC inst"
+
 
 
 

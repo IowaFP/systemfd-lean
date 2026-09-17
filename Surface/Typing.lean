@@ -114,9 +114,9 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   lookup cls_name G = some (.odata cls_name K mτs) ->
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range na).reverse⟩ ->
   -- Cover all methods
-  (mτs.length = ts.length) ->
-  (∀ i : Nat, (hi : i < mτs.length) ->
-    ∃ j, ∃ (hj : j < ts.length), (mτs[i].1 = (ts[j]'hj).1)) ->
+  (e : mτs.length = ts.length) ->
+  (∀ i : Nat, (hi : i < ts.length) ->
+    (mτs[i].1 = (ts[i]).1)) ->
 
   GlobalWf G (.instDecl x ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ts)
 
