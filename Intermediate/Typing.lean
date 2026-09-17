@@ -74,6 +74,8 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | classDecl {na : Nat} {Ks1 : Vec Core.Kind na}:
   lookup s G = none ->
   (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
+  (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
+    SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, na, Ks1, [],[], []⟩ :: G) (λ _ => true) τ) ->
   (∀ (i : Nat) mn R T (tys : List Core.Ty), (hi : i < mτs.length) ->
    (T.spine = .some (s, tys)) ->
    (tys = (List.range na).reverse.map (t#·)) ->
@@ -97,6 +99,72 @@ inductive ListGlobalWf : List Global -> Prop where
 | cons : GlobalWf G g -> ListGlobalWf G -> ListGlobalWf (g::G)
 
 notation:175 "⊢ " G:175 => ListGlobalWf G
+
+
+theorem GlobalWf.drop_lookup_unique {G : List Global} n :
+  ⊢ G ->
+  lookup x (G.drop n) = some t ->
+  lookup x G = some t
+:= by
+  intro wf j
+  induction wf generalizing n <;> try simp at *
+  case nil => exact j
+  case cons G j1 j2 wf ih =>
+    cases n <;> simp at *
+    case zero => exact j
+    case succ n =>
+      replace ih := ih n j
+      cases j2
+      case data n y K ctors j1 j2 j3 =>
+        simp [lookup]; split
+        case _ e => subst e; rw [ih] at j3; injection j3
+        case _ e =>
+          simp [Vec.foldr_or_val_some]
+          apply Or.inr; apply And.intro;
+          apply ih; grind
+      case classDecl T b y j1 j2 =>
+        sorry
+        -- simp [lookup]; split
+        -- case _ e => subst e; rw [ih] at j2; injection j2
+        -- case _ e => exact ih
+      case defn T b t' y j1 j2 =>
+        simp [lookup]; split
+        case _ e => subst e; rw [ih] at j2; simp at j2
+        case _ e => exact ih
+      case inst y T t' j1 j2 => simp [lookup]; sorry; -- exact ih
+
+
+theorem lookup_weaken {G : GlobalEnv} (wf : ⊢ (g::G)) : lookup x G = some e -> lookup x (g::G) = some e := by
+  intro h; apply GlobalWf.drop_lookup_unique 1 wf h
+
+theorem lookup_kind_weaken {G : GlobalEnv} (wf : ⊢ (g::G))
+  : lookup_kind G x = some K -> lookup_kind (g::G) x = some K
+:= by
+  intro h; simp_all [lookup_kind, Option.map]
+  generalize zdef : lookup x G = z at *
+  generalize wdef : lookup x (g::G) = w at *
+  cases z; simp at h; case _ z =>
+  cases w
+  case _ =>
+    simp_all
+    replace zdef := lookup_weaken wf zdef
+    rw [wdef] at zdef; cases zdef
+  case _ w =>
+    simp_all
+    have lem := lookup_weaken wf zdef
+    rw [wdef] at lem; cases lem; exact h
+
+
+
+theorem Kinding.weaken_global {G : GlobalEnv} (wf : ⊢ (g::G)) : G&Δ ⊢ A : K -> (g::G)&Δ ⊢ A : K
+| var h => var h
+| global h => global $ lookup_kind_weaken wf h
+| arrow j1 j2 => arrow (j1.weaken_global wf) (j2.weaken_global wf)
+| all j1 => all (j1.weaken_global wf)
+| app j1 j2 => app (j1.weaken_global wf) (j2.weaken_global wf)
+| eq j1 j2 => eq (j1.weaken_global wf) (j2.weaken_global wf)
+
+
 
 def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
   ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q} {cls},

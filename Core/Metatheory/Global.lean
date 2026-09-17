@@ -1,4 +1,3 @@
-
 import Common.Vec
 import Core.Term
 import Core.Reduction
@@ -59,9 +58,10 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
       case data n y K ctors j1 j2 j3 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j3; injection j3
-        case _ e => sorry
-          -- rw [drop_lookup_unique_vec]; exact ih
-          -- intro i; simp; intro h; subst h; grind
+        case _ e =>
+          simp [Vec.foldr_or_val_some]
+          apply Or.inr; apply And.intro;
+          apply ih; grind
       case openm T b y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j2; injection j2
@@ -203,7 +203,7 @@ theorem EntryWf.from_lookup_ctor1 :
   case _ eq =>
     have lem := from_lookup_ctor1 eq.2
     cases lem
-    case _ lem => sorry -- apply Or.inr; exists 0
+    case _ lem => apply Or.inl; apply lem
     case _ lem =>
       rcases lem with ⟨i, lem⟩
       apply Or.inr; exists (Fin.succ i)
@@ -460,7 +460,7 @@ theorem EntryWf.from_lookup_ctor2 :
   case succ i =>
     have lem := h2 0 (by grind); simp at lem; subst lem
     replace h2 := λ (j : Fin _) (e : j ≠ i) => h2 j.succ (by grind); simp at h2
-    apply Or.inr; simp; sorry
+    apply Or.inr; simp; apply EntryWf.from_lookup_ctor2; exists i
 
 theorem EntryWf.from_lookup :
   ⊢ G ->
