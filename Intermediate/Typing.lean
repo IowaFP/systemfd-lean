@@ -87,10 +87,9 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   lookup cls_name G = some (.odata cls_name K mτs) ->
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ->
   (e : mτs.length = mths_impl.length) ->
-  (∀ i : Nat, (hi : i < mτs.length) ->
-    ∃ j, ∃ (hj : j < mths_impl.length),
-    ((mτs[i]'hi).1 = mths_impl[j].1) ∧
-    (spine_pattern_size (mτs[i]'hi).2 = method_pattern_size (mths_impl[j]'hj))) ->
+  (∀ i : Nat, (hi : i < mths_impl.length) ->
+    ((mτs[i]).1 = mths_impl[i].1) ∧
+    (spine_pattern_size (mτs[i]).2 = method_pattern_size (mths_impl[i]))) ->
   GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, As, [], [], mths_impl⟩)
 
 inductive ListGlobalWf : List Global -> Prop where
