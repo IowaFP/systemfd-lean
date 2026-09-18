@@ -316,4 +316,34 @@ theorem mapM_getElem? {f : α -> Option β} {Γ : List α} {Δ : List β} :
   apply ih; rw[<-List.mapM'_eq_mapM]; apply h3; apply h3
 
 
+theorem uniqueness_weaken {α : Type u} {l  : List α} {mn : α} :
+  (∀ i (hi : i < l.length), mn ≠ l[i]) ->
+  (∀ i j (hi : i < l.length) (hj : j < l.length), ¬ i = j -> l[i] ≠ l[j]) ->
+  (∀ i j (hi : i < l.length + 1) (hj : j < l.length + 1), ¬ i = j -> (mn :: l)[i] ≠ (mn :: l)[j])
+:= by
+  intro c1 c2
+  intro i j hi hj ne1 ne2
+  cases i
+  simp at ne2; cases j;
+  apply ne1; rfl
+  case _ i => simp at *; replace c1 := c1 i (by simp at hj; apply hj); apply c1 ne2
+  case _ i =>
+    simp at *;
+    cases j;
+    simp at *; replace c1 := c1 i (by simp at hi; apply hi); apply c1; apply Eq.symm ne2
+    case _ j =>
+      simp at *; apply c2 i j (by grind);
+      apply ne1
+      apply ne2
+
+theorem uniqueness_strengthen {α : Type u} {l  : List α} {mn : α} :
+  (∀ i j (hi : i < l.length + 1) (hj : j < l.length + 1), ¬ i = j -> (mn :: l)[i] ≠ (mn :: l)[j]) ->
+  (∀ i j (hi : i < l.length) (hj : j < l.length), ¬ i = j -> l[i] ≠ l[j])
+:= by
+  intro h
+  intro i j hi hj ne1 ne2;
+  cases i <;> (cases j; grind)
+  grind
+  case _ j => grind
+
 end List

@@ -984,7 +984,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
           simp
           apply Surface.SpineKinding.valid
           rfl;
-          · simp; sorry
+          · simp
           · simp; apply c3c.2.weaken_global lem1
           rfl
           · simp [Surface.Ty.data?, Core.Ty.mkApps_nats_spine, Surface.is_data, Surface.lookup, Surface.Entry.is_data]
@@ -1214,25 +1214,6 @@ theorem Intermediate.lookup_openm_index {G : Intermediate.GlobalEnv} (wf : ⊢ G
    apply ih h1 h2
 
 
-theorem Intermediate.lookup_none_ctor? :
-  Intermediate.lookup s Γ = none ->
-  Intermediate.lookup q Γ = some w ->
-  Intermediate.Entry.ctor? s Core.DataConst.opn w = true  ->
-  False
-:= by
-  intro h1 h2 h3
-  simp [Intermediate.Entry.ctor?] at h3
-  cases w <;> simp at h3
-  case _ q spty =>
-  rcases spty with ⟨na, Ks1, nb, Ks2, nc, As, R⟩
-  simp at h3; split at h3 <;> simp at h3
-  subst h3; case _ h3 =>
-  have e := Intermediate.lookup_name_agrees h2; simp [Intermediate.Entry.name] at e; subst e
-  have lem : Γ&(Ks1 ++ Ks2).list.reverse ⊢ R : ★ := by sorry -- needs entry wf
-
-  sorry
-
-
 
 set_option maxHeartbeats 7000000
 theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) :
@@ -1319,7 +1300,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
       simp [Intermediate.lookup_ctor?, Core.Ty.mkApps_nats_spine] at h2;
       simp [Option.getD_eq_iff] at h2;
       rcases h2 with ⟨ent, h2, h4⟩;  -- This will be ill typed
-      exfalso; apply Intermediate.lookup_none_ctor? _ h2 h4
+      exfalso; apply Intermediate.lookup_none_ctor? wftl' _ h2 h4
       assumption
 
     · simp_all; replace ih := ih h1;
@@ -2133,7 +2114,9 @@ theorem mk_inst_mths_IC_wf_sound {G' : Core.GlobalEnv}{mτs : List (String × Co
       intro h; replace hi := hi (by simp; grind); simp at hi; apply hi
 
 
-theorem translate_IC_spine_kinding_valid {Γ : Intermediate.GlobalEnv} {Γ' : Core.GlobalEnv}   {k1 : Nat} {Ks1 : Vec Core.Kind k1} {nm : String} {spTy : Core.SpineTy} {mτs : List (String × Core.SpineTy)}
+
+-- TODO: This is unfortunate, need a better way to organize
+theorem translate_IC_spine_kinding_valid {Γ : Intermediate.GlobalEnv} {Γ' : Core.GlobalEnv}  {k1 : Nat} {Ks1 : Vec Core.Kind k1} {nm : String} {spTy : Core.SpineTy} {mτs : List (String × Core.SpineTy)}
   (wf : ⊢ Γ) (ht : ⟦Γ⟧ = .ok Γ') (wf' : ⊢ (List.map (fun x => Core.Global.openm x.fst x.snd) mτs ++ Core.Global.odata s (mk_cls_kind Ks1) :: Γ'))-- should generalize over Vec of T
  :
   Intermediate.lookup s Γ = none ->
@@ -2144,7 +2127,7 @@ theorem translate_IC_spine_kinding_valid {Γ : Intermediate.GlobalEnv} {Γ' : Co
     ((nm, spTy) :: mτs)[i] = (mn, τ) →
       Intermediate.SpineKinding Core.SpCtorVariant.openm mn
         (Intermediate.Global.classDecl { name := s, kcU := k1, kind := Ks1, fds := [], scs := [], mths := [] } :: Γ)
-        (fun x => true) τ) ->
+        (λ _ => true) τ) ->
   (c3 :
   ∀ (T : Core.Ty) (tys : List Core.Ty),
     T.spine = some (s, tys) →
@@ -2172,9 +2155,31 @@ theorem translate_IC_spine_kinding_valid {Γ : Intermediate.GlobalEnv} {Γ' : Co
     · simp
     · apply ih
       · apply wf'
-      · intro i j hi hj hk p; replace c1 := c1 (i + 1) (j + 1) (by grind) (by grind) (by grind);
-        simp at c1;
-        sorry
+      · have c1s := List.uniqueness_strengthen (mn := nm) (l := ((hd :: tl)).map (·.1))
+             (by intro i j hi hj e1 e2; simp at e2;
+                 cases i;
+                 · cases j <;> simp at *
+                   case _ j =>
+                     cases j  <;> simp at hj;
+                     simp at e2; apply c1 0 1 (by grind) (by grind) (by grind); simp [e2]
+                     case _ j _ => simp at e2; apply c1 0 (j + 2) (by grind); grind; simp[e2]; simp [hj]
+                 · cases j;
+                   case _ j =>
+                     simp at e2; cases j; simp at e2; apply c1 0 1 (by simp) (by simp) (by simp); simp; symm; apply e2; simp at e2;
+                     case _ j => apply c1 0 (j+2) (by simp) (by simp at hi; simp; apply hi) (by simp); simp; symm; apply e2
+                   case _ i j => simp at e2; apply c1 (i + 1) (j + 1); grind; grind; grind; simp; simp at hj; apply hj)
+        have c1s' := List.uniqueness_strengthen (mn := hd.1) (l := tl.map (·.1))
+                     (by intro i j hi hj ne1 ne2;
+                         cases i <;> cases j
+                         apply ne1; rfl
+                         case _ j => simp at ne2; apply c1 1 (j + 2) (by grind) (by grind) (by grind); simp; apply ne2
+                         case _ j => simp at ne2; apply c1 1 (j + 2) (by grind) (by grind) (by grind); simp; symm; apply ne2
+                         case _ i j => simp at ne2; apply c1 (i + 2) (j + 2) (by grind) (by grind) (by grind); simp; apply ne2)
+        have csw := List.uniqueness_weaken (mn := nm) (l := tl.map (·.1))
+                       (by simp; intro i hi ne;
+                           apply c1 0 (i + 2) (by grind) (by grind) (by grind); simp; apply ne) c1s'
+        intro i j hi hj ne1 ne2; apply csw i j; apply ne1; grind; simp; apply hi; simp; apply hj
+
 
 
 theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
@@ -2214,6 +2219,12 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     cases wfhd; case _ c1 c2 c3 c4 =>
     have lem : ⊢ (Core.Global.odata s (mk_cls_kind Ks) :: Γ') := by
       constructor; constructor; apply translate_IC_lookup_none h c1; apply ih wftl h
+    -- have lem2 :   ∀ (i : Nat) (mn : String) (τ : Core.SpineTy) (hi : i < mths.length),
+    --      Core.SpineKinding Core.SpCtorVariant.openm mn (.cons (Core.Global.odata s (Core.Kind.mk_kind Ks)) Γ') (fun x => true) τ
+    --   := by intro i nm τ hi;
+    --         have lem := translate_IC_spine_kinding_valid (mτs := mths) (spTy := τ) (nm := nm) (Ks1 := Ks) (s := s) wftl h
+    --         sorry
+    -- clear lem2;
     induction mths
     simp; apply lem
     case _ hd tl ih =>
