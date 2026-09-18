@@ -183,7 +183,6 @@ theorem lookup_kind_weaken (wf : ⊢ (g::G))
     rw [wdef] at lem; cases lem; exact h
 
 
-
 theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢s A : K -> (g::G)&Δ ⊢s A : K
 | var h => var h
 | global h => global $ lookup_kind_weaken wf h
@@ -192,6 +191,35 @@ theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢s A : K -> (g::G)&Δ �
 | app j1 j2 => app (j1.weaken_global wf) (j2.weaken_global wf)
 | eq j1 j2 => eq (j1.weaken_global wf) (j2.weaken_global wf)
 
+
+theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind}:
+  T.spine = some (s,  tys) ->
+  (G&Δ ⊢s T : K <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢s gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢s tys[i]'(by grind) : κs[i]))
+:= by
+
+  sorry
+
+@[simp]
+theorem Kinding.spine_typing {s : String} {Ks : Vec Core.Kind kc} :
+  (Surface.Global.classDecl s Ks [] :: Γ)&Ks.list.reverse ⊢s (gt#s).mkApps_nats (List.range kc).reverse : ★
+:= by
+  have lem := Kinding.spine_typing_lemma (G := (Surface.Global.classDecl s Ks [] :: Γ)) (Δ := Ks.list.reverse) (s := s) (K := ★) (T := (gt#s).mkApps_nats (List.range kc).reverse) (tys := List.map (t#·) (List.range kc).reverse)
+  replace lem := lem (by apply Core.Ty.mkApps_nats_spine (T := s) (ts := (List.range kc).reverse))
+  simp [lem]
+  apply And.intro
+  exists (Core.Kind.mk_kind Ks); apply Kinding.global; simp [lookup_kind, lookup, Surface.Entry.kind]
+  exists Ks; intro i;
+  apply Kinding.var;
+  simp [<-Vec.list_reverse, List.getElem?_eq_getElem (l := Ks.reverse.list) (i := kc - 1 - i) (h := by simp; omega)]
+  conv =>
+    lhs
+    simp [Vec.get_list_to_get];
+  cases kc
+  apply i.elim0
+  case _ n =>
+  simp;
+  replace lem : n - (n - i) = i := by grind
+  simp only [lem]; simp [Vec.get_list_to_get]
 
 
 end Surface

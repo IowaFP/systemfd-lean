@@ -178,4 +178,121 @@ def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
 notation:175 "Ω " G:175 => OpenExhaustive G
 
 
+inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
+| data :
+  lookup x G = some (.data x K ctors) ->
+  EntryWf G (.data x K ctors)
+| ctor z K (ctors : Vec _ n) (i : Fin n) :
+  lookup z G = some (.data z K ctors) ->
+  ctors[i] = (x, T) ->
+  SpineKinding (.data .cls) x G (Core.Ty.is_data z) T ->
+  lookup x G = some (.ctor x i T) ->
+  EntryWf G (.ctor x i T)
+| odata {n : Nat} {Ks1 : Vec Core.Kind n}:
+  lookup x G = some (.odata (n := n) x Ks1 mτs) ->
+  (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
+    SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, n, Ks1, [],[], []⟩ :: G) (λ _ => true) τ) ->
+  EntryWf G (.odata (n := n) x Ks1 mτs)
+| defn {G : Intermediate.GlobalEnv}:
+  G&[] ⊢ T : ★ ->
+  lookup x G = some (.defn x T t) ->
+  EntryWf G (.defn x T t)
+| octor :
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
+  lookup x G = some (.octor x T) ->
+  EntryWf G (.octor x T)
+
+
+theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
+  ⊢ G ->
+  lookup x G = some e ->
+  EntryWf G e
+:= by sorry
+  -- intro wf h
+  -- fun_induction lookup
+  -- any_goals try
+  --   case _ ih =>
+  --     cases wf; case _ h2 wf =>
+  --     apply weaken
+  --     apply ListGlobalWf.cons wf h2
+  --     apply ih h2 h
+  -- case _ => cases h
+  -- case _ =>
+  --   cases h; apply EntryWf.data
+  --   simp [lookup]
+  -- case _ n y K ctors tl ctors' h1 ih1 =>
+  --   have wf' := wf
+  --   cases wf; case _ wf gwf =>
+  --   cases gwf; case _ h2 h3 h4 =>
+  --   simp [Vec.foldr_or_val_some] at h
+  --   cases h
+  --   case _ lem => sorry -- apply EntryWf.weaken wf' (ih1 wf lem)
+  --   case _ lem =>
+  --     rcases lem with ⟨i, lem⟩
+  --     subst ctors'; simp at lem
+  --     rcases lem with ⟨e1, e2⟩; subst e1; simp at *
+  --     generalize zdef : ctors[i] = z
+  --     rcases z with ⟨z, A⟩
+  --     replace h4 := h4 i z A zdef
+  --     rw [zdef] at e2; simp at e2; subst e2
+  --     rcases h4 with ⟨q1, q2, q3⟩
+  --     apply EntryWf.ctor y K ctors
+  --     simp [lookup]; exact zdef
+  --     apply SpineKinding.weaken_global_ctors wf' q1
+  --     simp [lookup]; split; simp_all; rw [q3]
+  --     apply EntryWf.from_lookup_ctor2; simp
+  --     exists i; rw [zdef]; simp
+  --     intro j j1 j2
+  --     replace h3 := h3 j i j1
+  --     subst j2; grind
+  -- case _ =>
+  --   cases h; apply EntryWf.odata
+  --   simp [lookup]
+  -- case _ =>
+  --   have wf' := wf
+  --   cases h; cases wf; case _ wf h =>
+  --   cases h; case _ j1 j2 =>
+  --   apply EntryWf.openm
+  --   apply SpineKinding.weaken_global (tst := λ _ _ => true) wf' (by simp) j2
+  --   simp [lookup]
+  -- case _ =>
+  --   have wf' := wf
+  --   cases h; cases wf; case _ wf h =>
+  --   cases h; case _ j1 j2 =>
+  --   apply EntryWf.defn
+  --   apply Kinding.weaken_global wf' j1
+  --   apply Typing.weaken_global wf' j2
+  --   simp [lookup]
+  -- case _ =>
+  --   have wf' := wf
+  --   cases h; cases wf; case _ wf h =>
+  --   cases h; case _ j1 j2 =>
+  --   apply EntryWf.octor
+  --   apply SpineKinding.weaken_global wf' _ j2
+  --   intro A h; apply Ty.data?_global_weaken wf' h
+  --   simp [lookup]
+
+
+
+theorem lookup_none_ctor? {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
+  Intermediate.lookup s Γ = none ->
+  Intermediate.lookup q Γ = some w ->
+  Intermediate.Entry.ctor? s Core.DataConst.opn w = true  ->
+  False
+:= by
+  intro h1 h2 h3
+  simp [Intermediate.Entry.ctor?] at h3
+  cases w <;> simp at h3
+  case _ q spty =>
+  rcases spty with ⟨na, Ks1, nb, Ks2, nc, As, R⟩
+  simp at h3; split at h3 <;> simp at h3
+  subst h3; case _ h3 =>
+  have e := Intermediate.lookup_name_agrees h2; simp [Intermediate.Entry.name] at e; subst e
+  have lem2 := EntryWf.from_lookup wf h2
+  cases lem2; case _ lem1 lem2 =>
+  cases lem1; case _ Δ c2 c3 c4 c5 c6 =>
+  subst Δ;
+  unfold Ty.data? at c6; simp [h3, is_data, h1] at c6;
+
+
 end Intermediate
