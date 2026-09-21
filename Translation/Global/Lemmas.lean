@@ -289,19 +289,28 @@ theorem lookup_some_if_idx_some {G : GlobalEnv} {i : Nat} {mths : List (String �
   Core.lookup mn G = some (Core.Entry.openm mn τ)
 := by
   intro h1 h2 h3;
-  induction mths generalizing G <;> (simp at *)
+  induction mths generalizing G i <;> (simp at *)
   subst G; simp [lookup]; cases h2
   case _ hd tl ih =>
     rw[<-h1]; simp[lookup]; split
-    case _ e => subst mn; sorry
     case _ e =>
-    rw[<-h1] at h2; cases i
-    simp at h2; grind
+      subst mn;
+      cases i
+      simp [<-h1] at h2; simp [h2]
+      case _ i =>
+        simp [<-h1] at h2; replace h3 := h3 0 hd.1 hd.2 (by simp)
+        simp [<-h1] at h3
+    case _ e =>
+    simp [<-h1] at h2;
+    cases i
+    simp at h2; rcases h2 with ⟨e1, e2⟩; subst mn; contradiction
     case _ i =>
-    apply ih
-    sorry
-    intro j mn' τ hi hj; replace h3 := h3 j mn τ hi; rw[<-h1] at h3; sorry
-  -- induction mths generalizing i G <;> simp at *
+      simp at h2;
+      replace ih := @ih (List.map (λ x => Global.openm x.1 x.2) tl) i
+      apply ih
+      rfl
+      simp [h2]
+      grind
 
 theorem lookup_none_if_idx_some {G : GlobalEnv} {mn : String} {mths : List (String × Core.SpineTy)}:
   List.map (λ x => Core.Global.openm x.1 x.2) mths = G ->
