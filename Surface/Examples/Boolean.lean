@@ -10,7 +10,9 @@ def benv : GlobalEnv := [
 
   -- .instDecl  "IdI" ⟨1, #(`★), 0, #(), 2, #(t`#0, t`#0), (gt`#"Id" `• t`#0) `• t`#0 ⟩ #(),
   -- .classDecl "Id" #(★, ★) [] [⟨"fd", 0, #(0), 1⟩, ⟨"bwk", 0, #(1), 0⟩] [],
-  .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT")))],
+  .defn "eqB" (gt#"Bool") (g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil),
+
+  .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
 
   .instDecl "EqBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Eq" • t#0⟩ [("eq", λˢ[gt#"Bool"] λˢ[gt#"Bool"] `#0)],
 
@@ -18,7 +20,7 @@ def benv : GlobalEnv := [
 
   .classDecl "Eq" #(★) /-[] []-/ [("eq",  ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Bool")⟩)],
 
-.data (n := 2) "Bool" ★ #(("True", ⟨0, #(), 0, #(), 0,  #(), gt#"Bool"⟩),
+  .data (n := 2) "Bool" ★ #(("True", ⟨0, #(), 0, #(), 0,  #(), gt#"Bool"⟩),
                             ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)),
   .data (n := 3) "Ordering" ★ #( ("LT", ⟨0, #(), 0, #(), 0,  #(), gt#"Ordering"⟩)
                                , ("EQ", ⟨0, #(), 0, #(), 0,  #(), gt#"Ordering"⟩)

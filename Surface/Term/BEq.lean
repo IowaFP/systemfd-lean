@@ -7,7 +7,11 @@ namespace Surface
 
 def Term.beq : Term -> Term -> Bool
 | var x, var y => x == y
-| global x, global y => x == y
+| global (p := p1) x τ1a τ1b as1, global (p := p2) y τ2a τ2b as2 =>
+  if h : p1 = p2 then
+    let as : Fun.Vec Bool p1 := λ i => beq (as1 i) (as2 (by rw[h] at i; exact i))
+    x == y && Vec.beq τ1a τ2a && Vec.beq τ1b τ2b && as.to.foldl (·&&·) true
+  else false
 | appt a1 b1, appt a2 b2 => beq a1 a2 && b1 == b2
 | app a1 b1, app a2 b2 => beq a1 a2 && beq b1 b2
 | lamt K1 t1, lamt K2 t2 => K1 == K2 && beq t1 t2
@@ -28,7 +32,9 @@ instance instReflBEq_Term : ReflBEq Term where
   rfl := by
     intro a; induction a <;> simp +instances [instBEq_Term, Term.beq] at *
     all_goals (repeat assumption)
-    constructor; assumption; assumption
+    sorry
+    sorry
+    -- constructor; assumption; assumption
     -- case «match» ih1 ih2 ih3 ih4 =>
     -- constructor
     -- · constructor
@@ -53,6 +59,7 @@ instance instLawfulBEq_Term : LawfulBEq Term where
     intro a b; cases a <;> simp +instances [instBEq_Term] at *
     all_goals (induction b <;>
       simp [Term.beq] at *)
+    sorry
     sorry
     sorry
     sorry

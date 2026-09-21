@@ -31,7 +31,7 @@ instance instCoe_ActionTermTerm : Coe (Action Term) Term where
 @[simp]
 def Term.rmap (r : Ren Term) : Term -> Term
 | `#x => `#(r.act x)
-| g`#x => g`#x
+| global x τU τE as => g`# x `•ᵤ τU `•ₑ τE `•ₜ (rmap r <$> as)
 | lamt A t => lamt A (rmap r t)
 | lam A t => lam A (rmap r.lift t)
 | app t1 t2 => app (rmap r t1) (rmap r t2)
@@ -45,7 +45,7 @@ instance instRenMap_Term : RenMap Term Term where
 @[simp]
 def Term.Ty.rmap (r : Ren Core.Ty) : Term -> Term
 | `#x => `#x
-| g`#x => g`#x
+| g`#x `•ᵤ τU `•ₑ τE `•ₜ as => g`# x `•ᵤ τU⟨r⟩ `•ₑ τE⟨r⟩ `•ₜ (rmap r <$> as)
 | lamt A t => lamt A (rmap r.lift t)
 | lam A t => lam A⟨r⟩ (rmap r t)
 | app t1 t2 => app (rmap r t1) (rmap r t2)
@@ -59,7 +59,7 @@ instance : RenMap Term Core.Ty where
 @[simp]
 def Term.Ty.smap (σ : Subst Core.Ty) : Term -> Term
 | `#x => `#x
-| g`#x => g`#x
+| g`#x `•ᵤ τU `•ₑ τE `•ₜ as => g`# x `•ᵤ τU[σ] `•ₑ τE[σ] `•ₜ (Ty.smap σ <$> as)
 | app t1 t2 => app (smap σ t1) (smap σ t2)
 | appt t1 t2 => appt (smap σ t1) t2[σ]
 | lamt A t => lamt A (smap σ.lift t)
@@ -75,7 +75,7 @@ theorem Term.ren_var {r : Ren Term} : (`#x)⟨r⟩ = `#(r.act x) := by
   simp [RenMap.rmap]
 
 @[simp]
-theorem Term.ren_global {r : Ren Term} : (g`#x)⟨r⟩ = g`#x := by
+theorem Term.ren_global {r : Ren Term} : (g`#x `•ᵤ τU `•ₑ τE `•ₜ as)⟨r⟩ = g`#x `•ᵤ τU `•ₑ τE `•ₜ (rmap r <$> as) := by
   simp [RenMap.rmap]
 
 @[simp]
@@ -84,6 +84,10 @@ theorem Term.ren_lam {r : Ren Term} : (lam A t)⟨r⟩ = lam A t⟨r.lift⟩ := 
 
 @[simp]
 theorem Term.ren_lamt {r : Ren Term} : (lamt A t)⟨r⟩ = lamt A t⟨r⟩ := by
+  simp [RenMap.rmap]
+
+@[simp]
+theorem Term.ren_appt {r : Ren Term} : (f `•[ a ])⟨r⟩ = f⟨r⟩`•[ a ] := by
   simp [RenMap.rmap]
 
 -- @[simp]
@@ -97,7 +101,7 @@ theorem Term.ren_lamt {r : Ren Term} : (lamt A t)⟨r⟩ = lamt A t⟨r⟩ := by
 @[simp]
 def Term.smap (σ : Subst Term) : Term -> Term
 | `#x => σ.act x
-| g`#x => g`#x
+| g`#x `•ᵤ τU `•ₑ τE `•ₜ as => g`#x `•ᵤ τU `•ₑ τE `•ₜ (smap σ <$> as)
 | app t1 t2 => app (smap σ t1) (smap σ t2)
 | appt t1 t2 => appt (smap σ t1) t2
 | lamt A t => lamt A (smap (σ ◾ Ren.succ Core.Ty) t)
@@ -115,7 +119,7 @@ theorem Term.subst_var {σ : Subst Term} : (`#x)[σ] = σ.act x := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Term.subst_global {σ : Subst Term} : (g`#x)[σ] = g`#x := by
+theorem Term.subst_global {σ : Subst Term} : (g`#x `•ᵤ τU `•ₑ τE `•ₜ as)[σ] = g`#x `•ᵤ τU `•ₑ τE `•ₜ (smap σ <$> as) := by
   simp [SubstMap.smap]
 
 @[simp]
@@ -162,12 +166,13 @@ theorem Term.Core.Ty.subst_var {σ : Subst Core.Ty} : (`#x)[σ] = `#x := by
   simp [SubstMap.smap]
 
 @[simp]
-theorem Term.Core.Ty.subst_global {σ : Subst Core.Ty} : (g`#x)[σ] = g`#x := by
+theorem Term.Core.Ty.subst_global {σ : Subst Core.Ty} : (g`#x `•ᵤ τU `•ₑ τE `•ₜ as)[σ] = g`#x `•ᵤ τU[σ] `•ₑ τE[σ] `•ₜ (Ty.smap σ <$> as) := by
   simp [SubstMap.smap]
 
 @[simp]
 theorem Term.Core.Ty.subst_app {σ : Subst Core.Ty} : (app t1 t2)[σ] = app t1[σ] t2[σ] := by
   simp [SubstMap.smap]
+
 @[simp]
 theorem Term.Core.Ty.subst_appt {σ : Subst Core.Ty} : (appt t1 t2)[σ] = appt t1[σ] t2[σ] := by
   simp [SubstMap.smap]
@@ -193,7 +198,12 @@ theorem Term.Core.Ty.subst_annoτ {σ : Subst Core.Ty} : (annot t A)[σ] = annot
 
 
 instance instSubstMapId_Ty_TermTy : SubstMapId Term Core.Ty where
-  apply_id := by subst_solve_id
+  apply_id
+:= by
+   -- subst_solve_id
+   -- case global => sorry
+   sorry
+
 
 @[simp]
 theorem Term.hcompose_var {x : Nat}{σ : Subst Term} {τ : Subst Core.Ty}

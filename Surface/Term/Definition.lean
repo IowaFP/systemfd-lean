@@ -10,7 +10,7 @@ namespace Surface
 
 inductive Term : Type where
 | var : Nat -> Term
-| global : String -> Term
+| global : {n m p : Nat} -> String -> Vec Core.Ty n -> Vec Core.Ty m -> Fun.Vec Term p -> Term
 | appt : Term -> Core.Ty -> Term
 | app : Term -> Term -> Term
 | lamt :  Core.Kind -> Term -> Term
@@ -20,7 +20,7 @@ inductive Term : Type where
 
 
 prefix:max "`#" => Term.var
-prefix:max "g`#" => Term.global
+notation:70 "g`#" x "`•ᵤ" a "`•ₑ" b "`•ₜ" c => Term.global x a b c
 
 notation f " `•[" a "]" => Term.appt f a
 
@@ -36,7 +36,9 @@ notation "λˢ[" A "]" t => Term.lam A t
 
 protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "`#" ++ Nat.repr n
-| .global n => "g`#" ++ n
+| .global (p := p) n τU τE as =>
+  let as : Fun.Vec Std.Format p := λ i => Term.repr p (as i)
+  "g`#" ++ n ++ " `•ᵤ " ++ (τU.repr max_prec) ++ " `•ₑ " ++ (τE.repr max_prec) ++ " `• " ++ as.to.foldl (·++·) Std.Format.nil
 | .app t1 t2 =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++ Term.repr p t2) p
 | .appt t1 t2 =>
@@ -64,7 +66,7 @@ instance instRepr_Term : Repr Term where
 @[simp]
 def Term.size : Term -> Nat
 | var _ => 1
-| global _ => 1
+| global _ _ _ as => as.to.length + 1
 | app t1 t2 => t1.size + t2.size + 1
 | appt t1 _ => size t1 + 1
 | lamt _ t => size t + 1
