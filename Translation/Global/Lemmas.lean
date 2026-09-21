@@ -239,10 +239,7 @@ theorem lookup_append_some {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2
 theorem lookup_append_some_iff {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2)): -- needs wf in data constructor case
   Core.lookup x (G1 ++ G2) = some e <->
   Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
-:= by
-  apply Iff.intro
-  apply lookup_append_some wf
-  apply lookup_append_some_mpr
+:= ⟨lookup_append_some wf, lookup_append_some_mpr⟩
 
 
 theorem lookup_none_strengthen {g} {G} :
@@ -1450,7 +1447,7 @@ theorem mk_inst_mth_IC_wf {G : Core.GlobalEnv} (wf : ⊢ G) :
   simp [Option.toTM_some_eq_ok_iff] at h1
   simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨b, h2, h3⟩
   subst h3
-  simp [Option.toTM_some_eq_ok_iff] at h2
+  -- simp [Except.bind_eq_ok_iff] at h2
   replace h1 := Core.pattern_binders_sound h1
   replace h2 := type_directed_translation_soundness wf h2
   exists b; simp; exists ζ; exists Γ; subst e; apply And.intro
@@ -2213,7 +2210,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     apply ih wftl h
   case _ ih => -- defn
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, t', h1, h2⟩
-    cases h2; simp [Option.toTM_some_eq_ok_iff] at h1;
+    cases h2; -- simp [Option.toTM_some_eq_ok_iff] at h1;
     cases wf; case _ wftl wfhd =>
     cases wfhd; case _ lk h2 =>
     constructor

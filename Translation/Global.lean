@@ -15,15 +15,6 @@ open LeanSubst
 
 namespace Translation
 
-@[simp] abbrev TM α := Except Std.Format α
-
-
-namespace Option
-def toTM (e : Std.Format) : Option α -> Except Std.Format α
-| none => Except.error e
-| some e => Except.pure e
-end Option
-
 instance : MonadLift TM IO where
   monadLift tm := match tm with
   | .ok a => return a
@@ -199,13 +190,13 @@ def mk_inst_mth_IC (G : Core.GlobalEnv) (τ : Core.SpineTy) (mn : String) (m : N
     let Δ := (Ks1.list ++ Ks2.list).reverse
     if m == n
     then let ⟨ζ, Γ⟩ <- Option.toTM "Pattern Binders" (Core.pattern_binders (.data .opn) G Δ n Ts p)
-         let t' <- Option.toTM
-           ("G :" ++ G.repr max_prec ++  Std.Format.line
-            ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
-            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
-            ++ "t : " ++  t.repr max_prec ++ Std.Format.line
-            ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
-           (t.type_directed_translate G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩)
+         let t' <- -- Option.toTM
+           -- ("G :" ++ G.repr max_prec ++  Std.Format.line
+           --  ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
+           --  ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+           --  ++ "t : " ++  t.repr max_prec ++ Std.Format.line
+           --  ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
+           (Surface.Term.type_directed_translate G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩ t)
          return .inst mn p t'
     else Except.error "pat sizes don't match"
 
@@ -234,7 +225,8 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
   return (.data n s K ctors) :: Γ'
 | .cons (.defn ⟨s, T, t⟩) Γ => do
   let Γ' <- translate_IC Γ
-  let t' : Core.Term <- Option.toTM "defn translate" (t.type_directed_translate Γ' [] [] T)
+  let t' : Core.Term <- -- Option.toTM "defn translate"
+  (Surface.Term.type_directed_translate Γ' [] [] T t)
   return (.defn s T t') :: Γ'
 | .cons (.classDecl ⟨s, _, K, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ

@@ -8,9 +8,20 @@ import Core.Synth
 import Translation.Ty
 open LeanSubst
 
+namespace Translation
+
+@[simp] abbrev TM α := Except Std.Format α
+
+
+namespace Option
+def toTM (e : Std.Format) : Option α -> Except Std.Format α
+| none => Except.error e
+| some e => Except.pure e
+end Option
+
 
 def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :  Core.Ty -> Option Core.Term
-| _ => none
+| τ => none
 
 def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv)
   (T1 : Core.Ty) (T2 : Core.Ty) : Option Core.Term :=
@@ -179,74 +190,117 @@ inductive Mode : Type where | chk | inf
 -- notation:170 G:170 "&" Δ:170 "," Γ:170 " ⊢s " t:170 " -↪ " G':170 " ⊢ " t':170 " ∈ " A:170 => Surface.Term.Elab G G' Mode.inf Δ Γ t A t'
 
 
-@[simp, grind]
-def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
-  Surface.Term -> Option Core.Term
-| `#x => return #x
-| g`#x => d#x
-| .lamt K t => do
-  let t' <- t.translate G (K :: Δ) Γ[Subst.succ Core.Ty]
-  return (Λ[K] t')
-| .lam A t => do
-  let t' <- t.translate G Δ (A :: Γ)
-  return λ[A] t'
-| .app t1 t2 => do
-  let t1' <- t1.translate G Δ Γ
-  let t2' <- t2.translate G Δ Γ
-  return (t1' • t2')
-| .appt t1 t2 => do
-  let t1' <- t1.translate G Δ Γ
-  let t2' <- t2
-  return (t1' •[ t2' ])
--- | .match (n := n) _ s ps cs d => do
---   let s' <- s.translate G Δ Γ
---   let ops' : Vect n (Option Core.Term) := (λ i => (ps i).translate G Δ Γ)
---   let ps' <- ops'.seq
---   let ocs' : Vect n (Option Core.Term) := (λ i => (cs i).translate G Δ Γ)
---   let cs' <- ocs'.seq
---   let d' <- d.translate G Δ Γ
---   return match! n s' ps' cs' d'
-| .annot t _ => do
-  t.translate G Δ Γ
+-- @[simp, grind]
+-- def Surface.Term.translate (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :
+--   Surface.Term -> Option Core.Term
+-- | `#x => return #x
+-- | g`#x => d#x
+-- | .lamt K t => do
+--   let t' <- t.translate G (K :: Δ) Γ[Subst.succ Core.Ty]
+--   return (Λ[K] t')
+-- | .lam A t => do
+--   let t' <- t.translate G Δ (A :: Γ)
+--   return λ[A] t'
+-- | .app t1 t2 => do
+--   let t1' <- t1.translate G Δ Γ
+--   let t2' <- t2.translate G Δ Γ
+--   return (t1' • t2')
+-- | .appt t1 t2 => do
+--   let t1' <- t1.translate G Δ Γ
+--   let t2' <- t2
+--   return (t1' •[ t2' ])
+-- -- | .match (n := n) _ s ps cs d => do
+-- --   let s' <- s.translate G Δ Γ
+-- --   let ops' : Vect n (Option Core.Term) := (λ i => (ps i).translate G Δ Γ)
+-- --   let ps' <- ops'.seq
+-- --   let ocs' : Vect n (Option Core.Term) := (λ i => (cs i).translate G Δ Γ)
+-- --   let cs' <- ocs'.seq
+-- --   let d' <- d.translate G Δ Γ
+-- --   return match! n s' ps' cs' d'
+-- | .annot t _ => do
+--   t.translate G Δ Γ
 
 
 -- @[simp, grind]
 def Surface.Term.type_directed_translate
   (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
-  Surface.Term -> Option Core.Term
+  Surface.Term -> TM Core.Term
 -- TODO: Treat vars and globals as if they are applications
 | `#x =>
   match Γ[x]? with
   | some τ' => do
     if τ == τ' then
     return #x else
-    let c <- Core.Ty.synth_coercion G Δ Γ τ' τ
+    let c <- Option.toTM ("var synth_coercion"
+            ++ "G :" ++ G.repr max_prec ++  Std.Format.line
+            ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+            ++ "τ' : " ++ τ'.repr max_prec ++ Std.Format.line
+            ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
+           (Core.Ty.synth_coercion G Δ Γ τ' τ)
     return (.cast t#0 c #x)
-  | _ => none
+  | _ => .error "var translate"
 
-| g`#x =>
+| .global (n := n) (m := m) (p := p) x τU τE as =>
   match Core.lookup x G with
-  | .some (.ctor x' _ ⟨0, _, 0, _, 0, _, R⟩) => do
-    let c <- Core.Ty.synth_coercion G Δ Γ R τ
-    if x == x'
-    then return (.cast t#0 c (ctor! x #() #() .nil))
-    else none
-  | _ => none
+  | .some (.ctor x' _ ⟨n', Ks1, m', Ks2, p', Ts, R⟩) => do
+    -- TODO: Make sure τU and Ks line up
+    if h : (n == n' && m == n) && x == x' && p == p' then
+      let c <- Option.toTM (".octor synth_coercion"
+            ++ "G :" ++ G.repr max_prec ++  Std.Format.line
+            ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+            ++ "R : " ++ R.repr max_prec ++ Std.Format.line
+            ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
+            $ Core.Ty.synth_coercion G Δ Γ R τ
+      let as' : Lilac.Fun.Vec (TM Core.Term) p := λ (i : Fin p) => by
+        simp at h; rcases h with ⟨⟨e1, e2, e3⟩, e4⟩; subst e4;
+        apply Term.type_directed_translate G Δ Γ (Ts.to i) (as i)
+      let as' <- as'.to.sequence
+      return (.cast t#0 c (ctor! x τU τE as'.to))
+    else .error "global translate"
+  | .some (.openm x' ⟨n', Ks1, m', Ks2, _, Ts, R⟩) => do
+    if ((n == n' && m == m') && x == x') then
+    -- TODO: Make sure τU and Ks line up
+      let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
+      let ιs := Ts[σ].map (λ x => Option.toTM ("G :" ++ G.repr max_prec ++  Std.Format.line
+            ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+            ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line) $ Core.Ty.synth_term G Δ Γ x)
+      match ιs.sequence with
+      | .ok ιs =>
+        let c <- Option.toTM ("global openm synth_coercion"
+            ++ "G :" ++ G.repr max_prec ++  Std.Format.line
+            ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+            ++ "R : " ++ R.repr max_prec ++ Std.Format.line
+            ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
+            $ Core.Ty.synth_coercion G Δ Γ R[σ] τ
+        return (inst! x τU τE ιs.to)
+      | .error c => .error c
+    else .error $ "openm translate if" ++ m.repr ++ " " ++ m'.repr ++ " " ++ n.repr ++ " " ++ n'.repr -- ++ " " ++ p.repr ++ " " ++ p'.repr
+  | _ => .error "openm translate"
 
 
 | .lamt K t => do
   match τ with
   | .all K' τ' =>
-    let t' <- t.type_directed_translate G (K :: Δ) Γ[Subst.succ Core.Ty] τ'
-    if K == K' then return (Λ[K] t') else none
-  | _ => none
+    let t' <- type_directed_translate G (K :: Δ) Γ[Subst.succ Core.Ty] τ' t
+    if K == K' then return (Λ[K] t') else .error "lamt translate"
+  | _ => .error "lamt translate"
 | .lam A t => do
   match τ with
   | .arrow A' B =>
-    let t' <- t.type_directed_translate G Δ (A :: Γ) B
-    let c <- Core.Ty.synth_coercion G Δ Γ (A -:> B) (A' -:> B)
+    let t' <- type_directed_translate G Δ (A :: Γ) B t
+    let c <- Option.toTM ("synth_coercion"
+            ++ "G :" ++ G.repr max_prec ++  Std.Format.line
+            ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+            ++ "A -:> B : " ++ (A -:> B).repr max_prec ++ Std.Format.line
+            ++ "A' -:> B : " ++  (A' -:> B).repr max_prec ++ Std.Format.line)
+             $ Core.Ty.synth_coercion G Δ Γ (A -:> B) (A' -:> B)
     return (Core.Term.cast t#0 c (λ[A] t'))
-  | _ => none
+  | _ => .error "lam translate"
 -- Elimination forms are a little annoying
 -- | .match (n := n) R s ps cs d => do
 --   let s' <- s.type_directed_translate G Δ Γ R
@@ -257,10 +311,16 @@ def Surface.Term.type_directed_translate
 --   let d' <- d.type_directed_translate G Δ Γ τ
 --   return match! n s' ps' cs' d'
 | .annot t τt => do
-  let t' <- t.type_directed_translate G Δ Γ τt
-  let c <- Core.Ty.synth_coercion G Δ Γ τt τ
+  let t' <- type_directed_translate G Δ Γ τt t
+  let c <- Option.toTM ("synth_coercion"
+            ++ "G :" ++ G.repr max_prec ++  Std.Format.line
+            ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+            ++ "τt : " ++ τt.repr max_prec ++ Std.Format.line
+            ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
+           $ Core.Ty.synth_coercion G Δ Γ τt τ
   return .cast t#0 c t'
-| _ => none
+| _ => .error "annotate translate"
 
 
 -- | t =>
@@ -453,3 +513,5 @@ def Surface.Term.type_directed_translate
 -- def elab_term (G : Surface.GlobalEnv) (G' : Core.GlobalEnv) (Δ : Surface.KindEnv) (Γ : Surface.TyEnv) (t : Surface.Term) : (m : Mode) -> ElabArgs m
 -- | .inf => Surface.Term.type_inf_translate G G' Δ Γ t
 -- | .chk => λ (τ : Surface.Ty) => Surface.Term.type_chk_translate G G' Δ Γ τ t
+
+end Translation

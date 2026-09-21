@@ -25,7 +25,7 @@ namespace Translation
 
 
 theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G):
-  Surface.Term.type_directed_translate G Δ Γ T t = some t' ->
+  Surface.Term.type_directed_translate G Δ Γ T t = .ok t' ->
   G&Δ, Γ ⊢ t' : T := by sorry
 
 
