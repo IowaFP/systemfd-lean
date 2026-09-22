@@ -149,7 +149,7 @@ def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Opti
   else none
 | _ => none
 
-theorem synth_coercion_sound :
+theorem synth_coercion_term_sound :
   synth_coercion_term G Δ Γ T = some c ->
   G&Δ, Γ ⊢ c : T
  := by
@@ -309,6 +309,31 @@ def test8 := do
 -- #eval! test9
 
 end Core.EqGraph.Test
+
+
+def Ty.ford (G : GlobalEnv) (Δ : KindEnv) (τ : Ty): Option SpineTy := do
+  let (x, tys) <- τ.spine
+  let na := tys.length
+  let univtys := (List.range (na)).reverse.map (t#·)
+  -- let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
+
+  let univKs <- tys.mapM (Core.Ty.infer_kind G Δ ·)
+  let uv := Vec.from_list univKs
+
+  let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
+
+  let eqs := ((univKs.zip univtys).zip tys).map (λ ((K, α),τ) =>  Core.Ty.eq K α τ)
+  let eqv := Vec.from_list eqs
+
+  return ⟨uv.1, uv.2, 0, #(), eqv.1, eqv.2, (gt#x).mkApps univtys⟩
+
+theorem fording_sound :
+  G&Δ ⊢ τ : K ->
+  Ty.ford G Δ τ = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
+  (Ks1.list ++ Ks2.list).reverse = Δ' ->
+  (∀ i : Fin nc, ∃ K : Core.Kind, G&(Δ'++ Δ) ⊢ Ts[i] : K) ∧ G&(Δ ++ Δ) ⊢ R : K
+   := by sorry
+
 
 
 end Core.Synth

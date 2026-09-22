@@ -151,5 +151,4 @@ theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats 
   -- case _ t ts ih =>
   sorry
 
-
 end Core
