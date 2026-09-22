@@ -21,6 +21,48 @@ def toTM (e : Std.Format) : Option α -> Except Std.Format α
 end Option
 
 
+
+theorem Except.bind_eq_ok_iff {α : Type u_1} {β : Type u_2} {ε : Type u_3} {b : β} {x : Except ε α} {f : α → Except ε β} :
+  x.bind f = .ok b ↔ ∃ (a : α), x = .ok a ∧ f a = .ok b
+:= by
+  apply Iff.intro
+  all_goals (intro h; cases x <;> simp [Except.bind] at *; apply h)
+
+theorem Except.map_eq_ok_iff {α : Type u_1} {β : Type u_2} {ε : Type u_3} {b : β} {x : Except ε α}  {f : α → β} :
+  x.map f = .ok b ↔ ∃ (a : α), x = .ok a ∧ f a = b := by
+  apply Iff.intro
+  intro h; simp [Except.map] at *; split at h <;> (try simp at *); apply h
+  intro h; simp [Except.map]; split <;>  (try simp at *); apply h
+
+@[simp]
+theorem Except.ite_true_eq_ok_iff {α : Type u_1} {t : TM α} {t' : α} {b : Bool} {e : Std.Format}:
+  ((if b then t else Except.error e) = Except.ok t') <->
+  t = .ok t' ∧ b = True
+:= by
+  apply Iff.intro
+  intro h; split at h <;> simp at h
+  case _ b => apply And.intro; apply h; simp; apply b
+  intro h; rcases h with ⟨h1, h2⟩; subst h1; simp at h2; subst h2; simp
+
+@[simp]
+theorem Except.ite_false_eq_ok_iff {α : Type u_1} {t : TM α} {t' : α} {b : Bool} {e : Std.Format}:
+  ((if b then Except.error e else t) = Except.ok t') <->
+  t = .ok t' ∧ b = False
+:= by
+  apply Iff.intro
+  intro h; split at h <;> try simp at h
+  case _ b => apply And.intro; apply h; simp at b; simp; apply b
+  intro h; rcases h with ⟨h1, h2⟩; subst h1; simp at h2; subst h2; simp
+
+theorem Option.toTM_some_eq_ok_iff :
+  Option.toTM s c = Except.ok e <-> c = some e
+:= by
+  apply Iff.intro;
+  intro h; simp [Option.toTM] at h; split at h <;> simp at *
+  cases h; rfl
+  intro h; subst h; simp [Option.toTM, Except.pure]
+
+
 def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv)
   (T1 : Core.Ty) (T2 : Core.Ty) : Option Core.Term :=
   match T1.infer_kind G Δ, T2.infer_kind G Δ with
@@ -81,37 +123,32 @@ def check_synth_type (G : Core.GlobalEnv) (τ : Core.Ty) : Option Unit :=
   if check_class_type G τ || is_eq_type τ then return () else none
 
 
-partial def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) : Option Core.Term :=  do
-   match h : G.wf_globals with
-   | some () =>
-     let wf := Core.wf_global_sound h
-     check_synth_type G τ
-     -- let eqGraph <- Core.Synth.EqGraph.process_tyenv G wf Δ Γ
-     match Γ.findIdx? (· == τ) with
-     | some i => return #i
-     | none =>
-       match Core.Synth.synth_coercion_term G Δ Γ τ with
-       | some t => return t
-       | none =>
-         let candidates := find_matching_insts τ G
-         let ts <- candidates.mapM (λ x =>
-           match Core.lookup_spine_type (.data .opn) G x with
-           | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
-             let (cls, tys) <- τ.spine
-             let σ := ((List.range nb).map re ++ tys.reverse.map su ++ Subst.id Core.Ty)
-             let R' := R[σ]
-             if R' == τ
-               then
-                 let Ts' := Ts[σ]
-                 let ts' := Ts'.map (Core.Ty.synth_term G Δ Γ ·)
-                 let ts' <- ts'.reverse.sequence
-                 return (d#x).mkApps tys ts'.list
-               else none
-           | _ => none)
-           match ts.head? with
-           | some t => t
-           | none => none
-   | none => none
+partial def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) : Option Core.Term := do
+  check_synth_type G τ
+  match Γ.findIdx? (· == τ) with
+  | some i => return #i
+  | none =>
+    match Core.Synth.synth_coercion_term G Δ Γ τ with
+    | some t => return t
+    | none =>
+      let candidates := find_matching_insts τ G
+      let ts <- candidates.mapM (λ x =>
+        match Core.lookup_spine_type (.data .opn) G x with
+        | some ⟨_, Ks1, nb, Ks2, _, Ts, R⟩ => do
+          let (cls, tys) <- τ.spine
+          let σ := ((List.range nb).map re ++ tys.reverse.map su ++ Subst.id Core.Ty)
+          let R' := R[σ]
+          if R' == τ
+            then
+              let Ts' := Ts[σ]
+              let ts' := Ts'.map (Core.Ty.synth_term G Δ Γ ·)
+              let ts' <- ts'.reverse.sequence
+              return (d#x).mkApps tys ts'.list
+            else none
+        | _ => none)
+        match ts.head? with
+        | some t => t
+        | none => none
 
 
 
@@ -366,7 +403,7 @@ def Surface.Term.type_directed_translate
 | .lamt K t => do
   match τ with
   | .all K' τ' =>
-    let t' <- type_directed_translate G (K :: Δ) Γ[Subst.succ Core.Ty] τ' t
+    let t' <- type_directed_translate G (K :: Δ) Γ⟨Ren.succ Core.Ty⟩ τ' t
     if K == K' then return (Λ[K] t') else .error "lamt translate"
   | _ => .error "lamt translate"
 | .lam A t => do

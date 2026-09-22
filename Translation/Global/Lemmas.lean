@@ -364,47 +364,6 @@ end Core
 
 namespace Translation
 
-
-theorem Except.bind_eq_ok_iff {α : Type u_1} {β : Type u_2} {ε : Type u_3} {b : β} {x : Except ε α} {f : α → Except ε β} :
-  x.bind f = .ok b ↔ ∃ (a : α), x = .ok a ∧ f a = .ok b
-:= by
-  apply Iff.intro
-  all_goals (intro h; cases x <;> simp [Except.bind] at *; apply h)
-
-theorem Except.map_eq_ok_iff {α : Type u_1} {β : Type u_2} {ε : Type u_3} {b : β} {x : Except ε α}  {f : α → β} :
-  x.map f = .ok b ↔ ∃ (a : α), x = .ok a ∧ f a = b := by
-  apply Iff.intro
-  intro h; simp [Except.map] at *; split at h <;> (try simp at *); apply h
-  intro h; simp [Except.map]; split <;>  (try simp at *); apply h
-
-@[simp]
-theorem Except.ite_true_eq_ok_iff {α : Type u_1} {t : TM α} {t' : α} {b : Bool} {e : Std.Format}:
-  ((if b then t else Except.error e) = Except.ok t') <->
-  t = .ok t' ∧ b = True
-:= by
-  apply Iff.intro
-  intro h; split at h <;> simp at h
-  case _ b => apply And.intro; apply h; simp; apply b
-  intro h; rcases h with ⟨h1, h2⟩; subst h1; simp at h2; subst h2; simp
-
-@[simp]
-theorem Except.ite_false_eq_ok_iff {α : Type u_1} {t : TM α} {t' : α} {b : Bool} {e : Std.Format}:
-  ((if b then Except.error e else t) = Except.ok t') <->
-  t = .ok t' ∧ b = False
-:= by
-  apply Iff.intro
-  intro h; split at h <;> try simp at h
-  case _ b => apply And.intro; apply h; simp at b; simp; apply b
-  intro h; rcases h with ⟨h1, h2⟩; subst h1; simp at h2; subst h2; simp
-
-theorem Option.toTM_some_eq_ok_iff :
-  Option.toTM s c = Except.ok e <-> c = some e
-:= by
-  apply Iff.intro;
-  intro h; simp [Option.toTM] at h; split at h <;> simp at *
-  cases h; rfl
-  intro h; subst h; simp [Option.toTM, Except.pure]
-
 theorem Intermediate.Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv}
   (wf : ⊢ (Intermediate.Global.data ⟨s, K, ⟨n, ctors⟩⟩ :: Γ)) :
   Intermediate.Query ((Intermediate.Global.data ⟨s, K, ⟨n, ctors⟩⟩ :: Γ)) Core.DataConst.opn q Ts ->

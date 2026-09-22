@@ -1,3 +1,5 @@
+
+import Common.Vec
 import Core.Ty
 import Core.Term
 import Core.Metatheory
@@ -21,12 +23,97 @@ import Core.Typing
 
 open LeanSubst
 
+
 namespace Translation
 
+theorem synth_coercion_sound {G : Core.GlobalEnv} :
+  Core.Ty.synth_coercion G Δ Γ A B = some t ->
+  ∃ K, G&Δ, Γ ⊢ t : (A ~[K]~ B) ∧ G&Δ ⊢ A : K ∧ G&Δ ⊢ B : K
+:= by
+  intro h
+  unfold Core.Ty.synth_coercion at h
+  split at h <;> try simp at h
+  case _ K _ j1 j2 =>
+  rcases h with ⟨e, h⟩
+  subst e; exists K
+  replace h := Core.Synth.synth_coercion_term_sound h
+  replace j1 := Core.infer_kind_sound j1
+  replace j2 := Core.infer_kind_sound j2
+  apply And.intro h
+  apply And.intro j1 j2
 
-theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G):
+
+theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
   Surface.Term.type_directed_translate G Δ Γ T t = .ok t' ->
-  G&Δ, Γ ⊢ t' : T := by sorry
+  G&Δ, Γ ⊢ t' : T
+:= by
+  intro h
+  fun_induction Surface.Term.type_directed_translate generalizing t' <;> simp at h
+  case _ lk e => -- var
+    cases h; simp at e; cases e; apply Core.Typing.var lk
+    sorry
+  case _ A _ B lk e => -- var with coercion
+    simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨t, h1, h2⟩
+    simp [Option.toTM_some_eq_ok_iff] at h1
+    replace h1 := synth_coercion_sound h1
+    subst h2
+    rcases h1 with ⟨K, h1, h2, h3⟩
+    apply Core.Typing.cast (K := K) -- K = ★
+    sorry
+    apply h1
+    simp; apply Core.Typing.var; apply lk; sorry
+    simp
+
+
+  case _ τ _ _ _ _ τU τE as x _ _ _ _ _ _ _ _ lk e ih => -- overloading/globals
+    simp [bind, Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨t', h1, h2⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨ts, h2, h3⟩
+    simp at e; rcases e with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e1; subst e2; subst e3; subst e4
+    simp at h2 h3;
+    case _ Ts =>
+    replace h1 := synth_coercion_sound h1
+    -- replace h2 := Lilac.Vec.seq_sound2 (vs1 := Ts.to) (vs2 := as) h2
+    subst h3;
+    apply Core.Typing.cast
+    apply Core.Kinding.var (K := ★); simp; rfl; sorry
+    simp; sorry
+    rfl
+    sorry
+
+
+  case _ => -- overloading openm
+    sorry
+  case _ ih => -- lam
+    simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
+    rcases h2 with ⟨e1, e2⟩; subst e2; cases e1
+    replace ih := ih h1
+    apply Core.Typing.lamt
+    sorry
+    apply ih
+  case _ ih =>
+    simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
+    replace ih := ih h1
+    simp [Functor.map, Except.map_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h2; rcases h2 with ⟨c, h2, h3⟩
+    replace h2 := synth_coercion_sound h2; subst h3
+    rcases h2 with ⟨K, h2, h4, h5⟩;
+    have h2' := Core.terms_have_star_types wf h2
+
+    apply Core.Typing.cast; sorry; sorry; sorry; sorry; sorry; sorry
+    sorry
+  case _ ih => -- annot
+    simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
+    simp [Functor.map, Except.map_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h2; rcases h2 with ⟨c, h2, h3⟩
+    replace h2 := synth_coercion_sound h2
+    subst t'; replace ih := ih h1; rcases h2 with ⟨K, h2, h3, h4⟩
+    have h1' := Core.terms_have_star_types wf ih
+    have e := Core.Kinding.unique h3 h1'; subst e
+    apply Core.Typing.cast (K := ★);
+    · apply Core.Kinding.var; simp
+    · apply h2
+    · simp; apply ih
+    · simp
+
+
 
 
 end Translation

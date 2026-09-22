@@ -8,8 +8,6 @@ namespace Surface.Examples.Boolean
 
 def benv : GlobalEnv := [
 
-  -- .instDecl  "IdI" ⟨1, #(`★), 0, #(), 2, #(t`#0, t`#0), (gt`#"Id" `• t`#0) `• t`#0 ⟩ #(),
-  -- .classDecl "Id" #(★, ★) [] [⟨"fd", 0, #(0), 1⟩, ⟨"bwk", 0, #(1), 0⟩] [],
   .defn "eqB" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") (g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil),
 
   .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
@@ -24,7 +22,10 @@ def benv : GlobalEnv := [
                             ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)),
   .data (n := 3) "Ordering" ★ #( ("LT", ⟨0, #(), 0, #(), 0,  #(), gt#"Ordering"⟩)
                                , ("EQ", ⟨0, #(), 0, #(), 0,  #(), gt#"Ordering"⟩)
-                               , ("GT", ⟨0, #(), 0, #(), 0,  #(), gt#"Ordering"⟩))
+                               , ("GT", ⟨0, #(), 0, #(), 0,  #(), gt#"Ordering"⟩)),
+
+  .data (n := 2) "Maybe" (★ -:> ★) #(("Just", ⟨1, #(★), 0, #(), 1, #(t#0), gt#"Maybe" • t#0⟩ ),
+                                     ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩))
   ]
 
 #eval benv
@@ -39,9 +40,11 @@ def Γ := do
   Translation.translate_IC benv'
 
 
--- #eval! do
---   let Γ <- Γ
---   Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
+#eval! do
+  let Γ <- Γ
+  -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
+  Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))
+  -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
 
 -- #eval!
 --   do
