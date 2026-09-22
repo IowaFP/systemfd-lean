@@ -7,7 +7,7 @@ import Core.Synth
 
 import Translation.Ty
 open LeanSubst
-
+open Lilac
 namespace Translation
 
 @[simp] abbrev TM α := Except Std.Format α
@@ -20,9 +20,6 @@ def toTM (e : Std.Format) : Option α -> Except Std.Format α
 end Option
 
 
-def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :  Core.Ty -> Option Core.Term
-| τ => none
-
 def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv)
   (T1 : Core.Ty) (T2 : Core.Ty) : Option Core.Term :=
   match T1.infer_kind G Δ, T2.infer_kind G Δ with
@@ -32,6 +29,52 @@ def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
     else none
   | _, _ => none
 
+
+def Core.Ty.ty_match : (τ1 τ2 : Core.Ty) -> Option (Subst Core.Ty)  -- τ1 is the template, τ2 is the "ground" term
+| t#v, τ =>
+  return ⟨λ x => if x == v then .su τ else .su t#v⟩
+| gt#x, gt#y => if x == y then return Subst.id Core.Ty else none
+| (A -:> B), (A' -:> B')
+| (.app A B), (.app A' B') => do
+  let σ1 <- Core.Ty.ty_match A A'
+  let σ2 <- Core.Ty.ty_match B B'
+  return (σ1 ∘ σ2)
+| .eq K A B, .eq K' A' B' => do
+  if K == K' then
+  let σ1 <- Core.Ty.ty_match A A'
+  let σ2 <- Core.Ty.ty_match B B'
+  return (σ1 ∘ σ2)
+  else none
+| _, _ => none
+
+#eval do
+  let σ <- Core.Ty.ty_match (gt#"Eq" • t#0) (gt#"Eq" • gt#"Bool")
+  return (t#0)[σ]
+
+def SpineTy.instantiate {n m: Nat} (τU : Vec Core.Ty n) (τE : Vec Core.Ty m) : Core.SpineTy -> Option ((p : Nat) × Vec Core.Ty p × Core.Ty)
+| ⟨na, _, nb, _, nc, Ts, R⟩ =>
+  let σ := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
+  if na == n && nb == n then
+  return ⟨nc, Ts[σ], R[σ]⟩
+  else none
+
+def find_matching_insts (τ : Core.Ty) : Core.GlobalEnv -> List String
+| [] => []
+| .cons (.octor x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) tl  =>
+  let is := find_matching_insts τ tl
+  if (Core.Ty.ty_match R τ).isSome then x :: is
+  else is
+| .cons _ tl => find_matching_insts τ tl
+
+
+partial def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :  Core.Ty -> Option Core.Term
+| τ =>
+  match Γ.findIdx? (· == τ) with
+  | some i => return #i
+  | none =>
+    let candidates := find_matching_insts τ G
+
+    none
 
 
 
@@ -263,10 +306,11 @@ def Surface.Term.type_directed_translate
     if ((n == n' && m == m') && x == x') then
     -- TODO: Make sure τU and Ks line up
       let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
-      let ιs := Ts[σ].map (λ x => Option.toTM ("G :" ++ G.repr max_prec ++  Std.Format.line
+      let ιs := Ts[σ].map (λ x => Option.toTM ("synth instance "
+            ++ "G : " ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
             ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
-            ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line) $ Core.Ty.synth_term G Δ Γ x)
+            ++ "x : " ++  x.repr max_prec ++ Std.Format.line) $ Core.Ty.synth_term G Δ Γ x)
       match ιs.sequence with
       | .ok ιs =>
         let c <- Option.toTM ("global openm synth_coercion"
@@ -276,7 +320,7 @@ def Surface.Term.type_directed_translate
             ++ "R : " ++ R.repr max_prec ++ Std.Format.line
             ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
             $ Core.Ty.synth_coercion G Δ Γ R[σ] τ
-        return (inst! x τU τE ιs.to)
+        return (.cast t#0 c (inst! x τU τE ιs.to))
       | .error c => .error c
     else .error $ "openm translate if" ++ m.repr ++ " " ++ m'.repr ++ " " ++ n.repr ++ " " ++ n'.repr -- ++ " " ++ p.repr ++ " " ++ p'.repr
   | _ => .error "openm translate"
