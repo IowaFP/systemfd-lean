@@ -34,6 +34,15 @@ def benv : GlobalEnv := [
   Translation.translate_IC benv'
 
 
+def Γ := do
+  let benv' <- (Translation.translate_SI benv)
+  Translation.translate_IC benv'
+
+
+-- #eval! do
+--   let Γ <- Γ
+--   Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
+
 -- #eval!
 --   do
 --   let benv' <- (Translation.translate_SI benv)
