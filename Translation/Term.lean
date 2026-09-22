@@ -1,5 +1,6 @@
 import Core.Ty
 import Core.Term
+import Core.Infer
 -- import Surface.Ty
 import Surface.Term
 import Core.Typing
@@ -66,15 +67,51 @@ def find_matching_insts (τ : Core.Ty) : Core.GlobalEnv -> List String
   else is
 | .cons _ tl => find_matching_insts τ tl
 
+def check_class_type (G : Core.GlobalEnv) (τ : Core.Ty) : Bool :=
+  match τ.spine with
+  | some (x, _) => Core.is_data .opn G x
+  | _ => false
 
-partial def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) :  Core.Ty -> Option Core.Term
-| τ =>
-  match Γ.findIdx? (· == τ) with
-  | some i => return #i
-  | none =>
-    let candidates := find_matching_insts τ G
+def is_eq_type (τ : Core.Ty) : Bool :=
+  match τ with
+  | .eq _ _ _ => true
+  | _ => false
 
-    none
+def check_synth_type (G : Core.GlobalEnv) (τ : Core.Ty) : Option Unit :=
+  if check_class_type G τ || is_eq_type τ then return () else none
+
+
+partial def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) : Option Core.Term :=  do
+   match h : G.wf_globals with
+   | some () =>
+     let wf := Core.wf_global_sound h
+     check_synth_type G τ
+     -- let eqGraph <- Core.Synth.EqGraph.process_tyenv G wf Δ Γ
+     match Γ.findIdx? (· == τ) with
+     | some i => return #i
+     | none =>
+       match Core.Synth.synth_coercion_term G Δ Γ τ with
+       | some t => return t
+       | none =>
+         let candidates := find_matching_insts τ G
+         let ts <- candidates.mapM (λ x =>
+           match Core.lookup_spine_type (.data .opn) G x with
+           | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
+             let (cls, tys) <- τ.spine
+             let σ := ((List.range nb).map re ++ tys.reverse.map su ++ Subst.id Core.Ty)
+             let R' := R[σ]
+             if R' == τ
+               then
+                 let Ts' := Ts[σ]
+                 let ts' := Ts'.map (Core.Ty.synth_term G Δ Γ ·)
+                 let ts' <- ts'.reverse.sequence
+                 return (d#x).mkApps tys ts'.list
+               else none
+           | _ => none)
+           match ts.head? with
+           | some t => t
+           | none => none
+   | none => none
 
 
 
@@ -303,7 +340,7 @@ def Surface.Term.type_directed_translate
       return (.cast t#0 c (ctor! x τU τE as'.to))
     else .error "global translate"
   | .some (.openm x' ⟨n', Ks1, m', Ks2, _, Ts, R⟩) => do
-    if ((n == n' && m == m') && x == x') then
+    if ((n == n' && m == m') && x == x') && p == 0 then
     -- TODO: Make sure τU and Ks line up
       let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
       let ιs := Ts[σ].map (λ x => Option.toTM ("synth instance "

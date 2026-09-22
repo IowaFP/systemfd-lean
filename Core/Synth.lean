@@ -114,6 +114,21 @@ def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEn
         let eG <- Γ.foldlM (λ acc T => acc.push_ty T) init
         (Γ.zipIdx).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
 
+def EqGraph.build_eq_graph (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) :
+  Option (Ppcc.EqGraph G Δ Γ)
+:= do
+   match h : G.wf_globals with
+   | some () =>
+     let wf := wf_global_sound h
+     let init : Ppcc.EqGraph G Δ Γ := Ppcc.EqGraph.empty
+     let init <- G.foldlM (λ acc g => match g with
+       | .data _ s _ _ => acc.push_ty gt#s
+       | _ => acc) init
+     let eG <- Γ.foldlM (λ acc T => acc.push_ty T) init
+     (Γ.zipIdx).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
+   | none => none
+
+
 
 def synth_coercion_term (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) : Ty -> Option Term
 | (T1 ~[K]~ T2) => do
