@@ -384,7 +384,6 @@ inductive Mode : Type where | chk | inf
 def Surface.Term.type_directed_translate
   (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
   Surface.Term -> TM Core.Term
--- TODO: Treat vars and globals as if they are applications
 | `#x =>
   match Γ[x]? with
   | some τ' => do
@@ -404,7 +403,9 @@ def Surface.Term.type_directed_translate
   match Core.lookup x G with
   | .some (.ctor x' _ ⟨n', Ks1, m', Ks2, p', Ts, R⟩) => do
     -- TODO: Make sure τU and Ks line up
-    if h : (n == n' && m == n) && x == x' && p == p' then
+    let Ks <- Option.toTM "translation ctor kind check" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
+
+    if h : (n == n' && m == n) && x == x' && p == p' && Ks.beq Ks1 then
       let c <- Option.toTM (".octor synth_coercion"
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
@@ -413,7 +414,7 @@ def Surface.Term.type_directed_translate
             ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
             $ Core.Ty.synth_coercion G Δ Γ R τ
       let as' : Lilac.Fun.Vec (TM Core.Term) p := λ (i : Fin p) => by
-        simp at h; rcases h with ⟨⟨e1, e2, e3⟩, e4⟩; subst e4;
+        simp at h; rcases h with ⟨⟨⟨e1, e2, e3⟩, e4⟩, e5⟩; subst e4;
         apply Term.type_directed_translate G Δ Γ (Ts.to i) (as i)
       let as' <- as'.to.sequence
       return (.cast t#0 c (ctor! x τU τE as'.to))
