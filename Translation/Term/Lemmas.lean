@@ -113,16 +113,17 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
 
   case _ τ _ _ _ _ τU τE as x _ _ _ _ _ _ _ _ lk e ih => -- overloading/globals
     simp [bind, Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨t', h1, h2⟩
-    simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨ts, h2, h3⟩
-    simp at e; rcases e with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e1; subst e2; subst e3; subst e4
-    simp at h2 h3;
-    case _ Ts =>
-    replace h1 := synth_coercion_sound h1
-    subst h3;
-    apply Core.Typing.cast
-    apply Core.Kinding.var (K := ★); simp; rfl; sorry
-    simp; sorry
-    rfl
+    split at h2 <;> try simp at h2
+    -- simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨ts, h2, h3⟩
+    -- simp at e; rcases e with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e1; subst e2; subst e3; subst e4
+    -- simp at h2 h3;
+    -- case _ Ts =>
+    -- replace h1 := synth_coercion_sound h1
+    -- subst h3;
+    -- apply Core.Typing.cast
+    -- apply Core.Kinding.var (K := ★); simp; rfl; sorry
+    -- simp; sorry
+    -- rfl
     sorry
 
 
