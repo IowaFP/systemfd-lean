@@ -16,15 +16,38 @@ import Translation.Term
 import Translation.Global
 import Core.Typing
 import Core.Metatheory.Inversion
+import Core.Metatheory.Global
 
 
 import Surface.Typing
 import Core.Typing
 
 open LeanSubst
-
+open Lilac
 
 namespace Translation
+
+theorem Vec.traverse_eq_pure_iff_getElem_TM {α β n v2} {f : α -> TM β} :
+  {v1 : Vec α n} ->
+  v1.traverse f = Except.ok v2 ->
+  ∀ i : Fin n, f v1[i] = .ok (v2[i])
+| .nil, h, i => Fin.elim0 i
+| .cons x xs, h, i => by
+  cases v2; case _ y ys =>
+  simp at h; unfold Seq.seq at h
+  unfold Applicative.toSeq at h
+  unfold Except.instMonad at h
+  simp at h;
+  simp [Except.bind_eq_ok_iff] at h
+  rcases h with ⟨f, h, h1⟩
+  simp [Functor.map, Except.map_eq_ok_iff] at h;
+  simp [Except.map_eq_ok_iff] at h1
+  rcases h with ⟨b, ha, hb⟩
+  subst f; rcases h1 with ⟨v', h1, h2⟩
+  simp at h2; rcases h2 with ⟨e1, e2⟩; subst e1; subst e2
+  cases i using Fin.cases
+  simp; apply ha
+  simp; simp [Vec.traverse_eq_pure_iff_getElem_TM h1]
 
 theorem synth_coercion_sound {G : Core.GlobalEnv} :
   Core.Ty.synth_coercion G Δ Γ A B = some t ->
@@ -41,6 +64,29 @@ theorem synth_coercion_sound {G : Core.GlobalEnv} :
   replace j2 := Core.infer_kind_sound j2
   apply And.intro h
   apply And.intro j1 j2
+
+theorem synth_term_sound {G : Core.GlobalEnv} (wf : ⊢ G) :
+  Core.Ty.synth_term G Δ Γ τ = some t ->
+  G&Δ, Γ ⊢ t : τ
+:= by
+  intro h
+  sorry
+
+theorem lookup_openm_implies_lookup_spine_type {G : Core.GlobalEnv} :
+  Core.lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
+  Core.lookup_spine_type .openm G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
+:= by  intro h; simp [Core.lookup_spine_type, h, Core.Entry.spine_type]
+
+
+
+theorem lookup_openm_implies_scrutinees_open_type {G : Core.GlobalEnv} (wf : ⊢ G):
+  Core.lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
+  (∀ (i : Fin n), Core.Ty.data? .opn G Ts[i])
+:= by
+  intro h
+  replace h := Core.EntryWf.from_lookup wf h
+  cases h; case _ h1 h =>
+  cases h1; grind
 
 
 theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
@@ -72,7 +118,6 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     simp at h2 h3;
     case _ Ts =>
     replace h1 := synth_coercion_sound h1
-    -- replace h2 := Lilac.Vec.seq_sound2 (vs1 := Ts.to) (vs2 := as) h2
     subst h3;
     apply Core.Typing.cast
     apply Core.Kinding.var (K := ★); simp; rfl; sorry
@@ -81,8 +126,36 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     sorry
 
 
-  case _ => -- overloading openm
+  case _ τ _ _ _ _ _ _ _ _ _ _ _ _ Ts R lk e σ Is ιs h1 h2 => -- overloading openm
+    simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨t'', h2, h3⟩
+    simp [Option.toTM_some_eq_ok_iff] at h2; replace h2 := synth_coercion_sound h2;
+    rcases h2 with ⟨K, h3, h4, h5⟩;
+    simp [Is] at h1; subst t'
+    simp at e; rcases e with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e4; subst e3; subst e2; subst e1
+    replace lk1 := lookup_openm_implies_lookup_spine_type lk
+    replace lk' := Core.EntryWf.from_lookup wf lk; cases lk'; case _ lk2 lk' =>
+    cases lk2; case _ Ks2 _ _ _ _ _ h5 h6 h7 h8 h9 =>
+
+    apply Core.Typing.cast (A := R[σ]) (B := τ)
+    apply Core.Kinding.var; simp; rfl
     sorry
+    apply Core.Typing.spctor (v := .openm) (Ts := Ts) (Ts' := Ts[σ]) (R := R) (R' := R[σ]);
+    · apply lk1
+    · simp [σ]
+    · simp [σ]
+    · sorry
+    · intro i; apply i.elim0
+    · intro i; replace h1 := Vec.traverse_eq_pure_iff_getElem_TM h1 i;
+      generalize zdef : ιs[i] = ι at *;
+      rcases ι with ⟨t, τ, j⟩
+      simp [Option.toTM_some_eq_ok_iff] at h1;
+      simp [Vec.to_get_elem, zdef]; simp at h2; simp [<-h2]; rw [zdef]; simp; apply j
+    · simp
+    · simp
+    · simp; replace lk := lookup_openm_implies_scrutinees_open_type wf lk'; apply lk
+    · simp
+
+
   case _ ih => -- lam
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
     rcases h2 with ⟨e1, e2⟩; subst e2; cases e1
@@ -100,6 +173,7 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
 
     apply Core.Typing.cast; sorry; sorry; sorry; sorry; sorry; sorry
     sorry
+  case _ => sorry
   case _ ih => -- annot
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
     simp [Functor.map, Except.map_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h2; rcases h2 with ⟨c, h2, h3⟩
