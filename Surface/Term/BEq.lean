@@ -13,7 +13,7 @@ def Term.beq : Term -> Term -> Bool
     x == y && Vec.beq τ1a τ2a && Vec.beq τ1b τ2b && as.to.foldl (·&&·) true
   else false
 | appt a1 b1, appt a2 b2 => beq a1 a2 && b1 == b2
-| app a1 b1, app a2 b2 => beq a1 a2 && beq b1 b2
+| app a1 b1 τ1, app a2 b2 τ2 => beq a1 a2 && beq b1 b2 && τ1 == τ2
 | lamt K1 t1, lamt K2 t2 => K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
 -- | .match (n := n1) t1 a1 b1 c1 d1, .match (n := n2) t2 a2 b2 c2 d2 =>

@@ -326,8 +326,6 @@ theorem lookup_none_if_idx_some {G : GlobalEnv} {mn : String} {mths : List (Stri
 
 
 
-
-
 theorem lookup_some_then_idx_some {G : GlobalEnv} :
   Core.lookup mn G = some (Core.Entry.openm mn τ) ->
   ∃ i : Nat, G[i]? = some (Core.Global.openm mn τ)

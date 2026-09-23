@@ -7,8 +7,9 @@ import Translation.Global
 namespace Surface.Examples.Boolean
 
 def benv : GlobalEnv := [
+  -- .defn "test" (gt#"Bool" -:> gt#"Bool") ((g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil) `• (g`#"True" `•ᵤ #() `•ₑ #() `•ₜ .nil) :: gt#"Bool"),
 
-  .defn "eqB" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") (g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil),
+  -- .defn "eqB" (gt#"Bool" -:> (gt#"Bool" -:> gt#"Bool")) (g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil) ,
 
   .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
 
@@ -33,6 +34,11 @@ def benv : GlobalEnv := [
 #eval! do
   let benv' <- (Translation.translate_SI benv)
   Translation.translate_IC benv'
+
+#guard (do
+  let benv' <- (Translation.translate_SI benv)
+  let benv'' <- Translation.translate_IC benv'
+  Translation.Option.toTM "wf" $ benv''.wf_globals) == .ok ()
 
 
 def Γ := do

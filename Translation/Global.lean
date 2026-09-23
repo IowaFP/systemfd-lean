@@ -20,6 +20,11 @@ instance : MonadLift TM IO where
   | .ok a => return a
   | .error s => .throw (.userError s.pretty)
 
+instance [i : BEq α] : BEq (TM α) where
+  beq t1 t2 := match t1, t2 with
+  | .ok t1, .ok t2 => t1 == t2
+  | _, _ => false
+
 def mk_cls_kind : Vec Core.Kind kc -> Core.Kind := Core.Kind.mk_kind
 
 def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String) (sc_params : List (Fin kc)) : Core.SpineTy :=
