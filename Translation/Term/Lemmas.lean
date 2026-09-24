@@ -118,7 +118,7 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     simp
 
 
-  case _ τ _ _ _ _ τU τE as _ _ _ _ _ _ _ Ts R lk ih => -- overloading/globals
+  case _ Δ Γ τ _ _ _ _ τU τE as _ _ _ _ _ _ _ Ts R lk ih => -- overloading/globals
     simp [bind, Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨Ks, h1, h2⟩
     split at h2 <;> try simp at h2
     case _ e =>
@@ -127,31 +127,57 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨ts, h3, h4⟩
     rcases e with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e1; subst e2; subst e3; subst e4;
     simp [Vec.beq_iff_eq] at e5; subst e5
-    simp at h2 h3; subst h4
-    generalize σdef : (List.map su τE.list).reverse ++ (List.map su τU.list).reverse ++ Subst.id Core.Ty = σ at *
+    generalize σdef1 : (List.map su τE.list).reverse ++ (List.map su τU.list).reverse ++ Subst.id Core.Ty = σ1 at *
+    generalize σdef2 : (List.map su (τU ++ τE).list).reverse ++ Subst.id Core.Ty = σ2 at *
+    have lemσ : σ1 = σ2 := by simp [<-σdef1, <-σdef2]
+    subst h4
+    generalize zdef : (Vec.from_list
+        (List.map (fun x => Surface.Term.type_directed_translate G Δ Γ x.val.fst x.val.snd)
+          (Ts[List.map su (τU ++ τE).list.reverse ++ Subst.id Core.Ty].list.zip (as.to).list).attach)) = z at *
+    have lem1 := Vec.from_list_length zdef
+    simp at lem1; subst lem1
     replace h2 := synth_coercion_sound h2
     replace lk' := Core.EntryWf.from_lookup wf lk; cases lk'; case _ lk2 lk' =>
     replace lk := lookup_ctor_implies_lookup_spine_type lk
     cases lk2; case _ Ks2 _ _ _ _ _ h9 h10 h11 h12 h13 =>
-    apply Core.Typing.cast (A := R[σ]) (K := ★) (B := τ)
+
+    apply Core.Typing.cast (A := R[σ1]) (K := ★) (B := τ)
     apply Core.Kinding.var (K := ★); simp;
     sorry
     simp;
-    apply Core.Typing.spctor (Ts := Ts) (Ts' := Ts[σ]) (R := R) (R' := R[σ])
+    apply Core.Typing.spctor (Ts := Ts) (Ts' := Ts[σ1]) (R := R) (R' := R[σ1]) (ts := ts.to)
     · apply lk
-    · simp [σdef]
-    · simp [σdef]
+    · simp [σdef1]
+    · simp [σdef1]
     · intro i; replace h1 := Vec.traverse_eq_pure_iff_getElem_Option h1 i; replace h1 := Core.infer_kind_sound h1; apply h1
     · sorry
     · intro i; simp [Vec.sequence] at h3; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i;
-      simp [Vec.get_to] at h3; simp [<-Vec.get_to]
-      replace ih := @ih i Ts ts[i]; simp [<-Vec.get_to, σdef] at ih; apply ih
-      simp [<-h3];
-      simp [Vec.get_to]; simp_all; sorry
+      simp at h3; simp [<-Vec.get_to]
+      rcases z with ⟨z_len, zs⟩
+      simp at *
+      apply  @ih Ks _ _ (as i)
+      · simp [<-σdef1];
+        generalize ldef : Ts[List.map su (τU ++ τE).list.reverse ++ Subst.id Core.Ty].list.zip (as.to).list = l at *
+        generalize kdef : List.map (fun x => Surface.Term.type_directed_translate G Δ Γ x.val.fst x.val.snd) l.attach = k at *
+        simp [List.map_attach_eq_pmap] at kdef;
+        have lem : l.length = z_len := by rw[<-ldef]; simp [List.length_zip]
+        have lem2 : l[i] = l[i] := by rfl
+        have lem3 : (Ts[List.map su (τU ++ τE).list.reverse ++ Subst.id Core.Ty].list.zip (as.to).list)[i]'(by grind) = l[i] := by grind
+        simp at i; simp at lem3; simp at ldef; rw[ldef]; clear ih;
+        simp [List.mem_iff_getElem]; exists i; simp [<-lem3]
+        cases z_len;
+        apply i.elim0
+        simp [Vec.get_list_to_get, <-Vec.to_get_elem]; grind
+      · clear ih; rw[<-h3]; simp at i; replace zdef := Vec.from_list_indexing2 zdef i; simp at zdef;
+        simp[zdef, <-σdef1]; cases z_len
+        apply i.elim0
+        simp [Vec.get_list_to_get]; simp [<-Vec.to_get_elem]
+      · simp [Vec.beq_iff_eq]
+
     · simp [Core.lookup_ctor?, lk', Core.Entry.ctor?]; sorry
     · simp; intro i h; sorry
     · simp
-    · simp
+    simp
 
 
   case _ τ _ _ _ _ τU τE _ x _ Ks1 Ks2 nc Ts R lk => -- overloading openm

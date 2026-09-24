@@ -66,7 +66,7 @@ instance instRepr_Term : Repr Term where
 @[simp]
 def Term.size : Term -> Nat
 | var _ => 1
-| global _ _ _ as => as.to.length + 1
+| global _ _ _ as => (Fun.Vec.to (Term.size <$> as)).sum + 1
 | app t1 t2 _ => t1.size + t2.size + 1
 | appt t1 _ => size t1 + 1
 | lamt _ t => size t + 1
