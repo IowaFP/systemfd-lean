@@ -378,6 +378,27 @@ inductive Mode : Type where | chk | inf
 -- --   return match! n s' ps' cs' d'
 -- | .annot t _ => do
 --   t.translate G Δ Γ
+theorem Vec.sum_le {e : Surface.Term} {vs : Vec Surface.Term n}:
+  e ∈ vs ->
+  e.size < (vs.map (·.size)).sum + 1
+:= by
+  intro h
+  induction h
+  simp; omega
+  case _ ih => simp; omega
+
+theorem Vec.fun_sum_le {e : Surface.Term} {vs : Fun.Vec Surface.Term n}:
+  e ∈ vs.to ->
+  e.size < (Fun.Vec.to (Surface.Term.size <$> vs)).sum + 1
+:= by
+  intro h
+  replace h := Vec.sum_le h
+  simp at h;
+  have lem : (Vec.map (fun x => x.size) vs.to) = (Fun.Vec.to (Surface.Term.size <$> vs)) := by
+    apply Vec.ext_get; intro i
+    simp [Vec.get_to]
+  simp [<-lem]; apply h
+
 
 
 -- @[simp, grind]
@@ -413,10 +434,10 @@ def Surface.Term.type_directed_translate
             ++ "R : " ++ R.repr max_prec ++ Std.Format.line
             ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
             $ Core.Ty.synth_coercion G Δ Γ R[σ] τ
-      let as' : Lilac.Fun.Vec (TM Core.Term) p := λ (i : Fin p) => by
-        simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e4; -- subst e1; subst e2; subst e3;
-        apply Term.type_directed_translate G Δ Γ (Ts[σ].to i) (as i)
-      let as' <- as'.to.sequence
+      let τs_ts := List.zip (Ts[σ].list) (as.to.list)
+      let as' := τs_ts.attach.map (λ x => Term.type_directed_translate G Δ Γ x.val.1 x.val.2)
+      let as' := Vec.from_list as'
+      let as' <- as'.2.sequence
       return (.cast t#0 c (ctor! x τU τE as'.to))
     else .error "global translate"
   | .some (.openm x' ⟨n', Ks1, 0, Ks2, _, Ts, R⟩) => do
@@ -446,7 +467,6 @@ def Surface.Term.type_directed_translate
       | .error c => .error c
     else .error $ "openm translate if" ++ m.repr ++ " " ++ " " ++ n.repr ++ " " ++ n'.repr -- ++ " " ++ p.repr ++ " " ++ p'.repr
   | _ => .error "openm translate"
-
 
 | .lamt K t => do
   match τ with
@@ -495,6 +515,21 @@ def Surface.Term.type_directed_translate
 
 | t => .error $ "translate doesn't handle" ++ t.repr max_prec
 
+termination_by
+  t => t.size
+decreasing_by
+  all_goals (try simp)
+  all_goals (try omega)
+  case _ =>
+    simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩
+    subst e1; subst e2; subst e3; subst e4;
+    simp [τs_ts] at x;
+    have lem1 : x.val.2 ∈ as.to.list := by
+      rcases x with ⟨v, p⟩
+      simp; replace p := List.of_mem_zip p; apply p.2
+    have lem : x.val.2 ∈ as.to := by
+      simp [Vec.mem_list]; apply lem1
+    apply Vec.fun_sum_le lem
 
 -- | t =>
 --   match sp_prf : t.spine with
