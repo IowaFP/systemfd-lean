@@ -142,7 +142,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
     | none =>
       let candidates := find_matching_insts τ G
       let ts : List ((t : Core.Term) ×' ((τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ'))) <- candidates.mapM (λ x =>
-        match lk : Core.lookup_spine_type (.data .opn) G x with
+        match lk : Core.lookup_spine_type (.data .opn) G x with -- TODO: Do the same with Core.lookup_spine_type (.openm)?
         | some ⟨na, Ks1, 0, Ks2, nc, Ts, R⟩ => do
           let (cls, tys) <- τ.spine
           let tys' := Vec.from_list tys
@@ -151,7 +151,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
             let R' := R[σ]
             let tys'' := tys'.2.map (Core.Ty.infer_kind G Δ ·)
             let Ks1' <- (tys'').sequence
-            if h : τ == R' && Vec.beq Ks1' Ks1 && (tys'').sequence.isEqSome (Ks1')
+            if h : τ == R' && Vec.beq Ks1' Ks1 && tys''.sequence.isEqSome (Ks1')
                    && (List.range tys'.1).all ((R.fv ·)) && Core.lookup_ctor? G Core.DataConst.opn x R
               then
                 let Ts' := Ts[σ]
@@ -159,11 +159,11 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                 let ts <- ts'.sequence
                 if h : (ts.map (λ x => x.2.1) == Ts') then
                   let targs := ts.map (·.fst)
-                -- let ts' <- ts'.map (λ x => match x with | (x , _) => x)
+
                   return ⟨inst! x tys'.2 #() targs.to, R', by
                     simp at e; subst e; simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩;
                     simp at h;
-                    -- subst e1;
+
                     apply Core.Typing.spctor (R' := R') (Ts' := Ts') (Ts := Ts)
                     · apply lk
                     · simp [Ts', σ]; congr; simp [tys']; grind
@@ -404,23 +404,26 @@ def Surface.Term.type_directed_translate
   | .some (.ctor x' _ ⟨n', Ks1, m', Ks2, p', Ts, R⟩) => do
     -- TODO: Make sure τU and Ks line up
     let Ks <- Option.toTM "translation ctor kind check" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
-
-    if h : (n == n' && m == n) && x == x' && p == p' && Ks.beq Ks1 then
+    let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
+    if h : (n == n' && m == m') && x == x' && p == p' && Ks.beq Ks1 then
       let c <- Option.toTM (".octor synth_coercion"
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
             ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
             ++ "R : " ++ R.repr max_prec ++ Std.Format.line
             ++ "τ : " ++  τ.repr max_prec ++ Std.Format.line)
-            $ Core.Ty.synth_coercion G Δ Γ R τ
+            $ Core.Ty.synth_coercion G Δ Γ R[σ] τ
       let as' : Lilac.Fun.Vec (TM Core.Term) p := λ (i : Fin p) => by
-        simp at h; rcases h with ⟨⟨⟨e1, e2, e3⟩, e4⟩, e5⟩; subst e4;
-        apply Term.type_directed_translate G Δ Γ (Ts.to i) (as i)
+        simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e4; -- subst e1; subst e2; subst e3;
+        apply Term.type_directed_translate G Δ Γ (Ts[σ].to i) (as i)
       let as' <- as'.to.sequence
       return (.cast t#0 c (ctor! x τU τE as'.to))
     else .error "global translate"
   | .some (.openm x' ⟨n', Ks1, 0, Ks2, _, Ts, R⟩) => do
-    if ((n == n' && m == 0) && x == x') && p == 0 then
+    let Ks <- Option.toTM "translation ctor kind check" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
+
+    if ((n == n' && m == 0) && x == x') && p == 0 && Ks.beq Ks1 then
+
     -- TODO: Make sure τU and Ks line up
       let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
       let ιs := Ts[σ].map (λ x => Option.toTM ("synth instance "

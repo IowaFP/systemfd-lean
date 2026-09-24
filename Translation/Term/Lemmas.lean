@@ -1,4 +1,3 @@
-
 import Common.Vec
 import Core.Ty
 import Core.Term
@@ -65,18 +64,26 @@ theorem synth_coercion_sound {G : Core.GlobalEnv} :
   apply And.intro h
   apply And.intro j1 j2
 
-theorem synth_term_sound {G : Core.GlobalEnv} (wf : ⊢ G) :
-  Core.Ty.synth_term G Δ Γ τ = some t ->
+theorem synth_term_sound {G : Core.GlobalEnv} {j : G&Δ, Γ ⊢ t : τ}:
+  Core.Ty.synth_term G Δ Γ τ = some ⟨t, j⟩ ->
   G&Δ, Γ ⊢ t : τ
 := by
-  intro h
-  sorry
+  intro h;
+  simp [Core.Ty.synth_term, Option.bind_eq_some_iff] at h;
+  rcases h with ⟨⟨t, τ', j⟩, h2, h3⟩
+  rcases h3 with ⟨e, h3⟩
+  simp at h3 e; assumption
 
 theorem lookup_openm_implies_lookup_spine_type {G : Core.GlobalEnv} :
   Core.lookup x G = some (.openm x ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
   Core.lookup_spine_type .openm G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
 := by  intro h; simp [Core.lookup_spine_type, h, Core.Entry.spine_type]
 
+
+theorem lookup_ctor_implies_lookup_spine_type {G : Core.GlobalEnv} :
+  Core.lookup x G = some (.ctor x i ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩) ->
+  Core.lookup_spine_type (.data .cls) G x = some ⟨m1, Ks1, m2, Ks2, n, Ts, R⟩
+:= by  intro h; simp [Core.lookup_spine_type, h, Core.Entry.spine_type]
 
 
 theorem lookup_openm_implies_scrutinees_open_type {G : Core.GlobalEnv} (wf : ⊢ G):
@@ -111,46 +118,73 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     simp
 
 
-  case _ τ _ _ _ _ τU τE as x _ _ _ _ _ _ _ _ lk e ih => -- overloading/globals
-    simp [bind, Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨t', h1, h2⟩
+  case _ τ _ _ _ _ τU τE as _ _ _ _ _ _ _ Ts R lk ih => -- overloading/globals
+    simp [bind, Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨Ks, h1, h2⟩
     split at h2 <;> try simp at h2
-    -- simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨ts, h2, h3⟩
-    -- simp at e; rcases e with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e1; subst e2; subst e3; subst e4
-    -- simp at h2 h3;
-    -- case _ Ts =>
-    -- replace h1 := synth_coercion_sound h1
-    -- subst h3;
-    -- apply Core.Typing.cast
-    -- apply Core.Kinding.var (K := ★); simp; rfl; sorry
-    -- simp; sorry
-    -- rfl
+    case _ e =>
+    simp [Except.bind_eq_ok_iff] at h2; rcases h2 with ⟨c, h2, h3⟩
+    simp [Option.toTM_some_eq_ok_iff] at h2;
+    simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨ts, h3, h4⟩
+    rcases e with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e1; subst e2; subst e3; subst e4;
+    simp [Vec.beq_iff_eq] at e5; subst e5
+    simp at h2 h3; subst h4
+    generalize σdef : (List.map su τE.list).reverse ++ (List.map su τU.list).reverse ++ Subst.id Core.Ty = σ at *
+    replace h2 := synth_coercion_sound h2
+    replace lk' := Core.EntryWf.from_lookup wf lk; cases lk'; case _ lk2 lk' =>
+    replace lk := lookup_ctor_implies_lookup_spine_type lk
+    cases lk2; case _ Ks2 _ _ _ _ _ h9 h10 h11 h12 h13 =>
+    apply Core.Typing.cast (A := R[σ]) (K := ★) (B := τ)
+    apply Core.Kinding.var (K := ★); simp;
     sorry
+    simp;
+    apply Core.Typing.spctor (Ts := Ts) (Ts' := Ts[σ]) (R := R) (R' := R[σ])
+    · apply lk
+    · simp [σdef]
+    · simp [σdef]
+    · intro i; replace h1 := Vec.traverse_eq_pure_iff_getElem_Option h1 i; replace h1 := Core.infer_kind_sound h1; apply h1
+    · sorry
+    · intro i; simp [Vec.sequence] at h3; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i;
+      simp [Vec.get_to] at h3; simp [<-Vec.get_to]
+      replace ih := @ih i Ts ts[i]; simp [<-Vec.get_to, σdef] at ih; apply ih
+      simp [<-h3];
+      simp [Vec.get_to]; simp_all; sorry
+    · simp [Core.lookup_ctor?, lk', Core.Entry.ctor?]; sorry
+    · simp; intro i h; sorry
+    · simp
+    · simp
 
 
-  case _ τ _ _ _ _ _ _ _ _ _ _ _ _ Ts R lk e σ Is ιs h1 h2 => -- overloading openm
-    simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨t'', h2, h3⟩
-    simp [Option.toTM_some_eq_ok_iff] at h2; replace h2 := synth_coercion_sound h2;
-    rcases h2 with ⟨K, h3, h4, h5⟩;
-    simp [Is] at h1; subst t'
-    simp at e; rcases e with ⟨⟨⟨e1, e2⟩, e3⟩, e4⟩; subst e4; subst e3; subst e2; subst e1
+  case _ τ _ _ _ _ τU τE _ x _ Ks1 Ks2 nc Ts R lk => -- overloading openm
+    simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Ks, h1, h⟩
+    simp [Option.toTM_some_eq_ok_iff] at h1
+    split at h <;> try simp at h
+    split at h <;> try simp at h
+    case _ e _ ιs h3 =>
+    rcases h with ⟨h, h4⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨t'', h5, h6⟩
+    simp [Option.toTM_some_eq_ok_iff] at h5; replace h5 := synth_coercion_sound h5;
+    rcases h5 with ⟨K, h7, Is, h8⟩;
+    subst t'
+    rcases e with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; subst e3; subst e2; subst e1; simp [Vec.beq_iff_eq] at e5; subst e5; subst e4;
     replace lk1 := lookup_openm_implies_lookup_spine_type lk
     replace lk' := Core.EntryWf.from_lookup wf lk; cases lk'; case _ lk2 lk' =>
-    cases lk2; case _ Ks2 _ _ _ _ _ h5 h6 h7 h8 h9 =>
-
+    cases lk2; case _ Ks2 _ _ _ _ _ h9 h10 h11 h12 h13 =>
+    generalize σdef : (List.map su τE.list).reverse ++ (List.map su τU.list).reverse ++ Subst.id Core.Ty = σ at *
+    -- sorry
     apply Core.Typing.cast (A := R[σ]) (B := τ)
     apply Core.Kinding.var; simp; rfl
     sorry
     apply Core.Typing.spctor (v := .openm) (Ts := Ts) (Ts' := Ts[σ]) (R := R) (R' := R[σ]);
     · apply lk1
-    · simp [σ]
-    · simp [σ]
-    · sorry
+    · simp [σdef]
+    · simp [σdef]
+    · intro i; replace h1 := Vec.traverse_eq_pure_iff_getElem_Option h1 i; replace h1 := Core.infer_kind_sound h1; apply h1
     · intro i; apply i.elim0
-    · intro i; replace h1 := Vec.traverse_eq_pure_iff_getElem_TM h1 i;
+    · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i;
+      simp [Option.toTM_some_eq_ok_iff] at h3
       generalize zdef : ιs[i] = ι at *;
       rcases ι with ⟨t, τ, j⟩
-      simp [Option.toTM_some_eq_ok_iff] at h1;
-      simp [Vec.to_get_elem, zdef]; simp at h2; simp [<-h2]; rw [zdef]; simp; apply j
+      simp [Vec.to_get_elem, zdef]; simp [<-h4]; rw [zdef]; simp; apply j
     · simp
     · simp
     · simp; replace lk := lookup_openm_implies_scrutinees_open_type wf lk'; apply lk
