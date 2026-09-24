@@ -424,9 +424,10 @@ def Surface.Term.type_directed_translate
   match Core.lookup x G with
   | .some (.ctor x' _ ⟨n', Ks1, m', Ks2, p', Ts, R⟩) => do
     -- TODO: Make sure τU and Ks line up
-    let Ks <- Option.toTM "translation ctor kind check" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
+    let KsU <- Option.toTM "translation ctor kind check Us" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
+    let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
     let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
-    if h : (n == n' && m == m') && x == x' && p == p' && Ks.beq Ks1 then
+    if h : (n == n' && m == m') && x == x' && p == p' && KsU.beq Ks1 && KsE.beq Ks2 then
       let c <- Option.toTM (".octor synth_coercion"
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
@@ -440,10 +441,10 @@ def Surface.Term.type_directed_translate
       let as' <- as'.2.sequence
       return (.cast t#0 c (ctor! x τU τE as'.to))
     else .error "global translate"
-  | .some (.openm x' ⟨n', Ks1, 0, Ks2, _, Ts, R⟩) => do
-    let Ks <- Option.toTM "translation ctor kind check" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
-
-    if ((n == n' && m == 0) && x == x') && p == 0 && Ks.beq Ks1 then
+  | .some (.openm x' ⟨n', Ks1, m', Ks2, _, Ts, R⟩) => do
+    let KsU <- Option.toTM "translation ctor kind check" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
+    let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
+    if ((n == n' && m == m') && x == x') && p == 0 && KsU.beq Ks1 && KsE.beq Ks2 then
 
     -- TODO: Make sure τU and Ks line up
       let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
@@ -521,8 +522,6 @@ decreasing_by
   all_goals (try simp)
   all_goals (try omega)
   case _ =>
-    simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩
-    subst e1; subst e2; subst e3; subst e4;
     simp [τs_ts] at x;
     have lem1 : x.val.2 ∈ as.to.list := by
       rcases x with ⟨v, p⟩
