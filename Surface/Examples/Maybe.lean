@@ -13,7 +13,8 @@ def mbenv : GlobalEnv := [
   -- .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
 
   -- MBI : ∀ t u, t ~ Maybe u -> Eq u -> Eq t
-  .instDecl "MBI" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ (gt#"Maybe" • t#0), gt#"Eq" • t#0), gt#"Eq" • t#0⟩ [("eq", λˢ[gt#"Maybe" • t#0] λˢ[gt#"Maybe" • t#0] (g`#"eq" `•ᵤ #(gt#"Maybe" • t#0) `•ₑ #(t#0) `•ₜ .nil))],
+  .instDecl "MBI" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ (gt#"Maybe" • t#0), gt#"Eq" • t#0), gt#"Eq" • t#1⟩
+                  [("eq", λˢ[gt#"Maybe" • t#0] λˢ[gt#"Maybe" • t#0] (g`#"True" `•ᵤ #() `•ₑ #() `•ₜ .nil))],
 
   .data (n := 2) "Maybe" (★ -:> ★) #(("Just", ⟨1, #(★), 0, #(), 1, #(t#0), gt#"Maybe" • t#0⟩ ),
                                      ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩))

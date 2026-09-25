@@ -6,13 +6,25 @@ import Surface.Term
 import Core.Typing
 import Core.Synth
 
+import Core.Util
+
 import Translation.Ty
 open LeanSubst
 open Lilac
-namespace Translation
+
 
 @[simp] abbrev TM α := Except Std.Format α
 
+def List.tryM {α : Type w} {β : Type u} (f : α → TM β) (as : List α) : TM (List β) :=
+  let rec @[specialize] loop
+    | [], bs => pure bs.reverse
+    | .cons a as, bs => do
+      match f a with
+      | .error _ => loop as bs
+      | .ok a => loop as (a :: bs)
+  loop as []
+
+namespace Translation
 
 namespace Option
 def toTM (e : Std.Format) : Option α -> Except Std.Format α
@@ -73,39 +85,39 @@ def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
   | _, _ => none
 
 
-def Core.Ty.ty_match : (τ1 τ2 : Core.Ty) -> Option (Subst Core.Ty)  -- τ1 is the template, τ2 is the "ground" term
+-- should satisfy the property if Core.Ty.ty_match n τ1 τ2 = some σ -> τ1[σ] = τ2
+-- all variables above n are untouchables
+def Core.Ty.ty_match (n : Nat) : (τ1 τ2 : Core.Ty) -> Option (Subst Core.Ty)  -- τ1 is the template, τ2 is the "ground" term
 | t#v, τ =>
+  if v < n then
   return ⟨λ x => if x == v then .su τ else .su t#v⟩
+  else Subst.id Core.Ty
 | gt#x, gt#y => if x == y then return Subst.id Core.Ty else none
 | (A -:> B), (A' -:> B')
 | (.app A B), (.app A' B') => do
-  let σ1 <- Core.Ty.ty_match A A'
-  let σ2 <- Core.Ty.ty_match B B'
+  let σ1 <- Core.Ty.ty_match n A A'
+  let σ2 <- Core.Ty.ty_match n B B'
   return (σ1 ∘ σ2)
 | .eq K A B, .eq K' A' B' => do
   if K == K' then
-  let σ1 <- Core.Ty.ty_match A A'
-  let σ2 <- Core.Ty.ty_match B B'
+  let σ1 <- Core.Ty.ty_match n A A'
+  let σ2 <- Core.Ty.ty_match n B B'
   return (σ1 ∘ σ2)
   else none
 | _, _ => none
 
+
+
 #eval do
-  let σ <- Core.Ty.ty_match (gt#"Eq" • t#0) (gt#"Eq" • gt#"Bool")
+  let σ <- Core.Ty.ty_match 0 (gt#"Eq" • t#0) (gt#"Eq" • gt#"Bool")
   return (t#0)[σ]
 
-def SpineTy.instantiate {n m: Nat} (τU : Vec Core.Ty n) (τE : Vec Core.Ty m) : Core.SpineTy -> Option ((p : Nat) × Vec Core.Ty p × Core.Ty)
-| ⟨na, _, nb, _, nc, Ts, R⟩ =>
-  let σ := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
-  if na == n && nb == n then
-  return ⟨nc, Ts[σ], R[σ]⟩
-  else none
 
 def find_matching_insts (τ : Core.Ty) : Core.GlobalEnv -> List String
-| [] => []
+| [] => [] -- TODO: also do for openm
 | .cons (.octor x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) tl  =>
   let is := find_matching_insts τ tl
-  if (Core.Ty.ty_match R τ).isSome then x :: is
+  if (Core.Ty.ty_match nb R τ).isSome then x :: is
   else is
 | .cons _ tl => find_matching_insts τ tl
 
@@ -122,9 +134,10 @@ def is_eq_type (τ : Core.Ty) : Bool :=
 def check_synth_type (G : Core.GlobalEnv) (τ : Core.Ty) : Option Unit :=
   if check_class_type G τ || is_eq_type τ then return () else none
 
+
 partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
-  Option ((t : Core.Term) ×' (τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ')) := do
-  check_synth_type G τ
+  TM ((t : Core.Term) ×' (τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ')) := do
+  Option.toTM "synth_term' check_synth type" $ check_synth_type G τ
   match h : Γ.findIdx? (· == τ) with
   | some i =>
     match h1 : τ.infer_kind G Δ with
@@ -134,23 +147,23 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
            apply Core.Typing.var;
            · grind;
            · apply Core.infer_kind_sound h1⟩
-    | _ => none
+    | _ => .error $ "synth_term'" ++ τ.repr max_prec ++ "is not kind ★"
   | none =>
     match h : Core.Synth.synth_coercion_term G Δ Γ τ with
     | some t =>
       return ⟨t, τ, by replace h := Core.Synth.synth_coercion_term_sound h; apply h⟩
     | none =>
       let candidates := find_matching_insts τ G
-      let ts : List ((t : Core.Term) ×' ((τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ'))) <- candidates.mapM (λ x =>
+      let ts : List ((t : Core.Term) ×' ((τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ'))) <- candidates.tryM (λ x =>
         match lk : Core.lookup_spine_type (.data .opn) G x with -- TODO: Do the same with Core.lookup_spine_type (.openm)?
         | some ⟨na, Ks1, 0, Ks2, nc, Ts, R⟩ => do
-          let (cls, tys) <- τ.spine
+          let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine
           let tys' := Vec.from_list tys
           if e : na == tys'.1 then
             let σ := (tys.reverse.map su ++ Subst.id Core.Ty)
             let R' := R[σ]
             let tys'' := tys'.2.map (Core.Ty.infer_kind G Δ ·)
-            let Ks1' <- (tys'').sequence
+            let Ks1' <- Option.toTM "synth_term' infer tys kinds" $ tys''.sequence
             if h : τ == R' && Vec.beq Ks1' Ks1 && tys''.sequence.isEqSome (Ks1')
                    && (List.range tys'.1).all ((R.fv ·)) && Core.lookup_ctor? G Core.DataConst.opn x R
               then
@@ -177,21 +190,75 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                     · simp; apply e5
                     · simp; intro i hi; simp [Core.Ty.FV.reflection]; apply e4 i hi;
                     · simp; ⟩
-                else none
-              else none
-          else none
-        | _ => none)
+                else .error "synth_term' kind checks"
+              else .error "synth_term' lookup_spine_type tys na"
+          else .error "synth_term' n tys"
+        | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
+          let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine -- τ = C τs
+          let ⟨na' , tys'⟩ := Vec.from_list tys
+          if e : na == na' then
+            let σ : Subst Core.Ty := (((List.range nb).map (t#·)).reverse.map su)  ++ tys.reverse.map su ++ Subst.id Core.Ty
+            let R' := R[σ]
+            let tys'' := tys'.map (Core.Ty.infer_kind G Δ ·)
+            let Ks1' <- Option.toTM "synth_term' infer tys kinds" $ tys''.sequence
+            if h : τ == R' && Ks1'.beq Ks1 && tys''.sequence.isEqSome (Ks1')
+                   && ((List.range na').map (·+ nb)).all ((R.fv ·)) && Core.lookup_ctor? G Core.DataConst.opn x R
+              then
+                let Ts' := Ts[σ]
+                let σsE := Ts'.map (λ τ => match τ with
+                  | .eq K τ τ' => Option.toTM ("synth_term' fail match: " ++ τ.repr max_prec ++ " " ++ τ'.repr max_prec ++ Std.Format.line
+                                   ++  Ts'.repr max_prec)
+                                  $ Core.Ty.ty_match nb τ' τ
+                  | _ => return (Subst.id Core.Ty))
+                let σsE' : Vec (Subst Core.Ty) nc <- σsE.sequence
+                let σsE': Subst Core.Ty := σsE'.foldr (init := Subst.id Core.Ty) (λ σ acc => Subst.compose acc σ)
+                let Ts' : Vec Core.Ty nc := Ts'[σsE']
+                let ts' := Ts'.map (Core.Ty.synth_term' G Δ Γ ·)
+                let ts <- ts'.sequence
+                if h : (ts.map (λ x => x.2.1) == Ts') then
+                  let targs := ts.map (·.fst)
+
+                  return ⟨inst! x tys' ((Vec.range nb).map (t#·))[σsE'] targs.to, R', by
+                    simp at e; subst e; simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩;
+                    simp at h;
+
+                    -- apply Core.Typing.spctor (R' := R') (Ts' := Ts') (Ts := Ts)
+                    · sorry
+                    -- · apply lk
+                    -- · simp [Ts', σ]; congr; simp [tys']; grind
+                    -- · simp [R', σ]; congr; simp [tys']; grind
+                    -- · intro i; simp [tys']; simp [Vec.beq_iff_eq] at e2; subst e2;
+                    --   simp [tys''] at e3; replace e3 := Vec.traverse_eq_pure_iff_getElem_Option e3 i;
+                    --   replace e3 := Core.infer_kind_sound e3; simp [tys'] at e3;
+                    --   apply e3;
+                    -- · intro i; apply i.elim0
+                    -- · intro i; simp [targs, <-h]; simp [Vec.to_get_elem]; apply ts[i].2.2
+                    -- · simp; apply e5
+                    -- · simp; intro i hi; simp [Core.Ty.FV.reflection]; apply e4 i hi;
+                    ⟩
+                else .error "synth_term' kind checks"
+              else .error ("synth_term' lookup_spine_type " ++ Std.Format.line
+                          ++ "(cls, tys) :"  ++ cls ++ " " ++ tys.repr max_prec ++ Std.Format.line
+                          ++ "τ = R': " ++ τ.repr max_prec ++ " =?= "++ R'.repr max_prec ++ Std.Format.line
+                          ++ "Ks1' = Ks1: "  ++ Ks1'.repr max_prec ++ " =?= "++ Ks1.repr max_prec ++ Std.Format.line
+                          ++ "tys'' = Ks1: " ++ tys''.sequence.repr max_prec ++ " =?= "++ Ks1.repr max_prec ++ Std.Format.line
+                          ++ "fvs: " ++ R.repr max_prec ++ " " ++ (((List.range na').map (· + nb)).all ((R.fv ·))).repr max_prec ++ Std.Format.line
+                          ++ "R head: " ++ (Core.lookup_ctor? G Core.DataConst.opn x R).repr max_prec
+                          )
+
+          else .error "synth_term' n tys"
+        | _ => .error "synth_term' coercion term")
         match ts.head? with
         | some t => return t
-        | none => none
+        | none => .error $ "synth_term' no instances found for: " ++ τ.repr max_prec ++ "tried candidates: " ++ Std.Format.line ++ candidates.repr max_prec
 
 
 def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty)
-  : Option ((t : Core.Term) ×' (G&Δ, Γ ⊢ t : τ)) := do
+  : TM ((t : Core.Term) ×' (G&Δ, Γ ⊢ t : τ)) := do
   let ⟨t, τ', j⟩ <- Core.Ty.synth_term' G Δ Γ τ
   if h : τ == τ' then
   return by simp at h; subst h; constructor; apply j;
-  else none
+  else .error "synth_term τ≠τ'"
 
 
 -- inductive SynthTermIdx : Type where | one | many
@@ -442,21 +509,17 @@ def Surface.Term.type_directed_translate
       return (.cast t#0 c (ctor! x τU τE as'.to))
     else .error "global translate"
   | .some (.openm x' ⟨n', Ks1, m', Ks2, _, Ts, R⟩) => do
-    let KsU <- Option.toTM "translation ctor kind check" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
+    let KsU <- Option.toTM "translation ctor kind check Us" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
     let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
-    if ((n == n' && m == m') && x == x') && p == 0 && KsU.beq Ks1 && KsE.beq Ks2 then
+    if ((n == n' && m' == 0) && x == x') && p == 0 && KsU.beq Ks1 && KsE.beq Ks2 then
 
     -- TODO: Make sure τU and Ks line up
       let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
-      let ιs := Ts[σ].map (λ x => Option.toTM ("synth instance "
-            ++ "G : " ++ G.repr max_prec ++  Std.Format.line
-            ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
-            ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
-            ++ "x : " ++  x.repr max_prec ++ Std.Format.line) $ Core.Ty.synth_term' G Δ Γ x)
+      let ιs := Ts[σ].map (λ x => Core.Ty.synth_term' G Δ Γ x)
       match ιs.sequence with
       | .ok ιs =>
         if h : ιs.map (·.2.1) == Ts[σ] then
-        let c <- Option.toTM ("global openm synth_coercion"
+        let c <- Option.toTM ("global openm synth_coercion" ++ Std.Format.line
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
             ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
@@ -466,7 +529,7 @@ def Surface.Term.type_directed_translate
         return (.cast t#0 c (openm! x τU τE (ιs.map (·.1)).to))
         else .error "translate synth"
       | .error c => .error c
-    else .error $ "openm translate if" ++ m.repr ++ " " ++ " " ++ n.repr ++ " " ++ n'.repr -- ++ " " ++ p.repr ++ " " ++ p'.repr
+    else .error $ "openm translate if " ++ m.repr ++ " " ++ " " ++ n.repr ++ " " ++ n'.repr -- ++ " " ++ p.repr ++ " " ++ p'.repr
   | _ => .error "openm translate"
 
 | .lamt K t => do
@@ -479,7 +542,7 @@ def Surface.Term.type_directed_translate
   match τ with
   | .arrow A' B =>
     let t' <- type_directed_translate G Δ (A :: Γ) B t
-    let c <- Option.toTM ("synth_coercion"
+    let c <- Option.toTM ("lam synth_coercion" ++ Std.Format.line
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
             ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
