@@ -932,6 +932,26 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
 
 def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : EqGraph G Δ Γ) (K : Kind) :
   (T1 : Ty) -> (T2 : Ty) -> Option ((t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))
+ | TA1 -:> TB1, TA2 -:> TB2 =>
+   if h : K == ★ then
+   do
+   let ⟨tA1A2, jA1A2⟩ <- EqGraph.ask G wf Δ Γ eG ★ TA1 TA2
+   let ⟨tB1B2, jB1B2⟩ <- EqGraph.ask G wf Δ Γ eG ★ TB1 TB2
+   by simp at h; subst h; apply some (EqGraph.arrowc G wf Δ Γ tA1A2 tB1B2 ★ ★ TA1 TA2 TB1 TB2 jA1A2 jB1B2)
+   else none
+ | .app TA1 TB1, .app TA2 TB2 => do
+   let Karr1 <- TA1.infer_kind G Δ
+   let Karr2 <- TA2.infer_kind G Δ
+   let KArg1 <- TB1.infer_kind G Δ
+   let KArg2 <- TB2.infer_kind G Δ
+
+   if h : Karr1 == Karr2 && (KArg1 == KArg2 && (KArg1 -:> K) == Karr1)
+   then
+     let ⟨tA1A2, jA1A2⟩ <- EqGraph.ask G wf Δ Γ eG (KArg1 -:> K) TA1 TA2
+     let ⟨tB1B2, jB1B2⟩ <- EqGraph.ask G wf Δ Γ eG KArg1 TB1 TB2
+     by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3;
+        apply some (EqGraph.appc G wf Δ Γ tA1A2 tB1B2 KArg1 K TA1 TA2 TB1 TB2 jA1A2 jB1B2)
+   else none
  | T1, T2 => do
   let ⟨repv_T1, K1, η1, η1_j⟩ <- eG.get_rep_view wf T1
   let ⟨repv_T2, K2, η2, η2_j⟩ <- eG.get_rep_view wf T2

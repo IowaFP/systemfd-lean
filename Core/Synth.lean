@@ -292,13 +292,13 @@ def test9 := do
   let eG <- mEG7
   -- let ⟨t1, _⟩ <- eG.get_rep_view CtxWf (t#0 -:> t#2)
   -- let ⟨t2, _ ⟩ <- eG.get_rep_view CtxWf ((t#2 • t#1) -:> t#2)
-  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ  Γ ★ (t#0 -:> t#2) ((t#2 • t#1) -:> t#2)
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ  Γ ★ (t#0 -:> t#1) ((t#2 • t#1) -:> t#1)
   -- return (t1, t2 , t)
   -- return eG
   Term.infer_type [] Δ Γ t
 
-#eval! test9
-#guard test9 == some ((t#0 -:> t#2) ~[★]~ ((t#2 • t#1) -:> t#2))
+-- #eval! test9
+#guard test9 == some ((t#0 -:> t#1) ~[★]~ ((t#2 • t#1) -:> t#1))
 
 
 -- def BoolCtx : GlobalEnv := [
