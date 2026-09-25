@@ -22,19 +22,21 @@ def mbenv : GlobalEnv := [
 
 #eval mbenv
 -- #eval!  Translation.translate_SI mbenv
--- #eval! do
---   let benv' <- (Translation.translate_SI mbenv)
---   Translation.translate_IC benv'
+#eval! do
+  let benv' <- (Translation.translate_SI mbenv)
+  Translation.translate_IC benv'
 
 def Γ := do
   let benv' <- (Translation.translate_SI mbenv)
   Translation.translate_IC benv'
 
+#guard (do let Γ <- Γ
+           return Γ.wf_globals) == .ok ()
 
 #eval! do
   let Γ <- Γ
   -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
-  Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))
+  Translation.Option.toTM "ford" $ (Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))).map (Core.SpineTy.repr ·)
   -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
 
 -- #guard (do

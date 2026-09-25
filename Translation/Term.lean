@@ -460,7 +460,6 @@ theorem Vec.fun_sum_le {e : Surface.Term} {vs : Fun.Vec Surface.Term n}:
 := by
   intro h
   replace h := Vec.sum_le h
-  simp at h;
   have lem : (Vec.map (fun x => x.size) vs.to) = (Fun.Vec.to (Surface.Term.size <$> vs)) := by
     apply Vec.ext_get; intro i
     simp [Vec.get_to]
@@ -510,8 +509,8 @@ def Surface.Term.type_directed_translate
     else .error "global translate"
   | .some (.openm x' ⟨n', Ks1, m', Ks2, _, Ts, R⟩) => do
     let KsU <- Option.toTM "translation ctor kind check Us" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
-    let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
-    if ((n == n' && m' == 0) && x == x') && p == 0 && KsU.beq Ks1 && KsE.beq Ks2 then
+    -- let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
+    if ((n == n' && m' == 0) && x == x') && p == 0 && KsU.beq Ks1 && m == m' then
 
     -- TODO: Make sure τU and Ks line up
       let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
