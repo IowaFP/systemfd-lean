@@ -83,7 +83,7 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
   (τ : Core.SpineTy) (tm : Surface.Term) :
   TM ((m : Nat) × Core.Pattern m × Surface.Term) :=
   match τ with
-  | ⟨na, Ks1, 0, _, 1, #(T), _⟩ =>
+  | ⟨na, Ks1, nb, Ks2, 1, #(T), _⟩ =>
     -- open method spines don't introduce existentials
     -- methods only analyze the instance class object (should be generalized)
     match Intermediate.lookup iname Γ' with
@@ -194,7 +194,13 @@ def mk_inst_mth_IC (G : Core.GlobalEnv) (τ : Core.SpineTy) (mn : String) (m : N
   | ⟨_, Ks1, _, Ks2, n, Ts, R⟩ => do
     let Δ := (Ks1.list ++ Ks2.list).reverse
     if m == n
-    then let ⟨ζ, Γ⟩ <- Option.toTM "Pattern Binders" (Core.pattern_binders (.data .opn) G Δ n Ts p)
+    then let ⟨ζ, Γ⟩ <- Option.toTM ("mk_inst_mth_IC Pattern Binders" ++ Std.Format.line
+                       ++ "G : " ++ G.repr max_prec ++ Std.Format.line
+                       ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+                       ++ "n : " ++ n.repr ++ Std.Format.line
+                       ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
+                       ++ "p : " ++ p.repr)
+                       $ (Core.pattern_binders (.data .opn) G Δ n Ts p)
          let t' <- -- Option.toTM
            -- ("G :" ++ G.repr max_prec ++  Std.Format.line
            --  ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
@@ -247,7 +253,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
     if s == cls_name
     then
     -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
-    let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ]
+    let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).reverse.map (·+k2))⟩ ]
     let mths' <- (mk_inst_mths_IC (octor ++ Γ') mτs mths)
     return (mths' ++ octor ++ Γ')
     else .error "translate_IC inst"

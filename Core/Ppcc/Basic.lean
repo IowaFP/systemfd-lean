@@ -894,6 +894,11 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
        return ⟨rep_T, K, c, j⟩
   else none
 | .app A B => do
+  -- let i <- eG.nodes.findIdx? (·.ty == .app A B)
+  -- if h1 : (i < eG.nodes.length)
+  -- then let ⟨_, rep_T, K, c, j⟩ <- EqGraph.get_rep_aux wf eG (.app A B) i h1
+  --      return ⟨rep_T, K, c, j⟩
+
   let ⟨rep_T1, K1, c1, j1⟩ <- eG.get_rep_view wf A
   let ⟨rep_T2, K2, c2, j2⟩ <- eG.get_rep_view wf B
   match h1 : A.infer_kind G Δ, h2 : B.infer_kind G Δ with
