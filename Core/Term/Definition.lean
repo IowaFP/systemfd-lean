@@ -1,4 +1,3 @@
-
 import Core.Ty
 import Common.Vec
 
@@ -38,8 +37,8 @@ def Pattern.bind_type : Pattern m -> Nat
 
 def Pattern.repr : Pattern m -> Std.Format
 | .nil => ""
-| .cons (x , ⟨na , v, nb, nc⟩) xs =>
-   x ++ " " ++ "⟨" ++ na.repr ++ ", " ++ v.repr max_prec ++ ", " ++ nb.repr  ++ ", " ++ nc.repr ++ "⟩"
+| .cons (x , ⟨_ , v, nb, nc⟩) xs =>
+   x ++ " " ++ "⟨" /-++ na.repr ++ ", " -/ ++ v.repr max_prec ++ ", " ++ nb.repr  ++ ", " ++ nc.repr ++ "⟩" ++ " , " ++ Pattern.repr xs
 
 instance instRepr_pattern : Repr (Pattern m) where
   reprPrec p _ := Pattern.repr p
@@ -148,7 +147,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   let bs : Fun.Vec Std.Format n := λ i =>
     let pat := ps i
     let t := bs i
-    Std.Format.nest 4 <| Std.Format.line ++ Pattern.repr pat ++ " => " ++ Term.repr p t
+    Std.Format.nest 4 <| Std.Format.line ++ pat.repr ++ " => " ++ Term.repr p t
   Std.Format.nest 4 <| "match " ++ ssf ++ " with"
     ++ bs.to.foldl (λ t acc => t ++ Std.Format.line ++ acc) Std.Format.nil
 

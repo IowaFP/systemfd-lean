@@ -203,8 +203,8 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     apply Core.Typing.cast (A := R[σ]) (B := τ)
     apply Core.Kinding.var; simp; rfl
     sorry
-    apply Core.Typing.spctor (v := .openm) (Ts := Ts) (Ts' := Ts[σ]) (R := R) (R' := R[σ]) (Ks2 := #());
-    · sorry -- apply lk1
+    apply Core.Typing.spctor (v := .openm) (Ts := Ts) (Ts' := Ts[σ]) (R := R) (R' := R[σ]);
+    · apply lk1
     · simp [σdef]
     · simp [σdef]
     · intro i; replace h1 := Vec.traverse_eq_pure_iff_getElem_Option h1 i; replace h1 := Core.infer_kind_sound h1; apply h1
@@ -239,7 +239,31 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     · simp
   case _ =>  -- app
     sorry
-  case _ =>  -- mtch
+  case _ Δ _ _ m n ss τs pats bs T lk h1 ih1 ih2 =>  -- mtch
+    simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨ss', h2, h3⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨bs, h3, h4⟩
+    subst t'
+    cases m <;> (cases n; simp at *)
+    simp at lk
+    case _ m n _ =>
+    let ΔsΓs : Fun.Vec _ (n + 1) := λ i => (Core.pattern_binders (Core.SpCtorVariant.data Core.DataConst.cls) G Δ (m + 1) (↑τs) (pats i))
+    let ΔsΓs' := ΔsΓs.to.sequence
+    apply Core.Typing.mtch (S := τs) (ss := ss'.to) (ps := pats) (ts := bs.to)
+    · intro i; apply ih1; simp [h1] at h2; replace h1 := Vec.traverse_eq_pure_iff_getElem_TM h2 i;
+      simp at h1; simp [<-Vec.to_get_elem] at h1; apply h1
+    · intro i; sorry
+    · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
+      simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
+      rcases h3 with ⟨Δ', Γ', h3, h4⟩
+      replace h2 := Core.pattern_binders_sound h3
+      sorry
+    · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
+      simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
+      rcases h3 with ⟨Δ', Γ', h3, h4⟩
+      replace h2 := Core.pattern_binders_sound h3
+      sorry
+    sorry
+    sorry
     sorry
 
   case _ ih => -- annot
