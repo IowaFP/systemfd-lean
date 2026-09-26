@@ -2,6 +2,7 @@ import LeanSubst
 -- import Surface.Ty
 import Core.Ty
 import Common.Vec
+import Core.Term
 
 open LeanSubst
 open Lilac
@@ -15,8 +16,16 @@ inductive Term : Type where
 | app : Term -> Term -> Core.Ty -> Term
 | lamt :  Core.Kind -> Term -> Term
 | lam : Core.Ty -> Term -> Term
--- | «match» : (n : Nat) -> Ty -> Term -> Fun.Vec Term n -> Fun.Vec Term n -> Term -> Term
+| mtch m n : Fun.Vec Term m -> Fun.Vec Core.Ty m -> Fun.Vec (Core.Pattern m) n -> Fun.Vec Term n -> Core.Ty -> Term
 | annot : Term -> Core.Ty -> Term
+
+
+def mtch' (τ : Core.Ty) (sts : Vec (Term × Core.Ty) m) (pat_cube : Vec (Core.Pattern m × Term) n) : Term :=
+  let ss := Vec.map (·.1) sts
+  let τs := Vec.map (·.2) sts
+  let p := Vec.map (·.1) pat_cube
+  let x := Vec.map (·.2) pat_cube
+  .mtch m n ss.to τs.to p.to x.to τ
 
 
 prefix:max "`#" => Term.var
@@ -46,16 +55,16 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .lamt K t =>
   Repr.addAppParen ("Λˢ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λˢ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
--- | .match n _ s pats ts d =>
---   let ts : Fun.Vec Std.Format n := λ i =>
---     let t := ts i
---     let pat := pats i
---     Std.Format.nest 4 <| Std.Format.line ++ Term.repr p pat ++ " -> " ++ Term.repr p t
---   let css := ts.to.foldl (·++·) Std.Format.nil
---   Std.Format.nest 4 <| (("match " ++ Term.repr max_prec s ++ " with")
---     ++ css
---     ++ (Std.Format.nest 4 <| Std.Format.line ++ " _ -> " ++ Term.repr p d)
---     )
+| .mtch m n ss ssτ pats bs ty =>
+  let ss' : Fun.Vec Std.Format m := λ i =>
+    Term.repr max_prec (ss i)  ++ " :: " ++ Core.Ty.repr max_prec (ssτ i)
+  let ss' := ss'.to.foldl (init := Std.Format.nil) (· ++ ·)
+  let ts : Fun.Vec Std.Format n := λ i =>
+    let t := bs i
+    let pat := pats i
+    Std.Format.nest 4 <| Std.Format.line ++ " | "++ pat.repr ++ " -> " ++ Term.repr p t
+  let bs := ts.to.foldl (·++·) Std.Format.nil
+  Std.Format.nest 4 <| ("match " ++ ss' ++ "with" ++ Std.Format.line ++ bs)
 | annot t ty =>
   Std.Format.paren (Term.repr p t ++ " : " ++ repr ty)
 
@@ -71,8 +80,8 @@ def Term.size : Term -> Nat
 | appt t1 _ => size t1 + 1
 | lamt _ t => size t + 1
 | lam _ t => size t + 1
--- | «match» _ _ t1 t2 t3 t4 =>
---  size t1 + t2.to.length + t3.to.length + size t4 + 1
+| mtch _ _ t1 _ _ t2 _ =>
+   (Fun.Vec.to (Term.size <$> t1)).sum + (Fun.Vec.to (Term.size <$> t2)).sum + 1
 | annot t _ => size t + 1
 
 end Surface

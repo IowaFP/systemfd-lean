@@ -557,14 +557,15 @@ def Surface.Term.type_directed_translate
   let t2' <- type_directed_translate G Δ Γ τArg t2
   let t1' <- type_directed_translate G Δ Γ (τArg -:> τ) t1
   return t1' • t2'
--- | .match (n := n) R s ps cs d => do
---   let s' <- s.type_directed_translate G Δ Γ R
---   let ops' : Vect n (Option Core.Term) := (λ i => (ps i).translate G Δ Γ)
---   let ps' <- ops'.seq
---   let ocs' : Vect n (Option Core.Term) := (λ i => (cs i).translate G Δ Γ)
---   let cs' <- ocs'.seq
---   let d' <- d.type_directed_translate G Δ Γ τ
---   return match! n s' ps' cs' d'
+
+| .mtch m n t1 t2 t3 t4 t5 => do
+  let s' : Fun.Vec (TM Core.Term) m := λ i => type_directed_translate G Δ Γ (t2 i) (t1 i)
+  let s' <- s'.to.sequence
+  let b' : Fun.Vec (TM Core.Term) n := λ i => type_directed_translate G Δ Γ t5 (t4 i) -- TODO: need to shift t5 and also update Δ Γ
+  let b' <- b'.to.sequence
+  return .mtch m n s'.to t3 b'.to
+
+
 | .annot t τt => do
   let t' <- type_directed_translate G Δ Γ τt t
   let c <- Option.toTM ("synth_coercion"
@@ -591,6 +592,8 @@ decreasing_by
     have lem : x.val.2 ∈ as.to := by
       simp [Vec.mem_list]; apply lem1
     apply Vec.fun_sum_le lem
+  case _ => sorry
+  case _ => sorry
 
 -- | t =>
 --   match sp_prf : t.spine with

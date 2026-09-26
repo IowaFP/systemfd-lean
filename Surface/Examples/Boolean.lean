@@ -6,14 +6,28 @@ import Translation.Global
 
 namespace Surface.Examples.Boolean
 
+def TrueTruePat : Core.Pattern 2 := #(⟨"True", 0 , #() , 0, 0⟩, ⟨"True", 0 , #() , 0, 0⟩)
+def FalseFalsePat : Core.Pattern 2 := #(⟨"False", 0 , #() , 0, 0⟩, ⟨"False", 0 , #() , 0, 0⟩)
+def TrueFalsePat : Core.Pattern 2 := #(⟨"False", 0 , #() , 0, 0⟩, ⟨"False", 0 , #() , 0, 0⟩)
+def FalseTruePat : Core.Pattern 2 := #(⟨"False", 0 , #() , 0, 0⟩, ⟨"False", 0 , #() , 0, 0⟩)
+def TrueCtor :  Term := g`#"True" `•ᵤ #() `•ₑ #() `•ₜ .nil
+def FalseCtor :  Term := g`#"False" `•ᵤ #() `•ₑ #() `•ₜ .nil
+
+
 def benv : GlobalEnv := [
   .defn "test" (gt#"Bool" -:> gt#"Bool") ((g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil) `• (g`#"True" `•ᵤ #() `•ₑ #() `•ₜ .nil) :: gt#"Bool"),
 
   .defn "eqB" (gt#"Bool" -:> (gt#"Bool" -:> gt#"Bool")) (g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil) ,
 
-  .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
+  -- .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
 
-  .instDecl "EqBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Eq" • t#0⟩ [("eq", λˢ[gt#"Bool"] λˢ[gt#"Bool"] `#0)],
+  .instDecl "EqBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Eq" • t#0⟩ [("eq", λˢ[gt#"Bool"] λˢ[gt#"Bool"]
+    mtch' gt#"Bool" #((`#1, gt#"Bool"), (`#0,  gt#"Bool"))
+      #( (TrueTruePat , TrueCtor)
+       , (FalseFalsePat, TrueCtor)
+       , (TrueFalsePat, FalseCtor)
+       , (FalseTruePat, FalseCtor))
+      )],
 
   .classDecl "Ord" #(★) /-[("supOrd", "Eq", [0])] []-/ [("leq", ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Ordering")⟩)],
 
