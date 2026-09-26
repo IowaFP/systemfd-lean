@@ -16,12 +16,16 @@ def Term.beq : Term -> Term -> Bool
 | app a1 b1 τ1, app a2 b2 τ2 => beq a1 a2 && beq b1 b2 && τ1 == τ2
 | lamt K1 t1, lamt K2 t2 => K1 == K2 && beq t1 t2
 | lam A1 t1, lam A2 t2 => A1 == A2 && beq t1 t2
--- | .match (n := n1) t1 a1 b1 c1 d1, .match (n := n2) t2 a2 b2 c2 d2 =>
---   if h : n1 = n2 then
---     let c : Fun.Vec Bool n1 := λ i => beq (c1 i) (c2 (by rw[h] at i; exact i))
+| .mtch m1 n1 a1 b1 c1 d1 e1, .mtch m2 n2 a2 b2 c2 d2 e2 =>
+  if h : m1 == m2 && n1 == n2 then
+    let a : Fun.Vec Bool m1 := λ i => beq (a1 i) (a2 (by simp at h; rcases h with ⟨h1, h2⟩; subst h1 h2; exact i))
+    let b := b1.to.beq b2.to
+    let c : Fun.Vec Bool n1 := λ i => (c1 i).beq (c2 (by simp at h; rcases h with ⟨h1, h2⟩; subst h1 h2; exact i))
+    let d : Fun.Vec Bool n1 := λ i => beq (d1 i) (d2 (by simp at h; rcases h with ⟨h1, h2⟩; subst h1 h2; exact i))
+    Vec.foldl (·&&·) true a.to && b && Vec.foldl (·&&·) true c.to && Vec.foldl (·&&·) true d.to && e1.beq e2
 --     let p : Fun.Vec Bool n1 := λ i => beq (b1 i) (b2 (by rw[h] at i; exact i))
 --     beq a1 a2 && c.to.foldl (·&&·) true && p.to.foldl (·&&·)  true && beq d1 d2 && t1 == t2
---   else false
+   else false
 | annot t1 A1, annot t2 A2 => beq t1 t2 && A1 == A2
 | _, _ => false
 
@@ -32,6 +36,7 @@ instance instReflBEq_Term : ReflBEq Term where
   rfl := by
     intro a; induction a <;> simp +instances [instBEq_Term, Term.beq] at *
     all_goals (repeat assumption)
+    sorry
     sorry
     sorry
     -- constructor; assumption; assumption
@@ -59,6 +64,7 @@ instance instLawfulBEq_Term : LawfulBEq Term where
     intro a b; cases a <;> simp +instances [instBEq_Term] at *
     all_goals (induction b <;>
       simp [Term.beq] at *)
+    sorry
     sorry
     sorry
     sorry

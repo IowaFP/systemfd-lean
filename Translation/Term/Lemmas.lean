@@ -239,6 +239,9 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     · simp
   case _ =>  -- app
     sorry
+  case _ =>  -- mtch
+    sorry
+
   case _ ih => -- annot
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
     simp [Functor.map, Except.map_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h2; rcases h2 with ⟨c, h2, h3⟩

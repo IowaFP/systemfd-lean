@@ -36,7 +36,7 @@ def Term.rmap (r : Ren Term) : Term -> Term
 | lam A t => lam A (rmap r.lift t)
 | app t1 t2 τ => app (rmap r t1) (rmap r t2) τ
 | appt t1 t2 => appt (rmap r t1) t2
--- | .match n t0 t1 t2 t3 t4 => .match n t0 (rmap r t1) (rmap r <$> t2) (rmap r <$> t3) (rmap r t4)
+| mtch m n t0 t1 t2 t3 t4 => mtch m n (rmap r <$> t0) t1 t2 (λ i => rmap (r.lift (t2 i).bind) (t3 i)) t4
 | annot t1 A => annot (rmap r t1) A
 
 instance instRenMap_Term : RenMap Term Term where
@@ -50,7 +50,7 @@ def Term.Ty.rmap (r : Ren Core.Ty) : Term -> Term
 | lam A t => lam A⟨r⟩ (rmap r t)
 | app t1 t2 τ => app (rmap r t1) (rmap r t2) τ⟨r⟩
 | appt t1 t2 => appt (rmap r t1) t2⟨r⟩
--- | .match m t0 t1 t2 t3 t4 =>  .match m t0⟨r⟩ (rmap r t1) (rmap r <$> t2) (rmap r <$> t3) (rmap r t4)
+| .mtch m n t0 t1 t2 t3 t4 =>  .mtch m n (rmap r <$> t0) (Core.Ty.rmap r <$> t1) (λ i => (t2 i)⟨r⟩) (rmap r <$> t3) t4⟨r⟩
 | annot t1 A => annot (rmap r t1) A⟨r⟩
 
 instance : RenMap Term Core.Ty where
@@ -64,7 +64,7 @@ def Term.Ty.smap (σ : Subst Core.Ty) : Term -> Term
 | appt t1 t2 => appt (smap σ t1) t2[σ]
 | lamt A t => lamt A (smap σ.lift t)
 | lam A t => lam A[σ] (smap σ t)
--- | .match n t0 t1 t2 t3 t4  => .match n t0 (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
+| .mtch m n t0 t1 t2 t3 t4 =>  .mtch m n (smap σ <$> t0) (Core.Ty.smap σ <$> t1) (λ i => (t2 i)[σ]) (smap σ <$> t3) t4[σ]
 | annot t1 A => annot (smap σ t1) A[σ]
 
 instance instSubstMap_TermTy : SubstMap Term Core.Ty where
@@ -111,7 +111,7 @@ def Term.smap (σ : Subst Term) : Term -> Term
 | appt t1 t2 => appt (smap σ t1) t2
 | lamt A t => lamt A (smap (σ ◾ Ren.succ Core.Ty) t)
 | lam A t => lam A (smap σ.lift t)
--- | .match n t0 t1 t2 t3 t4 => .match n t0 (smap σ t1) (λ i => smap σ (t2 i)) (λ i => smap σ (t3 i)) (smap σ t4)
+| mtch m n t0 t1 t2 t3 t4 => mtch m n (smap σ <$> t0) t1 t2 (λ i => smap (σ.lift (t2 i).bind) (t3 i)) t4
 | annot t1 A => annot (smap σ t1) A
 
 
@@ -226,6 +226,7 @@ theorem Term.apply_stable (r : Ren Term) (σ : Subst Term)
   funext; case _ x =>
   induction x <;> simp at *
   all_goals try simp_all
+  case _ => sorry
   case _ => sorry
   case _ => sorry
 
