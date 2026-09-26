@@ -246,7 +246,7 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     cases m <;> (cases n; simp at *)
     simp at lk
     case _ m n _ =>
-    let ΔsΓs : Fun.Vec _ (n + 1) := λ i => (Core.pattern_binders (Core.SpCtorVariant.data Core.DataConst.cls) G Δ (m + 1) (↑τs) (pats i))
+    let ΔsΓs : Fun.Vec _ (n + 1) := λ i => (Core.pattern_binders (Core.SpCtorVariant.data Core.DataConst.cls) G Δ (m + 1) (τs) (pats i))
     let ΔsΓs' := ΔsΓs.to.sequence
     apply Core.Typing.mtch (S := τs) (ss := ss'.to) (ps := pats) (ts := bs.to)
     · intro i; apply ih1; simp [h1] at h2; replace h1 := Vec.traverse_eq_pure_iff_getElem_TM h2 i;

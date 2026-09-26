@@ -596,8 +596,16 @@ decreasing_by
     have lem : x.val.2 ∈ as.to := by
       simp [Vec.mem_list]; apply lem1
     apply Vec.fun_sum_le lem
-  case _ => sorry
-  case _ => sorry
+  case _ =>
+    have lem : (ss i).size < (Fun.Vec.to (λ i => (ss i).size)).sum + 1
+      := by apply Vec.fun_sum_le (e := ss i) (vs := ss)
+            simp [<-Vec.get_to]; apply Vec.getElem_mem
+    omega
+  case _ =>
+    have lem : (bs i).size < (Fun.Vec.to (λ i => (bs i).size)).sum + 1
+      := by apply Vec.fun_sum_le (e := bs i) (vs := bs)
+            simp [<-Vec.get_to]; apply Vec.getElem_mem
+    omega
 
 -- | t =>
 --   match sp_prf : t.spine with
