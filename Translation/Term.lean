@@ -558,12 +558,16 @@ def Surface.Term.type_directed_translate
   let t1' <- type_directed_translate G Δ Γ (τArg -:> τ) t1
   return t1' • t2'
 
-| .mtch m n t1 t2 t3 t4 t5 => do
-  let s' : Fun.Vec (TM Core.Term) m := λ i => type_directed_translate G Δ Γ (t2 i) (t1 i)
-  let s' <- s'.to.sequence
-  let b' : Fun.Vec (TM Core.Term) n := λ i => type_directed_translate G Δ Γ t5 (t4 i) -- TODO: need to shift t5 and also update Δ Γ
-  let b' <- b'.to.sequence
-  return .mtch m n s'.to t3 b'.to
+| .mtch m n ss τs pats bs T => do
+  if gt : m > 0 && n > 0 then
+    let s' : Fun.Vec (TM Core.Term) m := λ i => type_directed_translate G Δ Γ (τs i) (ss i)
+    let s' <- s'.to.sequence
+    let b' : Fun.Vec (TM Core.Term) n := λ i => do
+      let (Δ', Γ') <- Option.toTM "match pattern_binders" $ Core.pattern_binders (.data .cls) G Δ m τs (pats i)
+      type_directed_translate G (Δ' ++ Δ) (Γ' ++ Γ⟨Ren.add Core.Ty Δ'.length⟩) T (bs i) -- TODO: need to shift t5 and also update Δ Γ
+    let b' <- b'.to.sequence
+    return .mtch m n s'.to pats b'.to
+  else .error "empty pattern/scrutees"
 
 
 | .annot t τt => do
