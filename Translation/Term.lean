@@ -562,7 +562,7 @@ def Surface.Term.type_directed_translate
   return t1' • t2'
 
 | .mtch m n ss τs pats bs T => do
-  if gt : m > 0 && n > 0 then
+  if gt : m > 0 && n > 0 && (Core.check_exhaustive G τs pats.to).isSome then
     let s' : Fun.Vec (TM Core.Term) m := λ i => type_directed_translate G Δ Γ (τs i) (ss i)
     let s' <- s'.to.sequence
     let b' : Fun.Vec (TM Core.Term) n := λ i => do

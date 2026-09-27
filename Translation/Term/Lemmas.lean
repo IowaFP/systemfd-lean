@@ -283,8 +283,12 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
       simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
       rcases h3 with ⟨Δ', Γ', h3, h4⟩
       replace h2 := Core.pattern_binders_sound h3
-      replace ih2 := ih2 i; sorry
-    sorry
+      replace ih2 := @ih2 i Δ' Γ' (bs.to i) h4;
+      sorry
+    intro q h; simp at lk; simp [Option.isSome_iff_ne_none, Option.ne_none_iff_exists] at lk;
+    rcases lk with ⟨_, lk⟩; symm at lk;
+    have lem := Core.pattern_exhaustive_sound (ps := pats.to) wf h lk
+    simp [Vec.get_to] at lem; apply lem
 
   case _ ih => -- annot
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
