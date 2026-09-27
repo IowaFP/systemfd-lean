@@ -223,23 +223,25 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     · simp; replace lk := lookup_openm_implies_scrutinees_open_type wf lk'; apply lk
     simp
 
-  case _ ih => -- lam
+  case _ ih => -- lamt
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
     rcases h2 with ⟨e1, e2⟩; subst e2; cases e1
     replace ih := ih h1
     apply Core.Typing.lamt
     · replace ih := Core.terms_have_star_types wf ih; apply Core.Kinding.all; apply ih
     · apply ih
-  case _ ih => -- lamt
+  case _ e _ _ ih => -- lam
+    simp at e; replace e := Core.infer_kind_sound e
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t'', h1, h2⟩
     replace ih := ih h1
     simp [Functor.map, Except.map_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h2; rcases h2 with ⟨c, h2, h3⟩
     replace h2 := synth_coercion_sound h2; subst h3
     rcases h2 with ⟨K, h2, h4, h5⟩;
     have h2' := Core.terms_have_star_types wf h2
-    apply Core.Typing.cast; sorry; apply h2; simp;
+    cases h4; cases h5;
+    apply Core.Typing.cast (K := ★); apply Core.Kinding.var; simp; apply h2; simp;
     · apply Core.Typing.lam
-      · sorry
+      · assumption
       · apply ih
     · simp
   case _ t1 t2 τ ih1 ih2 =>  -- app
@@ -263,23 +265,27 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
       simp [ΔsΓs', ΔsΓs] at h;
 
       sorry
-    | some ΔsΓs =>
-    apply Core.Typing.mtch (S := τs) (ss := ss'.to) (ps := pats) (ts := bs.to)
+    | some ΔΓ =>
+    let Δ' := ΔΓ.map (·.1)
+    let Γ' := ΔΓ.map (·.2)
+    apply Core.Typing.mtch (S := τs) (ss := ss'.to) (ps := pats) (ts := bs.to) (ζ := Δ'.to) (ξ := Γ'.to)
     · intro i; apply ih1; simp [h1] at h2; replace h1 := Vec.traverse_eq_pure_iff_getElem_TM h2 i;
       simp at h1; simp [<-Vec.to_get_elem] at h1; apply h1
-    · intro i; sorry
-    · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
-      simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
-      rcases h3 with ⟨Δ', Γ', h3, h4⟩
-      replace h2 := Core.pattern_binders_sound h3
+    · intro i; simp [ΔsΓs', ΔsΓs] at h;
       sorry
     · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
       simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
       rcases h3 with ⟨Δ', Γ', h3, h4⟩
       replace h2 := Core.pattern_binders_sound h3
+      -- generalize fdef : Core.pattern_binders (Core.SpCtorVariant.data Core.DataConst.cls) G Δ (m + 1) (↑τs) = f at *
+      replace h := Vec.seq_sound1 (vs := pats) (f := _) h i;
+
       sorry
-    sorry
-    sorry
+    · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
+      simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
+      rcases h3 with ⟨Δ', Γ', h3, h4⟩
+      replace h2 := Core.pattern_binders_sound h3
+      replace ih2 := ih2 i; sorry
     sorry
 
   case _ ih => -- annot
