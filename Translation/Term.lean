@@ -471,9 +471,10 @@ theorem Vec.fun_sum_le {e : Surface.Term} {vs : Fun.Vec Surface.Term n}:
 def Surface.Term.type_directed_translate
   (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
   Surface.Term -> TM Core.Term
-| `#x =>
+| `#x => do
+  if h : (τ.infer_kind G Δ).isEqSome (★) then
   match Γ[x]? with
-  | some τ' => do
+  | some τ' =>
     if τ == τ' then
     return #x else
     let c <- Option.toTM ("var synth_coercion"
@@ -485,7 +486,7 @@ def Surface.Term.type_directed_translate
            (Core.Ty.synth_coercion G Δ Γ τ' τ)
     return (.cast t#0 c #x)
   | _ => .error "var translate"
-
+  else .error "var τ kind"
 | .global (n := n) (m := m) (p := p) x τU τE as =>
   match Core.lookup x G with
   | .some (.ctor x' _ ⟨n', Ks1, m', Ks2, p', Ts, R⟩) => do
@@ -493,7 +494,7 @@ def Surface.Term.type_directed_translate
     let KsU <- Option.toTM "translation ctor kind check Us" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
     let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
     let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
-    if h : (n == n' && m == m') && x == x' && p == p' && KsU.beq Ks1 && KsE.beq Ks2 then
+    if h : (n == n' && m == m') && x == x' && p == p' && KsU.beq Ks1 && KsE.beq Ks2 && (R[σ].infer_kind G Δ).isEqSome (★) then
       let c <- Option.toTM (".octor synth_coercion"
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
@@ -510,10 +511,10 @@ def Surface.Term.type_directed_translate
   | .some (.openm x' ⟨n', Ks1, m', Ks2, _, Ts, R⟩) => do
     let KsU <- Option.toTM "translation ctor kind check Us" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
     -- let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
-    if ((n == n' && m' == 0) && x == x') && p == 0 && KsU.beq Ks1 && m == m' then
-
     -- TODO: Make sure τU and Ks line up
-      let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
+    let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
+    if ((n == n' && m' == 0) && x == x') && p == 0 && KsU.beq Ks1 && m == m' && (R[σ].infer_kind G Δ).isEqSome (★) then
+
       let ιs := Ts[σ].map (λ x => Core.Ty.synth_term' G Δ Γ x)
       match ιs.sequence with
       | .ok ιs =>
