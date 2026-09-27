@@ -25,7 +25,7 @@ def benv : GlobalEnv := [
 
   .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩
     [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"]
-         mtch' gt#"Ordering" #((`#1, gt#"Bool"), (`#0,  gt#"Bool"))
+         mtch' #((`#1, gt#"Bool"), (`#0,  gt#"Bool"))
               #( (TrueTruePat, EQCtor)
                , (FalseFalsePat, EQCtor)
                , (TrueFalsePat, GTCtor)
@@ -34,7 +34,7 @@ def benv : GlobalEnv := [
 
   .instDecl "EqBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Eq" • t#0⟩
   [("eq", λˢ[gt#"Bool"] λˢ[gt#"Bool"]
-          mtch' gt#"Bool" #((`#1, gt#"Bool"), (`#0,  gt#"Bool"))
+          mtch' #((`#1, gt#"Bool"), (`#0,  gt#"Bool"))
           #( (TrueTruePat , TrueCtor)
            , (FalseFalsePat, TrueCtor)
            , (TrueFalsePat, FalseCtor)

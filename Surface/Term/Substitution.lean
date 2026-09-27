@@ -36,7 +36,7 @@ def Term.rmap (r : Ren Term) : Term -> Term
 | lam A t => lam A (rmap r.lift t)
 | app t1 t2 τ => app (rmap r t1) (rmap r t2) τ
 | appt t1 t2 => appt (rmap r t1) t2
-| mtch m n t0 t1 t2 t3 t4 => mtch m n (rmap r <$> t0) t1 t2 (λ i => rmap (r.lift (t2 i).bind) (t3 i)) t4
+| mtch m n t0 t1 t2 t3 => mtch m n (rmap r <$> t0) t1 t2 (λ i => rmap (r.lift (t2 i).bind) (t3 i))
 | annot t1 A => annot (rmap r t1) A
 
 instance instRenMap_Term : RenMap Term Term where
@@ -50,7 +50,7 @@ def Term.Ty.rmap (r : Ren Core.Ty) : Term -> Term
 | lam A t => lam A⟨r⟩ (rmap r t)
 | app t1 t2 τ => app (rmap r t1) (rmap r t2) τ⟨r⟩
 | appt t1 t2 => appt (rmap r t1) t2⟨r⟩
-| .mtch m n t0 t1 t2 t3 t4 =>  .mtch m n (rmap r <$> t0) (Core.Ty.rmap r <$> t1) (λ i => (t2 i)⟨r⟩) (rmap r <$> t3) t4⟨r⟩
+| .mtch m n t0 t1 t2 t3 =>  .mtch m n (rmap r <$> t0) (Core.Ty.rmap r <$> t1) (λ i => (t2 i)⟨r⟩) (rmap r <$> t3)
 | annot t1 A => annot (rmap r t1) A⟨r⟩
 
 instance : RenMap Term Core.Ty where
@@ -64,7 +64,7 @@ def Term.Ty.smap (σ : Subst Core.Ty) : Term -> Term
 | appt t1 t2 => appt (smap σ t1) t2[σ]
 | lamt A t => lamt A (smap σ.lift t)
 | lam A t => lam A[σ] (smap σ t)
-| .mtch m n t0 t1 t2 t3 t4 =>  .mtch m n (smap σ <$> t0) (Core.Ty.smap σ <$> t1) (λ i => (t2 i)[σ]) (smap σ <$> t3) t4[σ]
+| .mtch m n t0 t1 t2 t3 =>  .mtch m n (smap σ <$> t0) (Core.Ty.smap σ <$> t1) (λ i => (t2 i)[σ]) (smap σ <$> t3)
 | annot t1 A => annot (smap σ t1) A[σ]
 
 instance instSubstMap_TermTy : SubstMap Term Core.Ty where
@@ -111,7 +111,7 @@ def Term.smap (σ : Subst Term) : Term -> Term
 | appt t1 t2 => appt (smap σ t1) t2
 | lamt A t => lamt A (smap (σ ◾ Ren.succ Core.Ty) t)
 | lam A t => lam A (smap σ.lift t)
-| mtch m n t0 t1 t2 t3 t4 => mtch m n (smap σ <$> t0) t1 t2 (λ i => smap (σ.lift (t2 i).bind) (t3 i)) t4
+| mtch m n t0 t1 t2 t3 => mtch m n (smap σ <$> t0) t1 t2 (λ i => smap (σ.lift (t2 i).bind) (t3 i))
 | annot t1 A => annot (smap σ t1) A
 
 

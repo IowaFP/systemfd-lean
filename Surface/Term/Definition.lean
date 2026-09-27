@@ -16,16 +16,16 @@ inductive Term : Type where
 | app : Term -> Term -> Core.Ty -> Term
 | lamt :  Core.Kind -> Term -> Term
 | lam : Core.Ty -> Term -> Term
-| mtch m n : Fun.Vec Term m -> Fun.Vec Core.Ty m -> Fun.Vec (Core.Pattern m) n -> Fun.Vec Term n -> Core.Ty -> Term
+| mtch m n : Fun.Vec Term m -> Fun.Vec Core.Ty m -> Fun.Vec (Core.Pattern m) n -> Fun.Vec Term n -> Term
 | annot : Term -> Core.Ty -> Term
 
 
-def mtch' (τ : Core.Ty) (sts : Vec (Term × Core.Ty) m) (pat_cube : Vec (Core.Pattern m × Term) n) : Term :=
+def mtch' (sts : Vec (Term × Core.Ty) m) (pat_cube : Vec (Core.Pattern m × Term) n) : Term :=
   let ss := Vec.map (·.1) sts
   let τs := Vec.map (·.2) sts
   let p := Vec.map (·.1) pat_cube
   let x := Vec.map (·.2) pat_cube
-  .mtch m n ss.to τs.to p.to x.to τ
+  .mtch m n ss.to τs.to p.to x.to
 
 
 prefix:max "`#" => Term.var
@@ -55,7 +55,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .lamt K t =>
   Repr.addAppParen ("Λˢ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λˢ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
-| .mtch m n ss ssτ pats bs ty =>
+| .mtch m n ss ssτ pats bs =>
   let ss' : Fun.Vec Std.Format m := λ i =>
     Term.repr max_prec (ss i)  ++ " :: " ++ Core.Ty.repr max_prec (ssτ i)
   let ss' := ss'.to.foldl (init := Std.Format.nil) (· ++ ·)
@@ -80,7 +80,7 @@ def Term.size : Term -> Nat
 | appt t1 _ => size t1 + 1
 | lamt _ t => size t + 1
 | lam _ t => size t + 1
-| mtch _ _ t1 _ _ t2 _ =>
+| mtch _ _ t1 _ _ t2 =>
    (Fun.Vec.to (Term.size <$> t1)).sum + (Fun.Vec.to (Term.size <$> t2)).sum + 1
 | annot t _ => size t + 1
 

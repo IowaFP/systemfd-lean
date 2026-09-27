@@ -251,7 +251,7 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     replace ih2 := ih2 h2
     subst t'
     apply Core.Typing.app ih2 ih1
-  case _ Δ _ _ m n ss τs pats bs T lk h1 ih1 ih2 =>  -- mtch
+  case _ Δ _ τ m n ss τs pats bs _ lk h1 ih1 ih2 =>  -- mtch
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨ss', h2, h3⟩
     simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨bs, h3, h4⟩
     subst t'
@@ -262,7 +262,6 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     match h : ΔsΓs.to.sequence with
     | none =>
       simp [ΔsΓs] at h;
-
       sorry
     | some ΔΓ =>
     let Δs := ΔΓ.map (·.1)
@@ -284,7 +283,10 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
       rcases h3 with ⟨Δ', Γ', h3, h4⟩
       replace h2 := Core.pattern_binders_sound h3
       replace ih2 := @ih2 i Δ' Γ' (bs.to i) h4;
-      sorry
+      replace h := Vec.seq_sound1 (vs := pats) (f := _) h i;
+      rw[h] at h3; simp at h3; simp [<-Vec.get_to] at h3;
+      simp [Δs, Γs, Vec.to_get_elem, h3]; simp [<-Vec.get_to] at ih2
+      apply ih2
     intro q h; simp at lk; simp [Option.isSome_iff_ne_none, Option.ne_none_iff_exists] at lk;
     rcases lk with ⟨_, lk⟩; symm at lk;
     have lem := Core.pattern_exhaustive_sound (ps := pats.to) wf h lk
