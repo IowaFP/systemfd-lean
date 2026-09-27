@@ -8,13 +8,29 @@ import Translation.Global
 
 namespace Surface.Examples.Maybe
 
+
+def NothingPat : Core.Pattern 1 := #(⟨"Nothing", 1, #(t#0), 0, 0⟩)
+def JustPat : Core.Pattern 1 := #(⟨"Just", 1, #(t#0), 0, 1⟩)
+
+def NothingNothingPat : Core.Pattern 2 :=  #(⟨"Nothing", 1, #(t#0), 0, 0⟩, ⟨"Nothing", 1, #(t#0), 0, 0⟩)
+def JustJustPat : Core.Pattern 2 :=  #(⟨"Just", 1, #(t#0), 0, 1⟩, ⟨"Just", 1, #(t#0), 0, 1⟩)
+def JustNothingPat : Core.Pattern 2 :=  #(⟨"Just", 1, #(t#0), 0, 1⟩, ⟨"Nothing", 1, #(t#0), 0, 0⟩)
+def NothingJustPat : Core.Pattern 2 :=  #(⟨"Nothing", 1, #(t#0), 0, 0⟩, ⟨"Just", 1, #(t#0), 0, 1⟩)
+
+
 def mbenv : GlobalEnv := [
 
   -- .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
 
   -- MBI : ∀ t u, t ~ Maybe u -> Eq u -> Eq t
   .instDecl "MBI" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ (gt#"Maybe" • t#0), gt#"Eq" • t#0), gt#"Eq" • t#1⟩
-                  [("eq", λˢ[gt#"Maybe" • t#0] λˢ[gt#"Maybe" • t#0] (g`#"True" `•ᵤ #() `•ₑ #() `•ₜ .nil))],
+                  [("eq", (λˢ[gt#"Maybe" • t#0] λˢ[gt#"Maybe" • t#0]
+                          mtch' #((`#1, gt#"Maybe" • t#0), (`#0, gt#"Maybe" • t#0))
+                          #( (JustJustPat,       (((g`#"eq" `•ᵤ #(t#0) `•ₑ #() `•ₜ .nil) `• `#0 :: t#0) `• `#1 :: t#0))
+                           , (NothingNothingPat, Surface.Examples.Boolean.TrueCtor)
+                           , (JustNothingPat,    Surface.Examples.Boolean.FalseCtor)
+                           , (NothingJustPat,    Surface.Examples.Boolean.FalseCtor)
+                           )))],
 
   .data (n := 2) "Maybe" (★ -:> ★) #(("Just", ⟨1, #(★), 0, #(), 1, #(t#0), gt#"Maybe" • t#0⟩ ),
                                      ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩))
