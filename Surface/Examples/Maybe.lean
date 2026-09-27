@@ -33,11 +33,11 @@ def Γ := do
 #guard (do let Γ <- Γ
            return Γ.wf_globals) == .ok ()
 
-#eval! do
-  let Γ <- Γ
-  -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
-  Translation.Option.toTM "ford" $ (Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))).map (Core.SpineTy.repr ·)
-  -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
+-- #eval! do
+--   let Γ <- Γ
+--   -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
+--   Translation.Option.toTM "ford" $ (Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))).map (Core.SpineTy.repr ·)
+--   -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
 
 -- #guard (do
 --   let benv' <- (Translation.translate_SI benv)

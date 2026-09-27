@@ -105,36 +105,38 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
 := by
   intro h
   fun_induction Surface.Term.type_directed_translate generalizing t' <;> simp at h
-  case _ lk e => -- var
+  case _ ki _ lk e => -- var
     cases h; simp at e; cases e; apply Core.Typing.var lk
-    sorry
-  case _ A _ B lk e => -- var with coercion
+    simp at ki; replace ki := Core.infer_kind_sound ki
+    apply ki
+  case _ A _ ki B lk e => -- var with coercion
     simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨t, h1, h2⟩
     simp [Option.toTM_some_eq_ok_iff] at h1
     replace h1 := synth_coercion_sound h1
+    simp at ki; replace ki := Core.infer_kind_sound ki
     subst h2
     rcases h1 with ⟨K, h1, h2, h3⟩
-    apply Core.Typing.cast (K := K) -- K = ★
-    sorry
+    have e := Core.Kinding.unique ki h3; subst K
+    apply Core.Typing.cast (K := ★) -- K = ★
+    apply Core.Kinding.var; simp
     apply h1
-    simp; apply Core.Typing.var; apply lk; sorry
+    simp; apply Core.Typing.var; apply lk; apply h2
     simp
 
 
   case _ Δ Γ τ _ _ _ _ τU τE as _ _ _ _ _ _ _ Ts R lk ih => -- overloading/globals
     simp [bind, Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨KsU, h1, h2⟩
     rcases h2 with ⟨KsE, h, h3⟩
-    split at h3 <;> try simp at h3
-    case _ e =>
-    simp [Except.bind_eq_ok_iff] at h3; rcases h3 with ⟨c, h3, h4⟩
-    simp [Option.toTM_some_eq_ok_iff] at h3;
-    simp [Functor.map, Except.map_eq_ok_iff] at h4; rcases h4 with ⟨ts, h4, h5⟩
+    rcases h3 with ⟨h3, h4⟩
+    rcases h3 with ⟨c, h3, h5⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h5; rcases h5 with ⟨ιs, h5, h6⟩
+    rcases h4 with ⟨e, h4⟩
     rcases e with ⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩; subst e1 e2 e3 e4;
+    replace h4 := Core.infer_kind_sound h4
     simp [Vec.beq_iff_eq] at e5 e6; subst e5 e6
     generalize σdef1 : (List.map su τE.list).reverse ++ (List.map su τU.list).reverse ++ Subst.id Core.Ty = σ1 at *
     generalize σdef2 : (List.map su (τU ++ τE).list).reverse ++ Subst.id Core.Ty = σ2 at *
     have lemσ : σ1 = σ2 := by simp [<-σdef1, <-σdef2]
-    -- subst h4
     generalize zdef : (Vec.from_list
         (List.map (fun x => Surface.Term.type_directed_translate G Δ Γ x.val.fst x.val.snd)
           (Ts[List.map su (τU ++ τE).list.reverse ++ Subst.id Core.Ty].list.zip (as.to).list).attach)) = z at *
@@ -145,17 +147,19 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     replace lk := lookup_ctor_implies_lookup_spine_type lk
     cases lk2; case _ Ks2 _ _ _ _ _ h9 h10 h11 h12 h13 =>
     subst t'
+    rcases h3 with ⟨K, h3, e3, e4⟩
+    replace e3 := Core.Kinding.unique e3 h4; subst e3
     apply Core.Typing.cast (A := R[σ1]) (K := ★) (B := τ)
     apply Core.Kinding.var (K := ★); simp;
-    sorry
+    apply h3
     simp;
-    apply Core.Typing.spctor (Ts := Ts) (Ts' := Ts[σ1]) (R := R) (R' := R[σ1]) (ts := ts.to)
+    apply Core.Typing.spctor (Ts := Ts) (Ts' := Ts[σ1]) (R := R) (R' := R[σ1]) (ts := ιs.to)
     · apply lk
     · simp [σdef1]
     · simp [σdef1]
     · intro i; replace h1 := Vec.traverse_eq_pure_iff_getElem_Option h1 i; replace h1 := Core.infer_kind_sound h1; apply h1
     · intro i; replace h := Vec.traverse_eq_pure_iff_getElem_Option h i; replace h := Core.infer_kind_sound h; apply h
-    · intro i; simp [Vec.sequence] at h4; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h4 i;
+    · intro i; simp [Vec.sequence] at h5; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h5 i;
       simp at h3; simp [<-Vec.get_to]
       rcases z with ⟨z_len, zs⟩
       simp at *
@@ -186,23 +190,24 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
   case _ τ _ _ _ _ τU τE _ _ x _ Ks1 Ks2 nc Ts R lk => -- overloading openm
     simp [bind, Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨KsU, h1, h⟩
     split at h <;> try simp at h
-    split at h <;> try simp at h
-    case _ e _ ιs h3 =>
+    case _ ιs h3 =>
+    rcases h with ⟨h, e⟩
     rcases h with ⟨h, h4⟩
-    simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨t'', h5, h6⟩
-    simp [Option.toTM_some_eq_ok_iff] at h5; replace h5 := synth_coercion_sound h5;
-    rcases h5 with ⟨K, h7, Is, h8⟩;
-    subst t'
-    rcases e with ⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩; subst e1 e2 e3 e4; simp [Vec.beq_iff_eq] at e5;
+    simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨c, h⟩
+    simp [Option.toTM_some_eq_ok_iff] at h; rcases h with ⟨h, e⟩; subst e
+    replace h := synth_coercion_sound h
+    rcases h with ⟨K, h7, h8, h9⟩;
+    rcases e with ⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩; subst e1 e2 e3 e4; simp [Vec.beq_iff_eq] at e5;
     subst e5 e6;
+    replace e7 := Core.infer_kind_sound e7;
     replace lk1 := lookup_openm_implies_lookup_spine_type lk
     replace lk' := Core.EntryWf.from_lookup wf lk; cases lk'; case _ lk2 lk' =>
     cases lk2; case _ Ks2 _ _ _ _ _ h9 h10 h11 h12 h13 =>
     generalize σdef : (List.map su τE.list).reverse ++ (List.map su τU.list).reverse ++ Subst.id Core.Ty = σ at *
-    -- sorry
+    replace e7 := Core.Kinding.unique e7 h8; subst e7
     apply Core.Typing.cast (A := R[σ]) (B := τ)
     apply Core.Kinding.var; simp; rfl
-    sorry
+    apply h7
     apply Core.Typing.spctor (v := .openm) (Ts := Ts) (Ts' := Ts[σ]) (R := R) (R' := R[σ]);
     · apply lk1
     · simp [σdef]
@@ -237,8 +242,13 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
       · sorry
       · apply ih
     · simp
-  case _ =>  -- app
-    sorry
+  case _ t1 t2 τ ih1 ih2 =>  -- app
+    simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨t2', h1, h2⟩
+    replace ih1 := ih1 h1
+    simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨t1', h2, h3⟩
+    replace ih2 := ih2 h2
+    subst t'
+    apply Core.Typing.app ih2 ih1
   case _ Δ _ _ m n ss τs pats bs T lk h1 ih1 ih2 =>  -- mtch
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨ss', h2, h3⟩
     simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨bs, h3, h4⟩
@@ -248,6 +258,12 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     case _ m n _ =>
     let ΔsΓs : Fun.Vec _ (n + 1) := λ i => (Core.pattern_binders (Core.SpCtorVariant.data Core.DataConst.cls) G Δ (m + 1) (τs) (pats i))
     let ΔsΓs' := ΔsΓs.to.sequence
+    match h : ΔsΓs' with
+    | none =>
+      simp [ΔsΓs', ΔsΓs] at h;
+
+      sorry
+    | some ΔsΓs =>
     apply Core.Typing.mtch (S := τs) (ss := ss'.to) (ps := pats) (ts := bs.to)
     · intro i; apply ih1; simp [h1] at h2; replace h1 := Vec.traverse_eq_pure_iff_getElem_TM h2 i;
       simp at h1; simp [<-Vec.to_get_elem] at h1; apply h1
