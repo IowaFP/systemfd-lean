@@ -539,8 +539,9 @@ def Surface.Term.type_directed_translate
     if K == K' then return (Λ[K] t') else .error "lamt translate"
   | _ => .error "lamt translate"
 | .lam A t => do
+  if h : (A.infer_kind G Δ).isEqSome (★) then
   match τ with
-  | .arrow A' B =>
+  | .arrow A' B => -- What if τ is a variable that is coercible to an arrow?
     let t' <- type_directed_translate G Δ (A :: Γ) B t
     let c <- Option.toTM ("lam synth_coercion" ++ Std.Format.line
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
@@ -551,6 +552,7 @@ def Surface.Term.type_directed_translate
              $ Core.Ty.synth_coercion G Δ Γ (A -:> B) (A' -:> B)
     return (Core.Term.cast t#0 c (λ[A] t'))
   | _ => .error "lam translate"
+  else .error "lam translate kind check"
 
 -- Elimination forms are a little annoying
 
