@@ -208,15 +208,17 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                 else .error "synth_term' kind checks"
               else .error "synth_term' lookup_spine_type tys na"
           else .error "synth_term' n tys"
+
+
         | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
           let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine -- τ = C τs
           let ⟨na' , tys'⟩ := Vec.from_list tys
           if e : na == na' then
             let σ : Subst Core.Ty := (((List.range nb).map (t#·)).reverse.map su)  ++ tys.reverse.map su ++ Subst.id Core.Ty
             let R' := R[σ]
-            let tys'' := tys'.map (Core.Ty.infer_kind G Δ ·)
-            let Ks1' <- Option.toTM "synth_term' infer tys kinds" $ tys''.sequence
-            if h : τ == R' && Ks1'.beq Ks1 && tys''.sequence.isEqSome (Ks1')
+            let tys'' := (tys'.map (Core.Ty.infer_kind G Δ ·)).sequence
+            let Ks1' <- Option.toTM "synth_term' infer tys kinds" $ tys''
+            if h : τ == R' && Ks1'.beq Ks1 && tys''.isEqSome (Ks1')
                    && ((List.range na').map (·+ nb)).all ((R.fv ·)) && Core.lookup_ctor? G Core.DataConst.opn x R
               then
                 let Ts' := Ts[σ]
@@ -226,19 +228,19 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                                   $ Core.Ty.ty_match nb τ' τ
                   | _ => return (Subst.id Core.Ty))
                 let σsE' : Vec (Subst Core.Ty) nc <- σsE.sequence
-                let σsE': Subst Core.Ty := σsE'.foldr (init := Subst.id Core.Ty) (λ σ acc => Subst.compose acc σ)
-                let Ts'' : Vec Core.Ty nc := Ts'[σsE']
-                let ts <- (Ts'.map (Core.Ty.synth_term' G Δ Γ ·)).sequence
+                let σsE'': Subst Core.Ty := σsE'.foldr (init := Subst.id Core.Ty) (λ σ acc => Subst.compose acc σ)
+                let Ts'' : Vec Core.Ty nc := Ts'[σsE'']
+                let ts <- (Ts''.map (Core.Ty.synth_term' G Δ Γ ·)).sequence
                 -- let ts <- ts'.sequence
-                if ets : (ts.map (λ x => x.2.1) == Ts') then
+                if ets : (ts.map (λ x => x.2.1) == Ts'') then
                   let targs := ts.map (·.fst)
 
-                  return ⟨inst! x tys' ((Vec.range nb).map (t#·))[σsE'] targs.to, R', by
+                  return ⟨inst! x tys' ((Vec.range nb).map (t#·))[σsE''] targs.to, R', by
                     simp at e; subst e; simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩;
                     subst e1; simp [Vec.beq_iff_eq] at e2; subst e2;
-                    apply Core.Typing.spctor (R' := R') (Ts' := Ts') (Ts := Ts)
+                    apply Core.Typing.spctor (R' := R') (Ts' := Ts'') (Ts := Ts)
                     · apply lk
-                    · simp [Ts', σ]; apply Vec.ext_get; intro i;
+                    · simp [Ts'', Ts', σ]; apply Vec.ext_get; intro i;
                       conv =>
                         lhs
                         rw [<-Vec.smap_index (i := i)]
@@ -246,14 +248,16 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                         rhs
                         rw [<-Vec.smap_index (i := i)]
                       apply Ty.sub_act_eq_mpr;
-                      intro i; sorry
+                      intro i; apply congrArg; simp [Subst.act]; apply congr;
+                      apply congrArg; sorry;
+                      rfl
 
                     · simp [R', σ]; sorry
                     · simp [tys''] at e3; intro i;
                       replace e3 := Vec.traverse_eq_pure_iff_getElem_Option e3 i;
                       apply Core.infer_kind_sound e3
-                    · intro i; sorry
-                    · intro i; simp [<-Vec.get_to, targs]; simp at ets; simp [<-ets]; apply ts[i].2.2
+                    · intro i; simp [<-Vec.smap_index, σsE'']; sorry
+                    · intro i; simp [<-Vec.get_to, targs]; simp at ets; simp [Ts'', Ts'] at ets; simp [Ts'', Ts', <-ets]; apply ts[i].2.2
                     · simp; apply e5
                     · simp; intro i hi; replace e4 := e4 i hi; simp [Core.Ty.FV.reflection]; apply e4
                     · simp
@@ -263,7 +267,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                           ++ "(cls, tys) :"  ++ cls ++ " " ++ tys.repr max_prec ++ Std.Format.line
                           ++ "τ = R': " ++ τ.repr max_prec ++ " =?= "++ R'.repr max_prec ++ Std.Format.line
                           ++ "Ks1' = Ks1: "  ++ Ks1'.repr max_prec ++ " =?= "++ Ks1.repr max_prec ++ Std.Format.line
-                          ++ "tys'' = Ks1: " ++ tys''.sequence.repr max_prec ++ " =?= "++ Ks1.repr max_prec ++ Std.Format.line
+                          ++ "tys'' = Ks1: " ++ tys''.repr max_prec ++ " =?= "++ Ks1.repr max_prec ++ Std.Format.line
                           ++ "fvs: " ++ R.repr max_prec ++ " " ++ (((List.range na').map (· + nb)).all ((R.fv ·))).repr max_prec ++ Std.Format.line
                           ++ "R head: " ++ (Core.lookup_ctor? G Core.DataConst.opn x R).repr max_prec
                           )
