@@ -30,8 +30,8 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
     let ctorTy := (Vec.to ctors i).2
     ctorN ++ " : " ++ Core.SpineTy.repr ctorTy ++ Std.Format.line
   (Std.Format.text ".data ") ++ (Std.Format.text s) ++ " : "
-    ++ (K.repr max_prec) ++ (Std.Format.text " where ") ++
-    Std.Format.nest 4  cs.to.fold_format
+    ++ (K.repr max_prec) ++ " where" ++ Std.Format.line ++
+    Std.Format.nest 4  (Std.Format.align true ++ cs.to.fold_format)
 | .defn n T t => ".defn " ++ n ++ " " ++ (T.repr max_prec) ++ t.repr max_prec
 | classDecl s Ks /-scs fds-/ methods =>
   ".class " ++ s ++ " : " ++ Ks.repr max_prec
@@ -41,7 +41,7 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
     ++ Std.Format.line ++ (methods.repr max_prec)
 | instDecl i_name spTy methods =>
   (Std.Format.text ".inst ") ++ i_name ++ " : " ++ "⟨" ++ spTy.repr ++ "⟩"
-    ++ Std.Format.line ++ Std.Format.nest 4 (methods.repr max_prec)
+    ++ Std.Format.line ++ Std.Format.nest 4 (Std.Format.align true ++ methods.repr max_prec)
 
 @[simp]
 instance instRepr_Global : Repr (Global) where

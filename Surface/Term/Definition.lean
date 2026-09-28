@@ -62,7 +62,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   let ts : Fun.Vec Std.Format n := λ i =>
     let t := bs i
     let pat := pats i
-    Std.Format.nest 4 <| Std.Format.line ++ " | "++ pat.repr ++ " -> " ++ Term.repr p t
+    Std.Format.line ++ (Std.Format.nest 4 <| Std.Format.align true ++ " | "++ pat.repr ++ " -> " ++ Term.repr p t)
   let bs := ts.to.fold_format
   Std.Format.nest 4 <| ("match " ++ ss' ++ " with " ++ bs)
 | annot t ty =>

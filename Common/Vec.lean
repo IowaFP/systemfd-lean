@@ -457,40 +457,6 @@ theorem Vec.map_seq_sound {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β)
   intro h
   simp at h; apply traverse_eq_pure_iff_getElem_Option h
 
-theorem Vec.map_sequence_iff_some {vs : Vec α n} {vs' : Vec β n} (f : α -> Option β) :
-  (Vec.map f vs).sequence = some vs' <-> ∀ i : Fin n, f (vs[i]) = some (vs'[i])
-:= by
-  apply Iff.intro
-  · apply Vec.map_seq_sound
-  · intro h;
-    induction vs <;> (cases vs'; simp at *)
-    case _ => simp [Vec.sequence]
-    case _ ih =>
-    simp [Vec.sequence];
-    case _ n a as b bs =>
-    replace ih := @ih bs
-    simp [Seq.seq, Option.bind_eq_some_iff]
-    have h1 := h 0; simp at h1
-    exists (λ bs => cons b bs)
-    apply And.intro
-    · exists b
-    · exists bs; apply And.intro
-      sorry
-      simp
-
-theorem Vec.map_sequence_none {vs : Vec α n} (f : α -> Option β) :
-  (Vec.map f vs).sequence = none -> ∃ i : Fin n, f (vs[i]) = none
-:= by
-  intro h;
-  induction vs <;> simp [sequence] at h
-  case _ a as ih =>
-    generalize zdef : f a  = z at *
-    cases z
-    exists 0
-    simp at h;
-
-    sorry
-
 theorem Vec.seq_sound1 {vs : Fun.Vec α n} {vs' : Vec β n} (f : α -> Option β) :
   (Fun.Vec.to (λ i => f (vs i))).sequence = some vs' ->
   ∀ i : Fin n, f (vs i) = some (vs'.to i)
