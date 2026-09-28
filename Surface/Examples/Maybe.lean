@@ -12,10 +12,10 @@ namespace Surface.Examples.Maybe
 def NothingPat : Core.Pattern 1 := #(⟨"Nothing", 1, #(t#0), 0, 0⟩)
 def JustPat : Core.Pattern 1 := #(⟨"Just", 1, #(t#0), 0, 1⟩)
 
-def NothingNothingPat : Core.Pattern 2 :=  #(⟨"Nothing", 1, #(t#0), 0, 0⟩, ⟨"Nothing", 1, #(t#0), 0, 0⟩)
-def JustJustPat : Core.Pattern 2 :=  #(⟨"Just", 1, #(t#0), 0, 1⟩, ⟨"Just", 1, #(t#0), 0, 1⟩)
-def JustNothingPat : Core.Pattern 2 :=  #(⟨"Just", 1, #(t#0), 0, 1⟩, ⟨"Nothing", 1, #(t#0), 0, 0⟩)
-def NothingJustPat : Core.Pattern 2 :=  #(⟨"Nothing", 1, #(t#0), 0, 0⟩, ⟨"Just", 1, #(t#0), 0, 1⟩)
+def NothingNothingPat : Core.Pattern 2 :=  NothingPat ++ NothingPat
+def JustJustPat : Core.Pattern 2 :=  JustPat ++ JustPat
+def JustNothingPat : Core.Pattern 2 :=  JustPat ++ NothingPat
+def NothingJustPat : Core.Pattern 2 :=  NothingPat ++ JustPat
 
 
 def mbenv : GlobalEnv := [

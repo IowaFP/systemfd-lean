@@ -121,7 +121,7 @@ instance [RenMap S T] [SubstMap S T] [SubstMapId S T]
 where
   apply_id := by intro t; induction t <;> simp [*]
 
-private def apply_ren_compose_left_aux [RenMap S T] [SubstMap S T] [SubstMapRenComposeLeft S T]
+private theorem apply_ren_compose_left_aux [RenMap S T] [SubstMap S T] [SubstMapRenComposeLeft S T]
   : ∀ {s : Vec S n} {r : Ren T} {τ : Subst T}, s⟨r⟩[τ] = s[r ∘ τ] := λ {s} =>
 match s with
 | #() => by simp
@@ -130,7 +130,7 @@ match s with
 instance [RenMap S T] [SubstMap S T] [SubstMapRenComposeLeft S T] : SubstMapRenComposeLeft (Vec S n) T where
   apply_ren_compose_left := apply_ren_compose_left_aux
 
-private def apply_ren_compose_right_aux [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T]
+private theorem apply_ren_compose_right_aux [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T]
   : ∀ {s : Vec S n} {r : Ren T} {σ : Subst T}, s[σ]⟨r⟩ = s[σ ∘ r] := λ {s} =>
 match s with
 | #() => by simp
@@ -139,7 +139,7 @@ match s with
 instance [RenMap S T] [RenMap T T] [SubstMap S T] [SubstMapRenComposeRight S T] : SubstMapRenComposeRight (Vec S n) T where
   apply_ren_compose_right := apply_ren_compose_right_aux
 
-private def apply_compose_aux [SubstMap S T] [SubstMap T T] [SubstMapCompose S T]:
+private theorem apply_compose_aux [SubstMap S T] [SubstMap T T] [SubstMapCompose S T]:
   ∀ {s : Vec S n} {σ τ : Subst T}, s[σ][τ] = s[σ ∘ τ] := λ {s} =>
   match s with
   | #() => by rfl
@@ -930,7 +930,7 @@ theorem Vec.ne_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
 theorem Vec.not_mem_of_not_mem_cons {α : Type u_1} {a b : α} {vs : Vec α n} :
   ¬a ∈ b :: vs -> ¬a ∈ vs := mt (λ x => Mem.tail b x)
 
-def Vec.foldl_and_true {vs : Vec Bool n} :
+theorem Vec.foldl_and_true {vs : Vec Bool n} :
   vs.foldl (·&&·) true = true <-> ∀ v ∈ vs, v = true
 := by
   apply Iff.intro
@@ -1057,21 +1057,21 @@ theorem Vec.cast_get {α β : Type u} {e1 : α = β}
 
 --     sorry
 
-theorem Vec.list_zipWith_iff_zipWith_list {f : α -> β -> γ} {vs1 vs2 zs : Vec _ n}:
-  Vec.zipWith f vs1 vs2 = zs ↔
-  (Vec.from_list (List.zipWith f vs1.list vs2.list)) = ⟨n, zs⟩
-:= by
-  induction vs1 <;> cases vs2
-  case _ => simp
-  case _ n a as ih b bs =>
-    simp [List.zipWith_cons_cons]
-    cases zs; case _ z zs =>
-    simp [Vec.from_list]
-    replace ih := @ih bs zs
-    simp [ih]
-    apply Iff.intro
-    simp; intro h1 h2; subst h1; simp [h2]; congr; simp [h2]; rw[h2]
-    simp; intro h1 h2; apply And.intro; sorry; sorry
+-- theorem Vec.list_zipWith_iff_zipWith_list {f : α -> β -> γ} {vs1 vs2 zs : Vec _ n}:
+--   Vec.zipWith f vs1 vs2 = zs ↔
+--   (Vec.from_list (List.zipWith f vs1.list vs2.list)) = ⟨n, zs⟩
+-- := by
+--   induction vs1 <;> cases vs2
+--   case _ => simp
+--   case _ n a as ih b bs =>
+--     simp [List.zipWith_cons_cons]
+--     cases zs; case _ z zs =>
+--     simp [Vec.from_list]
+--     replace ih := @ih bs zs
+--     simp [ih]
+--     apply Iff.intro
+--     simp; intro h1 h2; subst h1; simp [h2]; congr; simp [h2]; rw[h2]
+--     simp; intro h1 h2; apply And.intro; sorry; sorry
 
 
 theorem Vec.mem_list {x : α} {vs : Vec α n} :
@@ -1085,5 +1085,15 @@ theorem Vec.mem_list {x : α} {vs : Vec α n} :
     intro h; cases h; simp; apply Or.inr; apply ih.mp; assumption
     intro h; cases h; case _ e => subst e; constructor
     constructor; apply ih.mpr; assumption
+
+
+def Vec.fold_format (v : Vec Std.Format n) : Std.Format :=
+  "#(" ++ go v ++ ")"
+where
+  go : {n : Nat} -> Vec Std.Format n -> Std.Format
+  | 0, #() => Std.Format.nil
+  | 1, .cons x #() => x
+  | _, .cons x xs => x ++ ", " ++ go xs
+
 
 end Lilac

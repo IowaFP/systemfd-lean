@@ -24,10 +24,14 @@ inductive Global where
 
 
 def Global.repr (_ : Nat) : (a : Global) -> Std.Format
-| .data s K ctors =>
+| .data (n := n) s K ctors =>
+  let cs : Fun.Vec Std.Format n := λ i =>
+    let ctorN := (Vec.to ctors i).1
+    let ctorTy := (Vec.to ctors i).2
+    ctorN ++ " : " ++ Core.SpineTy.repr ctorTy ++ Std.Format.line
   (Std.Format.text ".data ") ++ (Std.Format.text s) ++ " : "
     ++ (K.repr max_prec) ++ (Std.Format.text " where ") ++
-    Std.Format.line ++ Std.Format.nest 4 (ctors.reprPrec 0)
+    Std.Format.nest 4  cs.to.fold_format
 | .defn n T t => ".defn " ++ n ++ " " ++ (T.repr max_prec) ++ t.repr max_prec
 | classDecl s Ks /-scs fds-/ methods =>
   ".class " ++ s ++ " : " ++ Ks.repr max_prec

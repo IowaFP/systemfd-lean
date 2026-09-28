@@ -176,7 +176,7 @@ theorem synth_coercion_term_sound :
 
 namespace Core.EqGraph.Test
 
-def CtxWf : ⊢ [] := by constructor
+theorem CtxWf : ⊢ [] := by constructor
 
 def mEG1 : Option (Core.Ppcc.EqGraph [] [★, ★, ★, ★] [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2])
   := EqGraph.process_tyenv (G := []) (Δ := [★, ★, ★, ★]) (wf := CtxWf) (Γ := [t#0 ~[★]~ t#1, t#1 ~[★]~ t#2])

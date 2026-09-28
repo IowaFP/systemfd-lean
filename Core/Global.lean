@@ -20,9 +20,9 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   let cs : Fun.Vec Std.Format n := λ i =>
     let ctorN := (Vec.to ctors i).1
     let ctorTy := (Vec.to ctors i).2
-    Std.Format.nest 4 <| ctorN ++ " : " ++ SpineTy.repr ctorTy ++ Std.Format.line
+    ctorN ++ " : " ++ SpineTy.repr ctorTy ++ Std.Format.line
   ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-      ++ "#" ++ Std.Format.paren (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
+      ++ Std.Format.nest 4 cs.to.fold_format
 | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
 | .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
 | .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line ++ t.repr max_prec
@@ -50,9 +50,9 @@ def Entry.repr (_ : Nat) : Entry -> Std.Format
   let cs : Fun.Vec Std.Format n := λ i =>
     let ctorN := (Vec.to ctors i).1
     let ctorTy := (Vec.to ctors i).2
-    Std.Format.nest 4 <| ctorN ++ SpineTy.repr ctorTy
-  ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-      ++ "#" ++ Std.Format.paren (cs.to.foldl (λ c acc => acc ++ ", " ++ Std.Format.line ++ c) Std.Format.nil)
+    ctorN ++ SpineTy.repr ctorTy
+  ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line ++
+      Std.Format.nest 4 cs.to.fold_format
 | .ctor x _ spTy => ".ctor " ++ x ++ " " ++ spTy.repr
 | .odata x K =>  ".odata " ++ x ++ " " ++ K.repr max_prec
 | .openm x spTy => ".openm " ++ x ++ " : " ++ SpineTy.repr spTy
