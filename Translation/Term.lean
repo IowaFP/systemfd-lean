@@ -135,6 +135,21 @@ def check_synth_type (G : Core.GlobalEnv) (τ : Core.Ty) : Option Unit :=
   if check_class_type G τ || is_eq_type τ then return () else none
 
 
+theorem Ty.sub_act_eq_mpr {T: Core.Ty} {σ1 σ2 : Subst Core.Ty}:
+  (∀ i : Nat, Core.Ty.from_action (σ1.act i) = Core.Ty.from_action (σ2.act i)) -> T[σ1] = T[σ2]
+:= by
+  intro h
+  induction T generalizing σ1 σ2 <;> simp
+  apply h
+  all_goals try (case _ ih1 ih2 => apply And.intro; apply ih1 h; apply ih2 h)
+  case _ ih =>
+    have lem : ∀ i : Nat, Core.Ty.from_action (σ1.lift.act i) = Core.Ty.from_action (σ2.lift.act i) := by
+      intro i; simp;
+      cases i <;> simp
+      case _ i => replace h := h i; sorry
+    replace ih := @ih σ1.lift σ2.lift lem; simp at ih; apply ih
+
+
 partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
   TM ((t : Core.Term) ×' (τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ')) := do
   Option.toTM "synth_term' check_synth type" $ check_synth_type G τ
@@ -212,29 +227,36 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                   | _ => return (Subst.id Core.Ty))
                 let σsE' : Vec (Subst Core.Ty) nc <- σsE.sequence
                 let σsE': Subst Core.Ty := σsE'.foldr (init := Subst.id Core.Ty) (λ σ acc => Subst.compose acc σ)
-                let Ts' : Vec Core.Ty nc := Ts'[σsE']
-                let ts' := Ts'.map (Core.Ty.synth_term' G Δ Γ ·)
-                let ts <- ts'.sequence
-                if h : (ts.map (λ x => x.2.1) == Ts') then
+                let Ts'' : Vec Core.Ty nc := Ts'[σsE']
+                let ts <- (Ts'.map (Core.Ty.synth_term' G Δ Γ ·)).sequence
+                -- let ts <- ts'.sequence
+                if ets : (ts.map (λ x => x.2.1) == Ts') then
                   let targs := ts.map (·.fst)
 
                   return ⟨inst! x tys' ((Vec.range nb).map (t#·))[σsE'] targs.to, R', by
                     simp at e; subst e; simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩;
-                    simp at h;
+                    subst e1; simp [Vec.beq_iff_eq] at e2; subst e2;
+                    apply Core.Typing.spctor (R' := R') (Ts' := Ts') (Ts := Ts)
+                    · apply lk
+                    · simp [Ts', σ]; apply Vec.ext_get; intro i;
+                      conv =>
+                        lhs
+                        rw [<-Vec.smap_index (i := i)]
+                      conv =>
+                        rhs
+                        rw [<-Vec.smap_index (i := i)]
+                      apply Ty.sub_act_eq_mpr;
+                      intro i; sorry
 
-                    -- apply Core.Typing.spctor (R' := R') (Ts' := Ts') (Ts := Ts)
-                    · sorry
-                    -- · apply lk
-                    -- · simp [Ts', σ]; congr; simp [tys']; grind
-                    -- · simp [R', σ]; congr; simp [tys']; grind
-                    -- · intro i; simp [tys']; simp [Vec.beq_iff_eq] at e2; subst e2;
-                    --   simp [tys''] at e3; replace e3 := Vec.traverse_eq_pure_iff_getElem_Option e3 i;
-                    --   replace e3 := Core.infer_kind_sound e3; simp [tys'] at e3;
-                    --   apply e3;
-                    -- · intro i; apply i.elim0
-                    -- · intro i; simp [targs, <-h]; simp [Vec.to_get_elem]; apply ts[i].2.2
-                    -- · simp; apply e5
-                    -- · simp; intro i hi; simp [Core.Ty.FV.reflection]; apply e4 i hi;
+                    · simp [R', σ]; sorry
+                    · simp [tys''] at e3; intro i;
+                      replace e3 := Vec.traverse_eq_pure_iff_getElem_Option e3 i;
+                      apply Core.infer_kind_sound e3
+                    · intro i; sorry
+                    · intro i; simp [<-Vec.get_to, targs]; simp at ets; simp [<-ets]; apply ts[i].2.2
+                    · simp; apply e5
+                    · simp; intro i hi; replace e4 := e4 i hi; simp [Core.Ty.FV.reflection]; apply e4
+                    · simp
                     ⟩
                 else .error "synth_term' kind checks"
               else .error ("synth_term' lookup_spine_type " ++ Std.Format.line

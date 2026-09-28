@@ -47,7 +47,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .var n => "`#" ++ Nat.repr n
 | .global (p := p) n τU τE as =>
   let as : Fun.Vec Std.Format p := λ i => Term.repr p (as i)
-  "g`#" ++ n ++ " `•ᵤ " ++ (τU.repr max_prec) ++ " `•ₑ " ++ (τE.repr max_prec) ++ " `• " ++ as.to.foldl (·++·) Std.Format.nil
+  "g`#" ++ n ++ " `•ᵤ " ++ (τU.repr max_prec) ++ " `•ₑ " ++ (τE.repr max_prec) ++ " `• " ++ as.to.fold_format
 | .app t1 t2 τ =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++ (Term.repr p t2 ++ " : " ++ τ.repr max_prec)) p
 | .appt t1 t2 =>
@@ -58,13 +58,13 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .mtch m n ss ssτ pats bs =>
   let ss' : Fun.Vec Std.Format m := λ i =>
     Term.repr max_prec (ss i)  ++ " :: " ++ Core.Ty.repr max_prec (ssτ i)
-  let ss' := ss'.to.foldl (init := Std.Format.nil) (· ++ ·)
+  let ss' := ss'.to.fold_format
   let ts : Fun.Vec Std.Format n := λ i =>
     let t := bs i
     let pat := pats i
     Std.Format.nest 4 <| Std.Format.line ++ " | "++ pat.repr ++ " -> " ++ Term.repr p t
-  let bs := ts.to.foldl (·++·) Std.Format.nil
-  Std.Format.nest 4 <| ("match " ++ ss' ++ "with" ++ Std.Format.line ++ bs)
+  let bs := ts.to.fold_format
+  Std.Format.nest 4 <| ("match " ++ ss' ++ " with " ++ bs)
 | annot t ty =>
   Std.Format.paren (Term.repr p t ++ " : " ++ repr ty)
 
