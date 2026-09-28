@@ -516,7 +516,8 @@ def Surface.Term.type_directed_translate
     let KsU <- Option.toTM "translation ctor kind check Us" (τU.map (Core.Ty.infer_kind G Δ ·)).sequence
     let KsE <- Option.toTM "translation ctor kind check Es" (τE.map (Core.Ty.infer_kind G Δ ·)).sequence
     let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
-    if h : (n == n' && m == m') && x == x' && p == p' && KsU.beq Ks1 && KsE.beq Ks2 && (R[σ].infer_kind G Δ).isEqSome (★) then
+    if h : n == n' && m == m' && x == x' && p == p' && KsU.beq Ks1 && KsE.beq Ks2 && (R[σ].infer_kind G Δ).isEqSome (★) && ((List.range n').map (·+ m')).all ((R.fv ·))
+    then
       let c <- Option.toTM (".octor synth_coercion"
             ++ "G :" ++ G.repr max_prec ++  Std.Format.line
             ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
@@ -584,12 +585,15 @@ def Surface.Term.type_directed_translate
   return t1' • t2'
 
 | .mtch m n ss τs pats bs => do
-  if gt : m > 0 && n > 0 && (Core.check_exhaustive G τs pats.to).isSome then
+  if gt : m > 0 && n > 0 && (Core.check_exhaustive G τs pats.to).isSome && (τs.to.all (Core.Ty.data? Core.DataConst.cls G)) then
     let s' : Fun.Vec (TM Core.Term) m := λ i => type_directed_translate G Δ Γ (τs i) (ss i)
     let s' <- s'.to.sequence
+    let ΔsΓs : Fun.Vec (TM (List Core.Kind × List Core.Ty)) n := (λ i => Option.toTM "match pattern_binders" $ Core.pattern_binders (.data .cls) G Δ m τs (pats i))
+    let ΔsΓs' <- ΔsΓs.to.sequence
     let b' : Fun.Vec (TM Core.Term) n := λ i => do
-      let (Δ', Γ') <- Option.toTM "match pattern_binders" $ Core.pattern_binders (.data .cls) G Δ m τs (pats i)
-      type_directed_translate G (Δ' ++ Δ) (Γ' ++ Γ⟨Ren.add Core.Ty Δ'.length⟩) (τ⟨Ren.add Core.Ty Δ'.length⟩) (bs i) -- TODO: need to shift t5 and also update Δ Γ
+      let Δ' := ΔsΓs'[i].1
+      let Γ' := ΔsΓs'[i].2
+      type_directed_translate G (Δ' ++ Δ) (Γ' ++ Γ⟨Ren.add Core.Ty Δ'.length⟩) (τ⟨Ren.add Core.Ty Δ'.length⟩) (bs i)
     let b' <- b'.to.sequence
     return .mtch m n s'.to pats b'.to
   else .error "empty pattern/scrutees"

@@ -48,6 +48,14 @@ theorem Vec.traverse_eq_pure_iff_getElem_TM {α β n v2} {f : α -> TM β} :
   simp; apply ha
   simp; simp [Vec.traverse_eq_pure_iff_getElem_TM h1]
 
+theorem Vec.map_seq_sound_TM {vs : Vec α n} {vs' : Vec β n} (f : α -> TM β) :
+  (Vec.map f vs).sequence = .ok vs' ->
+  ∀ i : Fin n, f (vs[i]) = .ok (vs'[i])
+:= by
+  intro h
+  simp at h; apply traverse_eq_pure_iff_getElem_TM h
+
+
 theorem synth_coercion_sound {G : Core.GlobalEnv} :
   Core.Ty.synth_coercion G Δ Γ A B = some t ->
   ∃ K, G&Δ, Γ ⊢ t : (A ~[K]~ B) ∧ G&Δ ⊢ A : K ∧ G&Δ ⊢ B : K
@@ -131,8 +139,8 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     rcases h3 with ⟨c, h3, h5⟩
     simp [Functor.map, Except.map_eq_ok_iff] at h5; rcases h5 with ⟨ιs, h5, h6⟩
     rcases h4 with ⟨e, h4⟩
-    rcases e with ⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩; subst e1 e2 e3 e4;
-    replace h4 := Core.infer_kind_sound h4
+    rcases e with ⟨⟨⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩, e6⟩, e7⟩; subst e1 e2 e3 e4;
+    replace e7 := Core.infer_kind_sound e7
     simp [Vec.beq_iff_eq] at e5 e6; subst e5 e6
     generalize σdef1 : (List.map su τE.list).reverse ++ (List.map su τU.list).reverse ++ Subst.id Core.Ty = σ1 at *
     generalize σdef2 : (List.map su (τU ++ τE).list).reverse ++ Subst.id Core.Ty = σ2 at *
@@ -148,7 +156,7 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     cases lk2; case _ Ks2 _ _ _ _ _ h9 h10 h11 h12 h13 =>
     subst t'
     rcases h3 with ⟨K, h3, e3, e4⟩
-    replace e3 := Core.Kinding.unique e3 h4; subst e3
+    replace e3 := Core.Kinding.unique e3 e7; subst e3
     apply Core.Typing.cast (A := R[σ1]) (K := ★) (B := τ)
     apply Core.Kinding.var (K := ★); simp;
     apply h3
@@ -182,7 +190,7 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
         simp [Vec.get_list_to_get]; simp [<-Vec.to_get_elem]
     · simp [Core.lookup_ctor?]; simp [Core.Ty.is_data] at h13; split at h13 <;> try simp at h13;
       case _ h14 => simp [h14, lk', Core.Entry.ctor?]
-    · simp; intro i h; sorry
+    · simp; intro i hi; replace h4 := h4 i hi; simp [<-Core.Ty.FV.reflection] at h4; apply h4
     · simp
     simp
 
@@ -251,44 +259,41 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     replace ih2 := ih2 h2
     subst t'
     apply Core.Typing.app ih2 ih1
-  case _ Δ _ τ m n ss τs pats bs _ lk h1 ih1 ih2 =>  -- mtch
+  case _ Δ Γ τ m n ss τs pats bs lk h1 ih1 ih2 =>  -- mtch
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨ss', h2, h3⟩
-    simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨bs, h3, h4⟩
+    simp [Functor.map, Except.map_eq_ok_iff] at h3; rcases h3 with ⟨ΔsΓs, h3, h4⟩
+    rcases h4 with ⟨bs', h4, h5⟩
     subst t'
     cases m <;> (cases n; simp at *)
     simp at lk
-    case _ m n _ =>
-    let ΔsΓs : Fun.Vec _ (n + 1) := λ i => (Core.pattern_binders (Core.SpCtorVariant.data Core.DataConst.cls) G Δ (m + 1) (τs) (pats i))
-    match h : ΔsΓs.to.sequence with
-    | none =>
-      simp [ΔsΓs] at h;
-      sorry
-    | some ΔΓ =>
-    let Δs := ΔΓ.map (·.1)
-    let Γs := ΔΓ.map (·.2)
-    apply Core.Typing.mtch (S := τs) (ss := ss'.to) (ps := pats) (ts := bs.to) (ζ := Δs.to) (ξ := Γs.to)
+    case _ m n =>
+    simp at lk; simp [Option.isSome_iff_ne_none, Option.ne_none_iff_exists] at lk;
+    rcases lk with ⟨⟨_, lk⟩, τs_ty⟩; symm at lk;
+    apply Core.Typing.mtch (S := τs) (ss := ss'.to) (ps := pats) (ts := bs'.to) (ζ := (ΔsΓs.map (·.1)).to) (ξ := (ΔsΓs.map (·.2)).to)
     · intro i; apply ih1; simp [h1] at h2; replace h1 := Vec.traverse_eq_pure_iff_getElem_TM h2 i;
       simp at h1; simp [<-Vec.to_get_elem] at h1; apply h1
-    · intro i; simp [ΔsΓs] at h;
-      sorry
+    · intro i;
+      simp [<-Vec.get_to]; simp [Vec.all_eq_true] at τs_ty;
+      replace τs_ty := τs_ty (Fun.Vec.to τs)[i] Vec.getElem_mem; apply τs_ty
     · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
-      simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
-      rcases h3 with ⟨Δ', Γ', h3, h4⟩
-      replace h := Vec.seq_sound1 (vs := pats) (f := _) h i;
-      rw[h] at h3; simp at h3; simp [<-Vec.get_to] at h3;
-      replace h2 := Core.pattern_binders_sound h
-      simp [Δs, Γs, <-Vec.get_to]; simp [<-Vec.get_to] at h2; apply h2
-    · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
-      simp [<-Vec.to_get_elem] at h3; simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h3;
-      rcases h3 with ⟨Δ', Γ', h3, h4⟩
+      simp [<-Vec.to_get_elem] at h3; simp [Option.toTM_some_eq_ok_iff] at h3;
       replace h2 := Core.pattern_binders_sound h3
-      replace ih2 := @ih2 i Δ' Γ' (bs.to i) h4;
-      replace h := Vec.seq_sound1 (vs := pats) (f := _) h i;
-      rw[h] at h3; simp at h3; simp [<-Vec.get_to] at h3;
-      simp [Δs, Γs, Vec.to_get_elem, h3]; simp [<-Vec.get_to] at ih2
-      apply ih2
-    intro q h; simp at lk; simp [Option.isSome_iff_ne_none, Option.ne_none_iff_exists] at lk;
-    rcases lk with ⟨_, lk⟩; symm at lk;
+      simp [<-Vec.get_to] at h2; simp [<-Vec.get_to]; apply h2
+    · intro i; replace h3 := Vec.traverse_eq_pure_iff_getElem_TM h3 i; simp at h3;
+      simp [<-Vec.to_get_elem] at h3; simp [Option.toTM_some_eq_ok_iff] at h3;
+      replace h3 := Core.pattern_binders_sound h3
+      simp [<-Vec.get_to]
+      simp [<-Vec.get_to] at h4
+      simp at ih2;
+      replace ih2 := @ih2 ΔsΓs i (bs'.to i); simp [<-Vec.get_to] at ih2
+      apply ih2; clear ih2
+      generalize fdef : (λ i : Fin (n + 1) =>
+        (Surface.Term.type_directed_translate G (ΔsΓs[i].fst ++ Δ) (ΔsΓs[i].snd ++ Γ⟨Ren.add Core.Ty ΔsΓs[i].fst.length⟩)
+          τ⟨Ren.add Core.Ty ΔsΓs[i].fst.length⟩ (bs.to)[i])) = f at *
+      have lem := Vec.map_seq_sound_TM (vs := Fun.Vec.to f) (vs' := bs') (f := λ x => x) (h4 |> cast (by simp)) i
+      simp [<-fdef] at lem; simp [<-Vec.to_get_elem] at lem; simp [<-Vec.get_to] at lem;
+      apply lem
+    intro q h;
     have lem := Core.pattern_exhaustive_sound (ps := pats.to) wf h lk
     simp [Vec.get_to] at lem; apply lem
 
