@@ -51,12 +51,34 @@ inductive SynthTerm (G : GlobalEnv) (Δ : KindEnv) : TyEnv -> Kind -> Ty -> Term
   (∀ i : Fin nc, SynthTerm G Δ (Bs.list ++ As.list ++ Γ) Ks[i] Ts[i] Cs[i]) ->
   SynthTerm G Δ Γ K R' (inst! x As Bs ts)
 | inst {x : String}
-  {As : Vec Ty na} {Bs : Vec Ty nb} {Ks : Vec Kind nc} {Cs : Vec Term nc} :
+  {As : Vec Ty na} {Bs : Vec Ty nb} {Ks : Vec Kind nc} {Cs : Vec Term nc} {R' R : Ty} :
+  -- R' = R[(As.list ++ Bs.list).reverse ++ Subst.id Core.Ty] ->
   lookup x G = some (.octor x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
   (∀ i : Fin na, G&Δ ⊢ As[i] : Ks1[i]) -> -- conjure universal tys
   (∀ i : Fin nb, G&Δ ⊢ Bs[i] : Ks2[i]) -> -- conjure existential tys
-  (∀ i : Fin nc, SynthTerm G Δ (Bs.list ++ As.list ++ Γ) Ks[i] Ts[i] Cs[i]) ->
-  SynthTerm G Δ Γ K R' (inst! x As Bs ts)
+  (∀ i : Fin nc, SynthTerm G Δ Γ Ks[i] Ts[i] Cs[i]) ->
+  SynthTerm G Δ Γ K R' (inst! x As Bs Cs.to)
+
+theorem Vec.sum_le {e : Core.Term} {vs : Vec Core.Term n}:
+  e ∈ vs ->
+  e.size < (vs.map (·.size)).sum + 1
+:= by
+  intro h
+  induction h
+  simp; omega
+  case _ ih => simp; omega
+
+theorem Vec.fun_sum_le {e : Core.Term} {vs : Fun.Vec Core.Term n}:
+  e ∈ vs.to ->
+  e.size < (Fun.Vec.to (Core.Term.size <$> vs)).sum + 1
+:= by
+  intro h
+  replace h := Vec.sum_le h
+  have lem : (Vec.map (fun x => x.size) vs.to) = (Fun.Vec.to (Core.Term.size <$> vs)) := by
+    apply Vec.ext_get; intro i
+    simp [Vec.get_to]
+  simp [<-lem]; apply h
+
 
 theorem synth_type_sound (wf : ⊢ G):
   SynthTerm G Δ Γ K T c ->
@@ -78,7 +100,35 @@ theorem synth_type_sound (wf : ⊢ G):
     replace lem := terms_have_star_types wf lem
     cases lem; assumption
   · simp
+| .inst (Cs := Cs) j1 j2 j3 j4 => by
+
+  replace j1 := EntryWf.from_lookup wf j1
+  cases j1; case _ j1 _ =>
+  cases j1; case _ h1 h2 h3 h4 h5 =>
+  apply Typing.spctor
+  sorry
+  sorry
+  sorry
+  apply j2
+  apply j3
+  · intro i; replace j4 := j4 i;
+    have e : Cs.to i = Cs[i] := by apply Vec.to_get_elem
+    rw [<-e] at j4; replace j4 := synth_type_sound wf j4; apply j4
+  · simp; sorry
+  · simp; sorry
+  simp
+  sorry
+  sorry
+
+| .global _ _ _ _ => sorry
 | _ => sorry
+
+termination_by
+  c.size
+decreasing_by
+  subst e; simp
+  simp; apply Vec.fun_sum_le; simp [<-Vec.get_to]; apply Vec.getElem_mem
+
 
 
 def EqGraph.process_ty (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
