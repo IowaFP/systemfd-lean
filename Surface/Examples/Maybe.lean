@@ -38,13 +38,11 @@ def mbenv : GlobalEnv := [
 
 #eval mbenv
 -- #eval!  Translation.translate_SI mbenv
-#eval! do
-  let benv' <- (Translation.translate_SI mbenv)
-  Translation.translate_IC benv'
-
 def Γ := do
   let benv' <- (Translation.translate_SI mbenv)
   Translation.translate_IC benv'
+
+#eval! Γ
 
 #guard (do let Γ <- Γ
            return Γ.wf_globals) == .ok ()

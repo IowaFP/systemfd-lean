@@ -32,7 +32,9 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   (Std.Format.text ".data ") ++ (Std.Format.text s) ++ " : "
     ++ (K.repr max_prec) ++ " where" ++ Std.Format.line ++
     Std.Format.nest 4  (Std.Format.align true ++ cs.to.fold_format)
-| .defn n T t => ".defn " ++ n ++ " " ++ (T.repr max_prec) ++ t.repr max_prec
+| .defn n T t =>
+  ".defn " ++ n ++ " " ++ (T.repr max_prec)
+  ++ Std.Format.nest 4 (Std.Format.align true ++ t.repr max_prec)
 | classDecl s Ks /-scs fds-/ methods =>
   ".class " ++ s ++ " : " ++ Ks.repr max_prec
     -- ++ "|"  ++ scs.repr max_prec
