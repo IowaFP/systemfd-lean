@@ -21,11 +21,13 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
     let ctorN := (Vec.to ctors i).1
     let ctorTy := (Vec.to ctors i).2
     ctorN ++ " : " ++ SpineTy.repr ctorTy ++ Std.Format.line
-  ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line
-      ++ Std.Format.nest 4 cs.to.fold_format
+  ".data " ++ s ++ " : " ++ Kind.repr max_prec K ++ " where " ++ Std.Format.line ++
+      Std.Format.nest 4 (Std.Format.align true ++ cs.to.fold_format)
 | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
 | .openm n ty => ".openm " ++ n ++ " : " ++ SpineTy.repr ty
-| .defn n T t => ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line ++ t.repr max_prec
+| .defn n T t =>
+  ".defn " ++ n ++ " " ++ T.repr max_prec ++ Std.Format.line
+  ++ Std.Format.nest 4 (Std.Format.align true ++ t.repr max_prec)
 | .inst n p t => ".inst " ++ n ++ " " ++ p.repr ++ " => " ++ t.repr max_prec
 | .octor n ty => ".octor " ++ n ++ " " ++ SpineTy.repr ty
 
@@ -51,8 +53,8 @@ def Entry.repr (_ : Nat) : Entry -> Std.Format
     let ctorN := (Vec.to ctors i).1
     let ctorTy := (Vec.to ctors i).2
     ctorN ++ SpineTy.repr ctorTy
-  ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ Std.Format.line ++
-      Std.Format.nest 4 cs.to.fold_format
+  ".data " ++ x ++ " : " ++ Kind.repr max_prec K ++ " where " ++ Std.Format.line ++
+      Std.Format.nest 4 (Std.Format.align true ++ cs.to.fold_format)
 | .ctor x _ spTy => ".ctor " ++ x ++ " " ++ spTy.repr
 | .odata x K =>  ".odata " ++ x ++ " " ++ K.repr max_prec
 | .openm x spTy => ".openm " ++ x ++ " : " ++ SpineTy.repr spTy

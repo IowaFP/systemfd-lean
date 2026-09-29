@@ -86,7 +86,7 @@ def Core.Ty.synth_coercion (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.T
 
 
 -- should satisfy the property if Core.Ty.ty_match n τ1 τ2 = some σ -> τ1[σ] = τ2
--- all variables above n are untouchables
+-- all variables above n are untouchables as they are bound
 def Core.Ty.ty_match (n : Nat) : (τ1 τ2 : Core.Ty) -> Option (Subst Core.Ty)  -- τ1 is the template, τ2 is the "ground" term
 | t#v, τ =>
   if v < n then
@@ -135,19 +135,27 @@ def check_synth_type (G : Core.GlobalEnv) (τ : Core.Ty) : Option Unit :=
   if check_class_type G τ || is_eq_type τ then return () else none
 
 
+theorem Ty.add_sur {T1 T2 : Core.Ty} (r : Ren Core.Ty) : T1 = T2 -> T1⟨r⟩ = T2⟨r⟩
+  := by intro h; subst h; simp
+
 theorem Ty.sub_act_eq_mpr {T: Core.Ty} {σ1 σ2 : Subst Core.Ty}:
-  (∀ i : Nat, Core.Ty.from_action (σ1.act i) = Core.Ty.from_action (σ2.act i)) -> T[σ1] = T[σ2]
+  (∀ i : Nat,  (σ1.act i) = (σ2.act i)) -> T[σ1] = T[σ2]
 := by
   intro h
   induction T generalizing σ1 σ2 <;> simp
-  apply h
+  case _ i => replace h := h i; simp [h]
   all_goals try (case _ ih1 ih2 => apply And.intro; apply ih1 h; apply ih2 h)
   case _ ih =>
-    have lem : ∀ i : Nat, Core.Ty.from_action (σ1.lift.act i) = Core.Ty.from_action (σ2.lift.act i) := by
+    have lem : ∀ i : Nat, (σ1.lift.act i) = (σ2.lift.act i) := by
       intro i; simp;
       cases i <;> simp
-      case _ i => replace h := h i; sorry
-    replace ih := @ih σ1.lift σ2.lift lem; simp at ih; apply ih
+      case _ i =>
+      replace h := h i; apply congrArg;
+      generalize z1def : σ1.act i = z1 at *
+      generalize z2def : σ2.act i = z2 at *
+      subst h; simp
+    replace ih := @ih σ1.lift σ2.lift (by intro i; replace lem := lem i; apply lem); simp at ih; apply ih
+
 
 
 partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
@@ -212,14 +220,14 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
 
         | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
           let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine -- τ = C τs
-          let ⟨na' , tys'⟩ := Vec.from_list tys
-          if e : na == na' then
-            let σ : Subst Core.Ty := (((List.range nb).map (t#·)).reverse.map su)  ++ tys.reverse.map su ++ Subst.id Core.Ty
+          let vec_tys := Vec.from_list tys⟨Ren.add Core.Ty (na + nb)⟩
+          if e : na == vec_tys.1 then
+            let σ : Subst Core.Ty := (((List.range nb).map (t#·)).reverse.map su)  ++ vec_tys.2.list.reverse.map su ++ Subst.id Core.Ty
             let R' := R[σ]
-            let tys'' := (tys'.map (Core.Ty.infer_kind G Δ ·)).sequence
+            let tys'' := (vec_tys.2.map (Core.Ty.infer_kind G Δ ·)).sequence
             let Ks1' <- Option.toTM "synth_term' infer tys kinds" $ tys''
-            if h : τ == R' && Ks1'.beq Ks1 && tys''.isEqSome (Ks1')
-                   && ((List.range na').map (·+ nb)).all ((R.fv ·)) && Core.lookup_ctor? G Core.DataConst.opn x R
+            if h : τ == R' && Ks1.beq Ks1' && tys''.isEqSome (Ks1')
+                   && ((List.range vec_tys.1).map (·+ nb)).all ((R.fv ·)) && Core.lookup_ctor? G Core.DataConst.opn x R
               then
                 let Ts' := Ts[σ]
                 let σsE := Ts'.map (λ τ => match τ with
@@ -229,46 +237,46 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                   | _ => return (Subst.id Core.Ty))
                 let σsE' : Vec (Subst Core.Ty) nc <- σsE.sequence
                 let σsE'': Subst Core.Ty := σsE'.foldr (init := Subst.id Core.Ty) (λ σ acc => Subst.compose acc σ)
+
+
                 let Ts'' : Vec Core.Ty nc := Ts'[σsE'']
                 let ts <- (Ts''.map (Core.Ty.synth_term' G Δ Γ ·)).sequence
-                -- let ts <- ts'.sequence
+
                 if ets : (ts.map (λ x => x.2.1) == Ts'') then
                   let targs := ts.map (·.fst)
+                  let ks2check := ((((((Vec.range nb).map (t#·)).map (smap σsE'' ·))).map (λ x => x.infer_kind G Δ)).sequence)
 
-                  return ⟨inst! x tys' ((Vec.range nb).map (t#·))[σsE''] targs.to, R', by
-                    simp at e; subst e; simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩;
-                    subst e1; simp [Vec.beq_iff_eq] at e2; subst e2;
-                    apply Core.Typing.spctor (R' := R') (Ts' := Ts'') (Ts := Ts)
-                    · apply lk
-                    · simp [Ts'', Ts', σ]; apply Vec.ext_get; intro i;
-                      conv =>
-                        lhs
-                        rw [<-Vec.smap_index (i := i)]
-                      conv =>
-                        rhs
-                        rw [<-Vec.smap_index (i := i)]
-                      apply Ty.sub_act_eq_mpr;
-                      intro i; apply congrArg; simp [Subst.act]; apply congr;
-                      apply congrArg; sorry;
-                      rfl
-
-                    · simp [R', σ]; sorry
+                  -- what if i am just lazy and check for the things that i need
+                  -- ideally there should be a "correct-by-construction" way for showing σsE is appropriately built
+                  if eqs : R' ==  R[List.map su (vec_tys.snd.list ++ (Vec.map (fun x => t#x) (Vec.range nb))[σsE''].list).reverse ++ Subst.id Core.Ty]
+                           && Ts'' == Ts[List.map su (vec_tys.snd.list ++ (Vec.map (fun x => t#x) (Vec.range nb))[σsE''].list).reverse ++ Subst.id Core.Ty]
+                           && ks2check.isEqSome Ks2
+                  then
+                    return ⟨inst! x vec_tys.2 ((Vec.range nb).map (t#·))[σsE''] targs.to, R', by
+                    simp at e; simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩; simp at eqs; rcases eqs with ⟨⟨eqs1, eqs2⟩, eqs3⟩
+                    subst e1; have e1 := Vec.len_eq_if_beq e2; have e6 := Vec.eq_of_beq e2
+                    apply Core.Typing.spctor (R' := R') (Ts' := Ts'') (Ts := Ts) (R := R) (Ks2 := Ks2) (Ks1 := Ks1')
+                    · rw[lk]; simp; apply And.intro; apply e; congr; apply Vec.heq_if_beq; apply e2
+                    · simp; apply eqs2;
+                    · simp; apply eqs1
                     · simp [tys''] at e3; intro i;
                       replace e3 := Vec.traverse_eq_pure_iff_getElem_Option e3 i;
                       apply Core.infer_kind_sound e3
-                    · intro i; simp [<-Vec.smap_index, σsE'']; sorry
+                    · intro i; simp [ks2check] at eqs3; replace eqs3 := Vec.traverse_eq_pure_iff_getElem_Option eqs3 i;
+                      replace eqs3 := Core.infer_kind_sound eqs3; simp [<-Vec.map_map] at eqs3; apply eqs3
                     · intro i; simp [<-Vec.get_to, targs]; simp at ets; simp [Ts'', Ts'] at ets; simp [Ts'', Ts', <-ets]; apply ts[i].2.2
                     · simp; apply e5
                     · simp; intro i hi; replace e4 := e4 i hi; simp [Core.Ty.FV.reflection]; apply e4
                     · simp
                     ⟩
+                  else .error "synth_term' eqs checks failed"
                 else .error "synth_term' kind checks"
               else .error ("synth_term' lookup_spine_type " ++ Std.Format.line
                           ++ "(cls, tys) :"  ++ cls ++ " " ++ tys.repr max_prec ++ Std.Format.line
                           ++ "τ = R': " ++ τ.repr max_prec ++ " =?= "++ R'.repr max_prec ++ Std.Format.line
                           ++ "Ks1' = Ks1: "  ++ Ks1'.repr max_prec ++ " =?= "++ Ks1.repr max_prec ++ Std.Format.line
                           ++ "tys'' = Ks1: " ++ tys''.repr max_prec ++ " =?= "++ Ks1.repr max_prec ++ Std.Format.line
-                          ++ "fvs: " ++ R.repr max_prec ++ " " ++ (((List.range na').map (· + nb)).all ((R.fv ·))).repr max_prec ++ Std.Format.line
+                          ++ "fvs: " ++ R.repr max_prec ++ " " ++ (((List.range na).map (· + nb)).all ((R.fv ·))).repr max_prec ++ Std.Format.line
                           ++ "R head: " ++ (Core.lookup_ctor? G Core.DataConst.opn x R).repr max_prec
                           )
 

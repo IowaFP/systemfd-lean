@@ -1062,4 +1062,31 @@ where
   | _, .cons x xs => x ++ ", " ++ go xs
 
 
+theorem Vec.len_eq_if_beq [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h : v1.beq v2) -> m = n := by
+  intro h;
+  match n, v1, v2 with
+  | 0, .nil, .nil => rfl
+  | n + 1, .cons x xs , .cons y ys =>
+    unfold Vec.beq at h; simp at *;
+    rcases h with ⟨h1, h2⟩; apply Vec.len_eq_if_beq h2;
+
+theorem Vec.heq_if_beq [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h : v1.beq v2) -> v1 ≍ v2 := by
+  intro h
+  match n, v1, v2 with
+  | 0, .nil, _ =>
+    unfold Vec.beq at h; split at h <;> try simp at h;
+    simp; contradiction
+  | n + 1, .cons x xs , .cons y ys =>
+    unfold Vec.beq at h; simp at h; rcases h with ⟨e1, h⟩; subst e1
+    have h1 := Vec.heq_if_beq h
+    have h2 := Vec.len_eq_if_beq h
+    congr;
+    symm; apply h2
+
+theorem Vec.eq_of_beq [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (h : v1.beq v2) -> v1 = (v2 |> cast (by have lem := Vec.len_eq_if_beq h; subst lem; simp))
+:= by
+  intro h
+  have lem1 := Vec.len_eq_if_beq h
+  subst lem1; simp; simp [Vec.beq_iff_eq] at h; apply h
+
 end Lilac
