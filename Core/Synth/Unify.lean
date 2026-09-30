@@ -44,6 +44,7 @@ partial def unify' : (t u : Ty) -> Option (Subst Ty)
 | _, _ => none
 
 
+/-- Contains 2 things, the unprocessed equalties, and the coercion itself -/
 structure UnifyState where
   subst : Subst Core.Ty
   equations : List (Ty × Ty)
@@ -56,8 +57,6 @@ def eqnSize : List (Ty × Ty) -> Nat
 
 def UnifyState.size : UnifyState -> Nat
 | ⟨_, eqns⟩ => eqnSize eqns
-
-
 
 
 -- Performs one step of unification
@@ -75,6 +74,7 @@ def unifyStep (u : UnifyState) : Option UnifyState :=
   | .cons (.eq k1 x1 y1, .eq k2 x2 y2) eqs =>
     if k1 == k2 then return ⟨u.subst, (x1, x2) :: (y1, y2) :: eqs⟩ else none
   | _ => none
+
 
 
 
