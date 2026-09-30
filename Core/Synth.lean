@@ -377,6 +377,45 @@ def test9 := do
 
 end Core.EqGraph.Test
 
+def List.unique_pairs {α : Type u} : List α -> List (α × α)
+| [] => []
+| .cons x xs => xs.map ( (x, ·) ) ++ unique_pairs xs
+
+#eval List.unique_pairs [1,2,3]
+
+-- Checks whether the eqns in Γ give rise to an inconsistent context
+def isNotConsistent (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : Ppcc.EqGraph G Δ Γ)
+: Option ((T1 : Ty) ×' (T2 : Ty) ×' (K : Kind) ×' (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) :=
+  let gts := G.flatMap (λ g =>
+    match g with
+    | .data _ s _ _ => [gt#s]
+    | _ => [])
+
+  let ps := List.unique_pairs gts
+
+  let ps' : List (Unit ⊕' ((T1 : Ty) ×' (T2 : Ty) ×' (K : Kind) ×' (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)))
+    := ps.map (λ (x, y) => match x.infer_kind G Δ, y.infer_kind G Δ with
+      | some K1, some K2 =>
+        if h : K1 == K2 then
+          by simp at h; subst h
+             match eG.ask G wf Δ Γ K1 x y with
+             | some ⟨t, j⟩ => apply (PSum.inr ⟨x, y, K1, t, j⟩)
+             | none => apply PSum.inl ()
+        else .inl ()
+      | _, _ => .inl ())
+
+  match ps'.findIdx? (λ x => match x with  | .inr _ => true  | .inl () => false ) with
+  | some i =>
+    match ps'[i]? with
+    | some (.inr t) => t
+    | _ => none
+  | none => none
+
+  -- sorry
+
+
+
+
 
 def Ty.ford (G : GlobalEnv) (Δ : KindEnv) (τ : Ty): Option SpineTy := do
   let (x, tys) <- τ.spine

@@ -69,6 +69,7 @@ theorem Kinding.vec_list_getElem {n : Nat} {As : Vec Ty n} {Ks : Vec Kind n} :
   replace h := h j'
   rw [<-Vec.get_list_to_get hj] at h; rw [<-Vec.get_list_to_get hj] at h; apply h
 
+
 theorem Kinding.beta_many {Δ' : List Kind} {t : List Ty} (h : t.length = Δ'.length):
   G&(Δ' ++ Δ) ⊢ A : K ->
   (∀ i, (h : i < t.length) -> G&Δ ⊢ t[i] : Δ'[i]) ->

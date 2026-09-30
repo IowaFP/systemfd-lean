@@ -311,7 +311,7 @@ theorem type_directed_translation_soundness {G : Core.GlobalEnv} (wf : ⊢ G) :
     · simp
 
 
-
+#print axioms type_directed_translation_soundness
 
 end Translation
 
