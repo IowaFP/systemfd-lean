@@ -576,4 +576,87 @@ theorem GlobalWf.index_instance {i : Nat} :
       apply PatternBinders.weaken_global wf' j2
       apply Typing.weaken_global wf' j3
 
+theorem lookup_append_some {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2)): -- needs wf in data constructor case
+  Core.lookup x (G1 ++ G2) = some e ->
+  Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
+:= by
+  intro h1
+  induction G1 generalizing G2 x
+  · apply Or.inr;
+    simp [Core.lookup] at *;
+    have lem : [] ++ G2 = G2 := by apply List.nil_append
+    apply h1
+  case _ hd tl ih => -- data
+    have leme : hd :: tl ++ G2 = hd :: (tl ++ G2) := by apply List.cons_append
+    rw[leme] at h1;
+    cases wf; case _ wftl wfhd =>
+    cases hd <;> simp [lookup] at h1
+    case _ n s k ctors =>
+      cases wfhd; case _ c1 c2 c3 =>
+      split at h1
+      case _ e => subst e; simp at h1; subst e; apply Or.inl; simp [lookup]
+      case _ =>
+        have lem : (x = s) = False := by grind
+        simp [lookup, ite_cond_eq_false (h := lem)]
+        replace h1 := Vec.foldr_or h1
+        cases h1
+        case _ h =>
+          rcases h with ⟨i, h⟩; apply Or.inl;
+          replace c3 := c3 i ctors[i].1 ctors[i].2 rfl
+          rcases c3 with ⟨c3a, c3b, c3c⟩;
+          simp at h; rw[<-h.1] at c3c; simp [lookup_append_none] at c3c; rcases c3c with ⟨c3c, c3d⟩
+          rw [c3c]; simp [Vec.foldr_or_none_default]; exists i; apply And.intro; apply h
+          intro j hi; rw[h.1]; apply c2 i j; grind
+        case _ h1 =>
+          replace ih := ih wftl h1.2
+          cases ih
+          case _ e =>
+            rcases h1 with ⟨h1, h2⟩; apply Or.inl; simp [e];
+            simp [Vec.foldr_or_val_some]; apply Or.inr
+            generalize zdef : Vec.map (fun (x_1 : (String × Core.SpineTy) × Nat) =>
+                       if x = x_1.1.fst then some (Entry.ctor x_1.1.fst x_1.snd x_1.1.snd) else none) ctors.zipIdx = z at h1
+            intro i h;
+            have lem : z[i] = z[i] := by rfl
+            conv at lem  =>
+               lhs
+               rw[<-zdef]
+            simp [h] at lem;
+            replace h1 := h1 z[i] Vec.getElem_mem; simp [<-lem] at h1
+          case _ ih =>
+            rcases ih with ⟨ih1, ih2⟩; rw[ih1];
+            apply Or.inr; apply And.intro; simp [Vec.foldr_or_val_eq_none];
+            · intro v v_in_vs; clear lem; clear c1; clear c2
+              replace v_in_vs := Vec.getElem_of_mem v_in_vs
+              rcases v_in_vs with ⟨i, v_in_vs⟩; simp at v_in_vs;
+              replace c3 := c3 i ctors[i].fst ctors[i].snd rfl
+              split at v_in_vs;
+              subst x; simp at *; subst v; rcases c3 with ⟨_, _, c3⟩; exfalso;
+              simp [c3] at h1;
+              symm; apply v_in_vs
+            · apply ih2
+    all_goals try (case _ s _ => -- odata, openm
+      split at h1;
+      case _ e => subst e; simp at h1; subst e; apply Or.inl; simp [lookup]
+      case _ =>
+        have lem : (x = s) = False := by grind
+        simp [lookup, ite_cond_eq_false (h := lem)]
+        apply ih wftl h1)
+    case _ s _ _ => -- defn, inst
+      cases wfhd;
+      split at h1;
+      case _ e => subst e; simp at h1; subst e; apply Or.inl; simp [lookup]
+      case _ =>
+        have lem : (x = s) = False := by grind
+        simp [lookup, ite_cond_eq_false (h := lem)]
+        apply ih wftl h1
+    case _ s _ _ => -- inst
+        simp [lookup]
+        apply ih wftl h1
+
+theorem lookup_append_some_iff {G1 G2 : List Global} {e : Entry} (wf : ⊢ (G1 ++ G2)): -- needs wf in data constructor case
+  Core.lookup x (G1 ++ G2) = some e <->
+  Core.lookup x G1 = some e ∨ (Core.lookup x G1 = none ∧ Core.lookup x G2 = some e)
+:= ⟨lookup_append_some wf, lookup_append_some_mpr⟩
+
+
 end Core

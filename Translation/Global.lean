@@ -92,7 +92,7 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
       let ⟨C'', _⟩ <- Option.toTM "mk_inst_mth R.spine" T.spine
       if
         (C'' == C &&  -- check that iname belongs to T type
-        (iname == iname' && C' == C)) then
+        (iname == iname' && C' == C) && nb == 0) then
       return ⟨1, #(⟨iname, 1, #(t#0), nbi, nci⟩), tm⟩
       else .error "mk_inst_mth_SI"
     | _ => .error "mk_inst_mth_SI iname lookup"

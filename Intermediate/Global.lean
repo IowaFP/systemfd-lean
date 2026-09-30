@@ -133,7 +133,7 @@ def lookup (x : String) : GlobalEnv -> Option Entry
 -- | .cons (.openm y a) tl =>
 --   if x == y then return .openm y a else lookup x tl
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) tl =>
-  if x == iname then return (.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩)
+  if x == iname then return (.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats ((List.range k1).map (·+k2)).reverse⟩)
   else lookup x tl
 -- | .cons (.octor y a) tl =>
 --   if x == y then return .octor y a else lookup x tl

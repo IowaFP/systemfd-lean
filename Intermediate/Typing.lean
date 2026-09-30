@@ -87,7 +87,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | inst {mτs : List (String × Core.SpineTy)} {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}:
   lookup x G = none ->
   lookup cls_name G = some (.odata cls_name K mτs) ->
-  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
   (e : mτs.length = mths_impl.length) ->
   (∀ i : Nat, (hi : i < mths_impl.length) ->
     ((mτs[i]).1 = mths_impl[i].1) ∧
@@ -122,16 +122,32 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
           apply ih; grind
-      case classDecl T b y j1 j2 =>
-        sorry
-        -- simp [lookup]; split
-        -- case _ e => subst e; rw [ih] at j2; injection j2
-        -- case _ e => exact ih
+      case classDecl s _ na T b y j1 j2 =>
+        simp [lookup]; split
+        case _ e => subst e; simp [ih] at y
+        case _ e =>
+          split <;> simp at *
+          apply ih
+          split <;> simp at *
+          case _ i h _ s' spTy' h1 =>
+            exfalso; simp [List.findIdx?_eq_some_iff_getElem] at h;
+            rcases h with ⟨h, p1, p2⟩
+            simp [List.getElem?_eq_getElem h] at h1
+            simp [h1] at p1; subst p1
+            replace j2 := j2 i x spTy'.2.2.2.2.2.2 ((gt#x).mkApps_nats (List.range na).reverse)
+                             ((List.range na).reverse.map (t#·)) h sorry sorry;
+            rcases j2 with ⟨_, _, j2,_⟩; simp [ih] at j2
+          apply ih
+
       case defn T b t' y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j2; simp at j2
         case _ e => exact ih
-      case inst y T t' j1 j2 => simp [lookup]; sorry; -- exact ih
+      case inst y T t' j1 j2 =>
+        simp [lookup];
+        split;
+        case _ e => subst e; simp [ih] at t'
+        apply ih
 
 
 theorem lookup_weaken {G : GlobalEnv} (wf : ⊢ (g::G)) : lookup x G = some e -> lookup x (g::G) = some e := by
@@ -207,7 +223,32 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
   ⊢ G ->
   lookup x G = some e ->
   EntryWf G e
-:= by sorry
+:= by
+  intro wf h
+  fun_induction lookup <;> try simp at h
+  · subst h;
+    cases wf; case _ wftl wfhd =>
+    cases wfhd; case _ q1 q2 q3 =>
+    constructor;
+    simp [lookup]
+  · sorry
+  · subst h
+    cases wf; case _ e wftl wfhd =>
+    have wfhd' := wfhd
+    simp at e; subst e
+    cases wfhd; case _ =>
+    constructor;
+    case _ j =>
+      apply Kinding.weaken_global (by constructor; apply wfhd'; apply wftl) j
+    simp [lookup]
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+
   -- intro wf h
   -- fun_induction lookup
   -- any_goals try
@@ -293,6 +334,88 @@ theorem lookup_none_ctor? {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
   cases lem1; case _ Δ c2 c3 c4 c5 c6 =>
   subst Δ;
   unfold Ty.data? at c6; simp [h3, is_data, h1] at c6;
+
+
+theorem Query.opn_strengthen_ctor {Γ : Intermediate.GlobalEnv}
+  (wf : ⊢ (Intermediate.Global.data ⟨s, K, ⟨n, ctors⟩⟩ :: Γ)) :
+  Intermediate.Query ((Intermediate.Global.data ⟨s, K, ⟨n, ctors⟩⟩ :: Γ)) Core.DataConst.opn q Ts ->
+  Intermediate.Query Γ Core.DataConst.opn q Ts
+:= by
+  intro h
+  induction h
+  case _ => apply VecTyping.nil
+  case _ h1 h2 ih =>
+    apply VecTyping.cons
+    simp [Intermediate.lookup_ctor?] at h1;
+    split at h1 <;> try simp at h1;
+    case _ bsp =>
+      simp [Intermediate.lookup_ctor?]; simp [bsp];
+      simp[Option.getD_eq_iff] at h1; rcases h1 with ⟨ent, lk, h1⟩; simp [Intermediate.lookup] at lk;
+      cases wf; case _ wftl wfhd =>
+      cases wfhd
+      split at lk
+      case _ e => subst e; cases lk; case _ lk _ => exfalso; simp [Intermediate.Entry.ctor?] at h1
+      replace lk := Vec.foldr_or lk;
+      cases lk
+      case _ lk =>
+        exfalso
+        rcases lk with ⟨i, lk⟩
+        cases ent <;> simp at *
+        simp [Intermediate.Entry.ctor?] at h1
+      case _ e => simp [e]; apply h1
+    apply ih
+
+
+theorem Query.opn_strengthen_defn {Γ : Intermediate.GlobalEnv}
+  (wf : ⊢ (Intermediate.Global.defn ⟨s, T, t⟩ :: Γ)) :
+  Intermediate.Query ((Intermediate.Global.defn ⟨s, T, t⟩ :: Γ)) Core.DataConst.opn q Ts ->
+  Intermediate.Query Γ Core.DataConst.opn q Ts
+:= by
+  intro h
+  induction h
+  case _ => apply VecTyping.nil
+  case _ h1 h2 ih =>
+    apply VecTyping.cons
+    simp [Intermediate.lookup_ctor?] at h1;
+    split at h1 <;> try simp at h1;
+    case _ bsp =>
+      simp [Intermediate.lookup_ctor?]; simp [bsp];
+      simp[Option.getD_eq_iff] at h1; rcases h1 with ⟨ent, lk, h1⟩; simp [Intermediate.lookup] at lk;
+      cases wf; case _ wftl wfhd =>
+      cases wfhd
+      split at lk
+      case _ e => subst e; cases lk; case _ lk _ => exfalso; simp [Intermediate.Entry.ctor?] at h1
+      simp [lk]; apply h1
+    apply ih
+
+
+
+theorem Query.opn_strengthen_class {Γ : Intermediate.GlobalEnv}
+  (wf : ⊢ (Intermediate.Global.classDecl ⟨s, n, K, fds, scs, mths⟩ :: Γ)) :
+  Intermediate.Query ((Intermediate.Global.classDecl ⟨s, n, K, fds, scs, mths⟩ :: Γ)) Core.DataConst.opn q Ts ->
+  Intermediate.Query Γ Core.DataConst.opn q Ts
+:= by
+  intro h
+  induction h
+  case _ => apply VecTyping.nil
+  case _ h1 h2 ih =>
+    apply VecTyping.cons
+    simp [Intermediate.lookup_ctor?] at h1;
+    split at h1 <;> try simp at h1;
+    case _ bsp =>
+      simp [Intermediate.lookup_ctor?]; simp [bsp];
+      simp[Option.getD_eq_iff] at h1; rcases h1 with ⟨ent, lk, h1⟩; simp [Intermediate.lookup] at lk;
+      cases wf; case _ wftl wfhd =>
+      cases wfhd
+      split at lk
+      case _ e => subst e; cases lk; case _ lk _ => exfalso; simp [Intermediate.Entry.ctor?] at h1
+      split at lk
+      simp[lk]; apply h1
+      case _ lk1 =>
+      split at lk;
+      cases lk; simp [Intermediate.Entry.ctor?] at h1
+      simp [lk]; apply h1
+    apply ih
 
 
 end Intermediate

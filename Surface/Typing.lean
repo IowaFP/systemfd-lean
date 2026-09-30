@@ -114,7 +114,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
   lookup cls_name G = some (.odata cls_name K mτs) ->
-  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range na).reverse⟩ ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats ((List.range na).map (·+ nb)).reverse⟩ ->
   -- Cover all methods
   (e : mτs.length = ts.length) ->
   (∀ i : Nat, (hi : i < ts.length) ->
@@ -151,15 +151,25 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           apply Or.inr; apply And.intro;
           apply ih; grind
       case classDecl T b y j1 j2 =>
-        sorry
-        -- simp [lookup]; split
-        -- case _ e => subst e; rw [ih] at j2; injection j2
-        -- case _ e => exact ih
+        simp [lookup]; split <;> simp at *
+        case _ e => subst e; rw[ih] at y; simp at y
+        split
+        case _ h =>
+          simp [Option.isSome_iff_exists] at h
+          rcases h with ⟨mn, spTy, h⟩; rw[h]; simp
+          simp [List.find?_eq_some_iff_getElem] at h
+          rcases h with ⟨e1, i, e3, e4, e5⟩; subst e1
+          replace j2 := j2 i x spTy.2.2.2.2.2.2 e3
+          rcases j2 with ⟨_,_,j2,_⟩; simp [ih] at j2;
+        apply ih
       case defn T b t' y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j1; simp at j1
         case _ e => exact ih
-      case inst y T t' j1 j2 => simp [lookup]; sorry; -- exact ih
+      case inst y T t' j1 j2 =>
+        simp [lookup]; split <;> simp at *
+        case _ e => subst e; simp[t'] at ih
+        apply ih
 
 
 theorem lookup_weaken (wf : ⊢ (g::G)) : lookup x G = some e -> lookup x (g::G) = some e := by

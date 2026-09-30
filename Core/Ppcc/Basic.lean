@@ -390,7 +390,14 @@ def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (t1 
   simp [Term.arrowc]
   apply Typing.app (A := B1 ~[KB]~ B2)
   · apply Typing.app (A := A1 ~[KA]~ A2)
-    · sorry
+    · apply Typing.appt  (K := KB) (P := (A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:> (B1⟨Ren.succ Ty⟩ ~[KB]~ t#0) -:> (A1⟨Ren.succ Ty⟩ -:> B1⟨Ren.succ Ty⟩ ~[★]~ A2⟨Ren.succ Ty⟩ -:> t#0))
+      · apply Typing.appt  (K := KB) (P := ∀[KB](A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩) -:> (t#1 ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩ -:> t#1) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
+        sorry
+        assumption
+        rw [Ty.subst_all]; sorry
+      assumption
+      simp
+
     · apply j1
   · apply j2
 
