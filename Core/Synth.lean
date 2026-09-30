@@ -294,7 +294,7 @@ def test5 : Option Ty := do
 def mEG5 : Option (Core.Ppcc.EqGraph [] [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#6, t#5 ~[★]~ t#6])
   := EqGraph.process_tyenv [] CtxWf [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★] [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#6, t#5 ~[★]~ t#6]
 
-#eval! mEG5
+-- #eval! mEG5
 
 def test6 : Option Ty := do
   let eG <- mEG5
@@ -309,8 +309,8 @@ def test7 : Option Ty := do
   let eG <- mEG5
   let Δ := [★ -:> ★, ★ -:> ★, ★, ★, ★, ★, ★]
   let Γ := [t#4 ~[★]~ (t#0 • t#2), t#5 ~[★]~ (t#1 • t#3), t#4 ~[★]~ t#6, t#5 ~[★]~ t#6]
-  let ⟨t1, _, _, _ ⟩ <- eG.get_rep_view CtxWf t#4
-  let ⟨t2, _, _, _ ⟩ <- eG.get_rep_view CtxWf (t#1 • t#2)
+  -- let ⟨t1, _, _, _ ⟩ <- eG.get_rep_view CtxWf t#4
+  -- let ⟨t2, _, _, _ ⟩ <- eG.get_rep_view CtxWf (t#1 • t#2)
   -- return (t1, t2)
   let ⟨t, _⟩ <- eG.ask [] CtxWf Δ Γ ★ (t#4) (t#1 • t#2)
   Term.infer_type [] Δ Γ t
@@ -319,7 +319,7 @@ def test7 : Option Ty := do
 
 def mEG6 :=  EqGraph.process_tyenv [] CtxWf [★, ★, ★] [t#0 ~[★]~ t#1, t#2 ~[★]~ t#2]
 
-#eval! mEG6
+-- #eval! mEG6
 
 def test8 := do
   let Δ := [★, ★, ★]
@@ -384,7 +384,7 @@ def List.unique_pairs {α : Type u} : List α -> List (α × α)
 #eval List.unique_pairs [1,2,3]
 
 -- Checks whether the eqns in Γ give rise to an inconsistent context
-def isNotConsistent (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : Ppcc.EqGraph G Δ Γ)
+def isNotConsistent_aux (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : Ppcc.EqGraph G Δ Γ)
 : Option ((T1 : Ty) ×' (T2 : Ty) ×' (K : Kind) ×' (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) :=
   let gts := G.flatMap (λ g =>
     match g with
@@ -411,34 +411,41 @@ def isNotConsistent (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG
     | _ => none
   | none => none
 
-  -- sorry
+
+def isNotConsistent (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv)
+  : Option ((T1 : Ty) ×' (T2 : Ty) ×' (K : Kind) ×' (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) := do
+  match h : G.wf_globals with
+  | some () =>
+    let wf := wf_global_sound h
+    let eG <- EqGraph.process_tyenv G wf Δ Γ
+    isNotConsistent_aux G wf Δ Γ eG
+  | none => none
+
+-- TODO : what about cases like: Maybe a and Bool?
 
 
+-- def Ty.ford (G : GlobalEnv) (Δ : KindEnv) (τ : Ty): Option SpineTy := do
+--   let (x, tys) <- τ.spine
+--   let na := tys.length
+--   let univtys := (List.range (na)).reverse.map (t#·)
+--   -- let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
 
+--   let univKs <- tys.mapM (Core.Ty.infer_kind G Δ ·)
+--   let uv := Vec.from_list univKs
 
+--   let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
 
-def Ty.ford (G : GlobalEnv) (Δ : KindEnv) (τ : Ty): Option SpineTy := do
-  let (x, tys) <- τ.spine
-  let na := tys.length
-  let univtys := (List.range (na)).reverse.map (t#·)
-  -- let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
+--   let eqs := ((univKs.zip univtys).zip tys).map (λ ((K, α),τ) =>  Core.Ty.eq K α τ)
+--   let eqv := Vec.from_list eqs
 
-  let univKs <- tys.mapM (Core.Ty.infer_kind G Δ ·)
-  let uv := Vec.from_list univKs
+--   return ⟨uv.1, uv.2, 0, #(), eqv.1, eqv.2, (gt#x).mkApps univtys⟩
 
-  let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
-
-  let eqs := ((univKs.zip univtys).zip tys).map (λ ((K, α),τ) =>  Core.Ty.eq K α τ)
-  let eqv := Vec.from_list eqs
-
-  return ⟨uv.1, uv.2, 0, #(), eqv.1, eqv.2, (gt#x).mkApps univtys⟩
-
-theorem fording_sound :
-  G&Δ ⊢ τ : K ->
-  Ty.ford G Δ τ = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
-  (Ks1.list ++ Ks2.list).reverse = Δ' ->
-  (∀ i : Fin nc, ∃ K : Core.Kind, G&(Δ'++ Δ) ⊢ Ts[i] : K) ∧ G&(Δ ++ Δ) ⊢ R : K
-   := by sorry
+-- theorem fording_sound :
+--   G&Δ ⊢ τ : K ->
+--   Ty.ford G Δ τ = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
+--   (Ks1.list ++ Ks2.list).reverse = Δ' ->
+--   (∀ i : Fin nc, ∃ K : Core.Kind, G&(Δ'++ Δ) ⊢ Ts[i] : K) ∧ G&(Δ ++ Δ) ⊢ R : K
+--    := by sorry
 
 
 
