@@ -178,8 +178,8 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
     | none =>
       let candidates := find_matching_insts τ G
       let ts : List ((t : Core.Term) ×' ((τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ'))) <- candidates.tryM (λ x =>
-        match lk : Core.lookup_spine_type (.data .opn) G x with -- TODO: Do the same with Core.lookup_spine_type (.openm)?
-        | some ⟨na, Ks1, 0, Ks2, nc, Ts, R⟩ => do
+        match lk : Core.lookup_spine_type .openm G x with
+        | some ⟨na, Ks1, 0, Ks2, nc, Ts, R⟩ => do -- all open methods have no existentially quantifed variables so we should be fine here
           let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine
           let tys' := Vec.from_list tys
           if e : na == tys'.1 then
@@ -188,7 +188,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
             let tys'' := tys'.2.map (Core.Ty.infer_kind G Δ ·)
             let Ks1' <- Option.toTM "synth_term' infer tys kinds" $ tys''.sequence
             if h : τ == R' && Vec.beq Ks1' Ks1 && tys''.sequence.isEqSome (Ks1')
-                   && (List.range tys'.1).all ((R.fv ·)) && Core.lookup_ctor? G Core.DataConst.opn x R
+                   && (List.range tys'.1).all ((R.fv ·)) && Ts.all (Core.Ty.data? Core.DataConst.opn G ·)
               then
                 let Ts' := Ts[σ]
                 let ts' := Ts'.map (Core.Ty.synth_term' G Δ Γ ·)
@@ -196,7 +196,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                 if h : (ts.map (λ x => x.2.1) == Ts') then
                   let targs := ts.map (·.fst)
 
-                  return ⟨inst! x tys'.2 #() targs.to, R', by
+                  return ⟨openm! x tys'.2 #() targs.to, R', by
                     simp at e; subst e; simp at h; rcases h with ⟨⟨⟨⟨e1, e2⟩, e3⟩, e4⟩, e5⟩;
                     simp at h;
 
@@ -210,14 +210,14 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                       apply e3;
                     · intro i; apply i.elim0
                     · intro i; simp [targs, <-h]; simp [Vec.to_get_elem]; apply ts[i].2.2
-                    · simp; apply e5
-                    · simp; intro i hi; simp [Core.Ty.FV.reflection]; apply e4 i hi;
-                    · simp; ⟩
+                    · simp;
+                    · simp; -- sorrintro i hi; simp [Core.Ty.FV.reflection]; apply e4 i hi;
+                    · simp [Vec.all_eq_true] at e5; simp; intro i; replace e5 := e5 Ts[i] Vec.getElem_mem; apply e5⟩
                 else .error "synth_term' kind checks"
               else .error "synth_term' lookup_spine_type tys na"
           else .error "synth_term' n tys"
-
-
+        | _ =>
+        match lk : Core.lookup_spine_type (.data .opn) G x with
         | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
           let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine -- τ = C τs
           let vec_tys := Vec.from_list tys⟨Ren.add Core.Ty (na + nb)⟩
