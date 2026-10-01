@@ -103,17 +103,24 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   lookup x G = none ->
   G&[] ⊢s T : ★ ->
   GlobalWf G (.defn x T t)
-| classDecl {na : Nat} {Ks1 : Vec Core.Kind na} {mτs : List (String × Core.SpineTy)}:
+| classDecl {na : Nat} {Ks1 : Vec Core.Kind na}
+           {scs : List (String × String × List (Fin na)) } {mτs : List (String × Core.SpineTy)} :
   lookup s G = none ->
   (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
+  (∀ i j: Nat, (hi : i < scs.length) -> (hj : j < scs.length) -> i ≠ j -> (scs[i]'hi).1 ≠ (scs[j]'hj).1) ->
   (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
-    SpineKinding Core.SpCtorVariant.openm mn (.classDecl s Ks1 [] :: G) (λ _ => true) τ) ->
+    SpineKinding Core.SpCtorVariant.openm mn (.classDecl s Ks1 [] [] :: G) (λ _ => true) τ) ->
   (∀ (i : Nat) mn R, (hi : i < mτs.length) -> mτs[i]'hi = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
     mn ≠ s ∧ lookup mn G = none ∧ G&Ks1.list.reverse ⊢s R : ★) ->
-  GlobalWf G (.classDecl s Ks1 /-fds scs-/ mτs)
+  (∀ (i : Nat) mn SC τs, (hi : i < scs.length) -> scs[i] = (mn, SC, τs) ->
+    mn ≠ s ∧ lookup mn G = none ∧ Surface.is_data .opn G SC
+    ∧ (∀ j : Nat, (hj : j < mτs.length) -> (mτs[j]'hj).1 ≠ mn)
+  ) ->
+
+  GlobalWf G (.classDecl s Ks1 scs /-fds-/ mτs)
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
-  lookup cls_name G = some (.odata cls_name K mτs) ->
+  lookup cls_name G = some (.odata cls_name K scs mτs) ->
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats ((List.range na).map (·+ nb)).reverse⟩ ->
   -- Cover all methods
   (e : mτs.length = ts.length) ->
@@ -150,18 +157,18 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
           apply ih; grind
-      case classDecl T b y j1 j2 =>
+      case classDecl T b y j1 j2 j3 j4 =>
         simp [lookup]; split <;> simp at *
-        case _ e => subst e; rw[ih] at y; simp at y
+        case _ e => subst e; rw[ih] at j1; simp at j1
         split
         case _ h =>
           simp [Option.isSome_iff_exists] at h
           rcases h with ⟨mn, spTy, h⟩; rw[h]; simp
           simp [List.find?_eq_some_iff_getElem] at h
           rcases h with ⟨e1, i, e3, e4, e5⟩; subst e1
-          replace j2 := j2 i x spTy.2.2.2.2.2.2 e3
-          rcases j2 with ⟨_,_,j2,_⟩; simp [ih] at j2;
-        apply ih
+          replace j3 := j3 i x spTy.2.2.2.2.2.2 e3
+          rcases j3 with ⟨_,_,j2,_⟩; simp [ih] at j2;
+        sorry -- apply ih
       case defn T b t' y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j1; simp at j1
@@ -211,9 +218,9 @@ theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind}:
 
 @[simp]
 theorem Kinding.spine_typing {s : String} {Ks : Vec Core.Kind kc} :
-  (Surface.Global.classDecl s Ks [] :: Γ)&Ks.list.reverse ⊢s (gt#s).mkApps_nats (List.range kc).reverse : ★
+  (Surface.Global.classDecl s Ks [] [] :: Γ)&Ks.list.reverse ⊢s (gt#s).mkApps_nats (List.range kc).reverse : ★
 := by
-  have lem := Kinding.spine_typing_lemma (G := (Surface.Global.classDecl s Ks [] :: Γ)) (Δ := Ks.list.reverse) (s := s) (K := ★) (T := (gt#s).mkApps_nats (List.range kc).reverse) (tys := List.map (t#·) (List.range kc).reverse)
+  have lem := Kinding.spine_typing_lemma (G := (Surface.Global.classDecl s Ks [] [] :: Γ)) (Δ := Ks.list.reverse) (s := s) (K := ★) (T := (gt#s).mkApps_nats (List.range kc).reverse) (tys := List.map (t#·) (List.range kc).reverse)
   replace lem := lem (by apply Core.Ty.mkApps_nats_spine (T := s) (ts := (List.range kc).reverse))
   simp [lem]
   apply And.intro

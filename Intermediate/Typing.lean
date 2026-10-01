@@ -71,9 +71,10 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   G&[] ⊢ T : ★ ->
   lookup x G = none ->
   GlobalWf G (.defn ⟨x, T, t⟩)
-| classDecl {na : Nat} {Ks1 : Vec Core.Kind na}:
+| classDecl {na : Nat} {Ks1 : Vec Core.Kind na} {scs : List (String × String × List (Fin na)) } :
   lookup s G = none ->
   (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
+  (∀ i j: Nat, (hi : i < scs.length) -> (hj : j < scs.length) -> i ≠ j -> (scs[i]'hi).1 ≠ (scs[j]'hj).1) ->
   (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
     SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, na, Ks1, [],[], []⟩ :: G) (λ _ => true) τ) ->
   (∀ (i : Nat) mn R T (tys : List Core.Ty), (hi : i < mτs.length) ->
@@ -82,11 +83,16 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
    mτs[i]'hi = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
     mn ≠ s ∧ lookup mn G = none ∧
     G&Ks1.list.reverse ⊢ R : ★) ->
+  (∀ (i : Nat) mn SC τs, (hi : i < scs.length) -> scs[i] = (mn, SC, τs) ->
+    mn ≠ s ∧ lookup mn G = none ∧ Intermediate.is_data .opn G SC
+    ∧ (∀ j : Nat, (hj : j < mτs.length) -> (mτs[j]'hj).1 ≠ mn)
+  ) ->
+
   GlobalWf G (.classDecl ⟨s, na, Ks1, [],[], mτs⟩)
 
 | inst {mτs : List (String × Core.SpineTy)} {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}:
   lookup x G = none ->
-  lookup cls_name G = some (.odata cls_name K mτs) ->
+  lookup cls_name G = some (.odata cls_name K scs mτs) ->
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
   (e : mτs.length = mths_impl.length) ->
   (∀ i : Nat, (hi : i < mths_impl.length) ->
@@ -122,9 +128,9 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
           apply ih; grind
-      case classDecl s _ na T b y j1 j2 =>
+      case classDecl s _ na _ T b y j1 j2 j3 j4 =>
         simp [lookup]; split
-        case _ e => subst e; simp [ih] at y
+        case _ e => sorry
         case _ e =>
           split <;> simp at *
           apply ih
@@ -134,9 +140,9 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
             rcases h with ⟨h, p1, p2⟩
             simp [List.getElem?_eq_getElem h] at h1
             simp [h1] at p1; subst p1
-            replace j2 := j2 i x spTy'.2.2.2.2.2.2 ((gt#x).mkApps_nats (List.range na).reverse)
+            replace j3 := j3 i x spTy'.2.2.2.2.2.2 ((gt#x).mkApps_nats (List.range na).reverse)
                              ((List.range na).reverse.map (t#·)) h sorry sorry;
-            rcases j2 with ⟨_, _, j2,_⟩; simp [ih] at j2
+            rcases j3 with ⟨_, _, j2,_⟩; simp [ih] at j2
           apply ih
 
       case defn T b t' y j1 j2 =>
@@ -205,10 +211,10 @@ inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
   lookup x G = some (.ctor x i T) ->
   EntryWf G (.ctor x i T)
 | odata {n : Nat} {Ks1 : Vec Core.Kind n}:
-  lookup x G = some (.odata (n := n) x Ks1 mτs) ->
+  lookup x G = some (.odata (n := n) x Ks1 scsτs mτs) ->
   (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
     SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, n, Ks1, [],[], []⟩ :: G) (λ _ => true) τ) ->
-  EntryWf G (.odata (n := n) x Ks1 mτs)
+  EntryWf G (.odata (n := n) x Ks1 scsτs mτs)
 | defn {G : Intermediate.GlobalEnv}:
   G&[] ⊢ T : ★ ->
   lookup x G = some (.defn x T t) ->
@@ -248,7 +254,8 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
   sorry
   sorry
   sorry
-
+  sorry
+  sorry
   -- intro wf h
   -- fun_induction lookup
   -- any_goals try
@@ -410,7 +417,7 @@ theorem Query.opn_strengthen_class {Γ : Intermediate.GlobalEnv}
       split at lk
       case _ e => subst e; cases lk; case _ lk _ => exfalso; simp [Intermediate.Entry.ctor?] at h1
       split at lk
-      simp[lk]; apply h1
+      sorry -- simp[lk]; apply h1
       case _ lk1 =>
       split at lk;
       cases lk; simp [Intermediate.Entry.ctor?] at h1
@@ -476,7 +483,7 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
-    case classDecl _ s mτs na Ks1 c1 c2 c3 c4 =>
+    case classDecl _ s mτs na Ks1 scs c1 c2 c3 c4 c5 c6  =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       split at h
@@ -490,12 +497,13 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
           simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
           let T := (Core.Ty.mkApps_nats (gt#s) ((List.range na).reverse))
           let tys := (List.range na).reverse.map (t#·)
-          replace c4 := c4 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
-          rcases c4 with ⟨c4a, c4b, c4c, c4d⟩
-          rw[h2] at c4a; cases c4a; simp
-          rcases h1 with ⟨h1, h2, h3⟩; subst h2; simp at *
-          exists na; exists Ks1; exists T; simp; exists tys
-          simp [T, tys, Core.Ty.mkApps_nats_spine]
+          -- replace c4 := c4 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
+          -- rcases c4 with ⟨c4a, c4b, c4c, c4d⟩
+          -- rw[h2] at c4a; cases c4a; simp
+          -- rcases h1 with ⟨h1, h2, h3⟩; subst h2; simp at *
+          -- exists na; exists Ks1; exists T; simp; exists tys
+          -- simp [T, tys, Core.Ty.mkApps_nats_spine]
+          sorry
         · apply ih h
     case inst =>
       simp [Intermediate.lookup] at h; split at h
@@ -554,8 +562,8 @@ theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
 
 theorem lookup_openm_index {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls spTy) ->
-  Intermediate.lookup cls G = some (Intermediate.Entry.odata cls K mτs) ->
-  ∃ j, ∃ (h : j < mτs.length), mτs[j].1 = mn
+  Intermediate.lookup cls G = some (Intermediate.Entry.odata cls K scs mτs) ->
+  (∃ j, ∃ (h : j < mτs.length), mτs[j].1 = mn) ∨ (∃ j, ∃ (h : j < scs.length), scs[j].1 = mn)
 := by
  intro h1 h2
  induction wf
@@ -588,12 +596,14 @@ theorem lookup_openm_index {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h2 <;> try simp at *
    split at h1 <;> try simp at *
    case _ h4 _ _ _ e h3 =>
-     subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K; subst e3;
-     exfalso; apply Intermediate.lookup_openm_no_cls wftl h1 h4
+     -- subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K; subst e3;
+     -- exfalso; apply Intermediate.lookup_openm_no_cls wftl h1 h4
+     sorry
    case _  c1 c2 c3 _ e i h3 =>
-     subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K; subst e3;
-     simp[List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨h, h3, _⟩; symm at h3
-     exists i; exists h
+     subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
+     sorry -- subst e3;
+     -- simp[List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨h, h3, _⟩; symm at h3
+     -- exists i; exists h
    case _ =>
      split at h1
      case _ =>

@@ -59,24 +59,6 @@ def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
--- def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
---   (mτs : List (String × Core.SpineTy)) (mn : String) (tm : Surface.Term) :
---   TM (String × (m : Nat) × Core.Pattern m × Surface.Term) :=
---   match List.lookup mn mτs with
---   | .some ⟨na, Ks1, 0, _, 1, #(T), _⟩ =>
---     -- open method spines don't introduce existentials
---     -- methods only analyze the instance class object (should be generalized)
---     match Intermediate.lookup iname Γ' with
---     | some (.octor iname' ⟨nai, Ks1i, nbi, _, nci, _, Ri⟩) => do
---       let ⟨C', _⟩ <- Option.toTM "mk_inst_mth R.spine" Ri.spine
---       let ⟨C'', _⟩ <- Option.toTM "mk_inst_mth R.spine" T.spine
---       if
---         (C'' == C &&  -- check that iname belongs to T type
---         (iname == iname' && C' == C)) then
---       return ⟨mn, 1, #(⟨iname, 1, #(t#0), nbi, nci⟩), tm⟩
---       else .error "mk_inst_mth_SI"
---     | _ => .error "mk_inst_mth_SI iname lookup"
---   | _ => .error "mk_inst_mth_SI"
 
 
 def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
@@ -99,31 +81,21 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
   | _ => .error "mk_inst_mth_SI"
 
 
--- def match_τs_mths (ts : List (String × Surface.Term)) : (List (String × Core.SpineTy)) ->
---   TM (List (String × Core.SpineTy × Surface.Term))
--- | .nil => return List.nil
--- | .cons (mn, τ) mτs => do
---   match ts.findIdx? (λ x => x.fst == mn) with
---   | .some i =>
---     match ts[i]? with
---     | .none => .error "match τs mths shouldn't happen"
---     | .some (mn', tm) =>
---       if mn == mn'
---       then
---         let ts' <- match_τs_mths ts mτs
---         return (mn, τ, tm)::ts'
---       else .error "shouldn't happen match_τs_mths"
---   | .none => .error "match τs mths"
-
--- def mk_inst_mths_SI_aux (Γ' : Intermediate.GlobalEnv) (C iname : String) : List (String × Core.SpineTy × Surface.Term) ->
---  TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
--- | .nil => return .nil
--- | .cons (mn, τ, tm) ts => do
---     let ts' <- mk_inst_mths_SI_aux Γ' C iname ts
---     let t <- mk_inst_mth_SI Γ' C iname τ tm
---     return ((mn, t) :: ts')
-
 def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
+  List (String × Core.SpineTy) -> List (String × Surface.Term) ->
+ TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
+| .nil, .nil => return .nil
+| .cons (mn, τ) mτs, .cons (mn', t) ts => do
+  let τs_mths <- mk_inst_mths_SI Γ' C iname mτs ts
+  if mn == mn'
+  then
+    let m_τ_t <- mk_inst_mth_SI Γ' C iname τ t
+    return .cons (mn, m_τ_t) τs_mths
+  else .error "mk_inst_mths_SI"
+| _, _ => .error "mk_inst_mths_SI unmatched length"
+
+
+def mk_inst_scs_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
   List (String × Core.SpineTy) -> List (String × Surface.Term) ->
  TM (List (String × (n : Nat) × Core.Pattern n × Surface.Term))
 | .nil, .nil => return .nil
@@ -154,12 +126,12 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   then
     return .cons (.defn ⟨s, T, t⟩) Γ'
   else .error "translate_SI defn"
-| .cons (.classDecl (kc := kc) s Ks /-scs fds-/ mτs) Γ => do
+| .cons (.classDecl (kc := kc) s Ks scs /-fds-/ mτs) Γ => do
   let Γ' <- translate_SI Γ
   if (Intermediate.lookup s Γ').isNone
   then
     -- let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
-    let scs := [] -- scs.map (λ (n, sc, params) =>  ⟨n, (mk_superclass_om s Ks sc params)⟩)
+    let scs := scs.map (λ (n, sc, params) =>  ⟨n, (mk_superclass_om s Ks sc params)⟩)
     let fds := [] -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
     if check_oms mτs then
       let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (mk_method_om s Ks spTy)⟩)
@@ -175,9 +147,10 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   | none =>
     let (cls_name, _) <- Option.toTM "translate_SI R.spine" (R.spine)
     match Intermediate.lookup cls_name Γ' with
-    | some (.odata cls_name' K' mτs) =>
+    | some (.odata cls_name' K' scsτs mτs) =>
         if cls_name' == cls_name && mτs.length == ts.length
         then let mths <- mk_inst_mths_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname mτs ts
+             -- let scs <-
              if mτs.length == mths.length then
                 return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], mths⟩) Γ')
              else .error "translate_SI instDecl mτs.length"
@@ -242,14 +215,14 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
 | .cons (.classDecl ⟨s, _, K, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   return mths.map (λ (n, spTy) => .openm n spTy)
-         -- ++ scs.map (λ (n, spTy) => .openm n spTy)
+         ++ scs.map (λ (n, spTy) => .openm n spTy)
          -- ++ fds.map (λ (n, spTy) => .openm n spTy)
          ++ [.odata s (mk_cls_kind K)] ++ Γ'
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   match Intermediate.lookup cls_name Γ with
-  | some (.odata s K mτs) =>
+  | some (.odata s K scsτs mτs) =>
     if s == cls_name
     then
     -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
