@@ -87,7 +87,9 @@ abbrev GlobalEnv := List Global
 inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
-| odata : {n : Nat} -> String -> Vec Core.Kind n -> List (String × Core.SpineTy) -> Entry
+| odata : {n : Nat} -> String -> Vec Core.Kind n ->
+  List (String × Core.SpineTy) -> /- scs -/
+  List (String × Core.SpineTy) -> /- mths -/ Entry
 | openm : String -> String -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
@@ -95,18 +97,18 @@ inductive Entry : Type where
 
 def Entry.is_data : Core.DataConst -> Entry -> Bool
 | .cls, data _ _ _ => true
-| .opn, odata _ _ _ => true
+| .opn, odata _ _ _ _ => true
 | _, _ => false
 
 def Entry.is_this_data : String -> Core.DataConst -> Entry -> Bool
 | s, .cls, data d _ _
-| s, .opn, odata d _ _ => d == s
+| s, .opn, odata d _ _ _ => d == s
 | _, _, _ => false
 
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ K _ => Core.Kind.mk_kind K
+| odata _ K _ _ => Core.Kind.mk_kind K
 | _ => none
 
 
@@ -122,21 +124,21 @@ def lookup (x : String) : GlobalEnv -> Option Entry
 | .cons (.defn ⟨y, a, b⟩) tl =>
   if x == y then return .defn y a b else lookup x tl
 | .cons (.classDecl ⟨cls_name, _, K, fds, scs, mths⟩) tl =>
-  if x == cls_name then return (.odata cls_name K mths)
+  if x == cls_name then return (.odata cls_name K scs mths)
   else match h : mths.findIdx? (λ ⟨n, _⟩ => x == n) with
-       | none => lookup x tl
+       | none =>
+         match h : scs.findIdx? (λ ⟨n, _⟩ => x == n) with
+         | none => lookup x tl -- this should never happen
+         | some i => match scs[i]? with
+           | none => lookup x tl -- this should never happen
+           | some ⟨x, spTy⟩ => return .openm x cls_name spTy
        | some i => match mths[i]? with
                    | some ⟨x, spTy⟩ => return .openm x cls_name spTy
                    | none => lookup x tl
--- | .cons (.odata y a) tl =>
---   if x == y then return .odata y a else lookup x tl
--- | .cons (.openm y a) tl =>
---   if x == y then return .openm y a else lookup x tl
+
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) tl =>
   if x == iname then return (.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats ((List.range k1).map (·+k2)).reverse⟩)
   else lookup x tl
--- | .cons (.octor y a) tl =>
---   if x == y then return .octor y a else lookup x tl
 
 def Entry.ctor? (data : String) : Core.DataConst -> Entry -> Bool
 | .cls, ctor _ _ ⟨_, _, _, _, _, _, T⟩ | .opn, octor _ ⟨_, _, _, _, _, _, T⟩ =>
@@ -171,7 +173,7 @@ def Entry.name : Entry -> String
 | octor x _ => x
 | openm x _ _ => x
 | defn x _ _ => x
-| odata x _ _ => x
+| odata x _ _ _ => x
 
 theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
   intro h; fun_induction lookup <;> simp_all
@@ -191,6 +193,10 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
     simp [List.findIdx?_eq_some_iff_getElem] at ms;
     rcases ms with ⟨h, ms⟩; simp [List.getElem?_eq_getElem h] at h1
     rw[h1] at ms; simp at ms; grind
-
+  case _ ms_mb ms h1 =>
+    subst e; simp [Entry.name];
+    simp [List.findIdx?_eq_some_iff_getElem] at ms;
+    rcases ms with ⟨h, ms⟩; simp [List.getElem?_eq_getElem h] at h1
+    rw[h1] at ms; simp at ms; grind
 
 end Intermediate
