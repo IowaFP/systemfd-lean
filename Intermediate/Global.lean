@@ -36,10 +36,10 @@ structure InstDeclFrame where
   kindsE : Vec Core.Kind kcE
   inst_ty : Vec Core.Ty Tc
   fds : List (String × (m : Nat) × Core.Pattern m × Surface.Term)
-  scs : List (String × (m : Nat) × Core.Pattern m × Surface.Term)
+  scs : List (String × (m : Nat) × Core.Pattern m × Core.Ty)
   mths : List (String × (m : Nat) × Core.Pattern m × Surface.Term)
 
-/-- Staged Global that contains Surface level terms, but compiled types and kinds -/
+/-- Staged Global that contains Surface level terms -/
 inductive Global : Type where
 | data : DataDeclFrame -> Global
 | defn : DefnFrame -> Global

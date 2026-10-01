@@ -284,7 +284,12 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
         | _ => .error "synth_term' coercion term")
         match ts.head? with
         | some t => return t
-        | none => .error $ "synth_term' no instances found for: " ++ τ.repr max_prec ++ "tried candidates: " ++ Std.Format.line ++ candidates.repr max_prec
+        | none =>
+          .error $ "synth_term' no instances found for: " ++ τ.repr max_prec ++ Std.Format.line
+          ++ "tried candidates: " ++ Std.Format.line ++ candidates.repr max_prec ++ Std.Format.line
+          ++ "G: " ++ G.repr max_prec ++ Std.Format.line
+          ++ "Δ: " ++ Δ.repr max_prec ++ Std.Format.line
+          ++ "Γ: " ++ Γ.repr max_prec ++ Std.Format.line
 
 
 def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty)

@@ -85,6 +85,11 @@ def Entry.kind : Entry -> Option Core.Kind
 | odata _ Ks _ _ => Core.Kind.mk_kind Ks
 | _ => none
 
+def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String) (sc_params : List (Fin kc)) : Core.SpineTy :=
+  let cls_ty := (gt#cls).mkApps_nats (List.range cls_params.length)
+  let sc_ty := (gt#sc).mkApps_nats sc_params
+  ⟨kc, cls_params, 0, #(), 1, #(cls_ty), sc_ty⟩
+
 
 def lookup (x : String) : GlobalEnv -> Option (Entry)
 | [] => none
@@ -103,7 +108,7 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
   let ms := ms_mb.map (λ (x, mn) => .openm x mn)
   -- TODO Extensions for fundeps and superclasses
   let scs_mb : Option (String × String × List (Fin kc)) := scs.find? (λ (sc, _, _) => x == sc)
-  let scs := scs_mb.map (λ (scn, cls, tys) => Entry.openm scn ⟨kc, Ks, 0, #(), 1, #((gt#y).mkApps_nats (List.range kc)), (gt#cls).mkApps_nats tys⟩ )
+  let scs := scs_mb.map (λ (scn, cls, tys) => Entry.openm scn (mk_superclass_om y Ks cls tys))
   -- let fds_mb : Option (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) := fds.find? (λ ⟨fdn, _, _, _⟩ => x == fdn)
   -- let fds := fds_mb.map (λ ⟨fdn, n, dns, dt⟩ => Entry.openm fdn ⟨kc, Ks, 0, #(), 2, #(sorry, sorry), t`#0 ⟩)
   if ms.isSome then ms
