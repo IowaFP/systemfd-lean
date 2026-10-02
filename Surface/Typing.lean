@@ -168,13 +168,20 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           rcases h with ⟨e1, i, e3, e4, e5⟩; subst e1
           replace j3 := j3 i x spTy.2.2.2.2.2.2 e3
           rcases j3 with ⟨_,_,j2,_⟩; simp [ih] at j2;
-        sorry -- apply ih
+        case _ h1 h2 =>
+          split;
+          case _ h =>
+            simp [Option.isSome_iff_exists] at h;
+            rcases h with ⟨s, ha, hb, hc⟩
+            simp [List.find?_eq_some_iff_getElem] at hc; rcases hc with ⟨e, i, hc2, hc3, hc4⟩; subst e
+            replace j4 := j4 i x ha hb hc2 hc3; rcases j4 with ⟨_, j4, _⟩; simp [ih] at j4
+          apply ih
       case defn T b t' y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j1; simp at j1
         case _ e => exact ih
       case inst y T t' j1 j2 =>
-        simp [lookup]; split <;> simp at *
+        simp [lookup]; split <;> try simp at *
         case _ e => subst e; simp[t'] at ih
         apply ih
 
