@@ -220,29 +220,33 @@ def mk_inst_σ : Core.TyEnv -> Subst Core.Ty
 | .cons _ eqs => mk_inst_σ eqs
 
 
-def mk_inst_sc_IC (G : Core.GlobalEnv) (spTy : Core.SpineTy) (mn : String) (m : Nat) (p : Core.Pattern m) (τ : Core.Ty) :
+def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) (τ : Core.Ty) :
   TM Core.Global := do
-  match spTy with
-  | ⟨_, Ks1, _, Ks2, n, Ts, R⟩ => do
+  match Core.lookup_spine_type .openm G mn with
+  | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ =>
     let Δ := (Ks1.list ++ Ks2.list).reverse
-    if m == n
-    then let ⟨ζ, Γ⟩ <- Option.toTM ("mk_inst_mth_IC Pattern Binders" ++ Std.Format.line
+    if h : nc == m && R == τ then
+    let ⟨ζ, Γ⟩ <- Option.toTM ("mk_inst_sc_IC Pattern Binders" ++ Std.Format.line
                        ++ "G : " ++ G.repr max_prec ++ Std.Format.line
-                       ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
-                       ++ "n : " ++ n.repr ++ Std.Format.line
-                       ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
+                       -- ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+                       -- ++ "n : " ++ n.repr ++ Std.Format.line
+                       -- ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
                        ++ "p : " ++ p.repr)
-                       $ (Core.pattern_binders (.data .opn) G Δ n Ts p)
-         let t' <-
-         -- .error $
-         --   ("G :" ++ G.repr max_prec ++  Std.Format.line
-         --    ++ "Δ : " ++ (Δ ++ ζ).repr max_prec ++ Std.Format.line
-         --    ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
-         --    ++ "τ : " ++  (τ[inst_σ]).repr max_prec ++ Std.Format.line
-         --    ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
-           (Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ τ⟨Ren.add Core.Ty (ζ.length + Δ.length)⟩)
-         return .inst mn p t'.1
-    else Except.error "pat sizes don't match"
+                       $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
+    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ τ
+    -- .error $
+    --        ("G :" ++ G.repr max_prec ++  Std.Format.line
+    --         ++ "Δ : " ++ (ζ ++ Δ).repr max_prec ++ Std.Format.line
+    --         ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+    --         ++ "τ : " ++  (τ).repr max_prec ++ Std.Format.line
+    --         ++ "p : " ++ p.repr
+    --         ++ "t : " ++ t'.1.repr max_prec
+    --         )
+            -- ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
+    return .inst mn p t'.1
+
+    else .error $ "mk_inst_sc_IC pattern size" ++ nc.repr ++ " " ++ m.repr
+      | none => .error $ "mk_inst_sc_IC no spine type" ++ mn
 
 
 def mk_inst_scs_IC (G : Core.GlobalEnv) :
@@ -256,7 +260,7 @@ def mk_inst_scs_IC (G : Core.GlobalEnv) :
     | .some (.openm mn' spTy) =>
       if spTy.2.2.2.2.1 == m && (spTy.2.2.2.2.2.2 == τ && mn == mn') && spTy' == spTy then
       let ms' <- mk_inst_scs_IC G mτs ms
-      let i' <- mk_inst_sc_IC (ms'++G) spTy mn m p τ
+      let i' <- mk_inst_sc_IC (ms'++G) mn m p τ
       return (i' :: ms')
       else .error "mk_inst_scs_IC scs lookup"
     | _ => .error "mk_inst_scs_IC scs lookup"

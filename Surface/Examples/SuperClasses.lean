@@ -9,6 +9,11 @@ namespace Surface.Examples.Boolean
 
 def benv_ord : GlobalEnv := [
 
+
+  .defn "test_ord_eq_bool" ((gt#"Ord" • gt#"Bool") -:> gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") (λˢ[gt#"Ord" • gt#"Bool"] g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil),
+  -- cannot use this function unfortunately
+  .defn "test_ord_eq" (∀[★] (gt#"Ord" • t#0) -:> t#0 -:> t#0 -:> gt#"Bool") (Λˢ[★] λˢ[gt#"Ord" • t#0] g`#"eq" `•ᵤ #(t#0) `•ₑ #() `•ₜ .nil),
+
   .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩
     [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"]
          mtch' #((`#1, gt#"Bool"), (`#0,  gt#"Bool"))
