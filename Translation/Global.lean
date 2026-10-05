@@ -90,7 +90,7 @@ def mk_inst_mths_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
 
 
 def mk_inst_sc_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : Core.SpineTy):
-  TM ((m : Nat) × Core.Pattern m × Core.Ty) :=
+  TM ((m : Nat) × Core.Pattern m) :=
   match τ with
   | ⟨na, Ks1, nb, Ks2, 1, #(T), R⟩ =>
     -- open method spines don't introduce existentials
@@ -102,7 +102,7 @@ def mk_inst_sc_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : Core.S
       if
         (C'' == C &&  -- check that iname belongs to T type
         (iname == iname' && C' == C) && nb == 0) then
-      return ⟨1, #(⟨iname, 1, #(t#0), nbi, nci⟩), R⟩
+      return ⟨1, #(⟨iname, 1, #(t#0), nbi, nci⟩)⟩
       else .error "mk_inst_mth_SI"
     | _ => .error "mk_inst_mth_SI iname lookup"
   | _ => .error "mk_inst_mth_SI"
@@ -110,7 +110,7 @@ def mk_inst_sc_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : Core.S
 
 def mk_inst_scs_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
   List (String × Core.SpineTy) ->
- TM (List (String × (m : Nat) × Core.Pattern m × Core.Ty))
+ TM (List (String × (m : Nat) × Core.Pattern m))
 | .nil => return .nil
 | .cons (mn, spTy) scs_τs => do
   let τs_mths <- mk_inst_scs_SI Γ' C iname scs_τs
@@ -212,14 +212,6 @@ def mk_inst_mths_IC (G : Core.GlobalEnv) :
 | _, _ => .error "mk_inst_mths_IC don't match"
 
 
-def mk_inst_σ : Core.TyEnv -> Subst Core.Ty
-| [] => Subst.id Core.Ty
-| .cons (.eq _ t#x T) eqs =>
-  let σ := mk_inst_σ eqs
-  ⟨λ y => if x == y then su T else su t#y⟩ ∘ σ
-| .cons _ eqs => mk_inst_σ eqs
-
-
 def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) (τ : Core.Ty) :
   TM Core.Global := do
   match Core.lookup_spine_type .openm G mn with
@@ -251,14 +243,15 @@ def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
 
 def mk_inst_scs_IC (G : Core.GlobalEnv) :
   List (String × Core.SpineTy) ->
-  List (String × (m : Nat) × Core.Pattern m × Core.Ty) ->
+  List (String × (m : Nat) × Core.Pattern m) ->
   TM Core.GlobalEnv
 | .nil, .nil => return .nil
-| .cons (mn', spTy') mτs, .cons ⟨mn, m, p, τ⟩ ms => do
+| .cons (mn', spTy') mτs, .cons ⟨mn, m, p⟩ ms => do
   if mn == mn' then
     match Core.lookup mn G with
     | .some (.openm mn' spTy) =>
-      if spTy.2.2.2.2.1 == m && (spTy.2.2.2.2.2.2 == τ && mn == mn') && spTy' == spTy then
+      let τ := spTy.2.2.2.2.2.2
+      if spTy.2.2.2.2.1 == m && (mn == mn') && spTy' == spTy then
       let ms' <- mk_inst_scs_IC G mτs ms
       let i' <- mk_inst_sc_IC (ms'++G) mn m p τ
       return (i' :: ms')
@@ -294,7 +287,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
     -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
     let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).reverse.map (·+k2))⟩ ]
     let mths' <- (mk_inst_mths_IC (octor ++ Γ') mτs mths)
-    let scs' <- mk_inst_scs_IC (octor ++ Γ') scsτs scs
+    let scs' <- mk_inst_scs_IC (mths' ++ octor ++ Γ') scsτs scs
     return (scs' ++ mths' ++ octor ++ Γ')
     else .error "translate_IC inst"
   | _ => .error "translate_IC inst"
