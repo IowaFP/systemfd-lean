@@ -114,7 +114,7 @@ def Core.Ty.ty_match (n : Nat) : (τ1 τ2 : Core.Ty) -> Option (Subst Core.Ty)  
 
 
 def find_matching_insts (τ : Core.Ty) : Core.GlobalEnv -> List String
-| [] => [] -- TODO: also do for openm
+| [] => []
 | .cons (.octor x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) tl  =>
   let is := find_matching_insts τ tl
   if (Core.Ty.ty_match nb R τ).isSome then x :: is

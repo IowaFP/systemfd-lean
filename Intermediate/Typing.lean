@@ -130,7 +130,9 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           apply ih; grind
       case classDecl s _ na _ T b y j1 j2 j3 j4 =>
         simp [lookup]; split
-        case _ e => sorry
+        case _ e =>
+          subst e;
+          simp [ih] at j1
         case _ e =>
           split <;> simp at *
           apply ih
@@ -140,9 +142,10 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
             rcases h with ⟨h, p1, p2⟩
             simp [List.getElem?_eq_getElem h] at h1
             simp [h1] at p1; subst p1
-            replace j3 := j3 i x spTy'.2.2.2.2.2.2 ((gt#x).mkApps_nats (List.range na).reverse)
-                             ((List.range na).reverse.map (t#·)) h sorry sorry;
-            rcases j3 with ⟨_, _, j2,_⟩; simp [ih] at j2
+
+            replace j3 := j3 i x spTy'.2.2.2.2.2.2 ((gt#s).mkApps_nats (List.range na).reverse)
+                              ((List.range na).reverse.map (t#·)) h (by simp[Core.Ty.mkApps_nats_spine]) (by simp);
+            rcases j3 with ⟨_, _, j2,_⟩; simp [j2] at ih
           apply ih
 
       case defn T b t' y j1 j2 =>
@@ -417,7 +420,7 @@ theorem Query.opn_strengthen_class {Γ : Intermediate.GlobalEnv}
       split at lk
       case _ e => subst e; cases lk; case _ lk _ => exfalso; simp [Intermediate.Entry.ctor?] at h1
       split at lk
-      sorry -- simp[lk]; apply h1
+      simp at lk; simp [lk]; apply h1
       case _ lk1 =>
       split at lk;
       cases lk; simp [Intermediate.Entry.ctor?] at h1
@@ -497,8 +500,8 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
           simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
           let T := (Core.Ty.mkApps_nats (gt#s) ((List.range na).reverse))
           let tys := (List.range na).reverse.map (t#·)
-          -- replace c4 := c4 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
-          -- rcases c4 with ⟨c4a, c4b, c4c, c4d⟩
+          replace c5 := c5 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
+          rcases c5 with ⟨c5a, c5b, c5c, c5d⟩
           -- rw[h2] at c4a; cases c4a; simp
           -- rcases h1 with ⟨h1, h2, h3⟩; subst h2; simp at *
           -- exists na; exists Ks1; exists T; simp; exists tys
