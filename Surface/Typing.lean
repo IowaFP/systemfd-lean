@@ -114,8 +114,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
     mn ≠ s ∧ lookup mn G = none ∧ G&Ks1.list.reverse ⊢s R : ★) ->
   (∀ (i : Nat) mn SC τs, (hi : i < scs.length) -> scs[i] = (mn, SC, τs) ->
     mn ≠ s ∧ lookup mn G = none ∧ Surface.is_data .opn G SC
-    ∧ (∀ j : Nat, (hj : j < mτs.length) -> (mτs[j]'hj).1 ≠ mn)
-  ) ->
+    ∧ (∀ j : Nat, (hj : j < mτs.length) -> (mτs[j]'hj).1 ≠ mn)) ->
 
   GlobalWf G (.classDecl s Ks1 scs /-fds-/ mτs)
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:

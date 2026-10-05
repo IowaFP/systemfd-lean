@@ -538,57 +538,66 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         apply h2
       · apply ih wftl h1
 
-  case _ kc s Ks mτs Γ ih =>  -- class decl
+  case _ kc s Ks scs mτs Γ ih =>  -- class decl
     cases wf; case _ wftl wfhd =>
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h1, h2⟩
     split at h2 <;> try simp at h2;
     case _ h3 =>
     rcases h2 with ⟨h2, h4⟩; subst G'
-    cases wfhd; case _ c1 c2 c3 =>
+    cases wfhd; case _ c1 c2 c3 c4 c5 =>
     constructor
-    sorry
-    -- · apply Intermediate.GlobalWf.classDecl
-    --   apply h3
-    --   · { intro i j hi hj ne; replace c1 := c1 i j (by grind) (by grind) ne; grind }
-    --   · { intro i mn τ hi h1; have h : i < mτs.length := by grind
-    --       replace c2 := c2 i (mτs[i]).1 (mτs[i]).2 h; simp at h1;
-    --       simp at c2; rcases h1 with ⟨e1, e2⟩; subst e1; subst e2;
-    --       have lem1 : ⊢ (Surface.Global.classDecl s Ks [] :: Γ) := by
-    --         constructor
-    --         · constructor
-    --           assumption
-    --           simp
-    --           simp
-    --           simp
-    --         · apply wftl
-    --       have lem2 : ⟦(Surface.Global.classDecl s Ks [] :: Γ)⟧ = .ok (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ') := by
-    --         simp [translate_SI, bind, Except.bind_eq_ok_iff]; exists Γ'; apply And.intro; apply h1
-    --         simp [h3, pure, Except.pure]; simp [check_oms]
-    --       generalize zdef : (mτs[i]).2 = z at *
-    --       rcases z with ⟨k1, Ks1, k2, Ks2, k3, Ts, R⟩
-    --       cases c2; case _ Δ _ p1 p2 p3 p4 =>
-    --       replace c3 := c3 i mτs[i].1 R h; rcases c3 with ⟨c3a, c3b, c3c⟩
-    --       rw[c3a] at zdef; cases zdef; simp at p1; subst Δ
-    --       apply spine_kinding_SI_transfer (test := λ _ => true)
-    --       apply lem2
-    --       simp
-    --       apply Surface.SpineKinding.valid
-    --       rfl;
-    --       · simp
-    --       · simp; apply c3c.2.weaken_global lem1
-    --       rfl
-    --       · simp [Surface.Ty.data?, Core.Ty.mkApps_nats_spine, Surface.is_data, Surface.lookup, Surface.Entry.is_data]
-    --     }
-    --   · intro i mn R T tys hi tsp tys_shape; replace c3 := c3 i mn R (by grind);
-    --     simp; rcases c3 with ⟨c3a, c3b, c3c, c3d⟩;
-    --     apply And.intro
-    --     · simp [c3a, mk_method_om]; rw[c3a]; simp; subst tys_shape; symm;
-    --       apply Core.Ty.mkApps_nats_spine_eta; apply tsp
-    --     · apply And.intro; apply c3b; apply And.intro
-    --       apply translate_SI_lookup_none h1 c3c
-    --       apply kinding_SI_transfer h1 c3d
-    -- · apply ih wftl h1
-    sorry
+    · apply Intermediate.GlobalWf.classDecl
+      · apply h3
+      · { intro i j hi hj ne; simp; apply c2 i j (by grind) (by grind) ne }
+      · { intro i j hi hj ne; simp; apply c1 i j (by grind) (by grind) ne }
+      · { intro i mn τ hi h1; have h : i < mτs.length := by grind
+          replace c3 := c3 i (mτs[i]).1 (mτs[i]).2 h; simp at h1;
+          simp at c3; rcases h1 with ⟨e1, e2⟩; subst e1; subst e2;
+          have lem1 : ⊢ ((Surface.Global.classDecl s Ks [] []) :: Γ) := by
+            constructor
+            · constructor
+              assumption
+              simp
+              simp
+              simp
+              simp
+              simp
+            · apply wftl
+          have lem2 : ⟦(Surface.Global.classDecl s Ks [] [] :: Γ)⟧ = .ok (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ') := by
+            simp [translate_SI, bind, Except.bind_eq_ok_iff]; exists Γ'; apply And.intro; apply h1
+            simp [h3, pure, Except.pure]; simp [check_oms]
+          generalize zdef : (mτs[i]).2 = z at *
+          rcases z with ⟨k1, Ks1, k2, Ks2, k3, Ts, R⟩
+          cases c3; case _ Δ _ p1 p2 p3 p4 =>
+          replace c4 := c4 i mτs[i].1 R h; rcases c4 with ⟨c3a, c3b, c3c⟩
+          rw[c3a] at zdef; cases zdef; simp at p1; subst Δ
+          apply spine_kinding_SI_transfer (test := λ _ => true)
+          apply lem2
+          simp
+          apply Surface.SpineKinding.valid
+          rfl;
+          · simp
+          · simp; apply c3c.2.weaken_global lem1
+          rfl
+          · simp [Surface.Ty.data?, Core.Ty.mkApps_nats_spine, Surface.is_data, Surface.lookup, Surface.Entry.is_data]
+        }
+      · intro i mn R T tys hi tsp tys_shape; simp;
+        replace c4 := c4 i mn R (by grind);
+        rcases c4 with ⟨c3a, c3b, c3c, c3d⟩;
+        apply And.intro
+        · simp [mk_method_om]; subst tys; rw[c3a]; simp; symm;
+          apply Core.Ty.mkApps_nats_spine_eta; apply tsp
+        · apply And.intro; apply c3b; apply And.intro
+          apply translate_SI_lookup_none h1 c3c
+          apply kinding_SI_transfer h1 c3d
+      · intro i mn R T tys hi T_spine e1; simp;
+        replace c5 := c5 i ((scs[i]'(by grind)).1) ((scs[i]'(by grind)).2.1) ((scs[i]'(by grind)).2.2) (by grind) (by simp)
+
+        apply And.intro
+        simp [Surface.mk_superclass_om]; sorry
+        sorry
+    · apply ih wftl h1
+
   case _ iname _ _ _ _ _ _ _ _ _ ih => -- instance
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h1, h⟩
     split at h <;> try simp [Except.bind] at h

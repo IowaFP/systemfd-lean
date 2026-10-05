@@ -35,8 +35,8 @@ structure InstDeclFrame where
   kindsU : Vec Core.Kind kcU
   kindsE : Vec Core.Kind kcE
   inst_ty : Vec Core.Ty Tc
-  fds : List (String × (m : Nat) × Core.Pattern m × Surface.Term)
-  scs : List (String × (m : Nat) × Core.Pattern m × Core.Ty)
+  fds : List (String × (m : Nat) × Core.Pattern m)
+  scs : List (String × (m : Nat) × Core.Pattern m)
   mths : List (String × (m : Nat) × Core.Pattern m × Surface.Term)
 
 /-- Staged Global that contains Surface level terms -/

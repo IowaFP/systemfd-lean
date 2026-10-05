@@ -45,6 +45,11 @@ def benv_ord : GlobalEnv := [
   let benv'' <- Translation.translate_IC benv'
   Translation.Option.toTM "wf" $ benv''.wf_globals) == .ok ()
 
+#guard (do
+  let benv' <- Translation.translate_SI benv_ord
+  let benv'' <- Translation.translate_IC benv'
+  Translation.Option.toTM "wf" $ benv''.check_open_exhaustive) == .ok ()
+
 
 -- def Γ := do
 --   let benv' <- (Translation.translate_SI benv)
