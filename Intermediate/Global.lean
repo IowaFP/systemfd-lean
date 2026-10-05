@@ -123,7 +123,7 @@ def lookup (x : String) : GlobalEnv -> Option Entry
   else ctors'.foldr Option.or (lookup x tl)
 | .cons (.defn ⟨y, a, b⟩) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.classDecl ⟨cls_name, _, K, fds, scs, mths⟩) tl =>
+| .cons (.classDecl ⟨cls_name, _, K, _, scs, mths⟩) tl =>
   if x == cls_name then return (.odata cls_name K scs mths)
   else match h : mths.findIdx? (λ ⟨n, _⟩ => x == n) with
        | none =>
