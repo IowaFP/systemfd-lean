@@ -86,14 +86,14 @@ def Entry.kind : Entry -> Option Core.Kind
 | _ => none
 
 def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String) (sc_params : List (Fin kc)) : Core.SpineTy :=
-  let cls_ty := (gt#cls).mkApps_nats (List.range cls_params.length)
+  let cls_ty := (gt#cls).mkApps_nats (List.range cls_params.length).reverse
   let sc_ty := (gt#sc).mkApps_nats sc_params
   ⟨kc, cls_params, 0, #(), 1, #(cls_ty), sc_ty⟩
 
 
 def lookup (x : String) : GlobalEnv -> Option (Entry)
 | [] => none
-| .cons (.data (n := n) y K ctors) tl =>
+| .cons (.data y K ctors) tl =>
   let ctors' := Vec.map
     (λ ((z, A), i) => if x == z then some (Entry.ctor z i A) else none)
     (Vec.zipIdx ctors)

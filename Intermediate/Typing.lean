@@ -72,9 +72,13 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   lookup x G = none ->
   GlobalWf G (.defn ⟨x, T, t⟩)
 | classDecl {na : Nat} {Ks1 : Vec Core.Kind na} {scs : List (String × Core.SpineTy) }:
+  -- class name is unique
   lookup s G = none ->
-  (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
-  (∀ i j: Nat, (hi : i < scs.length) -> (hj : j < scs.length) -> i ≠ j -> (scs[i]'hi).1 ≠ (scs[j]'hj).1) ->
+  -- method names are unique
+  (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
+  (∀ i j: Nat, (hi : i < scs.length) -> (hj : j < scs.length) -> i ≠ j -> scs[i].1 ≠ scs[j].1) ->
+  (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < scs.length) -> mτs[i].1 ≠ scs[j].1) ->
+
   (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
     SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, na, Ks1, [],[], []⟩ :: G) (λ _ => true) τ) ->
   (∀ (i : Nat) mn R T (tys : List Core.Ty), (hi : i < mτs.length) ->
@@ -88,8 +92,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
    (tys = (List.range na).reverse.map (t#·)) ->
      scs[i] = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
      mn ≠ s ∧ lookup mn G = none ∧
-     Intermediate.Ty.data? .opn G R ∧
-    G&Ks1.list.reverse ⊢ R : ★) ->
+     Intermediate.Ty.data? .opn G R /-∧ G&Ks1.list.reverse ⊢ R : ★-/) ->
 
   GlobalWf G (.classDecl ⟨s, na, Ks1, [], scs, mτs⟩)
 
@@ -471,10 +474,11 @@ theorem Query.strength_inst1 {Γ : Intermediate.GlobalEnv} :
   constructor
 
 
-
+-- TODO: This will not hold when we bring in functional dependencies
+-- But then this will be in disjunction with #(T1, T2), and R being an equality
 theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls spTy) ->
-  ∃ na Ks1 T R tys, spTy = ⟨na, Ks1, 0, #(), 1, #(T), R⟩ ∧ T.spine = some (cls, tys)
+  ∃ na Ks1 T R tys, spTy = ⟨na, Ks1, 0, #(), 1, #(T), R⟩ ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·)
 := by
   intro h
   induction wf
@@ -493,11 +497,30 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
-    case classDecl _ s mτs na Ks1 scs c1 c2 c3 c4 c5 c6  =>
+    case classDecl _ s mτs na Ks1 scs c1 c2 c3 c4 c5 c6 c7  =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       split at h
-      sorry -- apply ih h
+      case _ h1 =>
+        simp at h1;
+        split at h
+        apply ih h
+        case _ h2 =>
+        split at h
+        apply ih h
+        cases h; case _ i _ _ hi =>
+        let T := (Core.Ty.mkApps_nats (gt#cls) ((List.range na).reverse))
+        let tys := (List.range na).reverse.map (t#·)
+        let R := spTy.2.2.2.2.2.2
+        have lem := Core.Ty.mkApps_nats_spine (T := cls) (ts := (List.range na).reverse); simp at lem
+        simp [List.getElem?_eq_some_iff] at hi; rcases hi with ⟨hi, h2⟩
+        replace c7 := c7 i mn R T tys hi (by simp [T, tys]; apply lem) (by rfl);
+        exists na; exists Ks1; exists T; exists R; exists tys; apply And.intro
+        rw[c7.1] at h2; simp at h2; symm; apply h2
+        simp[T, tys];
+        have lem := Core.Ty.mkApps_nats_spine (T := cls) (ts := (List.range na).reverse);
+        simp at lem; apply lem
+
       case _  h1 =>
         simp [List.findIdx?_eq_some_iff_getElem] at h1
         split at h;
@@ -507,13 +530,12 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
           simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
           let T := (Core.Ty.mkApps_nats (gt#s) ((List.range na).reverse))
           let tys := (List.range na).reverse.map (t#·)
-          replace c5 := c5 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
-          rcases c5 with ⟨c5a, c5b, c5c, c5d⟩
-          -- rw[h2] at c4a; cases c4a; simp
-          -- rcases h1 with ⟨h1, h2, h3⟩; subst h2; simp at *
-          -- exists na; exists Ks1; exists T; simp; exists tys
-          -- simp [T, tys, Core.Ty.mkApps_nats_spine]
-          sorry
+          replace c6 := c6 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
+          rw[c6.1] at h2; simp at h2; rcases h2 with ⟨e, h2⟩; subst e; simp at h2; rcases h2 with ⟨e1, e2, h2⟩
+          subst e1; subst e2; simp at h2; rcases h2 with ⟨e1, e2, h2⟩; subst e1; subst e2; simp at h2
+          subst As'
+          exists na; exists Ks1; exists T; exists R; exists tys; simp;
+          simp [T, tys, Core.Ty.mkApps_nats_spine]
         · apply ih h
     case inst =>
       simp [Intermediate.lookup] at h; split at h

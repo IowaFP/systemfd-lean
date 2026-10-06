@@ -988,11 +988,12 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     --         have lem := translate_IC_spine_kinding_valid (mτs := mths) (spTy := τ) (nm := nm) (Ks1 := Ks) (s := s) wftl h
     --         sorry
     -- clear lem2;
-    induction mths
-    simp; apply lem
-    case _ hd tl ih =>
-    rcases hd with ⟨nm, spTy⟩
-    simp; sorry
+    -- induction mths
+    -- simp; apply lem
+    -- case _ hd tl ih =>
+    -- rcases hd with ⟨nm, spTy⟩
+    -- simp;
+    sorry
     -- constructor
     -- constructor
     -- · replace c4' := c4 0 nm spTy.2.2.2.2.2.2 ((gt#s).mkApps_nats (List.range k1).reverse) ((List.range k1).reverse.map (t#·)) (by simp) (by apply Core.Ty.mkApps_nats_spine) rfl; simp at c4; rcases c4' with ⟨e1, e2, e3, e4⟩;
@@ -1111,39 +1112,40 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
     replace h2 := Core.lookup_append_some wf' h2
     cases h2
     case _ h2 =>
-      cases wfhd; case _ c1 c2 c3 =>
-      exists cls_name; simp [Intermediate.lookup]; split
-      case _ e =>
-        subst e; simp at *; exfalso;
-        replace h2 := Core.lookup_some_then_idx_some h2;
-        rcases h2 with ⟨i, h2⟩; simp at h2
-        replace c3 := c3 i mn R ((gt#mn).mkApps_nats (List.range kU).reverse) (List.map (t#·) (List.range kU).reverse) (by grind) (by apply Core.Ty.mkApps_nats_spine) (by simp)
-        rcases c3 with ⟨_, _,_⟩; contradiction
-      split
-      case _ h =>
-        exfalso; clear c1 c2 c3;
-        clear wf' h1 wftl ih
-        simp at h;
-        induction mths
-        simp [Core.lookup] at h2
-        case _ hd tl ih =>
-        simp [Core.lookup] at h2
-        split at h2; sorry
-        sorry
+      cases wfhd; case _ c1 c2 c3 c4 c5 c6 =>
+      exists cls_name; simp [Intermediate.lookup];
+      -- split
+      -- case _ e =>
+      --   subst e; simp at *; exfalso;
+      --   replace h2 := Core.lookup_some_then_idx_some h2;
+      --   rcases h2 with ⟨i, h2⟩; simp at h2
+      --   replace c3 := c3 i mn R ((gt#mn).mkApps_nats (List.range kU).reverse) (List.map (t#·) (List.range kU).reverse) (by grind) (by apply Core.Ty.mkApps_nats_spine) (by simp)
+      --   rcases c3 with ⟨_, _,_⟩; contradiction
+      -- split
+      -- case _ h =>
+      --   exfalso; clear c1 c2 c3;
+      --   clear wf' h1 wftl ih
+      --   simp at h;
+      --   induction mths
+      --   simp [Core.lookup] at h2
+      --   case _ hd tl ih =>
+      --   simp [Core.lookup] at h2
+      --   split at h2; sorry
+      sorry
         -- simp at h2; subst mn; replace h := h hd.1 hd.2 (by simp); contradiction
         -- apply ih h2; intro a b h; case _ h1 h3 =>
         -- replace h1 := h1 a b; apply h1; simp; apply Or.inr; apply h
-      case _ i h =>
-      simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩;
-      replace c3 := c3 i mn R ((gt#cls_name).mkApps_nats (List.range kU).reverse) (List.map (t#·) (List.range kU).reverse) hi (by apply Core.Ty.mkApps_nats_spine) (by simp); rcases c3 with ⟨c3i, c3j⟩
-      rw[List.getElem?_eq_getElem hi]; simp; apply And.intro; simp[c3i];
-      generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths = z at *
-      have hi' : i < z.length := by grind
-      have lem : z[i]? = ((List.map (fun x => Core.Global.openm x.fst x.snd) mths))[i]? := by grind
-      simp at lem; rw[List.getElem?_eq_getElem hi, c3i] at lem; simp at lem;
-      replace lem := Core.lookup_some_if_idx_some zdef lem (by grind); rw[lem] at h2; simp at h2; rw[c3i]; grind
+    --   case _ i h =>
+    --   simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩;
+    --   replace c3 := c3 i mn R ((gt#cls_name).mkApps_nats (List.range kU).reverse) (List.map (t#·) (List.range kU).reverse) hi (by apply Core.Ty.mkApps_nats_spine) (by simp); rcases c3 with ⟨c3i, c3j⟩
+    --   rw[List.getElem?_eq_getElem hi]; simp; apply And.intro; simp[c3i];
+    --   generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths = z at *
+    --   have hi' : i < z.length := by grind
+    --   have lem : z[i]? = ((List.map (fun x => Core.Global.openm x.fst x.snd) mths))[i]? := by grind
+    --   simp at lem; rw[List.getElem?_eq_getElem hi, c3i] at lem; simp at lem;
+    --   replace lem := Core.lookup_some_if_idx_some zdef lem (by grind); rw[lem] at h2; simp at h2; rw[c3i]; grind
     case _ h2 =>
-      simp [Core.lookup] at h2; rcases h2 with ⟨_, h2⟩;
+    --   simp [Core.lookup] at h2; rcases h2 with ⟨_, h2⟩;
       -- split at h2 <;> try simp at *
       -- have lem : (mn = cls_name) = False := by grind
       -- simp [Intermediate.lookup, ite_cond_eq_false (h := lem)];

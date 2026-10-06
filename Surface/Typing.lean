@@ -52,23 +52,6 @@ inductive ValidCtor (x : String) : Core.Ty -> Prop where
   ValidCtor x B ->
   ValidCtor x (A -:> B)
 
--- Valid Class Methods are of the form
--- ∀αs (x βs) => B
--- inductive ValidClassMethodTy (x : String) : Core.Ty -> Prop where
--- | base :
---   T.spine = some (x, sp) ->
---   ValidClassMethodTy x T
--- | all :
---   ValidClassMethodTy x P ->
---   ValidClassMethodTy x (∀[K] P)
--- | arrow :
---   A.spine = some (x, sp) ->
---   ValidClassMethodTy x (A `=:> B)
-
--- inductive ValidOpenKind : Kind -> Prop where
--- | base : ValidOpenKind `◯
--- | arrow : ValidOpenKind B -> ValidOpenKind (A `-:> B)
-
 
 inductive ValidClassInstTy (x : String) : Core.Ty -> Prop where
 | base :
@@ -106,17 +89,20 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 | classDecl {na : Nat} {Ks1 : Vec Core.Kind na}
            {scs : List (String × String × List (Fin na)) } {mτs : List (String × Core.SpineTy)} :
   lookup s G = none ->
-  (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> (mτs[i]'hi).1 ≠ (mτs[j]'hj).1) ->
-  (∀ i j: Nat, (hi : i < scs.length) -> (hj : j < scs.length) -> i ≠ j -> (scs[i]'hi).1 ≠ (scs[j]'hj).1) ->
+  (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
+  (∀ i j: Nat, (hi : i < scs.length) -> (hj : j < scs.length) -> i ≠ j -> scs[i].1 ≠ scs[j].1) ->
+  (∀ i j: Nat, (hi : i < mτs.length) -> (hj : j < scs.length) -> mτs[i].1 ≠ scs[j].1) ->
+
   (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
     SpineKinding Core.SpCtorVariant.openm mn (.classDecl s Ks1 [] [] :: G) (λ _ => true) τ) ->
-  (∀ (i : Nat) mn R, (hi : i < mτs.length) -> mτs[i]'hi = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
+  (∀ (i : Nat) mn R, (hi : i < mτs.length) -> mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
     mn ≠ s ∧ lookup mn G = none ∧ G&Ks1.list.reverse ⊢s R : ★) ->
-  (∀ (i : Nat) mn SC τs, (hi : i < scs.length) -> scs[i] = (mn, SC, τs) ->
+  (∀ (i : Nat) mn SC τs, (hi : i < scs.length) -> scs[i] = (mn, SC, τs) ∧
     mn ≠ s ∧ lookup mn G = none ∧ Surface.is_data .opn G SC
-    ∧ (∀ j : Nat, (hj : j < mτs.length) -> (mτs[j]'hj).1 ≠ mn)) ->
+    ∧ (∀ j : Nat, (hj : j < scs.length) -> scs[j].1 ≠ mn)) ->
 
   GlobalWf G (.classDecl s Ks1 scs /-fds-/ mτs)
+
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
   lookup cls_name G = some (.odata cls_name K scs mτs) ->
@@ -173,7 +159,7 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
             simp [Option.isSome_iff_exists] at h;
             rcases h with ⟨s, ha, hb, hc⟩
             simp [List.find?_eq_some_iff_getElem] at hc; rcases hc with ⟨e, i, hc2, hc3, hc4⟩; subst e
-            replace j4 := j4 i x ha hb hc2 hc3; rcases j4 with ⟨_, j4, _⟩; simp [ih] at j4
+            replace j4 := j4 i x ha hb hc2; rcases j4 with ⟨_, _, j4, _⟩; simp [ih] at j4
           apply ih
       case defn T b t' y j1 j2 =>
         simp [lookup]; split
