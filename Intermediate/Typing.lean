@@ -90,6 +90,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   (∀ (i : Nat) mn R T (tys : List Core.Ty), (hi : i < scs.length) ->
    (T.spine = .some (s, tys)) ->
    (tys = (List.range na).reverse.map (t#·)) ->
+
      scs[i] = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
      mn ≠ s ∧ lookup mn G = none ∧
      Intermediate.Ty.data? .opn G R /-∧ G&Ks1.list.reverse ⊢ R : ★-/) ->
