@@ -20,9 +20,12 @@ def NothingJustPat : Core.Pattern 2 :=  NothingPat ++ JustPat
 
 def mbenv : GlobalEnv := [
 
-  -- .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("leq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
+ --  .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("eq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
+-- -
+  .defn "eqMB_poly" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> (gt#"Bool")))
+    (Λˢ[★] λˢ[gt#"Eq" • t#0] g`#"eq" `•ᵤ #(gt#"Maybe" • t#0) `•ₑ #() `•ₜ .nil) ,
 
-  .defn "eqMB" ((gt#"Maybe" • gt#"Bool") -:> ((gt#"Maybe" • gt#"Bool") -:> (gt#"Bool"))) (g`#"eq" `•ᵤ #(gt#"Maybe" • gt#"Bool") `•ₑ #() `•ₜ .nil) ,
+  -- .defn "eqMB" ((gt#"Maybe" • gt#"Bool") -:> ((gt#"Maybe" • gt#"Bool") -:> (gt#"Bool"))) (g`#"eq" `•ᵤ #(gt#"Maybe" • gt#"Bool") `•ₑ #() `•ₜ .nil) ,
 
   -- MBI : ∀ t u, t ~ Maybe u -> Eq u -> Eq t
   .instDecl "MBI" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ (gt#"Maybe" • t#0), gt#"Eq" • t#0), gt#"Eq" • t#1⟩

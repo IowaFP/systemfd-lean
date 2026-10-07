@@ -164,7 +164,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
                 return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], scs, mths⟩) Γ')
              else .error "translate_SI instDecl mτs.length"
         else .error "translate_SI instDecl cls_name"
-    | _ => .error "translate_SI instDecl odata"
+    | e => .error $ "translate_SI instDecl odata" ++ cls_name ++ e.repr max_prec
   | _ => .error "translate_SI instDecl lookup cls_name"
 
 
@@ -212,12 +212,12 @@ def mk_inst_mths_IC (G : Core.GlobalEnv) :
 | _, _ => .error "mk_inst_mths_IC don't match"
 
 
-def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) (τ : Core.Ty) :
+def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) :
   TM Core.Global := do
   match Core.lookup_spine_type .openm G mn with
   | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ =>
     let Δ := (Ks1.list ++ Ks2.list).reverse
-    if h : nc == m && R == τ then
+    if h : nc == m then
     let ⟨ζ, Γ⟩ <- Option.toTM ("mk_inst_sc_IC Pattern Binders" ++ Std.Format.line
                        ++ "G : " ++ G.repr max_prec ++ Std.Format.line
                        -- ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
@@ -225,7 +225,7 @@ def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
                        -- ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
                        ++ "p : " ++ p.repr)
                        $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
-    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ τ
+    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R
     -- .error $
     --        ("G :" ++ G.repr max_prec ++  Std.Format.line
     --         ++ "Δ : " ++ (ζ ++ Δ).repr max_prec ++ Std.Format.line
@@ -250,10 +250,9 @@ def mk_inst_scs_IC (G : Core.GlobalEnv) :
   if mn == mn' then
     match Core.lookup mn G with
     | .some (.openm mn' spTy) =>
-      let τ := spTy.2.2.2.2.2.2
       if spTy.2.2.2.2.1 == m && (mn == mn') && spTy' == spTy then
       let ms' <- mk_inst_scs_IC G mτs ms
-      let i' <- mk_inst_sc_IC (ms'++G) mn m p τ
+      let i' <- mk_inst_sc_IC (ms'++G) mn m p
       return (i' :: ms')
       else .error "mk_inst_scs_IC scs lookup"
     | _ => .error "mk_inst_scs_IC scs lookup"
