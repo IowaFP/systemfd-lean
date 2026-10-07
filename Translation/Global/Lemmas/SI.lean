@@ -803,7 +803,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         have ts_len := mk_inst_mths_SI_length h4; rcases ts_len with ⟨_, ts_len⟩
         simp [e', ts_len] at h6; subst G'
         cases wf'; case _ wftl' wfhd' =>
-        cases wfhd'; case _ _ _ _ e _ K' _ lki1 _ _ lki2 _ _ _ =>
+        cases wfhd'; case _ e _ K' _ lki1 _ _ lki2 _ _ _ =>
 
         sorry
         -- cases wf'; case _ wftl' wfhd' =>
