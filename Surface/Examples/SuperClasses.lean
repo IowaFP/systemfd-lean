@@ -4,13 +4,18 @@ import Surface.Term
 
 import Translation.Global
 import Surface.Examples.Boolean
+import Surface.Examples.Maybe
 
 namespace Surface.Examples.Boolean
 
 def benv_ord : GlobalEnv := [
 
+  .defn "test_ord_eq_poly" (∀[★](gt#"Ord" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Maybe" • t#0) -:> (gt#"Bool"))
+    (Λˢ[★] λˢ[gt#"Ord" • t#0] g`#"eq" `•ᵤ #(gt#"Maybe" • t#0) `•ₑ #() `•ₜ .nil),
 
-  .defn "test_ord_eq_bool" ((gt#"Ord" • gt#"Bool") -:> gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") (λˢ[gt#"Ord" • gt#"Bool"] g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil),
+
+  .defn "test_ord_eq_bool" ((gt#"Ord" • gt#"Bool") -:> gt#"Bool" -:> gt#"Bool" -:> gt#"Bool")
+    (λˢ[gt#"Ord" • gt#"Bool"] g`#"eq" `•ᵤ #(gt#"Bool") `•ₑ #() `•ₜ .nil),
 
   -- cannot use this function unfortunately
   .defn "test_ord_eq" (∀[★] (gt#"Ord" • t#0) -:> t#0 -:> t#0 -:> gt#"Bool") (Λˢ[★] λˢ[gt#"Ord" • t#0] g`#"eq" `•ᵤ #(t#0) `•ₑ #() `•ₜ .nil),
@@ -26,7 +31,7 @@ def benv_ord : GlobalEnv := [
 
   .classDecl "Ord" #(★) /- [] -/ [("supOrdEq", "Eq", [0])] [("leq", ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Ordering")⟩)],
 
-  ] ++ benv
+  ] ++ Surface.Examples.Maybe.mbenv
 
 #eval benv_ord
 #eval  Translation.translate_SI benv_ord

@@ -162,7 +162,7 @@ theorem Ty.sub_act_eq_mpr {T: Core.Ty} {σ1 σ2 : Subst Core.Ty}:
 
 
 
-partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (needs_shift : Bool) (τ : Core.Ty) :
+partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
   TM ((t : Core.Term) ×' (τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ')) := do
   Option.toTM "synth_term' check_synth type" $ check_synth_type G τ
   match h : Γ.findIdx? (· == τ) with
@@ -181,11 +181,11 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
       return ⟨t, τ, by replace h := Core.Synth.synth_coercion_term_sound h; apply h⟩
     | none =>
       let candidates := find_matching_insts τ G
-      let ts : List ((t : Core.Term) ×' ((τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ'))) <- candidates.mapM (λ x =>
+      let ts : List ((t : Core.Term) ×' ((τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ'))) <- candidates.tryM (λ x =>
         match lk : Core.lookup_spine_type .openm G x with
         | some ⟨na, Ks1, 0, Ks2, nc, Ts, R⟩ => do -- all open methods have no existentially quantifed variables so we should be fine here
           let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine
-          let tys' := Vec.from_list tys -- needs shifting?
+          let tys' := Vec.from_list tys
           if e : na == tys'.1 then
             let σ := (tys.reverse.map su ++ Subst.id Core.Ty)
             let R' := R[σ]
@@ -195,7 +195,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                    && (List.range tys'.1).all ((R.fv ·)) && Ts.all (Core.Ty.data? Core.DataConst.opn G ·)
               then
                 let Ts' := Ts[σ]
-                let ts' := Ts'.map (Core.Ty.synth_term' G Δ Γ true ·)
+                let ts' := Ts'.map (Core.Ty.synth_term' G Δ Γ ·)
                 let ts <- ts'.sequence
                 if h : (ts.map (λ x => x.2.1) == Ts') then
                   let targs := ts.map (·.fst)
@@ -224,7 +224,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
         match lk : Core.lookup_spine_type (.data .opn) G x with
         | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ => do
           let (cls, tys) <- Option.toTM "synth_term' τ.spine" $ τ.spine -- τ = C τs
-          let vec_tys := if sn : needs_shift then Vec.from_list tys⟨Ren.add Core.Ty (na + nb)⟩ else Vec.from_list tys
+          let vec_tys := Vec.from_list tys
           if e : na == vec_tys.1 then
             let σ : Subst Core.Ty := (((List.range nb).map (t#·)).reverse.map su)  ++ vec_tys.2.list.reverse.map su ++ Subst.id Core.Ty
             let R' := R[σ]
@@ -233,8 +233,8 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
             let Ks1' <- Option.toTM ("synth_term' infer tys kinds" ++ Std.Format.line
                         ++ "tys : " ++ vec_tys.2.repr max_prec ++ Std.Format.line
                         ++ "Δ: " ++ Δ.repr max_prec ++ Std.Format.line
-                        ++ "G: " ++ G.repr max_prec ++ Std.Format.line
                         ++ "R': " ++ R'.repr max_prec
+                        ++ "G: " ++ G.repr max_prec ++ Std.Format.line
                         )
                         $ tys''
             if h : τ == R' && Ks1.beq Ks1' && tys''.isEqSome (Ks1')
@@ -254,7 +254,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
 
 
                 let Ts'' : Vec Core.Ty nc := Ts'[σsE'']
-                let ts <- (Ts''.map (Core.Ty.synth_term' G Δ Γ true ·)).sequence
+                let ts <- (Ts''.map (Core.Ty.synth_term' G Δ Γ ·)).sequence
 
                 if ets : (ts.map (λ x => x.2.1) == Ts'') then
                   let targs := ts.map (·.fst)
@@ -308,7 +308,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
 
 def Core.Ty.synth_term (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty)
   : TM ((t : Core.Term) ×' (G&Δ, Γ ⊢ t : τ)) := do
-  let ⟨t, τ', j⟩ <- Core.Ty.synth_term' G Δ Γ false τ
+  let ⟨t, τ', j⟩ <- Core.Ty.synth_term' G Δ Γ τ
   if h : τ == τ' then
   return by simp at h; subst h; constructor; apply j;
   else .error "synth_term τ≠τ'"
@@ -384,7 +384,7 @@ def Surface.Term.type_directed_translate
     let σ : Subst Core.Ty := (τU ++ τE).list.reverse.map su ++ Subst.id Core.Ty
     if ((n == n' && m' == 0) && x == x') && p == 0 && KsU.beq Ks1 && m == m' && (R[σ].infer_kind G Δ).isEqSome (★) then
 
-      let ιs := Ts[σ].map (λ x => Core.Ty.synth_term' G Δ Γ true x)
+      let ιs := Ts[σ].map (λ x => Core.Ty.synth_term' G Δ Γ x)
       match ιs.sequence with
       | .ok ιs =>
         if h : ιs.map (·.2.1) == Ts[σ] then

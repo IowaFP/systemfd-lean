@@ -93,6 +93,8 @@ inductive Entry : Type where
 | openm : String -> String -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
+deriving Repr
+-- instance : Repr of Entry
 
 
 def Entry.is_data : Core.DataConst -> Entry -> Bool
