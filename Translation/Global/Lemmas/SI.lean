@@ -81,6 +81,45 @@ theorem mk_inst_mths_SI_length {Γ' : Intermediate.GlobalEnv} :
     simp; apply ih h1
   cases h
 
+theorem mk_inst_scs_SI_length {Γ : Intermediate.GlobalEnv} :
+  mk_inst_scs_SI Γ C iname ts = .ok ts' ->
+  ts.length = ts'.length
+:= by
+
+  sorry
+
+theorem mk_inst_sc_SI_shape :
+  mk_inst_sc_SI Γ C iname spTy = Except.ok p ->
+  Intermediate.spine_pattern_size spTy = p.1
+:= by
+  intro h
+  simp [mk_inst_sc_SI] at h
+  split at h <;> try simp at h
+  split at h <;> try simp at h
+  simp [bind, Except.bind_eq_ok_iff] at h;
+  rcases h with ⟨r_s, r_tys, h⟩; rcases h with ⟨h1, T_s, T_tys, h⟩
+  rcases h with ⟨h2, h⟩; split at h <;> try simp at h
+  cases h; simp
+
+
+theorem mk_inst_scs_SI_shape :
+  mk_inst_scs_SI Γ C iname scs_τs = .ok scs' ->
+  ∀ i, (h : scs_τs.length = scs'.length) ->
+  (hi : i < scs_τs.length) ->
+  scs_τs[i].fst = scs'[i].fst ∧ Intermediate.spine_pattern_size scs_τs[i].snd = scs'[i].snd.fst
+:= by
+  intro h i h1 h2
+  fun_induction mk_inst_scs_SI generalizing scs' i
+  cases h2
+  case _ ih =>
+  simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨scs', h, h1, h2, h3⟩
+  cases h3
+  cases i <;> simp at *
+  apply mk_inst_sc_SI_shape; assumption
+  simp at h1; apply ih h
+  apply h1
+
+
 theorem mk_inst_mths_SI_indexing2 {Γ' : Intermediate.GlobalEnv} :
   mk_inst_mths_SI Γ' C iname mτs ts  = .ok insts ->
   (∀ (k : Nat) i τ, insts[k]? = some i -> mτs[k]? = some τ ->
@@ -670,10 +709,12 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         rcases lem2 with ⟨lem2, lem3⟩
         have l3 : i < mτs.length := by grind
         grind
-      · intro i hi; sorry
+      · intro i hi;
+        simp at h4; have lem1 := mk_inst_scs_SI_length h4
+        have lem2 :=  mk_inst_scs_SI_shape h4 i lem1 (by grind)
+        apply lem2
       · have lem3 := mk_inst_mths_SI_length h3; rcases lem3 with ⟨l1, l2⟩; grind
-      · sorry
-
+      · simp at h4; have lem1 := mk_inst_scs_SI_length h4; apply lem1
     · apply ih wftl h1
 
 
