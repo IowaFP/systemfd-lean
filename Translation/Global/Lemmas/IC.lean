@@ -39,7 +39,6 @@ theorem mk_inst_mth_IC_shape :
   split at h <;> simp [bind] at *
   case _ e =>
     subst e
-    -- rcases e with ⟨e1, e2⟩; subst e1; subst e2
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Δ, Γ, h⟩
     simp [Functor.map, Except.map] at h; rcases h with ⟨_, h⟩
     repeat (split at h <;> simp [Option.toTM] at *)
@@ -352,6 +351,28 @@ theorem mk_inst_mths_IC_indexing {j : Nat} :
      subst e1; subst e2; subst e; apply mk_inst_mth_IC_shape h
    case succ n =>
    apply ih h1 h2
+
+theorem mk_inst_scs_IC_indexing {j : Nat} :
+  mk_inst_scs_IC Γ mτs ms = Except.ok scs' ->
+  ms[j]? = .some ⟨x, nc, p⟩ ->
+  ∃ b', scs'[j]? = .some (Core.Global.inst (m := nc) x p b')
+:= by
+ intro h1 h2
+ fun_induction mk_inst_scs_IC generalizing scs' j <;> simp at *
+ case _ ih e1 e =>
+   simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨ms', h1, i⟩
+   simp [Functor.map, Except.map] at i
+   split at i <;> try simp at *
+   case _ h =>
+   subst scs'
+   rcases e with ⟨⟨e1, e2⟩, e3⟩; subst e1 e2 e3
+   cases j <;> simp at *
+   case zero h4 =>
+     rcases h2 with ⟨e, h2, h3⟩; subst h2; simp at h3; rcases h3 with ⟨e1, e2⟩;
+     subst e; apply mk_inst_sc_IC_shape h
+   case succ n =>
+   apply ih h1 h2
+
 
 
 theorem translate_IC_indexing_inst_scs {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} (wf : ⊢ G) :
