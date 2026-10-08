@@ -84,17 +84,20 @@ instance instRepr_Global : Repr Global where
 @[simp]
 abbrev GlobalEnv := List Global
 
+inductive OpenMethodType | clsMth | supCls /- FunDep -/
+  deriving Repr
+
 inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
 | odata : {n : Nat} -> String -> Vec Core.Kind n ->
   List (String × Core.SpineTy) -> /- scs -/
   List (String × Core.SpineTy) -> /- mths -/ Entry
-| openm : String -> String -> Core.SpineTy -> Entry
+| openm : String -> String -> OpenMethodType -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Surface.Term -> Entry
 | octor : String -> Core.SpineTy -> Entry
 deriving Repr
--- instance : Repr of Entry
+
 
 
 def Entry.is_data : Core.DataConst -> Entry -> Bool
@@ -133,9 +136,9 @@ def lookup (x : String) : GlobalEnv -> Option Entry
          | none => lookup x tl -- this should never happen
          | some i => match scs[i]? with
            | none => lookup x tl -- this should never happen
-           | some ⟨x, spTy⟩ => return .openm x cls_name spTy
+           | some ⟨x, spTy⟩ => return .openm x cls_name .supCls spTy
        | some i => match mths[i]? with
-                   | some ⟨x, spTy⟩ => return .openm x cls_name spTy
+                   | some ⟨x, spTy⟩ => return .openm x cls_name .clsMth spTy
                    | none => lookup x tl
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) tl =>
@@ -173,7 +176,7 @@ def Entry.name : Entry -> String
 | data x _ _ => x
 | ctor x _ _ => x
 | octor x _ => x
-| openm x _ _ => x
+| openm x _ _ _ => x
 | defn x _ _ => x
 | odata x _ _ _ => x
 
