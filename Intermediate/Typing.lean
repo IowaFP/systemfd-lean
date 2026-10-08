@@ -432,11 +432,14 @@ theorem Query.opn_strengthen_class {Γ : Intermediate.GlobalEnv}
       cases wfhd
       split at lk
       case _ e => subst e; cases lk; case _ lk _ => exfalso; simp [Intermediate.Entry.ctor?] at h1
-      split at lk
-      sorry -- simp at lk; simp [lk]; apply h1
-      case _ lk1 =>
-      split at lk;
-      cases lk; simp [Intermediate.Entry.ctor?] at h1
+      split at lk <;> try simp at lk
+      split at lk <;> try simp at lk
+      simp [lk]; apply h1
+      split at lk <;> try simp at lk
+      simp [lk]; apply h1
+      subst lk; simp [Intermediate.Entry.ctor?] at h1
+      split at lk <;> try simp at lk
+      subst lk; simp [Intermediate.Entry.ctor?] at h1
       simp [lk]; apply h1
     apply ih
 
@@ -480,8 +483,8 @@ theorem Query.strength_inst1 {Γ : Intermediate.GlobalEnv} :
 -- TODO: This will not hold when we bring in functional dependencies
 -- But then this will be in disjunction with #(T1, T2), and R being an equality
 theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
-  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .clsMth spTy) ->
-  ∃ na Ks1 T R tys, spTy = ⟨na, Ks1, 0, #(), 1, #(T), R⟩ ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·)
+  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .clsMth ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
+  nb = 0 ∧ nc = 1 ∧ (∃ (T: Core.Ty) (tys : List Core.Ty), As ≍ #(T) ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·))
 := by
   intro h
   induction wf
@@ -516,23 +519,78 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
         simp [List.findIdx?_eq_some_iff_getElem] at h1
         split at h;
         · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
-          case _ i _ mn spTy h2 _ =>
-          rcases spTy with ⟨na', Ks1', nb', Ks2', nc', As', R⟩
+          case _ i _ mn _ h2 =>
           simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
           let T := (Core.Ty.mkApps_nats (gt#s) ((List.range na).reverse))
           let tys := (List.range na).reverse.map (t#·)
-          -- replace c6 := c6 i mn R T tys sorry sorry hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
-          -- rw[c6.1] at h2; simp at h2; rcases h2 with ⟨e, h2⟩; subst e; simp at h2; rcases h2 with ⟨e1, e2, h2⟩
-          -- subst e1; subst e2; simp at h2; rcases h2 with ⟨e1, e2, h2⟩; subst e1; subst e2; simp at h2
-          -- subst As'
-          -- exists na; exists Ks1; exists T; exists R; exists tys; simp;
-          -- simp [T, tys, Core.Ty.mkApps_nats_spine]
-          sorry
+          replace c6 := c6 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
+          rw[c6.1] at h2; simp at h2; rcases h2 with ⟨e, h2⟩; subst e; simp at h2; rcases h2 with ⟨e1, e2, h2⟩
+          subst e1; subst e2; simp at h2; rcases h2 with ⟨e1, e2, h2⟩; subst e1; subst e2; simp at h2
+          simp; exists T; apply And.intro;
+          symm; apply h2
+          simp [T, Core.Ty.mkApps_nats_spine]
         · apply ih h
     case inst =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
+
+
+
+theorem lookup_supcls_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
+  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .supCls ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
+  nb = 0 ∧ nc = 1 ∧ (∃ (T: Core.Ty) (tys : List Core.Ty), As ≍ #(T) ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·))
+:= by
+  intro h
+  induction wf
+  case _ => simp [Intermediate.lookup] at h
+  case _ wfhd wftl ih =>
+    cases wfhd
+    case data =>
+      simp [Intermediate.lookup] at h; split at h
+      case _ e => subst e; simp at h
+      replace h := Vec.foldr_or h
+      cases h
+      case _ h => rcases h with ⟨i, h⟩; simp at h
+      case _ h => rcases h with ⟨_, h⟩; apply ih h
+    case defn =>
+      simp [Intermediate.lookup] at h; split at h
+      case _ e => subst e; simp at h
+      case _ => apply ih h
+    case classDecl _ s mτs na Ks1 scs c1 c2 c3 c4 c5 c6 c7  =>
+      simp [Intermediate.lookup] at h; split at h
+      case _ e => subst e; simp at h
+      split at h
+      case _ h1 =>
+        simp at h1;
+        split at h
+        apply ih h
+        case _ h2 =>
+        split at h
+        apply ih h
+        cases h;
+        sorry
+      case _  h1 =>
+        simp [List.findIdx?_eq_some_iff_getElem] at h1
+        sorry
+        -- split at h;
+        -- · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
+        --   case _ i _ mn _ h2 =>
+        --   simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
+        --   let T := (Core.Ty.mkApps_nats (gt#s) ((List.range na).reverse))
+        --   let tys := (List.range na).reverse.map (t#·)
+        --   replace c6 := c6 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
+        --   rw[c6.1] at h2; simp at h2; rcases h2 with ⟨e, h2⟩; subst e; simp at h2; rcases h2 with ⟨e1, e2, h2⟩
+        --   subst e1; subst e2; simp at h2; rcases h2 with ⟨e1, e2, h2⟩; subst e1; subst e2; simp at h2
+        --   simp; exists T; apply And.intro;
+        --   symm; apply h2
+        --   simp [T, Core.Ty.mkApps_nats_spine]
+        -- · apply ih h
+    case inst =>
+      simp [Intermediate.lookup] at h; split at h
+      case _ e => subst e; simp at h
+      case _ => apply ih h
+
 
 theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls mthty spTy) ->
@@ -584,10 +642,10 @@ theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
     split at h2 <;> try simp at *
     apply ih h1 h2
 
-theorem lookup_openm_index {G : Intermediate.GlobalEnv} (wf : ⊢ G):
-  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls mthty spTy) ->
+theorem lookup_openm_index_cls_mth {G : Intermediate.GlobalEnv} (wf : ⊢ G):
+  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .clsMth spTy) ->
   Intermediate.lookup cls G = some (Intermediate.Entry.odata cls K scs mτs) ->
-  (∃ j, ∃ (h : j < mτs.length), mτs[j].1 = mn) ∨ (∃ j, ∃ (h : j < scs.length), scs[j].1 = mn)
+  (∃ j, ∃ (h : j < mτs.length), mτs[j].1 = mn)
 := by
  intro h1 h2
  induction wf
@@ -643,5 +701,67 @@ theorem lookup_openm_index {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h1 <;> simp at *
    split at h2 <;> try simp at *
    apply ih h1 h2
+
+
+theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
+  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .supCls spTy) ->
+  Intermediate.lookup cls G = some (Intermediate.Entry.odata cls K scs mτs) ->
+  (∃ j, ∃ (h : j < scs.length), scs[j].1 = mn)
+:= by
+ intro h1 h2
+ induction wf
+ case _ => simp [Intermediate.lookup] at h1
+ case _ wfhd wftl ih =>
+ cases wfhd <;> simp [Intermediate.lookup] at h1 h2
+ case data =>
+   split at h1 <;> simp at *
+   split at h2 <;> try simp at *;
+   replace h1 := Vec.foldr_or h1;
+   cases h1
+   case _ h1 =>
+     replace h2 := Vec.foldr_or h2
+     cases h2
+     case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
+     case _ h2 => rcases h1 with ⟨_, h1⟩; simp at h1
+   case _ h1 =>
+     replace h2 := Vec.foldr_or h2
+     cases h2
+     case _ h2 => rcases h2 with ⟨i, h2⟩; simp at h2
+     case _ h2 =>
+       rcases h1 with ⟨h1a, h1b⟩; rcases h2 with ⟨h2a, h2b⟩
+       apply ih h1b h2b
+ case defn =>
+   split at h1 <;> try simp at *
+   split at h2 <;> try simp at *;
+   apply ih h1 h2
+ case classDecl =>
+   split at h1 <;> simp at *
+   split at h2 <;> try simp at *
+   split at h1 <;> try simp at *
+   case _ h4 _ _ _ e h3 =>
+     -- subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K; subst e3;
+     -- exfalso; apply Intermediate.lookup_openm_no_cls wftl h1 h4
+     sorry
+   case _  c1 c2 c3 _ e i h3 =>
+     subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
+     sorry -- subst e3;
+     -- simp[List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨h, h3, _⟩; symm at h3
+     -- exists i; exists h
+   case _ =>
+     split at h1
+     case _ =>
+       split at h2
+       sorry -- apply ih h1 h2
+       case _ h3 =>
+         simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, _⟩
+         simp [List.getElem?_eq_getElem hi] at h2
+     case _ h3 =>
+       simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, _⟩
+       sorry
+ case inst =>
+   split at h1 <;> simp at *
+   split at h2 <;> try simp at *
+   apply ih h1 h2
+
 
 end Intermediate
