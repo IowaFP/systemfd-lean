@@ -95,8 +95,10 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 
   (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
     SpineKinding Core.SpCtorVariant.openm mn (.classDecl s Ks1 [] [] :: G) (λ _ => true) τ) ->
+
   (∀ (i : Nat) mn R, (hi : i < mτs.length) -> mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
     mn ≠ s ∧ lookup mn G = none ∧ G&Ks1.list.reverse ⊢s R : ★) ->
+
   (∀ (i : Nat) mn SC τs, (hi : i < scs.length) ->
     scs[i] = (mn, SC, τs) ∧
     mn ≠ s ∧ lookup mn G = none ∧ Surface.is_data .opn G SC

@@ -605,27 +605,35 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
           apply translate_SI_lookup_none h1 c5c
           apply kinding_SI_transfer h1 c5d
       · generalize zdef : List.map (fun x => (x.fst, Surface.mk_superclass_om s Ks x.2.fst x.2.snd)) scs = z at *
-        intro i mn R T tys hi T_spine e1; simp;
+        intro i mn R T tys supCls tys2 hi T_spine e1 R_shape; simp;
         have lem : z[i] = z[i] := by rfl
         conv at lem =>
           rhs
           simp only [<-zdef]
         simp at lem;
         have hi : i < scs.length := by grind
-        generalize qdef : Surface.mk_superclass_om s Ks scs[i].snd.fst scs[i].snd.snd = q at *
+        generalize qdef : Surface.mk_superclass_om s Ks supCls tys2 = q at *
         replace qdef := mk_superclass_om_shape qdef
         rcases q with ⟨qna, qKs1, qnb, qKs2, qnc, qAs, qR⟩
         simp at qdef;
         rcases qdef with ⟨e1, qdef⟩; subst e1; simp at qdef; rcases qdef with ⟨e1, e2, e3, qdef⟩
         subst e1; subst e2; subst e3; simp at qdef; cases qKs2; rcases qdef with ⟨e1, qdef⟩; subst e1;
         subst qdef;
-        replace c2 := c2 i mn scs[i].2.1 scs[i].2.2 hi
+        replace c2 := c2 i mn supCls tys2 hi
         apply And.intro
-        · rw[lem]; simp; rcases c2 with ⟨e1, e2, e3⟩; apply And.intro; rw[e1]; apply And.intro; sorry; sorry;
+        · rw[lem]; simp; rcases c2 with ⟨e1', e2, e3⟩; apply And.intro;
+          rw[e1'];
+          rw[e1']; rw[e1'] at lem; simp at lem; simp;
+          simp [Surface.mk_superclass_om]
+          apply And.intro;
+          · simp [e1] at T_spine; have lem := Core.Ty.mkApps_nats_spine_eta (T := T) (s := s) (tys := (List.range kc).reverse)
+            simp at lem; replace lem := lem T_spine; symm; apply lem
+          · have lem := Core.Ty.mkApps_nats_spine_eta (T := R) (s := supCls) (tys := tys2) R_shape
+            symm; apply lem
         · rcases c2 with ⟨c2a, c2b, c2c, c2d, c2e⟩;
           apply And.intro
-          apply c2b; apply And.intro; apply translate_SI_lookup_none h1 c2c; sorry
-
+          apply c2b; apply And.intro; apply translate_SI_lookup_none h1 c2c;
+          apply lookup_is_data_SI_some h1 c2d
     · apply ih wftl h1
 
   case _ iname _ _ _ _ _ _ _ _ _ ih => -- instance
@@ -677,7 +685,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
 := by
   intro h
   have wf' := translate_SI_wf_sound wf h
-  intro mn na nb nc Ks1 Ks2 Ts R qs _ h1 h2
+  intro mn na nb nc Ks1 Ks2 Ts R qs _ _ h1 h2
   fun_induction translate_SI generalizing G' mn <;> simp [pure, Except.pure] at *
   · subst h; simp [Intermediate.lookup] at h1
   case _ ih => -- data
@@ -743,18 +751,20 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
           let T := (Core.Ty.mkApps_nats (gt#s) ((List.range kc)).reverse)
           let tys := ((List.range kc).map (t#·)).reverse
           -- The point here is that Ts = #(T) and T is the class
-          replace ci2 := ci2 i (scs[i].1) R T tys (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
-          rcases ci2 with ⟨e1, e2⟩; simp at e1 e2; replace e1 := mk_superclass_om_shape e1;
-          simp at e1; rcases e1 with ⟨e1, e2⟩; subst T; subst R; simp at h7;
-          rcases h7 with ⟨a, b, h7, h8, h9, h10⟩; replace h10 := mk_superclass_om_shape h10;
-          simp at h10; rcases h10 with ⟨e1, h10⟩; subst e1; simp at h10; rcases h10 with ⟨e1, e2, e3, e4, h10⟩
-          subst e1; subst nb; subst nc; simp at e4; subst e4
-          cases qs; cases h2; case _ h2 _ =>
-          simp [Intermediate.lookup_ctor?, Core.Ty.mkApps_nats_spine] at h2;
-          simp [Option.getD_eq_iff] at h2;
-          rcases h2 with ⟨ent, h3, h4⟩;
-          exfalso; apply Intermediate.lookup_none_ctor? wftl' _ h3 h4
-          assumption
+          -- replace ci2 := ci2 i (scs[i].1) R T tys (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
+          -- rcases ci2 with ⟨e1, e2⟩; simp at e1 e2; replace e1 := mk_superclass_om_shape e1;
+          -- simp at e1; rcases e1 with ⟨e1, e2⟩; subst T; subst R; simp at h7;
+          -- rcases h7 with ⟨a, b, h7, h8, h9, h10⟩; replace h10 := mk_superclass_om_shape h10;
+          -- simp at h10; rcases h10 with ⟨e1, h10⟩; subst e1; simp at h10; rcases h10 with ⟨e1, e2, e3, e4, h10⟩
+          -- subst e1; subst nb; subst nc; simp at e4; subst e4
+          -- cases qs; cases h2; case _ h2 _ =>
+          -- simp [Intermediate.lookup_ctor?, Core.Ty.mkApps_nats_spine] at h2;
+          -- simp [Option.getD_eq_iff] at h2;
+          -- rcases h2 with ⟨ent, h3, h4⟩;
+          -- exfalso; apply Intermediate.lookup_none_ctor? wftl' _ h3 h4
+          -- assumption
+          sorry
+
 
     case _ i h5 =>
       -- The point here is that Ts = #(T) and T is the class
@@ -768,21 +778,23 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         replace cs5 := cs5 i (mτs[i].1) R (by grind); rcases cs5 with ⟨e1, e2⟩
         let T := (Core.Ty.mkApps_nats (gt#s) ((List.range kc)).reverse)
         let tys := ((List.range kc).map (t#·)).reverse
-        replace ci5 := ci5 i (mτs[i].1) R T tys (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
-        simp at ci5; rw[e1] at ci5; simp at ci5; rcases ci5 with ⟨e3, e4⟩
-        unfold mk_method_om at e3; simp at e3;
-        rcases h7 with ⟨x, b, h7, h8, h9⟩; simp [mk_method_om] at h9;
-        cases h9; simp at e3;
-        simp [List.getElem?_eq_some_iff] at h7; rcases h7 with ⟨hi, h7⟩; rw[e1] at h7; simp at h7; rcases h7 with ⟨_, h7⟩
-        subst h7; simp at e3; rcases e3 with ⟨e1, e3⟩; subst e1; simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1; subst e2
-        simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1; subst e2; simp at e3; subst e3;
-        subst h8; subst h5; subst T;
-        cases qs; cases h2; case _ h2 _ =>
-        simp [Intermediate.lookup_ctor?, Core.Ty.mkApps_nats_spine] at h2;
-        simp [Option.getD_eq_iff] at h2;
-        rcases h2 with ⟨ent, h3, h4⟩;
-        exfalso; apply Intermediate.lookup_none_ctor? wftl' _ h3 h4
-        assumption
+        sorry
+        -- let R :=
+        -- replace ci5 := ci5 i (mτs[i].1) R T tys (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
+        -- simp at ci5; rw[e1] at ci5; simp at ci5; rcases ci5 with ⟨e3, e4⟩
+        -- unfold mk_method_om at e3; simp at e3;
+        -- rcases h7 with ⟨x, b, h7, h8, h9⟩; simp [mk_method_om] at h9;
+        -- cases h9; simp at e3;
+        -- simp [List.getElem?_eq_some_iff] at h7; rcases h7 with ⟨hi, h7⟩; rw[e1] at h7; simp at h7; rcases h7 with ⟨_, h7⟩
+        -- subst h7; simp at e3; rcases e3 with ⟨e1, e3⟩; subst e1; simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1; subst e2
+        -- simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1; subst e2; simp at e3; subst e3;
+        -- subst h8; subst h5; subst T;
+        -- cases qs; cases h2; case _ h2 _ =>
+        -- simp [Intermediate.lookup_ctor?, Core.Ty.mkApps_nats_spine] at h2;
+        -- simp [Option.getD_eq_iff] at h2;
+        -- rcases h2 with ⟨ent, h3, h4⟩;
+        -- exfalso; apply Intermediate.lookup_none_ctor? wftl' _ h3 h4
+        -- assumption
       · replace ih := ih wftl h3 wftl' h1 h2; rcases ih with ⟨i, ih⟩; exists i+1
   case _ cls1 iname na' Ks1' nb' Ks2' nc' As' R' ts _ ih => -- inst
     cases wf; case _ wftl wfhd =>
