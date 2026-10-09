@@ -133,15 +133,15 @@ def lookup (x : String) : GlobalEnv -> Option Entry
   else match h : mths.findIdx? (λ ⟨n, _⟩ => x == n) with
        | none =>
          match h : scs.findIdx? (λ ⟨n, _⟩ => x == n) with
-         | none => lookup x tl -- this should never happen
+         | none => lookup x tl
          | some i => match scs[i]? with
-           | none => lookup x tl -- this should never happen
+           | none => lookup x tl
            | some ⟨x, spTy⟩ => return .openm x cls_name .supCls spTy
        | some i => match mths[i]? with
                    | some ⟨x, spTy⟩ => return .openm x cls_name .clsMth spTy
                    | none => lookup x tl
 
-| .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) tl =>
+| .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, _, _, _⟩) tl =>
   if x == iname then return (.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats ((List.range k1).map (·+k2)).reverse⟩)
   else lookup x tl
 
