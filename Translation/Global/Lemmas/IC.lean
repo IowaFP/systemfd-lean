@@ -677,8 +677,6 @@ theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : 
       · apply ih wf h1 h2
 
 
-
-
 theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
   {Ks : Vec Core.Kind kc} (wf : ⊢ G):
   ⟦ G ⟧ = .ok G' ->
@@ -720,46 +718,43 @@ theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     · subst x; simp at h2
     · have e : (x = s) = False := by grind
       simp [Core.lookup, e]; apply ih wf h1 h2
+
   case _ s kU _ _ _ mths _ ih => -- class
     cases wf; case _ wf wfhd =>
     simp [Functor.map, Except.map_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩;
     subst G'; split at h2
-    -- · subst x; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
-    --   apply Core.lookup_append_some_mpr; apply Or.inr
-    --   apply And.intro
-    --   · cases wfhd; case _ c1 c2 c3 c4 c5 =>
-      --   clear c1 c2 ih
-      --   induction mths <;> simp at *
-      --   case _ => simp [Core.lookup]
-      --   case _ mth mths ih =>
-      --     rcases mth with ⟨mn', mth_spTy⟩
-      --     have c3' := c3 0 mn' mth_spTy.2.2.2.2.2.2 ((gt#s).mkApps_nats (List.range kU).reverse) ((List.range kU).reverse.map (t#·)) (by simp)
-      --                    (by apply Core.Ty.mkApps_nats_spine) (by simp)
-      --     simp at c3'; rcases c3' with ⟨e1, e2, e3⟩;
-      --     have e : (s = mn') = False := by grind
-      --     simp [Core.lookup, e]; apply ih
-      --     intro i mn R T ts h1 h2 h3
-      --     replace c3 := c3 (i + 1) mn R T ts (by grind) h2 h3
-      --     simp at c3; apply c3
-      -- simp [Core.lookup]; rfl
-    sorry
-    · split at h2
-      case _ h2 h3 =>
-        -- simp at h3
-        -- replace ih := ih wf h1 h2
-        -- apply Core.lookup_append_some_mpr
-        -- apply Or.inr;
-        -- apply And.intro
-        -- clear ih h2 h1 Γ' wf wfhd;
-        -- induction mths <;> simp [Core.lookup]
-        -- case _ hd tl ih =>
-        --   split
-        --   case _ e => simp; apply h3 hd.1 hd.2; simp; apply e
-        --   apply ih
-        --   intro a b h; apply h3 a b; constructor; apply h
-        -- have e : (x = s) = False := by grind
-        -- simp [Core.lookup, e]; apply ih
+    case _ e =>
+      subst e; cases h2
+      apply Core.lookup_append_some_mpr; apply Or.inr
+      apply And.intro
+      · cases wfhd; case _ c1 c2 c3 c4 c5 =>
+        clear c1 c2 c3 ih
         sorry
+      · apply Core.lookup_append_some_mpr; apply Or.inr
+        apply And.intro
+        · cases wfhd; case _ c1 c2 c3 c4 c5 =>
+          clear c1 c2 ih
+          sorry
+        · simp [Core.lookup]; rfl
+
+    case _ =>
+      split at h2
+      case _ h2 h3 =>
+        split at h2
+        case _ h4 =>
+          apply Core.lookup_append_some_mpr
+          apply Or.inr;
+          apply And.intro
+          apply lookup_name_no_match_implies_none h3
+          apply Core.lookup_append_some_mpr
+          apply Or.inr;
+          apply And.intro
+          apply lookup_name_no_match_implies_none h4
+          have e : (x = s) = False := by grind
+          simp [Core.lookup, e]; apply ih wf h1 h2
+        case _ h4 =>
+          simp [List.findIdx?_eq_some_iff_getElem] at h4; rcases h4 with ⟨hi, h4, h5⟩
+          simp [List.getElem?_eq_getElem hi] at h2
       case _ h3 =>
         simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
         simp [List.getElem?_eq_getElem hi] at h2
@@ -777,7 +772,7 @@ theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     apply Core.lookup_append_some_mpr
     apply Or.inr
     apply And.intro
-    · sorry -- apply mk_inst_mths_IC_lookup_none h3
+    · apply mk_inst_scs_IC_lookup_none h5
     · have e : (x = iname) = False := by grind
       apply Core.lookup_append_some_mpr
       apply Or.inr
@@ -897,27 +892,19 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
         case _ h3 =>
         simp [Core.lookup_append_none]
         apply And.intro
-        simp [List.findIdx?_eq_none_iff] at h3;
-        · clear ih h1 h2 Γ';
-          induction mths <;> simp [Core.lookup]
-          case _ hd tl ih =>
-          simp at h3;
-          split
-          subst x; have h3' := h3 hd.fst hd.snd; simp at h3';
-          apply ih; intro a b i;  replace h3 := h3 a b; apply h3; apply Or.inr; apply i
-
+        apply lookup_name_no_match_implies_none h3
         replace e : (x = s) = False := by grind
         simp [Core.lookup, e];
         split at h2
         case _ h4 =>
-          simp at h4
           apply And.intro
-          sorry
+          apply lookup_name_no_match_implies_none h4
           apply ih h1 h2
         case _ h4 =>
           simp [List.findIdx?_eq_some_iff_getElem] at h4
           rcases h4 with ⟨hi, h4, h5⟩;
           simp [List.getElem?_eq_getElem hi] at h2
+
       split at h2;
       simp at h2
       case _ h3 _ h4 =>
@@ -935,7 +922,7 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
     simp [Except.map_eq_ok_iff] at h5; rcases h5 with ⟨scs', h5, h6⟩
     subst G'; simp [Core.lookup_append_none]
     apply And.intro
-    · sorry
+    · apply mk_inst_scs_IC_lookup_none h5
     · apply And.intro
       · simp [Intermediate.lookup] at h2
         split at h2
