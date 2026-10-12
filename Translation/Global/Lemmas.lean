@@ -11,11 +11,16 @@ import Translation.Term.Lemmas
 import Translation.Global.Lemmas.SI
 import Translation.Global.Lemmas.IC
 
-import Lilac
-open Lilac
-
-
 namespace Translation
+
+theorem translate_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} {G'' : Core.GlobalEnv} (wf : ⊢ G) : ⟦ G ⟧ = .ok G' ->
+  ⟦ G' ⟧ = .ok G'' ->
+  ⊢ G''
+:= by
+  intro h1 h2
+  have wf' : ⊢ G' := SI.translate_SI_wf_sound wf h1
+  apply IC.translate_IC_wf_sound wf' h2
+
 
 theorem translate_open_exhaustive_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} {G'' : Core.GlobalEnv} (wf : ⊢ G) :
   ⟦ G ⟧ = .ok G' ->
