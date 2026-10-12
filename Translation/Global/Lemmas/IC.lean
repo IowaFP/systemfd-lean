@@ -88,6 +88,32 @@ theorem mk_inst_mth_IC_wf {G : Core.GlobalEnv} (wf : ⊢ G) :
   apply h2
 
 
+theorem mk_inst_sc_IC_wf {G : Core.GlobalEnv} :
+  mk_inst_sc_IC G mn n p = Except.ok i ->
+  ∃ b, i = .inst mn p b ∧
+  ∃ ζ Γ Δ R Ts, Core.PatternBinders .opn G Δ n Ts p ζ Γ ∧ G&(ζ ++ Δ),Γ ⊢ b : R
+:= by
+  intro h
+  unfold mk_inst_sc_IC at h
+  split at h <;> simp at *
+  split at h <;> simp [bind] at *
+  case _ Ks1 _ Ks2 _ Ts R h1 h2 =>
+  simp [Functor.map, Except.bind_eq_ok_iff] at h
+  rcases h with ⟨ζ, Γ, h, h3⟩
+  simp [Option.toTM_some_eq_ok_iff] at h
+  simp [Except.map_eq_ok_iff] at h3; rcases h3 with ⟨j, h3, h4⟩
+  subst h2
+  replace h3 := synth_term_sound h3
+  rcases j with ⟨t, j⟩; simp at h3
+  exists t; simp at h4
+  apply And.intro
+  symm; apply h4
+  exists ζ; exists Γ; exists (Ks1.list ++ Ks2.list).reverse;
+  apply And.intro
+  exists Ts; simp; apply Core.pattern_binders_sound h
+  exists R
+
+
 
 theorem mk_inst_mths_IC_lookup_none {Γ : Core.GlobalEnv} {x : String} :
   mk_inst_mths_IC Γ mτs mths = Except.ok mths' ->
@@ -985,53 +1011,79 @@ theorem translate_IC_spine_kinding_odata {G : Intermediate.GlobalEnv} {G' : Core
   Core.SpineKinding (Core.SpCtorVariant.openm) y (.cons (Core.Global.odata s (Core.Kind.mk_kind K)) G') (λ _ => true) T
 := by apply spine_kinding_IC_transfer wf (by simp [translate_IC, Functor.map, Except.map_eq_ok_iff]; apply And.intro; apply ht; rfl) (by simp)
 
-theorem mk_inst_mths_IC_wf_sound {G1 G' : Core.GlobalEnv} {mτs : List (String × Core.SpineTy)} (wf : ⊢ (G1 ++ Core.Global.octor iname spTy :: G')) :
+theorem mk_inst_mths_IC_wf_sound {G1 G' : Core.GlobalEnv} {mτs : List (String × Core.SpineTy)}
+  (wf : ⊢ (G1 ++ Core.Global.octor iname spTy :: G')) :
   mτs.length = mths.length ->
   mk_inst_mths_IC (G1 ++ Core.Global.octor iname spTy :: G') mτs mths =  Except.ok G2 ->
   (∀ (i : Nat) (hi : i < mths.length) (hj : i < mτs.length),
       mτs[i].fst = mths[i].fst ∧ Intermediate.spine_pattern_size mτs[i].snd = Intermediate.method_pattern_size mths[i]) ->
-  ⊢ (G2 ++ G1 ++ Core.Global.octor iname spTy :: G')
+  ⊢ (G2 ++ (G1 ++ Core.Global.octor iname spTy :: G'))
 := by
   intro h0 h1 hi
   generalize Γdef : G1 ++ Core.Global.octor iname spTy :: G' = ΓC at *
-  fun_induction mk_inst_mths_IC generalizing G2 G1 <;> try simp at *
+  fun_induction mk_inst_mths_IC generalizing G2 <;> try simp at *
   · cases h1; simp; subst Γdef; apply wf
-  · case _ mτs mn _ _ _ _ _ _ lk e1 e2 ih =>
+  · case _  mτ_spTy lk ih e1 e2 =>
     subst e1; rcases e2 with ⟨e1, e2, e3⟩; subst e1 e2 e3
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨G, h1, h2⟩;
     simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨g, h2, h3⟩
     cases h3
-
-    have h1b := mk_inst_mth_IC_wf (Δ := (spTy.2.fst.list ++ spTy.2.2.2.fst.list).reverse)
-                                  (by sorry)
+    have h1b := mk_inst_mth_IC_wf (Δ := (mτ_spTy.2.fst.list ++ mτ_spTy.2.2.2.fst.list).reverse)
+                                  (by subst ΓC;
+                                      apply ih h0; intro i hi' hj';
+                                      replace hi := hi (i + 1) (by grind) (by grind);
+                                      simp at hi; apply hi
+                                      apply h1)
                                   h2
-                                  (by sorry) -- rfl
+                                  rfl
     rcases h1b with ⟨b, ha, ζ, Γ, hb, hc⟩; cases ha
-    sorry
-    -- constructor;
-    -- · constructor;
-    --   · simp; apply Core.lookup_append_weaken_left;
-    --     · apply mk_inst_mths_IC_lookup_none h1;
-    --     · sorry -- subst ΓC; apply tl
-    --   sorry
-    --   sorry
-    --   sorry
-    --   -- rfl; subst ΓC; apply hb; simp at hc; sorry-- apply hc
-    -- · subst ΓC; apply ih; apply h0; apply h1;
-    --   intro i hj; replace hi := hi (i + 1) (by grind)
-    --   intro h; replace hi := hi (by simp; grind); simp at hi; apply hi
+    have lem : ⊢ (G ++ (G1 ++ Core.Global.octor iname spTy :: G')) := by
+       rw[<-Γdef] at ih; apply ih h0; intro i hi' hj';
+       replace hi := hi (i + 1) (by grind) (by grind);
+       simp at hi; apply hi
+       rw[<-Γdef] at h1; apply h1
+
+    apply Core.ListGlobalWf.cons
+    · apply Core.GlobalWf.inst (Γ := Γ) (ζ := ζ)
+      · simp [<-Γdef] at lk; simp [<-Γdef]; apply Core.GlobalWf.drop_lookup_unique (G := G ++ (G1 ++ Core.Global.octor iname spTy :: G')) (G.length) lem; simp; apply lk;
+      rfl
+      simp; simp at hb; apply hb
+      apply hc
+    · rw[<-Γdef]; apply lem
 
 
-theorem mk_inst_scs_IC_wf_sound {G' : Core.GlobalEnv} {mτs : List (String × Core.SpineTy)} (wf : ⊢ (Core.Global.octor iname spTy :: G')) :
-  mτs.length = mths.length ->
-  mk_inst_mths_IC (Core.Global.octor iname spTy :: G') mτs mths =  Except.ok G1 ->
-  (∀ (i : Nat) (hi : i < mths.length) (hj : i < mτs.length),
-      mτs[i].fst = mths[i].fst ∧ Intermediate.spine_pattern_size mτs[i].snd = Intermediate.method_pattern_size mths[i]) ->
-  ⊢ (G1 ++ Core.Global.octor iname spTy :: G')
+theorem mk_inst_scs_IC_wf_sound {G1 G' : Core.GlobalEnv} {scτs : List (String × Core.SpineTy)} {mths : List (String × (m : Nat) × Core.Pattern m)}
+  (wf : ⊢ (G1 ++ Core.Global.octor iname spTy :: G')) :
+  scτs.length = mths.length ->
+  mk_inst_scs_IC (G1 ++ Core.Global.octor iname spTy :: G') scτs mths =  Except.ok G2 ->
+  (∀ (i : Nat) (hi : i < mths.length) (hj : i < scτs.length),
+      scτs[i].fst = mths[i].fst ∧ Intermediate.spine_pattern_size scτs[i].snd = mths[i].2.1) ->
+  ⊢ (G2 ++ (G1 ++ Core.Global.octor iname spTy :: G'))
 := by
   intro h0 h1 hi
-
-  sorry
+  generalize Γdef : G1 ++ Core.Global.octor iname spTy :: G' = ΓC at *
+  fun_induction mk_inst_scs_IC generalizing G2 <;> try simp at *
+  · cases h1; simp; subst Γdef; apply wf
+  · case _  mτ_spTy lk ih e1 e2 =>
+    subst e1; rcases e2 with ⟨⟨e1, e2⟩, e3⟩; subst e1 e2 e3
+    simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨G, h1, h2⟩;
+    simp [Functor.map, Except.map_eq_ok_iff] at h2; rcases h2 with ⟨g, h2, h3⟩
+    cases h3
+    have h1b := mk_inst_sc_IC_wf h2
+    rcases h1b with ⟨t, h3, ζ, Γ, Δ, R, Ts, h4, h⟩
+    cases h3
+    have lem : ⊢ (G ++ (G1 ++ Core.Global.octor iname spTy :: G')) := by
+       rw[<-Γdef] at ih; apply ih h0; intro i hi' hj';
+       replace hi := hi (i + 1) (by grind) (by grind);
+       simp at hi; apply hi
+       rw[<-Γdef] at h1; apply h1
+    apply Core.ListGlobalWf.cons
+    · apply Core.GlobalWf.inst (Γ := Γ) (ζ := ζ)
+      · simp [<-Γdef] at lk; simp [<-Γdef]; apply Core.GlobalWf.drop_lookup_unique (G := G ++ (G1 ++ Core.Global.octor iname spTy :: G')) (G.length) lem; simp; apply lk;
+      rfl
+      simp; sorry
+      simp; sorry
+    · rw[<-Γdef]; apply lem
 
 
 -- TODO: This is unfortunate, need a better way to organize

@@ -101,18 +101,24 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 
   GlobalWf G (.classDecl ⟨s, na, Ks1, [], scτs, mτs⟩)
 
-| inst {mτs : List (String × Core.SpineTy)} {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)} {scs_impl : List (String × (m : Nat) × Core.Pattern m)}:
+| inst {mτs : List (String × Core.SpineTy)}
+       {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}
+       {scs_impl : List (String × (m : Nat) × Core.Pattern m)} :
   lookup x G = none ->
   lookup cls_name G = some (.odata cls_name K scs mτs) ->
+
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
+
   (e1 : mτs.length = mths_impl.length) ->
   (∀ i : Nat, (hi : i < mths_impl.length) ->
     ((mτs[i]).1 = mths_impl[i].1) ∧
     (spine_pattern_size (mτs[i]).2 = method_pattern_size (mths_impl[i]))) ->
+
   (e2 : scs.length = scs_impl.length) ->
   (∀ i : Nat, (hi : i < scs_impl.length) ->
     ((scs[i]).1 = scs_impl[i].1) ∧
     (spine_pattern_size (scs[i]).2 = (scs_impl[i]).2.1)) ->
+
   GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, As, [], scs_impl, mths_impl⟩)
 
 inductive ListGlobalWf : List Global -> Prop where
