@@ -588,6 +588,8 @@ theorem spine_kinding_SI_transfer {G : Surface.GlobalEnv} {G' : Intermediate.Glo
     (by intro e i; replace h5 := h5 e i; apply Ty.data?_SI_transfer h T.2.2.2.2.2.fst[i] h5)
 
 
+
+
 theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) :
   ⟦ G ⟧ = .ok G' ->
   ⊢ G' := by
@@ -641,34 +643,42 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
     split at h2 <;> try simp at h2;
     case _ h3 =>
     rcases h2 with ⟨h2, h4⟩; subst G'
-    cases wfhd; case _ c1 c2 c3 c4 c5 c6 =>
+    cases wfhd; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 =>
     constructor
     · apply Intermediate.GlobalWf.classDecl
       · apply h3
-      · { intro i j hi hj ne; simp; apply c3 i j (by grind) (by grind) ne }
-      · { intro i j hi hj ne; simp; apply c1 i j (by grind) (by grind) ne }
-      · { intro i j hi hj ne; simp at ne; apply c6 i j (by grind) (by grind) ne }
+      · intro i j hi hj ne; simp; apply c5 i j (by grind) (by grind) ne
+      · intro i j hi hj ne; simp; apply c2 i j (by grind) (by grind) ne
+      · intro i j hi hj; simp; apply c9 i j (by grind) (by grind)
+      · intro i hi; simp at c6; simp; replace c6 := c6 i (by simp at hi; apply hi)
+        apply And.intro
+        apply c6.1; apply translate_SI_lookup_none h1 c6.2
+      · intro i hi; simp at hi; simp; replace c4 := c4 i hi;
+        apply And.intro;
+        apply c4.1; apply translate_SI_lookup_none h1 c4.2
       · { intro i mn τ hi h1; have h : i < mτs.length := by grind
-          replace c4 := c4 i (mτs[i]).1 (mτs[i]).2 h; simp at h1;
-          simp at c4; rcases h1 with ⟨e1, e2⟩; subst e1; subst e2;
+          replace c8 := c8 i (mτs[i]).1 (mτs[i]).2 h (by simp); simp at h1
+          simp at c4; rcases h1 with ⟨e1, e2⟩; subst e1; subst e2
           have lem1 : ⊢ ((Surface.Global.classDecl s Ks [] []) :: Γ) := by
-            constructor
-            · constructor
-              assumption
-              simp
-              simp
-              simp
-              simp
-              simp
-              simp
+            apply Surface.ListGlobalWf.cons
+            · apply Surface.GlobalWf.classDecl
+              · assumption
+              · simp
+              · simp
+              · simp
+              · simp
+              · simp
+              · simp
+              · simp
+              · simp
             · apply wftl
           have lem2 : ⟦(Surface.Global.classDecl s Ks [] [] :: Γ)⟧ = .ok (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ') := by
             simp [translate_SI, bind, Except.bind_eq_ok_iff]; exists Γ'; apply And.intro; apply h1
             simp [h3, pure, Except.pure]; simp [check_oms]
           generalize zdef : (mτs[i]).2 = z at *
           rcases z with ⟨k1, Ks1, k2, Ks2, k3, Ts, R⟩
-          cases c4; case _ Δ _ p1 p2 p3 p4 =>
-          replace c5 := c5 i mτs[i].1 R h; rcases c5 with ⟨c5a, c5b, c5c⟩
+          cases c8; case _ Δ _ p1 p2 p3 p4 =>
+          replace c7 := c7 i mτs[i].1 R h; rcases c7 with ⟨c5a, c5b⟩
           rw[c5a] at zdef; cases zdef; simp at p1; subst Δ
           apply spine_kinding_SI_transfer (test := λ _ => true)
           apply lem2
@@ -676,21 +686,19 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
           apply Surface.SpineKinding.valid
           rfl;
           · simp
-          · simp; apply c5c.2.weaken_global lem1
+          · simp; apply c5b.weaken_global lem1
           rfl
           · simp [Surface.Ty.data?, Core.Ty.mkApps_nats_spine, Surface.is_data, Surface.lookup, Surface.Entry.is_data]
         }
       · intro i mn R T tys hi tsp tys_shape; simp;
-        replace c5 := c5 i mn R (by grind);
-        rcases c5 with ⟨c5a, c5b, c5c, c5d⟩;
+        replace c5 := c7 i mn R (by grind);
+        rcases c5 with ⟨c5a, c5b⟩;
         apply And.intro
         · simp [mk_method_om]; subst tys; rw[c5a]; simp; symm;
           apply Core.Ty.mkApps_nats_spine_eta; apply tsp
-        · apply And.intro; apply c5b; apply And.intro
-          apply translate_SI_lookup_none h1 c5c
-          apply kinding_SI_transfer h1 c5d
+        · apply kinding_SI_transfer h1 c5b
       · generalize zdef : List.map (fun x => (x.fst, Surface.mk_superclass_om s Ks x.2.fst x.2.snd)) scs = z at *
-        intro i mn R T tys supCls tys2 hi T_spine e1 R_shape; simp;
+        intro i mn R T tys supCls tys2 hi T_spine e1 R_shape;
         have lem : z[i] = z[i] := by rfl
         conv at lem =>
           rhs
@@ -704,9 +712,9 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         rcases qdef with ⟨e1, qdef⟩; subst e1; simp at qdef; rcases qdef with ⟨e1, e2, e3, qdef⟩
         subst e1; subst e2; subst e3; simp at qdef; cases qKs2; rcases qdef with ⟨e1, qdef⟩; subst e1;
         subst qdef;
-        replace c2 := c2 i mn supCls tys2 hi
+        replace c3 := c3 i mn supCls tys2 hi
         apply And.intro
-        · rw[lem]; simp; rcases c2 with ⟨e1', e2, e3⟩; apply And.intro;
+        · rw[lem]; simp; rcases c3 with ⟨e1', e2, e3⟩; apply And.intro;
           rw[e1'];
           rw[e1']; rw[e1'] at lem; simp at lem; simp;
           simp [Surface.mk_superclass_om]
@@ -715,10 +723,8 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
             simp at lem; replace lem := lem T_spine; symm; apply lem
           · have lem := Core.Ty.mkApps_nats_spine_eta (T := R) (s := supCls) (tys := tys2) R_shape
             symm; apply lem
-        · rcases c2 with ⟨c2a, c2b, c2c, c2d, c2e⟩;
-          apply And.intro
-          apply c2b; apply And.intro; apply translate_SI_lookup_none h1 c2c;
-          apply lookup_is_data_SI_some h1 c2d
+        · rcases c3 with ⟨c2a, c2b, c2c⟩;
+          apply lookup_is_data_SI_some h1 c2b
     · apply ih wftl h1
 
   case _ iname _ _ _ _ _ _ _ _ _ ih => -- instance
@@ -819,8 +825,8 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     replace h2 := Intermediate.Query.opn_strengthen_class wf' h2
     cases wf; case _ wftl wfhd =>
     cases wf'; case _ wftl' wfhd' =>
-    cases wfhd'; case _ ci1 ci2 ci3 ci4 ci5 ci6 =>
-    cases wfhd; case _ cs1 cs2 cs3 cs4 cs5 cs6 =>
+    cases wfhd'; case _ ci1 ci2 ci3 ci4 ci5 ci6 ci7 ci8 =>
+    cases wfhd; case _ cs1 cs2 cs3 cs4 cs5 cs6 cs7 cs8 =>
     simp [Intermediate.lookup] at h1
     split at h1 <;> try simp at h1
     have ne1 : (mn = s) = False := by grind
@@ -833,7 +839,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         split at h1 <;> try simp at h1
         · replace ih := ih wftl h3 wftl' h1 h2; rcases ih with ⟨i, ih⟩; exists i+1;
         case _ spTy h7 =>
-          clear ci1 ci3 ci5 ci4 ci6 cs1 cs3 cs4 cs5 cs6 ih
+          -- clear ci1 ci3 ci5 ci4 ci6 cs1 cs3 cs4 cs5 cs6 ih
           rcases h1 with ⟨e1, e2, e3⟩; subst e1; subst e2;
           simp [List.findIdx?_eq_some_iff_getElem] at h6
           rcases h6 with ⟨j, hj, lk⟩; subst hj;
@@ -844,9 +850,9 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
           let R := Core.Ty.mkApps_nats gt#SC tys2
 
           -- The point here is that Ts = #(T) and T is the class
-          replace ci2 := ci2 i (scs[i].1) R T tys SC tys2 (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
+          replace ci3 := ci3 i (scs[i].1) R T tys SC tys2 (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
                             (by simp[R, Core.Ty.mkApps_nats_spine])
-          rcases ci2 with ⟨e1, e2⟩; simp at e1 e2; replace e1 := mk_superclass_om_shape e1;
+          rcases ci3 with ⟨e1, e2⟩; simp at e1 e2; replace e1 := mk_superclass_om_shape e1;
           simp at e1; rcases e1 with ⟨e1, e2⟩; subst T; subst R;
           replace h9 := mk_superclass_om_shape h9;
           simp at h9; rcases h9 with ⟨e1, h9⟩; subst e1; simp at h9; rcases h9 with ⟨e1, e2, e3, e4, h9⟩
@@ -862,7 +868,6 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
 
 
     case _ i h5 =>
-      clear ci1 ci3 ci2 ci4 ci6 cs1 cs3 cs4 cs6
       -- The point here is that Ts = #(T) and T is the class
       simp [List.findIdx?_eq_some_iff_getElem] at h5;
       rcases h5 with ⟨hi, h5, h6⟩
@@ -871,13 +876,13 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         clear ih
         rcases h1 with ⟨e1, e2, e3⟩; subst e1; subst e2;
         simp at h7; simp at *
-        replace cs5 := cs5 i (mτs[i].1) R (by grind); rcases cs5 with ⟨e1, e2⟩
+        replace cs6 := cs6 i (mτs[i].1) R (by grind); rcases cs6 with ⟨e1, e2⟩
         let T := (Core.Ty.mkApps_nats (gt#s) ((List.range kc)).reverse)
         let tys := ((List.range kc).map (t#·)).reverse
         rcases h7 with ⟨mname, mτ, h7, h8, h9⟩
         subst h8;
-        replace ci5 := ci5 i (mτs[i].1) R T tys (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
-        simp at ci5; rw[e1] at ci5; simp at ci5; rcases ci5 with ⟨e3, e4⟩
+        replace ci7 := ci7 i (mτs[i].1) R T tys (by grind) (by simp[T, tys, Core.Ty.mkApps_nats_spine]) (by simp [tys])
+        simp at ci7; rw[e1] at ci7; simp at ci7; rcases ci7 with ⟨e3, e4⟩
         unfold mk_method_om at e3; simp at e3;
         simp [mk_method_om] at h9;
         cases h9; simp at e3;
