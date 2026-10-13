@@ -23,12 +23,32 @@ theorem lookup_some_weaken_append {G' G : GlobalEnv} (wf : ⊢ (G' ++ G)) :
   case nil => simp [lookup]
   case cons hd tl ih =>
     cases hd
-    case data =>  sorry
-    case odata => sorry
-    case defn => sorry
-    case openm => sorry
-    case inst => sorry
-    case octor => sorry
+    case data =>
+      cases wf; case _ wftl wfhd =>
+      cases wfhd; case _ h1 h2 h3 =>
+      simp [lookup_append_none] at h1; rcases h1 with ⟨h1a, h1b⟩
+      simp [lookup]
+      split
+      · subst x; replace ih := ih wftl;
+        simp [h1b] at h
+      · simp [Vec.foldr_or_val_eq_none];
+        apply And.intro; apply ih wftl; sorry
+    case odata =>
+      sorry
+    case defn =>
+      sorry
+    case openm =>
+      sorry
+    case inst =>
+      sorry
+    case octor =>
+      cases wf; case _ wftl wfhd =>
+      cases wfhd; case _ h1 h2 =>
+      simp [lookup_append_none] at h1; rcases h1 with ⟨h1a, h1b⟩
+      simp [lookup]
+      split
+      subst x; simp [h1b] at h
+      apply ih wftl
 
 theorem lookup_kind_weaken_list {G' G : GlobalEnv} (wf : ⊢ (G' ++ G))
   : lookup_kind G x = some K -> lookup_kind (G' ++ G) x = some K
