@@ -1077,12 +1077,12 @@ theorem mk_inst_mths_IC_wf_sound {G1 G' : Core.GlobalEnv} {mτs : List (String �
 
 
 theorem mk_inst_scs_IC_wf_sound
-  {G1 G' : Core.GlobalEnv} {scτs : List (String × Core.SpineTy)} {mths : List (String × (m : Nat) × Core.Pattern m)}
+  {G1 G' : Core.GlobalEnv} {scτs : List (String × Core.SpineTy)} {scs_pats : List (String × (m : Nat) × Core.Pattern m)}
   (wf : ⊢ (G1 ++ Core.Global.octor iname spTy :: G')) :
-  scτs.length = mths.length ->
-  mk_inst_scs_IC (G1 ++ Core.Global.octor iname spTy :: G') scτs mths =  Except.ok G2 ->
-  (∀ (i : Nat) (hi : i < mths.length) (hj : i < scτs.length),
-      scτs[i].fst = mths[i].fst ∧ Intermediate.spine_pattern_size scτs[i].snd = mths[i].2.1) ->
+  scτs.length = scs_pats.length ->
+  mk_inst_scs_IC (G1 ++ Core.Global.octor iname spTy :: G') scτs scs_pats =  Except.ok G2 ->
+  (∀ (i : Nat) (hi : i < scs_pats.length) (hj : i < scτs.length),
+      scτs[i].fst = scs_pats[i].fst ∧ Intermediate.spine_pattern_size scτs[i].snd = scs_pats[i].2.1) ->
   ⊢ (G2 ++ (G1 ++ Core.Global.octor iname spTy :: G'))
 := by
   intro h0 h1 hi
@@ -1104,6 +1104,28 @@ theorem mk_inst_scs_IC_wf_sound
     simp [<-Γdef];
     apply Core.ListGlobalWf.cons
     assumption; assumption
+
+theorem mk_cls_scs_IC_wf_sound
+  {G2 G1 G' : Core.GlobalEnv} {scτs : List (String × Core.SpineTy)}
+  (wf : ⊢ (G1 ++ Core.Global.odata cls_name spTy :: G')) :
+    ((scτs.map (λ x => Core.Global.openm x.1 x.2)) = G2) ->
+    (∀ (i : Nat), (hi : i < scτs.length) -> scτs[i].1 ≠ cls_name) ->
+    (∀ (i j : Nat), (hi : i < scτs.length) -> (hj : j < scτs.length) -> i ≠ j -> scτs[i] ≠ scτs[j]) ->
+     ⊢ (G2 ++ (G1 ++ Core.Global.odata cls_name spTy :: G'))
+:= by
+  intro h c1 c2
+  subst G2
+  induction scτs
+  case _ => simp; apply wf
+  case _ hd tl ih =>
+  simp;
+  replace ih := ih (by intro i hi; apply c1 (i + 1); simp; apply hi) (by intro i j hi hj ne; apply c2 (i + 1) (j + 1) (by simp; apply hi) (by simp; apply hj) (by simp; apply ne))
+  apply Core.ListGlobalWf.cons
+  · apply Core.GlobalWf.openm;
+    · sorry;
+    . sorry;
+  · apply ih
+
 
 
 -- -- TODO: This is unfortunate, need a better way to organize
