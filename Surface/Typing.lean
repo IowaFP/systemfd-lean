@@ -101,17 +101,17 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none) ->
 
   -- method type shapes
-  (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
+  (∀ (i : Nat), (hi : i < mτs.length) ->
+    ∃ mn τ, mτs[i] = (mn, τ) ∧
     SpineKinding Core.SpCtorVariant.openm mn (.classDecl s Ks1 [] [] :: G) (λ _ => true) τ) ->
-  (∀ (i : Nat) mn R, (hi : i < mτs.length) -> mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧  G&Ks1.list.reverse ⊢s R : ★) ->
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧  G&Ks1.list.reverse ⊢s R : ★) ->
 
   -- super class type shapes
-  (∀ (i : Nat) mn SC τs, (hi : i < scτs.length) ->
+  (∀ (i : Nat), (hi : i < scτs.length) -> ∃ mn SC τs,
     scτs[i] = (mn, SC, τs) ∧
-    Surface.is_data .opn G SC
-    ∧ (∀ j : Nat, (hj : j < scτs.length) -> scτs[j].1 ≠ mn)) ->
+    Surface.is_data .opn G SC ∧ G&Ks1.list.reverse ⊢s (gt#SC).mkApps_nats τs : ★) ->
 
-  GlobalWf G (.classDecl s Ks1 scτs /-fds-/ mτs)
+  GlobalWf G (.classDecl s Ks1 /-fds-/ scτs  mτs)
 
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->

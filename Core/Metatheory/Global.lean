@@ -322,6 +322,7 @@ theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢ A : K -> (g::G)&Δ �
 | app j1 j2 => app (j1.weaken_global wf) (j2.weaken_global wf)
 | eq j1 j2 => eq (j1.weaken_global wf) (j2.weaken_global wf)
 
+
 theorem Kinding.weaken_global_ctors (wf : ⊢ (Global.data n y D ctors :: G))
   : (Global.data 0 y D #() :: G)&Δ ⊢ A : K -> (Global.data n y D ctors :: G)&Δ ⊢ A : K
 | var h => var h

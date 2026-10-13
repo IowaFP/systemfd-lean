@@ -82,22 +82,24 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   (∀ i : Nat,  (hi : i < mτs.length)                                     -> mτs[i].1 ≠ s ∧ lookup mτs[i].1 G = none) ->
   (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none) ->
 
+  -- class method shapes
+  (∀ (i : Nat), (hi : i < mτs.length) ->
+    ∃ mn τ, mτs[i] = (mn, τ) ∧
+    SpineKinding Core.SpCtorVariant.openm mn (Intermediate.Global.classDecl ⟨s, na, Ks1, [], [], []⟩ :: G) (λ _ => true) τ) ->
 
-  (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
-    SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, na, Ks1, [],[], []⟩ :: G) (λ _ => true) τ) ->
-
-  (∀ (i : Nat) mn R T (tys : List Core.Ty), (hi : i < mτs.length) ->
-   (T.spine = .some (s, tys)) ->
-   (tys = (List.range na).reverse.map (t#·)) ->
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ (mn : String) (R T : Core.Ty) (tys : List Core.Ty),
+   (T.spine = .some (s, tys)) ∧
+   (tys = (List.range na).reverse.map (t#·)) ∧
    mτs[i] = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
     G&Ks1.list.reverse ⊢ R : ★) ->
 
-  (∀ (i : Nat) mn R T (tys : List Core.Ty) SC (tys2 : List (Fin na)), (hi : i < scτs.length) ->
-   (T.spine = .some (s, tys)) ->
-   (tys = (List.range na).reverse.map (t#·)) ->
-   (R.spine = .some (SC, tys2.map (t#·))) ->
+  (∀ (i : Nat), (hi : i < scτs.length) -> ∃ (mn : String) (R T : Core.Ty) (tys : List Core.Ty) (SC : String) (tys2 : List (Fin na)),
+   (T.spine = .some (s, tys)) ∧
+   (tys = (List.range na).reverse.map (t#·)) ∧
+   (R.spine = .some (SC, tys2.map (t#·))) ∧
      scτs[i] = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
-     Intermediate.is_data .opn G SC /-∧ G&Ks1.list.reverse ⊢ R : ★-/) ->
+     Intermediate.is_data .opn G SC ∧ G&Ks1.list.reverse ⊢ R : ★) ->
+
 
   GlobalWf G (.classDecl ⟨s, na, Ks1, [], scτs, mτs⟩)
 
@@ -526,17 +528,15 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       case _  h1 =>
         simp [List.findIdx?_eq_some_iff_getElem] at h1
         split at h;
-        · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
+        · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3;
           case _ i _ mn _ h2 =>
+          replace c8 := c8 i (by grind);
+          rcases c8 with ⟨mn, R, T, tys, T_shape, tys2, scsi, Rj⟩
           simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
-          let T := (Core.Ty.mkApps_nats (gt#s) ((List.range na).reverse))
-          let tys := (List.range na).reverse.map (t#·)
-          replace c8 := c8 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) sorry;
-          rw[c8.1] at h2; simp at h2; rcases h2 with ⟨e, h2⟩; subst e; simp at h2; rcases h2 with ⟨e1, e2, h2⟩
-          subst e1; subst e2; simp at h2; rcases h2 with ⟨e1, e2, h2⟩; subst e1; subst e2; simp at h2
-          simp; exists T; apply And.intro;
-          symm; apply h2
-          simp [T, Core.Ty.mkApps_nats_spine]
+          simp [h2] at scsi; rcases scsi with ⟨e1, e2, e3⟩; subst e1 e2 tys2;
+          simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3;
+          rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3; rcases e3 with ⟨e1, e2⟩
+          subst e1; subst e2; simp; simp at T_shape; apply T_shape
         · apply ih h
     case inst =>
       simp [Intermediate.lookup] at h; split at h
