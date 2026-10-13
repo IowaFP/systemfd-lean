@@ -214,8 +214,8 @@ def mk_inst_mths_IC (G : Core.GlobalEnv) :
 
 def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) :
   TM Core.Global := do
-  match Core.lookup_spine_type .openm G mn with
-  | some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ =>
+  match Core.lookup mn G with
+  | some (.openm mn' ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) =>
     let Δ := (Ks1.list ++ Ks2.list).reverse
     if h : nc == m then
     let ⟨ζ, Γ⟩ <- Option.toTM ("mk_inst_sc_IC Pattern Binders" ++ Std.Format.line
@@ -225,7 +225,7 @@ def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
                        -- ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
                        ++ "p : " ++ p.repr)
                        $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
-    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R
+    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩
     -- .error $
     --        ("G :" ++ G.repr max_prec ++  Std.Format.line
     --         ++ "Δ : " ++ (ζ ++ Δ).repr max_prec ++ Std.Format.line
@@ -236,9 +236,9 @@ def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
     --         )
             -- ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
     return .inst mn p t'.1
-
     else .error $ "mk_inst_sc_IC pattern size" ++ nc.repr ++ " " ++ m.repr
       | none => .error $ "mk_inst_sc_IC no spine type" ++ mn
+  | _ => .error $ "mk_inst_sc_IC no open method" ++ mn
 
 
 def mk_inst_scs_IC (G : Core.GlobalEnv) :
