@@ -263,4 +263,12 @@ inductive EntryWf : List Global -> Entry -> Prop where
   lookup x G = some (.octor x T) ->
   EntryWf G (.octor x T)
 
+
+theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
+  T.spine = some (s,  tys) ->
+  ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
+:= by
+
+  sorry
+
 end Core

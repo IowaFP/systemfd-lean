@@ -93,6 +93,11 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
    mτs[i] = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
     G&Ks1.list.reverse ⊢ R : ★) ->
 
+
+  (∀ (i : Nat), (hi : i < scτs.length) ->
+    ∃ mn τ, scτs[i] = (mn, τ) ∧
+    SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, na, Ks1, [], [], []⟩ :: G) (Ty.data? .opn G) τ) ->
+
   (∀ (i : Nat), (hi : i < scτs.length) -> ∃ (mn : String) (R T : Core.Ty) (tys : List Core.Ty) (SC : String) (tys2 : List (Fin na)),
    (T.spine = .some (s, tys)) ∧
    (tys = (List.range na).reverse.map (t#·)) ∧
@@ -249,6 +254,7 @@ inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
   SpineKinding (.data .opn) x G (Ty.data? .opn G) T ->
   lookup x G = some (.octor x T) ->
   EntryWf G (.octor x T)
+
 
 
 theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
@@ -513,7 +519,7 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
-    case classDecl _  s _ Ks1 mτs scs c1 c2 c3 c4 c5 c6 c7 c8 c9 =>
+    case classDecl _  s _ Ks1 mτs scs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       split at h
@@ -774,6 +780,14 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h1 <;> simp at *
    split at h2 <;> try simp at *
    apply ih h1 h2
+
+theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
+  T.spine = some (s,  tys) ->
+  ((Intermediate.Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
+:= by
+
+  sorry
+
 
 
 end Intermediate

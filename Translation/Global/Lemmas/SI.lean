@@ -711,6 +711,40 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
           · apply And.intro
             · simp [c8a]; simp [T, tys, mk_method_om]
             · apply kinding_SI_transfer h1 c7b
+      · intro i hi;
+        generalize scsDef : List.map (fun x => (x.fst, Surface.mk_superclass_om s Ks x.2.fst x.2.snd)) scs = scs' at *
+
+        have lem : (List.map (fun x => (x.fst, Surface.mk_superclass_om s Ks x.2.fst x.2.snd)) scs)[i]'(by grind) = scs'[i] := by
+          unfold getElem; simp [scsDef]
+
+        simp at lem;
+        let scsi' := (scs'[i]'(by grind))
+
+        exists scsi'.1; exists scsi'.2
+        apply And.intro
+        grind
+        simp [scsi', <-lem, Surface.mk_superclass_om]
+        apply Intermediate.SpineKinding.valid (Δ := Ks.list.reverse)
+        simp
+        intro i; cases i using Fin.cases;
+        · simp;
+          have lem := Intermediate.Kinding.spine_typing_lemma
+                       (s := s) (K := ★) (G := Intermediate.Global.classDecl ⟨s, kc, Ks, [], [],[]⟩ :: Γ') (T := (gt#s).mkApps_nats (List.range kc).reverse) (Δ := Ks.list.reverse) (tys := (List.range kc).reverse.map (t#·))
+          replace lem := lem (Core.Ty.mkApps_nats_spine s (List.range kc).reverse)
+          simp [lem]
+          apply And.intro
+          exists mk_cls_kind Ks; apply Intermediate.Kinding.global; simp [Intermediate.lookup_kind, Intermediate.lookup, Intermediate.Entry.kind, mk_cls_kind]
+          exists Ks.reverse; intro i; apply Intermediate.Kinding.var;  sorry
+
+        · case _ i => apply i.elim0
+        sorry
+        simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine]; replace c4 := c4 i (by grind); rcases c4 with ⟨mn, SC, τs, c4a, c4b, c4c⟩;
+        simp [c4a]; apply lookup_is_data_SI_some h1 c4b
+        simp; simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine, Intermediate.is_data, Intermediate.lookup, Intermediate.Entry.is_data]
+
+
+
+
       · intro i hi
         replace c4 := c4 i (by grind)
         rcases c4 with ⟨mn, SC, τs, c4a, c4b, c4c⟩
