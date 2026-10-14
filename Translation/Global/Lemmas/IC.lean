@@ -1196,9 +1196,10 @@ theorem mk_cls_scs_IC_wf_sound
        Intermediate.is_data Core.DataConst.opn Γ SC = true ∧ Γ&Ks.list.reverse ⊢ R : ★) ->
     (Core.lookup cls_name G1 = none) ->
     (∀ (i : Nat), (hi: i < scτs.length) -> Core.lookup scτs[i].1 G1 = none) ->
+    (∀ (i : Nat), (hi: i < scτs.length) -> Core.lookup scτs[i].1 G' = none) ->
      ⊢ (G2 ++ (G1 ++ (List.cons (Core.Global.odata cls_name spTy) G')))
 := by
-  intro h c1 c2 c3 c4 c5
+  intro h c1 c2 c3 c4 c5 c6
   subst G2
   induction scτs
   case _ => simp; apply wf
@@ -1211,6 +1212,7 @@ theorem mk_cls_scs_IC_wf_sound
                        rcases c3 with ⟨mn, R, T, tys, SC, tys2, T_shape, tys_eq, R_shape, c3a, c3b, c3c⟩
                        exists mn; exists R; exists T; exists tys; exists SC; exists tys2)
                    (by intro i hi; apply c5 (i + 1) (by grind))
+                   (by intro i hi; apply c6 (i + 1) (by grind))
   obtain ⟨mn, na, Ks1, nb, Ks2, nc, Ts, R⟩ := hd
   replace c3 := c3 0; simp at c3;
   rcases c3 with ⟨mn, R, T, tys, T_shape, tys_eq, SC, tys2, c3a, c3b, c3c⟩;
@@ -1250,13 +1252,14 @@ theorem mk_cls_scs_IC_wf_sound
     · simp [Core.lookup_append_none]
       apply And.intro
       · simp at c2; replace c2 := c2 0; simp at c2;
-        sorry
+        have lem : ∀ (j : Nat) (hj : j < tl.length), tl[j].fst ≠ mn := by intro i hj; symm; apply c2 (i + 1) (by grind) (by simp)
+        apply openm_name_never_cls_name lem
       · apply And.intro
-        sorry
+        apply c5 0 (by grind)
         replace c1 := c1 0; simp at c1;
         have e : (mn = cls_name) = False := by grind
         simp [Core.lookup, e];
-        sorry
+        apply c6 0 (by simp)
   · apply ih
 
 theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
@@ -1310,6 +1313,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
       · apply c4
       · simp [Core.lookup];
       · simp [Core.lookup]
+      · intro i hi; replace c3 := c3 i hi; apply translate_IC_lookup_none h c3.2
     apply mk_cls_mths_IC_wf_sound (G1 := scsG) (G' := Γ')
     · apply wftl
     · apply h
@@ -1321,7 +1325,8 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     · apply c8
     · clear c1 c2 c4 c5 c6 c7 c8 c9;
       rw[<-scGdef];
-      sorry -- apply method_name_never_cls_name (by intro i hi; replace c3 := c3 i hi; apply c3.1)
+      apply openm_name_never_cls_name (by intro i hi; replace c3 := c3 i hi; apply c3.1)
+
 
   case _ iname cls_name k1 k2 k3 Ks1 Ks2 As fds scs mths G ih => -- inst
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩;
