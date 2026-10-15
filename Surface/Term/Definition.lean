@@ -12,7 +12,7 @@ namespace Surface
 inductive Term : Type where
 | var : Nat -> Term
 | global : {n m p : Nat} -> String -> Vec Core.Ty n -> Vec Core.Ty m -> Fun.Vec Term p -> Term
-| appt : Term -> Core.Ty -> Term
+| appt : Term -> Core.Ty -> Core.Ty -> Term
 | app : Term -> Term -> Core.Ty -> Term
 | lamt :  Core.Kind -> Term -> Term
 | lam : Core.Ty -> Term -> Term
@@ -50,8 +50,8 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
   "g`#" ++ n ++ " `•ᵤ " ++ (τU.repr max_prec) ++ " `•ₑ " ++ (τE.repr max_prec) ++ " `• " ++ as.to.fold_format
 | .app t1 t2 τ =>
   Repr.addAppParen (Term.repr max_prec t1 ++ " • " ++ (Term.repr p t2 ++ " : " ++ τ.repr max_prec)) p
-| .appt t1 t2 =>
-  Repr.addAppParen (Term.repr max_prec t1 ++ " •" ++ Std.Format.sbracket (t2.repr p)) p
+| .appt t1 t2 t3 =>
+  Repr.addAppParen (Term.repr max_prec t1 ++ " :: "  ++ t2.repr max_prec ++ " •" ++ Std.Format.sbracket (t3.repr p)) p
 | .lamt K t =>
   Repr.addAppParen ("Λˢ" ++ Std.Format.sbracket (repr K) ++ " " ++ Term.repr max_prec t) p
 | .lam τ t => Repr.addAppParen ("λˢ" ++ Std.Format.sbracket (repr τ) ++ " " ++ Term.repr max_prec t) p
@@ -77,7 +77,7 @@ def Term.size : Term -> Nat
 | var _ => 1
 | global _ _ _ as => (Fun.Vec.to (Term.size <$> as)).sum + 1
 | app t1 t2 _ => t1.size + t2.size + 1
-| appt t1 _ => size t1 + 1
+| appt t1 _ _ => size t1 + 1
 | lamt _ t => size t + 1
 | lam _ t => size t + 1
 | mtch _ _ t1 _ _ t2 =>

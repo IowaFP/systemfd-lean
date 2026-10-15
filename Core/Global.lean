@@ -459,5 +459,4 @@ theorem lookup_some_then_idx_some {G : GlobalEnv} :
     replace ih := ih h; rcases ih with ⟨i, ih⟩
     exists i+1
 
-
 end Core

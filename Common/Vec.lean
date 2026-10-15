@@ -49,6 +49,14 @@ theorem Vec.get_list_to_get : {n:Nat} -> {v : Vec α (n + 1)} -> (h : i < n + 1)
       have lem2 := get_list_to_get (v := xs) lem1
       by rw [Vec.get_Fin_ofNat_succ h]; simp [lem2]
 
+theorem Vec.list_get : {n : Nat} -> {v : Vec α n} -> {i : Fin n} -> v.list[↑i] = v[i]
+| 0, v, i => by apply i.elim0
+| n + 1, .cons x xs, i => by
+  induction i using Fin.induction
+  simp
+  sorry
+
+
 theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
   intro i;
   induction vs <;> simp at *
@@ -967,17 +975,6 @@ theorem Vec.all_eq_true {α : Type u_1} {v : Vec α n} {p : α -> Bool} :
     apply And.intro; apply lem; apply ih lem2
 
 
-def Vec.findIdxs {α : Type u_1} (p : α -> Bool) : {n : Nat} -> (v : Vec α n) -> List (Fin n)
-| 0, _ => []
-| n + 1, .cons v vs =>
-  let idxs := vs.findIdxs p
-  if p v then .cons ((Fin.ofNat (n + 1) n).rev) (idxs.map (·.succ)) else (idxs.map (·.succ))
-
-#guard #(0, 1, 1, 2, 1, 3).findIdxs (· == 1) == [1, 2, 4]
-#guard #(0, 1, 2, 3).findIdxs (· == 3) == [3]
-#guard #(0, 1, 2, 3).findIdxs (· == 0) == [0]
-#guard #(0, 1, 2, 3).findIdxs (· == 4) == []
-
 @[simp]
 theorem Vec.cast_cons
   {e1 : n = m} {e2 : Vec α n = Vec α m}
@@ -994,50 +991,6 @@ theorem Vec.cast_get {α β : Type u} {e1 : α = β}
   cases i using Fin.cases
   case _ => cases e1; cases e2; simp
   case _ i => cases e1; cases e2; simp
-
--- theorem Vec.zipIxd_map {α : Type u_1} {β : Type u_2} {n : Nat} {vs : Vec α n} {k : Nat} {f : α → β} :
---   (Vec.map f vs).zipIdx k = Vec.map (Prod.map f id) (vs.zipIdx k)
--- := by sorry
--- theorem Vec.list_zipWith_zipWith_list {f : α -> β -> γ} :
---   Vec.zipWith f vs1 vs2 ≍ (Vec.from_list (List.zipWith f vs1.list vs2.list)).2
--- := by
---   generalize zdef : from_list (List.zipWith f vs1.list vs2.list) = z at *
---   rcases z with ⟨z_len, zs⟩; simp at *
---   induction vs1 generalizing z_len zs <;> cases vs2
---   · simp at zdef; rcases zdef with ⟨e1, e2⟩; subst e1; simp at e2; subst e2; simp [Vec.zipWith]
---   case _ n a as ih b bs =>
---     simp [List.zipWith_cons_cons] at zdef;
---     replace zdef := Vec.from_list_cons zdef
---     rcases zdef with ⟨n', zs', e1, e2, e3⟩
---     simp [Vec.zipWith]
---     replace ih := @ih bs n' zs' e1
---     subst e3; simp at *;
---     subst e2; simp; congr;
---     have lem : as.list.length = bs.list.length := by simp [Vec.length_list]
---     have lem2 : (List.zipWith f as.list bs.list).length = as.list.length := by simp [List.length_zipWith]
---     have lem3 : as.list.length = n := by simp [Vec.length_list]
---     generalize kdef : Vec.zipWith f as bs = ks at *
---     generalize k'def : List.zipWith f as.list bs.list = ks' at *
---     have lem4 : ks.length = n := by simp
---     have lem5 : ks'.length = n := by grind
-
---     sorry
-
--- theorem Vec.list_zipWith_iff_zipWith_list {f : α -> β -> γ} {vs1 vs2 zs : Vec _ n}:
---   Vec.zipWith f vs1 vs2 = zs ↔
---   (Vec.from_list (List.zipWith f vs1.list vs2.list)) = ⟨n, zs⟩
--- := by
---   induction vs1 <;> cases vs2
---   case _ => simp
---   case _ n a as ih b bs =>
---     simp [List.zipWith_cons_cons]
---     cases zs; case _ z zs =>
---     simp [Vec.from_list]
---     replace ih := @ih bs zs
---     simp [ih]
---     apply Iff.intro
---     simp; intro h1 h2; subst h1; simp [h2]; congr; simp [h2]; rw[h2]
---     simp; intro h1 h2; apply And.intro; sorry; sorry
 
 
 theorem Vec.mem_list {x : α} {vs : Vec α n} :
