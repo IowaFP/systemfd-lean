@@ -655,8 +655,8 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         apply c3.1; apply translate_SI_lookup_none h1 c3.2
       · { intro i hi; have hi : i < mτs.length := by grind
           replace c8 := c8 i hi;
-          rcases c8 with ⟨mn, spTy, j1, j2⟩
-          exists mn; exists mk_method_om s Ks spTy
+          rcases c8 with ⟨mn, R, j1, j2, j3⟩
+          exists mn; simp;
           have lem1 : ⊢ ((Surface.Global.classDecl s Ks [] []) :: Γ) := by
             apply Surface.ListGlobalWf.cons
             · apply Surface.GlobalWf.classDecl
@@ -675,29 +675,31 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
             simp [h3, pure, Except.pure]; simp [check_oms]
           generalize zdef : (mτs[i]).2 = z at *
           rcases z with ⟨k1, Ks1, k2, Ks2, k3, Ts, R⟩
-          apply And.intro;
-          · simp; simp [j1]
-          · simp [j1] at zdef; subst spTy;
+          exists mk_method_om s Ks ⟨k1, (Ks1, ⟨k2, (Ks2, ⟨k3, (Ts, R)⟩)⟩)⟩; simp; apply And.intro;
+          · simp [j1]
+          · simp [j1] at zdef;
+            rcases zdef with ⟨e1, e2⟩; subst e1; simp at e2;
+            rcases e2 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3
+            rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3
+            rcases e3 with ⟨e1, e2⟩; subst e1 e2;
             replace c7 := c7 i (by grind); rcases c7 with ⟨mn, R, c7a, c7b⟩;
-            simp [j1] at c7a; rcases c7a with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3
-            rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3; rcases e3 with ⟨e1, e2, e3⟩
-            subst e1 e2; simp at e3; rcases e3 with ⟨e1, e2⟩; subst e1 e2
+            simp [j1] at c7a; rcases c7a with ⟨e1, e2⟩; subst R; subst e1
             apply spine_kinding_SI_transfer (test := λ _ => true)
             apply lem2
             simp
             apply Surface.SpineKinding.valid
             · rfl;
-            · simp
-            · simp; apply c7b.weaken_global lem1
+            · simp; apply j3
+            · simp; apply j2.weaken_global lem1
             · rfl
             · simp [Surface.Ty.data?, Core.Ty.mkApps_nats_spine, Surface.is_data, Surface.lookup, Surface.Entry.is_data]
 
         }
       · intro i hi -- R T tys hi tsp tys_shape; simp;
         replace c7 := c7 i (by grind)-- mn R (by grind);
-        rcases c7 with ⟨mn, R, c7a, c7b⟩; exists mn; exists R
+        rcases c7 with ⟨mn, τ, c7a, c7b⟩; exists mn; exists τ.2.2.2.2.2.2
         replace c8 := c8 i (by grind)
-        rcases c8 with ⟨mn, τ, c8a, c8b⟩;
+        rcases c8 with ⟨mn, τ, c8a, c8b, c8c⟩;
         simp [c8a] at c7a; rcases c7a with ⟨e1, e2⟩; subst e1 e2
         let tys := (List.range kc).reverse
         let T := (gt#s).mkApps_nats tys
@@ -708,7 +710,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
           · simp
           · apply And.intro
             · simp [c8a]; simp [T, tys, mk_method_om]
-            · apply kinding_SI_transfer h1 c7b
+            · simp; apply kinding_SI_transfer h1 c8b
       · intro i hi;
         generalize scsDef : List.map (fun x => (x.fst, Surface.mk_superclass_om s Ks x.2.fst x.2.snd)) scs = scs' at *
 
@@ -923,7 +925,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         clear ih
         rcases h1 with ⟨e1, e2, e3⟩; subst e1; subst e2;
         simp at h7; simp at *
-        replace cs6 := cs6 i (by grind); rcases cs6 with ⟨mn, R, cs6a, cs67⟩
+        replace cs6 := cs6 i (by grind); rcases cs6 with ⟨mn, τ, cs6a, cs67⟩
         replace ci7 := ci7 i (by grind)
         rcases ci7 with ⟨mn', R', T', tys, T'_shape, tys_eq, ⟨ci7a, ci7b⟩, ci7c⟩
         simp [cs6a] at ci7a; subst mn'
@@ -938,7 +940,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2
         simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2
         simp at e3; rcases e3 with ⟨e1, e2⟩; subst e1 e2;
-        rcases ci7b with ⟨e1, e2⟩; subst e1 e2
+        -- rcases ci7b with ⟨e1, e2⟩;
         cases qs; cases h2; case _ h2 _ =>
         simp [Intermediate.lookup_ctor?, Core.Ty.mkApps_nats_spine] at h2;
         simp [Option.getD_eq_iff] at h2;

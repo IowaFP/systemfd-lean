@@ -104,7 +104,8 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   (∀ (i : Nat), (hi : i < mτs.length) ->
     ∃ mn τ, mτs[i] = (mn, τ) ∧
     SpineKinding Core.SpCtorVariant.openm mn (.classDecl s Ks1 [] [] :: G) (λ _ => true) τ) ->
-  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧  G&Ks1.list.reverse ⊢s R : ★) ->
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
+    G&Ks1.list.reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
 
   -- super class type shapes
   (∀ (i : Nat), (hi : i < scτs.length) -> ∃ mn SC τs,
@@ -212,32 +213,24 @@ theorem Kinding.weaken_global (wf : ⊢ (g::G)) : G&Δ ⊢s A : K -> (g::G)&Δ �
 
 theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind}:
   T.spine = some (s,  tys) ->
-  (G&Δ ⊢s T : K <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢s gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢s tys[i]'(by grind) : κs[i]))
+  (G&Δ ⊢s T : K -> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢s gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢s tys[i]'(by grind) : κs[i]))
 := by
-
-  sorry
-
-@[simp]
-theorem Kinding.spine_typing {s : String} {Ks : Vec Core.Kind kc} :
-  (Surface.Global.classDecl s Ks [] [] :: Γ)&Ks.list.reverse ⊢s (gt#s).mkApps_nats (List.range kc).reverse : ★
-:= by
-  have lem := Kinding.spine_typing_lemma (G := (Surface.Global.classDecl s Ks [] [] :: Γ)) (Δ := Ks.list.reverse) (s := s) (K := ★) (T := (gt#s).mkApps_nats (List.range kc).reverse) (tys := List.map (t#·) (List.range kc).reverse)
-  replace lem := lem (by apply Core.Ty.mkApps_nats_spine (T := s) (ts := (List.range kc).reverse))
-  simp [lem]
-  apply And.intro
-  exists (Core.Kind.mk_kind Ks); apply Kinding.global; simp [lookup_kind, lookup, Surface.Entry.kind]
-  exists Ks; intro i;
-  apply Kinding.var;
-  simp [<-Vec.list_reverse, List.getElem?_eq_getElem (l := Ks.reverse.list) (i := kc - 1 - i) (h := by simp; omega)]
-  conv =>
-    lhs
-    simp [Vec.get_list_to_get];
-  cases kc
-  apply i.elim0
-  case _ n =>
-  simp;
-  replace lem : n - (n - i) = i := by grind
-  simp only [lem]; simp [Vec.get_list_to_get]
-
+  intro h
+  intro h1;
+  induction T generalizing tys K <;> simp [Core.Ty.spine] at h
+  rcases h with ⟨h1, h2⟩; subst s; subst tys; exists K; exists 0; exists #(); simp; apply h1
+  case _ ih1 ih2 =>
+      cases h1
+      case _ aK aτ fτ =>
+      simp [Option.bind_eq_some_iff] at h; rcases h with ⟨H, sp1, h1, h2, h3⟩
+      subst H; subst tys; replace ih1 := ih1 h1 fτ
+      rcases ih1 with ⟨κ, kc, κs, hi, ih1a, ih1b⟩
+      exists κ; exists kc + 1;
+      -- exists (κs ++ #(aK))
+      -- constructor;
+      -- apply And.intro; apply ih1a; intro i;
+      -- sorry
+      -- simp; grind
+      sorry
 
 end Surface
