@@ -49,13 +49,13 @@ theorem Vec.get_list_to_get : {n:Nat} -> {v : Vec α (n + 1)} -> (h : i < n + 1)
       have lem2 := get_list_to_get (v := xs) lem1
       by rw [Vec.get_Fin_ofNat_succ h]; simp [lem2]
 
+@[simp, grind =]
 theorem Vec.list_get : {n : Nat} -> {v : Vec α n} -> {i : Fin n} -> v.list[↑i] = v[i]
 | 0, v, i => by apply i.elim0
 | n + 1, .cons x xs, i => by
-  induction i using Fin.induction
+  cases i using Fin.cases
   simp
-  sorry
-
+  case _ i => simp[Vec.list]; apply Vec.list_get
 
 theorem Vec.to_get_elem (vs : Vec α n) : ∀i, vs.to i = vs[i] := by
   intro i;
