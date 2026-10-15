@@ -430,6 +430,24 @@ def Surface.Term.type_directed_translate
   let t1' <- type_directed_translate G Δ Γ (τArg -:> τ) t1
   return t1' • t2'
 
+| .appt t1 τ1 τ2 => do
+  let t' <- type_directed_translate G Δ Γ τ1 t1
+
+  match τ2.infer_kind G Δ with
+  | some K =>
+    match τ1 with
+    | .all K' τ1 => do
+      if h1 : K == K' then
+       if h2 : τ == τ1[Subst.cons (.su τ2) (Subst.id Core.Ty)] then
+       -- should i build a coercion here?
+       return (Core.Term.ctor1 (.appt τ2) t')
+       else .error $ "appt subst" ++ (τ.repr max_prec) ++ (τ1[Subst.cons (.su τ2) (Subst.id Core.Ty)]).repr max_prec
+      else .error "appt translate kind"
+    | _ => .error $ "appt type should be all: " ++ τ1.repr max_prec
+
+  | _ => .error "appt translate"
+
+
 | .mtch m n ss τs pats bs => do
   if gt : m > 0 && n > 0 && (Core.check_exhaustive G τs pats.to).isSome
           && (τs.to.all (Core.Ty.data? Core.DataConst.cls G)) then
@@ -458,7 +476,7 @@ def Surface.Term.type_directed_translate
            $ Core.Ty.synth_coercion G Δ Γ τt τ
   return .cast t#0 c t'
 
-| t => .error $ "translate doesn't handle" ++ t.repr max_prec
+-- | t => .error $ "translate doesn't handle" ++ t.repr max_prec
 
 termination_by
   t => t.size

@@ -23,7 +23,7 @@ theorem lookup_some_weaken_append {G' G : GlobalEnv} (wf : ⊢ (G' ++ G)) :
   case nil => simp [lookup]
   case cons hd tl ih =>
     cases hd
-    case data =>
+    case data D _ ctors =>
       cases wf; case _ wftl wfhd =>
       cases wfhd; case _ h1 h2 h3 =>
       simp [lookup_append_none] at h1; rcases h1 with ⟨h1a, h1b⟩
@@ -32,15 +32,37 @@ theorem lookup_some_weaken_append {G' G : GlobalEnv} (wf : ⊢ (G' ++ G)) :
       · subst x; replace ih := ih wftl;
         simp [h1b] at h
       · simp [Vec.foldr_or_val_eq_none];
-        apply And.intro; apply ih wftl; sorry
+        apply And.intro; apply ih wftl;
+        intro v v_in_vs; replace v_in_vs := Vec.getElem_of_mem v_in_vs
+        rcases v_in_vs with ⟨i, v_in_vs⟩; simp at v_in_vs
+        split at v_in_vs
+        subst v; replace h3 := h3 i ctors[i].1 ctors[i].2 rfl;
+        rcases h3 with ⟨e1, e2, e3⟩; replace ih := ih wftl; subst x;
+        simp [Core.lookup_append_none] at e3;
+        simp [h] at e3
+        symm; apply v_in_vs
     case odata =>
-      sorry
+      simp [Core.lookup]; split
+      · subst x; cases wf; case _ wf wfhd =>
+        simp; cases wfhd; case _ wfhd =>
+        replace ih := ih wf; simp [Core.lookup_append_none] at wfhd; simp [h] at wfhd
+      · cases wf; case _ wf _ => apply ih wf
     case defn =>
-      sorry
+      cases wf; case _ wf wfhd =>
+      cases wfhd; case _ wfhd _ _ =>
+      simp [Core.lookup]; split
+      simp [Core.lookup_append_none] at wfhd; subst x; simp [h] at wfhd
+      apply ih wf
     case openm =>
-      sorry
+      cases wf; case _ wf wfhd =>
+      cases wfhd; case _ wfhd _ =>
+      simp [Core.lookup]; split
+      simp [Core.lookup_append_none] at wfhd; subst x; simp [h] at wfhd
+      apply ih wf
     case inst =>
-      sorry
+      cases wf; case _ wf wfhd =>
+      cases wfhd; case _ wfhd _ =>
+      apply ih wf
     case octor =>
       cases wf; case _ wftl wfhd =>
       cases wfhd; case _ h1 h2 =>
@@ -1158,7 +1180,7 @@ theorem mk_cls_mths_IC_wf_sound
   {G2 G1 G' : Core.GlobalEnv} {mτs : List (String × Core.SpineTy)} {k1 : Nat} (Ks : Vec Core.Kind k1)
   (wfS : ⊢ Γ)
   (tr : ⟦Γ⟧ = .ok G')
-  (wf : ⊢ (G1 ++ Core.Global.odata cls_name spTy :: G')) :
+  (wf : ⊢ (G1 ++ Core.Global.odata cls_name cls_kind :: G')) :
     ((mτs.map (λ x => Core.Global.openm x.1 x.2)) = G2) ->
     (∀ (i : Nat), (hi : i < mτs.length) -> mτs[i].1 ≠ cls_name) ->
     (∀ (i j : Nat), (hi : i < mτs.length) -> (hj : j < mτs.length) -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
@@ -1168,15 +1190,104 @@ theorem mk_cls_mths_IC_wf_sound
     Intermediate.SpineKinding Core.SpCtorVariant.openm mn (Intermediate.Global.classDecl ⟨s, k1, Ks, [], [], []⟩ :: Γ) (λ _ =>  true) τ) ->
 
   (∀ (i : Nat), (hi : i < mτs.length) -> ∃ (mn : String) (R T : Core.Ty) (tys : List Core.Ty),
-   (T.spine = .some (s, tys)) ∧
+   (T.spine = .some (cls_name, tys)) ∧
    (tys = (List.range na).reverse.map (t#·)) ∧
    mτs[i] = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
-    Γ&Ks.list.reverse ⊢ R : ★) ->
+    Γ&Ks1.list.reverse ⊢ R : ★) ->
 
     (Core.lookup cls_name G1 = none) ->
+    (∀ (i : Nat), (hi: i < mτs.length) -> Core.lookup mτs[i].1 G1 = none) ->
+    (∀ (i : Nat), (hi: i < mτs.length) -> Core.lookup mτs[i].1 G' = none) ->
 
-     ⊢ (G2 ++ (G1 ++ (List.cons (Core.Global.odata cls_name spTy) G')))
-:= by sorry
+     ⊢ (G2 ++ (G1 ++ (List.cons (Core.Global.odata cls_name cls_kind) G')))
+:= by
+  intro h c1 c2 c3 c4 c5 c6 c7
+  subst G2
+  induction mτs
+  case _ => simp; apply wf
+  case _ hd tl ih =>
+  simp;
+  replace ih := ih (by intro i hi; apply c1 (i + 1); simp; apply hi)
+                   (by intro i j hi hj ne; apply c2 (i + 1) (j + 1) (by simp; apply hi) (by simp; apply hj) (by simp; apply ne))
+                   (by intro i hi; apply c3 (i + 1) (by grind))
+                   (by intro i hi; apply c4 (i + 1) (by grind))
+                   (by intro i hi; apply c6 (i + 1) (by grind))
+                   (by intro i hi; apply c7 (i + 1) (by grind))
+  apply Core.ListGlobalWf.cons
+  apply Core.GlobalWf.openm
+  · rcases hd with ⟨mn, ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩⟩
+    replace c3 := c3 0 (by grind)
+    rcases c3 with ⟨mn, τ, c3⟩
+    simp at c3; rcases c3 with ⟨e1, e2⟩; rcases e1 with ⟨e1, e2⟩; subst e1
+    subst τ; cases e2
+    case _ Δ _ j1 j2 j3 j4 =>
+    replace c4 := c4 0 (by grind)
+    rcases c4 with ⟨mn, R, T, tys, T_shape, tys_eq, c4a, c4b⟩
+    simp at c4a; rcases c4a with ⟨e1, e2, e3⟩; subst e1 e2
+    simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2
+    simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2
+    simp at e3; rcases e3 with ⟨e1, e2⟩; subst e1 e2
+    simp at j2; simp at j3;
+    simp
+    apply Core.SpineKinding.valid (Δ := Δ)
+    · apply j1
+    · simp
+      have lem : (Core.Global.odata cls_name cls_kind :: G')&Δ ⊢ T : ★ := by
+              simp [Core.Kinding.spine_typing_lemma T_shape]
+              subst Δ; apply And.intro
+              exists cls_kind; apply Core.Kinding.global; simp [Core.lookup_kind, Core.lookup, Core.Entry.kind]
+              exists na; exists Ks1; constructor
+              intro i; simp [tys_eq]; apply Core.Kinding.var; simp [List.getElem?_eq_some_iff];
+              have lem : na - 1 - ↑i < na := by omega
+              exists lem
+              clear c1 c2 c5 c6 c7 j2 j3 j4 c4b T_shape tys_eq ih wf tr
+              cases na
+              · apply i.elim0;
+              case _ n =>
+                simp; have lem :  (n - (n - ↑i)) = i := by grind;
+                simp only [lem]; apply Vec.list_get
+
+              simp [tys_eq]
+      have lem2 : (G1 ++ Core.Global.odata cls_name cls_kind :: G')&Δ ⊢ T : ★ := by
+                   apply Core.Kinding.weaken_global_list wf lem
+      apply Core.Kinding.weaken_global_list ih lem2
+    · have lem : (Core.Global.odata cls_name cls_kind :: G')&Δ ⊢ R : ★
+            := by subst Δ; simp; have wftr := kinding_IC_transfer wfS tr c4b
+                  apply Core.Kinding.weaken_global _ wftr
+                  have lem := Core.GlobalWf.drop_wf tl.length ih
+                  simp at lem; replace lem := Core.GlobalWf.drop_wf G1.length lem
+                  simp at lem; apply lem
+      replace lem := lem.weaken_global_list (G' := G1) wf;
+      replace lem := lem.weaken_global_list (G' := (List.map (fun x => Core.Global.openm x.fst x.snd) tl)) ih;
+      apply lem
+    · rfl
+    · simp [Core.Ty.data?]; rw[T_shape];
+      simp [Core.is_data, Option.getD_eq_iff];
+      exists (Core.Entry.odata cls_name cls_kind)
+      apply And.intro
+      · apply Core.lookup_append_weaken_left (G1 := List.map (fun x => Core.Global.openm x.fst x.snd) tl) (G2 := (G1 ++ Core.Global.odata cls_name cls_kind :: G'));
+        apply openm_name_never_cls_name (by intro i hi; apply c1 (i + 1) (by grind))
+        apply Core.lookup_append_weaken_left (G1 := G1) (G2 := Core.Global.odata cls_name cls_kind :: G')
+        apply c5
+        simp [Core.lookup]
+      · simp [Core.Entry.is_data]
+  · simp [Core.lookup_append_none]
+    apply And.intro
+    · clear c1 c3 c4 c5 c6 c7 ih tr wf wfS
+      replace c2 := c2 0 (hi := by grind); simp at c2
+      have lem : ∀ (j : Nat), (hj : j < tl.length) -> hd.fst ≠ tl[j].fst := by intro j hj; replace c2 := c2 (j + 1) (by grind) (by simp); simp; apply c2
+      clear c2
+      induction tl <;> simp [Core.lookup]
+      split
+      simp at lem; replace lem := lem 0 (by grind); simp at lem; contradiction
+      case _ hd tl ih _ => apply ih; intro j hj; apply lem (j + 1) (by grind)
+    · apply And.intro
+      · apply c6 0 (by grind)
+      · simp [Core.lookup]
+        · split
+          · subst cls_name; simp; apply c1 0 (by grind) rfl
+          · apply c7 0 (by grind)
+  · apply ih
 
 theorem mk_cls_scs_IC_wf_sound
   {Γ : Intermediate.GlobalEnv}
@@ -1224,22 +1335,21 @@ theorem mk_cls_scs_IC_wf_sound
   · apply Core.GlobalWf.openm;
     · apply Core.SpineKinding.valid
       rfl
-      · intro i
-        simp; cases i using Fin.cases;
-        · simp
-          have lem : (Core.Global.odata cls_name cls_kind :: G')&Ks1.list.reverse ⊢ T : ★ := by
-            simp [Core.Kinding.spine_typing_lemma T_shape]
-            apply And.intro
-            exists cls_kind; apply Core.Kinding.global; simp [Core.lookup_kind, Core.lookup, Core.Entry.kind]
-            exists na; exists Ks1.reverse; constructor
-            intro i; simp [tys_eq]; apply Core.Kinding.var; simp [List.getElem?_eq_some_iff]; constructor;
-            sorry;
-            omega
-            simp [tys_eq]
-          have lem2 : (G1 ++ Core.Global.odata cls_name cls_kind :: G')&Ks1.list.reverse ⊢ T : ★ := by
+      · simp
+        have lem : (Core.Global.odata cls_name cls_kind :: G')&Ks1.list.reverse ⊢ T : ★ := by
+          simp [Core.Kinding.spine_typing_lemma T_shape]
+          apply And.intro
+          exists cls_kind; apply Core.Kinding.global; simp [Core.lookup_kind, Core.lookup, Core.Entry.kind]
+          exists na; exists Ks1; constructor
+          intro i; simp [tys_eq]; apply Core.Kinding.var; simp [List.getElem?_eq_some_iff]; constructor;
+          have lem : na - 1 - (na - 1 - ↑i) = i := by grind
+          simp only [lem]; apply Vec.list_get
+          omega
+          simp [tys_eq]
+        have lem2 : (G1 ++ Core.Global.odata cls_name cls_kind :: G')&Ks1.list.reverse ⊢ T : ★ := by
             apply Core.Kinding.weaken_global_list wf lem
-          apply Core.Kinding.weaken_global_list ih lem2
-        · case _ i => apply i.elim0
+        apply Core.Kinding.weaken_global_list ih lem2
+
       · have lem : G'&Ks1.list.reverse ⊢ R : ★
             := by apply kinding_IC_transfer wfS tr c3c
         replace lem := lem.weaken_global (g := Core.Global.odata cls_name cls_kind)
@@ -1337,6 +1447,14 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     · clear c1 c2 c4 c5 c6 c7 c8 c9;
       rw[<-scGdef];
       apply openm_name_never_cls_name (by intro i hi; replace c3 := c3 i hi; apply c3.1)
+    · intro i hi; subst scsG; replace c10 := c10 i (hi := hi);
+      clear c1 c2 c3 c4 c5 c6 c7 c8 c9 wfscsΓ lem mthGdef ih
+      induction sds
+      simp [Core.lookup]
+      simp [Core.lookup]; split
+      case _ e => replace c10 := c10 0 (by grind); simp at c10; contradiction
+      case _ hd tl ih _ =>  apply ih; intro j hj; apply c10 (j + 1) (by grind)
+    · intro i hi; subst scsG; replace c7 := c7 i hi; apply translate_IC_lookup_none h c7.2
 
 
   case _ iname cls_name k1 k2 k3 Ks1 Ks2 As fds scs mths G ih => -- inst

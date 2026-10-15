@@ -587,8 +587,6 @@ theorem spine_kinding_SI_transfer {G : Surface.GlobalEnv} {G' : Intermediate.Glo
     (by apply h' _ h4)
     (by intro e i; replace h5 := h5 e i; apply Ty.data?_SI_transfer h T.2.2.2.2.2.fst[i] h5)
 
-
-
 theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (wf : ⊢ G) :
   ⟦ G ⟧ = .ok G' ->
   ⊢ G' := by
@@ -722,27 +720,43 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
 
         exists scsi'.1; exists scsi'.2
         apply And.intro
-        grind
-        simp [scsi', <-lem, Surface.mk_superclass_om]
-        apply Intermediate.SpineKinding.valid (Δ := Ks.list.reverse)
-        simp
-        intro i; cases i using Fin.cases;
-        · simp;
-          have lem := Intermediate.Kinding.spine_typing_lemma
+        · grind
+        · simp [scsi', <-lem, Surface.mk_superclass_om]
+          apply Intermediate.SpineKinding.valid (Δ := Ks.list.reverse)
+          simp
+          intro i; cases i using Fin.cases;
+          · simp;
+            have lem := Intermediate.Kinding.spine_typing_lemma
                        (s := s) (K := ★) (G := Intermediate.Global.classDecl ⟨s, kc, Ks, [], [],[]⟩ :: Γ') (T := (gt#s).mkApps_nats (List.range kc).reverse) (Δ := Ks.list.reverse) (tys := (List.range kc).reverse.map (t#·))
-          replace lem := lem (Core.Ty.mkApps_nats_spine s (List.range kc).reverse)
-          simp [lem]
-          apply And.intro
-          exists mk_cls_kind Ks; apply Intermediate.Kinding.global; simp [Intermediate.lookup_kind, Intermediate.lookup, Intermediate.Entry.kind, mk_cls_kind]
-          exists Ks.reverse; intro i; apply Intermediate.Kinding.var;  sorry
+            replace lem := lem (Core.Ty.mkApps_nats_spine s (List.range kc).reverse)
+            simp [lem]
+            apply And.intro
+            exists mk_cls_kind Ks; apply Intermediate.Kinding.global; simp [Intermediate.lookup_kind, Intermediate.lookup, Intermediate.Entry.kind, mk_cls_kind]
+            exists Ks; intro i; apply Intermediate.Kinding.var;
+            conv =>
+              lhs
+              simp [<-Vec.list_reverse];
+            simp [List.getElem?_eq_some_iff];
+            clear lem c1 c2 c3 c4 c5 c6 c7 c8 c9 ih scsi'
+            have lem : kc - 1 - ↑i < kc := by omega
+            exists lem
+            have lem : kc - 1 - (kc - 1 - ↑i) = i := by grind
+            simp only [lem]; apply Vec.list_get
+          · case _ i => apply i.elim0
+          · replace c4 := c4 i (by grind)
+            rcases c4 with ⟨mn, SC, scτ, c4a, c4b, c4c⟩; rw[c4a]
+            simp;
+            have lemwf : ⊢ (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ')
+              := by apply Intermediate.ListGlobalWf.cons
+                    apply Intermediate.GlobalWf.classDecl; assumption; repeat (simp)
+                    apply ih wftl h1
+            replace c4c := kinding_SI_transfer h1 c4c
+            replace c4c := Intermediate.Kinding.weaken_global lemwf c4c
+            apply c4c
 
-        · case _ i => apply i.elim0
-        sorry
-        simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine]; replace c4 := c4 i (by grind); rcases c4 with ⟨mn, SC, τs, c4a, c4b, c4c⟩;
-        simp [c4a]; apply lookup_is_data_SI_some h1 c4b
-        simp; simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine, Intermediate.is_data, Intermediate.lookup, Intermediate.Entry.is_data]
-
-
+          simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine]; replace c4 := c4 i (by grind); rcases c4 with ⟨mn, SC, τs, c4a, c4b, c4c⟩;
+          simp [c4a]; apply lookup_is_data_SI_some h1 c4b
+          simp; simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine, Intermediate.is_data, Intermediate.lookup, Intermediate.Entry.is_data]
 
 
       · intro i hi
