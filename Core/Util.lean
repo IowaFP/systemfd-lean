@@ -8,7 +8,7 @@ open LeanSubst
 
 macro t:term " ▸ " tac:Lean.Parser.Tactic.tacticSeq : term => `(cast (by $tac) $t)
 
-def ExistsUnique {α : Sort u} (p : α → Prop) := ∃ x, p x ∧ ∀ y, p y → y = x
+-- def ExistsUnique {α : Sort u} (p : α → Prop) := ∃ x, p x ∧ ∀ y, p y → y = x
 
 theorem get!_option2_eq_some {a : Option (Option T)}
   : a.get! = some t -> a = t

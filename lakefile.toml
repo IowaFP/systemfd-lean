@@ -14,6 +14,13 @@ scope = "amarmaduke"
 git = "https://github.com/amarmaduke/lilac"
 rev = "5e7f7a5"
 
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+git = "https://github.com/leanprover-community/mathlib4/"
+rev = "v4.32.0"
+
+
 [[lean_lib]]
 name = "Common"
 

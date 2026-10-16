@@ -1,3 +1,6 @@
+import Mathlib.Data.Finset.Basic
+import Mathlib.Data.Finset.Card
+
 import Core.Ty.Definition
 import Core.Ty.Substitution
 import Core.Ty.Structure
@@ -51,13 +54,38 @@ structure UnifyState where
 
 def UnifyState.id : UnifyState := ⟨Subst.id Ty, []⟩
 
-def eqnSize : List (Ty × Ty) -> Nat
+noncomputable def eqnsSize : List (Ty × Ty) -> Nat
 | [] => 0
-| .cons (t1, t2) eqns => 1 + t1.size + t2.size + eqnSize eqns
+| .cons (t1, t2) eqns => 1 + t1.size + t2.size + eqnsSize eqns
 
-def UnifyState.size : UnifyState -> Nat
-| ⟨_, eqns⟩ => eqnSize eqns
+noncomputable def UnifyState.eqnSize : UnifyState -> Nat
+| ⟨_, eqns⟩ => eqnsSize eqns
 
+
+def isVar : Core.Ty -> Bool
+| t#_ => true
+| _ => false
+
+noncomputable def flipEqnsSize : List (Ty × Ty) -> Nat
+| [] => 0
+| .cons (t1, t2) es => if (¬ isVar t1) ∧ isVar t2 then 1 + flipEqnsSize es else flipEqnsSize es
+
+noncomputable def UnifyState.flippedEqnSize : UnifyState -> Nat
+| ⟨_, eqns⟩ => flipEqnsSize eqns
+
+-- There is a triple we need to define as a termination measure
+-- According to TRAAT
+-- n1 = number of variables that are not in solved form
+-- n2 = size of S i.e. eqnSize above
+-- n3 = number of equations of the form (t = x) in S
+
+def freeVars : Ty -> Finset Nat
+| t#x => {x}
+| .app t1 t2 | .arrow t1 t2 | .eq _ t1 t2 => freeVars t1 ∪ freeVars t2
+| _ => {}
+
+
+noncomputable def UnifyStateSize (u : UnifyState) : Nat × Nat × Nat := ⟨0, u.eqnSize, u.flippedEqnSize⟩
 
 -- Performs one step of unification
 def unifyStep (u : UnifyState) : Option UnifyState :=
@@ -89,5 +117,6 @@ theorem unify_correctness : unify' t u = some σ ↔ Unifier σ t u := ⟨unify_
 -- we may want to have something like:
 -- G,Δ ⊢ σ = ∀ i, ∃ k, G,Δ ⊢ (σ.act i).from_action : K
 --
+
 
 end Core.Ty
