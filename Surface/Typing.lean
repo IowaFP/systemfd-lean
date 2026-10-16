@@ -101,11 +101,8 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none) ->
 
   -- method type shapes
-  (∀ (i : Nat), (hi : i < mτs.length) ->
-    ∃ mn τ, mτs[i] = (mn, τ) ∧
-    SpineKinding Core.SpCtorVariant.openm mn (.classDecl s Ks1 [] [] :: G) (λ _ => true) τ) ->
-  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
-    G&Ks1.list.reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn na KsU nb KsE R, mτs[i] = (mn, ⟨na, KsU, nb, KsE, 0, #(), R⟩) ∧ -- all the Ts here ought to be empty they can go in R as we never scrutinize them
+    G&(Ks1.list ++ KsU.list ++ KsE.list).reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
 
   -- super class type shapes
   (∀ (i : Nat), (hi : i < scτs.length) -> ∃ mn SC τs,
@@ -153,7 +150,7 @@ theorem GlobalWf.drop_lookup_unique {G : GlobalEnv} n :
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
           apply ih; grind
-      case classDecl s _ Ks1 scτs mτs j1 j2 j3 j4 j5 j6 j7 j8 j9 =>
+      case classDecl s _ Ks1 scτs mτs j1 j2 j3 j4 j5 j6 j7 j8 =>
         simp [lookup]; split <;> simp at *
         case _ e => subst e; rw[ih] at j4; simp at j4
         split

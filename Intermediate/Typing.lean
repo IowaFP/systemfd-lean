@@ -67,10 +67,12 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
   (lookup x G = none) ->
   GlobalWf G (.data ⟨x, K, ⟨n, ctors⟩⟩)
+
 | defn {G : GlobalEnv} :
   G&[] ⊢ T : ★ ->
   lookup x G = none ->
   GlobalWf G (.defn ⟨x, T, t⟩)
+
 | classDecl {na : Nat} {Ks1 : Vec Core.Kind na} {scτs : List (String × Core.SpineTy)} {mτs : List (String × Core.SpineTy)}:
 
   -- class name is unique
@@ -87,11 +89,11 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
     ∃ mn τ, mτs[i] = (mn, τ) ∧
     SpineKinding Core.SpCtorVariant.openm mn (Intermediate.Global.classDecl ⟨s, na, Ks1, [], [], []⟩ :: G) (λ _ => true) τ) ->
 
-  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ (mn : String) (R T : Core.Ty) (tys : List Core.Ty),
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ (mn : String) (nb : Nat) (Ks2 : Vec Core.Kind nb) (R T : Core.Ty) (tys : List Core.Ty),
    (T.spine = .some (s, tys)) ∧
    (tys = (List.range na).reverse.map (t#·)) ∧
-   mτs[i] = (mn, ⟨na, Ks1, 0, #(), 1, #(T), R⟩) ∧
-    G&Ks1.list.reverse ⊢ R : ★) ->
+   mτs[i] = (mn, ⟨na, Ks1, nb, Ks2, 1, #(T), R⟩) ∧
+    G&(Ks1.list ++ Ks2.list).reverse ⊢ R : ★) ->
 
 
   (∀ (i : Nat), (hi : i < scτs.length) ->
@@ -500,7 +502,7 @@ theorem Query.strength_inst1 {Γ : Intermediate.GlobalEnv} :
 -- But then this will be in disjunction with #(T1, T2), and R being an equality
 theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .clsMth ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
-  nb = 0 ∧ nc = 1 ∧ (∃ (T: Core.Ty) (tys : List Core.Ty), As ≍ #(T) ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·))
+  nc = 1 ∧ (∃ (T: Core.Ty) (tys : List Core.Ty), As ≍ #(T) ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·))
 := by
   intro h
   induction wf
@@ -537,7 +539,7 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
         · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3;
           case _ i _ mn _ h2 =>
           replace c8 := c8 i (by grind);
-          rcases c8 with ⟨mn, R, T, tys, T_shape, tys2, scsi, Rj⟩
+          rcases c8 with ⟨mn, nb, Ks2, R, T, tys, T_shape, tys2, scsi, Rj⟩
           simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
           simp [h2] at scsi; rcases scsi with ⟨e1, e2, e3⟩; subst e1 e2 tys2;
           simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3;
