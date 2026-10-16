@@ -655,7 +655,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         apply c3.1; apply translate_SI_lookup_none h1 c3.2
       · { intro i hi; have hi : i < mτs.length := by grind
           replace c7 := c7 i hi;
-          rcases c7 with ⟨mn, na, Ks1, nb, Ks2, R, j1, j2, j3⟩
+          rcases c7 with ⟨mn, na, Ks1, R, j1, j2, j3⟩
           exists mn; simp;
           have lem1 : ⊢ ((Surface.Global.classDecl s Ks [] []) :: Γ) := by
             apply Surface.ListGlobalWf.cons
@@ -698,29 +698,31 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
                 · simp
                 · simp
               · apply ih wftl h1
-            -- simp [j1] at c7a; rcases c7a with ⟨e1, e2⟩; subst R; subst e1
             apply Intermediate.SpineKinding.valid
             · rfl;
-            · simp; sorry -- weaken j3 twice
-            · simp; replace j2 := kinding_SI_transfer h1 j2; simp at j2; sorry -- apply j2.weaken_global lemwf'
+            · simp; replace j3 := kinding_SI_transfer lem2 j3;
+              replace j3 := j3.weaken_many (Δ' := (Ks1.list).reverse)
+              simp at j3;
+              sorry -- weaken j3 twice
+            · simp; replace j2 := kinding_SI_transfer h1 j2; simp at j2; apply j2.weaken_global lemwf'
             · rfl
-            · sorry -- simp [Surface.Ty.data?, Core.Ty.mkApps_nats_spine, Surface.is_data, Surface.lookup, Surface.Entry.is_data]
+            · simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine, Intermediate.is_data, Intermediate.lookup, Intermediate.Entry.is_data]
 
         }
       · intro i hi -- R T tys hi tsp tys_shape; simp;
         replace c7 := c7 i (by grind)-- mn R (by grind);
-        rcases c7 with ⟨mn, na, Ks1, nb, Ks2, R, c7a, c7b, c7c⟩; exists mn; exists nb; exists Ks2; exists R
+        rcases c7 with ⟨mn, na, KsU, R, c7a, c7b, c7c⟩; exists mn; exists na; exists KsU; exists R
 
-        let tys := (List.range kc).reverse
+        let tys := ((List.range kc).reverse).map (· + na)
         let T := (gt#s).mkApps_nats tys
-        exists T; exists (List.range kc).reverse.map (t#·)
+        exists T; exists ((List.range kc).reverse.map (· + na)).map (t#·)
         apply And.intro
         · simp [T, Core.Ty.mkApps_nats_spine, tys]
         · apply And.intro;
           · simp
           · apply And.intro
-            · simp; sorry
-            sorry
+            · simp; rw[c7a]; simp[mk_method_om, T, tys];
+            · simp; simp at c7b; apply kinding_SI_transfer h1 c7b
 
       · intro i hi;
         generalize scsDef : List.map (fun x => (x.fst, Surface.mk_superclass_om s Ks x.2.fst x.2.snd)) scs = scs' at *
@@ -936,9 +938,9 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         clear ih
         rcases h1 with ⟨e1, e2, e3⟩; subst e1; subst e2;
         simp at h7; simp at *
-        replace cs6 := cs6 i (by grind); rcases cs6 with ⟨mn, na, KsU, nb, KsE, R, cs6a, cs6b, cs6c⟩
+        replace cs6 := cs6 i (by grind); rcases cs6 with ⟨mn, na, KsU, R, cs6a, cs6b, cs6c⟩
         replace ci7 := ci7 i (by grind)
-        rcases ci7 with ⟨mn', nb', Ks2', R', T', tys, T'_shape, tys_eq, ⟨ci7a, ci7b⟩, ci7c⟩
+        rcases ci7 with ⟨mn', na', Ks1', R', T', tys, T'_shape, tys_eq, ⟨ci7a, ci7b⟩, ci7c⟩
         simp [cs6a] at ci7a; subst mn'
         simp [cs6a, mk_method_om] at ci7b;
         rw[cs6a] at ci7b; simp at ci7b

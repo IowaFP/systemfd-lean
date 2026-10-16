@@ -37,7 +37,7 @@ def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x =>
 def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineTy) : Core.SpineTy :=
   let ⟨na, Ks1, nb, Ks2, nc, cts, R⟩ := R
   let ski := (List.range cls_params.length).map (· + na + nb)
-  ⟨kc + na, Ks1 ++ cls_params, nb, Ks2, nc + 1, .cons ((gt#cls).mkApps_nats ski.reverse) cts, R⟩
+  ⟨na + kc, cls_params ++ Ks1, nb, Ks2, nc + 1, .cons ((gt#cls).mkApps_nats ski.reverse) cts, R⟩
 
 def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (Fin n) (kc + 1)) (determinant : Fin n)
   : Core.SpineTy :=
@@ -164,7 +164,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
                 return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], scs, mths⟩) Γ')
              else .error "translate_SI instDecl mτs.length"
         else .error "translate_SI instDecl cls_name"
-    | e => .error $ "translate_SI instDecl odata" ++ cls_name ++ e.repr max_prec
+    | e => .error $ "translate_SI instDecl odata " ++ cls_name ++ e.repr max_prec
   | _ => .error "translate_SI instDecl lookup cls_name"
 
 
