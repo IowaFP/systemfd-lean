@@ -406,7 +406,8 @@ def Surface.Term.type_directed_translate
   | .all K' τ' =>
     let t' <- type_directed_translate G (K :: Δ) Γ⟨Ren.succ Core.Ty⟩ τ' t
     if K == K' then return (Λ[K] t') else .error "lamt translate"
-  | _ => .error "lamt translate"
+  | _ => .error $ ("lamt translate: " ++ τ.repr max_prec ++ Std.Format.line
+                  ++ (Surface.Term.lamt K t).repr max_prec)
 | .lam A t => do
   if h : (A.infer_kind G Δ).isEqSome (★) then
   match τ with
@@ -454,7 +455,13 @@ def Surface.Term.type_directed_translate
     let s' : Fun.Vec (TM Core.Term) m := λ i => type_directed_translate G Δ Γ (τs i) (ss i)
     let s' <- s'.to.sequence
     let ΔsΓs : Fun.Vec (TM (List Core.Kind × List Core.Ty)) n := (λ i =>
-        Option.toTM "match pattern_binders" $ Core.pattern_binders (.data .cls) G Δ m τs (pats i))
+        Option.toTM ("match pattern_binders" ++ Std.Format.line
+          ++ "G : " ++ G.repr max_prec ++ Std.Format.line
+          ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+          ++ "m : " ++ m.repr ++ Std.Format.line
+          ++ "τs : " ++ τs.to.repr max_prec ++ Std.Format.line
+          ++ "pats : " ++ (pats i).repr ++ Std.Format.line
+          ) $ Core.pattern_binders (.data .cls) G Δ m τs (pats i))
     let ΔsΓs' <- ΔsΓs.to.sequence
     let b' : Fun.Vec (TM Core.Term) n := λ i => do
       let Δ' := ΔsΓs'[i].1

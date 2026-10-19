@@ -70,7 +70,7 @@ def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
       if
         (C'' == C &&  -- check that iname belongs to T type
         (iname == iname' && C' == C) && nb == 0) then
-      return ⟨1, #(⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci⟩), tm⟩ -- TODO: t#0 looks sus..
+      return ⟨1, #(⟨iname, nai, ((Vec.range nai).reverse.map (t#·)), nbi, nci⟩), tm⟩ -- TODO: t#0 looks sus..
       else .error "mk_inst_mth_SI"
     | _ => .error "mk_inst_mth_SI iname lookup"
   | _ => .error "mk_inst_mth_SI"
