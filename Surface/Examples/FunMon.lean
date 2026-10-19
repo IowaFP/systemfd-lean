@@ -19,14 +19,19 @@ def NothingJustPat : Core.Pattern 2 :=  NothingPat ++ JustPat
 
 
 def mbenv : GlobalEnv := [
+
   .instDecl "MM" ⟨1, #(★ -:> ★), 0, #(), 1, #(t#0 ~[★ -:> ★]~ gt#"Maybe"), (gt#"Monad" • t#0)⟩
     [ ("return", Λˢ[★]λˢ[t#0] (g`#"Just" `•ᵤ #(t#0) `•ₑ #() `•ₜ #(`#0).to))
-    -- , ("bind", sorry)
+    , ("bind", Λˢ[★]Λˢ[★]λˢ[(gt#"Maybe" • t#1)]λˢ[(t#1 -:> (gt#"Maybe" • t#0))]
+                  mtch' #((`#1, gt#"Maybe" • t#1))
+                    #( (JustPat,    Surface.Term.app `#1 `#0 t#1),
+                       (NothingPat,  g`#"Nothing" `•ᵤ #(t#0) `•ₑ #() `•ₜ .nil))
+      )
     ],
 
   .classDecl "Monad" #(★ -:> ★) [ ("supMonFun", "Functor", [0]) ]
     [ ("return", ⟨0, #(), 0, #(), 0, #(), ∀[★] t#0 -:> (t#1 • t#0)⟩)
-    -- , ("bind", ⟨0, #(), 0, #(), 0, #(), (∀[★]∀[★] (t#2 • t#1) -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0)) ⟩)
+    , ("bind", ⟨0, #(), 0, #(), 0, #(), (∀[★]∀[★] (t#2 • t#1) -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0)) ⟩)
     ],
 
 

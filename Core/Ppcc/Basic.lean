@@ -895,11 +895,18 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
   (T1 : Ty) -> Option ((T2 : Ty) × (K : Kind) × (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2))
 | .var v1 => do
   let T1 := t#v1
-  let i <- eG.nodes.findIdx? (·.ty == T1)
-  if h1 : (i < eG.nodes.length)
-  then let ⟨_, rep_T, K, c, j⟩ <- EqGraph.get_rep_aux wf eG T1 i h1
-       return ⟨rep_T, K, c, j⟩
-  else none
+  match eG.nodes.findIdx? (·.ty == T1) with
+  | some i =>
+    if h1 : (i < eG.nodes.length)
+    then let ⟨_, rep_T, K, c, j⟩ <- EqGraph.get_rep_aux wf eG T1 i h1
+         return ⟨rep_T, K, c, j⟩
+    else none
+  | none =>
+    -- it is possible that var is not in eG, so its in its own equivalence class
+    match h : Δ[v1]? with
+      | some K => return ⟨t#v1, K, refl! t#v1, by apply Typing.refl; apply Kinding.var h⟩
+      | none => none
+
 | .app A B => do
   -- let i <- eG.nodes.findIdx? (·.ty == .app A B)
   -- if h1 : (i < eG.nodes.length)
@@ -956,16 +963,21 @@ def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : E
    then
      let ⟨tA1A2, jA1A2⟩ <- EqGraph.ask G wf Δ Γ eG (KArg1 -:> K) TA1 TA2
      let ⟨tB1B2, jB1B2⟩ <- EqGraph.ask G wf Δ Γ eG KArg1 TB1 TB2
-     by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3;
+     by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3
         apply some (EqGraph.appc G wf Δ Γ tA1A2 tB1B2 KArg1 K TA1 TA2 TB1 TB2 jA1A2 jB1B2)
    else none
+ -- | t#v1, t#v2 => do -- i am not sure why i need to do this, the catchall case should handle it
+ --   if h : v1 == v2 then
+ --   by simp at h; subst h; apply (some ⟨refl! t#v1, by apply Typing.refl; sorry⟩)
+ --   else sorry
+
  | T1, T2 => do
   let ⟨repv_T1, K1, η1, η1_j⟩ <- eG.get_rep_view wf T1
   let ⟨repv_T2, K2, η2, η2_j⟩ <- eG.get_rep_view wf T2
 
   if h : K == K1 && (repv_T1 == repv_T2 && K1 == K2)
   then -- T1 == repv_T1 == T2
-    by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3
+    by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3
        let ⟨symm_η2, j2'⟩ := EqGraph.symm G wf Δ Γ η2 K T2 repv_T1 η2_j
        apply some (EqGraph.seq G wf Δ Γ η1 symm_η2 K T1 repv_T1 T2 η1_j j2')
   else  -- try harder for var ~ app or var ~ A -> B cases
