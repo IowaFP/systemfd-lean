@@ -129,13 +129,10 @@ def unifyStep (u : UnifyState) : Option UnifyState :=
   | _ => none
 
 
-def loopUnify (u : UnifyState) : Option (Subst Core.Ty) := match h : (unifyStep u) with
-| none => none
-| some ⟨σ, []⟩ => return σ
-| some u' => loopUnify u'
-termination_by (UnifyStateSize u)
-decreasing_by
-  case _ =>
+theorem loopUnifyDecreases {u u' : UnifyState} (h : unifyStep u = some u') :
+  Prod.Lex (fun a₁ a₂ => a₁ < a₂) (Prod.Lex (fun a₁ a₂ => a₁ < a₂) fun a₁ a₂ => a₁ < a₂) (UnifyStateSize u')
+    (UnifyStateSize u)
+:= by
   simp; cases u
   case _ eqns =>
   cases eqns
@@ -146,9 +143,36 @@ decreasing_by
   all_goals (simp [unifyStep] at h)
   all_goals try (subst u'; simp)
   -- all_goals try (subst u'; simp; apply Prod.Lex.right; apply Prod.Lex.right; omega)
-  · sorry
+  case var v =>
+    generalize z1def : rhsTy.freeVars ∪ varsEqns tl = z1 at *
+    generalize zdef : (insert v z1) = z at *
+    have lem1 : z.card ≤ (z1.card + 1) := by simp [<-zdef]; apply Finset.card_insert_le
+    have lem2 := Finset.card_union_le rhsTy.freeVars (varsEqns tl)
+    simp [<-zdef, <-z1def]; rw[<-zdef, <-z1def] at lem1
+    cases Nat.decEq (varsEqns tl).card (insert v (rhsTy.freeVars ∪ varsEqns tl)).card
+    case _ h =>
+
+      sorry
+
+    -- cases Nat.decEq (insert v (rhsTy.freeVars ∪ varsEqns tl)).card ((rhsTy.freeVars ∪ varsEqns tl).card + 1)
+    -- case _ h => sorry
+
+    -- case _ h =>
+    --   have lem : (rhsTy.freeVars ∪ varsEqns tl).card < (insert v (rhsTy.freeVars ∪ varsEqns tl)).card := by omega
+    --   cases Nat.decEq (rhsTy.freeVars ∪ varsEqns tl).card (varsEqns tl).card
+    --   case _ h => sorry
+    --   case _ h =>
+
+    case _ h => rw[h]; apply Prod.Lex.right; apply Prod.Lex.left; omega
   · cases rhsTy <;> try simp at h
-    · subst u'; simp; sorry
+    · subst u'; simp; case _ v =>
+      cases Nat.decEq (varsEqns tl).card (insert v (varsEqns tl)).card
+      case _ h =>
+        have lem := Finset.card_insert_le v (varsEqns tl)
+        cases Nat.decLe (varsEqns tl).card (insert v (varsEqns tl)).card
+        case _ h1 => simp at h1; sorry
+        case _ h1 => sorry
+      case _ h => rw[h]; apply Prod.Lex.right; apply Prod.Lex.left; omega
     · rcases h with ⟨e1, e2⟩; subst e1 e2; simp; apply Prod.Lex.right; apply Prod.Lex.left; omega
   · cases rhsTy <;> try simp at h
     · subst u'; simp; sorry
@@ -164,6 +188,14 @@ decreasing_by
     rcases h with ⟨e1, e2⟩; subst e1 e2; simp;
     sorry
 
+
+def loopUnify (u : UnifyState) : Option (Subst Core.Ty)
+:= match h : (unifyStep u) with
+  | none => none
+  | some ⟨σ, []⟩ => return σ
+  | some u' => loopUnify u'
+termination_by (UnifyStateSize u)
+decreasing_by (apply loopUnifyDecreases h)
 
 
 
