@@ -54,22 +54,26 @@ structure UnifyState where
 
 def UnifyState.id : UnifyState := ⟨Subst.id Ty, []⟩
 
+@[simp]
 noncomputable def eqnsSize : List (Ty × Ty) -> Nat
 | [] => 0
 | .cons (t1, t2) eqns => 1 + t1.size + t2.size + eqnsSize eqns
 
+@[simp]
 noncomputable def UnifyState.eqnSize : UnifyState -> Nat
 | ⟨_, eqns⟩ => eqnsSize eqns
 
-
-def isVar : Core.Ty -> Bool
+@[simp]
+noncomputable def isVar : Core.Ty -> Bool
 | t#_ => true
 | _ => false
 
+@[simp]
 noncomputable def flipEqnsSize : List (Ty × Ty) -> Nat
 | [] => 0
 | .cons (t1, t2) es => if (¬ isVar t1) ∧ isVar t2 then 1 + flipEqnsSize es else flipEqnsSize es
 
+@[simp]
 noncomputable def UnifyState.flippedEqnSize : UnifyState -> Nat
 | ⟨_, eqns⟩ => flipEqnsSize eqns
 
@@ -79,22 +83,43 @@ noncomputable def UnifyState.flippedEqnSize : UnifyState -> Nat
 -- n2 = size of S i.e. eqnSize above
 -- n3 = number of equations of the form (t = x) in S
 
-def freeVars : Ty -> Finset Nat
+@[simp]
+def freeVars : Core.Ty -> Finset Nat
 | t#x => {x}
 | .app t1 t2 | .arrow t1 t2 | .eq _ t1 t2 => freeVars t1 ∪ freeVars t2
 | _ => {}
 
+@[simp]
+def varsEqns : List (Ty × Ty) -> Finset Nat
+| [] => {}
+| .cons (t, u) eqs => freeVars t ∪ freeVars u ∪ varsEqns eqs
 
-noncomputable def UnifyStateSize (u : UnifyState) : Nat × Nat × Nat := ⟨0, u.eqnSize, u.flippedEqnSize⟩
+@[simp]
+noncomputable def UnifyState.varsEqn : UnifyState -> Nat
+| ⟨_, eqns⟩ => varsEqns eqns |> Finset.card
 
--- Performs one step of unification
+
+-- structure UnifyStateSizeStruct where
+--   p1 : Nat
+--   p2 : Nat
+--   p3 : Nat
+
+@[simp]
+noncomputable def UnifyStateSize (u : UnifyState) : Nat × Nat × Nat := ⟨u.varsEqn, u.eqnSize, u.flippedEqnSize⟩
+
+
+
+-- Performs one step of "unification"
+@[simp]
 def unifyStep (u : UnifyState) : Option UnifyState :=
   match u.equations with
   | [] => none
   | .cons (t#x, t) eqs =>
     let τ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
     return ⟨u.subst ∘ τ, eqs⟩
-  | .cons (t, t#x) eqs => return ⟨u.subst, (t#x, t) :: eqs⟩
+  | .cons (t, t#x) eqs =>
+    let τ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
+    return ⟨u.subst ∘ τ, eqs⟩
   | .cons (gt#x, gt#y) eqs => if x == y then return ⟨u.subst, eqs⟩ else none
   | .cons (.arrow x1 y1, .arrow x2 y2) eqs
   | .cons (.app x1 y1, .app x2 y2) eqs =>
@@ -103,6 +128,43 @@ def unifyStep (u : UnifyState) : Option UnifyState :=
     if k1 == k2 then return ⟨u.subst, (x1, x2) :: (y1, y2) :: eqs⟩ else none
   | _ => none
 
+
+def loopUnify (u : UnifyState) : Option (Subst Core.Ty) := match h : (unifyStep u) with
+| none => none
+| some ⟨σ, []⟩ => return σ
+| some u' => loopUnify u'
+termination_by (UnifyStateSize u)
+decreasing_by
+  case _ =>
+  simp; cases u
+  case _ eqns =>
+  cases eqns
+  case nil => simp [unifyStep] at h
+  case cons hd tl =>
+  rcases hd with ⟨lhsTy, rhsTy⟩
+  cases rhsTy; cases lhsTy
+  all_goals (simp [unifyStep] at h)
+  -- all_goals try (subst u'; simp; apply Prod.Lex.right; apply Prod.Lex.right; omega)
+  · subst u'; simp;
+    sorry
+  · subst u'; simp; sorry
+  · subst u'; simp; sorry
+  · subst u'; simp; sorry
+  · sorry
+  sorry
+  · sorry
+  sorry
+  sorry
+  sorry
+  sorry
+
+
+
+
+
+
+def unify (t u : Core.Ty) : Option (Subst Core.Ty) :=
+  loopUnify ⟨Subst.id Core.Ty, [(t, u)]⟩
 
 
 
