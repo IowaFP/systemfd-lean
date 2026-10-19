@@ -162,6 +162,7 @@ def EqGraph.process_tyenv (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEn
           | .data _ s _ _ => acc.push_ty gt#s
           | _ => acc) init
         let eG <- Γ.foldlM (λ acc T => acc.push_ty T) init
+        -- let eG <- (List.range (Δ.length)).foldlM (λ acc T => acc.push_ty) eG
         (Γ.zipIdx).foldlM (λ acc (t, i) => process_ty G wf Δ Γ acc #i t) eG
 
 def EqGraph.build_eq_graph (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv) :
@@ -340,15 +341,21 @@ def test9 := do
   let Δ := [★, ★, ★ -:> ★]
   let Γ := [t#0 ~[★]~ (t#2 •t#1)]
   let eG <- mEG7
-  -- let ⟨t1, _⟩ <- eG.get_rep_view CtxWf (t#0 -:> t#2)
-  -- let ⟨t2, _ ⟩ <- eG.get_rep_view CtxWf ((t#2 • t#1) -:> t#2)
   let ⟨t, _⟩ <- eG.ask [] CtxWf Δ  Γ ★ (t#0 -:> t#1) ((t#2 • t#1) -:> t#1)
-  -- return (t1, t2 , t)
-  -- return eG
   Term.infer_type [] Δ Γ t
 
--- #eval! test9
 #guard test9 == some ((t#0 -:> t#1) ~[★]~ ((t#2 • t#1) -:> t#1))
+
+
+def mEG8 :=  EqGraph.process_tyenv [] CtxWf [★, ★ -:> ★, ★ -:> ★] [t#1 ~[★ -:> ★]~ t#2]
+def test10 := do
+  let Δ := [★, ★ -:> ★, ★ -:> ★]
+  let Γ := [t#1 ~[★ -:> ★]~ t#2]
+  let eG <- mEG8
+  let ⟨t, _⟩ <- eG.ask [] CtxWf Δ  Γ ★ (t#1 • t#0) (t#2 • t#0)
+  Term.infer_type [] Δ Γ t
+
+#guard test10 == some ((t#1 • t#0) ~[★]~ (t#2 • t#0))
 
 
 -- def BoolCtx : GlobalEnv := [

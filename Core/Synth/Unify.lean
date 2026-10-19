@@ -142,21 +142,27 @@ decreasing_by
   case nil => simp [unifyStep] at h
   case cons hd tl =>
   rcases hd with ⟨lhsTy, rhsTy⟩
-  cases rhsTy; cases lhsTy
+  cases lhsTy
   all_goals (simp [unifyStep] at h)
+  all_goals try (subst u'; simp)
   -- all_goals try (subst u'; simp; apply Prod.Lex.right; apply Prod.Lex.right; omega)
-  · subst u'; simp;
+  · sorry
+  · cases rhsTy <;> try simp at h
+    · subst u'; simp; sorry
+    · rcases h with ⟨e1, e2⟩; subst e1 e2; simp; apply Prod.Lex.right; apply Prod.Lex.left; omega
+  · cases rhsTy <;> try simp at h
+    · subst u'; simp; sorry
+    · subst u'; simp [Ty.size]; sorry
+  · cases rhsTy <;> try simp at h
+    subst u'; simp; sorry
+  · cases rhsTy <;> try simp at h
+    all_goals (subst u'; simp)
     sorry
-  · subst u'; simp; sorry
-  · subst u'; simp; sorry
-  · subst u'; simp; sorry
-  · sorry
-  sorry
-  · sorry
-  sorry
-  sorry
-  sorry
-  sorry
+    sorry
+  · cases rhsTy <;> try simp at h
+    subst u'; simp; sorry
+    rcases h with ⟨e1, e2⟩; subst e1 e2; simp;
+    sorry
 
 
 
@@ -168,12 +174,18 @@ def unify (t u : Core.Ty) : Option (Subst Core.Ty) :=
 
 
 
-theorem unify_soundness {t u : Ty} {σ  : Subst Ty} : unify' t u = some σ -> Unifier σ t u := by sorry
+theorem unify_soundness {t u : Ty} {σ  : Subst Ty} : unify t u = some σ -> Unifier σ t u
+:= by
+  intro h
+  unfold Unifier;
+  sorry
 
-theorem unify_completeness {t u : Ty} {σ  : Subst Ty} : Unifier σ t u -> unify' t u = some σ := by sorry
+theorem unify_completeness {t u : Ty} {σ  : Subst Ty} :
+  Unifier σ t u -> unify t u = some σ'
+  -> ∃ (τ : Subst Core.Ty), σ = σ' ∘ τ := by sorry
 
 
-theorem unify_correctness : unify' t u = some σ ↔ Unifier σ t u := ⟨unify_soundness, unify_completeness⟩
+-- theorem unify_correctness : unify t u = some σ ↔ Unifier σ t u := ⟨unify_soundness, unify_completeness⟩
 
 -- what about well kindedness?
 -- we may want to have something like:
