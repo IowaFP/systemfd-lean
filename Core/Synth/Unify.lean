@@ -99,11 +99,6 @@ noncomputable def UnifyState.varsEqn : UnifyState -> Nat
 | ⟨_, eqns⟩ => varsEqns eqns |> Finset.card
 
 
--- structure UnifyStateSizeStruct where
---   p1 : Nat
---   p2 : Nat
---   p3 : Nat
-
 @[simp]
 noncomputable def UnifyStateSize (u : UnifyState) : Nat × Nat × Nat := ⟨u.varsEqn, u.eqnSize, u.flippedEqnSize⟩
 
@@ -142,7 +137,7 @@ theorem loopUnifyDecreases {u u' : UnifyState} (h : unifyStep u = some u') :
   cases lhsTy
   all_goals (simp [unifyStep] at h)
   all_goals try (subst u'; simp)
-  -- all_goals try (subst u'; simp; apply Prod.Lex.right; apply Prod.Lex.right; omega)
+
   case var v =>
     generalize z1def : rhsTy.freeVars ∪ varsEqns tl = z1 at *
     generalize zdef : (insert v z1) = z at *
@@ -154,39 +149,45 @@ theorem loopUnifyDecreases {u u' : UnifyState} (h : unifyStep u = some u') :
 
       sorry
 
-    -- cases Nat.decEq (insert v (rhsTy.freeVars ∪ varsEqns tl)).card ((rhsTy.freeVars ∪ varsEqns tl).card + 1)
-    -- case _ h => sorry
-
-    -- case _ h =>
-    --   have lem : (rhsTy.freeVars ∪ varsEqns tl).card < (insert v (rhsTy.freeVars ∪ varsEqns tl)).card := by omega
-    --   cases Nat.decEq (rhsTy.freeVars ∪ varsEqns tl).card (varsEqns tl).card
-    --   case _ h => sorry
-    --   case _ h =>
-
     case _ h => rw[h]; apply Prod.Lex.right; apply Prod.Lex.left; omega
   · cases rhsTy <;> try simp at h
     · subst u'; simp; case _ v =>
-      cases Nat.decEq (varsEqns tl).card (insert v (varsEqns tl)).card
-      case _ h =>
-        have lem := Finset.card_insert_le v (varsEqns tl)
-        cases Nat.decLe (varsEqns tl).card (insert v (varsEqns tl)).card
-        case _ h1 => simp at h1; sorry
-        case _ h1 => sorry
-      case _ h => rw[h]; apply Prod.Lex.right; apply Prod.Lex.left; omega
+      generalize zdef : (insert v (varsEqns tl)).card = z at *
+      simp [Finset.card_insert_eq_ite] at zdef
+      split at zdef
+      · subst zdef; apply Prod.Lex.right; apply Prod.Lex.left; omega
+      · subst zdef; apply Prod.Lex.left; omega
     · rcases h with ⟨e1, e2⟩; subst e1 e2; simp; apply Prod.Lex.right; apply Prod.Lex.left; omega
   · cases rhsTy <;> try simp at h
     · subst u'; simp; sorry
-    · subst u'; simp [Ty.size]; sorry
+    · subst u'; simp [Ty.size]; case _ a1 a2 a3 a4 =>
+      have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                            (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+      rw[e]; apply Prod.Lex.right; apply Prod.Lex.left; omega
   · cases rhsTy <;> try simp at h
-    subst u'; simp; sorry
+    subst u'; simp; case _ v =>
+      generalize zdef : (insert v (varsEqns tl)).card = z at *
+      simp [Finset.card_insert_eq_ite] at zdef
+      split at zdef
+      · subst zdef; apply Prod.Lex.right; apply Prod.Lex.left; omega
+      · subst zdef; apply Prod.Lex.left; omega
   · cases rhsTy <;> try simp at h
     all_goals (subst u'; simp)
-    sorry
-    sorry
+    · sorry
+    case _ a1 a2 a3 a4 =>
+    have e : (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                          (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+    rw[e]; apply Prod.Lex.right; apply Prod.Lex.left; simp [Ty.size]; omega
   · cases rhsTy <;> try simp at h
-    subst u'; simp; sorry
-    rcases h with ⟨e1, e2⟩; subst e1 e2; simp;
-    sorry
+    · subst u'; simp [Ty.size];
+      case _ t1 t2 v =>
+      sorry
+    · rcases h with ⟨e1, e2⟩; subst e1 e2; simp;
+      simp [Ty.size];
+      case _ a1 a2 a3 a4 =>
+      have e : (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                            (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+      rw[e]; apply Prod.Lex.right; apply Prod.Lex.left; omega
 
 
 def loopUnify (u : UnifyState) : Option (Subst Core.Ty)

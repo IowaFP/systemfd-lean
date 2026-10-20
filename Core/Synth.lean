@@ -391,6 +391,7 @@ def List.unique_pairs {α : Type u} : List α -> List (α × α)
 #eval List.unique_pairs [1,2,3]
 
 -- Checks whether the eqns in Γ give rise to an inconsistent context
+-- This is an incomplete procedure. What about "Maybe Char" ~[★]~ Char, etc.?
 def isNotConsistent_aux (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : Ppcc.EqGraph G Δ Γ)
 : Option ((T1 : Ty) ×' (T2 : Ty) ×' (K : Kind) ×' (t : Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) :=
   let gts := G.flatMap (λ g =>
