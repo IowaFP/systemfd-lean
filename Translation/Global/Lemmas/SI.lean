@@ -703,7 +703,9 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
             · simp; replace j3 := kinding_SI_transfer lem2 j3;
               replace j3 := j3.weaken_many (Δ' := (Ks1.list).reverse)
               simp at j3;
-              sorry -- weaken j3 twice
+              have lem : ((gt#s).mkApps_nats (List.range kc).reverse)⟨LeanSubst.Ren.add Core.Ty na⟩ = (gt#s).mkApps_nats (List.map (fun x => x + na) (List.range kc)).reverse
+                := by have e := Core.Ty.mkApps_nats_ren (na := na) (s := s) (ts := (List.range kc).reverse); simp at e; apply e
+              rw[<-lem]; apply j3
             · simp; replace j2 := kinding_SI_transfer h1 j2; simp at j2; apply j2.weaken_global lemwf'
             · rfl
             · simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine, Intermediate.is_data, Intermediate.lookup, Intermediate.Entry.is_data]
@@ -711,11 +713,11 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         }
       · intro i hi -- R T tys hi tsp tys_shape; simp;
         replace c7 := c7 i (by grind)-- mn R (by grind);
-        rcases c7 with ⟨mn, na, KsU, R, c7a, c7b, c7c⟩; exists mn; exists na; exists KsU; exists R
+        rcases c7 with ⟨mn, nu, KsU, R, c7a, c7b, c7c⟩; exists mn; exists nu; exists KsU; exists R
 
-        let tys := ((List.range kc).reverse).map (· + na)
+        let tys := ((List.range kc).reverse).map (· + nu)
         let T := (gt#s).mkApps_nats tys
-        exists T; exists ((List.range kc).reverse.map (· + na)).map (t#·)
+        exists T; exists ((List.range kc).reverse.map (· + nu)).map (t#·)
         apply And.intro
         · simp [T, Core.Ty.mkApps_nats_spine, tys]
         · apply And.intro;
