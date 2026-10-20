@@ -220,7 +220,6 @@ theorem Kinding.weaken_global {G : GlobalEnv} (wf : ⊢ (g::G)) : G&Δ ⊢ A : K
 | eq j1 j2 => eq (j1.weaken_global wf) (j2.weaken_global wf)
 
 
-
 def OpenExhaustive (G : Intermediate.GlobalEnv) : Prop :=
   ∀ {x na nb nc} {Ks1 : Vec _ na} {Ks2 : Vec _ nb} {Ts : Vec _ nc} {R q} {cls} {mthTy},
   Intermediate.lookup x G = some (Intermediate.Entry.openm x cls mthTy ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
@@ -521,7 +520,7 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
-    case classDecl _  s _ Ks1 mτs scs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
+    case classDecl _  s _ Ks1 scs mτs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       split at h
@@ -544,7 +543,9 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
           simp [h2] at scsi; rcases scsi with ⟨e1, e2, e3⟩; subst e1 e2 tys2;
           simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3;
           rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3; rcases e3 with ⟨e1, e2⟩
-          subst e1; subst e2; simp; simp at T_shape; sorry -- apply T_shape
+          subst e1; subst e2; simp; simp at T_shape; simp [Function.comp_def] at T_shape; rw [T_shape];
+          simp;
+          sorry -- apply T_shape
         · apply ih h
     case inst =>
       simp [Intermediate.lookup] at h; split at h
@@ -640,7 +641,7 @@ theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       split at h2 <;> try simp at h2
       split at h2 <;> try simp at h2
       split at h1 <;> try simp at h1
-      case _ e1 e2 => sorry
+      case _ e1 e2 => apply ih h1 h2
       sorry -- apply ih h1 h2
       sorry
       case _ h =>
@@ -796,7 +797,7 @@ theorem Kinding.weaken {G : Intermediate.GlobalEnv} {A : Core.Ty} {Δ : List Cor
     G&(T::Δ) ⊢ A⟨.succ Core.Ty⟩ : K := by sorry
 
 
-theorem Kinding.weaken_many {G : Intermediate.GlobalEnv} {A : Core.Ty} {Δ : List Core.Kind} {K : Core.Kind} {Δ' : List Core.Kind}
+theorem Kinding.weaken_many {G : Intermediate.GlobalEnv} {A : Core.Ty} {Δ : List Core.Kind} {K : Core.Kind} (Δ' : List Core.Kind)
   : G&Δ ⊢ A : K ->
     G&(Δ' ++ Δ) ⊢ A⟨LeanSubst.Ren.add Core.Ty Δ'.length⟩ : K := by sorry
 
