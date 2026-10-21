@@ -89,11 +89,11 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
     ∃ mn τ, mτs[i] = (mn, τ) ∧
     SpineKinding Core.SpCtorVariant.openm mn (Intermediate.Global.classDecl ⟨s, na, Ks, [], [], []⟩ :: G) (λ _ => true) τ) ->
 
-  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ (mn : String) (nu : Nat) (KsU : Vec Core.Kind nu) (R T : Core.Ty) (tys : List Core.Ty),
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ (mn : String) (R T : Core.Ty) (tys : List Core.Ty),
    (T.spine = .some (s, tys)) ∧
-   (tys = ((List.range na).reverse.map (t#·)).map (·⟨LeanSubst.Ren.add Core.Ty (nu)⟩)) ∧
-   mτs[i] = (mn, ⟨nu + na, Ks ++ KsU, 0, #(), 1, #(T), R⟩) ∧
-    G&(Ks.list ++ KsU.list).reverse ⊢ R : ★) ->
+   (tys = ((List.range na).reverse.map (t#·))) ∧
+   mτs[i] = (mn, ⟨na, Ks, 0, #(), 1, #(T), R⟩) ∧
+    G&Ks.list.reverse ⊢ R : ★) ->
 
 
   (∀ (i : Nat), (hi : i < scτs.length) ->
@@ -538,14 +538,13 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
         · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3;
           case _ i _ mn _ h2 =>
           replace c8 := c8 i (by grind);
-          rcases c8 with ⟨mn, na, Ks1, R, T, tys, T_shape, tys2, scsi, Rj⟩
+          rcases c8 with ⟨mn, R, T, tys, T_shape, tys_eq, scsi, Rj⟩
           simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
-          simp [h2] at scsi; rcases scsi with ⟨e1, e2, e3⟩; subst e1 e2 tys2;
+          simp [h2] at scsi; rcases scsi with ⟨e1, e2, e3⟩; subst e1 e2;
           simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3;
           rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3; rcases e3 with ⟨e1, e2⟩
-          subst e1; subst e2; simp; simp at T_shape; simp [Function.comp_def] at T_shape; rw [T_shape];
-          simp;
-          sorry -- apply T_shape
+          subst e1; subst e2; simp; simp [tys_eq] at T_shape;
+          apply T_shape
         · apply ih h
     case inst =>
       simp [Intermediate.lookup] at h; split at h

@@ -37,7 +37,7 @@ def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x =>
 def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineTy) : Core.SpineTy :=
   let ⟨na, Ks1, nb, Ks2, nc, cts, R⟩ := R
   let ski := (List.range cls_params.length).map (· + na + nb)
-  ⟨na + kc, cls_params ++ Ks1, nb, Ks2, nc + 1, .cons ((gt#cls).mkApps_nats ski.reverse) cts, R⟩
+  ⟨kc, cls_params, nb, Ks2, nc + 1, .cons ((gt#cls).mkApps_nats ski.reverse) cts, R⟩
 
 def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (Fin n) (kc + 1)) (determinant : Fin n)
   : Core.SpineTy :=
