@@ -222,12 +222,20 @@ theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind}:
       simp [Option.bind_eq_some_iff] at h; rcases h with ⟨H, sp1, h1, h2, h3⟩
       subst H; subst tys; replace ih1 := ih1 h1 fτ
       rcases ih1 with ⟨κ, kc, κs, hi, ih1a, ih1b⟩
-      exists κ; exists kc + 1;
-      -- exists (κs ++ #(aK))
-      -- constructor;
-      -- apply And.intro; apply ih1a; intro i;
-      -- sorry
-      -- simp; grind
-      sorry
+      exists κ; exists kc + 1
+      let ks := κs ++ #(aK)
+      have e : 1 + kc = kc + 1 := by grind
+      rw[e] at ks
+      exists ks
+      constructor
+      apply And.intro
+      · apply ih1a
+      · intro i
+        cases i using Fin.cases
+        case _ =>
+
+          sorry
+        case _ i => sorry
+      simp; grind
 
 end Surface

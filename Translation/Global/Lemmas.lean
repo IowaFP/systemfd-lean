@@ -34,6 +34,7 @@ theorem translate_open_exhaustive_sound {G : Surface.GlobalEnv} {G' : Intermedia
   apply lem2
 
 #print axioms translate_open_exhaustive_sound
+#print axioms translate_wf_sound
 
 
 end Translation
