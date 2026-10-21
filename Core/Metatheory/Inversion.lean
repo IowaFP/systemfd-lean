@@ -77,23 +77,24 @@ theorem Kinding.beta_many {Δ' : List Kind} {t : List Ty} (h : t.length = Δ'.le
   G&Δ ⊢ A[σ] : K
 := by
   intro j1 j2 e1
-  induction Δ' generalizing A t σ <;> simp at *
-  case nil => simp at h; subst h; subst e1; simp; apply j1
-  case cons K' Δ' ih =>
-    simp at h;
-    have h' : t.length > 0 := by omega
-    have lem := List.length_gt_zero_exists h'
-    rcases lem with ⟨t, ts, e⟩; subst e; simp at *
-    replace j2 := idx_shift_lemma (by simp at h; apply h) j2
-    have lem : ts.length = Δ'.length := by simp at h; omega
-    rw[e1]
-    sorry
-
-  -- apply Kinding.subst Δ (su t::+0σ) _ j1
-  -- intro i K h; cases i <;> simp at *
-  -- case _ => subst h; exact j2
-  -- case _ i => apply var h
-
+  rw[e1]
+  apply Kinding.subst (Δσ := Δ) (Δ := Δ' ++ Δ) (σ := List.map su t ++ Subst.id Ty) _ j1
+  · intro i K h1
+    cases Nat.decLe Δ'.length i
+    case _ h2 =>
+      simp at h2;
+      have lem : i < t.length := by grind
+      simp [List.getElem?_append_left h2] at h1
+      replace j2 := j2 i lem
+      simp [List.getElem?_eq_some_iff] at h1; rcases h1 with ⟨hi, h⟩
+      rw[h] at j2
+      rw[Subst.append_action_lt (h := by grind)]
+      simp; apply j2
+    case _ h2 =>
+      have lem : i ≥ t.length := by grind
+      simp [List.getElem?_append_right h2] at h1
+      rw[Subst.append_action_ge (h := by grind)]
+      simp; apply Kinding.var; rw[h]; apply h1
 
 theorem terms_have_star_types (wf : ⊢ G):
   G&Δ, Γ ⊢ t : R ->

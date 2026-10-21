@@ -104,6 +104,8 @@ def isNotAll : Core.Ty -> Bool
 | .app t1 t2 | .arrow t1 t2 | .eq _ t1 t2 => isNotAll t1 ∧ isNotAll t2
 | _ => true
 
+theorem a_iff_a_or_a :  a ↔ (a ∨ a) := by grind
+
 -- There is a connection between Ty.FV and freeVars
 theorem in_freeVars_iff_FV : ∀ x : Nat, T.isNotAll -> (x ∈ freeVars T <-> x ∈ T)
 := by
@@ -112,10 +114,37 @@ theorem in_freeVars_iff_FV : ∀ x : Nat, T.isNotAll -> (x ∈ freeVars T <-> x 
   intro h; simp; apply Iff.intro; intro h; subst h; apply FV.var; intro h; cases h; rfl
   case _ t1 t2 ih1 ih2 =>
     intro h1; simp [isNotAll] at h1; rcases h1 with ⟨h1, h2⟩
-    · simp; sorry
-
-  sorry
-  sorry
+    · simp;
+      replace ih1 := ih1 h1; replace ih2 := ih2 h2;
+      apply Iff.intro
+      intro h; cases h
+      case _ h => rw[ih1] at h; apply FV.appr h
+      case _ h => rw[ih2] at h; apply FV.appl h
+      intro h; cases h
+      case _ h => apply Or.inl; apply ih1.mpr h
+      case _ h => apply Or.inr; apply ih2.mpr h
+  case _ t1 t2 ih1 ih2 =>
+    intro h1; simp [isNotAll] at h1; rcases h1 with ⟨h1, h2⟩
+    · simp;
+      replace ih1 := ih1 h1; replace ih2 := ih2 h2;
+      apply Iff.intro
+      intro h; cases h
+      case _ h => rw[ih1] at h; apply FV.arrowr h
+      case _ h => rw[ih2] at h; apply FV.arrowl h
+      intro h; cases h
+      case _ h => apply Or.inl; apply ih1.mpr h
+      case _ h => apply Or.inr; apply ih2.mpr h
+  case _ t1 t2 ih1 ih2 =>
+    intro h1; simp [isNotAll] at h1; rcases h1 with ⟨h1, h2⟩
+    · simp;
+      replace ih1 := ih1 h1; replace ih2 := ih2 h2;
+      apply Iff.intro
+      intro h; cases h
+      case _ h => rw[ih1] at h; apply FV.eqr h
+      case _ h => rw[ih2] at h; apply FV.eql h
+      intro h; cases h
+      case _ h => apply Or.inl; apply ih1.mpr h
+      case _ h => apply Or.inr; apply ih2.mpr h
   case _ t h1 h2 h3 h4 =>
   intro h
   cases t;

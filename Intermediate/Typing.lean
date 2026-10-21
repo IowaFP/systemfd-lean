@@ -497,8 +497,6 @@ theorem Query.strength_inst1 {Γ : Intermediate.GlobalEnv} :
   constructor
 
 
--- TODO: This will not hold when we bring in functional dependencies
--- But then this will be in disjunction with #(T1, T2), and R being an equality
 theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .clsMth ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
   nc = 1 ∧ (∃ (T: Core.Ty) (tys : List Core.Ty), As ≍ #(T) ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·))
@@ -573,7 +571,7 @@ theorem lookup_supcls_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
-    case classDecl _ s mτs na Ks1 scs c1 c2 c3 c4 c5 c6 c7  =>
+    case classDecl _ s na Ks1 scs mτs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10  =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       split at h
@@ -581,13 +579,22 @@ theorem lookup_supcls_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
         simp at h1;
         split at h
         apply ih h
-        case _ h2 =>
+        case _ i h2 =>
         split at h
-        apply ih h
-        cases h;
-        sorry
-      case _  h1 =>
+        case _ =>
+          apply ih h
+        case _ h3 =>
+          simp at h
+          rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3
+          simp [List.getElem?_eq_some_iff] at h3; rcases h3 with ⟨hi, h3⟩
+          replace c10 := c10 i (by grind);
+          rcases c10 with ⟨mn', R, T, tys, SC, tys2, T_shape, tys_eq, R_shape, c10a, c10b, c10c⟩
+          rw[h3] at c10a; simp at c10a; rcases c10a with ⟨e1, e2, e3⟩; subst e1 e2
+          rcases e3 with ⟨e1, e2, e3⟩; simp; simp [T_shape, tys_eq]
+      case _  i h1 =>
         simp [List.findIdx?_eq_some_iff_getElem] at h1
+        replace c8 := c8 i (by grind)
+        rcases c8 with ⟨mn, R, T, tys, T_spine, tys_eq, c8a, c8b⟩
         sorry
         -- split at h;
         -- · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
@@ -789,17 +796,6 @@ theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
 := by
 
   sorry
-
-
-theorem Kinding.weaken {G : Intermediate.GlobalEnv} {A : Core.Ty} {Δ : List Core.Kind} {K T : Core.Kind}
-  : G&Δ ⊢ A : K ->
-    G&(T::Δ) ⊢ A⟨.succ Core.Ty⟩ : K := by sorry
-
-
-theorem Kinding.weaken_many {G : Intermediate.GlobalEnv} {A : Core.Ty} {Δ : List Core.Kind} {K : Core.Kind} (Δ' : List Core.Kind)
-  : G&Δ ⊢ A : K ->
-    G&(Δ' ++ Δ) ⊢ A⟨LeanSubst.Ren.add Core.Ty Δ'.length⟩ : K := by sorry
-
 
 
 end Intermediate
