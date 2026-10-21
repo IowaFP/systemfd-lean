@@ -158,26 +158,31 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
           apply ih; grind
-      case classDecl s _ na T b y j1 j2 j3 j4 j5 j6 j7 j8 =>
-        -- simp [lookup]; split
-        -- case _ e =>
-        --   subst e;
-        --   simp [ih] at j1
-        -- case _ e =>
-        --   split <;> simp at *
-        --   apply ih
-        --   split <;> simp at *
-        --   case _ i h _ s' spTy' h1 =>
-        --     exfalso; simp [List.findIdx?_eq_some_iff_getElem] at h;
-        --     rcases h with ⟨h, p1, p2⟩
-        --     simp [List.getElem?_eq_getElem h] at h1
-        --     simp [h1] at p1; subst p1
-
-        --     replace j3 := j3 i x spTy'.2.2.2.2.2.2 ((gt#s).mkApps_nats (List.range na).reverse)
-        --                       ((List.range na).reverse.map (t#·)) h (by simp[Core.Ty.mkApps_nats_spine]) (by simp);
-        --     rcases j3 with ⟨_, _, j2,_⟩; simp [j2] at ih
-        --   apply ih
-        sorry
+      case classDecl cls na Ts scs mτs j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 =>
+       simp [lookup]; split
+       case _ e =>
+         subst e; exfalso; simp[ih] at j4
+       case _ =>
+         split
+         case _ =>
+           split
+           case _ => apply ih
+           case _ i h =>
+           split
+           case _ => apply ih
+           case _ h2 =>
+             simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨_, h2⟩
+             simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨_, hi, h⟩
+             rw[h2] at hi; simp at hi; subst hi;
+             replace j6 := j6 i (by grind); rw[h2] at j6; simp at j6; simp [j6.2] at ih;
+         case _ i hi =>
+         split
+         case _ h1 =>
+           simp [List.getElem?_eq_some_iff] at h1; rcases h1 with ⟨h, h1⟩
+           replace j5 := j5 i h; simp [h1] at j5
+           simp [List.findIdx?_eq_some_iff_getElem] at hi; rcases hi with ⟨_, hi⟩
+           simp [h1] at hi; simp; rcases hi with ⟨e, hi⟩; subst e; simp [j5.2] at ih
+         case _ => apply ih
       case defn T b t' y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j2; simp at j2
@@ -595,20 +600,9 @@ theorem lookup_supcls_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
         simp [List.findIdx?_eq_some_iff_getElem] at h1
         replace c8 := c8 i (by grind)
         rcases c8 with ⟨mn, R, T, tys, T_spine, tys_eq, c8a, c8b⟩
-        sorry
-        -- split at h;
-        -- · simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1; subst e2; subst e3;
-        --   case _ i _ mn _ h2 =>
-        --   simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
-        --   let T := (Core.Ty.mkApps_nats (gt#s) ((List.range na).reverse))
-        --   let tys := (List.range na).reverse.map (t#·)
-        --   replace c6 := c6 i mn R T tys hi (by simp[T, tys, Core.Ty.mkApps_nats_spine]) rfl;
-        --   rw[c6.1] at h2; simp at h2; rcases h2 with ⟨e, h2⟩; subst e; simp at h2; rcases h2 with ⟨e1, e2, h2⟩
-        --   subst e1; subst e2; simp at h2; rcases h2 with ⟨e1, e2, h2⟩; subst e1; subst e2; simp at h2
-        --   simp; exists T; apply And.intro;
-        --   symm; apply h2
-        --   simp [T, Core.Ty.mkApps_nats_spine]
-        -- · apply ih h
+        split at h;
+        · simp at h
+        · apply ih h
     case inst =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
@@ -792,7 +786,7 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
 
 theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
   T.spine = some (s,  tys) ->
-  ((Intermediate.Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
+  ((Intermediate.Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), /- (κ = mk_cls_kind K κs ) ∧ -/ (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
 := by
 
   sorry
