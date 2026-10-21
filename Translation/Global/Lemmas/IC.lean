@@ -1368,8 +1368,6 @@ theorem mk_cls_scs_IC_wf_sound
             · apply c4
             · simp [Core.lookup]
         · simp [Core.Entry.is_data]
-
-
     · simp [Core.lookup_append_none]
       apply And.intro
       · simp at c2; replace c2 := c2 0; simp at c2;
@@ -1445,9 +1443,8 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     · apply c6
     · apply c8
     · intro i hi; replace c9 := c9 i hi;
-      rcases c9 with ⟨mn, nu, KsU, R, T, tys, c9a, c9b, c9c, c9d⟩;
-      exists mn; exists R; exists T; exists tys; exists c9a; apply And.intro; simp at c9b; sorry
-      apply And.intro; sorry; sorry
+      rcases c9 with ⟨mn, R, T, tys, c9a, c9b, c9c, c9d⟩;
+      exists mn; exists R; exists T; exists tys;
     · clear c1 c2 c4 c5 c6 c7 c8 c9;
       rw[<-scGdef];
       apply openm_name_never_cls_name (by intro i hi; replace c3 := c3 i hi; apply c3.1)
@@ -1459,8 +1456,6 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
       case _ e => replace c10 := c10 0 (by grind); simp at c10; contradiction
       case _ hd tl ih _ =>  apply ih; intro j hj; apply c10 (j + 1) (by grind)
     · intro i hi; subst scsG; replace c7 := c7 i hi; apply translate_IC_lookup_none h c7.2
-    · sorry
-    · sorry
 
   case _ iname cls_name k1 k2 k3 Ks1 Ks2 As fds scs mths G ih => -- inst
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩;

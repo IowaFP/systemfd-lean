@@ -101,8 +101,8 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none) ->
 
   -- method type shapes
-  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn nu KsU R, mτs[i] = (mn, ⟨nu, KsU, 0, #(), 0, #(), R⟩) ∧ -- all the Ts here ought to be empty they can go in R as we never scrutinize them
-    G&(Ks1.list ++ KsU.list).reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧ -- all the Ts here ought to be empty. any quantification can go in R
+    G&(Ks1.list).reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
 
   -- super class type shapes
   (∀ (i : Nat), (hi : i < scτs.length) -> ∃ mn SC τs,
