@@ -14,14 +14,16 @@ def FalsePat : String × (n : Nat) × Lilac.Vec Core.Ty n × Nat × Nat :=  ⟨"
 
 
 def mbenv : GlobalEnv := [
+  -- test_plus_poly : ∀ a. a ~ Bool -> Bool -> Bool -> a = plus @a @a @Bool
   .defn "test_plus_poly" (∀[★] (t#0 ~[★]~ gt#"Bool") -:> gt#"Bool" -:> gt#"Bool" -:> t#0)
     (Λˢ[★]λˢ[t#0 ~[★]~ gt#"Bool"] (g`#"plus" `•ᵤ #(t#0, t#0, gt#"Bool") `•ₑ #() `•ₜ .nil)),
 
 
+  -- test_plus :: Bool -> Bool -> Bool = plus
   .defn "test_plus" (gt#"Bool" -:> gt#"Bool" -:> gt#"Bool") (g`#"plus" `•ᵤ #(gt#"Bool", gt#"Bool", gt#"Bool") `•ₑ #() `•ₜ .nil),
 
 
-  -- .instDecl ""
+  -- instance Plus Bool Bool Bool where plus = ...
   .instDecl "PB" ⟨3, #(★, ★, ★), 0, #(), 3, #(t#2 ~[★]~ gt#"Bool", t#1 ~[★]~ gt#"Bool", t#0 ~[★]~ gt#"Bool"), ((gt#"Plus" • t#2) • t#1) • t#0⟩
     [("plus", λˢ[gt#"Bool"]λˢ[gt#"Bool"]
                mtch' #((`#1, gt#"Bool"), (`#0, gt#"Bool"))
@@ -32,11 +34,10 @@ def mbenv : GlobalEnv := [
 
       )],
 
+  -- class Plus a b c where plus :: a -> b -> c
   .classDecl "Plus" #(★, ★, ★) [] [("plus", ⟨0, #(), 0, #(), 0, #(), (t#2 -:> t#1 -:> t#0)⟩)],
 
 
-  -- .data (n := 2) "Maybe" (★ -:> ★) #(("Just", ⟨1, #(★), 0, #(), 1, #(t#0), gt#"Maybe" • t#0⟩ ),
-  --                                 ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩))
   ] ++ Surface.Examples.Boolean.benv
 
 #eval mbenv

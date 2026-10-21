@@ -20,6 +20,7 @@ def NothingJustPat : Core.Pattern 2 :=  NothingPat ++ JustPat
 
 def mbenv : GlobalEnv := [
 
+  -- instance Monad Maybe where { return = ... ; bind = ... }
   .instDecl "MM" ⟨1, #(★ -:> ★), 0, #(), 1, #(t#0 ~[★ -:> ★]~ gt#"Maybe"), (gt#"Monad" • t#0)⟩
     [ ("return", Λˢ[★]λˢ[t#0] (g`#"Just" `•ᵤ #(t#0) `•ₑ #() `•ₜ #(`#0).to))
     , ("bind", Λˢ[★]Λˢ[★]λˢ[(gt#"Maybe" • t#1)]λˢ[(t#1 -:> (gt#"Maybe" • t#0))]
@@ -29,6 +30,7 @@ def mbenv : GlobalEnv := [
       )
     ],
 
+  -- class Monad m | Functor m where { return : ∀ a. a -> m a ;  bind : ∀ a b. m a -> (a -> m b) -> m b }
   .classDecl "Monad" #(★ -:> ★) [ ("supMonFun", "Functor", [0]) ]
     [ ("return", ⟨0, #(), 0, #(), 0, #(), ∀[★] t#0 -:> (t#1 • t#0)⟩)
     , ("bind", ⟨0, #(), 0, #(), 0, #(), (∀[★]∀[★] (t#2 • t#1) -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0)) ⟩)
@@ -36,15 +38,17 @@ def mbenv : GlobalEnv := [
 
 
   -- FM : ∀ t, t ~ Maybe -> Functor t
+  -- instance Functor Maybe where fmap = ...
   .instDecl "FM" ⟨1, #(★ -:> ★), 0, #(), 1, #(t#0 ~[★ -:> ★]~ gt#"Maybe"), (gt#"Functor" • t#0)⟩
     [("fmap", Λˢ[★]Λˢ[★]λˢ[t#1 -:> t#0] λˢ[gt#"Maybe" • t#1]
                   mtch' #((`#0, gt#"Maybe" • t#1))
                     #( (JustPat,    (g`#"Just" `•ᵤ #(t#0) `•ₑ #() `•ₜ #(Surface.Term.app `#2 `#0 t#1).to)),
                        (NothingPat,  g`#"Nothing" `•ᵤ #(t#0) `•ₑ #() `•ₜ .nil)))],
 
+  -- class Functor f where fmap :: ∀ a b. (a -> b) -> f a -> f b
   .classDecl "Functor" #(★ -:> ★) [] [("fmap", ⟨0, #(), 0, #(), 0, #(), (∀[★]∀[★]((t#1 -:> t#0) -:> ((t#2 • t#1) -:> (t#2 • t#0)))) ⟩)],
 
-
+  -- data Maybe a = Just a | Nothing
   .data (n := 2) "Maybe" (★ -:> ★) #(("Just", ⟨1, #(★), 0, #(), 1, #(t#0), gt#"Maybe" • t#0⟩ ),
                                      ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩))
   ]
@@ -59,37 +63,6 @@ def Γ := do
 
 #guard (do let Γ <- Γ
            return Γ.wf_globals) == .ok ()
-
--- #eval! do
---   let Γ <- Γ
---   -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
---   Translation.Option.toTM "ford" $ (Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))).map (Core.SpineTy.repr ·)
---   -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
-
--- #guard (do
---   let benv' <- (Translation.translate_SI benv)
---   let benv'' <- Translation.translate_IC benv'
---   Translation.Option.toTM "wf" $ benv''.wf_globals) == .ok ()
-
-
--- #eval! do
---   let Γ <- Γ
---   -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
---   Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))
---   -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
-
--- #eval!
---   do
---   let benv' <- (Translation.translate_SI benv)
---   let benv'' <- Translation.translate_IC benv'
-
---   -- Translation.Option.toTM "lookup"  (match ((Core.lookup "LT" benv'')) with
---   -- | .some (.ctor x' _ ⟨0, _, 0, _, 0, _, R⟩) => do
---   --   let c <- Core.Ty.synth_coercion benv'' [] [] R gt#"Ordering"
---   --   return (Core.Term.cast t#0 c (ctor! "LT" #() #() .nil))
---   -- | _ => none)
---   Translation.Option.toTM "test" (Core.Synth.synth_coercion_term benv'' [★] [t#0 ~[★]~ gt#"Bool"] ((t#0 -:> gt#"Ordering") ~[★]~ (gt#"Bool" -:> gt#"Ordering")))
---   -- Translation.Option.toTM "test" ((λˢ[gt#"Bool"] (g`#"LT")).type_directed_translate benv'' [★] [gt#"Bool", t#0 ~[★]~ gt#"Bool"] (t#0 -:> gt#"Ordering"))
 
 
 end Surface.Examples.FunMon

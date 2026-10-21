@@ -20,14 +20,12 @@ def NothingJustPat : Core.Pattern 2 :=  NothingPat ++ JustPat
 
 def mbenv : GlobalEnv := [
 
- --  .instDecl "OrdBoolI" ⟨1, #(★), 0, #(), 1, #(t#0 ~[★]~ gt#"Bool"), gt#"Ord" • t#0⟩ [("eq", (λˢ[gt#"Bool"] λˢ[gt#"Bool"] (g`#"LT" `•ᵤ #() `•ₑ #() `•ₜ .nil)))],
--- -
+  -- eqMB_poly : ∀ a. Eq a -> Maybe a -> Maybe  a -> Bool = eq
   .defn "eqMB_poly" (∀[★] (gt#"Eq" • t#0) -:> (gt#"Maybe" • t#0) -:> ((gt#"Maybe" • t#0) -:> (gt#"Bool")))
     (Λˢ[★] λˢ[gt#"Eq" • t#0] g`#"eq" `•ᵤ #(gt#"Maybe" • t#0) `•ₑ #() `•ₜ .nil) ,
 
-  -- .defn "eqMB" ((gt#"Maybe" • gt#"Bool") -:> ((gt#"Maybe" • gt#"Bool") -:> (gt#"Bool"))) (g`#"eq" `•ᵤ #(gt#"Maybe" • gt#"Bool") `•ₑ #() `•ₜ .nil) ,
-
   -- MBI : ∀ t u, t ~ Maybe u -> Eq u -> Eq t
+  -- instance Eq (Maybe a) | Eq a where eq = ...
   .instDecl "MBI" ⟨1, #(★), 1, #(★), 2, #(t#1 ~[★]~ (gt#"Maybe" • t#0), gt#"Eq" • t#0), gt#"Eq" • t#1⟩
                   [("eq", (λˢ[gt#"Maybe" • t#0] λˢ[gt#"Maybe" • t#0]
                           mtch' #((`#1, gt#"Maybe" • t#0), (`#0, gt#"Maybe" • t#0))
@@ -36,13 +34,13 @@ def mbenv : GlobalEnv := [
                            , (JustNothingPat,    Surface.Examples.Boolean.FalseCtor)
                            , (NothingJustPat,    Surface.Examples.Boolean.FalseCtor)
                            )))],
-
+  -- data Maybe a = Just a | Nothing
   .data (n := 2) "Maybe" (★ -:> ★) #(("Just", ⟨1, #(★), 0, #(), 1, #(t#0), gt#"Maybe" • t#0⟩ ),
                                      ("Nothing", ⟨1, #(★), 0, #(), 0, #(), (gt#"Maybe" • t#0)⟩))
   ] ++ Surface.Examples.Boolean.benv
 
 #eval mbenv
--- #eval!  Translation.translate_SI mbenv
+
 def Γ := do
   let benv' <- (Translation.translate_SI mbenv)
   Translation.translate_IC benv'
@@ -51,37 +49,6 @@ def Γ := do
 
 #guard (do let Γ <- Γ
            return Γ.wf_globals) == .ok ()
-
--- #eval! do
---   let Γ <- Γ
---   -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
---   Translation.Option.toTM "ford" $ (Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))).map (Core.SpineTy.repr ·)
---   -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
-
--- #guard (do
---   let benv' <- (Translation.translate_SI benv)
---   let benv'' <- Translation.translate_IC benv'
---   Translation.Option.toTM "wf" $ benv''.wf_globals) == .ok ()
-
-
--- #eval! do
---   let Γ <- Γ
---   -- Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [] (gt#"Eq" • gt#"Bool")
---   Translation.Option.toTM "ford" $ Core.Synth.Ty.ford Γ [★] (gt#"Eq" • (gt#"Maybe" • t#0))
---   -- Translation.Option.toTM "synth_term" $ Translation.Core.Ty.synth_term Γ [] [] (gt#"Eq" • gt#"Bool")
-
--- #eval!
---   do
---   let benv' <- (Translation.translate_SI benv)
---   let benv'' <- Translation.translate_IC benv'
-
---   -- Translation.Option.toTM "lookup"  (match ((Core.lookup "LT" benv'')) with
---   -- | .some (.ctor x' _ ⟨0, _, 0, _, 0, _, R⟩) => do
---   --   let c <- Core.Ty.synth_coercion benv'' [] [] R gt#"Ordering"
---   --   return (Core.Term.cast t#0 c (ctor! "LT" #() #() .nil))
---   -- | _ => none)
---   Translation.Option.toTM "test" (Core.Synth.synth_coercion_term benv'' [★] [t#0 ~[★]~ gt#"Bool"] ((t#0 -:> gt#"Ordering") ~[★]~ (gt#"Bool" -:> gt#"Ordering")))
---   -- Translation.Option.toTM "test" ((λˢ[gt#"Bool"] (g`#"LT")).type_directed_translate benv'' [★] [gt#"Bool", t#0 ~[★]~ gt#"Bool"] (t#0 -:> gt#"Ordering"))
 
 
 end Surface.Examples.Maybe
