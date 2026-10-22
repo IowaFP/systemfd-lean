@@ -172,15 +172,18 @@ noncomputable def UnifyState.varsEqn : UnifyState -> Nat
 @[simp]
 noncomputable def UnifyStateSize (u : UnifyState) : Nat × Nat := ⟨u.varsEqn, u.eqnSize⟩
 
+def UnifyState.nonEmptyEqns : UnifyState -> Bool
+| ⟨_, eqns⟩ => ¬ eqns.isEmpty
+
 -- TODO: use UResult instead of Option
 def UResult (α : Type u) := Except (Ty × Ty) α
 -- Problem, what should unifyStep return in case of empty equations?
 
 -- Performs one step of "unification"
 @[simp]
-def unifyStep (u : UnifyState) : Option UnifyState :=
-  match u.equations with
-  | [] => none
+def unifyStep (u : UnifyState) (h : u.nonEmptyEqns) : Option UnifyState :=
+  match h1 : u.equations with
+  | [] => by simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h h1
   | .cons (t#x, t) eqs | .cons (t, t#x) eqs =>
     if (x ∉ freeVars t) ∧ t.isNotAll
     then let τ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
@@ -196,13 +199,13 @@ def unifyStep (u : UnifyState) : Option UnifyState :=
   | _ => none
 
 
-theorem loopUnifyDecreases {u u' : UnifyState} (h : unifyStep u = some u') :
+theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns) (h : unifyStep u invh = some u') :
   Prod.Lex (fun a₁ a₂ => a₁ < a₂) (fun a₁ a₂ => a₁ < a₂) (UnifyStateSize u') (UnifyStateSize u)
 := by
   simp; cases u
   case _ eqns =>
   cases eqns
-  case nil => simp [unifyStep] at h
+  case nil => sorry
   case cons hd tl =>
   rcases hd with ⟨lhsTy, rhsTy⟩
   cases lhsTy
@@ -227,60 +230,61 @@ theorem loopUnifyDecreases {u u' : UnifyState} (h : unifyStep u = some u') :
       · subst zdef; apply Prod.Lex.left; sorry -- omega
     · rcases h with ⟨e1, e2⟩; subst e1 e2; simp; apply Prod.Lex.right; omega
 
-  case arrow => sorry
-  case all => sorry
-  case app => sorry
-  case eq => sorry
-  -- · cases rhsTy <;> try simp at h
-  --   · rcases h with ⟨⟨h1, h2⟩, h⟩; subst u'; simp; case _ v =>
-  --     generalize zdef : (insert v (varsEqns tl)).card = z at *
-  --     simp [Finset.card_insert_eq_ite] at zdef
-  --     split at zdef
-  --     · subst zdef; apply Prod.Lex.right; omega
-  --     · subst zdef; apply Prod.Lex.left; omega
-  --   · rcases h with ⟨e1, e2⟩; subst e1 e2; simp; apply Prod.Lex.right; omega
-  -- · cases rhsTy <;> try simp at h
-  --   · subst u'; simp; sorry
-  --   · subst u'; simp [Ty.size]; case _ a1 a2 a3 a4 =>
-  --     have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
-  --                           (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
-  --     rw[e]; apply Prod.Lex.right; omega
-  -- · cases rhsTy <;> try simp at h
-  --   subst u'; simp; case _ v =>
-  --     generalize zdef : (insert v (varsEqns tl)).card = z at *
-  --     simp [Finset.card_insert_eq_ite] at zdef
-  --     split at zdef
-  --     · subst zdef; apply Prod.Lex.right; omega
-  --     · subst zdef; apply Prod.Lex.left; omega
-  -- · cases rhsTy <;> try simp at h
-  --   all_goals (subst u'; simp)
-  --   · sorry
-  --   case _ a1 a2 a3 a4 =>
-  --   have e : (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
-  --                         (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
-  --   rw[e]; apply Prod.Lex.right; simp [Ty.size]; omega
-  -- · cases rhsTy <;> try simp at h
-  --   · subst u'; simp [Ty.size];
-  --     case _ t1 t2 v =>
-  --     generalize zdef : t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl) = z at *
-  --     generalize z1def : (t2.freeVars ∪ varsEqns tl) = z1 at *
-  --     have lem : (varsEqns tl).card ≤ z1.card := by simp [<-z1def]; sorry
-  --     sorry
-  --   · rcases h with ⟨e1, e2⟩; subst e1 e2; simp;
-  --     simp [Ty.size];
-  --     case _ a1 a2 a3 a4 =>
-  --     have e : (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
-  --                           (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
-  --     rw[e]; apply Prod.Lex.right; omega
+  case arrow =>
+    cases rhsTy <;> try simp at h
+    · rcases h with ⟨⟨h1, h2⟩, h⟩; subst u'; simp; case _ v =>
+      generalize zdef : (insert v (varsEqns tl)).card = z at *
+      simp [Finset.card_insert_eq_ite] at zdef
+      split at zdef
+      · subst zdef; sorry -- apply Prod.Lex.right; omega
+      · subst zdef; apply Prod.Lex.left; sorry -- omega
+    · case _ a1 a2 a3 a4 =>
+      subst u'; simp [size];
+      have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                       (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+      rw[e]; apply Prod.Lex.right; omega
+
+  case app =>
+    cases rhsTy <;> try simp at h
+    · rcases h with ⟨⟨h1, h2⟩, h⟩; subst u'; simp; case _ v =>
+      generalize zdef : (insert v (varsEqns tl)).card = z at *
+      simp [Finset.card_insert_eq_ite] at zdef
+      split at zdef
+      · subst zdef; sorry -- apply Prod.Lex.right; omega
+      · subst zdef; apply Prod.Lex.left; sorry -- omega
+    · case _ a1 a2 a3 a4 =>
+      subst u'; simp [size];
+      have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                       (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+      rw[e]; apply Prod.Lex.right; omega
+
+  case eq =>
+    cases rhsTy <;> try simp at h
+    · rcases h with ⟨⟨h1, h2⟩, h⟩; subst u'; simp; case _ v =>
+      generalize zdef : (insert v (varsEqns tl)).card = z at *
+      simp [Finset.card_insert_eq_ite] at zdef
+      split at zdef
+      · subst zdef; sorry -- apply Prod.Lex.right; omega
+      · subst zdef; apply Prod.Lex.left; sorry -- omega
+    · case _ a1 a2 _ a3 a4 =>
+      rcases h with ⟨h1, h⟩
+      subst u'; simp [size];
+      have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                       (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+      rw[e]; apply Prod.Lex.right; omega
+
+  case all =>  cases rhsTy  <;> try simp [isNotAll] at h
 
 
-def loopUnify (u : UnifyState) : Option (Subst Core.Ty)
-:= match h : (unifyStep u) with
-  | none => none
-  | some ⟨σ, []⟩ => return σ
-  | some u' => loopUnify u'
+def loopUnify (u : UnifyState) : Option (Subst Core.Ty) :=
+  if h : u.nonEmptyEqns
+  then
+    match h1 : unifyStep u h with
+    | some u' => loopUnify u'
+    | none => none
+  else return u.subst
 termination_by (UnifyStateSize u)
-decreasing_by (apply loopUnifyDecreases h)
+decreasing_by apply loopUnifyDecreases h h1
 
 
 def EqnsUnifier (σ : Subst Core.Ty) : List (Core.Ty × Core.Ty) -> Prop
@@ -295,11 +299,13 @@ def UnifierOfUnifyState (σ' : Subst Core.Ty) (u : UnifyState) : Prop :=
   UnifierOfSubst σ' u.subst ∧ EqnsUnifier σ' u.equations
 
 
-theorem unifyStep_sound {u : UnifyState} (σ : Subst Core.Ty): unifyStep u = some u' -> UnifierOfUnifyState σ u' -> UnifierOfUnifyState σ u
+theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns)(σ : Subst Core.Ty) :
+  unifyStep u h = some u' -> UnifierOfUnifyState σ u' -> UnifierOfUnifyState σ u
 := by
   intro h1 h2
   unfold unifyStep at h1
-  split at h1 <;> simp at *
+  split at h1 <;> try simp at *
+  case _ => sorry
   case _ x t _ h3 =>
     rcases h1 with ⟨h1, h⟩
     subst u'; apply And.intro
@@ -368,11 +374,13 @@ theorem unifyStep_sound {u : UnifyState} (σ : Subst Core.Ty): unifyStep u = som
     simp [p1, EqnsUnifier, Unifier] at *; grind
 
 
-theorem unifyStep_idempotency {u : UnifyState} (hi : UnifierIdempotent u.subst) : unifyStep u = some u' -> UnifierIdempotent u'.subst
+theorem unifyStep_idempotency {u u': UnifyState} (h : u.nonEmptyEqns) (hi : UnifierIdempotent u.subst) :
+  unifyStep u h = some u' -> UnifierIdempotent u'.subst
 := by
   intro h
   unfold unifyStep at h
-  split at h <;> simp at h
+  split at h <;> try simp at h
+  case _ => sorry
   case _ h3 =>
     rcases h with ⟨h, h1⟩
     subst u'
@@ -388,34 +396,36 @@ theorem unifyStep_idempotency {u : UnifyState} (hi : UnifierIdempotent u.subst) 
 theorem loopUnify_idempotency {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) (h : loopUnify u = some σ) : UnifierIdempotent σ
 := by
   unfold loopUnify at h;
-  generalize zdef : unifyStep u = z at *
-  cases z
-  case none => simp at h
-  case some u' =>
-  replace hi := unifyStep_idempotency hi zdef
-  split at h <;> simp at *
-  subst u'; subst h; simp at hi; apply hi
-  subst u'; apply loopUnify_idempotency hi h
+  split at h
+  case _ h1 =>
+    generalize zdef : unifyStep u h1 = z at *
+    cases z
+    case none => simp at h
+    case some u' =>
+    simp at h; replace hi := unifyStep_idempotency h1 hi zdef
+    apply loopUnify_idempotency hi h
+  case _ h1 => cases h; apply hi
 termination_by (UnifyStateSize u)
-decreasing_by case _ h1 _ _ _ _ e _ _ =>  cases e; apply loopUnifyDecreases h1 -- for some reason lean couldn't figure this out
-
+decreasing_by case _ e _ _ => -- for some reason lean cannot figure this out
+  simp at h; apply loopUnifyDecreases e zdef
 
 
 theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) : loopUnify u = some σ -> UnifierOfUnifyState σ u
 := by
   intro h
   replace hi := loopUnify_idempotency hi h
-  fun_induction loopUnify generalizing σ <;> try simp at h
-  case _ u σ h1 =>
-    subst h; unfold UnifierOfUnifyState; rcases u with ⟨s, eqs⟩;
-    replace h1 := unifyStep_sound σ h1
-    simp;
-    have lem : UnifierOfUnifyState σ { subst := σ, equations := [] } := by
-      unfold UnifierOfUnifyState; simp [EqnsUnifier];
-      apply hi
-    replace h1 := h1 lem;
-    unfold UnifierOfUnifyState at h1; simp at h1; apply h1
-  case _ ih => replace ih := ih h hi; apply unifyStep_sound σ; assumption; apply ih
+  fun_induction loopUnify generalizing σ  <;> try simp at h
+  case _ u' uss ih =>
+    replace ih := ih h hi
+    replace uss := unifyStep_sound _ σ uss
+    apply uss ih
+  case _  u h =>
+    rcases u with ⟨us, ueqs⟩
+    subst σ; simp [UnifyState.nonEmptyEqns] at h; subst h; simp at *; simp [UnifierOfUnifyState]
+    simp [UnifierIdempotent] at hi
+    apply And.intro
+    · apply hi
+    · simp [EqnsUnifier]
 
 
 def unify (t u : Core.Ty) : Option (Subst Core.Ty) :=
