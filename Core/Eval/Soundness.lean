@@ -40,24 +40,25 @@ theorem Term.is_data_sound :
 
 theorem check_instance_eq_sound :
   check_instance_eq m n x y ctors p = true ->
-  m = n ∧ x = y := by
-intro h
-unfold check_instance_eq at h
-simp at h; rcases h with ⟨e , h⟩
-apply And.intro e.2 e.1
+  m = n ∧ x = y
+:= by
+  intro h
+  unfold check_instance_eq at h
+  simp at h; rcases h with ⟨e , h⟩
+  apply And.intro e.2 e.1
 
 theorem pattern_match_sound {m : Nat} {cs : Vec Constructor m} {ps : Pattern m} :
   pattern_match cs ps = true ->
   Pattern.Match cs ps
 := by
-intro h
-fun_induction pattern_match <;> simp at *
-apply Pattern.Match.nil
-· case _ ih =>
-  rcases h with ⟨⟨⟨⟨h, e⟩, e1⟩, e2⟩, e3⟩
-  subst e; subst e1; subst e2; subst e3
-  replace ih := ih h
-  apply Pattern.Match.cons ih rfl rfl
+  intro h
+  fun_induction pattern_match <;> simp at *
+  apply Pattern.Match.nil
+  · case _ ih =>
+    rcases h with ⟨⟨⟨⟨h, e⟩, e1⟩, e2⟩, e3⟩
+    subst e; subst e1; subst e2; subst e3
+    replace ih := ih h
+    apply Pattern.Match.cons ih rfl rfl
 
 
 theorem get_instance_sound {G : List Global} :
@@ -97,7 +98,7 @@ theorem get_match_sound {ctors : Vec Constructor m} {ps : Vec (Pattern m) n}:
  unfold get_match at h
  replace h := Vec.findIdx_sound h
  replace h := pattern_match_sound h
- simp at h; apply h
+ apply h
 
 theorem eval_sound (Γ : GlobalEnv) :
   M.eval Γ = some N ->
@@ -117,7 +118,6 @@ theorem eval_sound (Γ : GlobalEnv) :
    replace h2 := Term.is_data_sound h2
    replace h4 := get_instance_sound h4
    replace h5 := pattern_match_sound (cs := h1) (ps := p) h5
-   simp at h5
    apply Red.openm_match (i := i) (b := t) (b' := N)
    · apply h2
    · apply h4
