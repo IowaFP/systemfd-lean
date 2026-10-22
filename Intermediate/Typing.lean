@@ -611,8 +611,7 @@ theorem lookup_supcls_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
 
 theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls mthty spTy) ->
-  Intermediate.lookup cls G = none ->
-  False
+  ¬ Intermediate.lookup cls G = none
 := by
   intro h1 h2
   induction wf
@@ -633,6 +632,7 @@ theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       apply ih h1.2 h2
   case classDecl =>
     cases gs; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 =>
+    clear c1 c2 c3 c4 c5 c6 c7 c8 c9
     simp [Intermediate.lookup] at h1 h2
     split at h1 <;> simp at *
     split at h2 <;> try simp at *
@@ -642,8 +642,16 @@ theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       split at h2 <;> try simp at h2
       split at h1 <;> try simp at h1
       case _ e1 e2 => apply ih h1 h2
-      sorry -- apply ih h1 h2
-      sorry
+      split at h1 <;> try simp at h1
+      apply ih h1 h2
+      rcases h1 with ⟨e1, e2, e3⟩; subst e1 e2; contradiction;
+      split at h1 <;> try simp at h1
+      split at h2 <;> try simp at h2
+      apply ih h1 h2
+      split at h2 <;> try simp at h2
+      split at h1 <;> try simp at h1
+      apply ih h1 h2
+      rcases h1 with ⟨e1, e2, e3, e4⟩; subst e1 e2 e3 e4; contradiction
       case _ h =>
         simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩
         simp [List.getElem?_eq_getElem hi] at h2
@@ -694,12 +702,13 @@ theorem lookup_openm_index_cls_mth {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h1 <;> try simp at *
    split at h2 <;> try simp at *;
    apply ih h1 h2
- case classDecl =>
-   split at h1 <;> simp at *
-   split at h2 <;> try simp at *
-   split at h1 <;> try simp at *
+ case classDecl c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
+   clear c1 c2 c3 c4 c5 c6 c7 c8 c9 c10
+   split at h1 <;> try simp at h1
+   split at h2 <;> try simp at h2
+   split at h1 <;> try simp at h1
    case _ h4 _ _ _ e h3 =>
-     -- subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K; subst e3;
+     subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      -- exfalso; apply Intermediate.lookup_openm_no_cls wftl h1 h4
      sorry
    case _  c1 c2 c3 _ e i h3 =>
@@ -790,6 +799,59 @@ theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
 := by
 
   sorry
+
+-- theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind}:
+--   T.spine = some (s,  tys) ->
+--   (G&Δ ⊢s T : K -> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢s gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢s tys[i]'(by grind) : κs[i]))
+-- := by
+--   intro h
+--   intro h1;
+--   induction T generalizing tys K <;> simp [Core.Ty.spine] at h
+--   rcases h with ⟨h1, h2⟩; subst s; subst tys; exists K; exists 0; exists #(); simp; apply h1
+--   case _ f arg ih1 ih2 =>
+--       cases h1
+--       case _ aK aτ fτ =>
+--       simp [Option.bind_eq_some_iff] at h; rcases h with ⟨H, sp1, h1, h2, h3⟩
+--       subst H; subst tys; replace ih1 := ih1 h1 fτ
+--       rcases ih1 with ⟨κ, kc, κs, hi, ih1a, ih1b⟩
+--       let ks := κs ++ #(aK)
+--       have lem : 1 + kc = kc + 1 := by grind
+--       rw[lem] at ks
+--       exists κ
+--       exists kc + 1
+--       exists ks
+--       constructor
+--       · apply And.intro; apply ih1a;
+--         intro i
+
+--         sorry
+
+
+      -- · grind
+      -- cases kc
+      -- case zero =>
+      --   exists 1; exists #(aK);
+      --   constructor;
+      --   simp; apply And.intro; apply ih1a;
+      --   have lem' : sp1 = [] := by grind
+      --   simp only [lem']; simp; apply aτ
+      --   grind
+      -- case succ kc =>
+      --   exists kc + 1 + 1
+      --   let ks := κs ++ #(aK)
+      --   simp at ks;
+      --   have e : 1 + (kc + 1) = kc + 1 + 1 := by grind
+      --   rw[e] at ks;
+      --   exists ks
+      --   constructor
+      --   apply And.intro
+      --   · apply ih1a
+      --   · intro i
+      --     cases i using Fin.cases;
+      --     sorry
+      --     sorry
+      --   simp; grind
+
 
 
 end Intermediate
