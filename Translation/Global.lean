@@ -156,7 +156,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   | none =>
     let (cls_name, _) <- Option.toTM "translate_SI R.spine" (R.spine)
     match Intermediate.lookup cls_name Γ' with
-    | some (.odata cls_name' K' scs_τs mτs) =>
+    | some (.odata cls_name' K' _ scs_τs mτs) =>
         if cls_name' == cls_name && mτs.length == ts.length
         then let mths <- mk_inst_mths_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname mτs ts
              let scs <- mk_inst_scs_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname scs_τs
@@ -280,7 +280,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   match Intermediate.lookup cls_name Γ with
-  | some (.odata s K scsτs mτs) =>
+  | some (.odata s K _ scsτs mτs) =>
     if s == cls_name
     then
     -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)

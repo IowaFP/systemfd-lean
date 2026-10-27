@@ -91,6 +91,7 @@ inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
 | odata : {n : Nat} -> String -> Vec Core.Kind n ->
+  List (String × Core.SpineTy) -> /- fds -/
   List (String × Core.SpineTy) -> /- scs -/
   List (String × Core.SpineTy) -> /- mths -/ Entry
 | openm : String -> String -> OpenMethodType -> Core.SpineTy -> Entry
@@ -102,18 +103,18 @@ deriving Repr
 
 def Entry.is_data : Core.DataConst -> Entry -> Bool
 | .cls, data _ _ _ => true
-| .opn, odata _ _ _ _ => true
+| .opn, odata _ _ _ _ _ => true
 | _, _ => false
 
 def Entry.is_this_data : String -> Core.DataConst -> Entry -> Bool
 | s, .cls, data d _ _
-| s, .opn, odata d _ _ _ => d == s
+| s, .opn, odata d _ _ _ _ => d == s
 | _, _, _ => false
 
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ K _ _ => Core.Kind.mk_kind K
+| odata _ K _ _ _ => Core.Kind.mk_kind K
 | _ => none
 
 
@@ -128,8 +129,8 @@ def lookup (x : String) : GlobalEnv -> Option Entry
   else ctors'.foldr Option.or (lookup x tl)
 | .cons (.defn ⟨y, a, b⟩) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.classDecl ⟨cls_name, _, K, _, scs, mths⟩) tl =>
-  if x == cls_name then return (.odata cls_name K scs mths)
+| .cons (.classDecl ⟨cls_name, _, K, fds, scs, mths⟩) tl =>
+  if x == cls_name then return (.odata cls_name K fds scs mths)
   else match h : mths.findIdx? (λ ⟨n, _⟩ => x == n) with
        | none =>
          match h : scs.findIdx? (λ ⟨n, _⟩ => x == n) with
@@ -178,7 +179,7 @@ def Entry.name : Entry -> String
 | octor x _ => x
 | openm x _ _ _ => x
 | defn x _ _ => x
-| odata x _ _ _ => x
+| odata x _ _ _ _ => x
 
 theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
   intro h; fun_induction lookup <;> simp_all
