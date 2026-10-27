@@ -1,5 +1,6 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
+import Mathlib.Algebra.Group.Pointwise.Finset.Basic
 
 import Core.Ty.Definition
 import Core.Ty.Substitution
@@ -184,13 +185,13 @@ instance : Pure UResult where
   pure x := .ok x
 
 -- We only consider those UnifyState that does not have foralls in it
-def UnifyStateWf (u : UnifyState) : Prop := ∀ t ∈ u.equations, t.1.isNotAll ∧ t.2.isNotAll
+def UnifyStateWf (u : UnifyState) : Bool := u.equations.all (λ t => t.1.isNotAll ∧ t.2.isNotAll)
 
 -- Performs one step of "unification"
 @[simp]
-def unifyStep (u : UnifyState) (h : u.nonEmptyEqns) : UResult UnifyState :=
+def unifyStep (u : UnifyState) (h : u.nonEmptyEqns ∧ UnifyStateWf u) : UResult UnifyState :=
   match h1 : u.equations with
-  | [] => by simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h h1
+  | [] => by simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h.1 h1
   | .cons (t#x, t) eqs | .cons (t, t#x) eqs =>
     if (x ∉ freeVars t) ∧ t.isNotAll
     then let τ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
@@ -205,7 +206,8 @@ def unifyStep (u : UnifyState) (h : u.nonEmptyEqns) : UResult UnifyState :=
     if k1 == k2 then return ⟨u.subst, (x1, x2) :: (y1, y2) :: eqs⟩ else .error (.eq k1 x1 y1, .eq k2 x2 y2)
   | .cons (t1, t2) tl => .error (t1, t2)
 
-theorem freevars_after_subst {t s : Ty} {x : Nat} {σ : Subst Core.Ty}
+
+theorem var_not_free_after_subst {t s : Ty} {x : Nat} {σ : Subst Core.Ty}
   (h2 : x ∉ s)
   (h3 : t.isNotAll) (h4 : s.isNotAll):
   σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
@@ -225,21 +227,21 @@ theorem freevars_after_subst {t s : Ty} {x : Nat} {σ : Subst Core.Ty}
   | .arrow t1 t2 =>
     simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
     simp; apply And.intro
-    · simp [freevars_after_subst h2 h3a h4]
-    · simp [freevars_after_subst h2 h3b h4]
+    · simp [var_not_free_after_subst h2 h3a h4]
+    · simp [var_not_free_after_subst h2 h3b h4]
   | .app t1 t2 =>
     simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
     simp; apply And.intro
-    · simp [freevars_after_subst h2 h3a h4]
-    · simp [freevars_after_subst h2 h3b h4]
+    · simp [var_not_free_after_subst h2 h3a h4]
+    · simp [var_not_free_after_subst h2 h3b h4]
   | .eq k t1 t2 =>
     simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
     simp; apply And.intro
-    · simp [freevars_after_subst h2 h3a h4]
-    · simp [freevars_after_subst h2 h3b h4]
+    · simp [var_not_free_after_subst h2 h3a h4]
+    · simp [var_not_free_after_subst h2 h3b h4]
   | .all k t => simp [Ty.isNotAll] at h3
 
-theorem freevars_after_subst_on_eqns {eqns : List (Ty × Ty)} {s : Ty} {x : Nat} {σ : Subst Core.Ty}
+theorem var_not_free_after_subst_on_eqns {eqns : List (Ty × Ty)} {s : Ty} {x : Nat} {σ : Subst Core.Ty}
   (h2 : x ∉ s)
   (h3 : ∀ t ∈ eqns, t.1.isNotAll ∧ t.2.isNotAll) (h4 : s.isNotAll):
   σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
@@ -252,14 +254,67 @@ theorem freevars_after_subst_on_eqns {eqns : List (Ty × Ty)} {s : Ty} {x : Nat}
     have h3 := h3 (t1, t2) (by constructor); rcases h3 with ⟨h1a, h2a⟩; simp at h1a h2a
     simp [varsEqns];
     apply And.intro
-    · apply freevars_after_subst h2 h1a h4; simp
+    · apply var_not_free_after_subst h2 h1a h4; simp
     · apply And.intro
-      · apply freevars_after_subst h2 h2a h4; simp
+      · apply var_not_free_after_subst h2 h2a h4; simp
       · have lem : ∀ t ∈ eqns, t.1.isNotAll ∧ t.2.isNotAll := by grind
-        simp [freevars_after_subst_on_eqns h2 lem h4]
+        simp [var_not_free_after_subst_on_eqns h2 lem h4]
 
+-- TODO : How do we describe subtraction on finsets?
+theorem freevars_after_subst {t s : Ty} {σ : Subst Core.Ty}
+  (h2 : x ∉ s)
+  (h3 : t.isNotAll) (h4 : s.isNotAll):
+  σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
+  freeVars (t[σ]) ⊆ ((freeVars s ∪ freeVars t) \ {x})
+:= by
+  intro σdef;
+  match t with
+  | .var z =>
+    simp; have lem := not_in_freeVars_iff_not_FV x h4;
+    cases decEq x z
+    case _ =>
+      have e : (x = z) = False := by grind
+      simp [e, σdef]; grind
+    case _ e => subst e; simp [σdef]; grind
+  | .global _ => simp
+  | .arrow t1 t2 =>
+    simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
+    simp;
+    have lem1 := freevars_after_subst h2 h3a h4 σdef
+    have lem2 := freevars_after_subst h2 h3b h4 σdef
+    grind
+  | .app t1 t2 =>
+    simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
+    simp;
+    have lem1 := freevars_after_subst h2 h3a h4 σdef
+    have lem2 := freevars_after_subst h2 h3b h4 σdef
+    grind
+  | .eq k t1 t2 =>
+    simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
+    simp;
+    have lem1 := freevars_after_subst h2 h3a h4 σdef
+    have lem2 := freevars_after_subst h2 h3b h4 σdef
+    grind
+  | .all k t => simp [Ty.isNotAll] at h3
 
-theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns) (h : unifyStep u invh = .ok u') :
+theorem freevars_after_subst_on_eqns {s : Ty} {σ : Subst Core.Ty} {eqns : List (Core.Ty × Core.Ty)}
+  (h2 : x ∉ s)
+  (h3 : ∀ t ∈ eqns, t.1.isNotAll ∧ t.2.isNotAll) (h4 : s.isNotAll):
+  σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
+  varsEqns (eqns.map (λ (t1, t2)=> (t1[σ], t2[σ]))) ⊆ s.freeVars ∪ varsEqns eqns \ {x}
+:= by
+  intro σdef
+  simp; fun_induction varsEqns
+  simp
+  case _ t1 t2 eqns ih =>
+    simp;
+    replace ih1 := ih (by intro t h; apply h3; constructor; apply h)
+    replace h3 := h3 ⟨t1, t2⟩ (by constructor); simp at h3
+    have lem1 := freevars_after_subst h2 h3.1 (σ := σ) h4 (by simp [σdef])
+    have lem2 := freevars_after_subst h2 h3.2 (σ := σ) h4 (by simp [σdef])
+    grind
+
+theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns ∧ UnifyStateWf u) (h : unifyStep u invh = .ok u') :
   Prod.Lex (fun a₁ a₂ => a₁ < a₂) (fun a₁ a₂ => a₁ < a₂) (UnifyStateSize u') (UnifyStateSize u)
 := by
   simp; rcases u with ⟨_, eqns⟩
@@ -269,95 +324,217 @@ theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns) (h : unif
   rcases hd with ⟨lhsTy, rhsTy⟩
   cases lhsTy
   all_goals (simp [unifyStep] at h)
-  any_goals (clear invh)
+  -- any_goals (clear invh)
   case var v =>
     split at h <;> try simp at h
     case _ h1 =>
     rcases h1 with ⟨h1, h2⟩; cases h
-    simp; apply Prod.Lex.left;
+    simp;
     simp [not_in_freeVars_iff_not_FV v h2] at h1
-    have lem := freevars_after_subst_on_eqns (eqns := tl) h1 (σ := ⟨fun y => if v = y then su rhsTy else su t#y⟩)
+    let σ : Subst Ty := ⟨λ y => if v = y then su rhsTy else su t#y⟩
+    have wf : ∀ t ∈ tl, t.1.isNotAll ∧ t.2.isNotAll := by
+      intro t h; simp [UnifyStateWf] at invh; apply invh.2.2 t.1 t.2 h
+    have lem := var_not_free_after_subst_on_eqns (eqns := tl) h1 (σ := σ)
     simp at lem;
-    replace lem := lem sorry h2
-    sorry
+    replace lem := lem (by intro t1 t2 h; apply wf ⟨t1, t2⟩ h) h2 (by simp [σ])
+    have lem2 := freevars_after_subst_on_eqns (eqns := tl) h1 (σ := σ) wf h2 (by simp [σ])
+    simp [σ] at lem2;
+    -- have lem3 : rhsTy.freeVars ∪ varsEqns tl ⊆ insert v (rhsTy.freeVars ∪ varsEqns tl) := by grind
+    cases Finset.decidableMem v (varsEqns tl)
+    case _ d =>
+      apply Prod.Lex.left
+      have lem4a : v ∉ rhsTy.freeVars ∪ varsEqns tl := by
+        intro h; simp at h; cases h;
+        case _ h => apply h1; simp [in_freeVars_iff_FV v h2] at h; apply h
+        case _ h => apply d; apply h
 
-  case global =>
+      have lem5 : rhsTy.freeVars ∪ varsEqns tl \ {v} = rhsTy.freeVars ∪ varsEqns tl := by grind
+
+      have lem6 : (rhsTy.freeVars ∪ varsEqns tl).card < (insert v (rhsTy.freeVars ∪ varsEqns tl)).card := by grind
+      rw[lem5] at lem2;
+      have lem8 : varsEqns (tl.map (λ t => (t.1[σ], t.2[σ]))) ⊆ rhsTy.freeVars ∪ varsEqns tl := by grind
+      have lem9 : (varsEqns (tl.map (λ t => (t.1[σ], t.2[σ])))).card ≤ (rhsTy.freeVars ∪ varsEqns tl).card := by
+        apply Finset.card_le_card lem8
+      simp [σ] at *
+      grind
+    case _ d =>
+      have lem4a : v ∈ rhsTy.freeVars ∪ varsEqns tl := by grind
+      have lem3 : rhsTy.freeVars ∪ varsEqns tl = insert v (rhsTy.freeVars ∪ varsEqns tl) := by grind
+      apply Prod.Lex.left
+      have lem8 : varsEqns (tl.map (λ t => (t.1[σ], t.2[σ]))) < rhsTy.freeVars ∪ varsEqns tl := by grind
+      have lem9 : (varsEqns (tl.map (λ t => (t.1[σ], t.2[σ])))).card < (rhsTy.freeVars ∪ varsEqns tl).card := by apply Finset.card_lt_card lem8
+      rw[<-lem3]; omega
+
+  case global s =>
     cases rhsTy <;> try simp at h
     · split at h <;> try simp at h
       case _ h1 =>
       rcases h1 with ⟨h1, h2⟩; cases h; simp; case _ v =>
         generalize zdef : (insert v (varsEqns tl)).card = z at *
         simp [Finset.card_insert_eq_ite] at zdef
-        split at zdef
-        · subst zdef; sorry -- apply Prod.Lex.right; omega
-        · subst zdef; apply Prod.Lex.left; sorry -- omega
+        let σ : Subst Ty := ⟨λ y => if v = y then su gt#s else su t#y⟩
+        have lem := var_not_free_after_subst_on_eqns (eqns := tl) (s := gt#s) (x := v) (σ := σ) (by intro h; cases h) (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind) (by simp [isNotAll]) (by simp [σ])
+        have lem2 := freevars_after_subst_on_eqns (eqns := tl) (s := gt#s) (x := v) (σ := σ) (by intro h; cases h) (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind) (by simp [isNotAll]) (by simp [σ])
+        simp at lem2 lem;
+        split at zdef <;> subst zdef
+        case _ d =>
+          apply Prod.Lex.left;
+          have lem3 : (varsEqns tl \ {v}) < varsEqns tl := by grind
+          have lem4 : (varsEqns tl \ {v}).card < (varsEqns tl).card := by grind
+          have lem5 : (varsEqns (List.map (fun x => (x.1[σ], x.2[σ])) tl)).card ≤ (varsEqns tl \ {v}).card := by
+            apply Finset.card_le_card lem2
+          grind
+        case _ d =>
+          apply Prod.Lex.left;
+          have lem3 : varsEqns tl \ {v} ⊆ varsEqns tl := by grind
+          have lem4 : varsEqns (List.map (fun x => (x.1[σ], x.2[σ])) tl) ⊆ varsEqns tl := by grind
+          have lem5 : (varsEqns (List.map (fun x => (x.1[σ], x.2[σ])) tl)).card ≤ (varsEqns tl).card := by apply Finset.card_le_card lem4
+          grind
     · split at h <;> try simp at h
       case _ e h => subst e; cases h; simp; apply Prod.Lex.right; omega
 
-  case arrow =>
+  case arrow t1 t2 =>
     cases rhsTy <;> try simp at h
     split at h <;> try simp at h
-    case _ h1 =>
+    case _ v h1 =>
       rcases h1 with ⟨h1, h2⟩; cases h; simp; case _ v =>
       generalize zdef : (insert v (varsEqns tl)).card = z at *
       simp [Finset.card_insert_eq_ite] at zdef
-      split at zdef
-      · subst zdef; sorry -- apply Prod.Lex.right; omega
-      · subst zdef; apply Prod.Lex.left; sorry -- omega
-    case _ a1 a2 a3 a4 =>
+      let σ : Subst Ty := ⟨λ y => if v = y then su (t1 -:> t2) else su t#y⟩
+      simp [isNotAll] at h2
+      have h1' := h1
+      simp [not_in_freeVars_iff_not_FV v h2.1] at h1
+      simp [not_in_freeVars_iff_not_FV v h2.2] at h1
+      have lem := var_not_free_after_subst_on_eqns
+                   (eqns := tl) (s := (t1 -:> t2)) (x := v) (σ := σ)
+                   (by intro h; cases h; apply h1.1; assumption; apply h1.2; assumption)
+                   (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind)
+                   (by simp [isNotAll]; apply h2) (by simp [σ])
+      have lem2 := freevars_after_subst_on_eqns
+                   (eqns := tl) (s := (t1 -:> t2)) (x := v) (σ := σ)
+                   (by intro h; cases h; apply h1.1; assumption; apply h1.2; assumption)
+                   (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind)
+                   (by simp [isNotAll]; apply h2) (by simp [σ])
+      simp at lem2 lem;
+      split at zdef <;> subst zdef
+      case _ d =>
+        have lem5 := Finset.card_le_card lem2
+        have lem6 : (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl \ {v}))  < (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl))  := by grind
+
+        apply Prod.Lex.left;
+        replace lem6 := Finset.card_lt_card lem6
+        grind;
+      case _ d =>
+        apply Prod.Lex.left;
+        replace lem2 := Finset.card_le_card lem2
+        have lem6 : (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl \ {v})) = (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl))  := by grind
+        grind
+    case _ a3 a4 =>
       cases h; simp [size];
-      have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
-                       (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+      have e : (t1.freeVars ∪ (t2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                       (t1.freeVars ∪ (a3.freeVars ∪ (t2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
       rw[e]; apply Prod.Lex.right; omega
 
-  case app =>
+  case app t1 t2 =>
     cases rhsTy <;> try simp at h
     split at h <;> try simp at h
-    case _ h1 =>
+    case _ v h1 =>
       rcases h1 with ⟨h1, h2⟩; cases h; simp; case _ v =>
       generalize zdef : (insert v (varsEqns tl)).card = z at *
       simp [Finset.card_insert_eq_ite] at zdef
-      split at zdef
-      · subst zdef; sorry -- apply Prod.Lex.right; omega
-      · subst zdef; apply Prod.Lex.left; sorry -- omega
-    case _ a1 a2 a3 a4 =>
+      let σ : Subst Ty := ⟨λ y => if v = y then su (.app t1 t2) else su t#y⟩
+      simp [isNotAll] at h2
+      have h1' := h1
+      simp [not_in_freeVars_iff_not_FV v h2.1] at h1
+      simp [not_in_freeVars_iff_not_FV v h2.2] at h1
+      have lem := var_not_free_after_subst_on_eqns
+                   (eqns := tl) (s := (.app t1 t2)) (x := v) (σ := σ)
+                   (by intro h; cases h; apply h1.1; assumption; apply h1.2; assumption)
+                   (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind)
+                   (by simp [isNotAll]; apply h2) (by simp [σ])
+      have lem2 := freevars_after_subst_on_eqns
+                   (eqns := tl) (s := (.app t1 t2)) (x := v) (σ := σ)
+                   (by intro h; cases h; apply h1.1; assumption; apply h1.2; assumption)
+                   (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind)
+                   (by simp [isNotAll]; apply h2) (by simp [σ])
+      simp at lem2 lem;
+      split at zdef <;> subst zdef
+      case _ d =>
+        have lem5 := Finset.card_le_card lem2
+        have lem6 : (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl \ {v}))  < (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl))  := by grind
+
+        apply Prod.Lex.left;
+        replace lem6 := Finset.card_lt_card lem6
+        grind;
+      case _ d =>
+        apply Prod.Lex.left;
+        replace lem2 := Finset.card_le_card lem2
+        have lem6 : (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl \ {v})) = (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl))  := by grind
+        grind
+    case _ a3 a4 =>
       cases h; simp [size];
-      have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
-                       (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+      have e : (t1.freeVars ∪ (t2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                       (t1.freeVars ∪ (a3.freeVars ∪ (t2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
       rw[e]; apply Prod.Lex.right; omega
 
-
-  case eq =>
+  case eq k1 t1 t2 =>
     cases rhsTy <;> try simp at h
     split at h <;> try simp at h
-    case _ h1 =>
+    case _ v h1 =>
       rcases h1 with ⟨h1, h2⟩; cases h; simp; case _ v =>
       generalize zdef : (insert v (varsEqns tl)).card = z at *
       simp [Finset.card_insert_eq_ite] at zdef
-      split at zdef
-      · subst zdef; sorry -- apply Prod.Lex.right; omega
-      · subst zdef; apply Prod.Lex.left; sorry -- omega
-    case _ a1 a2 _ a3 a4 =>
+      let σ : Subst Ty := ⟨λ y => if v = y then su (.eq k1 t1 t2) else su t#y⟩
+      simp [isNotAll] at h2
+      have h1' := h1
+      simp [not_in_freeVars_iff_not_FV v h2.1] at h1
+      simp [not_in_freeVars_iff_not_FV v h2.2] at h1
+      have lem := var_not_free_after_subst_on_eqns
+                   (eqns := tl) (s := .eq k1 t1 t2) (x := v) (σ := σ)
+                   (by intro h; cases h; apply h1.1; assumption; apply h1.2; assumption)
+                   (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind)
+                   (by simp [isNotAll]; apply h2) (by simp [σ])
+      have lem2 := freevars_after_subst_on_eqns
+                   (eqns := tl) (s := .eq k1 t1 t2) (x := v) (σ := σ)
+                   (by intro h; cases h; apply h1.1; assumption; apply h1.2; assumption)
+                   (by simp [UnifyStateWf] at invh; intro t h; apply invh.2.2; grind)
+                   (by simp [isNotAll]; apply h2) (by simp [σ])
+      simp at lem2 lem;
+      split at zdef <;> subst zdef
+      case _ d =>
+        have lem5 := Finset.card_le_card lem2
+        have lem6 : (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl \ {v}))  < (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl))  := by grind
+
+        apply Prod.Lex.left;
+        replace lem6 := Finset.card_lt_card lem6
+        grind;
+      case _ d =>
+        apply Prod.Lex.left;
+        replace lem2 := Finset.card_le_card lem2
+        have lem6 : (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl \ {v})) = (t1.freeVars ∪ (t2.freeVars ∪ varsEqns tl))  := by grind
+        grind
+    case _ a3 a4 =>
       split at h <;> try simp at h
       case _ e =>
         simp at e; subst e
         cases h; simp [size];
-        have e : (a1.freeVars ∪ (a2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
-                       (a1.freeVars ∪ (a3.freeVars ∪ (a2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
+        have e : (t1.freeVars ∪ (t2.freeVars ∪ (a3.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card =
+                       (t1.freeVars ∪ (a3.freeVars ∪ (t2.freeVars ∪ (a4.freeVars ∪ varsEqns tl)))).card := by grind
         rw[e]; apply Prod.Lex.right; omega
 
   case all =>  cases rhsTy  <;> try simp [isNotAll] at h
 
--- TODO: the u here needs to be well formed. i.e. none of the type equations have foralls
-def loopUnify (u : UnifyState) : UResult (Subst Core.Ty) :=
+def loopUnify (u : UnifyState) : Option (Subst Core.Ty) :=
   if h : u.nonEmptyEqns
   then
-    match h1 : unifyStep u h with
+    if h1 : UnifyStateWf u then
+    match h2 : unifyStep u ⟨h, h1⟩ with
     | .ok u' => loopUnify u'
-    | .error e => .error e
+    | .error _ => none
+    else none
   else return u.subst
 termination_by (UnifyStateSize u)
-decreasing_by apply loopUnifyDecreases h h1
+decreasing_by apply loopUnifyDecreases ⟨h, h1⟩ h2
 
 
 def EqnsUnifier (σ : Subst Core.Ty) : List (Core.Ty × Core.Ty) -> Prop
@@ -372,13 +549,13 @@ def UnifierOfUnifyState (σ' : Subst Core.Ty) (u : UnifyState) : Prop :=
   UnifierOfSubst σ' u.subst ∧ EqnsUnifier σ' u.equations
 
 
-theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns)(σ : Subst Core.Ty) :
+theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u)(σ : Subst Core.Ty) :
   unifyStep u h = .ok u' -> UnifierOfUnifyState σ u' -> UnifierOfUnifyState σ u
 := by
   intro h1 h2
   unfold unifyStep at h1
   split at h1 <;> try simp at h1
-  case _ e => simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h e;
+  case _ e => simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h.1 e;
   case _ x t _ h3 =>
     split at h1 <;> try simp at h1
     case _ eqns h4 =>
@@ -389,10 +566,12 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns)(σ : Subst Core.
       rcases h2 with ⟨h1, h2⟩; simp [UnifierOfSubst] at h1;
       replace h1 := h1 x';
       -- The point here is that x ≠ x'. why?
-      unfold EqnsUnifier at h2;
-      cases eqns <;> simp at *
-      sorry
-      sorry
+      simp [not_in_freeVars_iff_not_FV x h] at h4
+      cases Nat.decEq x x'
+      case _ e => sorry
+      case _ e =>
+        subst e; rw[h1]; congr;
+        sorry
     · simp [h3, EqnsUnifier];
       simp [UnifierOfUnifyState] at h2
       rcases h2 with ⟨h1, h2⟩
@@ -458,14 +637,14 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns)(σ : Subst Core.
     simp [p1, EqnsUnifier, Unifier] at *; grind
 
 
-theorem unifyStep_idempotency {u u': UnifyState} (h : u.nonEmptyEqns) (hi : UnifierIdempotent u.subst) :
+theorem unifyStep_idempotency {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
   unifyStep u h = .ok u' -> UnifierIdempotent u'.subst
 := by
   intro h
   unfold unifyStep at h
   split at h <;> try simp at h
   case _ e h1 =>
-    simp [UnifyState.nonEmptyEqns] at e; exfalso; apply e h1
+    simp [UnifyState.nonEmptyEqns] at e; exfalso; apply e.1 h1
   case _ h3 =>
     split at h <;> try simp at h
     case _ h1 =>
@@ -480,43 +659,54 @@ theorem unifyStep_idempotency {u u': UnifyState} (h : u.nonEmptyEqns) (hi : Unif
   sorry
   sorry
 
-theorem loopUnify_idempotency {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) (h : loopUnify u = .ok σ) : UnifierIdempotent σ
+theorem loopUnify_idempotency {σ  : Subst Ty} {u : UnifyState}
+  (hi : UnifierIdempotent u.subst) (h : loopUnify u = some σ) : UnifierIdempotent σ
 := by
   unfold loopUnify at h;
   split at h
   case _ h1 =>
-    generalize zdef : unifyStep u h1 = z at *
-    cases z
-    case error => simp at h
-    case ok u' =>
-    simp at h; replace hi := unifyStep_idempotency h1 hi zdef
-    apply loopUnify_idempotency hi h
+    split at h
+    case _ h2 =>
+      generalize zdef : unifyStep u _ = z at *
+      cases z
+      case error => simp at h
+      case ok u' =>
+      simp at h; replace hi := unifyStep_idempotency ⟨h1, h2⟩ hi zdef
+      apply loopUnify_idempotency hi h
+    case _ => simp at h
   case _ h1 => cases h; apply hi
 termination_by (UnifyStateSize u)
-decreasing_by case _ e _ _ => -- for some reason lean cannot figure this one out
-  simp at h; apply loopUnifyDecreases e zdef
+decreasing_by case _ e1 e2 _ _ => -- for some reason lean cannot figure this one out
+  simp at h; apply loopUnifyDecreases ⟨e1, e2⟩ zdef
+
+
+theorem unifyStep_wf {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
+  unifyStep u h = .ok u' -> UnifyStateWf u := by sorry
 
 
 theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) :
-  loopUnify u = .ok σ -> UnifierOfUnifyState σ u
+  loopUnify u = some σ -> UnifierOfUnifyState σ u
 := by
   intro h
-  replace hi := loopUnify_idempotency hi h
+  have hi1 := loopUnify_idempotency hi h
+
   fun_induction loopUnify generalizing σ  <;> try simp at h
-  case _ u' uss ih =>
-    replace ih := ih h hi
-    replace uss := unifyStep_sound _ σ uss
-    apply uss ih
-  case _  u h =>
-    rcases u with ⟨us, ueqs⟩; cases h
-    simp [UnifyState.nonEmptyEqns] at h; subst h; simp at *; simp [UnifierOfUnifyState]
-    simp [UnifierIdempotent] at hi
+  case _ invh1 invh2 u' uss ih =>
+    have lem := unifyStep_idempotency ⟨invh1, invh2⟩ hi uss
+    replace uss' := unifyStep_sound _ σ uss
+    apply uss'
+    apply ih lem h hi1
+  case _  u invh2 =>
+    subst h;
+    rcases u with ⟨us, ueqs⟩; simp at hi1
+    simp [UnifyState.nonEmptyEqns] at invh2;
+    simp [UnifierOfUnifyState]; simp [UnifierIdempotent] at hi
+    subst ueqs
     apply And.intro
     · apply hi
     · simp [EqnsUnifier]
 
-
-def unify (t u : Core.Ty) : UResult (Subst Core.Ty) :=
+def unify (t u : Core.Ty) : Option (Subst Core.Ty) :=
   loopUnify ⟨Subst.id Core.Ty, [(t, u)]⟩
 
 theorem Subst.id_idempotent : UnifierIdempotent (Subst.id Ty)
@@ -524,8 +714,10 @@ theorem Subst.id_idempotent : UnifierIdempotent (Subst.id Ty)
   simp [UnifierIdempotent, UnifierOfSubst]
   intro x; cases x <;> simp [Subst.id] at *
 
+theorem Subst.id_wf {t u : Ty} (h1 : t.isNotAll) (h2 : u.isNotAll) : UnifyStateWf (⟨Subst.id Ty, [(t, u)]⟩) = true := by simp [UnifyStateWf]; grind
 
-theorem unify_soundness {t u : Ty} {σ  : Subst Ty} : unify t u = .ok σ -> Unifier σ t u
+theorem unify_soundness {t u : Ty} {σ  : Subst Ty}
+  : unify t u = some σ -> Unifier σ t u
 := by
   intro h
   unfold unify at h
@@ -535,7 +727,7 @@ theorem unify_soundness {t u : Ty} {σ  : Subst Ty} : unify t u = .ok σ -> Unif
 
 
 theorem unify_completeness {t u : Ty} {σ  : Subst Ty} :
-  Unifier σ t u -> unify t u = .ok σ'
+  Unifier σ t u -> unify t u = some σ'
   -> ∃ (τ : Subst Core.Ty), σ = σ' ∘ τ := by sorry
 
 
