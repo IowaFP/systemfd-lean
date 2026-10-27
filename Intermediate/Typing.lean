@@ -249,8 +249,9 @@ inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
   EntryWf G (.ctor x i T)
 | odata {n : Nat} {Ks1 : Vec Core.Kind n}:
   lookup x G = some (.odata (n := n) x Ks1 scsτs mτs) ->
-  (∀ (i : Nat) mn τ, (hi : i < mτs.length) -> mτs[i] = (mn, τ) ->
-    SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, n, Ks1, [],[], []⟩ :: G) (λ _ => true) τ) ->
+  (∀ (i : Nat), (hi : i < mτs.length) ->
+    ∃ mn τ, mτs[i] = (mn, τ) ∧
+    SpineKinding Core.SpCtorVariant.openm mn (Intermediate.Global.classDecl ⟨x, n, Ks1, [], [], []⟩ :: G) (λ _ => true) τ) ->
   EntryWf G (.odata (n := n) x Ks1 scsτs mτs)
 | defn {G : Intermediate.GlobalEnv}:
   G&[] ⊢ T : ★ ->
@@ -262,6 +263,11 @@ inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
   EntryWf G (.octor x T)
 
 
+theorem EntryWf.weaken {G : GlobalEnv} (wf : ⊢ (g::G))
+  : EntryWf G e -> EntryWf (g::G) e
+:= by
+  sorry
+
 
 theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
   ⊢ G ->
@@ -270,12 +276,26 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
 := by
   intro wf h
   fun_induction lookup <;> try simp at h
+  all_goals try (
+  case _ ih =>
+    have wf' := wf; cases wf; case _ wf _ =>
+    replace ih := ih wf h
+    apply EntryWf.weaken wf' ih
+  )
   · subst h;
     cases wf; case _ wftl wfhd =>
     cases wfhd; case _ q1 q2 q3 =>
     constructor;
     simp [lookup]
-  · sorry
+  · case _ ctors' _ ih =>
+    simp [Vec.foldr_or_val_some] at h
+    cases h
+    sorry
+    case _ h =>
+      rcases h with ⟨h1, h2⟩;
+      let wf' := wf; cases wf; case _ wf _ =>
+      replace ih := ih wf h1
+      apply EntryWf.weaken wf' ih
   · subst h
     cases wf; case _ e wftl wfhd =>
     have wfhd' := wfhd
@@ -285,34 +305,21 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
     case _ j =>
       apply Kinding.weaken_global (by constructor; apply wfhd'; apply wftl) j
     simp [lookup]
+  case _ e =>
+    simp at e; subst e; subst e;
+    cases wf; case _ wf =>
+    cases wf; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 =>
+    clear c1 c2 c3 c4 c5
+    apply EntryWf.odata
+    · simp[lookup]
+    · intro i hi; replace c7 := c7 i hi;
+      rcases c7 with ⟨mn, τ, c7a, c7b⟩
+      exists mn; exists τ; apply And.intro
+      · apply c7a
+      · sorry --- SpineKinding weakening
   sorry
   sorry
   sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  -- intro wf h
-  -- fun_induction lookup
-  -- any_goals try
-  --   case _ ih =>
-  --     cases wf; case _ h2 wf =>
-  --     apply weaken
-  --     apply ListGlobalWf.cons wf h2
-  --     apply ih h2 h
-  -- case _ => cases h
-  -- case _ =>
-  --   cases h; apply EntryWf.data
-  --   simp [lookup]
-  -- case _ n y K ctors tl ctors' h1 ih1 =>
-  --   have wf' := wf
-  --   cases wf; case _ wf gwf =>
-  --   cases gwf; case _ h2 h3 h4 =>
-  --   simp [Vec.foldr_or_val_some] at h
-  --   cases h
-  --   case _ lem => sorry -- apply EntryWf.weaken wf' (ih1 wf lem)
   --   case _ lem =>
   --     rcases lem with ⟨i, lem⟩
   --     subst ctors'; simp at lem
@@ -710,7 +717,15 @@ theorem lookup_openm_index_cls_mth {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    case _ h4 _ _ _ e h3 =>
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      -- exfalso; apply Intermediate.lookup_openm_no_cls wftl h1 h4
-     sorry
+     split at h1 <;> try simp at h1
+     case _ h2 =>
+       sorry
+     split at h1 <;> try simp at h1
+     case _ h2 _ h3 =>
+       exfalso; simp [List.findIdx?_eq_some_iff_getElem] at h2;
+       rcases h2 with ⟨hi, h2, h4⟩; rcases e3 with ⟨e1, e3⟩; subst e1 e3
+       replace ih := ih h1
+       sorry
    case _  c1 c2 c3 _ e i h3 =>
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      sorry -- subst e3;
