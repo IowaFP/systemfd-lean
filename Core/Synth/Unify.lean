@@ -536,8 +536,8 @@ def loopUnify (u : UnifyState) : Option (Subst Core.Ty) :=
 termination_by (UnifyStateSize u)
 decreasing_by apply loopUnifyDecreases ⟨h, h1⟩ h2
 
-
-def EqnsUnifier (σ : Subst Core.Ty) : List (Core.Ty × Core.Ty) -> Prop
+@[simp]
+abbrev EqnsUnifier (σ : Subst Core.Ty) : List (Core.Ty × Core.Ty) -> Prop
 | .nil => True
 | .cons (t, u) l => Unifier σ t u ∧ EqnsUnifier σ l
 
@@ -549,10 +549,34 @@ def UnifierOfUnifyState (σ' : Subst Core.Ty) (u : UnifyState) : Prop :=
   UnifierOfSubst σ' u.subst ∧ EqnsUnifier σ' u.equations
 
 
+theorem unifyStep_idempotency {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
+  unifyStep u h = .ok u' -> UnifierIdempotent u'.subst
+:= by
+  intro h
+  unfold unifyStep at h
+  split at h <;> try simp at h
+  case _ e h1 =>
+    simp [UnifyState.nonEmptyEqns] at e; exfalso; apply e.1 h1
+  case _ h3 =>
+    split at h <;> try simp at h
+    case _ h1 =>
+    rcases h1 with ⟨h1, h2⟩
+    cases h
+    simp [UnifierIdempotent, UnifierOfSubst]; intro x'
+
+    sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+
+
 theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u)(σ : Subst Core.Ty) :
   unifyStep u h = .ok u' -> UnifierOfUnifyState σ u' -> UnifierOfUnifyState σ u
 := by
   intro h1 h2
+
   unfold unifyStep at h1
   split at h1 <;> try simp at h1
   case _ e => simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h.1 e;
@@ -567,11 +591,8 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf 
       replace h1 := h1 x';
       -- The point here is that x ≠ x'. why?
       simp [not_in_freeVars_iff_not_FV x h] at h4
-      cases Nat.decEq x x'
-      case _ e => sorry
-      case _ e =>
-        subst e; rw[h1]; congr;
-        sorry
+
+      sorry
     · simp [h3, EqnsUnifier];
       simp [UnifierOfUnifyState] at h2
       rcases h2 with ⟨h1, h2⟩
@@ -586,7 +607,7 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf 
       · sorry -- apply h2
 
 
-  case _ p1 p2 =>
+  case _ x t _ _ h3 =>
     -- this case is very similar to the above case, just that its (t, x) instead of (x, t)
     split at h1 <;> try simp at h1
     case _ h4 =>
@@ -636,29 +657,6 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf 
     apply h1
     simp [p1, EqnsUnifier, Unifier] at *; grind
 
-
-theorem unifyStep_idempotency {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
-  unifyStep u h = .ok u' -> UnifierIdempotent u'.subst
-:= by
-  intro h
-  unfold unifyStep at h
-  split at h <;> try simp at h
-  case _ e h1 =>
-    simp [UnifyState.nonEmptyEqns] at e; exfalso; apply e.1 h1
-  case _ h3 =>
-    split at h <;> try simp at h
-    case _ h1 =>
-    rcases h1 with ⟨h1, h2⟩
-    cases h
-    simp [UnifierIdempotent, UnifierOfSubst]; intro x'
-
-    sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
-
 theorem loopUnify_idempotency {σ  : Subst Ty} {u : UnifyState}
   (hi : UnifierIdempotent u.subst) (h : loopUnify u = some σ) : UnifierIdempotent σ
 := by
@@ -680,8 +678,8 @@ decreasing_by case _ e1 e2 _ _ => -- for some reason lean cannot figure this one
   simp at h; apply loopUnifyDecreases ⟨e1, e2⟩ zdef
 
 
-theorem unifyStep_wf {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
-  unifyStep u h = .ok u' -> UnifyStateWf u := by sorry
+-- theorem unifyStep_wf {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
+--   unifyStep u h = .ok u' -> UnifyStateWf u := by sorry
 
 
 theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) :
@@ -723,7 +721,7 @@ theorem unify_soundness {t u : Ty} {σ  : Subst Ty}
   unfold unify at h
   replace h := loopUnify_sound (Subst.id_idempotent) h
   simp [UnifierOfUnifyState] at h; rcases h with ⟨h1, h2⟩
-  simp [EqnsUnifier] at h2; apply h2
+  apply h2
 
 
 theorem unify_completeness {t u : Ty} {σ  : Subst Ty} :
