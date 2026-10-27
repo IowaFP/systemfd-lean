@@ -287,10 +287,37 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
     cases wfhd; case _ q1 q2 q3 =>
     constructor;
     simp [lookup]
-  · case _ ctors' _ ih =>
+  · case _ y K _ ctors _ ctors' _ ih =>
     simp [Vec.foldr_or_val_some] at h
     cases h
-    sorry
+    case _ lem =>
+      rcases lem with ⟨i, lem⟩
+      subst ctors'; simp at lem
+      rcases lem with ⟨⟨e1, e2⟩, e3⟩; subst e1; simp at *
+      generalize zdef : ctors[i] = z
+      rcases z with ⟨z, A⟩;
+      cases wf; case _ wf =>
+      cases wf; case _ h1 h2 h3 h4 =>
+      replace h4 := h4 i z A zdef
+      rw [zdef] at e2; simp at e2; subst e2
+      rcases h4 with ⟨q1, q2, q3⟩
+      apply EntryWf.ctor y K ctors
+      simp [lookup]; exact zdef
+      · sorry
+
+  --     apply SpineKinding.weaken_global_ctors wf' q1
+  --     simp [lookup]; split; simp_all; rw [q3]
+  --     apply EntryWf.from_lookup_ctor2; simp
+  --     exists i; rw [zdef]; simp
+  --     intro j j1 j2
+  --     replace h3 := h3 j i j1
+  --     subst j2; grind
+      · have e : (z = y) = False := by grind;
+        simp [lookup, e];
+        simp [Vec.foldr_or_val_some]; apply Or.inl
+        exists i; simp [zdef];
+        intro j hj
+        replace e3 := e3 j hj; simp [zdef] at e3; apply e3
     case _ h =>
       rcases h with ⟨h1, h2⟩;
       let wf' := wf; cases wf; case _ wf _ =>
@@ -320,24 +347,7 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
   sorry
   sorry
   sorry
-  --   case _ lem =>
-  --     rcases lem with ⟨i, lem⟩
-  --     subst ctors'; simp at lem
-  --     rcases lem with ⟨e1, e2⟩; subst e1; simp at *
-  --     generalize zdef : ctors[i] = z
-  --     rcases z with ⟨z, A⟩
-  --     replace h4 := h4 i z A zdef
-  --     rw [zdef] at e2; simp at e2; subst e2
-  --     rcases h4 with ⟨q1, q2, q3⟩
-  --     apply EntryWf.ctor y K ctors
-  --     simp [lookup]; exact zdef
-  --     apply SpineKinding.weaken_global_ctors wf' q1
-  --     simp [lookup]; split; simp_all; rw [q3]
-  --     apply EntryWf.from_lookup_ctor2; simp
-  --     exists i; rw [zdef]; simp
-  --     intro j j1 j2
-  --     replace h3 := h3 j i j1
-  --     subst j2; grind
+
   -- case _ =>
   --   cases h; apply EntryWf.odata
   --   simp [lookup]

@@ -48,7 +48,7 @@ partial def unify' : (t u : Ty) -> Option (Subst Ty)
 | _, _ => none
 
 
-/-- Contains 2 things, the unprocessed equalties, and the coercion itself -/
+/-- Contains 2 things, the unprocessed equalties, and the coercion itself (normal forms from TRAAT) -/
 structure UnifyState where
   subst : Subst Core.Ty
   equations : List (Ty × Ty)
@@ -183,6 +183,9 @@ abbrev UResult (α : Type u) := Except (Ty × Ty) α
 instance : Pure UResult where
   pure x := .ok x
 
+-- We only consider those UnifyState that does not have foralls in it
+def UnifyStateWf (u : UnifyState) : Prop := ∀ t ∈ u.equations, t.1.isNotAll ∧ t.2.isNotAll
+
 -- Performs one step of "unification"
 @[simp]
 def unifyStep (u : UnifyState) (h : u.nonEmptyEqns) : UResult UnifyState :=
@@ -202,6 +205,59 @@ def unifyStep (u : UnifyState) (h : u.nonEmptyEqns) : UResult UnifyState :=
     if k1 == k2 then return ⟨u.subst, (x1, x2) :: (y1, y2) :: eqs⟩ else .error (.eq k1 x1 y1, .eq k2 x2 y2)
   | .cons (t1, t2) tl => .error (t1, t2)
 
+theorem freevars_after_subst {t s : Ty} {x : Nat} {σ : Subst Core.Ty}
+  (h2 : x ∉ s)
+  (h3 : t.isNotAll) (h4 : s.isNotAll):
+  σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
+  x ∉ freeVars (t[σ]) -- = freeVars s ∪ freeVars t -- - { x }
+:= by
+  intro e
+  subst e; simp;
+  match t with
+  | .var z =>
+    simp; have lem := not_in_freeVars_iff_not_FV x h4;
+    cases decEq x z
+    case _ =>
+      have e : (x = z) = False := by grind
+      simp [e]
+    case _ e => subst e; simp; simp [lem]; apply h2
+  | .global _ => simp
+  | .arrow t1 t2 =>
+    simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
+    simp; apply And.intro
+    · simp [freevars_after_subst h2 h3a h4]
+    · simp [freevars_after_subst h2 h3b h4]
+  | .app t1 t2 =>
+    simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
+    simp; apply And.intro
+    · simp [freevars_after_subst h2 h3a h4]
+    · simp [freevars_after_subst h2 h3b h4]
+  | .eq k t1 t2 =>
+    simp [isNotAll] at h3; rcases h3 with ⟨h3a, h3b⟩
+    simp; apply And.intro
+    · simp [freevars_after_subst h2 h3a h4]
+    · simp [freevars_after_subst h2 h3b h4]
+  | .all k t => simp [Ty.isNotAll] at h3
+
+theorem freevars_after_subst_on_eqns {eqns : List (Ty × Ty)} {s : Ty} {x : Nat} {σ : Subst Core.Ty}
+  (h2 : x ∉ s)
+  (h3 : ∀ t ∈ eqns, t.1.isNotAll ∧ t.2.isNotAll) (h4 : s.isNotAll):
+  σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
+  x ∉ varsEqns (eqns.map (λ (t1, t2) => (t1[σ], t2[σ])))
+:= by
+  intro e; subst e; simp
+  match eqns with
+  | .nil => simp
+  | .cons ⟨t1, t2⟩ eqns =>
+    have h3 := h3 (t1, t2) (by constructor); rcases h3 with ⟨h1a, h2a⟩; simp at h1a h2a
+    simp [varsEqns];
+    apply And.intro
+    · apply freevars_after_subst h2 h1a h4; simp
+    · apply And.intro
+      · apply freevars_after_subst h2 h2a h4; simp
+      · have lem : ∀ t ∈ eqns, t.1.isNotAll ∧ t.2.isNotAll := by grind
+        simp [freevars_after_subst_on_eqns h2 lem h4]
+
 
 theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns) (h : unifyStep u invh = .ok u') :
   Prod.Lex (fun a₁ a₂ => a₁ < a₂) (fun a₁ a₂ => a₁ < a₂) (UnifyStateSize u') (UnifyStateSize u)
@@ -219,6 +275,10 @@ theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns) (h : unif
     case _ h1 =>
     rcases h1 with ⟨h1, h2⟩; cases h
     simp; apply Prod.Lex.left;
+    simp [not_in_freeVars_iff_not_FV v h2] at h1
+    have lem := freevars_after_subst_on_eqns (eqns := tl) h1 (σ := ⟨fun y => if v = y then su rhsTy else su t#y⟩)
+    simp at lem;
+    replace lem := lem sorry h2
     sorry
 
   case global =>
@@ -288,7 +348,7 @@ theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns) (h : unif
 
   case all =>  cases rhsTy  <;> try simp [isNotAll] at h
 
-
+-- TODO: the u here needs to be well formed. i.e. none of the type equations have foralls
 def loopUnify (u : UnifyState) : UResult (Subst Core.Ty) :=
   if h : u.nonEmptyEqns
   then
@@ -321,7 +381,7 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns)(σ : Subst Core.
   case _ e => simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h e;
   case _ x t _ h3 =>
     split at h1 <;> try simp at h1
-    case _ h4 =>
+    case _ eqns h4 =>
     rcases h4 with ⟨h4, h⟩
     cases h1; apply And.intro
     · simp [UnifierOfSubst]; intro x'
@@ -329,6 +389,9 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns)(σ : Subst Core.
       rcases h2 with ⟨h1, h2⟩; simp [UnifierOfSubst] at h1;
       replace h1 := h1 x';
       -- The point here is that x ≠ x'. why?
+      unfold EqnsUnifier at h2;
+      cases eqns <;> simp at *
+      sorry
       sorry
     · simp [h3, EqnsUnifier];
       simp [UnifierOfUnifyState] at h2
@@ -434,7 +497,8 @@ decreasing_by case _ e _ _ => -- for some reason lean cannot figure this one out
   simp at h; apply loopUnifyDecreases e zdef
 
 
-theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) : loopUnify u = .ok σ -> UnifierOfUnifyState σ u
+theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) :
+  loopUnify u = .ok σ -> UnifierOfUnifyState σ u
 := by
   intro h
   replace hi := loopUnify_idempotency hi h
