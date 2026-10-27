@@ -544,7 +544,7 @@ theorem translate_IC_indexing_inst_scs {G : Intermediate.GlobalEnv} {G' : Core.G
     split at h3 <;> try simp at h3
     case _ lki_cls =>
     split at h3 <;> try simp at h3
-    case _ cls_name _ _ _ e =>
+    case _ cls_name _ _ _ _ e =>
     subst e
     simp [Except.bind_eq_ok_iff] at h3; rcases h3 with ⟨mthsΓ, h3, h4⟩
     simp [Except.map_eq_ok_iff] at h4; rcases h4 with ⟨scsΓ, h4, h5⟩
@@ -640,7 +640,7 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
     split at h3 <;> try simp at h3
     case _ lki_cls =>
     split at h3 <;> try simp at h3
-    case _ cls_name _ _ _ e =>
+    case _ cls_name _ _ _ _ e =>
     subst e
     simp [Except.bind_eq_ok_iff] at h3; rcases h3 with ⟨mthsΓ, h3, h4⟩
     simp [Except.map_eq_ok_iff] at h4; rcases h4 with ⟨scsΓ, h4, h5⟩
@@ -804,7 +804,7 @@ theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : 
 theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
   {Ks : Vec Core.Kind kc} (wf : ⊢ G):
   ⟦ G ⟧ = .ok G' ->
-  Intermediate.lookup x G = Intermediate.Entry.odata x Ks scs mths ->
+  Intermediate.lookup x G = Intermediate.Entry.odata x Ks fds scs mths ->
   Core.lookup x G' = Core.Entry.odata x (Core.Kind.mk_kind Ks)
 := by
   intro h1 h2
@@ -1462,7 +1462,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     split at h1 <;> try simp at h1
     case _ h2 =>
     split at h1 <;> try simp at h1
-    case _ cls_name _ scs_τs m_τs e =>
+    case _ cls_name _ _ scs_τs m_τs e =>
     subst e
     simp [Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ'', h1, h3⟩
     rcases h3 with ⟨G', h3, h4⟩;
@@ -1478,7 +1478,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
           · apply translate_IC_lookup_none h j1
 
     replace ihwf := Core.ListGlobalWf.cons lemwf ih
-    simp [h2] at j2; rcases j2 with ⟨e1, e2, e3, e4⟩; subst e1 e2 e3 e4;
+    simp [h2] at j2; rcases j2 with ⟨e1, e2, e3, e4, e5⟩; subst e1 e2 e3 e4 e5;
     apply mk_inst_scs_IC_wf_sound
     · have lem := mk_inst_mths_IC_wf_sound (G1 := []) (G2 := Γ'') (wf := by simp; apply ihwf) j5
       simp at lem; replace lem := lem h1

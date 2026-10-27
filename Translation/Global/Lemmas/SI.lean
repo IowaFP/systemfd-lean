@@ -203,7 +203,7 @@ theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
   {K : Vec Core.Kind nc} :
   ⟦ G ⟧ = .ok G' ->
   Surface.lookup cls G = Surface.Entry.odata cls K scs mτs ->
-  ∃ scs' mτs', Intermediate.lookup cls G' = Intermediate.Entry.odata cls K scs' mτs'
+  ∃ fds' scs' mτs', Intermediate.lookup cls G' = Intermediate.Entry.odata cls K fds' scs' mτs'
 := by
   intro h1 h2
   fun_induction translate_SI generalizing G' <;> simp [Surface.lookup, pure] at h2
@@ -541,7 +541,7 @@ theorem lookup_kind_SI_some {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv
     subst h1; have lem := Surface.lookup_name_agrees lki_def;
     simp [Surface.Entry.name] at lem; subst lem;
     have lem := lookup_SI_odata h lki_def;
-    rcases lem with ⟨_, lem⟩
+    rcases lem with ⟨_, _, lem⟩
     cases lks <;> simp at *; rw[lkc_def] at lem; simp at lem
     rw[lkc_def] at lem; cases lem; simp [Intermediate.Entry.kind]
     case _ val => simp at val; simp [val]
@@ -567,7 +567,7 @@ theorem lookup_is_data_SI_some {G : Surface.GlobalEnv} {G' : Intermediate.Global
     have lem := lookup_SI_data h h2; simp [lem,Intermediate.Entry.is_data]
   · simp [Intermediate.is_data, Option.getD_eq_iff];
     have lem := Surface.lookup_name_agrees h2; simp [Surface.Entry.name] at lem; subst x
-    have lem := lookup_SI_odata h h2; rcases lem with ⟨_, _, lem⟩;
+    have lem := lookup_SI_odata h h2; rcases lem with ⟨_, _, _, lem⟩;
     simp [lem, Intermediate.Entry.is_data]
 
 
@@ -939,7 +939,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         replace ci7 := ci7 i (by grind)
         rcases ci7 with ⟨mn', R', T', tys, T'_shape, tys_eq, ⟨ci7a, ci7b⟩, ci7c⟩
         simp [cs6a] at ci7a; subst mn'
-        rw [cs6a] at ci7b; simp [mk_method_om, Vec.append] at ci7b;
+        rw [cs6a] at ci7b; simp [mk_method_om] at ci7b;
         rcases ci7b with ⟨e1, e2⟩; subst e1 e2
         rcases h7 with ⟨a, b, h7a, h7b, h7c⟩; subst h7b
         simp [List.getElem?_eq_some_iff] at h7a; rcases h7a with ⟨hi, h7a⟩
@@ -1099,7 +1099,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 rcases lem1 with ⟨lem1a, lem1b⟩
                 apply Or.inl
                 exists j;
-                replace lem := lem scs'[j] (by grind); rcases lem with ⟨mn, n, na, nb, v, lem⟩
+                replace lem := lem ((scs'[j]'(by grind))) (by grind); rcases lem with ⟨mn, n, na, nb, v, lem⟩
                 exists #((q, ⟨n, (v, na, nb)⟩)); simp [List.getElem_eq_iff] at lem; simp [lem]
                 apply And.intro
                 grind
