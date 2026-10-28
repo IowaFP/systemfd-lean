@@ -544,7 +544,7 @@ theorem lookup_kind_SI_some {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv
     rcases lem with ⟨_, _, lem⟩
     cases lks <;> simp at *; rw[lkc_def] at lem; simp at lem
     rw[lkc_def] at lem; cases lem; simp [Intermediate.Entry.kind]
-    case _ val => simp at val; simp [val]
+    case _ val => simp at val; simp [val, Core.Kind.mk_cls_kind]
 
 theorem kinding_SI_transfer {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} (h : ⟦ G ⟧ = .ok G') :
   G&Δ ⊢s T : K ->  G'&Δ ⊢ T : K
@@ -728,6 +728,10 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
 
         simp at lem;
         let scsi' := (scs'[i]'(by grind))
+        have lemwf : ⊢ (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ')
+              := by apply Intermediate.ListGlobalWf.cons
+                    apply Intermediate.GlobalWf.classDecl; assumption; repeat (simp)
+                    apply ih wftl h1
 
         exists scsi'.1; exists scsi'.2
         apply And.intro
@@ -737,38 +741,38 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
           simp
           intro i; cases i using Fin.cases;
           · simp;
-            have lem := Intermediate.Kinding.spine_typing_lemma
+            have lem := Intermediate.Kinding.spine_lemma
                        (s := s) (K := ★) (G := Intermediate.Global.classDecl ⟨s, kc, Ks, [], [],[]⟩ :: Γ') (T := (gt#s).mkApps_nats (List.range kc).reverse) (Δ := Ks.list.reverse) (tys := (List.range kc).reverse.map (t#·))
             replace lem := lem (Core.Ty.mkApps_nats_spine s (List.range kc).reverse)
             simp [lem]
+            exists (★.mk_kind Ks)
             apply And.intro
-            exists mk_cls_kind Ks; apply Intermediate.Kinding.global; simp [Intermediate.lookup_kind, Intermediate.lookup, Intermediate.Entry.kind, mk_cls_kind]
-            exists Ks; intro i; apply Intermediate.Kinding.var;
-            conv =>
-              lhs
-              simp [<-Vec.list_reverse];
-            simp [List.getElem?_eq_some_iff];
-            clear lem c1 c2 c3 c4 c5 c6 c7 c8 ih scsi'
-            have lem : kc - 1 - ↑i < kc := by omega
-            exists lem
-            have lem : kc - 1 - (kc - 1 - ↑i) = i := by grind
-            simp only [lem]; apply Vec.list_get
+            · apply Intermediate.Kinding.global; simp [Intermediate.lookup_kind, Intermediate.lookup, Intermediate.Entry.kind]
+            · exists kc; exists Ks;
+              apply And.intro
+              · rfl
+              simp; intro i; apply Intermediate.Kinding.var;
+              conv =>
+                lhs
+                simp [<-Vec.list_reverse];
+              simp [List.getElem?_eq_some_iff];
+              clear lem c1 c2 c3 c4 c5 c6 c7 c8 ih scsi'
+              have lem : kc - 1 - ↑i < kc := by omega
+              exists lem
+              have lem : kc - 1 - (kc - 1 - ↑i) = i := by grind
+              simp only [lem]; apply Vec.list_get
           · case _ i => apply i.elim0
           · replace c4 := c4 i (by grind)
             rcases c4 with ⟨mn, SC, scτ, c4a, c4b, c4c⟩; rw[c4a]
             simp;
-            have lemwf : ⊢ (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ')
-              := by apply Intermediate.ListGlobalWf.cons
-                    apply Intermediate.GlobalWf.classDecl; assumption; repeat (simp)
-                    apply ih wftl h1
             replace c4c := kinding_SI_transfer h1 c4c
             replace c4c := Intermediate.Kinding.weaken_global lemwf c4c
             apply c4c
 
           simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine]; replace c4 := c4 i (by grind); rcases c4 with ⟨mn, SC, τs, c4a, c4b, c4c⟩;
-          simp [c4a]; apply lookup_is_data_SI_some h1 c4b
+          simp [c4a]; have lem := lookup_is_data_SI_some h1 c4b;
+          apply Intermediate.is_data_weaken lemwf lem
           simp; simp [Intermediate.Ty.data?, Core.Ty.mkApps_nats_spine, Intermediate.is_data, Intermediate.lookup, Intermediate.Entry.is_data]
-
 
       · intro i hi
         replace c4 := c4 i (by grind)

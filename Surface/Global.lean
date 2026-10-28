@@ -82,7 +82,7 @@ def Entry.is_defn : Entry -> Bool
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ Ks _ _ => Core.Kind.mk_kind Ks
+| odata _ Ks _ _ => Core.Kind.mk_cls_kind Ks
 | _ => none
 
 def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String) (sc_params : List (Fin kc)) : Core.SpineTy :=
