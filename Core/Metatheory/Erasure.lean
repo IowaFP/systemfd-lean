@@ -9,23 +9,33 @@ import Core.Typing
 
 namespace Core
 
+namespace Untyped
+
+/-- A term in the untyped target language. -/
+inductive Term
+| var : Nat → Term
+
+
+-- TODO: define reductions.
+
+end Untyped
+
 /--
 Erases both types and coercions.
 -/
-def Term.erase (G : GlobalEnv): Term → Term
-  | var n => var n
+def Term.erase {G : GlobalEnv} (wf : ⊢ G): Term → Untyped.Term
+  | var n => .var n
   -- TODO: determine how to
   -- handle case where def is none.
   | defn x => 
     match lookup_defn G x with
-      | some (A, t) => t
-      -- FIXME: remove var 0
-      | none => var 0
+      | some (A, t) => sorry -- Term.erase wf t
+      | none => sorry
   | _ => sorry
 
 notation "⟦" e "⟧_[" G "]" => Term.erase G e
 
--- TODO: explore bisimulations
-def erasure (G : GlobalEnv)(t t' : Term) :
-  G ⊢ t ~> t'
-  → ⟦t⟧_[G] = ⟦t'⟧_[G] ∨ G ⊢ ⟦t⟧_[G] ~> ⟦t'⟧_[G] := by sorry
+-- -- TODO: explore bisimulations
+-- def erasure (G : GlobalEnv)(t t' : Term) :
+--   G ⊢ t ~> t'
+--   → ⟦t⟧_[G] = ⟦t'⟧_[G] ∨ G ⊢ ⟦t⟧_[G] ~> ⟦t'⟧_[G] := by sorry
