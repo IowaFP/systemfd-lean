@@ -252,7 +252,8 @@ inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
   EntryWf G (.odata (n := n) x Ks1 fdτ scsτs mτs)
 | openm {n : Nat} {Ks1 : Vec Core.Kind n} :
   lookup x G = some (.odata (n := n) x Ks1 fdτ scsτs mτs) ->
-  EntryWf G (.openm mn cls mthTy τ)
+  SpineKinding .openm mn G (λ _ => true) T ->
+  EntryWf G (.openm mn cls mthTy T)
 | defn {G : Intermediate.GlobalEnv}:
   G&[] ⊢ T : ★ ->
   lookup x G = some (.defn x T t) ->
@@ -501,7 +502,7 @@ theorem EntryWf.weaken {G : GlobalEnv} (wf : ⊢ (g::G))
 | odata j1 => odata (lookup_weaken wf j1)
 | defn j1 j2 => defn (j1.weaken_global wf) (lookup_weaken wf j2)
 | octor j1 j2 => octor (j1.weaken_global wf (λ _ => Ty.data?_global_weaken wf)) (lookup_weaken wf j2)
-| openm _ => sorry
+| openm j1 j2 => openm (lookup_weaken wf j1) sorry
 
 theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
   ⊢ G ->
@@ -567,7 +568,12 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
     clear c1 c2 c3 c4 c5
     apply EntryWf.odata
     · simp[lookup]
-  · subst e;
+  case _ cls_name na KcU fds sds mths G _ h1 i h2 mn τ h3 =>
+    subst e; simp [List.findIdx?_eq_some_iff_getElem] at h2
+    rcases h2 with ⟨hi, h2, h4⟩
+    simp [List.getElem?_eq_getElem hi] at h3
+    simp [h3] at h2; subst x;
+
     sorry
   · subst e; sorry
   case _ e =>
@@ -1026,7 +1032,7 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
 
 theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
   T.spine = some (s,  tys) ->
-  ((Intermediate.Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), /- (κ = mk_cls_kind K κs ) ∧ -/ (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
+  ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), /- (κ = mk_cls_kind K κs ) ∧ -/ (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
 := by
 
   sorry
