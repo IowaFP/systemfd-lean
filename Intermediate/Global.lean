@@ -114,7 +114,7 @@ def Entry.is_this_data : String -> Core.DataConst -> Entry -> Bool
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ K _ _ _ => Core.Kind.mk_kind K
+| odata _ K _ _ _ => Core.Kind.mk_kind ★ K
 | _ => none
 
 

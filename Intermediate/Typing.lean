@@ -98,7 +98,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 
   (∀ (i : Nat), (hi : i < scτs.length) ->
     ∃ mn τ, scτs[i] = (mn, τ) ∧
-    SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, na, Ks, [], [], []⟩ :: G) (Ty.data? .opn G) τ) ->
+    SpineKinding Core.SpCtorVariant.openm mn (.classDecl ⟨s, na, Ks, [], [], []⟩ :: G) (Ty.data? .opn (.classDecl ⟨s, na, Ks, [], [], []⟩ :: G)) τ) ->
 
   (∀ (i : Nat), (hi : i < scτs.length) -> ∃ (mn : String) (R T : Core.Ty) (tys : List Core.Ty) (SC : String) (tys2 : List (Fin na)),
    (T.spine = .some (s, tys)) ∧
@@ -250,9 +250,10 @@ inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
 | odata {n : Nat} {Ks1 : Vec Core.Kind n}:
   lookup x G = some (.odata (n := n) x Ks1 fdτ scsτs mτs) ->
   EntryWf G (.odata (n := n) x Ks1 fdτ scsτs mτs)
-| openm {n : Nat} {Ks1 : Vec Core.Kind n} :
+| openm {n : Nat} {Ks1 : Vec Core.Kind n}  (x : String) (mthTy : OpenMethodType) (i : Nat) :
   lookup x G = some (.odata (n := n) x Ks1 fdτ scsτs mτs) ->
-  SpineKinding .openm mn G (λ _ => true) T ->
+  ((mthTy = .clsMth) -> mτs[i]? = some (mn, T) -> SpineKinding .openm mn G (λ _ => true) T) ->
+  ((mthTy = .supCls) -> scsτs[i]? = some (mn, T) -> SpineKinding .openm mn G (Ty.data? .opn G) T) ->
   EntryWf G (.openm mn cls mthTy T)
 | defn {G : Intermediate.GlobalEnv}:
   G&[] ⊢ T : ★ ->
@@ -464,14 +465,17 @@ theorem Kinding.weaken_cls_mths {G : GlobalEnv} (wf : ⊢ (Global.classDecl ⟨y
 | eq j1 j2 => eq (j1.weaken_cls_mths wf) (j2.weaken_cls_mths wf)
 
 
-theorem SpineKinding.weaken_cls_mths (wf : ⊢ (Global.classDecl ⟨y, n, Ks, fds, scs, mths⟩ :: G))
-  : Intermediate.SpineKinding v x (Global.classDecl ⟨y, n, Ks, [], [], []⟩ :: G) tst T ->
-    Intermediate.SpineKinding v x (Global.classDecl ⟨y, n, Ks, fds, scs, mths⟩ :: G) tst T
+theorem SpineKinding.weaken_cls_mths {tst : GlobalEnv -> Core.Ty -> Bool}
+  (wf : ⊢ (Global.classDecl ⟨y, n, Ks, fds, scs, mths⟩ :: G))
+  (h : ∀ A : Core.Ty, tst (Global.classDecl ⟨y, n, Ks, [], [], []⟩ :: G) A -> tst (Global.classDecl ⟨y, n, Ks, fds, scs, mths⟩ :: G) A)
+  : Intermediate.SpineKinding v x (Global.classDecl ⟨y, n, Ks, [], [], []⟩ :: G) (tst (Global.classDecl ⟨y, n, Ks, [], [], []⟩ :: G)) T ->
+    Intermediate.SpineKinding v x (Global.classDecl ⟨y, n, Ks, fds, scs, mths⟩ :: G) (tst (Global.classDecl ⟨y, n, Ks, fds, scs, mths⟩ ::G)) T
 | .valid e j1 j2 j3 j4 =>
   let j1' := λ i => (j1 i).weaken_cls_mths wf
   let j2' := j2.weaken_cls_mths wf
+  let j3' := h _ j3
   let j4' := λ e i => Ty.data?_global_weaken_cls_mth wf (j4 e i)
-  .valid e j1' j2' j3 j4'
+  .valid e j1' j2' j3' j4'
 
 
 theorem SpineKinding.weaken_global {G : GlobalEnv} {tst : GlobalEnv -> Core.Ty -> Bool} (wf : ⊢ (g::G))
@@ -502,7 +506,11 @@ theorem EntryWf.weaken {G : GlobalEnv} (wf : ⊢ (g::G))
 | odata j1 => odata (lookup_weaken wf j1)
 | defn j1 j2 => defn (j1.weaken_global wf) (lookup_weaken wf j2)
 | octor j1 j2 => octor (j1.weaken_global wf (λ _ => Ty.data?_global_weaken wf)) (lookup_weaken wf j2)
-| openm j1 j2 => openm (lookup_weaken wf j1) sorry
+| openm x mtype i j1 j2 j3 =>
+  let j1' := lookup_weaken wf j1
+  let j2' := λ e h => (j2 e h).weaken_global (tst := λ _ _ => true) wf (by simp)
+  let j3' := λ e h => (j3 e h).weaken_global wf (λ _ => Ty.data?_global_weaken wf) -- TODO: I suspect this is not correct
+  openm x mtype i j1' j2' j3'
 
 theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
   ⊢ G ->
@@ -573,9 +581,37 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
     rcases h2 with ⟨hi, h2, h4⟩
     simp [List.getElem?_eq_getElem hi] at h3
     simp [h3] at h2; subst x;
+    apply EntryWf.openm (n := na) (Ks1 := KcU) (mthTy := .supCls) (x := cls_name) (scsτs := sds) (mτs := mths) (fdτ := fds) (i := i)
+    simp [lookup];
+    simp
+    simp
+    simp [List.getElem?_eq_getElem hi];
+    have wf' := wf
+    cases wf; case _ wf =>
+    cases wf; case _ c _ _ _ _ _ _ =>
+    replace c := c i hi
+    rcases c with ⟨mn, τ, ca, cb⟩;
+    intro ca'; simp [ca] at ca'; rcases ca' with ⟨e1, e2⟩; subst e1 e2
+    apply cb.weaken_cls_mths wf' (by intro T h; apply Ty.data?_global_weaken_cls_mth wf' h)
 
-    sorry
-  · subst e; sorry
+  case _ cls_name ka KsU fds scs mths _ h1 i h2 mn τ h3 =>
+    subst e; simp [List.findIdx?_eq_some_iff_getElem] at h2
+    rcases h2 with ⟨hi, h2, h4⟩
+    simp [List.getElem?_eq_getElem hi] at h3
+    simp [h3] at h2; subst x;
+    apply EntryWf.openm (n := ka) (Ks1 := KsU) (mthTy := .clsMth) (x := cls_name) (scsτs := scs) (mτs := mths) (fdτ := fds) (i := i)
+    · simp [lookup];
+    · simp
+      simp [List.getElem?_eq_getElem hi];
+      have wf' := wf
+      cases wf; case _ wf =>
+      cases wf; case _ c _ _ =>
+      replace c := c i hi
+      rcases c with ⟨mn, τ, ca, cb⟩;
+      intro ca'; simp [ca] at ca'; rcases ca' with ⟨e1, e2⟩; subst e1 e2
+      apply cb.weaken_cls_mths (tst := λ _ _ => true) wf' (by simp)
+    · simp
+
   case _ e =>
     have wf' := wf
     cases wf; case _ wf =>
@@ -926,34 +962,41 @@ theorem lookup_openm_index_cls_mth {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h1 <;> try simp at *
    split at h2 <;> try simp at *;
    apply ih h1 h2
- case classDecl c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
-   clear c1 c2 c3 c4 c5 c6 c7 c8 c9 c10
+ case classDecl scsτs mτs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
+   clear c1 c2 c3 /-c4-/ c5 c6 c7 c8 c9 c10
    split at h1 <;> try simp at h1
+
    split at h2 <;> try simp at h2
    split at h1 <;> try simp at h1
-   case _ h4 _ _ _ e h3 =>
+   case _ e h3 =>
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2 e3
-     -- exfalso; apply Intermediate.lookup_openm_no_cls wftl h1 h4
      split at h1 <;> try simp at h1
      case _ h2 =>
-       replace ih := ih h1; sorry
-     split at h1 <;> try simp at h1
-     case _ h2 _ h3 =>
-       exfalso; simp [List.findIdx?_eq_some_iff_getElem] at h2;
+       have lem := Intermediate.lookup_openm_no_cls wftl h1
+       simp [c4] at lem
+     case _ i h2 =>
+       simp [List.findIdx?_eq_some_iff_getElem] at h2;
        rcases h2 with ⟨hi, h2, h4⟩;
-       replace ih := ih h1
-       sorry
-   case _  c1 c2 c3 _ e i h3 =>
+       simp [List.getElem?_eq_getElem hi] at h1
+   case _  e i h3 =>
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
-     sorry -- subst e3;
-     -- simp[List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨h, h3, _⟩; symm at h3
-     -- exists i; exists h
+     rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2 e3;
+     simp[List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨h, h3, _⟩; symm at h3
+     exists i; exists h
    case _ =>
      split at h1
      case _ =>
        split at h2
-       sorry -- apply ih h1 h2
+       split at h1 <;> try simp at h1
+       · split at h2 <;> try simp at h2
+         · apply ih h1 h2
+         · split at h2 <;> try simp at h2;
+           apply ih h1 h2
+       case _ i h2 =>
+         simp [List.findIdx?_eq_some_iff_getElem] at h2;
+         rcases h2 with ⟨hi, h2, h3⟩
+         simp [List.getElem?_eq_getElem hi] at h1
        case _ h3 =>
          simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, _⟩
          simp [List.getElem?_eq_getElem hi] at h2
@@ -998,7 +1041,7 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h2 <;> try simp at *;
    apply ih h1 h2
  case classDecl c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
-   clear c1 c2 c3 c4 c5 c6 c9 c10
+   clear c1 c2 c3 /-c4-/ c5 c6 c9 c10
    split at h1 <;> try simp at h1
    split at h2 <;> try simp at h2
    split at h1 <;> try simp at h1
@@ -1006,89 +1049,79 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2 e3
      split at h1 <;> try simp at h1
-     case _ h2 => sorry
-     -- exfalso; apply Intermediate.lookup_openm_no_cls wftl h1 h4
-     sorry
-   case _  c1 c2 c3 _ e i h3 =>
+     case _ h2 =>
+       have lem := Intermediate.lookup_openm_no_cls wftl h1
+       simp [c4] at lem
+     case _ i h2 =>
+       simp [List.findIdx?_eq_some_iff_getElem] at h2; rcases h2 with ⟨hi, h2, h3⟩
+       simp [List.getElem?_eq_getElem hi] at h1
+       exists i; exists hi; symm; apply h2
+   case _  e i h3 =>
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
-     sorry -- subst e3;
-     -- simp[List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨h, h3, _⟩; symm at h3
-     -- exists i; exists h
+     rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2 e3
+     simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h2, h3⟩
+     simp [List.getElem?_eq_getElem hi] at h1
    case _ =>
      split at h1
      case _ =>
        split at h2
-       sorry -- apply ih h1 h2
+       split at h1 <;> try simp at h1
+       · split at h2 <;> try simp at h1
+         apply ih h1 h2
+         case _ i h3 =>
+         simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
+         simp [List.getElem?_eq_getElem hi] at h2
+       case _ i h3 =>
+         simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
+         simp [List.getElem?_eq_getElem hi] at h1 h2
+         rcases h1 with ⟨e1, e2, e3⟩; subst e2;
+         exists i;
        case _ h3 =>
          simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, _⟩
          simp [List.getElem?_eq_getElem hi] at h2
      case _ h3 =>
        simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, _⟩
-       sorry
+       simp [List.getElem?_eq_getElem hi] at h1 h2
  case inst =>
    split at h1 <;> simp at *
    split at h2 <;> try simp at *
    apply ih h1 h2
 
-theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
+theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
   T.spine = some (s,  tys) ->
-  ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), /- (κ = mk_cls_kind K κs ) ∧ -/ (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
+  ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length) (hk : Core.Kind.mk_kind K κs = κ), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
 := by
-
-  sorry
-
--- theorem Kinding.spine_typing_lemma {s : String} {K : Core.Kind}:
---   T.spine = some (s,  tys) ->
---   (G&Δ ⊢s T : K -> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length), (G&Δ ⊢s gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢s tys[i]'(by grind) : κs[i]))
--- := by
---   intro h
---   intro h1;
---   induction T generalizing tys K <;> simp [Core.Ty.spine] at h
---   rcases h with ⟨h1, h2⟩; subst s; subst tys; exists K; exists 0; exists #(); simp; apply h1
---   case _ f arg ih1 ih2 =>
---       cases h1
---       case _ aK aτ fτ =>
---       simp [Option.bind_eq_some_iff] at h; rcases h with ⟨H, sp1, h1, h2, h3⟩
---       subst H; subst tys; replace ih1 := ih1 h1 fτ
---       rcases ih1 with ⟨κ, kc, κs, hi, ih1a, ih1b⟩
---       let ks := κs ++ #(aK)
---       have lem : 1 + kc = kc + 1 := by grind
---       rw[lem] at ks
---       exists κ
---       exists kc + 1
---       exists ks
---       constructor
---       · apply And.intro; apply ih1a;
---         intro i
-
---         sorry
-
-
-      -- · grind
-      -- cases kc
-      -- case zero =>
-      --   exists 1; exists #(aK);
-      --   constructor;
-      --   simp; apply And.intro; apply ih1a;
-      --   have lem' : sp1 = [] := by grind
-      --   simp only [lem']; simp; apply aτ
-      --   grind
-      -- case succ kc =>
-      --   exists kc + 1 + 1
-      --   let ks := κs ++ #(aK)
-      --   simp at ks;
-      --   have e : 1 + (kc + 1) = kc + 1 + 1 := by grind
-      --   rw[e] at ks;
-      --   exists ks
-      --   constructor
-      --   apply And.intro
-      --   · apply ih1a
-      --   · intro i
-      --     cases i using Fin.cases;
-      --     sorry
-      --     sorry
-      --   simp; grind
-
+  intro h
+  fun_induction Core.Ty.spine generalizing s tys K <;> simp at h
+  case _ =>
+    rcases h with ⟨e1, e2⟩; subst e1 e2; simp;
+    apply Iff.intro
+    · intro h; exists K; apply And.intro; apply h; exists 0; exists #(); simp [Core.Kind.mk_kind]
+    · intro h; rcases h with ⟨κ, h1, _, Ks, h2, h3, _⟩; subst h3; cases Ks; simp [Core.Kind.mk_kind] at h2; subst h2; apply h1
+  case _ f a ih =>
+    simp [Option.bind_eq_some_iff] at h; rcases h with ⟨s, tys, h1, h2, h3⟩
+    subst h2
+    subst h3
+    apply Iff.intro
+    · intro h; cases h;
+      case _ Ka ja jf =>
+      replace ih := @ih tys s (Ka -:> K) h1; simp [ih] at jf
+      rcases jf with ⟨cls_k, js, n, κ, h1, w, h2⟩
+      generalize ksdef : κ ++ #(Ka) = ks at *
+      have lem : 1 + n = n + 1 := by grind
+      simp only [lem] at ks
+      subst n; exists cls_k; exists tys.length + 1; exists ks
+      constructor
+      constructor
+      apply And.intro
+      apply js; intro i
+      · sorry
+      simp [<-h1, Core.Kind.mk_kind];  sorry
+      simp
+    · intro h;
+      rcases h with ⟨cls_k, kc, κs, hi, hk, j1, j2⟩
+      simp at hi; subst kc;
+      sorry
 
 
 end Intermediate

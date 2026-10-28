@@ -120,7 +120,8 @@ def Ty.subterms : Ty -> List Ty
 | x => [x]
 
 
-def Kind.mk_kind : Vec Kind n -> Kind := Vec.foldl (init := ★) (λ acc n => n -:> acc)
+def Kind.mk_kind : Kind -> Vec Kind n -> Kind := λ k => Vec.foldl (init := k) (λ acc n => n -:> acc)
+def Kind.mk_cls_kind : Vec Kind n -> Kind := mk_kind ★
 def Ty.mkApps (T : Ty) : List Ty -> Ty := List.foldl (init := T) (λ acc t => acc • t)
 def Ty.mkApps_nats (T : Ty) : List Nat -> Ty := List.foldl (init := T) (λ acc t => acc • t#t)
 

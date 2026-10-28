@@ -525,7 +525,7 @@ theorem translate_IC_indexing_inst_scs {G : Intermediate.GlobalEnv} {G' : Core.G
     case _ c1 c2 c3 c4 c5 c6 =>
     generalize mthdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths' = mths''  at *
     generalize scsdef : (List.map (fun x => Core.Global.openm x.fst x.snd) scs') = scs'' at *
-    generalize zdef : Core.Global.odata s (mk_cls_kind K) :: Γ' = Γ'' at *
+    generalize zdef : Core.Global.odata s (Core.Kind.mk_cls_kind K) :: Γ' = Γ'' at *
     exists (mths''.length + (scs''.length + (1 + i)))
     have lemi : i < Γ'.length := by simp [List.getElem?_eq_some_iff] at ih1; rcases ih1 with ⟨h, _⟩; apply h;
     have lem : mths''.length ≤ mths''.length + scs''.length + scs''.length + (1 + i) := by omega
@@ -621,7 +621,7 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
     case _ c1 c2 c3 c4 c5 c6 =>
     generalize mthdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths' = mths''  at *
     generalize scsdef : (List.map (fun x => Core.Global.openm x.fst x.snd) scs') = scs'' at *
-    generalize zdef : Core.Global.odata s (mk_cls_kind K) :: Γ' = Γ'' at *
+    generalize zdef : Core.Global.odata s (Core.Kind.mk_cls_kind K) :: Γ' = Γ'' at *
     exists (mths''.length + (scs''.length + (1 + i)))
     have lemi : i < Γ'.length := by simp [List.getElem?_eq_some_iff] at ih1; rcases ih1 with ⟨h, _⟩; apply h;
     have lem : mths''.length ≤ mths''.length + scs''.length + scs''.length + (1 + i) := by omega
@@ -805,7 +805,7 @@ theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
   {Ks : Vec Core.Kind kc} (wf : ⊢ G):
   ⟦ G ⟧ = .ok G' ->
   Intermediate.lookup x G = Intermediate.Entry.odata x Ks fds scs mths ->
-  Core.lookup x G' = Core.Entry.odata x (Core.Kind.mk_kind Ks)
+  Core.lookup x G' = Core.Entry.odata x (Core.Kind.mk_cls_kind Ks)
 := by
   intro h1 h2
   fun_induction translate_IC generalizing G' <;> simp [Intermediate.lookup] at *
@@ -866,7 +866,7 @@ theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
           replace m_in_mths : ∃ i : Nat, scs[i]? = some (y, τ) := by apply List.getElem?_of_mem m_in_mths
           rcases m_in_mths with ⟨i, lem⟩; simp [List.getElem?_eq_some_iff] at lem; rcases lem with ⟨hi, lem⟩;
           replace c1 := c1 i hi; simp [lem] at c1; intro; apply c1.1; symm; assumption
-        · simp [Core.lookup]; rfl
+        · simp [Core.lookup]
 
     case _ =>
       split at h2
@@ -932,7 +932,8 @@ theorem lookup_kind_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (
     subst h1;
     have e := Intermediate.lookup_name_agrees lki_def; simp [Intermediate.Entry.name] at e; subst e
     have lem := lookup_IC_odata wf h lki_def;
-    simp [lem] at lkc_def; subst lks; simp [Core.Entry.kind];
+    simp [lem] at lkc_def; subst lks; simp [Core.Entry.kind, Core.Kind.mk_cls_kind];
+
 
 theorem lookup_is_data_IC_some {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) (h : ⟦ G ⟧ = .ok G') :
   Intermediate.is_data c G x -> Core.is_data c G' x
@@ -1089,8 +1090,8 @@ theorem translate_IC_spine_kinding_data {G : Intermediate.GlobalEnv} {G' : Core.
 theorem translate_IC_spine_kinding_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
   (wf : ⊢ (.cons ((Intermediate.Global.classDecl ⟨s, k, K, [], [], []⟩)) G)) (ht : ⟦G⟧ = Except.ok G') :
   Intermediate.SpineKinding (Core.SpCtorVariant.openm) y (Intermediate.Global.classDecl ⟨s, k, K, [], [], []⟩ :: G) (λ _ => true) T ->
-  Core.SpineKinding (Core.SpCtorVariant.openm) y (.cons (Core.Global.odata s (Core.Kind.mk_kind K)) G') (λ _ => true) T
-:= by apply spine_kinding_IC_transfer wf (by simp [translate_IC, Functor.map, Except.map_eq_ok_iff]; apply And.intro; apply ht; rfl) (by simp)
+  Core.SpineKinding (Core.SpCtorVariant.openm) y (.cons (Core.Global.odata s (Core.Kind.mk_cls_kind K)) G') (λ _ => true) T
+:= by apply spine_kinding_IC_transfer wf (by simp [translate_IC, Functor.map, Except.map_eq_ok_iff]; apply ht) (by simp)
 
 theorem mk_inst_mths_IC_wf_sound {G1 G' : Core.GlobalEnv} {mτs : List (String × Core.SpineTy)}
   (wf : ⊢ (G1 ++ Core.Global.octor iname spTy :: G')) :
@@ -1416,12 +1417,12 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     rw[Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩; simp [Except.pure] at h1; subst G';
     cases wf; case _ wftl wfhd =>
     cases wfhd; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
-    have lem : ⊢ (Core.Global.odata s (mk_cls_kind Ks) :: Γ') := by
+    have lem : ⊢ (Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by
       constructor; constructor; apply translate_IC_lookup_none h c1; apply ih wftl h
     generalize mthGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = mthG at *
     generalize scGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) sds) = scsG at *
 
-    have wfscsΓ : ⊢ (scsG ++ Core.Global.odata s (mk_cls_kind Ks) :: Γ') := by
+    have wfscsΓ : ⊢ (scsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by
       apply mk_cls_scs_IC_wf_sound (G1 := []) (G' := Γ')
       · apply wftl
       · apply h

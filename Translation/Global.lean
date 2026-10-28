@@ -25,7 +25,6 @@ instance [i : BEq α] : BEq (TM α) where
   | .ok t1, .ok t2 => t1 == t2
   | _, _ => false
 
-def mk_cls_kind : Vec Core.Kind kc -> Core.Kind := Core.Kind.mk_kind
 
 def check_om : (String × Core.SpineTy) -> Option Unit
 | (s, ⟨na, Ks1, 0, #(), 0, #(), R⟩) => some ()
@@ -275,7 +274,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
   return mths.map (λ (n, spTy) => .openm n spTy)
          ++ scs.map (λ (n, spTy) => .openm n spTy)
          -- ++ fds.map (λ (n, spTy) => .openm n spTy)
-         ++ [.odata s (mk_cls_kind K)] ++ Γ'
+         ++ [.odata s (Core.Kind.mk_cls_kind K)] ++ Γ'
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
