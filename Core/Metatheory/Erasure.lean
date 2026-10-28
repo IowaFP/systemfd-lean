@@ -14,7 +14,14 @@ namespace Untyped
 /-- A term in the untyped target language. -/
 inductive Term
 | var : Nat → Term
-
+| app : Term → Term → Term
+| lam : Term → Term
+-- Tuples
+| pair : Term → Term → Term
+| fst : Term → Term
+| snd : Term → Term
+-- Guard: Case 1; Case 2
+| ite : Bool → Term → Term → Term
 
 -- TODO: define reductions.
 
