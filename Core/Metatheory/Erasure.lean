@@ -20,10 +20,26 @@ inductive Term
 | pair : Term → Term → Term
 | fst : Term → Term
 | snd : Term → Term
--- Guard: Case 1; Case 2
-| ite : Bool → Term → Term → Term
+-- Parameter: n
+-- Inputs: i
+-- Guard: i = n: Case 1; Case 2
+| ite : Nat → Nat → Term → Term → Term
 
--- TODO: define reductions.
+inductive Red : Term -> Term -> Prop where
+-- TODO: use LeanSubst in beta
+| beta : Red (.lam t) sorry
+| fst : Red (.fst (.pair t₁ t₂)) t₁
+| snd : Red (.fst (.pair t₂ t₂)) t₂
+-- TODO: maybe break up into ite_true, ite_false?
+| ite : Red ((.ite n i t₁ t₂)) (if i = n then t₁ else t₂)
+
+inductive RedStar : Term → Term → Prop where
+  | refl : RedStar x x
+  | step : Red x y → Red y z → RedStar x z
+
+inductive RedPlus : Term → Term → Prop where
+  | refl : Red x y → RedPlus x y
+  | step : Red x y → Red y z → RedPlus x z
 
 end Untyped
 
