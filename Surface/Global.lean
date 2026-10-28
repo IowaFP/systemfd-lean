@@ -106,11 +106,10 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
 
   let ms_mb : Option (String × Core.SpineTy) := ms.find? (λ (mn, _) => x == mn)
   let ms := ms_mb.map (λ (x, mn) => .openm x mn)
-  -- TODO Extensions for fundeps and superclasses
+  -- TODO Extensions for fundeps
   let scs_mb : Option (String × String × List (Fin kc)) := scs.find? (λ (sc, _, _) => x == sc)
   let scs := scs_mb.map (λ (scn, cls, tys) => Entry.openm scn (mk_superclass_om y Ks cls tys))
   -- let fds_mb : Option (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) := fds.find? (λ ⟨fdn, _, _, _⟩ => x == fdn)
-  -- let fds := fds_mb.map (λ ⟨fdn, n, dns, dt⟩ => Entry.openm fdn ⟨kc, Ks, 0, #(), 2, #(sorry, sorry), t`#0 ⟩)
   if ms.isSome then ms
   else if scs.isSome then scs
   -- else if fds.isSome then fds

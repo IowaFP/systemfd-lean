@@ -1107,20 +1107,25 @@ theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
       case _ Ka ja jf =>
       replace ih := @ih tys s (Ka -:> K) h1; simp [ih] at jf
       rcases jf with ⟨cls_k, js, n, κ, h1, w, h2⟩
-      generalize ksdef : κ ++ #(Ka) = ks at *
+      generalize ksdef : (#(Ka) ++ κ.reverse).reverse = ks at *
       have lem : 1 + n = n + 1 := by grind
-      simp only [lem] at ks
+      -- simp only [lem] at ks
       subst n; exists cls_k; exists tys.length + 1; exists ks
       constructor
       constructor
       apply And.intro
       apply js; intro i
-      · sorry
-      simp [<-h1, Core.Kind.mk_kind];  sorry
+      · simp [<-ksdef];
+
+        sorry
+      simp [<-h1, Core.Kind.mk_kind,<-ksdef]; sorry
       simp
     · intro h;
+      replace h' := h
       rcases h with ⟨cls_k, kc, κs, hi, hk, j1, j2⟩
+      -- replace ih := ih (K := (κs.reverse[0]) -:> K) h1
       simp at hi; subst kc;
+
       sorry
 
 
