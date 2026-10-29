@@ -24,7 +24,7 @@ namespace Core.Ty
 /-- heavily inspired by https://github.com/codyroux/traat-lean/tree/main/Traat -/
 
 -- σ is a unifier for t and u if t[σ] = u[σ]
-def Unifier (σ : Subst Ty) (t u : Core.Ty) : Prop := t[σ] = u[σ]
+def Unifier (σ : Subst Ty) (t u : Ty) : Prop := t[σ] = u[σ]
 
 
 -- def Unify (t u : Core.Ty) := ∃ σ : Subst Ty, t[σ] = u[σ]
@@ -51,7 +51,7 @@ partial def unify' : (t u : Ty) -> Option (Subst Ty)
 
 /-- Contains 2 things, the unprocessed equalties, and the coercion itself (normal forms from TRAAT) -/
 structure UnifyState where
-  subst : Subst Core.Ty
+  subst : Subst Ty
   equations : List (Ty × Ty)
 
 -- def UnifyState.id : UnifyState := ⟨Subst.id Ty, []⟩
@@ -66,7 +66,7 @@ noncomputable def UnifyState.eqnSize : UnifyState -> Nat
 | ⟨_, eqns⟩ => eqnsSize eqns
 
 @[simp]
-noncomputable def isVar : Core.Ty -> Bool
+noncomputable def isVar : Ty -> Bool
 | t#_ => true
 | _ => false
 
@@ -92,12 +92,12 @@ noncomputable def UnifyState.flippedEqnSize : UnifyState -> Nat
 
 
 @[simp]
-def freeVars : Core.Ty -> Finset Nat
+def freeVars : Ty -> Finset Nat
 | t#x => {x}
 | .app t1 t2 | .arrow t1 t2 | .eq _ t1 t2 => freeVars t1 ∪ freeVars t2
 | _ => {}
 
-def isNotAll : Core.Ty -> Bool
+def isNotAll : Ty -> Bool
 | ∀[_] _ => false
 | .app t1 t2 | .arrow t1 t2 | .eq _ t1 t2 => isNotAll t1 ∧ isNotAll t2
 | _ => true
@@ -206,8 +206,39 @@ def unifyStep (u : UnifyState) (h : u.nonEmptyEqns ∧ UnifyStateWf u) : UResult
     if k1 == k2 then return ⟨u.subst, (x1, x2) :: (y1, y2) :: eqs⟩ else .error (.eq k1 x1 y1, .eq k2 x2 y2)
   | .cons (t1, t2) tl => .error (t1, t2)
 
+@[simp, grind =]
+def unifyFails : Ty -> Ty -> Bool
+| t#_, _
+| _, t#_
+| gt#_, gt#_
+| _ -:> _, _ -:> _
+| .app _ _, .app _ _ => false
+| .eq k1 _ _, .eq k2 _ _ => k1 != k2
+| _ , _ => true
 
-theorem var_not_free_after_subst {t s : Ty} {x : Nat} {σ : Subst Core.Ty}
+
+theorem eqns_ind {motive : List (Ty × Ty) -> Prop} (l : List (Ty × Ty))
+  (h1   :                                motive [])
+  (h2   : ∀ l x t,           motive l -> motive ((t#x, t)::l))
+  (h3   : ∀ l x t,           (∀ y, t ≠ t#y) -> motive l -> motive ((t, t#x)::l))
+  (h4   : ∀ l x y,           motive l -> motive ((gt#x, gt#y) :: l))
+  (h5   : ∀ l t1 u1 t2 u2,   motive l -> motive (((t1 -:> u1), (t2 -:> u2)) :: l))
+  (h6   : ∀ l t1 u1 t2 u2,   motive l -> motive (((.app t1 u1), (.app t2 u2)) :: l))
+  (h7   : ∀ l k t1 u1 t2 u2, motive l -> motive (((.eq k t1 u1), (.eq k t2 u2)) :: l))
+  (dflt : ∀ l t u,           unifyFails t u -> motive ((t, u) :: l))
+  : motive l
+:= by
+  induction l
+  case nil => apply h1
+  case cons x xs ih =>
+  rcases x with ⟨t, u⟩
+  cases t <;> cases u <;> try grind
+  case _ k1 t1 u1 k2 t2 u2 =>
+  if h : k1 = k2
+  then subst h; apply h7 xs; apply ih
+  else apply dflt; simp; apply h
+
+theorem var_not_free_after_subst {t s : Ty} {x : Nat} {σ : Subst Ty}
   (h2 : x ∉ s)
   (h3 : t.isNotAll) (h4 : s.isNotAll):
   σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
@@ -241,7 +272,7 @@ theorem var_not_free_after_subst {t s : Ty} {x : Nat} {σ : Subst Core.Ty}
     · simp [var_not_free_after_subst h2 h3b h4]
   | .all k t => simp [Ty.isNotAll] at h3
 
-theorem var_not_free_after_subst_on_eqns {eqns : List (Ty × Ty)} {s : Ty} {x : Nat} {σ : Subst Core.Ty}
+theorem var_not_free_after_subst_on_eqns {eqns : List (Ty × Ty)} {s : Ty} {x : Nat} {σ : Subst Ty}
   (h2 : x ∉ s)
   (h3 : ∀ t ∈ eqns, t.1.isNotAll ∧ t.2.isNotAll) (h4 : s.isNotAll):
   σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
@@ -261,7 +292,7 @@ theorem var_not_free_after_subst_on_eqns {eqns : List (Ty × Ty)} {s : Ty} {x : 
         simp [var_not_free_after_subst_on_eqns h2 lem h4]
 
 -- TODO : How do we describe subtraction on finsets?
-theorem freevars_after_subst {t s : Ty} {σ : Subst Core.Ty}
+theorem freevars_after_subst {t s : Ty} {σ : Subst Ty}
   (h2 : x ∉ s)
   (h3 : t.isNotAll) (h4 : s.isNotAll):
   σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
@@ -297,7 +328,7 @@ theorem freevars_after_subst {t s : Ty} {σ : Subst Core.Ty}
     grind
   | .all k t => simp [Ty.isNotAll] at h3
 
-theorem freevars_after_subst_on_eqns {s : Ty} {σ : Subst Core.Ty} {eqns : List (Core.Ty × Core.Ty)}
+theorem freevars_after_subst_on_eqns {s : Ty} {σ : Subst Ty} {eqns : List (Ty × Ty)}
   (h2 : x ∉ s)
   (h3 : ∀ t ∈ eqns, t.1.isNotAll ∧ t.2.isNotAll) (h4 : s.isNotAll):
   σ = ⟨λ y => if x == y then .su s else .su t#y⟩ ->
@@ -524,7 +555,7 @@ theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns ∧ UnifyS
 
   case all =>  cases rhsTy  <;> try simp [isNotAll] at h
 
-def loopUnify (u : UnifyState) : Option (Subst Core.Ty) :=
+def loopUnify (u : UnifyState) : Option (Subst Ty) :=
   if h : u.nonEmptyEqns
   then
     if h1 : UnifyStateWf u then
@@ -537,7 +568,7 @@ termination_by (UnifyStateSize u)
 decreasing_by apply loopUnifyDecreases ⟨h, h1⟩ h2
 
 @[simp]
-abbrev EqnsUnifier (σ : Subst Core.Ty) : List (Core.Ty × Core.Ty) -> Prop
+abbrev EqnsUnifier (σ : Subst Ty) : List (Ty × Ty) -> Prop
 | .nil => True
 | .cons (t, u) l => Unifier σ t u ∧ EqnsUnifier σ l
 
@@ -545,117 +576,112 @@ abbrev EqnsUnifier (σ : Subst Core.Ty) : List (Core.Ty × Core.Ty) -> Prop
 def UnifierOfSubst (σ σ' : Subst Ty) : Prop := ∀ (x : Nat), σ.inner x = (σ'.inner x)[σ]
 def UnifierIdempotent (σ : Subst Ty) : Prop := UnifierOfSubst σ σ
 
-def UnifierOfUnifyState (σ' : Subst Core.Ty) (u : UnifyState) : Prop :=
+def UnifierOfUnifyState (σ' : Subst Ty) (u : UnifyState) : Prop :=
   UnifierOfSubst σ' u.subst ∧ EqnsUnifier σ' u.equations
 
+theorem unifyFails_implies_unifyStep_error (h : u.nonEmptyEqns ∧ UnifyStateWf u) :
+  (u = ⟨σ, (t1, t2) :: l⟩) ->
+  unifyFails t1 t2 -> (∃ e, unifyStep u h = .error e)
+:= by
+  intro e h
+  subst e; cases t1 <;> cases t2 <;> try simp [unifyStep, unifyFails] at *
+  case _ k1 t1 u1 k2 t2 u2 _ =>
+  have e : (k1 = k2) = False := by grind
+  simp [e]
 
-theorem unifyStep_idempotency {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
-  unifyStep u h = .ok u' -> UnifierIdempotent u'.subst
+theorem UnifierIdempotent_extension :
+  UnifierIdempotent σ ->
+  (σ.act i) = t#i ->
+  i ∉ t ->
+  UnifierIdempotent (σ ∘ ⟨λ y => if i = y then su t else .su t#y⟩) := by sorry
+
+
+theorem unifyStep_idempotency {u u': UnifyState} (precon : u.nonEmptyEqns ∧ UnifyStateWf u)
+  (hi : UnifierIdempotent u.subst) :
+  unifyStep u precon = .ok u' -> UnifierIdempotent u'.subst
 := by
   intro h
-  unfold unifyStep at h
-  split at h <;> try simp at h
-  case _ e h1 =>
-    simp [UnifyState.nonEmptyEqns] at e; exfalso; apply e.1 h1
-  case _ h3 =>
-    split at h <;> try simp at h
+  rcases u with ⟨u, l⟩
+  revert precon hi
+  apply eqns_ind l
+  · simp [UnifyState.nonEmptyEqns]
+  · intro l x t ih precon hi h;
+    simp  at h; split at h <;> try simp at h
     case _ h1 =>
-    rcases h1 with ⟨h1, h2⟩
     cases h
-    simp [UnifierIdempotent, UnifierOfSubst]; intro x'
-
+    simp at hi; simp;
+    rcases h1 with ⟨h1, h2⟩
+    simp [not_in_freeVars_iff_not_FV x h2] at h1
+    apply UnifierIdempotent_extension hi _ h1
     sorry
-  sorry
-  sorry
-  sorry
-  sorry
-  sorry
+  · intro l x t h1 ih precon hi h
+    simp  at h; split at h <;> try simp at h
+    case _ h1 =>
+    cases h
+    simp at hi; simp;
+    rcases h1 with ⟨h1, h2⟩
+    simp [not_in_freeVars_iff_not_FV x h2] at h1
+    apply UnifierIdempotent_extension hi _ h1
+    sorry
+  · intro l x y ih precon hi h
+    simp at h;
+    split at h <;> try simp at h
+    case _ e =>
+    subst e; cases h; grind
+  all_goals try (
+  · intro l _ _ _ _ ih precon hi h
+    simp at h; cases h; grind)
+  · intro l _ _ _ _ _ ih precon hi h
+    simp at h; cases h; grind
+  · intro l t1 t2 ih precon hi h
+    have lem := unifyFails_implies_unifyStep_error (l := l) (t1 := t1) (t2 := t2) (u := { subst := u, equations := (t1, t2) :: l : UnifyState}) precon rfl ih
+    rcases lem with ⟨e, lem⟩; simp only [lem] at h; cases h
 
 
-theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u)(σ : Subst Core.Ty) :
+
+theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (σ : Subst Ty) :
   unifyStep u h = .ok u' -> UnifierOfUnifyState σ u' -> UnifierOfUnifyState σ u
 := by
-  intro h1 h2
+  intro h1
+  rcases u with ⟨τ, l⟩
+  revert h
+  apply eqns_ind l
 
-  unfold unifyStep at h1
-  split at h1 <;> try simp at h1
-  case _ e => simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h.1 e;
-  case _ x t _ h3 =>
-    split at h1 <;> try simp at h1
-    case _ eqns h4 =>
-    rcases h4 with ⟨h4, h⟩
-    cases h1; apply And.intro
-    · simp [UnifierOfSubst]; intro x'
-      simp [UnifierOfUnifyState] at h2;
-      rcases h2 with ⟨h1, h2⟩; simp [UnifierOfSubst] at h1;
-      replace h1 := h1 x';
-      -- The point here is that x ≠ x'. why?
-      simp [not_in_freeVars_iff_not_FV x h] at h4
+  · intro inv h uus
+    simp at h; simp [UnifyState.nonEmptyEqns] at inv
 
-      sorry
-    · simp [h3, EqnsUnifier];
-      simp [UnifierOfUnifyState] at h2
-      rcases h2 with ⟨h1, h2⟩
-      apply And.intro
-      · simp [UnifierOfSubst] at h1; simp [Unifier];
-        replace h1 := h1 x; simp [Subst.act, SubstAction.act]; rw[h1];
-        -- The point here is that u.subst does not have x in its domain
-        -- hence lhs and rhs of the goal are the same
-        -- Why does u.subst does not have x in its domain?
-        -- becuase if it did, then (x, t) would not appear here, it would have been replaced by t'
-        sorry
-      · sorry -- apply h2
+  · intro l x t ih inv h uus
+    simp at h; split at h <;> try simp at h
+    case _ h1 =>
+    cases h
+    simp [UnifierOfUnifyState, Unifier]
+    simp [UnifierOfUnifyState] at uus
+    sorry
 
+  · sorry
 
-  case _ x t _ _ h3 =>
-    -- this case is very similar to the above case, just that its (t, x) instead of (x, t)
-    split at h1 <;> try simp at h1
-    case _ h4 =>
-    rcases h4 with ⟨h4, h⟩
-    cases h1; apply And.intro
-    · simp [UnifierOfSubst]; intro x'
-      simp [UnifierOfUnifyState] at h2;
-      rcases h2 with ⟨h1, h2⟩; simp [UnifierOfSubst] at h1;
-      replace h1 := h1 x';
-      -- The point here is that x ≠ x'. why?
-      sorry
-    · sorry
-
-  case _ h3 =>
-    split at h1 <;> try simp at h1
+  · intro l x y ih inv h uus;
+    simp at h; split at h <;> try simp at h
     case _ e =>
-    subst e; cases h1
-    simp [UnifierOfUnifyState] at *;
-    rcases h2 with ⟨h1, h2⟩
-    apply And.intro
-    · apply h1
-    · simp [h3, EqnsUnifier];
-      apply And.intro
-      · simp [Unifier]
-      · apply h2
-  case _ p1 =>
-    cases h1
-    simp [UnifierOfUnifyState] at *;
-    rcases h2 with ⟨h1, h2⟩
-    apply And.intro
-    apply h1
-    simp [p1, EqnsUnifier, Unifier] at *; grind
-  case _ p1 =>
-    cases h1
-    simp [UnifierOfUnifyState] at *;
-    rcases h2 with ⟨h1, h2⟩
-    apply And.intro
-    apply h1
-    simp [p1, EqnsUnifier, Unifier] at *; grind
-  case _ p1 =>
-    split at h1 <;> try simp at h1
-    case _ e =>
-    cases h1; simp at e; subst e;
-    simp [UnifierOfUnifyState] at *;
-    rcases h2 with ⟨h1, h2⟩
-    apply And.intro
-    apply h1
-    simp [p1, EqnsUnifier, Unifier] at *; grind
+    subst e; cases h
+    simp [UnifierOfUnifyState]
+    simp [UnifierOfUnifyState] at uus
+    simp [Unifier]; apply uus
+  all_goals try (
+  · intro l _ _ _ _ ih inv h uus
+    simp at h; cases h
+    simp [UnifierOfUnifyState, Unifier];
+    simp [UnifierOfUnifyState, Unifier] at uus
+    grind
+  )
+  · intro l _ _ _ _ _ ih inv h uus
+    simp at h; cases h
+    simp [UnifierOfUnifyState, Unifier];
+    simp [UnifierOfUnifyState, Unifier] at uus
+    grind
+  · intro l t u ih inv h uus
+    have lem := unifyFails_implies_unifyStep_error (l := l) (t1 := t) (t2 := u) (u := { subst := τ, equations := (t, u) :: l : UnifyState}) inv rfl ih
+    rcases lem with ⟨e, lem⟩; simp only [lem] at h; cases h
 
 theorem loopUnify_idempotency {σ  : Subst Ty} {u : UnifyState}
   (hi : UnifierIdempotent u.subst) (h : loopUnify u = some σ) : UnifierIdempotent σ
@@ -676,10 +702,6 @@ theorem loopUnify_idempotency {σ  : Subst Ty} {u : UnifyState}
 termination_by (UnifyStateSize u)
 decreasing_by case _ e1 e2 _ _ => -- for some reason lean cannot figure this one out
   simp at h; apply loopUnifyDecreases ⟨e1, e2⟩ zdef
-
-
--- theorem unifyStep_wf {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (hi : UnifierIdempotent u.subst) :
---   unifyStep u h = .ok u' -> UnifyStateWf u := by sorry
 
 
 theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempotent u.subst) :
@@ -704,8 +726,8 @@ theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempoten
     · apply hi
     · simp [EqnsUnifier]
 
-def unify (t u : Core.Ty) : Option (Subst Core.Ty) :=
-  loopUnify ⟨Subst.id Core.Ty, [(t, u)]⟩
+def unify (t u : Ty) : Option (Subst Ty) :=
+  loopUnify ⟨Subst.id Ty, [(t, u)]⟩
 
 theorem Subst.id_idempotent : UnifierIdempotent (Subst.id Ty)
 := by
@@ -724,18 +746,48 @@ theorem unify_soundness {t u : Ty} {σ  : Subst Ty}
   apply h2
 
 
-theorem unify_completeness {t u : Ty} {σ  : Subst Ty} :
-  Unifier σ t u -> unify t u = some σ'
-  -> ∃ (τ : Subst Core.Ty), σ = σ' ∘ τ := by sorry
+-- theorem unify_completeness {t u : Ty} {σ  : Subst Ty} :
+--   Unifier σ t u -> unify t u = some σ'
+--   -> ∃ (τ : Subst Ty), σ = σ' ∘ τ := by sorry
 
 
--- theorem unify_correctness : unify t u = some σ ↔ Unifier σ t u := ⟨unify_soundness, unify_completeness⟩
+theorem Unifier.kinded :
+  G&Δ ⊢ t : K ->
+  G&Δ ⊢ u : K ->
+  Unifier σ t u ->
+  ∀ i : Nat, (hi : i < Δ.length) -> ∃ K, G&Δ ⊢ (σ.act i) : K
+| .var j1, j => by
+  intro u i hi; simp [Unifier] at u; sorry
+| j, .var j1 => sorry
+| .app j1a j2a, .app j1b j2b => by
+  intro u i hi; simp [Unifier] at u;
+
+  sorry
+| _, _ => sorry
+
 
 -- what about well kindedness?
 -- we may want to have something like:
 -- G,Δ ⊢ σ = ∀ i, ∃ k, G,Δ ⊢ (σ.act i).from_action : K
--- what is the theorems that we would like to write?
+-- what is the theorem that we would like to write?
 -- G&Δ ⊢ T : K ∧ G&Δ ⊢ σ -> G&Δ ⊢ T[σ] : K
+theorem Unifier.substituion_lemma :
+  G&Δ ⊢ t : K ->
+  G&Δ ⊢ u : K ->
+  Unifier σ t u ->
+  G&Δ ⊢ t[σ] : K
+| .var j1, j => by
+  intro u; simp [Unifier] at u; simp; sorry
+| j, .var j1 => sorry
+| .app j1a j2a, .app j1b j2b => by
+  intro u; simp [Unifier] at u;
+  simp; rcases u with ⟨u1, u2⟩
+  apply Kinding.app
+  sorry
+  sorry
+  sorry
+
+| _, _ => sorry
 
 
 end Core.Ty
