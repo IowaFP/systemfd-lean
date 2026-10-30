@@ -1042,4 +1042,43 @@ theorem Vec.eq_of_beq [BEq α][LawfulBEq α] {v1 : Vec α n} {v2 : Vec α m} : (
   have lem1 := Vec.len_eq_if_beq h
   subst lem1; simp; simp [Vec.beq_iff_eq] at h; apply h
 
+def Vec.init {n : Nat} (vs : Vec α (n + 1)) : Vec α n := vs.take n (by grind)
+def Vec.last : {n : Nat} -> (vs : Vec α (n + 1)) -> α
+| 0, .cons x _ => x
+| _ + 1, .cons _ xs => Vec.last xs
+
+theorem Vec.last_is_last : {n : Nat} -> {vs : Vec α (n + 1)} -> vs.last = vs[Fin.last n]
+| 0, .cons x _ => rfl
+| n + 1, .cons x xs => by simp [last, Vec.last_is_last (vs := xs)]
+
+@[simp]
+theorem Vec.init_drops_last {v : α} : {n : Nat} -> {vs : Vec α (n + 1)} -> (vs' : Vec α n) -> (h : vs = ((vs'.concat v))) -> vs.init = vs'
+| 0, .cons x xs, .nil, e => by
+  simp [Vec.init]; cases e; simp [Vec.take]
+| n + 1, Vec.cons y ys, Vec.cons x xs, e => by
+  simp [Vec.init, Vec.take];
+  have ih := Vec.init_drops_last (vs := ys) (vs' := xs) (v := v)
+  apply And.intro
+  simp at e; apply e.1
+  apply ih; simp at e; apply e.2
+
+
+@[simp, grind =]
+theorem Vec.init_concat : {n : Nat} -> {vs : Vec α (n + 1)} -> vs.init.concat vs.last = vs
+| 0, .cons _ as  => by simp [init, last, take]; cases as; rfl
+| n + 1, .cons x xs => by
+  simp [init, last, take];
+  have ih := Vec.init_concat (vs := xs)
+  apply ih
+
+@[simp, grind =]
+theorem Vec.concat_reverse {v : α} : {n : Nat} -> {vs : Vec α n} -> (vs.concat v).reverse = v::vs.reverse
+| 0, .nil => rfl
+| n + 1, .cons x xs => by simp [Vec.concat_reverse]
+
+@[simp, grind =>]
+theorem Vec.reverse_reverse : {n : Nat} -> {vs : Vec α n} -> vs.reverse.reverse = vs
+| 0, .nil => rfl
+| n + 1, .cons x xs => by simp [Vec.concat_reverse, Vec.reverse_reverse]
+
 end Lilac
