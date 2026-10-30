@@ -71,7 +71,7 @@ def Ty.is_all_some : Ty -> Option (Kind × Ty)
 | .all K B => return (K, B)
 | _ => none
 
-def Ty.is_all_some_sound {T : Ty} :
+theorem Ty.is_all_some_sound {T : Ty} :
   T.is_all_some = .some (K, T1) ->
   T = ∀[K] T1 := by
   intro h
@@ -83,7 +83,7 @@ def Ty.is_arrow_some : Ty -> Option (Ty × Ty)
 | .arrow A B => return (A, B)
 | _ => none
 
-def Ty.is_arrow_some_sound {T : Ty} :
+theorem Ty.is_arrow_some_sound {T : Ty} :
   T.is_arrow_some = .some (T1, T2) ->
   T = T1 -:> T2 := by
   intro h
@@ -94,7 +94,7 @@ def Ty.is_eq_some : Ty -> Option (Kind × Ty × Ty)
 | .eq K A B => return (K, A, B)
 | _ => none
 
-def Ty.is_eq_some_sound {T : Ty} :
+theorem Ty.is_eq_some_sound {T : Ty} :
   T.is_eq_some = some (K, A, B) ->
   T = (A ~[K]~ B) := by
   intro h;
@@ -105,7 +105,7 @@ def Ty.is_app_some : Ty -> Option (Ty × Ty)
 | .app A B => return (A, B)
 | _ => none
 
-def Ty.is_app_some_sound {T : Ty} :
+theorem Ty.is_app_some_sound {T : Ty} :
   T.is_app_some = some (A, B) ->
   T = (A • B) := by
   intro h;
@@ -120,10 +120,13 @@ def Ty.subterms : Ty -> List Ty
 | x => [x]
 
 
-def Kind.mk_kind : Kind -> Vec Kind n -> Kind := λ k => Vec.foldl (init := k) (λ acc n => n -:> acc)
+def Kind.mk_kind : Kind -> Vec Kind n -> Kind := λ k vs => vs.reverse.foldl (init := k) (λ acc n => n -:> acc)
 def Kind.mk_cls_kind : Vec Kind n -> Kind := mk_kind ★
 def Ty.mkApps (T : Ty) : List Ty -> Ty := List.foldl (init := T) (λ acc t => acc • t)
 def Ty.mkApps_nats (T : Ty) : List Nat -> Ty := List.foldl (init := T) (λ acc t => acc • t#t)
+
+#guard Kind.mk_kind ★ #(★, ★) == (★ -:> (★ -:> ★))
+#guard Kind.mk_kind ★ #(★, ★ -:> ★) == (★ -:> (★ -:> ★) -:> ★)
 
 #eval Ty.mkApps (gt#"F") [t#0, t#1]
 #eval (Ty.mkApps (gt#"F") [t#0, t#1]).spine

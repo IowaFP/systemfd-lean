@@ -1087,6 +1087,15 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h2 <;> try simp at *
    apply ih h1 h2
 
+theorem indexing_is_weird : {n : Nat} -> {κs : Vec α (n + 1)} -> {i : Fin n} -> κs[i.castSucc] = κs.init[i]
+| 0, .cons _ _, i => i.elim0
+| n + 1, .cons x xs, i => by
+  simp [Vec.init, Vec.take]
+  have lem : xs.init = Vec.take n (by grind) xs := by simp [Vec.init]
+  simp only [<-lem]
+  cases i using Fin.cases <;> simp at *
+  apply indexing_is_weird
+
 theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
   T.spine = some (s,  tys) ->
   ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length) (hk : Core.Kind.mk_kind K κs = κ), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
@@ -1108,25 +1117,48 @@ theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
       replace ih := @ih tys s (Ka -:> K) h1; simp [ih] at jf
       rcases jf with ⟨cls_k, js, n, κ, h1, w, h2⟩
       generalize ksdef : (#(Ka) ++ κ.reverse).reverse = ks at *
-      have lem : 1 + n = n + 1 := by grind
-      -- simp only [lem] at ks
       subst n; exists cls_k; exists tys.length + 1; exists ks
       constructor
       constructor
       apply And.intro
       apply js; intro i
-      · simp [<-ksdef];
-
-        sorry
-      simp [<-h1, Core.Kind.mk_kind,<-ksdef]; sorry
+      · simp only [<-ksdef];
+        cases i using Fin.reverseInduction
+        case _ => simp; apply ja
+        case _ i h =>
+        simp [Vec.reverse_reverse];
+        replace h2 := h2 i;
+        have lem : κ[i] = (κ.concat Ka)[i.castSucc] := by grind
+        simp only [<-lem]; apply h2
+      simp [<-h1, Core.Kind.mk_kind,<-ksdef];
       simp
+
     · intro h;
       replace h' := h
       rcases h with ⟨cls_k, kc, κs, hi, hk, j1, j2⟩
-      -- replace ih := ih (K := (κs.reverse[0]) -:> K) h1
       simp at hi; subst kc;
+      have j2' := j2 (Fin.last tys.length); simp at j2';
+      generalize aKdef : κs[Fin.last tys.length] = aK at *
+      replace ih := @ih tys s (aK -:> K) h1
+      apply Kinding.app (A := aK)
+      simp [ih]; exists cls_k; apply And.intro
+      · apply j1
+      · exists tys.length;
+        exists κs.init -- everything by the last guy
+        apply And.intro
+        · simp [<-hk, Core.Kind.mk_kind];
+          conv =>
+            rhs
+            rw [<-Vec.init_concat (vs := κs), Vec.concat_reverse]
+          simp;
+          subst aK; simp [Vec.last_is_last]
+        · exists rfl
+          intro i; replace j2 := j2 i.castSucc; simp at j2;
+          have lem : κs[i.castSucc] = κs.init[i] := by apply indexing_is_weird
+          simp only [<-lem]; apply j2
 
-      sorry
+
+      apply j2'
 
 
 end Intermediate
