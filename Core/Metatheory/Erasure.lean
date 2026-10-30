@@ -28,7 +28,7 @@ inductive Term
 -- Number of cases: n
 -- Input : i
 -- Guard: i = n: go to case i
-| switch : (n : Nat) → (i : Fin n) → Fun.Vec Term n → Term
+| switch : (n : Nat) → Fun.Vec Term n → (i : Fin n) → Term
 
 
 @[simp]
@@ -40,7 +40,7 @@ def Term.rmap (r : Ren Term) : Term -> Term
 | pair t1 t2 => pair (rmap r.lift t1) (rmap r.lift t2)
 | fst t => fst (rmap r t)
 | snd t => snd (rmap r t)
-| switch n i v => switch n i (rmap r <$> v)
+| switch n v i => switch n (rmap r <$> v) i
 
 instance : RenMap Term Term where
   rmap := Term.rmap
@@ -61,7 +61,7 @@ def Term.smap (σ : Subst Term) : Term → Term
 | pair t1 t2 => pair (smap σ t1) (smap σ t2)
 | fst t => fst (smap σ t)
 | snd t => snd (smap σ t)
-| switch n i v => switch n i (smap σ <$> v)
+| switch n v i => switch n (smap σ <$> v) i
 
 instance : SubstMap Term Term where
   smap := Term.smap
@@ -76,7 +76,7 @@ inductive Red (G : GlobalEnv) : Term -> Term -> Prop where
   G[x]? = some t -> Red G (.var x) t
 | fst : Red G (.fst (.pair t₁ t₂)) t₁
 | snd : Red G (.fst (.pair t₁ t₂)) t₂
-| switch : Red G (.switch n i v) (v i)
+| switch : Red G (.switch n v i) (v i)
 
 
 inductive RedStar (G : GlobalEnv) : Term → Term → Prop
@@ -96,6 +96,14 @@ def Term.erase : Term → Untyped.Term
   | var n => .var n
   -- Just like a variable
   | defn x => .defn x
+  -- Special constructors
+  | spctor _ _ _ _ _ => sorry
+  | ctor1 (.prj n) t => sorry
+  | lam _ t => .lam t.erase
+  | cast _ t1 t2 => t2.erase
+  -- create an outer switch of m cases
+  -- and each one is a switch of n cases
+  | mtch m n vm pmn vn => sorry
   | _ => sorry
 
 -- TODO: add erased contexts
