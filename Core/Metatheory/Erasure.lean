@@ -9,6 +9,7 @@ import Core.Typing
 
 open Lilac
 open LeanSubst
+open List
 
 namespace Core
 
@@ -65,22 +66,26 @@ def Term.smap (σ : Subst Term) : Term → Term
 instance : SubstMap Term Term where
   smap := Term.smap
 
+abbrev GlobalEnv := List Term
+
 -- TODO: add erased context here
-inductive Red : Term -> Term -> Prop where
+inductive Red (G : GlobalEnv) : Term -> Term -> Prop where
 -- TODO: use LeanSubst in beta
-| beta : Red (.app (.lam b) t) b[su t::+0σ]
-| fst : Red (.fst (.pair t₁ t₂)) t₁
-| snd : Red (.fst (.pair t₁ t₂)) t₂
-| switch : Red (.switch n i v) (v i)
+| beta : Red G (.app (.lam b) t) b[su t::+0σ]
+| defn :
+  G[x]? = some t -> Red G (.var x) t
+| fst : Red G (.fst (.pair t₁ t₂)) t₁
+| snd : Red G (.fst (.pair t₁ t₂)) t₂
+| switch : Red G (.switch n i v) (v i)
 
 
-inductive RedStar : Term → Term → Prop
-  | refl : RedStar x x
-  | step : Red x y → Red y z → RedStar x z
+inductive RedStar (G : GlobalEnv) : Term → Term → Prop
+  | refl : RedStar G x x
+  | step : Red G x y → Red G y z → RedStar G x z
 
-inductive RedPlus : Term → Term → Prop where
-  | one : Red x y → RedPlus x y
-  | step : Red x y → Red y z → RedPlus x z
+inductive RedPlus (G : GlobalEnv) : Term → Term → Prop where
+  | one : Red G x y → RedPlus G x y
+  | step : Red G x y → Red G y z → RedPlus G x z
 
 end Untyped
 
