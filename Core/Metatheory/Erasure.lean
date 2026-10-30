@@ -17,6 +17,7 @@ namespace Untyped
 /-- A term in the untyped target language. -/
 inductive Term
 | var : Nat → Term
+| defn : String → Term
 | app : Term → Term → Term
 | lam : Term → Term
 -- Tuples
@@ -32,6 +33,7 @@ inductive Term
 @[simp]
 def Term.rmap (r : Ren Term) : Term -> Term
 | var x => var (r.act x)
+| defn x => defn x
 | app t1 t2 => app (rmap r t1) (rmap r t2)
 | lam t => lam (rmap r.lift t)
 | pair t1 t2 => pair (rmap r.lift t1) (rmap r.lift t2)
@@ -52,6 +54,7 @@ instance : Coe (Action Term) Term where
 
 def Term.smap (σ : Subst Term) : Term → Term
 | var x => σ.act x
+| defn x => defn x
 | app t1 t2 => app (smap σ t1) (smap σ t2)
 | lam t => lam (smap σ.lift t)
 | pair t1 t2 => pair (smap σ t1) (smap σ t2)
@@ -62,12 +65,14 @@ def Term.smap (σ : Subst Term) : Term → Term
 instance : SubstMap Term Term where
   smap := Term.smap
 
+-- TODO: add erased context here
 inductive Red : Term -> Term -> Prop where
 -- TODO: use LeanSubst in beta
 | beta : Red (.app (.lam b) t) b[su t::+0σ]
 | fst : Red (.fst (.pair t₁ t₂)) t₁
 | snd : Red (.fst (.pair t₁ t₂)) t₂
 | switch : Red (.switch n i v) (v i)
+
 
 inductive RedStar : Term → Term → Prop
   | refl : RedStar x x
@@ -82,15 +87,17 @@ end Untyped
 /--
 Erases both types and coercions.
 -/
-def Term.erase {G : GlobalEnv} (wf : ⊢ G): Term → Untyped.Term
+def Term.erase : Term → Untyped.Term
   | var n => .var n
   -- Just like a variable
-  | defn x => sorry
+  | defn x => .defn x
   | _ => sorry
 
-notation "⟦" e "⟧_[" G "]" => Term.erase G e
+-- TODO: add erased contexts
+
+notation "⟦" e "⟧" => Term.erase e
 
 -- -- TODO: explore bisimulations
--- def erasure (G : GlobalEnv)(t t' : Term) :
+-- def erasure (wf : ⊢ G)(oe : OpenExhaustive G)(t t' : Term) :
 --   G ⊢ t ~> t'
---   → ⟦t⟧_[G] = ⟦t'⟧_[G] ∨ G ⊢ ⟦t⟧_[G] ~> ⟦t'⟧_[G] := by sorry
+--   → ⟦t⟧ = ⟦t'⟧ ∨ [G] ⊢ ⟦t⟧ ~>' ⟦t'⟧ := by sorry
