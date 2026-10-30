@@ -7,6 +7,9 @@ import Core.Global
 import Core.Reduction
 import Core.Typing
 
+open Lilac
+open LeanSubst
+
 namespace Core
 
 namespace Untyped
@@ -20,25 +23,54 @@ inductive Term
 | pair : Term → Term → Term
 | fst : Term → Term
 | snd : Term → Term
--- Parameter: n
--- Inputs: i
--- Guard: i = n: Case 1; Case 2
-| ite : Nat → Nat → Term → Term → Term
+-- Number of cases: n
+-- Input : i
+-- Guard: i = n: go to case i
+| switch : (n : Nat) → (i : Fin n) → Fun.Vec Term n → Term
+
+
+@[simp]
+def Term.rmap (r : Ren Term) : Term -> Term
+| var x => var (r.act x)
+| app t1 t2 => app (rmap r t1) (rmap r t2)
+| lam t => lam (rmap r.lift t)
+| pair t1 t2 => pair (rmap r.lift t1) (rmap r.lift t2)
+| fst t => fst (rmap r t)
+| snd t => snd (rmap r t)
+| switch n i v => switch n i (rmap r <$> v)
+
+instance : RenMap Term Term where
+  rmap := Term.rmap
+
+@[coe]
+def Term.from_action : Action Term -> Term
+| .re y => var y
+| .su t => t
+
+instance : Coe (Action Term) Term where
+  coe := Term.from_action
+
+def Term.smap (σ : Subst Term) : Term → Term
+| var x => σ.act x
+| app t1 t2 => app (smap σ t1) (smap σ t2)
+| lam t => lam (smap σ.lift t)
+| _ => sorry
+
 
 inductive Red : Term -> Term -> Prop where
 -- TODO: use LeanSubst in beta
-| beta : Red (.lam t) sorry
+| beta : Red (.app (.lam b) t) sorry -- b[su t::+0σ]
 | fst : Red (.fst (.pair t₁ t₂)) t₁
-| snd : Red (.fst (.pair t₂ t₂)) t₂
+| snd : Red (.fst (.pair t₁ t₂)) t₂
 -- TODO: maybe break up into ite_true, ite_false?
-| ite : Red ((.ite n i t₁ t₂)) (if i = n then t₁ else t₂)
+| switch : Red sorry sorry
 
-inductive RedStar : Term → Term → Prop where
+inductive RedStar : Term → Term → Prop
   | refl : RedStar x x
   | step : Red x y → Red y z → RedStar x z
 
 inductive RedPlus : Term → Term → Prop where
-  | refl : Red x y → RedPlus x y
+  | one : Red x y → RedPlus x y
   | step : Red x y → Red y z → RedPlus x z
 
 end Untyped
@@ -48,12 +80,8 @@ Erases both types and coercions.
 -/
 def Term.erase {G : GlobalEnv} (wf : ⊢ G): Term → Untyped.Term
   | var n => .var n
-  -- TODO: determine how to
-  -- handle case where def is none.
+  -- Just like a variable
   | defn x => 
-    match lookup_defn G x with
-      | some (A, t) => sorry -- Term.erase wf t
-      | none => sorry
   | _ => sorry
 
 notation "⟦" e "⟧_[" G "]" => Term.erase G e
