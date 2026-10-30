@@ -54,16 +54,20 @@ def Term.smap (σ : Subst Term) : Term → Term
 | var x => σ.act x
 | app t1 t2 => app (smap σ t1) (smap σ t2)
 | lam t => lam (smap σ.lift t)
-| _ => sorry
+| pair t1 t2 => pair (smap σ t1) (smap σ t2)
+| fst t => fst (smap σ t)
+| snd t => snd (smap σ t)
+| switch n i v => switch n i (smap σ <$> v)
 
+instance : SubstMap Term Term where
+  smap := Term.smap
 
 inductive Red : Term -> Term -> Prop where
 -- TODO: use LeanSubst in beta
-| beta : Red (.app (.lam b) t) sorry -- b[su t::+0σ]
+| beta : Red (.app (.lam b) t) b[su t::+0σ]
 | fst : Red (.fst (.pair t₁ t₂)) t₁
 | snd : Red (.fst (.pair t₁ t₂)) t₂
--- TODO: maybe break up into ite_true, ite_false?
-| switch : Red sorry sorry
+| switch : Red (.switch n i v) (v i)
 
 inductive RedStar : Term → Term → Prop
   | refl : RedStar x x
@@ -81,7 +85,7 @@ Erases both types and coercions.
 def Term.erase {G : GlobalEnv} (wf : ⊢ G): Term → Untyped.Term
   | var n => .var n
   -- Just like a variable
-  | defn x => 
+  | defn x => sorry
   | _ => sorry
 
 notation "⟦" e "⟧_[" G "]" => Term.erase G e
