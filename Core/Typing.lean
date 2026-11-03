@@ -264,4 +264,68 @@ inductive EntryWf : List Global -> Entry -> Prop where
   EntryWf G (.octor x T)
 
 
+theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
+  T.spine = some (s,  tys) ->
+  ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length) (hk : Core.Kind.mk_kind K κs = κ), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
+:= by
+  intro h
+  fun_induction Core.Ty.spine generalizing s tys K <;> simp at h
+  case _ =>
+    rcases h with ⟨e1, e2⟩; subst e1 e2; simp;
+    apply Iff.intro
+    · intro h; exists K; apply And.intro; apply h; exists 0; exists #(); simp [Core.Kind.mk_kind]
+    · intro h; rcases h with ⟨κ, h1, _, Ks, h2, h3, _⟩; subst h3; cases Ks; simp [Core.Kind.mk_kind] at h2; subst h2; apply h1
+  case _ f a ih =>
+    simp [Option.bind_eq_some_iff] at h; rcases h with ⟨s, tys, h1, h2, h3⟩
+    subst h2
+    subst h3
+    apply Iff.intro
+    · intro h; cases h;
+      case _ Ka ja jf =>
+      replace ih := @ih tys s (Ka -:> K) h1; simp [ih] at jf
+      rcases jf with ⟨cls_k, js, n, κ, h1, w, h2⟩
+      generalize ksdef : (#(Ka) ++ κ.reverse).reverse = ks at *
+      subst n; exists cls_k; exists tys.length + 1; exists ks
+      constructor
+      constructor
+      apply And.intro
+      apply js; intro i
+      · simp only [<-ksdef];
+        cases i using Fin.reverseInduction
+        case _ => simp; apply ja
+        case _ i h =>
+        simp [Vec.reverse_reverse];
+        replace h2 := h2 i;
+        have lem : κ[i] = (κ.concat Ka)[i.castSucc] := by grind
+        simp only [<-lem]; apply h2
+      simp [<-h1, Core.Kind.mk_kind,<-ksdef];
+      simp
+
+    · intro h;
+      replace h' := h
+      rcases h with ⟨cls_k, kc, κs, hi, hk, j1, j2⟩
+      simp at hi; subst kc;
+      have j2' := j2 (Fin.last tys.length); simp at j2';
+      generalize aKdef : κs[Fin.last tys.length] = aK at *
+      replace ih := @ih tys s (aK -:> K) h1
+      apply Kinding.app (A := aK)
+      simp [ih]; exists cls_k; apply And.intro
+      · apply j1
+      · exists tys.length;
+        exists κs.init -- everything by the last guy
+        apply And.intro
+        · simp [<-hk, Core.Kind.mk_kind];
+          conv =>
+            rhs
+            rw [<-Vec.init_concat (vs := κs), Vec.concat_reverse]
+          simp;
+          subst aK; simp [Vec.last_is_last]
+        · exists rfl
+          intro i; replace j2 := j2 i.castSucc; simp at j2;
+          have lem : κs[i.castSucc] = κs.init[i] := by apply indexing_is_weird
+          simp only [<-lem]; apply j2
+
+
+      apply j2'
+
 end Core

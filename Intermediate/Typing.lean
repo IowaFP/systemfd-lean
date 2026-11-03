@@ -1087,15 +1087,6 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h2 <;> try simp at *
    apply ih h1 h2
 
-theorem indexing_is_weird : {n : Nat} -> {κs : Vec α (n + 1)} -> {i : Fin n} -> κs[i.castSucc] = κs.init[i]
-| 0, .cons _ _, i => i.elim0
-| n + 1, .cons x xs, i => by
-  simp [Vec.init, Vec.take]
-  have lem : xs.init = Vec.take n (by grind) xs := by simp [Vec.init]
-  simp only [<-lem]
-  cases i using Fin.cases <;> simp at *
-  apply indexing_is_weird
-
 theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
   T.spine = some (s,  tys) ->
   ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length) (hk : Core.Kind.mk_kind K κs = κ), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))

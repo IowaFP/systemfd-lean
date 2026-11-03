@@ -137,6 +137,10 @@ def Ty.is_data (data1 : String) (A : Ty) : Bool :=
   | none => false
 
 
+def Ty.genTy (T : Core.Ty) : Vec Core.Kind n -> Core.Ty
+| #() => T
+| .cons K Ks => ∀[K] (T.genTy Ks)
+
 theorem Ty.mkApps_nats_spine_eta {T : Ty} {s : String} {tys : List Nat} :
   T.spine = some (s, tys.map (t#·)) -> T = (gt#s).mkApps_nats tys
 := by
