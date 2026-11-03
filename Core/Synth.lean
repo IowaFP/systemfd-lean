@@ -50,14 +50,16 @@ inductive SynthTerm (G : GlobalEnv) (Δ : KindEnv) : TyEnv -> Kind -> Ty -> Term
   (∀ i : Fin nb, G&Δ ⊢ Bs[i] : Ks2[i]) -> -- conjure existential tys
   (∀ i : Fin nc, SynthTerm G Δ (Bs.list ++ As.list ++ Γ) Ks[i] Ts[i] Cs[i]) ->
   SynthTerm G Δ Γ K R' (inst! x As Bs ts)
-| inst {x : String}
-  {As : Vec Ty na} {Bs : Vec Ty nb} {Ks : Vec Kind nc} {Cs : Vec Term nc} {R' R : Ty} :
-  -- R' = R[(As.list ++ Bs.list).reverse ++ Subst.id Core.Ty] ->
+| inst {x : String} {na nb nc : Nat} {Ks1 : Vec Kind na} {Ks2 : Vec Kind nb}
+  {As : Vec Ty na} {Bs : Vec Ty nb} {Ts Ts': Vec Ty nc} {Ks : Vec Kind nc} {ts : Vec Term nc} {R' R : Ty} :
+  Ks = Vec.replicate nc ★ ->
+  R' = R[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Core.Ty] ->
+  Ts' = Ts[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Core.Ty] ->
   lookup x G = some (.octor x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
   (∀ i : Fin na, G&Δ ⊢ As[i] : Ks1[i]) -> -- conjure universal tys
   (∀ i : Fin nb, G&Δ ⊢ Bs[i] : Ks2[i]) -> -- conjure existential tys
-  (∀ i : Fin nc, SynthTerm G Δ Γ Ks[i] Ts[i] Cs[i]) ->
-  SynthTerm G Δ Γ K R' (inst! x As Bs Cs.to)
+  (∀ i : Fin nc, SynthTerm G Δ Γ Ks[i] Ts'[i] ts[i]) ->
+  SynthTerm G Δ Γ K R' (inst! x As Bs ts.to)
 
 theorem Vec.sum_le {e : Core.Term} {vs : Vec Core.Term n}:
   e ∈ vs ->
@@ -100,25 +102,25 @@ theorem synth_type_sound (wf : ⊢ G):
     replace lem := terms_have_star_types wf lem
     cases lem; assumption
   · simp
-| .inst (Cs := Cs) j1 j2 j3 j4 => by
+| .inst (Ks := Ks) (Ks1 := Ks1) (As := As) (Ks2 := Ks2) (Bs := Bs) (Ts := Ts) (Ts' := Ts') (ts := ts) (R := R) j1 j2 j3 j4 j5 j6 j7 => by
 
-  replace j1 := EntryWf.from_lookup wf j1
-  cases j1; case _ j1 _ =>
-  cases j1; case _ h1 h2 h3 h4 h5 =>
-  apply Typing.spctor
-  sorry
-  sorry
-  sorry
-  apply j2
-  apply j3
-  · intro i; replace j4 := j4 i;
-    have e : Cs.to i = Cs[i] := by apply Vec.to_get_elem
-    rw [<-e] at j4; replace j4 := synth_type_sound wf j4; apply j4
-  · simp; sorry
-  · simp; sorry
+  replace j4 := EntryWf.from_lookup wf j4
+  cases j4; case _ j4 j8 =>
+  cases j4; case _ h1 h2 h3 h4 h5 =>
+  apply Typing.spctor (Ks1 := Ks1) (Ks2 := Ks2) (Ts := Ts) (R := R)
+                      (Ts' := Ts[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty])
+                      (R' := T)
+  · simp [lookup_spine_type]; simp [j8, Entry.spine_type];
+  · rfl
+  · apply j2
+  · apply j5
+  · apply j6
+  · intro i; replace j7 := j7 i;
+    have e : ts.to i = ts[i] := by apply Vec.to_get_elem
+    rw [<-e] at j7; replace j7 := synth_type_sound wf j7; grind
+  · simp; sorry -- some lemma about return type of spine type
+  · simp; sorry -- should be constructible from the fact that R is the return type of the spine
   simp
-  sorry
-  sorry
 
 | .global _ _ _ _ => sorry
 | _ => sorry
