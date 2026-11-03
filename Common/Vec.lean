@@ -1081,4 +1081,14 @@ theorem Vec.reverse_reverse : {n : Nat} -> {vs : Vec α n} -> vs.reverse.reverse
 | 0, .nil => rfl
 | n + 1, .cons x xs => by simp [Vec.concat_reverse, Vec.reverse_reverse]
 
+theorem indexing_is_weird : {n : Nat} -> {κs : Vec α (n + 1)} -> {i : Fin n} -> κs[i.castSucc] = κs.init[i]
+| 0, .cons _ _, i => i.elim0
+| n + 1, .cons x xs, i => by
+  simp [Vec.init, Vec.take]
+  have lem : xs.init = Vec.take n (by grind) xs := by simp [Vec.init]
+  simp only [<-lem]
+  cases i using Fin.cases <;> simp at *
+  apply indexing_is_weird
+
+
 end Lilac

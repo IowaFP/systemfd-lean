@@ -683,7 +683,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
             rcases e2 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3
             rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2; simp at e3
             rcases e3 with ⟨e1, e2⟩; subst e1 e2;
-            subst mτ'; simp
+            subst mτ';
             have lemwf' : ⊢ ((Intermediate.Global.classDecl ⟨s, kc, Ks, [], [], []⟩) :: Γ') := by
               apply Intermediate.ListGlobalWf.cons
               · apply Intermediate.GlobalWf.classDecl
@@ -717,7 +717,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         · apply And.intro;
           · simp [tys_eq]
           · apply And.intro
-            · simp; simp [c7a, mk_method_om, T_eq, tys_eq]; rw[c7a]; simp
+            · simp; simp [c7a, mk_method_om, T_eq, tys_eq]; simp [spine_type_type, Core.Ty.genTy];
             · apply kinding_SI_transfer h1 c7b
 
       · intro i hi;

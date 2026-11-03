@@ -32,11 +32,22 @@ def check_om : (String × Core.SpineTy) -> Option Unit
 
 def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x => check_om x == .some ())
 
+/-
+  if the class declaration in surface is as follows
+  class C a where c :: ∀ t u, t a -> u a -> u a
+    the open method associated with this will be
+
+  openm c :: ∀ a C a. (∀ t u, t a -> u a -> u a)
+ -/
+--
+
+def spine_type_type : Core.SpineTy -> Core.Ty
+| ⟨_, Ks1, _, Ks2, _, Ts, R⟩ => ((Ts.reverse.foldl (Core.Ty.arrow · ·) R).genTy Ks2).genTy Ks1
+
 
 def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineTy) : Core.SpineTy :=
-  let ⟨na, Ks1, nb, Ks2, nc, cts, R⟩ := R
-  let ski := (List.range cls_params.length).map (· + na + nb)
-  ⟨kc, cls_params, nb, Ks2, nc + 1, .cons ((gt#cls).mkApps_nats ski.reverse) cts, R⟩
+  let ski := (List.range cls_params.length)
+  ⟨kc, cls_params, 0, #(), 1,  #((gt#cls).mkApps_nats ski.reverse), spine_type_type R⟩
 
 def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (Fin n) (kc + 1)) (determinant : Fin n)
   : Core.SpineTy :=
