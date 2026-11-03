@@ -379,7 +379,8 @@ def Term.arrowc (KA KB : Kind): Term :=
         (.cast ((t#4 -:> t#2) ~[KB]~ (t#4 -:> t#0)) #0 (refl! (t#3 -:> t#1))))
 
 
-def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (t1 t2 : Term) (KA KB : Kind) (A1 A2 B1 B2 : Ty)
+def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
+  (t1 t2 : Term) (KA KB : Kind) (A1 A2 B1 B2 : Ty)
   (j1 : (G&Δ, Γ ⊢ t1 : (A1 ~[KA]~ A2))) (j2 : (G&Δ, Γ ⊢ t2 : (B1 ~[KB]~ B2))) :
   ((t : Term) ×' (G&Δ, Γ ⊢ t : ((A1 -:> B1) ~[★]~ (A2 -:> B2)))) :=
   ⟨ ((((((Term.arrowc KA KB) •[A1]) •[A2]) •[B1]) •[B2]) • t1) • t2
@@ -390,8 +391,9 @@ def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (t1 
   simp [Term.arrowc]
   apply Typing.app (A := B1 ~[KB]~ B2)
   · apply Typing.app (A := A1 ~[KA]~ A2)
-    · apply Typing.appt  (K := KB) (P := (A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:> (B1⟨Ren.succ Ty⟩ ~[KB]~ t#0) -:> (A1⟨Ren.succ Ty⟩ -:> B1⟨Ren.succ Ty⟩ ~[★]~ A2⟨Ren.succ Ty⟩ -:> t#0))
-      · apply Typing.appt  (K := KB) (P := ∀[KB](A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩) -:> (t#1 ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩ -:> t#1) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
+    · apply Typing.appt  (K := KB) (P := (A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:> (B1⟨Ren.succ Ty⟩ ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩ -:> B1⟨Ren.succ Ty⟩) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
+      · apply Typing.appt  (K := KB)
+              (P := ∀[KB](A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:> (t#1 ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩ -:> t#1) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
         sorry
         assumption
         rw [Ty.subst_all]; sorry
@@ -817,8 +819,6 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG :
                   rw[ite_cond_eq_true (h := by grind)] at lemi
                   rw[ite_cond_eq_false (h := by grind)] at lemj
                   rw[lemi, lemj]; simp only [new_node, EqGraphNode.ty]; rw[h3] at ih; apply ih
-              /-, equiv_class_count_ub := sorry
-              , equiv_class_count_lb := by intro h; sorry -/
               }
         else none
     | _, _ => none
@@ -966,10 +966,7 @@ def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : E
      by simp at h; rcases h with ⟨e1, e2, e3⟩; subst e1 e2 e3
         apply some (EqGraph.appc G wf Δ Γ tA1A2 tB1B2 KArg1 K TA1 TA2 TB1 TB2 jA1A2 jB1B2)
    else none
- -- | t#v1, t#v2 => do -- i am not sure why i need to do this, the catchall case should handle it
- --   if h : v1 == v2 then
- --   by simp at h; subst h; apply (some ⟨refl! t#v1, by apply Typing.refl; sorry⟩)
- --   else sorry
+
 
  | T1, T2 => do
   let ⟨repv_T1, K1, η1, η1_j⟩ <- eG.get_rep_view wf T1
