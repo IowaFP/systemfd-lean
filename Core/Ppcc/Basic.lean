@@ -380,30 +380,105 @@ def Term.arrowc (KA KB : Kind): Term :=
 
 
 def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
-  (t1 t2 : Term) (KA KB : Kind) (A1 A2 B1 B2 : Ty)
-  (j1 : (G&Δ, Γ ⊢ t1 : (A1 ~[KA]~ A2))) (j2 : (G&Δ, Γ ⊢ t2 : (B1 ~[KB]~ B2))) :
+  (t1 t2 : Term) (A1 A2 B1 B2 : Ty)
+  (j1 : (G&Δ, Γ ⊢ t1 : (A1 ~[★]~ A2))) (j2 : (G&Δ, Γ ⊢ t2 : (B1 ~[★]~ B2))) :
   ((t : Term) ×' (G&Δ, Γ ⊢ t : ((A1 -:> B1) ~[★]~ (A2 -:> B2)))) :=
-  ⟨ ((((((Term.arrowc KA KB) •[A1]) •[A2]) •[B1]) •[B2]) • t1) • t2
-  , by
+  ⟨ ((((((Term.arrowc ★ ★) •[A1]) •[A2]) •[B1]) •[B2]) • t1) • t2,
+   by have lem1 := terms_have_star_types wf j1
+      have lem2 := terms_have_star_types wf j2
+      cases lem1; case _ jA1 jA2 =>
+      cases lem2; case _ jB1 jB2 =>
+      apply Typing.app (A := B1 ~[★]~ B2)
+      · apply Typing.app (A := (A1 ~[★]~ A2))
+        · apply Typing.appt (K := ★)
+                (P := (A1⟨Ren.succ Ty⟩ ~[★]~ A2⟨Ren.succ Ty⟩) -:> (B1⟨Ren.succ Ty⟩ ~[★]~ t#0) -:> ((A1⟨Ren.succ Ty⟩ -:> B1⟨Ren.succ Ty⟩) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
+          · apply Typing.appt (K := ★)
+                (P := ∀[★](A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ ~[★]~ A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩) -:> (t#1 ~[★]~ t#0) -:> ((A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ -:> t#1) ~[★]~ (A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ -:>  t#0)))
+            · apply Typing.appt (K := ★)
+                (P := ∀[★]∀[★](A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ ~[★]~ t#2) -:> (t#1 ~[★]~ t#0) -:> ((A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ -:>  t#1) ~[★]~ (t#2 -:>  t#0)))
+              · apply Typing.appt (K := ★)
+                 (P := ∀[★]∀[★]∀[★](t#3 ~[★]~ t#2) -:> ((t#1 ~[★]~ t#0) -:> ((t#3 -:> t#1) ~[★]~ (t#2 -:> t#0))))
+                · simp only [Term.arrowc];
+                  apply Typing.lamt
+                  · apply Kinding.all; apply Kinding.all; apply Kinding.all; apply Kinding.all; apply Kinding.arrow;
+                    · apply Kinding.eq <;> (apply Kinding.var; simp)
+                    · apply Kinding.arrow
+                      · apply Kinding.eq <;> (apply Kinding.var; simp)
+                      · apply Kinding.eq <;> (apply Kinding.arrow ; repeat (apply Kinding.var; simp))
+                  · apply Typing.lamt
+                    · apply Kinding.all; apply Kinding.all; apply Kinding.all; apply Kinding.arrow;
+                      · apply Kinding.eq <;> (apply Kinding.var; simp)
+                      · apply Kinding.arrow
+                        · apply Kinding.eq <;> (apply Kinding.var; simp)
+                        · apply Kinding.eq <;> (apply Kinding.arrow; repeat (apply Kinding.var; simp))
+                    · apply Typing.lamt
+                      · apply Kinding.all; apply Kinding.all; apply Kinding.arrow;
+                        · apply Kinding.eq <;> (apply Kinding.var; simp)
+                        · apply Kinding.arrow;
+                          · apply Kinding.eq <;> (apply Kinding.var; simp)
+                          · apply Kinding.eq <;> (apply Kinding.arrow; repeat (apply Kinding.var; simp))
+                      · apply Typing.lamt
+                        · apply Kinding.all; apply Kinding.arrow;
+                          · apply Kinding.eq <;> (apply Kinding.var; simp)
+                          · apply Kinding.arrow;
+                            · apply Kinding.eq <;> (apply Kinding.var; simp)
+                            · apply Kinding.eq <;> (apply Kinding.arrow; repeat (apply Kinding.var; simp))
+                        · apply Typing.lam
+                          · apply Kinding.eq <;> (apply Kinding.var; simp)
+                          · apply Typing.lam
+                            · apply Kinding.eq <;> (apply Kinding.var; simp)
+                            · apply Typing.cast (K := ★) (A := t#3) (B := t#2)
+                              · apply Kinding.eq <;> (apply Kinding.arrow; repeat (apply Kinding.var; simp))
+                              · apply Typing.var
+                                · simp
+                                · apply Kinding.eq <;> (apply Kinding.var; simp)
+                              · apply Typing.cast (K := ★) (A := t#1) (B := t#0)
+                                · apply Kinding.eq <;> (apply Kinding.arrow; repeat (apply Kinding.var; simp))
+                                · apply Typing.var
+                                  · simp
+                                  · apply Kinding.eq; repeat (apply Kinding.var; simp)
+                                · simp; apply Typing.refl
+                                  · apply Kinding.arrow; repeat (apply Kinding.var; simp)
+                                · simp
+                              · simp
+                · apply jA1
+                · simp
+              · apply jA2
+              · rw[Ty.subst_all, Ty.subst_all, Ty.subst_arr, Ty.subst_arr, Ty.subst_eq, Ty.subst_eq,
+                   Ty.subst_eq, Ty.subst_arr, Ty.subst_arr, succ_succ_succ_subst_lemma]; simp
+            · apply jB1
+            · rw[Ty.subst_all, Ty.subst_arr, Ty.subst_arr, Ty.subst_eq, Ty.subst_eq, Ty.subst_eq, Ty.subst_arr, Ty.subst_arr, succ_succ_subst_lemma, succ_succ_subst_lemma]; simp
+          · apply jB2
+          · simp
+        · apply j1
+      · apply j2 ⟩
+  /-
+  by
   have lem1 := terms_have_star_types wf j1
   have lem2 := terms_have_star_types wf j2
   cases lem1; cases lem2;
   simp [Term.arrowc]
   apply Typing.app (A := B1 ~[KB]~ B2)
   · apply Typing.app (A := A1 ~[KA]~ A2)
-    · apply Typing.appt  (K := KB) (P := (A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:> (B1⟨Ren.succ Ty⟩ ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩ -:> B1⟨Ren.succ Ty⟩) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
-      · apply Typing.appt  (K := KB)
-              (P := ∀[KB](A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:> (t#1 ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩ -:> t#1) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
-        sorry
-        assumption
-        rw [Ty.subst_all]; sorry
+    · apply Typing.appt  (K := KB)
+            (P := (A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:>
+                   (B1⟨Ren.succ Ty⟩ ~[KB]~ t#0) -:>
+                     ((A1⟨Ren.succ Ty⟩ -:> B1⟨Ren.succ Ty⟩) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
+      · apply Typing.appt (K := KB)
+              (P := ∀[KB](A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩) -:> (t#1 ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ -:> t#1) ~[★]~ (A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ -:> t#0)))
+        · simp;
+          sorry;
+        · assumption
+        rw [Ty.subst_all, Ty.subst_arr, Ty.subst_arr, Ty.subst_eq, Ty.subst_eq, Ty.subst_eq, Ty.subst_arr, Ty.subst_arr, succ_succ_subst_lemma, succ_succ_subst_lemma]; simp
       assumption
       simp
 
     · apply j1
   · apply j2
 
- ⟩
+-/
+
+
 
 
 
@@ -562,8 +637,6 @@ def EqGraph.push {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv}(eG : EqGraph G Δ �
               rw[List.getElem_append_left (by grind)];
               apply eG.unique_nodes
               apply ne
-        /-, equiv_class_count_ub := by sorry
-        , equiv_class_count_lb := by simp-/
         }
 
 /-- create an eq class for all the subterms of the type T -/
@@ -732,9 +805,6 @@ def EqGraph.union {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G) (eG :
                   rw[ite_cond_eq_true (h := by grind)] at lemi
                   rw[ite_cond_eq_false (h := by grind)] at lemj
                   rw[lemi, lemj]; simp only [new_node, EqGraphNode.ty]; rw[h4] at ih; apply ih
-             /-, equiv_class_count_ub := by
-                sorry
-             , equiv_class_count_lb := by sorry -/
              }
 
       else if h : ip2 < ip1 && (ip1 < eG.nodes.length && (K1 == K2 && (n2.kind == K1 && (n1.kind == K1
@@ -929,10 +999,10 @@ def EqGraph.get_rep_view {G : GlobalEnv} {Δ : KindEnv} {Γ : TyEnv} (wf : ⊢ G
   let ⟨rep_T2, K2, c2, j2⟩ <- eG.get_rep_view wf B
   match h1 : A.infer_kind G Δ, h2 : B.infer_kind G Δ with
   | some K1a, some K1b =>
-     if h : K1 == K1a && K2 == K1b
+     if h : K1 == K1a && (K2 == K1b && (K1 == ★ && K2 == ★))
      then
-       by simp at h; rcases h with ⟨e1, e2⟩; subst e1; subst e2
-          let ⟨η, j⟩ := EqGraph.arrowc G wf Δ Γ c1 c2 K1 K2 A rep_T1 B rep_T2 j1 j2
+       by simp at h; rcases h with ⟨e1, e2, e3, e4⟩; subst e1 e2 e3 e4
+          let ⟨η, j⟩ := EqGraph.arrowc G wf Δ Γ c1 c2 A rep_T1 B rep_T2 j1 j2
           apply some ⟨(rep_T1 -:> rep_T2), ★, η, j⟩
      else none
   |_, _ => none
@@ -951,7 +1021,7 @@ def EqGraph.ask (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv) (eG : E
    do
    let ⟨tA1A2, jA1A2⟩ <- EqGraph.ask G wf Δ Γ eG ★ TA1 TA2
    let ⟨tB1B2, jB1B2⟩ <- EqGraph.ask G wf Δ Γ eG ★ TB1 TB2
-   by simp at h; subst h; apply some (EqGraph.arrowc G wf Δ Γ tA1A2 tB1B2 ★ ★ TA1 TA2 TB1 TB2 jA1A2 jB1B2)
+   by simp at h; subst h; apply some (EqGraph.arrowc G wf Δ Γ tA1A2 tB1B2 TA1 TA2 TB1 TB2 jA1A2 jB1B2)
    else none
  | .app TA1 TB1, .app TA2 TB2 => do
    let Karr1 <- TA1.infer_kind G Δ

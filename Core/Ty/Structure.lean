@@ -149,17 +149,23 @@ theorem Ty.mkApps_nats_spine_eta {T : Ty} {s : String} {tys : List Nat} :
   · case _ ih _ =>
     simp [Option.bind_eq_some_iff] at h;
     rcases h with ⟨s', tys', h1, h2, h3⟩; subst h2;
-    sorry
+    simp [List.append_eq_map_iff] at h3; rcases h3 with ⟨tys, l2, e1, e2, a_, e4, e5⟩;
+    subst e1 e4 e5
+    simp [mkApps_nats]; apply ih; subst tys'; apply h1
 
-theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) : ((gt#T).mkApps_nats ts).spine = some (T, (ts.map (t#·)))
+theorem Ty.mkApps_nats_spine (T : String) (ts : List Nat) :
+  ((gt#T).mkApps_nats ts).spine = some (T, (ts.map (t#·)))
 := by
-  generalize zdef : (gt#T).mkApps_nats ts = z at *
-  symm at zdef
-  -- induction ts <;> simp [mkApps_nats, spine] at *
-  -- case _ t ts ih =>
-  sorry
+  simp [mkApps_nats]
+  induction ts using List.reverse_ind <;> simp [spine]
+  case _ ty tys ih =>
+    simp [Option.bind_eq_some_iff]; apply ih
 
-theorem Ty.mkApps_nats_ren : ((gt#s).mkApps_nats ts)⟨LeanSubst.Ren.add Core.Ty na⟩ = (gt#s).mkApps_nats (List.map (fun x => x + na) ts) := by sorry
-
+theorem Ty.mkApps_nats_ren :
+  ((gt#s).mkApps_nats ts)⟨LeanSubst.Ren.add Core.Ty na⟩ = (gt#s).mkApps_nats (List.map (fun x => x + na) ts)
+:= by
+  simp [mkApps_nats]
+  induction ts using List.reverse_ind <;> simp
+  case _ ty tys ih => apply ih
 
 end Core
