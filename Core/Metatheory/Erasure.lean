@@ -30,7 +30,6 @@ inductive Term
 -- Guard: i = n: go to case i
 | switch : (n : Nat) → Fun.Vec Term n → (i : Fin n) → Term
 
-
 @[simp]
 def Term.rmap (r : Ren Term) : Term -> Term
 | var x => var (r.act x)
@@ -70,7 +69,6 @@ abbrev GlobalEnv := List Term
 
 -- TODO: add erased context here
 inductive Red (G : GlobalEnv) : Term -> Term -> Prop where
--- TODO: use LeanSubst in beta
 | beta : Red G (.app (.lam b) t) b[su t::+0σ]
 | defn :
   G[x]? = some t -> Red G (.var x) t
@@ -78,14 +76,28 @@ inductive Red (G : GlobalEnv) : Term -> Term -> Prop where
 | snd : Red G (.fst (.pair t₁ t₂)) t₂
 | switch : Red G (.switch n v i) (v i)
 
+notation:160 G:160 " ⊢ " t:160 " ~>' " t':160 => Red G t t'
+
+inductive RedOpt (G : GlobalEnv) : Term → Term → Prop
+  | refl : RedOpt G x x
+  | step :  Red G x y → RedOpt G x y
+
+
+notation:160 G:160 " ⊢ " t:160 " ~>'? " t':160 => Red G t t'
 
 inductive RedStar (G : GlobalEnv) : Term → Term → Prop
   | refl : RedStar G x x
   | step : Red G x y → Red G y z → RedStar G x z
 
+
+notation:160 G:160 " ⊢ " t:160 " ~>'* " t':160 => Red G t t'
+
+
 inductive RedPlus (G : GlobalEnv) : Term → Term → Prop where
   | one : Red G x y → RedPlus G x y
   | step : Red G x y → Red G y z → RedPlus G x z
+
+notation:160 G:160 " ⊢ " t:160 " ~>'+ " t':160 => Red G t t'
 
 end Untyped
 
@@ -98,19 +110,29 @@ def Term.erase : Term → Untyped.Term
   | defn x => .defn x
   -- Special constructors
   | spctor _ _ _ _ _ => sorry
+  | ctor0 (.refl _) => .lam (.var 0)
   | ctor1 (.prj n) t => sorry
+  | ctor1 (.appt _) t => t.erase
+  | ctor2 v t1 t2 => sorry
+  | tbind _ _ t => t.erase
   | lam _ t => .lam t.erase
   | cast _ t1 t2 => t2.erase
   -- create an outer switch of m cases
   -- and each one is a switch of n cases
   | mtch m n vm pmn vn => sorry
-  | _ => sorry
+
+deriving instance BEq for Global
+
+def GlobalEnv_erase (G : GlobalEnv) : Untyped.GlobalEnv := sorry
+  -- G.map Term.erase
 
 -- TODO: add erased contexts
 
 notation "⟦" e "⟧" => Term.erase e
+notation "⟦" G "⟧" => GlobalEnv_erase G
 
+-- Top to bottom: JUST question mark
+-- Bottom to top should be star. Might be arbitrarily many steps at the top
 -- -- TODO: explore bisimulations
--- def erasure (wf : ⊢ G)(oe : OpenExhaustive G)(t t' : Term) :
---   G ⊢ t ~> t'
---   → ⟦t⟧ = ⟦t'⟧ ∨ [G] ⊢ ⟦t⟧ ~>' ⟦t'⟧ := by sorry
+def erasure (wf : ⊢ G)(oe : OpenExhaustive G)(t t' : Term) :
+  G ⊢ t ~> t' → ⟦G⟧ ⊢ ⟦t⟧ ~>'? ⟦t'⟧ := by sorry
