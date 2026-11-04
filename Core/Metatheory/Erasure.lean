@@ -22,9 +22,8 @@ inductive Term
 | app : Term → Term → Term
 | lam : Term → Term
 -- Tuples
-| pair : Term → Term → Term
-| fst : Term → Term
-| snd : Term → Term
+| tpl : Fun.Vec Term n → Term
+-- | prj : (n : Nat) → Fun.Vec Term n → Term
 -- Number of cases: n
 -- Input : i
 -- Guard: i = n: go to case i
@@ -36,9 +35,11 @@ def Term.rmap (r : Ren Term) : Term -> Term
 | defn x => defn x
 | app t1 t2 => app (rmap r t1) (rmap r t2)
 | lam t => lam (rmap r.lift t)
-| pair t1 t2 => pair (rmap r.lift t1) (rmap r.lift t2)
-| fst t => fst (rmap r t)
-| snd t => snd (rmap r t)
+| tpl v => tpl (rmap r <$> v)
+-- | prj n v => prj n (rmap r <$> v)
+--| pair t1 t2 => pair (rmap r.lift t1) (rmap r.lift t2)
+-- | fst t => fst (rmap r t)
+--| snd t => snd (rmap r t)
 | switch n v i => switch n (rmap r <$> v) i
 
 instance : RenMap Term Term where
@@ -57,9 +58,11 @@ def Term.smap (σ : Subst Term) : Term → Term
 | defn x => defn x
 | app t1 t2 => app (smap σ t1) (smap σ t2)
 | lam t => lam (smap σ.lift t)
-| pair t1 t2 => pair (smap σ t1) (smap σ t2)
-| fst t => fst (smap σ t)
-| snd t => snd (smap σ t)
+| tpl v => tpl (smap σ <$> v)
+-- | prj n v => prj n (smap σ <$> v)
+-- | pair t1 t2 => pair (smap σ t1) (smap σ t2)
+-- | fst t => fst (smap σ t)
+-- | snd t => snd (smap σ t)
 | switch n v i => switch n (smap σ <$> v) i
 
 instance : SubstMap Term Term where
@@ -70,10 +73,9 @@ abbrev GlobalEnv := List Term
 -- TODO: add erased context here
 inductive Red (G : GlobalEnv) : Term -> Term -> Prop where
 | beta : Red G (.app (.lam b) t) b[su t::+0σ]
-| defn :
-  G[x]? = some t -> Red G (.var x) t
-| fst : Red G (.fst (.pair t₁ t₂)) t₁
-| snd : Red G (.fst (.pair t₁ t₂)) t₂
+| defn : G[x]? = some t -> Red G (.var x) t
+-- | fst : Red G (.fst (.pair t₁ t₂)) t₁
+-- | snd : Red G (.fst (.pair t₁ t₂)) t₂
 | switch : Red G (.switch n v i) (v i)
 
 notation:160 G:160 " ⊢ " t:160 " ~>' " t':160 => Red G t t'
@@ -82,16 +84,13 @@ inductive RedOpt (G : GlobalEnv) : Term → Term → Prop
   | refl : RedOpt G x x
   | step :  Red G x y → RedOpt G x y
 
-
 notation:160 G:160 " ⊢ " t:160 " ~>'? " t':160 => Red G t t'
 
 inductive RedStar (G : GlobalEnv) : Term → Term → Prop
   | refl : RedStar G x x
   | step : Red G x y → Red G y z → RedStar G x z
 
-
 notation:160 G:160 " ⊢ " t:160 " ~>'* " t':160 => Red G t t'
-
 
 inductive RedPlus (G : GlobalEnv) : Term → Term → Prop where
   | one : Red G x y → RedPlus G x y
