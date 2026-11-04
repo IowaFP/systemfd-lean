@@ -34,10 +34,15 @@ def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x =>
 
 /-
   if the class declaration in surface is as follows
-  class C a where c :: ∀ t u, t a -> u a -> u a
-    the open method associated with this will be
 
-  openm c :: ∀ a C a. (∀ t u, t a -> u a -> u a)
+    class C a where c :: ∀ t u, D (t a) => t a -> u a -> u a
+
+  the open method associated with this will be:
+
+    openm c :: ∀a. C a = (∀ t u, D (t a) => t a -> u a -> u a)
+
+  That is only C a is scrutinizatble
+
  -/
 --
 
