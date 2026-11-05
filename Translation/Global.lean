@@ -5,7 +5,6 @@ import Intermediate.Global
 import Surface.Typing
 import Intermediate.Typing
 
-import Translation.Ty
 import Translation.Term
 
 import Lilac

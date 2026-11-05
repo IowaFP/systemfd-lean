@@ -13,7 +13,6 @@ open Lilac
 
 namespace Translation.SI
 
-
 theorem mk_inst_mth_SI_shape {Γ' : Intermediate.GlobalEnv} :
   mk_inst_mth_SI Γ' C iname τ tm = .ok i ->
   ∃ (pat : Core.Pattern 1) , i = ⟨1, pat, tm⟩ ∧ τ.2.2.2.2.1 = 1 ∧ τ.2.2.1 = 0 ∧

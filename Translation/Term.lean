@@ -1,14 +1,13 @@
 import Core.Ty
 import Core.Term
 import Core.Infer
--- import Surface.Ty
+
 import Surface.Term
 import Core.Typing
 import Core.Synth
 
 import Core.Util
 
-import Translation.Ty
 open LeanSubst
 open Lilac
 

@@ -53,8 +53,8 @@ inductive SynthTerm (G : GlobalEnv) (Δ : KindEnv) : TyEnv -> Kind -> Ty -> Term
 | inst {x : String} {na nb nc : Nat} {Ks1 : Vec Kind na} {Ks2 : Vec Kind nb}
   {As : Vec Ty na} {Bs : Vec Ty nb} {Ts Ts': Vec Ty nc} {Ks : Vec Kind nc} {ts : Vec Term nc} {R' R : Ty} :
   Ks = Vec.replicate nc ★ ->
-  R' = R[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Core.Ty] ->
-  Ts' = Ts[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Core.Ty] ->
+  R' = R[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty] ->
+  Ts' = Ts[List.map su (As.list ++ Bs.list).reverse ++ Subst.id Ty] ->
   lookup x G = some (.octor x ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) ->
   (∀ i : Fin na, G&Δ ⊢ As[i] : Ks1[i]) -> -- conjure universal tys
   (∀ i : Fin nb, G&Δ ⊢ Bs[i] : Ks2[i]) -> -- conjure existential tys
@@ -359,31 +359,6 @@ def test10 := do
 
 #guard test10 == some ((t#1 • t#0) ~[★]~ (t#2 • t#0))
 
-
--- def BoolCtx : GlobalEnv := [
---   Global.data 2 "Bool" ★
---              #( ("True", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)
---                , ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)),
---   Global.data 2 "Ordering" ★
---              #( ("LT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩)
---                , ("GT", ⟨0, #(), 0, #(), 0, #(), gt#"Ordering"⟩))
-
---   ]
-
--- def WfBoolCtx : ⊢ BoolCtx := sorry
-
--- def mEG7 := EqGraph.process_tyenv BoolCtx WfBoolCtx [★] [t#0 ~[★]~ gt#"Bool"]
-
--- def test9 := do
---   let Δ := [★]
---   let Γ := [t#0 ~[★]~ gt#"Bool"]
---   let eG <- mEG7
---   let ⟨t, _⟩ <- eG.ask BoolCtx WfBoolCtx Δ Γ ★ (t#0 -:> gt#"Ordering") (gt#"Bool" -:> gt#"Ordering")
---   return t
-
--- #eval! mEG7
--- #eval! test9
-
 end Core.EqGraph.Test
 
 def List.unique_pairs {α : Type u} : List α -> List (α × α)
@@ -431,32 +406,7 @@ def isNotConsistent (G : GlobalEnv) (Δ : KindEnv) (Γ : TyEnv)
     isNotConsistent_aux G wf Δ Γ eG
   | none => none
 
--- TODO : what about cases like: Maybe a and Bool?
-
-
--- def Ty.ford (G : GlobalEnv) (Δ : KindEnv) (τ : Ty): Option SpineTy := do
---   let (x, tys) <- τ.spine
---   let na := tys.length
---   let univtys := (List.range (na)).reverse.map (t#·)
---   -- let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
-
---   let univKs <- tys.mapM (Core.Ty.infer_kind G Δ ·)
---   let uv := Vec.from_list univKs
-
---   let tys := tys.map (λ (τ : Core.Ty) => τ[Subst.add (T := Core.Ty) (k := na)])
-
---   let eqs := ((univKs.zip univtys).zip tys).map (λ ((K, α),τ) =>  Core.Ty.eq K α τ)
---   let eqv := Vec.from_list eqs
-
---   return ⟨uv.1, uv.2, 0, #(), eqv.1, eqv.2, (gt#x).mkApps univtys⟩
-
--- theorem fording_sound :
---   G&Δ ⊢ τ : K ->
---   Ty.ford G Δ τ = some ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩ ->
---   (Ks1.list ++ Ks2.list).reverse = Δ' ->
---   (∀ i : Fin nc, ∃ K : Core.Kind, G&(Δ'++ Δ) ⊢ Ts[i] : K) ∧ G&(Δ ++ Δ) ⊢ R : K
---    := by sorry
-
+-- TODO : what about cases like: Maybe a and Bool? -- Need unification
 
 
 end Core.Synth
