@@ -9,6 +9,7 @@ namespace Untyped
 abbrev Pattern m := Vec (String × Nat × Nat) m
 
 inductive Term : Type where
+| unit : Term
 | var : Nat -> Term
 | defn : String -> Term
 | spctor : String -> Fun.Vec Term n -> Term
@@ -32,6 +33,7 @@ instance : Coe (Action Term) Term where
 
 @[simp]
 def Term.rmap (r : Ren Term) : Term -> Term
+| unit => unit
 | #x => # (r.act x)
 | d#x => d#x
 | spctor x t => spctor x (rmap r <$> t)
@@ -44,6 +46,7 @@ instance : RenMap Term Term where
 
 @[simp]
 def Term.smap (σ : Subst Term) : Term -> Term
+| unit => unit
 | #x => σ.act x
 | d#x => d#x
 | spctor x t => spctor x (smap σ <$> t)
@@ -79,6 +82,8 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
 ----------------------------------------------------------------
+-- TODO: adjust. Maybe .unit • t makes more sense?
+| unit : Red G (t • .unit) t
 | beta : Red G ((λ b) • t) b[su t::+0σ]
 -- | prj_fst_app : Red G (prj[0] refl! (A • B)) (refl! A)
 -- | prj_snd_app : Red G (prj[1] refl! (A • B)) (refl! B)

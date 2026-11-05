@@ -42,7 +42,7 @@ deriving instance BEq for Global
 def Global.erase : Global → Untyped.Global := sorry
 
 def GlobalEnv_erase (G : GlobalEnv) : Untyped.GlobalEnv :=
-  G.map Global.erase
+  Global.erase <$> G
 
 -- TODO: add erased contexts
 
