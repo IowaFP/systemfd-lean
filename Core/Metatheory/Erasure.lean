@@ -39,7 +39,10 @@ def Term.erase : Term → Untyped.Term
 
 deriving instance BEq for Global
 
-def Global.erase : Global → Untyped.Global := sorry
+def Global.erase : Global → Untyped.Global
+| defn s _ t => .defn s t.erase
+| inst s pm t => .inst s pm.erase t.erase
+| _ => .defn "" .unit
 
 def GlobalEnv_erase (G : GlobalEnv) : Untyped.GlobalEnv :=
   Global.erase <$> G
@@ -52,5 +55,10 @@ notation "⟦" G "⟧" => GlobalEnv_erase G
 -- Top to bottom: JUST question mark
 -- Bottom to top should be star. Might be arbitrarily many steps at the top
 -- -- TODO: explore bisimulations
-theorem erasure (wf : ⊢ G)(oe : OpenExhaustive G)(t t' : Term) :
-  G ⊢ t ~> t' → ⟦G⟧ ⊢ ⟦t⟧ ~>? ⟦t'⟧ := by sorry
+theorem erasure 
+    (wf : ⊢ G)(oe : OpenExhaustive G)
+    (t t' : Term) (s : G ⊢ t ~> t') : ⟦G⟧ ⊢ ⟦t⟧ ~>? ⟦t'⟧ :=
+match s, t, t' with
+| beta, .lam _ _, _ => by sorry -- .step sorry
+-- | beta : Red G ((λ b) • t) b[su t::+0σ]
+| _, _, _ => sorry

@@ -59,7 +59,7 @@ instance : SubstMap Term Term where
 
 inductive Global : Type where
 | defn : String → Term → Global
-| inst : String → (m : Nat) → Pattern m → Term → Global
+| inst : String → Pattern m → Term → Global
 
 @[simp]
 abbrev GlobalEnv := List Global
@@ -71,7 +71,7 @@ def lookup (x : String) : List Global → Option Term
   if x == y then t else lookup x tl
 -- Can express as a match expression
 -- with only one case
-| .cons (.inst y m pm t) tl => 
+| .cons (.inst y pm t) tl => 
   if x == y 
   then sorry
   -- then .some (.lam (.mtch m 1 #() #(pm) #(t)))
@@ -82,7 +82,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
 ----------------------------------------------------------------
--- TODO: adjust. Maybe .unit • t makes more sense?
+-- TODO: adjust. Maybe .unit • 
 | unit : Red G (t • .unit) t
 | beta : Red G ((λ b) • t) b[su t::+0σ]
 -- | prj_fst_app : Red G (prj[0] refl! (A • B)) (refl! A)
