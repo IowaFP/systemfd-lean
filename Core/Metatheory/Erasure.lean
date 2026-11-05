@@ -21,12 +21,7 @@ inductive Term
 | defn : String → Term
 | app : Term → Term → Term
 | lam : Term → Term
--- Tuples
 | tpl : Fun.Vec Term n → Term
--- | prj : (n : Nat) → Fun.Vec Term n → Term
--- Number of cases: n
--- Input : i
--- Guard: i = n: go to case i
 | switch : (n : Nat) → Fun.Vec Term n → (i : Fin n) → Term
 
 @[simp]
@@ -36,10 +31,6 @@ def Term.rmap (r : Ren Term) : Term -> Term
 | app t1 t2 => app (rmap r t1) (rmap r t2)
 | lam t => lam (rmap r.lift t)
 | tpl v => tpl (rmap r <$> v)
--- | prj n v => prj n (rmap r <$> v)
---| pair t1 t2 => pair (rmap r.lift t1) (rmap r.lift t2)
--- | fst t => fst (rmap r t)
---| snd t => snd (rmap r t)
 | switch n v i => switch n (rmap r <$> v) i
 
 instance : RenMap Term Term where
@@ -59,10 +50,6 @@ def Term.smap (σ : Subst Term) : Term → Term
 | app t1 t2 => app (smap σ t1) (smap σ t2)
 | lam t => lam (smap σ.lift t)
 | tpl v => tpl (smap σ <$> v)
--- | prj n v => prj n (smap σ <$> v)
--- | pair t1 t2 => pair (smap σ t1) (smap σ t2)
--- | fst t => fst (smap σ t)
--- | snd t => snd (smap σ t)
 | switch n v i => switch n (smap σ <$> v) i
 
 instance : SubstMap Term Term where
