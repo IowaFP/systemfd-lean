@@ -122,7 +122,7 @@ def Pattern.beq : Pattern m1 -> Pattern m2 -> Bool
 instance instBEq_Pattern : BEq (Pattern n) where
   beq := Pattern.beq
 
-private def Pattern.rfl : {n : Nat} -> {p : Pattern n} -> (p == p) = true
+private theorem Pattern.rfl : {n : Nat} -> {p : Pattern n} -> (p == p) = true
 | 0, .nil => by rfl
 | n + 1, .cons p ps => by
   simp +instances [instBEq_Pattern, Pattern.beq]
@@ -133,7 +133,7 @@ private def Pattern.rfl : {n : Nat} -> {p : Pattern n} -> (p == p) = true
 instance instReflBEq_Pattern : ReflBEq (Pattern n) where
   rfl := Pattern.rfl
 
-private def Pattern.eq_of_beq : {n : Nat} -> {a b : Pattern n} -> (a == b) = true → a = b
+private theorem Pattern.eq_of_beq : {n : Nat} -> {a b : Pattern n} -> (a == b) = true → a = b
 | 0, .nil, .nil => by simp
 | n + 1, .cons a as, .cons b bs => by
   intro h
@@ -238,7 +238,7 @@ instance instReflBEq_Term : ReflBEq Term where
   rfl := Term.rfl
 
 
-private def Term.eq_of_beq : ∀ {a b : Term}, (a == b) = true → a = b
+private theorem Term.eq_of_beq : ∀ {a b : Term}, (a == b) = true → a = b
 := by
   intro a b h
   cases a <;> cases b
@@ -267,7 +267,7 @@ private def Term.eq_of_beq : ∀ {a b : Term}, (a == b) = true → a = b
 
   case mtch.mtch m1 n1 ss1 ps1 b1 m2 n2 ss2 ps2 b2 =>
     rcases h with ⟨⟨h1, h2⟩, ⟨h3, h4⟩, h5⟩
-    subst h1; subst h2; simp at *;
+    subst h1 h2; simp at *;
     generalize z1def : Fun.Vec.to (λ i => (ss1 i).beq (ss2 i)) = z1 at *
     generalize z2def : Fun.Vec.to (λ i => (ps1 i).beq (ps2 i)) = z2 at *
     generalize z3def : Fun.Vec.to (λ i => (b1 i).beq (b2 i)) = z3 at *

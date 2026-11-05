@@ -664,6 +664,7 @@ theorem Vec.foldr_or {cs : Vec _ n}: Vec.foldr Option.or d cs = e ->
         apply ih2
     case _ v => apply Or.inl; exists 0
 
+
 theorem Vec.getElem_mem : ∀ {vs : Vec α n} {i : Fin n}, vs[i] ∈ vs
 | .nil, i => i.elim0
 | .cons x xs, 0 => Mem.head
@@ -677,6 +678,22 @@ theorem Vec.getElem_of_mem {α : Type u_1} {a : α} {l : Vec α n} (h : a ∈ l)
   induction h
   case head => exists 0
   case tail ih => rcases ih with ⟨i, ih⟩; exists (i.succ)
+
+
+theorem Vec.exists_mem_iff_getElem {α : Type u_1} {a : α} : {n : Nat} -> {vs : Vec α n} ->
+  a ∈ vs <->  ∃ (i : Fin n), vs[i] = a
+| 0, .nil => by simp; intro h; cases h
+| n + 1, .cons x xs => by
+  apply Iff.intro
+  intro h; cases h;
+  · exists 0;
+  case _ h => have ih := Vec.exists_mem_iff_getElem.mp h; rcases ih with ⟨i, ih⟩; exists i.succ;
+  intro h
+  rcases h with ⟨i, h⟩
+  cases i using Fin.induction
+  · simp at h; subst h; apply Vec.Mem.head
+  · simp at h; apply Vec.Mem.tail; subst h; apply Vec.getElem_mem
+
 
 theorem Vec.foldl_or_some_default {vs : Vec (Option α) n} : foldl Option.or (some e) vs = some e
 := by

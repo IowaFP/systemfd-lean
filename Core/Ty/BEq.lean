@@ -68,18 +68,37 @@ instance instLawfulBEq_Ty : LawfulBEq Ty where
         · apply ih1 h.1.2
         · apply ih2 h.2
 
-instance : BEq SpineTy where
+instance instBEq_SpineTy : BEq SpineTy where
   beq := λ ⟨na, Ks1, nb, Ks2, nc, As, R⟩ ⟨na', Ks1', nb', Ks2', nc', As', R'⟩ =>
-    if h : na == na' && (nb == nb' && nc == nc')
-    then
-    by { simp at h; rcases h with ⟨e1, e2, e3⟩
-         subst e1; subst e2; subst e3; apply Ks1 == Ks1' && Ks2 == Ks2' && As == As' && R == R' }
-    else false
+    na == na' && (Ks1.beq Ks1' && (nb == nb' && (Ks2.beq Ks2' && (nc == nc' && (As.beq As' && R == R')))))
 
 instance : ReflBEq SpineTy where
-  rfl :=  sorry
+  rfl
+:= by
+   intro a; rcases a with ⟨k1, Ks1, k2, Ks2, k3, Cs, R⟩
+   simp [BEq.beq]; apply And.intro
+   · apply Lilac.instReflBEqVec.rfl
+   · apply And.intro
+     · apply Lilac.instReflBEqVec.rfl
+     · apply And.intro;
+       · apply Lilac.instReflBEqVec.rfl
+       · apply instReflBEq_Ty.rfl
 
 instance : LawfulBEq SpineTy where
-  eq_of_beq := sorry
+  eq_of_beq := by
+    intro a b h
+    rcases a with ⟨na, Ks1, nb, Ks2, nc, As, R⟩
+    rcases b with ⟨na', Ks1', nb', Ks2', nc', As', R'⟩
+    simp [BEq.beq] at h;
+    rcases h with ⟨e1, e2, e3, e4, e5, e6, e7⟩
+    subst e1 e3 e5;
+    simp; apply And.intro
+    · apply Lilac.instLawfulBEqVec.eq_of_beq e2
+    · apply And.intro
+      · apply Lilac.instLawfulBEqVec.eq_of_beq e4
+      · apply And.intro
+        · apply Lilac.instLawfulBEqVec.eq_of_beq e6
+        · apply instLawfulBEq_Ty.eq_of_beq e7
+
 
 end Core
