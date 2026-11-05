@@ -73,4 +73,50 @@ def lookup (x : String) : List Global → Option Term
   else lookup x tl
 
 
+inductive Red (G : List Global) : Term -> Term -> Prop where
+----------------------------------------------------------------
+---- Basic Reduction Steps
+----------------------------------------------------------------
+| beta : Red G ((λ b) • t) b[su t::+0σ]
+-- | prj_fst_app : Red G (prj[0] refl! (A • B)) (refl! A)
+-- | prj_snd_app : Red G (prj[1] refl! (A • B)) (refl! B)
+-- | prj_fst_arr: Red G (prj[0] refl! (A -:> B)) (refl! A)
+-- | prj_snd_arr : Red G (prj[1] refl! (A -:> B)) (refl! B)
+----------------------------------------------------------------
+---- Global Definitions
+----------------------------------------------------------------
+| defn :
+  lookup x G = some t ->
+  Red G d#x t
+----------------------------------------------------------------
+---- Congruence Rules
+----------------------------------------------------------------
+| app_congr :
+  Red G f f' ->
+  Red G (f • a) (f' • a)
+| match_congr {ss : Fun.Vec Term m} i :
+  Red G (ss i) (ss' i) ->
+  (∀ j ≠ i, ss j = ss' j) ->
+  Red G (.mtch m n ss ps bs) (.mtch m n ss' ps bs)
+
+notation:160 G:160 " ⊢ " t:160 " ~> " t':160 => Red G t t'
+
+inductive RedOpt (G : GlobalEnv) : Term -> Term -> Prop where
+| refl : RedOpt G x x
+| step : Red G x y -> RedOpt G x z
+
+notation:160 G:160 " ⊢ " t:160 " ~>? " t':160 => RedOpt G t t'
+
+inductive RedStar (G : GlobalEnv) : Term -> Term -> Prop where
+| refl : RedStar G x x
+| step : RedStar G x y -> Red G y z -> RedStar G x z
+
+notation:160 G:160 " ⊢ " t:160 " ~>* " t':160 => RedStar G t t'
+
+inductive RedPlus (G : GlobalEnv) : Term -> Term -> Prop where
+| one : Red G x y -> RedPlus G x y
+| step : RedPlus G x y -> Red G y z -> RedPlus G x z
+
+notation:160 G:160 " ⊢ " t:160 " ~>+ " t':160 => RedPlus G t t'
+
 
