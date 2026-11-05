@@ -3,6 +3,8 @@ import Common.Vec
 open LeanSubst
 open Lilac
 
+namespace Untyped
+
 -- TODO: maybe turn into concrete record type
 abbrev Pattern m := Vec (String × Nat × Nat) m
 
@@ -118,5 +120,3 @@ inductive RedPlus (G : GlobalEnv) : Term -> Term -> Prop where
 | step : RedPlus G x y -> Red G y z -> RedPlus G x z
 
 notation:160 G:160 " ⊢ " t:160 " ~>+ " t':160 => RedPlus G t t'
-
-
