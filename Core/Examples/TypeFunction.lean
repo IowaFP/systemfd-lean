@@ -220,18 +220,4 @@ some ([★, ★, ★, ★],
 
 
 
--- def Δ : KindEnv := [★,★,★,★,★,★,★]
--- def Γ : TyEnv := [(gt#"Maybe" • t#0) ~[★]~ t#4 , (gt#"Maybe" • t#1) ~[★]~ t#6, (gt#"Maybe" • t#3) ~[★]~ t#6] --, (Maybe • `2) ~[★]~ `5,
-
--- #eval! do
---   match h : TypeFunCtx.wf_globals with
---   | some () =>
---     have wf := wf_global_sound h
---     let eG <- Core.Synth.EqGraph.process_tyenv TypeFunCtx wf Δ Γ
---     -- let eG := eG.push (⟨gt#"Maybe" • t#3, ★, sorry⟩)
---     return (Δ.repr 0, Γ.repr 0, eG.nodes.repr 0)
---   | none => none
-
-
-
 end Core.Examples

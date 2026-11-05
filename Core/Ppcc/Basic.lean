@@ -452,31 +452,6 @@ def EqGraph.arrowc (G : GlobalEnv) (wf : ⊢ G) (Δ : KindEnv) (Γ : TyEnv)
           · simp
         · apply j1
       · apply j2 ⟩
-  /-
-  by
-  have lem1 := terms_have_star_types wf j1
-  have lem2 := terms_have_star_types wf j2
-  cases lem1; cases lem2;
-  simp [Term.arrowc]
-  apply Typing.app (A := B1 ~[KB]~ B2)
-  · apply Typing.app (A := A1 ~[KA]~ A2)
-    · apply Typing.appt  (K := KB)
-            (P := (A1⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩) -:>
-                   (B1⟨Ren.succ Ty⟩ ~[KB]~ t#0) -:>
-                     ((A1⟨Ren.succ Ty⟩ -:> B1⟨Ren.succ Ty⟩) ~[★]~ (A2⟨Ren.succ Ty⟩ -:> t#0)))
-      · apply Typing.appt (K := KB)
-              (P := ∀[KB](A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ ~[KA]~ A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩) -:> (t#1 ~[KB]~ t#0) -:> ((A1⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ -:> t#1) ~[★]~ (A2⟨Ren.succ Ty⟩⟨Ren.succ Ty⟩ -:> t#0)))
-        · simp;
-          sorry;
-        · assumption
-        rw [Ty.subst_all, Ty.subst_arr, Ty.subst_arr, Ty.subst_eq, Ty.subst_eq, Ty.subst_eq, Ty.subst_arr, Ty.subst_arr, succ_succ_subst_lemma, succ_succ_subst_lemma]; simp
-      assumption
-      simp
-
-    · apply j1
-  · apply j2
-
--/
 
 
 

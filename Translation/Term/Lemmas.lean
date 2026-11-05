@@ -2,15 +2,8 @@ import Common.Vec
 import Core.Ty
 import Core.Term
 import Core.Metatheory
-import Surface.Ty
 import Surface.Term
 
-import Translation.Ty
-import Translation.Term
-
-import Translation.Ty.Lemmas
-
-import Translation.Ty
 import Translation.Term
 import Translation.Global
 import Core.Typing
