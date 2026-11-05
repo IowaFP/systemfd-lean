@@ -40,7 +40,6 @@ def Term.rmap (r : Ren Term) : Term -> Term
 instance : RenMap Term Term where
   rmap := Term.rmap
 
-
 @[simp]
 def Term.smap (σ : Subst Term) : Term -> Term
 | #x => σ.act x
@@ -52,4 +51,20 @@ def Term.smap (σ : Subst Term) : Term -> Term
 
 instance : SubstMap Term Term where
   smap := Term.smap
+
+inductive Global : Type where
+| defn : String → Term → Global
+| inst : String → Pattern m → Term → Global
+
+@[simp]
+abbrev GlobalEnv := List Global
+
+-- We only need one lookup function for terms
+def lookup (x : String) : List Global → Option Term
+| [] => none
+| .cons (.defn y t) tl => 
+  if x == y then t else lookup x tl
+| .cons (.inst _ _ _) tl => lookup x tl
+
+
 
