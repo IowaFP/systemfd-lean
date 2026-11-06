@@ -201,7 +201,7 @@ theorem mk_inst_scs_SI_indexing {Γ' : Intermediate.GlobalEnv} :
 theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
   {K : Vec Core.Kind nc} :
   ⟦ G ⟧ = .ok G' ->
-  Surface.lookup cls G = Surface.Entry.odata cls K scs mτs ->
+  Surface.lookup cls G = Surface.Entry.odata cls K fds scs mτs ->
   ∃ fds' scs' mτs', Intermediate.lookup cls G' = Intermediate.Entry.odata cls K fds' scs' mτs'
 := by
   intro h1 h2
@@ -243,7 +243,7 @@ theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     simp [Intermediate.lookup, e];
     apply ih h1 h2
 
-  case _ s _ scs mτs _ ih =>
+  case _ s _ fds scs mτs _ ih =>
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
     split at h2 <;> simp at *
     subst cls; split at h3;
@@ -350,7 +350,7 @@ theorem lookup_SI_data {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     simp [Intermediate.lookup, e];
     apply ih h1 h2
 
-  case _ s _ _ _ _ ih => -- classDecl
+  case _ s _ _ _ _ _ ih => -- classDecl
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
     split at h2 <;> simp at *
     split at h2 <;> simp at *
@@ -452,7 +452,7 @@ theorem translate_SI_lookup_none {G : Surface.GlobalEnv} {G' : Intermediate.Glob
     simp [e] at h2
     apply ih h1 h2
 
-  case _ s _ scs mτs _ ih => -- odata
+  case _ s _ fds scs mτs _ ih => -- odata
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
     split at h3 <;> try simp at *
     rcases h3 with ⟨h3, _⟩
@@ -633,7 +633,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         apply h2
       · apply ih wftl h1
 
-  case _ kc s Ks scs mτs Γ ih =>  -- class decl
+  case _ kc s Ks fds scs mτs Γ ih =>  -- class decl
     cases wf; case _ wftl wfhd =>
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h1, h2⟩
     split at h2 <;> try simp at h2;
@@ -656,7 +656,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
           replace c7 := c7 i hi;
           rcases c7 with ⟨mn, R, j1, j2, j3⟩
           exists mn; simp;
-          have lem1 : ⊢ ((Surface.Global.classDecl s Ks [] []) :: Γ) := by
+          have lem1 : ⊢ ((Surface.Global.classDecl s Ks [] [] []) :: Γ) := by
             apply Surface.ListGlobalWf.cons
             · apply Surface.GlobalWf.classDecl
               · assumption
@@ -668,13 +668,13 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
               · simp
               · simp
             · apply wftl
-          have lem2 : ⟦(Surface.Global.classDecl s Ks [] [] :: Γ)⟧ = .ok (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ') := by
+          have lem2 : ⟦(Surface.Global.classDecl s Ks [] [] [] :: Γ)⟧ = .ok (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ') := by
             simp [translate_SI, bind, Except.bind_eq_ok_iff]; exists Γ'; apply And.intro; apply h1
             simp [h3, pure, Except.pure]; simp [check_oms]
           generalize zdef : (mτs[i]).2 = z at *
           rcases z with ⟨k1, Ks1, k2, Ks2, k3, Ts, R⟩
-          generalize mτdef : mk_method_om s Ks ⟨k1, (Ks1, ⟨k2, (Ks2, ⟨k3, (Ts, R)⟩)⟩)⟩ = mτ' at *
-          unfold mk_method_om at mτdef; simp at mτdef;
+          generalize mτdef : Surface.mk_method_om s Ks ⟨k1, (Ks1, ⟨k2, (Ks2, ⟨k3, (Ts, R)⟩)⟩)⟩ = mτ' at *
+          unfold Surface.mk_method_om at mτdef; simp at mτdef;
           exists mτ'; simp; apply And.intro;
           · simp [j1]
           · simp [j1] at zdef;
@@ -716,7 +716,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         · apply And.intro;
           · simp [tys_eq]
           · apply And.intro
-            · simp; simp [c7a, mk_method_om, T_eq, tys_eq]; simp [spine_type_type, Core.Ty.genTy];
+            · simp; simp [c7a, Surface.mk_method_om, T_eq, tys_eq]; simp [Surface.spine_type_type, Core.Ty.genTy];
             · apply kinding_SI_transfer h1 c7b
 
       · intro i hi;
@@ -882,7 +882,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     rcases ih with ⟨i, n, cls, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths, ih⟩
     exists i + 1; exists n; exists cls; exists k1; exists k2; exists k3; exists Ks1; exists Ks2; exists tys; exists fds
     exists scs; exists mths
-  case _ cls kc s Ks1 scs mτs _ ih => -- class Decl
+  case _ cls kc s Ks1 fds scs mτs _ ih => -- class Decl
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h3, h⟩
     split at h <;> simp at *
     rcases h with ⟨h, h4⟩
@@ -942,12 +942,12 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         replace ci7 := ci7 i (by grind)
         rcases ci7 with ⟨mn', R', T', tys, T'_shape, tys_eq, ⟨ci7a, ci7b⟩, ci7c⟩
         simp [cs6a] at ci7a; subst mn'
-        rw [cs6a] at ci7b; simp [mk_method_om] at ci7b;
+        rw [cs6a] at ci7b; simp [Surface.mk_method_om] at ci7b;
         rcases ci7b with ⟨e1, e2⟩; subst e1 e2
         rcases h7 with ⟨a, b, h7a, h7b, h7c⟩; subst h7b
         simp [List.getElem?_eq_some_iff] at h7a; rcases h7a with ⟨hi, h7a⟩
         rw[cs6a] at h7a; simp at h7a; rcases h7a with ⟨e1, e2⟩; subst e1; subst b
-        simp [mk_method_om] at h7c;
+        simp [Surface.mk_method_om] at h7c;
         rcases spTy with ⟨na', Ks1, nb', Ks2', nc', Ts', R'⟩
         simp at h7c; rcases h7c with ⟨e1, e2⟩; subst e1;
         simp at e3; rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2
@@ -975,7 +975,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     · simp [Option.toTM] at h3
       · split at h3 <;> try simp at h3;
         simp [Except.bind_eq_ok_iff] at h3
-        case _ cls_name k1' _ _ scs' mτs' k2' _ _ _ _ rsp =>
+        case _ cls_name k1' _ _ fds scs' mτs' k2' _ _ _ _ rsp =>
         simp [Except.bind_eq_ok_iff] at h3; rcases h3 with ⟨cls, ⟨tys, h3⟩, h4⟩; cases h3
         split at h4 <;> try simp at h4
         case _ scsτs m_τs lki =>

@@ -102,18 +102,18 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 
   -- method type shapes
   (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧ -- all the Ts here ought to be empty. any quantification can go in R
-    G&(Ks1.list).reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
+    G&(Ks1.list).reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
 
   -- super class type shapes
   (∀ (i : Nat), (hi : i < scτs.length) -> ∃ mn SC τs,
     scτs[i] = (mn, SC, τs) ∧
     Surface.is_data .opn G SC ∧ G&Ks1.list.reverse ⊢s (gt#SC).mkApps_nats τs : ★) ->
 
-  GlobalWf G (.classDecl s Ks1 /-fds-/ scτs  mτs)
+  GlobalWf G (.classDecl s Ks1 [] scτs mτs)
 
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
-  lookup cls_name G = some (.odata cls_name K scs mτs) ->
+  lookup cls_name G = some (.odata cls_name K fds scs mτs) ->
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats ((List.range na).map (·+ nb)).reverse⟩ ->
   -- Cover all methods
   (e : mτs.length = ts.length) ->

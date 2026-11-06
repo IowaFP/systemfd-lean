@@ -1,7 +1,6 @@
 import LeanSubst
 import Common.Vec
 import Lilac
--- import Surface.Ty
 import Surface.Term
 import Core.Term
 
@@ -15,8 +14,8 @@ inductive Global where
 | defn : String -> Core.Ty -> Term -> Global
 | classDecl : {kc : Nat} ->
   String -> Vec Core.Kind kc ->
+  List (String × List Nat × Nat) -> -- FDS
   List (String × String × List (Fin kc)) -> -- SCS
-  -- List (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) -> -- FDS
   List (String × Core.SpineTy) -> -- methods
   Global
 
@@ -35,7 +34,7 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
 | .defn n T t =>
   ".defn " ++ n ++ " " ++ (T.repr max_prec)
   ++ Std.Format.nest 4 (Std.Format.align true ++ t.repr max_prec)
-| .classDecl s Ks scs /-fds-/ methods =>
+| .classDecl s Ks fds scs methods =>
   ".class " ++ s ++ " : " ++ Ks.repr max_prec ++ " where" ++ Std.Format.line
     ++ "|"  ++ scs.repr max_prec
     -- ++ "|" ++ fds.repr max_prec
@@ -55,13 +54,16 @@ inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Term -> Entry
-| odata : {n : Nat} -> String -> Vec Core.Kind n -> List (String × String × List (Fin kc)) -> List (String × Core.SpineTy) -> Entry
+| odata : {n : Nat} -> String -> Vec Core.Kind n ->
+  List (String × List Nat × Nat) ->
+  List (String × String × List (Fin kc)) ->
+  List (String × Core.SpineTy) -> Entry
 | octor : String -> Core.SpineTy -> Entry
 | openm : String -> Core.SpineTy -> Entry
 
 def Entry.is_data : Core.DataConst -> Entry -> Bool
 | .cls, .data _ _ _ => true
-| .opn, .odata _ _ _ _ => true
+| .opn, .odata _ _ _ _ _ => true
 | _, _ => false
 
 def Entry.is_ctor : Entry -> Bool
@@ -69,7 +71,7 @@ def Entry.is_ctor : Entry -> Bool
 | _ => false
 
 def Entry.is_odata : Entry -> Bool
-| odata _ _ _ _ => true
+| odata _ _ _ _ _ => true
 | _ => false
 
 def Entry.is_openm : Entry -> Bool
@@ -82,7 +84,7 @@ def Entry.is_defn : Entry -> Bool
 
 def Entry.kind : Entry -> Option Core.Kind
 | data _ K _ => K
-| odata _ Ks _ _ => Core.Kind.mk_cls_kind Ks
+| odata _ Ks _ _ _ => Core.Kind.mk_cls_kind Ks
 | _ => none
 
 def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String) (sc_params : List (Fin kc)) : Core.SpineTy :=
@@ -90,6 +92,79 @@ def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String
   let sc_ty := (gt#sc).mkApps_nats sc_params
   ⟨kc, cls_params, 0, #(), 1, #(cls_ty), sc_ty⟩
 
+
+/-
+  if the class declaration in surface is as follows
+
+    class C a where c :: ∀ t u, D (t a) => t a -> u a -> u a
+
+  the open method associated with this will be:
+
+    openm c :: ∀a. C a = (∀ t u, D (t a) => t a -> u a -> u a)
+
+  That is only C a is scrutinizatble
+
+ -/
+--
+
+def spine_type_type : Core.SpineTy -> Core.Ty
+| ⟨_, Ks1, _, Ks2, _, Ts, R⟩ => ((Ts.reverse.foldl (Core.Ty.arrow · ·) R).genTy Ks2).genTy Ks1
+
+
+def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineTy) : Core.SpineTy :=
+  let ski := (List.range cls_params.length)
+  ⟨kc, cls_params, 0, #(), 1,  #((gt#cls).mkApps_nats ski.reverse), spine_type_type R⟩
+
+
+-- Determiners are the parameters that remain fixed
+-- Non determiners are the parameters that change
+-- Determinant parameter is the one that we build the equality out of
+
+
+-- def non_determiners (cls_params : Vec Core.Kind kc) : List (Fin kc) -> (n : Nat) ×' Vec Core.Kind n
+-- | .nil => ⟨kc, cls_params⟩
+-- | .cons x xs =>
+
+--   let ⟨_, t⟩ := cls_params.eraseIdx x
+--   non_determiners t xs
+
+-- #eval (non_determiners #(★, ★ -:> ★, ★ -:> ★, ★) [2]).snd
+
+def non_determiners (cls_params : List Core.Kind) : List Nat -> List Core.Kind
+| .nil => cls_params
+| .cons x xs =>
+  let cls_params' := cls_params.eraseIdx x
+  non_determiners cls_params' xs
+
+#eval (non_determiners [★, ★ -:> ★, ★ -:> ★, ★] [2])
+
+
+-- Pre-conditions : Determiners.length < kc
+-- Determiners are sorted
+-- F t u v | t -> u
+-- Determiners are [t]
+-- Non-determiners are [v]
+-- Determinant is v
+
+def mk_fd_om (cls : String) (cls_params : Vec Core.Kind kc) (determiners : List (Fin kc)) (determinant : Fin kc)
+  : Core.SpineTy :=
+
+  let Δ' := cls_params.list
+
+  let Δ' := non_determiners Δ' determiners
+  let ⟨kc', Δ'⟩ := Vec.from_list Δ'
+
+  let new_params_length := kc'
+
+  let cls_ty := ((gt#cls).mkApps_nats (List.range cls_params.length).reverse)⟨Ren.add Core.Ty new_params_length⟩
+  let cls_ty' := (gt#cls).mkApps_nats (List.range cls_params.length).reverse
+
+
+  let R := t#(determinant + new_params_length) ~[cls_params[determinant]]~ t#0
+  ⟨kc' + kc, cls_params ++ Δ', 0, #(), 2, #(cls_ty, cls_ty'), R⟩
+
+#eval mk_fd_om "F" #(★, ★ -:> ★, ★) [2] 0
+-- ⟨4, #(★, ★ -:> ★, ★) ++ #(★) ++ #(★), F t#4 t#3 t#2, F t#4 t#1 #0, #2 ~[★]~ t#0⟩
 
 def lookup (x : String) : GlobalEnv -> Option (Entry)
 | [] => none
@@ -101,11 +176,11 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
   else ctors'.foldr (init := lookup x tl) Option.or
 | .cons (.defn y a b) tl =>
   if x == y then return .defn y a b else lookup x tl
-| .cons (.classDecl (kc := kc) y Ks scs /-fds-/ ms) tl =>
-  if x == y then return .odata y Ks scs ms else
+| .cons (.classDecl (kc := kc) y Ks fds scs ms) tl =>
+  if x == y then return .odata y Ks fds scs ms else
 
   let ms_mb : Option (String × Core.SpineTy) := ms.find? (λ (mn, _) => x == mn)
-  let ms := ms_mb.map (λ (x, mn) => .openm x mn)
+  let ms := ms_mb.map (λ (x, mn) => .openm x (mk_method_om y Ks mn))
   -- TODO Extensions for fundeps
   let scs_mb : Option (String × String × List (Fin kc)) := scs.find? (λ (sc, _, _) => x == sc)
   let scs := scs_mb.map (λ (scn, cls, tys) => Entry.openm scn (mk_superclass_om y Ks cls tys))
@@ -127,7 +202,7 @@ def Entry.name : Entry -> String
 | octor x _ => x
 | openm x _ => x
 | defn x _ _ => x
-| odata x _ _ _ => x
+| odata x _ _ _ _ => x
 
 
 theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by

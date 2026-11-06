@@ -31,28 +31,6 @@ def check_om : (String × Core.SpineTy) -> Option Unit
 
 def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x => check_om x == .some ())
 
-/-
-  if the class declaration in surface is as follows
-
-    class C a where c :: ∀ t u, D (t a) => t a -> u a -> u a
-
-  the open method associated with this will be:
-
-    openm c :: ∀a. C a = (∀ t u, D (t a) => t a -> u a -> u a)
-
-  That is only C a is scrutinizatble
-
- -/
---
-
-def spine_type_type : Core.SpineTy -> Core.Ty
-| ⟨_, Ks1, _, Ks2, _, Ts, R⟩ => ((Ts.reverse.foldl (Core.Ty.arrow · ·) R).genTy Ks2).genTy Ks1
-
-
-def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineTy) : Core.SpineTy :=
-  let ski := (List.range cls_params.length)
-  ⟨kc, cls_params, 0, #(), 1,  #((gt#cls).mkApps_nats ski.reverse), spine_type_type R⟩
-
 def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (Fin n) (kc + 1)) (determinant : Fin n)
   : Core.SpineTy :=
   let ski := (List.range n).map (· + 1)
@@ -149,7 +127,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   then
     return .cons (.defn ⟨s, T, t⟩) Γ'
   else .error "translate_SI defn"
-| .cons (.classDecl (kc := kc) s Ks scs /-fds-/ mτs) Γ => do
+| .cons (.classDecl (kc := kc) s Ks fds scs mτs) Γ => do
   let Γ' <- translate_SI Γ
   if (Intermediate.lookup s Γ').isNone
   then
@@ -157,7 +135,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
     let scs := scs.map (λ (n, sc, params) =>  ⟨n, (Surface.mk_superclass_om s Ks sc params)⟩)
     let fds := [] -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
     if check_oms mτs then
-      let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (mk_method_om s Ks spTy)⟩)
+      let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (Surface.mk_method_om s Ks spTy)⟩)
     -- TODO: names s and scs fds mτs are distinct
     -- TODO: FunDep structure validation
       return (.classDecl ⟨s, kc, Ks, fds, scs, mτs⟩ :: Γ')

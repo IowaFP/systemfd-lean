@@ -1108,4 +1108,17 @@ theorem indexing_is_weird : {n : Nat} -> {κs : Vec α (n + 1)} -> {i : Fin n} -
   apply indexing_is_weird
 
 
+def Vec.eraseIdx : {n : Nat} -> (vs : Vec α n) -> (i : Fin n) -> (m : Nat) ×' Vec α m
+| 0, #(), _ => ⟨0, #()⟩
+| (n + 1), .cons x xs, m =>
+  if h : m = 0
+  then ⟨n, xs⟩
+  else let ⟨k, xs'⟩ := eraseIdx xs (m.pred h)
+    ⟨k + 1, .cons x xs'⟩
+
+#eval (Vec.eraseIdx #(0, 1, 2) 0).snd
+#eval (Vec.eraseIdx #(0, 1, 2) 4).snd
+
+
+
 end Lilac

@@ -1,4 +1,3 @@
-import Surface.Ty
 import Surface.Global
 import Surface.Term
 
@@ -31,7 +30,7 @@ def mbenv : GlobalEnv := [
     ],
 
   -- class Monad m | Functor m where { return : ∀ a. a -> m a ;  bind : ∀ a b. m a -> (a -> m b) -> m b }
-  .classDecl "Monad" #(★ -:> ★) [ ("supMonFun", "Functor", [0]) ]
+  .classDecl "Monad" #(★ -:> ★) [] [ ("supMonFun", "Functor", [0]) ]
     [ ("return", ⟨0, #(), 0, #(), 0, #(), ∀[★] t#0 -:> (t#1 • t#0)⟩)
     , ("bind", ⟨0, #(), 0, #(), 0, #(), (∀[★]∀[★] (t#2 • t#1) -:> (t#1 -:> (t#2 • t#0)) -:> (t#2 • t#0)) ⟩)
     ],
@@ -46,7 +45,7 @@ def mbenv : GlobalEnv := [
                        (NothingPat,  g`#"Nothing" `•ᵤ #(t#0) `•ₑ #() `•ₜ .nil)))],
 
   -- class Functor f where fmap :: ∀ a b. (a -> b) -> f a -> f b
-  .classDecl "Functor" #(★ -:> ★) [] [("fmap", ⟨0, #(), 0, #(), 0, #(), (∀[★]∀[★]((t#1 -:> t#0) -:> ((t#2 • t#1) -:> (t#2 • t#0)))) ⟩)],
+  .classDecl "Functor" #(★ -:> ★) [] [] [("fmap", ⟨0, #(), 0, #(), 0, #(), (∀[★]∀[★]((t#1 -:> t#0) -:> ((t#2 • t#1) -:> (t#2 • t#0)))) ⟩)],
 
   -- data Maybe a = Just a | Nothing
   .data (n := 2) "Maybe" (★ -:> ★) #(("Just", ⟨1, #(★), 0, #(), 1, #(t#0), gt#"Maybe" • t#0⟩ ),

@@ -1,4 +1,3 @@
-import Surface.Ty
 import Surface.Global
 import Surface.Term
 

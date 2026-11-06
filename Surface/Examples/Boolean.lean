@@ -1,4 +1,3 @@
-import Surface.Ty
 import Surface.Global
 import Surface.Term
 
@@ -31,7 +30,7 @@ def benv : GlobalEnv := [
            , (TrueFalsePat, FalseCtor)
            , (FalseTruePat, FalseCtor))) ],
 
-  .classDecl "Eq" #(★) /-[] []-/ [] [("eq",  ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Bool")⟩)],
+  .classDecl "Eq" #(★) [] [] [("eq",  ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Bool")⟩)],
 
   .data (n := 2) "Bool" ★ #(("True", ⟨0, #(), 0, #(), 0,  #(), gt#"Bool"⟩),
                             ("False", ⟨0, #(), 0, #(), 0, #(), gt#"Bool"⟩)),
