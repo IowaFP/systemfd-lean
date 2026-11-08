@@ -21,15 +21,14 @@ def Pattern.erase (pm : Pattern m) : Untyped.Pattern m :=
 Erases both types and coercions.
 -/
 def Term.erase : Term → Untyped.Term
-  | var n => .var n
+  | #x => #x
   -- Just like a variable
-  | defn x => .defn x
-  -- Special constructors
+  | d#x => d#x
   | spctor _ _ _ _ _ => sorry
   | ctor0 (.refl _) => .lam (.var 0)
   | ctor1 (.prj n) t => sorry
   | ctor1 (.appt _) t => t.erase
-  | ctor2 .app t1 t2 => sorry
+  | ctor2 .app t1 t2 => .app t1.erase t2.erase
   | ctor2 .apptc t1 t2 => sorry
   | tbind _ _ t => t.erase
   | lam _ t => .lam t.erase
@@ -52,13 +51,20 @@ def GlobalEnv_erase (G : GlobalEnv) : Untyped.GlobalEnv :=
 notation "⟦" e "⟧" => Term.erase e
 notation "⟦" G "⟧" => GlobalEnv_erase G
 
+theorem erasure_sub (b t : Term) :
+  ⟦b[su t::+0σ]⟧ = ⟦b⟧[su ⟦t⟧::+0σ] := by sorry
+
 -- Top to bottom: JUST question mark
 -- Bottom to top should be star. Might be arbitrarily many steps at the top
 -- -- TODO: explore bisimulations
-theorem erasure 
-    (wf : ⊢ G)(oe : OpenExhaustive G)
-    (t t' : Term) (s : G ⊢ t ~> t') : ⟦G⟧ ⊢ ⟦t⟧ ~>? ⟦t'⟧ :=
-match s, t, t' with
-| beta, .lam _ _, _ => by sorry -- .step sorry
--- | beta : Red G ((λ b) • t) b[su t::+0σ]
-| _, _, _ => sorry
+theorem erasure (wf : ⊢ G) :
+  G ⊢ t1 ~> t2 → ⟦G⟧ ⊢ ⟦t1⟧ ~>? ⟦t2⟧
+| @Red.beta G A b t => by
+  have ht1 : ⟦(λ[A]b) • t⟧ = (λ ⟦b⟧) • ⟦t⟧ := by rfl
+  let ht2 := erasure_sub b t
+  rw [ht1]; rw [ht2];
+  have hr := @Untyped.Red.beta ⟦G⟧ ⟦b⟧ ⟦t⟧
+  exact .step hr
+-- | betat, Λ[_] b , _ => by sorry
+-- -- | beta : Red G ((λ b) • t) b[su t::+0σ]
+| _ => sorry
