@@ -59,12 +59,12 @@ theorem erasure (wf : ⊢ G) :
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | @Red.betat G t A b => by sorry
 | .cast => .refl
-| .prj_fst_app => .refl
-| .prj_snd_app => .refl
-| .prj_fst_arr => .refl
-| .prj_snd_arr => .refl
+| .prj_fst_app | .prj_snd_app => .refl
+| .prj_fst_arr | .prj_snd_arr => .refl
 | .allc => .refl
 | .apptc => by sorry
-| .defn hdf => by sorry
+| @Red.defn G x A t hdf => by 
+    have h : Untyped.lookup x ⟦G⟧ = some ⟦t⟧ := by sorry
+    exact .step (.defn h)
 | .ctor1_congr _ => by sorry
 | _ => sorry
