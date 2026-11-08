@@ -26,10 +26,9 @@ def Term.erase : Term → Untyped.Term
   | d#x => d#x
   | spctor _ _ _ _ _ => sorry
   | ctor0 (.refl _) => .lam (.var 0)
-  | ctor1 (.prj n) t => sorry
-  | ctor1 (.appt _) t => t.erase
+  | ctor1 _ t => t.erase
   | ctor2 .app t1 t2 => .app t1.erase t2.erase
-  | ctor2 .apptc t1 t2 => sorry
+  | ctor2 .apptc t1 t2 => .unit
   | tbind _ _ t => t.erase
   | lam _ t => .lam t.erase
   | cast _ t1 t2 => t2.erase
@@ -56,11 +55,16 @@ notation "⟦" G "⟧" => GlobalEnv_erase G
 -- -- TODO: explore bisimulations
 theorem erasure (wf : ⊢ G) :
   G ⊢ t1 ~> t2 → ⟦G⟧ ⊢ ⟦t1⟧ ~>? ⟦t2⟧
-| @Red.beta G A b t => .step (@Untyped.Red.beta ⟦G⟧ ⟦b⟧ ⟦t⟧)
+| .beta => .step .beta
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
-| @Red.betat G t A b => by
-    -- exact @Untyped.RedOpt.refl ⟦G⟧ ⟦(Λ[A] b) •[t]⟧
-    sorry
-| @Red.cast G R A t => 
-    @Untyped.RedOpt.refl ⟦G⟧ ⟦Term.cast R (refl! A) t⟧
+| @Red.betat G t A b => by sorry
+| .cast => .refl
+| .prj_fst_app => .refl
+| .prj_snd_app => .refl
+| .prj_fst_arr => .refl
+| .prj_snd_arr => .refl
+| .allc => .refl
+| .apptc => by sorry
+| .defn hdf => by sorry
+| .ctor1_congr _ => by sorry
 | _ => sorry
