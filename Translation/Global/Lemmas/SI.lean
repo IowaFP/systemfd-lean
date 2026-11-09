@@ -882,7 +882,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     rcases ih with ⟨i, n, cls, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths, ih⟩
     exists i + 1; exists n; exists cls; exists k1; exists k2; exists k3; exists Ks1; exists Ks2; exists tys; exists fds
     exists scs; exists mths
-  case _ cls kc s Ks1 fds scs mτs _ ih => -- class Decl
+  case _ cls _ kc s Ks1 fds scs mτs _ ih => -- class Decl
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h3, h⟩
     split at h <;> simp at *
     rcases h with ⟨h, h4⟩

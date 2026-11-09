@@ -174,7 +174,7 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
 
   if ms.isSome then ms
   else if scs.isSome then scs
-  -- else if fds.isSome then fds
+  else if fd.isSome then fd
   else lookup x tl
 | .cons (.instDecl s spTy _) tl =>
   if x == s then return .octor s spTy
@@ -211,6 +211,10 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
     simp [<-h1, Entry.name]; subst e; simp [List.find?_eq_some_iff_getElem] at h; symm; apply h.1
   case _ scs_mb scs _ _ =>
     simp [scs, scs_mb] at h; rcases h with ⟨a, b, h, h1, h2⟩
+    simp [<-h2, Entry.name]; simp [List.find?_eq_some_iff_getElem] at h1
+    rcases h1 with ⟨h1, _⟩; symm; apply h1
+  case _ fds_mb fds _ _ _ =>
+    simp [fds_mb, fds] at h; rcases h with ⟨a, b, h, h1, h2⟩
     simp [<-h2, Entry.name]; simp [List.find?_eq_some_iff_getElem] at h1
     rcases h1 with ⟨h1, _⟩; symm; apply h1
 

@@ -43,13 +43,7 @@ structure InstDeclFrame where
 inductive Global : Type where
 | data : DataDeclFrame -> Global
 | defn : DefnFrame -> Global
--- | classDecl : {mc kc fc : Nat} -> String -> Vec Kind kc -> Vec (String × Fin kc × Fin kc) fc ->  Vec (String × Ty) mc -> Global
 | classDecl : ClassDeclFrame -> Global
--- | odata : String -> Core.Kind -> Global
--- | openm : String -> Core.SpineTy -> Global
--- | instDecl : {kc mc : Nat} -> String -> String -> Vec Ty kc -> Vec (String × Term) mc -> Global
--- | octor  : String -> Core.SpineTy -> Global
--- | inst : {m : Nat} -> String -> Core.Pattern m -> Surface.Term -> Global
 | instDecl : InstDeclFrame -> Global
 
 
@@ -65,17 +59,12 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   ++ scs.repr max_prec ++ Std.Format.line
   ++ mths.repr max_prec ++ Std.Format.line
 
--- | .odata n K => ".odata " ++ n ++ " " ++ K.repr max_prec
--- | .openm n ty => ".openm " ++ n ++ " : " ++ Core.SpineTy.repr ty
-
-| .instDecl ⟨s, cls_name, _, _, _, Ks1, Ks2, tys, fds, scs, mths⟩ => "instDecl " ++
+| .instDecl ⟨s, cls_name, _, _, _, _, _, tys, fds, scs, mths⟩ => "instDecl " ++
   s ++ " for " ++ cls_name ++ " " ++ tys.repr max_prec ++ Std.Format.line
   ++ fds.repr max_prec ++ Std.Format.line
   ++ scs.repr max_prec ++ Std.Format.line
   ++ mths.repr max_prec ++ Std.Format.line
 
--- | .inst n p t => ".inst " ++ n ++ " " ++ p.repr ++ " => " ++ t.repr max_prec
--- | .octor n ty => ".octor " ++ n ++ " " ++ Core.SpineTy.repr ty
 
 @[simp]
 instance instRepr_Global : Repr Global where
@@ -84,7 +73,7 @@ instance instRepr_Global : Repr Global where
 @[simp]
 abbrev GlobalEnv := List Global
 
-inductive OpenMethodType | clsMth | supCls /- FunDep -/
+inductive OpenMethodType | clsMth | supCls | funDep
   deriving Repr
 
 inductive Entry : Type where
@@ -134,13 +123,18 @@ def lookup (x : String) : GlobalEnv -> Option Entry
   else match h : mths.findIdx? (λ ⟨n, _⟩ => x == n) with
        | none =>
          match h : scs.findIdx? (λ ⟨n, _⟩ => x == n) with
-         | none => lookup x tl
-         | some i => match scs[i]? with
+         | none =>
+           match fds.findIdx? (λ ⟨n, _⟩ => x == n) with
            | none => lookup x tl
+           | some i => match fds[i]? with
+             | none => lookup x tl -- bogus path
+             | some ⟨x, spTy⟩ => return .openm x cls_name .funDep spTy
+         | some i => match scs[i]? with
+           | none => lookup x tl -- this path is bogus
            | some ⟨x, spTy⟩ => return .openm x cls_name .supCls spTy
        | some i => match mths[i]? with
                    | some ⟨x, spTy⟩ => return .openm x cls_name .clsMth spTy
-                   | none => lookup x tl
+                   | none => lookup x tl -- this path is bogus
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, tys, _, _, _⟩) tl =>
   if x == iname then return (.octor iname ⟨k1, Ks1, k2, Ks2, k3, tys, (gt#cls_name).mkApps_nats ((List.range k1).map (·+k2)).reverse⟩)
@@ -194,15 +188,11 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
       rcases h with ⟨h1, h3⟩; subst h1
       subst e; simp[Entry.name]
     case _ h => apply ih h.2
+  all_goals(
   case _ ms_mb ms h1 =>
     subst e; simp [Entry.name];
     simp [List.findIdx?_eq_some_iff_getElem] at ms;
     rcases ms with ⟨h, ms⟩; simp [List.getElem?_eq_getElem h] at h1
-    rw[h1] at ms; simp at ms; grind
-  case _ ms_mb ms h1 =>
-    subst e; simp [Entry.name];
-    simp [List.findIdx?_eq_some_iff_getElem] at ms;
-    rcases ms with ⟨h, ms⟩; simp [List.getElem?_eq_getElem h] at h1
-    rw[h1] at ms; simp at ms; grind
+    rw[h1] at ms; simp at ms; grind)
 
 end Intermediate

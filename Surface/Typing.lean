@@ -89,16 +89,24 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   GlobalWf G (.defn x T t)
 
 | classDecl {na : Nat} {Ks1 : Vec Core.Kind na}
-            {scτs : List (String × String × List (Fin na))} {mτs : List (String × Core.SpineTy)} :
+            {fdτs : List (String × List (Fin na) × Fin na)}
+            {scτs : List (String × String × List (Fin na))}
+            {mτs : List (String × Core.SpineTy)} :
 
   -- class name is unique
   lookup s G = none ->
   -- method names are unique
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < mτs.length)  -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
   (∀ i j: Nat, (hi : i < scτs.length) -> (hj : j < scτs.length) -> i ≠ j -> scτs[i].1 ≠ scτs[j].1) ->
+  (∀ i j: Nat, (hi : i < fdτs.length) -> (hj : j < fdτs.length) -> i ≠ j -> fdτs[i].1 ≠ fdτs[j].1) ->
+
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < scτs.length)          -> mτs[i].1 ≠ scτs[j].1) ->
+  (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < fdτs.length)          -> mτs[i].1 ≠ fdτs[j].1) ->
+  (∀ i j: Nat, (hi : i < scτs.length)  -> (hj : j < fdτs.length)         -> scτs[i].1 ≠ fdτs[j].1) ->
+
   (∀ i : Nat,  (hi : i < mτs.length)                                     -> mτs[i].1 ≠ s ∧ lookup mτs[i].1 G = none) ->
   (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none) ->
+  (∀ i : Nat,  (hi : i < fdτs.length)                                    -> fdτs[i].1 ≠ s ∧ lookup fdτs[i].1 G = none) ->
 
   -- method type shapes
   (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧ -- all the Ts here ought to be empty. any quantification can go in R
@@ -109,7 +117,12 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
     scτs[i] = (mn, SC, τs) ∧
     Surface.is_data .opn G SC ∧ G&Ks1.list.reverse ⊢s (gt#SC).mkApps_nats τs : ★) ->
 
-  GlobalWf G (.classDecl s Ks1 [] scτs mτs)
+  -- fundep class type shapes
+  (∀ (i : Nat), (hi : i < fdτs.length) -> ∃ mn dms dets,
+    fdτs[i] = (mn, dms, dets) ∧ dms.length < na) ->
+
+
+  GlobalWf G (.classDecl s Ks1 fdτs scτs mτs)
 
 | inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
   lookup x G = none ->
@@ -150,24 +163,31 @@ theorem GlobalWf.drop_lookup_unique {G : GlobalEnv} n :
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
           apply ih; grind
-      case classDecl s _ Ks1 scτs mτs j1 j2 j3 j4 j5 j6 j7 j8 =>
+      case classDecl s _ Ks1 fdτs scτs mτs j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 j11 j12 j13 =>
         simp [lookup]; split <;> simp at *
-        case _ e => subst e; rw[ih] at j4; simp at j4
+        case _ e => subst e; simp [ih] at j8
         split
         case _ h =>
           simp [Option.isSome_iff_exists] at h
           rcases h with ⟨mn, spTy, h⟩; rw[h]; simp
           simp [List.find?_eq_some_iff_getElem] at h
           rcases h with ⟨e1, i, hi, e4, e5⟩; subst e1
-          replace j5 := j5 i hi; rcases j5 with ⟨_, j5⟩; simp [e4, ih] at j5;
+          replace j9 := j9 i hi; rcases j9 with ⟨_, j9⟩; simp [e4, ih] at j9;
         case _ h1 h2 =>
           split;
           case _ h =>
             simp [Option.isSome_iff_exists] at h;
             rcases h with ⟨s, ha, hb, hc⟩
             simp [List.find?_eq_some_iff_getElem] at hc; rcases hc with ⟨e, i, hi, hc3, hc4⟩; subst e
-            replace j6 := j6 i hi; rcases j6 with ⟨_, j6⟩; simp [ih, hc3] at j6
-          apply ih
+            replace j10 := j10 i hi; rcases j10 with ⟨_, j10⟩; simp [ih, hc3] at j10
+          case _ h =>
+            split
+            case _ h =>
+              simp [Option.isSome_iff_exists] at h;
+              rcases h with ⟨s, ha, hb, hc⟩
+              simp [List.find?_eq_some_iff_getElem] at hc; rcases hc with ⟨e, i, hi, hc3, hc4⟩; subst e
+              replace j11 := j11 i hi; rcases j11 with ⟨_, j11⟩; simp [ih, hc3] at j11
+            apply ih
       case defn T b t' y j1 j2 =>
         simp [lookup]; split
         case _ e => subst e; rw [ih] at j1; simp at j1
