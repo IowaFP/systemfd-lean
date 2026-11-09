@@ -22,6 +22,7 @@ def Term.erase : Term → Untyped.Term
   | d#x => d#x
   | spctor _ _ _ _ _ => sorry
   | ctor0 (.refl _) => .lam (.var 0)
+  | ctor1 (.appt _) t => t.erase
   | ctor1 _ t => t.erase
   | ctor2 .app t1 t2 => .app t1.erase t2.erase
   | ctor2 .apptc t1 t2 => .unit
@@ -48,6 +49,13 @@ notation "⟦" e "⟧" => Term.erase e
 notation "⟦" g "⟧" => Global.erase g
 notation "⟦" G "⟧" => GlobalEnv.erase G
 
+theorem erasure_tbind (b : Term)(t : Ty):
+  ⟦b[su t::+0σ]⟧ = ⟦b⟧ :=
+match b with
+| #x | d#x | .ctor0 _ => by rfl
+| .mtch _ _ _ _ _ => by sorry
+| _ => sorry
+
 -- Top to bottom: JUST question mark
 -- Bottom to top should be star. Might be arbitrarily any steps at the top
 -- TODO: explore bisimulations
@@ -55,7 +63,9 @@ theorem erasure (wf : ⊢ G) :
   G ⊢ t1 ~> t2 → ⟦G⟧ ⊢ ⟦t1⟧ ~>? ⟦t2⟧
 | .beta => .step .beta
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
-| @Red.betat G t A b => by sorry
+| @Red.betat G t A b => by 
+  rw [erasure_tbind b t]
+  exact .refl
 | .cast => .refl
 | .prj_fst_app | .prj_snd_app => .refl
 | .prj_fst_arr | .prj_snd_arr => .refl
