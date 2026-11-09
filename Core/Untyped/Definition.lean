@@ -57,26 +57,21 @@ def Term.smap (σ : Subst Term) : Term -> Term
 instance : SubstMap Term Term where
   smap := Term.smap
 
+/-- Untyped Global -/
 inductive Global : Type where
 | defn : String → Term → Global
 | inst : String → Pattern m → Term → Global
+/-- Included as a dummy variant to simplify indexing from source. -/
+| erased
 
 @[simp]
 abbrev GlobalEnv := List Global
 
--- We only need one lookup function for terms
-def lookup (x : String) : List Global → Option Term
+def lookup_defn (x : String) : List Global → Option Term
 | [] => none
 | .cons (.defn y t) tl => 
-  if x == y then t else lookup x tl
--- Can express as a match expression
--- with only one case
-| .cons (.inst y pm t) tl => 
-  if x == y 
-  then sorry
-  -- then .some (.lam (.mtch m 1 #() #(pm) #(t)))
-  else lookup x tl
-
+  if x == y then t else lookup_defn x tl
+| .cons _ tl => lookup_defn x tl
 
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
@@ -85,15 +80,12 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 -- TODO: adjust. Maybe .unit • 
 | unit : Red G (t • .unit) t
 | beta : Red G ((λ b) • t) b[su t::+0σ]
--- | prj_fst_app : Red G (prj[0] refl! (A • B)) (refl! A)
--- | prj_snd_app : Red G (prj[1] refl! (A • B)) (refl! B)
--- | prj_fst_arr: Red G (prj[0] refl! (A -:> B)) (refl! A)
--- | prj_snd_arr : Red G (prj[1] refl! (A -:> B)) (refl! B)
+| u_match : Red G sorry sorry
 ----------------------------------------------------------------
 ---- Global Definitions
 ----------------------------------------------------------------
 | defn :
-  lookup x G = some t ->
+  lookup_defn x G = some t ->
   Red G d#x t
 ----------------------------------------------------------------
 ---- Congruence Rules

@@ -1,7 +1,3 @@
-
--- TODO: maybe describe the target language
--- as a separate type.
-
 import Core.Term
 import Core.Global
 import Core.Reduction
@@ -40,19 +36,18 @@ deriving instance BEq for Global
 def Global.erase : Global → Untyped.Global
 | defn s _ t => .defn s t.erase
 | inst s pm t => .inst s pm.erase t.erase
-| _ => .defn "" .unit
+-- To simplify indexing,
+-- use a dummy variant
+| _ => .erased
 
-def GlobalEnv_erase (G : GlobalEnv) : Untyped.GlobalEnv :=
-  Global.erase <$> G
-
--- TODO: add erased contexts
+def GlobalEnv.erase (G : GlobalEnv) := Global.erase <$> G
 
 notation "⟦" e "⟧" => Term.erase e
-notation "⟦" G "⟧" => GlobalEnv_erase G
+notation "⟦" G "⟧" => GlobalEnv.erase G
 
 -- Top to bottom: JUST question mark
--- Bottom to top should be star. Might be arbitrarily many steps at the top
--- -- TODO: explore bisimulations
+-- Bottom to top should be star. Might be arbitrarily any steps at the top
+-- TODO: explore bisimulations
 theorem erasure (wf : ⊢ G) :
   G ⊢ t1 ~> t2 → ⟦G⟧ ⊢ ⟦t1⟧ ~>? ⟦t2⟧
 | .beta => .step .beta
@@ -64,7 +59,7 @@ theorem erasure (wf : ⊢ G) :
 | .allc => .refl
 | .apptc => by sorry
 | @Red.defn G x A t hdf => by 
-    have h : Untyped.lookup x ⟦G⟧ = some ⟦t⟧ := by sorry
+    have h : Untyped.lookup_defn x ⟦G⟧ = some ⟦t⟧ := by sorry
     exact .step (.defn h)
 | .ctor1_congr _ => by sorry
 | _ => sorry
