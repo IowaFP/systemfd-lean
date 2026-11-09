@@ -31,7 +31,9 @@ def Term.erase : Term → Untyped.Term
   | mtch m n vm pmn vn => 
     .mtch m n (erase <$> vm) (Pattern.erase <$> pmn) (erase <$> vn)
 
-deriving instance BEq for Global
+def Constructor.erase (c : Constructor) : Untyped.Constructor :=
+  let ⟨s, _, _, _, _, n, vm⟩ := c
+  ⟨s, n, vm.map Term.erase⟩
 
 def Global.erase : Global → Untyped.Global
 | defn s _ t => .defn s t.erase
@@ -43,6 +45,7 @@ def Global.erase : Global → Untyped.Global
 def GlobalEnv.erase (G : GlobalEnv) := Global.erase <$> G
 
 notation "⟦" e "⟧" => Term.erase e
+notation "⟦" g "⟧" => Global.erase g
 notation "⟦" G "⟧" => GlobalEnv.erase G
 
 -- Top to bottom: JUST question mark

@@ -57,6 +57,9 @@ def Term.smap (σ : Subst Term) : Term -> Term
 instance : SubstMap Term Term where
   smap := Term.smap
 
+/-- Untyped constructor. -/
+def Constructor := String × (n : Nat) × Vec Term n
+
 /-- Untyped Global -/
 inductive Global : Type where
 | defn : String → Term → Global
@@ -73,6 +76,28 @@ def lookup_defn (x : String) : List Global → Option Term
   if x == y then t else lookup_defn x tl
 | .cons _ tl => lookup_defn x tl
 
+/-- Proposition that tracks when a vector
+  of terms are part of a `spctor`.-/
+inductive Term.IsData : Vec Term m -> Vec Constructor m -> Prop where
+| nil : Term.IsData .nil .nil
+| cons {t3 : Fun.Vec _ n} :
+  Term.IsData ts cs ->
+  Term.spctor c t3 = t ->
+  ⟨c, n, t3.to⟩ = ct ->
+  Term.IsData (t::ts) (ct::cs)
+
+def Constructor.subst : Vec Constructor m -> List (Action Term)
+| .nil => []
+| .cons ⟨_, _, ts⟩ v => Constructor.subst v ++ ts.list.reverse.map su
+
+inductive Pattern.Match : Vec Constructor m -> Pattern m -> Prop
+| nil : Pattern.Match .nil .nil
+| cons :
+  Pattern.Match cs ps ->
+  c = ⟨q, n, ts⟩ ->
+  p = ⟨q, i, j⟩ ->
+  Pattern.Match (c::cs) (p::ps)
+
 inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Basic Reduction Steps
@@ -80,7 +105,20 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 -- TODO: adjust. Maybe .unit • 
 | unit : Red G (t • .unit) t
 | beta : Red G ((λ b) • t) b[su t::+0σ]
-| u_match : Red G sorry sorry
+----------------------------------------------------------------
+---- Data Matching
+----------------------------------------------------------------
+| data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
+  Term.IsData ss.to ctors ->
+  Pattern.Match ctors (ps i) ->
+  b' = (bs i)[Constructor.subst ctors ++ Subst.id Term] ->
+  Red G (.mtch m n ss ps bs) b'
+| openm_match {i : Nat} {ss : Fun.Vec Term m} :
+  Term.IsData ss.to ctors ->
+  G[i]? = some (.inst x p b) ->
+  Pattern.Match ctors p ->
+  b' = b[Constructor.subst ctors ++ Subst.id Term] ->
+  Red G (.spctor x ss) b'
 ----------------------------------------------------------------
 ---- Global Definitions
 ----------------------------------------------------------------
