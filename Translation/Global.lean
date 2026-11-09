@@ -31,18 +31,13 @@ def check_om : (String × Core.SpineTy) -> Option Unit
 
 def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x => check_om x == .some ())
 
-def mk_fds_om (cls : String) (cls_params : Vec Core.Kind n) (determiners : Vec (Fin n) (kc + 1)) (determinant : Fin n)
-  : Core.SpineTy :=
-  let ski := (List.range n).map (· + 1)
-  ⟨1 + n, cls_params ++ #(cls_params[determinant]), 0, #(), 2, #((gt#cls).mkApps_nats ski.reverse, (gt#cls).mkApps_nats (ski.reverse.replace (determinant + 1) 0)), t#(determinant + 1) ~[cls_params[determinant]]~ t#0⟩
-
-
-#guard mk_fds_om "Eq" #(★, ★) #(1) 0 == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#2) • t#0), t#1 ~[★]~ t#0⟩
+#guard Surface.mk_fd_om "Eq" #(★, ★) [1] 0 == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#2) • t#0), t#1 ~[★]~ t#0⟩
+-- #eval Surface.mk_fd_om "Eq" #(★, ★) [1] 0
 -- open fdFwd :: ∀ t u u'. Equal t u -> Equal t u' -> u ~ u'
 -- open fdFWd :: ∀[★]∀[★]∀[★] Equal 2 1 -> Equal 2 0 -> 1 ~ 0
 
 
-#eval mk_fds_om "Eq" #(★, ★) #(0) 1 == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#0) • t#1), t#2 ~[★]~ t#0⟩
+#eval Surface.mk_fd_om "Eq" #(★, ★) [0] 1 == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#0) • t#1), t#2 ~[★]~ t#0⟩
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
@@ -132,8 +127,8 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   if (Intermediate.lookup s Γ').isNone
   then
     -- let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
+    let fds := fds.map (λ (n, dms, det) => ⟨n, Surface.mk_fd_om s Ks dms det⟩) -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
     let scs := scs.map (λ (n, sc, params) =>  ⟨n, (Surface.mk_superclass_om s Ks sc params)⟩)
-    let fds := [] -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
     if check_oms mτs then
       let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (Surface.mk_method_om s Ks spTy)⟩)
     -- TODO: names s and scs fds mτs are distinct
@@ -266,7 +261,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
   let Γ' <- translate_IC Γ
   return mths.map (λ (n, spTy) => .openm n spTy)
          ++ scs.map (λ (n, spTy) => .openm n spTy)
-         -- ++ fds.map (λ (n, spTy) => .openm n spTy)
+         ++ fds.map (λ (n, spTy) => .openm n spTy)
          ++ [.odata s (Core.Kind.mk_cls_kind K)] ++ Γ'
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do

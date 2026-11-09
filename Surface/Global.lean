@@ -14,7 +14,7 @@ inductive Global where
 | defn : String -> Core.Ty -> Term -> Global
 | classDecl : {kc : Nat} ->
   String -> Vec Core.Kind kc ->
-  List (String × List Nat × Nat) -> -- FDS
+  List (String × List (Fin kc) × Fin kc) -> -- FDS
   List (String × String × List (Fin kc)) -> -- SCS
   List (String × Core.SpineTy) -> -- methods
   Global
@@ -55,7 +55,7 @@ inductive Entry : Type where
 | ctor : String -> Nat -> Core.SpineTy -> Entry
 | defn : String -> Core.Ty -> Term -> Entry
 | odata : {n : Nat} -> String -> Vec Core.Kind n ->
-  List (String × List Nat × Nat) ->
+  List (String × List (Fin n) × Fin n) ->
   List (String × String × List (Fin kc)) ->
   List (String × Core.SpineTy) -> Entry
 | octor : String -> Core.SpineTy -> Entry
@@ -102,10 +102,9 @@ def mk_superclass_om (cls : String) (cls_params : Vec Core.Kind kc) (sc : String
 
     openm c :: ∀a. C a = (∀ t u, D (t a) => t a -> u a -> u a)
 
-  That is only C a is scrutinizatble
+  That is only `C a` can be scrutinized.
 
  -/
---
 
 def spine_type_type : Core.SpineTy -> Core.Ty
 | ⟨_, Ks1, _, Ks2, _, Ts, R⟩ => ((Ts.reverse.foldl (Core.Ty.arrow · ·) R).genTy Ks2).genTy Ks1
@@ -121,24 +120,6 @@ def mk_method_om (cls : String) (cls_params : Vec Core.Kind kc) (R : Core.SpineT
 -- Determinant parameter is the one that we build the equality out of
 
 
--- def non_determiners (cls_params : Vec Core.Kind kc) : List (Fin kc) -> (n : Nat) ×' Vec Core.Kind n
--- | .nil => ⟨kc, cls_params⟩
--- | .cons x xs =>
-
---   let ⟨_, t⟩ := cls_params.eraseIdx x
---   non_determiners t xs
-
--- #eval (non_determiners #(★, ★ -:> ★, ★ -:> ★, ★) [2]).snd
-
-def non_determiners (cls_params : List Core.Kind) : List Nat -> List Core.Kind
-| .nil => cls_params
-| .cons x xs =>
-  let cls_params' := cls_params.eraseIdx x
-  non_determiners cls_params' xs
-
-#eval (non_determiners [★, ★ -:> ★, ★ -:> ★, ★] [2])
-
-
 -- Pre-conditions : Determiners.length < kc
 -- Determiners are sorted
 -- F t u v | t -> u
@@ -149,22 +130,25 @@ def non_determiners (cls_params : List Core.Kind) : List Nat -> List Core.Kind
 def mk_fd_om (cls : String) (cls_params : Vec Core.Kind kc) (determiners : List (Fin kc)) (determinant : Fin kc)
   : Core.SpineTy :=
 
-  let Δ' := cls_params.list
+  let is_determiner : Nat -> Bool := λ x => (determiners.map (λ x => x.toNat)).contains x
 
-  let Δ' := non_determiners Δ' determiners
-  let ⟨kc', Δ'⟩ := Vec.from_list Δ'
+  let cls_params' := (Vec.zipIdx cls_params.reverse).list
+  let cls_params' := cls_params'.filter (λ x => !is_determiner x.2)
+  let cls_params' := (cls_params'.map (·.fst)).reverse
+  let ⟨kc', cls_params'⟩ := Vec.from_list cls_params'
 
-  let new_params_length := kc'
+  let cls_ty := ((gt#cls).mkApps_nats (List.range kc).reverse)⟨Ren.add Core.Ty kc'⟩
 
-  let cls_ty := ((gt#cls).mkApps_nats (List.range cls_params.length).reverse)⟨Ren.add Core.Ty new_params_length⟩
-  let cls_ty' := (gt#cls).mkApps_nats (List.range cls_params.length).reverse
+  let maybe_shift : Nat -> Nat := λ x => if is_determiner x then x + kc' else x
+  let cls_ty' := (gt#cls).mkApps_nats ((List.range kc).reverse.map maybe_shift)
 
 
-  let R := t#(determinant + new_params_length) ~[cls_params[determinant]]~ t#0
-  ⟨kc' + kc, cls_params ++ Δ', 0, #(), 2, #(cls_ty, cls_ty'), R⟩
+  let R := t#(determinant + kc') ~[cls_params[determinant]]~ t#determinant
+
+  ⟨kc' + kc, cls_params ++ cls_params', 0, #(), 2, #(cls_ty, cls_ty'), R⟩
 
 #eval mk_fd_om "F" #(★, ★ -:> ★, ★) [2] 0
--- ⟨4, #(★, ★ -:> ★, ★) ++ #(★) ++ #(★), F t#4 t#3 t#2, F t#4 t#1 #0, #2 ~[★]~ t#0⟩
+-- ⟨5, #(★, ★ -:> ★, ★) ++ #(★) ++ #(★), F t#4 t#3 t#2, F t#4 t#1 #0, #2 ~[★]~ t#0⟩
 
 def lookup (x : String) : GlobalEnv -> Option (Entry)
 | [] => none
@@ -184,7 +168,10 @@ def lookup (x : String) : GlobalEnv -> Option (Entry)
   -- TODO Extensions for fundeps
   let scs_mb : Option (String × String × List (Fin kc)) := scs.find? (λ (sc, _, _) => x == sc)
   let scs := scs_mb.map (λ (scn, cls, tys) => Entry.openm scn (mk_superclass_om y Ks cls tys))
-  -- let fds_mb : Option (String × (n : Nat) × Vec (Fin kc) (n + 1) × Fin kc) := fds.find? (λ ⟨fdn, _, _, _⟩ => x == fdn)
+
+  let fds_mb : Option (String × List (Fin kc) × Fin kc) := fds.find? (λ ⟨fdn, _, _, _⟩ => x == fdn)
+  let fd := fds_mb.map (λ (fdn, dms, det) => Entry.openm fdn (mk_fd_om y Ks dms det))
+
   if ms.isSome then ms
   else if scs.isSome then scs
   -- else if fds.isSome then fds

@@ -1,4 +1,4 @@
-import Surface.Ty
+
 import Surface.Global
 import Surface.Term
 
@@ -8,7 +8,7 @@ namespace Surface.Examples.FunDeps
 
 
 def FunDepsCtx : GlobalEnv := [
-  .classDecl "Equal" #(★, ★) [] [⟨"fdBwk", 0, #(0), 1⟩, ⟨"fdFwd", 0, #(1), 0⟩] []
+  .classDecl "Equal" #(★, ★) [⟨"fdBwk", [0], 1⟩, ⟨"fdFwd", [1], 0⟩] [] []
   ]
 
 
