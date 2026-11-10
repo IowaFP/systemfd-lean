@@ -9,7 +9,6 @@ namespace Untyped
 abbrev Pattern m := Vec (String × Nat × Nat) m
 
 inductive Term : Type where
-| unit : Term
 | var : Nat -> Term
 | defn : String -> Term
 | spctor : String -> Fun.Vec Term n -> Term
@@ -17,11 +16,15 @@ inductive Term : Type where
 | lam : Term -> Term
 | mtch m n : Fun.Vec Term m -> Fun.Vec (Pattern m) n -> Fun.Vec Term n -> Term
 
+
 prefix:max "#" => Term.var
 prefix:max "d#" => Term.defn
 
 notation:70 f " • " a:70 => Term.app f a
 notation "λ" t => Term.lam t
+
+@[simp]
+abbrev Term.unit := λ#0
 
 @[coe]
 def Term.from_action : Action Term -> Term
@@ -33,7 +36,6 @@ instance : Coe (Action Term) Term where
 
 @[simp]
 def Term.rmap (r : Ren Term) : Term -> Term
-| unit => unit
 | #x => # (r.act x)
 | d#x => d#x
 | spctor x t => spctor x (rmap r <$> t)
@@ -46,7 +48,6 @@ instance : RenMap Term Term where
 
 @[simp]
 def Term.smap (σ : Subst Term) : Term -> Term
-| unit => unit
 | #x => σ.act x
 | d#x => d#x
 | spctor x t => spctor x (smap σ <$> t)
@@ -61,6 +62,7 @@ instance : SubstMap Term Term where
 def Constructor := String × (n : Nat) × Vec Term n
 
 /-- Untyped Global -/
+-- TODO: add data
 inductive Global : Type where
 | defn : String → Term → Global
 | inst : String → Pattern m → Term → Global
@@ -70,11 +72,20 @@ inductive Global : Type where
 @[simp]
 abbrev GlobalEnv := List Global
 
-def lookup_defn (x : String) : List Global → Option Term
+inductive Entry : Type where
+| defn : String -> Term -> Entry
+
+@[simp]
+def lookup (x : String) : List Global → Option Entry
 | [] => none
 | .cons (.defn y t) tl => 
-  if x == y then t else lookup_defn x tl
-| .cons _ tl => lookup_defn x tl
+  if x == y then .some (.defn y t) else lookup x tl
+| .cons _ tl => lookup x tl
+
+def lookup_defn (G : List Global) (x : String) : Option Term := do
+  let t <- lookup x G
+  match t with
+  | .defn _ t => return t
 
 /-- Proposition that tracks when a vector
   of terms are part of a `spctor`.-/
@@ -103,7 +114,6 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Basic Reduction Steps
 ----------------------------------------------------------------
 -- TODO: adjust. Maybe .unit • 
-| unit : Red G (t • .unit) t
 | beta : Red G ((λ b) • t) b[su t::+0σ]
 ----------------------------------------------------------------
 ---- Data Matching
@@ -123,7 +133,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ---- Global Definitions
 ----------------------------------------------------------------
 | defn :
-  lookup_defn x G = some t ->
+  lookup_defn G x = some t ->
   Red G d#x t
 ----------------------------------------------------------------
 ---- Congruence Rules

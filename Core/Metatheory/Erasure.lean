@@ -23,7 +23,7 @@ def Term.erase : Term → Untyped.Term
   -- Just like a variable
   | d#x => d#x
   | spctor _ x _ _ ts => .spctor x (Term.erase <$> ts)
-  | ctor0 (.refl _) => .lam (.var 0)
+  | ctor0 (.refl _) => .unit
   | ctor1 (.appt _) b => .app b.erase .unit
   | ctor1 _ t => t.erase
   | ctor2 .app t1 t2 => .app t1.erase t2.erase
@@ -33,6 +33,10 @@ def Term.erase : Term → Untyped.Term
   | cast _ _ t => t.erase
   | mtch m n vm pmn vn => 
     .mtch m n (erase <$> vm) (Pattern.erase <$> pmn) (erase <$> vn)
+
+
+-- TODO: define erase on Subst Term
+-- beta rule for subs
 
 def Constructor.erase (c : Constructor) : Untyped.Constructor :=
   let ⟨s, _, _, _, _, n, vm⟩ := c
@@ -47,16 +51,15 @@ def Global.erase : Global → Untyped.Global
 
 def GlobalEnv.erase (G : GlobalEnv) := Global.erase <$> G
 
-
-
-
 notation "⟦" e "⟧" => Term.erase e
 notation "⟦" g "⟧" => Global.erase g
 notation "⟦" G "⟧" => GlobalEnv.erase G
 notation "⟦" pmn "⟧" => Pattern.erase pmn
 
-theorem Pattern.erasure_subst (σ : Subst Ty) : (m : Nat) → (pmn : Core.Pattern m) →
-  ⟦pmn.smap σ⟧ = ⟦pmn⟧ := by sorry
+theorem Pattern.erasure_subst (σ : Subst Ty) : (m : Nat) → (pmn : Pattern m) →
+  ⟦pmn.smap σ⟧ = pmn.erase
+| 0, .nil => sorry
+| n + 1, .cons _ _ => sorry
 
 theorem erasure_subst_ty_le (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 | #x | d#x | .ctor0 _ => by rfl
@@ -79,7 +82,7 @@ theorem erasure_subst_ty_le (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b�
     apply And.intro; funext;
     apply Pattern.erasure_subst
     funext;
-    sorry
+    apply erasure_subst_ty_le
 | .lam _ t => by simp; apply erasure_subst_ty_le
 
 -- Sticky cases where types in terms:
@@ -90,6 +93,25 @@ theorem erasure_subst_ty_le (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b�
 theorem erasure_subst_ty (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty_le
 
+theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
+  lookup_defn G x = some (A, t)
+  → Untyped.lookup_defn x ⟦G⟧ = ⟦t⟧ := by
+  intro t h
+  simp[lookup_defn] at h
+  simp[Option.bind_eq_some_iff] at h
+  rcases h with ⟨e, h1, h2⟩
+  cases e <;> try simp at h2
+  rcases h2 with ⟨e1, e2⟩
+  subst e1 e2
+  fun_induction lookup <;> try simp at h1
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+
 -- Top to bottom: JUST question mark
 -- Bottom to top should be star. Might be arbitrarily any steps at the top
 -- TODO: explore bisimulations
@@ -99,14 +121,18 @@ theorem erasure (wf : ⊢ G) :
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | @Red.betat G t A b => by
   rw [erasure_subst_ty b t]
-  exact .step (.beta)
+  exact .step .beta
 | .cast => .refl
 | .prj_fst_app | .prj_snd_app => .refl
 | .prj_fst_arr | .prj_snd_arr => .refl
 | .allc => by sorry
-| .apptc => by sorry
+| .apptc (K := K) (A := A) (B := B) => .refl
 | @Red.defn G x A t hdf => by 
-    have h : Untyped.lookup_defn x ⟦G⟧ = some ⟦t⟧ := by sorry
+    have h : Untyped.lookup_defn x ⟦G⟧ = some ⟦t⟧ := by 
+      sorry
+         
+    
+    rfl
     exact .step (.defn h)
 | .ctor1_congr _ => by sorry
 | _ => sorry
