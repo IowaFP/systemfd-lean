@@ -303,55 +303,58 @@ theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.G
       rcases h2 with ⟨h3, h2⟩
       let wf' := Core.GlobalWf.drop_wf mths.length wf; simp at wf'
       replace h2 := Core.lookup_append_some wf' h2
-      simp [Core.lookup] at h2
-      cases h2
-      case _ h2 =>
-        exfalso;
-        have e := Core.lookup_name_agrees h2; simp [Core.Entry.name] at e; subst e;
-        apply lookup_translate_openmn_no_octor h2
-      case _ h2 =>
-        rcases h2 with ⟨h2, h4⟩
-        split at h4
-        case _ e =>
-          subst s; simp at h4
-        case _ =>
-          have e : (x = s) = False := by grind
-          simp [e]
-          have e := Core.lookup_name_agrees h4; simp [Core.Entry.name] at e; subst e;
-          split
-          · split
-            case _ =>
-              have lemwf : ⊢ Γ' := by
-                have lem := Core.GlobalWf.drop_wf mths.length wf;
-                simp at lem;
-                have lem := Core.GlobalWf.drop_wf scs.length lem;
-                simp at lem
-                cases lem; case _ wftl _ => apply wftl
-              apply ih lemwf h1 h4
-            case _ i h5 =>
-            simp [List.findIdx?_eq_some_iff_getElem] at h5;
-            rcases h5 with ⟨hi, h5, h6⟩
-            simp [List.getElem?_eq_getElem hi];
-            generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) scs = z at *
-            have lem : z[i]'(by grind) = z[i]'(by grind) := by rfl
-            conv at lem =>
-              rhs
-              simp only [<-zdef];
-            simp [List.getElem_map] at lem; subst y;
-            have lem2 : z[i]? = Core.Global.openm scs[i].fst scs[i].snd := by grind
-            apply Core.lookup_none_idx_some_contra lem2 h2
-          case _ i h5 =>
-            simp [List.findIdx?_eq_some_iff_getElem] at h5;
-            rcases h5 with ⟨hi, h5, h6⟩
-            simp [List.getElem?_eq_getElem hi];
-            generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths = z at *
-            have lem : z[i]'(by grind) = z[i]'(by grind) := by rfl
-            conv at lem =>
-              rhs
-              simp only [<-zdef];
-            simp [List.getElem_map] at lem; subst y;
-            have lem2 : z[i]? = Core.Global.openm mths[i].fst mths[i].snd := by grind
-            apply Core.lookup_none_idx_some_contra lem2 h3
+      split
+      sorry
+      sorry
+      -- simp [Core.lookup] at h2
+      -- cases h2
+      -- case _ h2 =>
+      --   exfalso;
+      --   have e := Core.lookup_name_agrees h2; simp [Core.Entry.name] at e; subst e;
+      --   apply lookup_translate_openmn_no_octor h2
+      -- case _ h2 =>
+      --   rcases h2 with ⟨h2, h4⟩
+      --   split at h4
+      --   case _ e =>
+      --     subst s; simp at h4
+      --   case _ =>
+      --     have e : (x = s) = False := by grind
+      --     simp [e]
+      --     have e := Core.lookup_name_agrees h4; simp [Core.Entry.name] at e; subst e;
+      --     split
+      --     · split
+      --       case _ =>
+      --         have lemwf : ⊢ Γ' := by
+      --           have lem := Core.GlobalWf.drop_wf mths.length wf;
+      --           simp at lem;
+      --           have lem := Core.GlobalWf.drop_wf scs.length lem;
+      --           simp at lem
+      --           cases lem; case _ wftl _ => apply wftl
+      --         apply ih lemwf h1 h4
+      --       case _ i h5 =>
+      --       simp [List.findIdx?_eq_some_iff_getElem] at h5;
+      --       rcases h5 with ⟨hi, h5, h6⟩
+      --       simp [List.getElem?_eq_getElem hi];
+      --       generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) scs = z at *
+      --       have lem : z[i]'(by grind) = z[i]'(by grind) := by rfl
+      --       conv at lem =>
+      --         rhs
+      --         simp only [<-zdef];
+      --       simp [List.getElem_map] at lem; subst y;
+      --       have lem2 : z[i]? = Core.Global.openm scs[i].fst scs[i].snd := by grind
+      --       apply Core.lookup_none_idx_some_contra lem2 h2
+      --     case _ i h5 =>
+      --       simp [List.findIdx?_eq_some_iff_getElem] at h5;
+      --       rcases h5 with ⟨hi, h5, h6⟩
+      --       simp [List.getElem?_eq_getElem hi];
+      --       generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths = z at *
+      --       have lem : z[i]'(by grind) = z[i]'(by grind) := by rfl
+      --       conv at lem =>
+      --         rhs
+      --         simp only [<-zdef];
+      --       simp [List.getElem_map] at lem; subst y;
+      --       have lem2 : z[i]? = Core.Global.openm mths[i].fst mths[i].snd := by grind
+      --       apply Core.lookup_none_idx_some_contra lem2 h3
 
   case _ iname cls_name _ _ _ _ _ _ fds scs mths _ ih => -- inst decl
     simp [bind, Except.bind] at h1;
@@ -481,6 +484,13 @@ theorem mk_inst_scs_IC_indexing {j : Nat} :
    apply ih h1 h2
 
 
+theorem translate_IC_indexing_inst_fds {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} (wf : ⊢ G) :
+  ⟦ G ⟧ = .ok G' ->
+  G[i]? = some (Intermediate.Global.instDecl ⟨n, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths⟩) ->
+  (∃ (j1 : Nat), ∃ p, fds[j1]? = some ⟨x, nc, p⟩ ∧ Core.Query.Match q p) ->
+  ∃ (i2 : Nat), ∃ b p, G'[i2]? = some (Core.Global.inst x p b) ∧ Core.Query.Match q p
+:= by sorry
+
 
 theorem translate_IC_indexing_inst_scs {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} {i : Nat} (wf : ⊢ G) :
   ⟦ G ⟧ = .ok G' ->
@@ -523,10 +533,11 @@ theorem translate_IC_indexing_inst_scs {G : Intermediate.GlobalEnv} {G' : Core.G
     rcases ih with ⟨i, b, p, ih1, ih2⟩;
     cases wfhd;
     case _ c1 c2 c3 c4 c5 c6 =>
+    generalize fdsdef : List.map (fun x => Core.Global.openm x.fst x.snd) fds' = fds''  at *
     generalize mthdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths' = mths''  at *
     generalize scsdef : (List.map (fun x => Core.Global.openm x.fst x.snd) scs') = scs'' at *
     generalize zdef : Core.Global.odata s (Core.Kind.mk_cls_kind K) :: Γ' = Γ'' at *
-    exists (mths''.length + (scs''.length + (1 + i)))
+    exists (mths''.length + (scs''.length + (fds''.length + (1 + i))))
     have lemi : i < Γ'.length := by simp [List.getElem?_eq_some_iff] at ih1; rcases ih1 with ⟨h, _⟩; apply h;
     have lem : mths''.length ≤ mths''.length + scs''.length + scs''.length + (1 + i) := by omega
     exists b; exists p;
@@ -619,10 +630,11 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
     rcases ih with ⟨i, b, p, ih1, ih2⟩;
     cases wfhd;
     case _ c1 c2 c3 c4 c5 c6 =>
+    generalize fdsdef : List.map (fun x => Core.Global.openm x.fst x.snd) fds' = fds''  at *
     generalize mthdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths' = mths''  at *
     generalize scsdef : (List.map (fun x => Core.Global.openm x.fst x.snd) scs') = scs'' at *
     generalize zdef : Core.Global.odata s (Core.Kind.mk_cls_kind K) :: Γ' = Γ'' at *
-    exists (mths''.length + (scs''.length + (1 + i)))
+    exists (mths''.length + (scs''.length + (fds''.length + (1 + i))))
     have lemi : i < Γ'.length := by simp [List.getElem?_eq_some_iff] at ih1; rcases ih1 with ⟨h, _⟩; apply h;
     have lem : mths''.length ≤ mths''.length + scs''.length + scs''.length + (1 + i) := by omega
     exists b; exists p;
@@ -766,8 +778,8 @@ theorem lookup_IC_data {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : 
           apply And.intro
           apply findIdx?_none_iff_lookup_name_none.1 h4
           have e : (x = s) = False := by grind
-          simp [Core.lookup, e];
-          cases wf; case _ wf _ => apply ih wf h1 h2
+          sorry -- simp [Core.lookup, e];
+          -- cases wf; case _ wf _ => apply ih wf h1 h2
         case _ h4 =>
         simp [List.findIdx?_eq_some_iff_getElem] at h4;
         rcases h4 with ⟨hi, h4, h5⟩
@@ -858,15 +870,15 @@ theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
         intro y τ m_in_mths;
         replace m_in_mths : ∃ i : Nat, mths[i]? = some (y, τ) := by apply List.getElem?_of_mem m_in_mths
         rcases m_in_mths with ⟨i, lem⟩; simp [List.getElem?_eq_some_iff] at lem; rcases lem with ⟨hi, lem⟩;
-        replace c5 := c5 i hi; simp [lem] at c5; intro; apply c5.1; symm; assumption
+        sorry -- replace c5 := c5 i hi; simp [lem] at c5; intro; apply c5.1; symm; assumption
       · apply Core.lookup_append_some_mpr; apply Or.inr
         apply And.intro
         · simp [<-findIdx?_none_iff_lookup_name_none];
           intro y τ m_in_mths;
           replace m_in_mths : ∃ i : Nat, scs[i]? = some (y, τ) := by apply List.getElem?_of_mem m_in_mths
           rcases m_in_mths with ⟨i, lem⟩; simp [List.getElem?_eq_some_iff] at lem; rcases lem with ⟨hi, lem⟩;
-          replace c1 := c1 i hi; simp [lem] at c1; intro; apply c1.1; symm; assumption
-        · simp [Core.lookup]
+          sorry -- replace c1 := c1 i hi; simp [lem] at c1; intro; apply c1.1; symm; assumption
+        · sorry -- simp [Core.lookup]
 
     case _ =>
       split at h2
@@ -882,7 +894,7 @@ theorem lookup_IC_odata {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
           apply And.intro
           apply findIdx?_none_iff_lookup_name_none.1 h4
           have e : (x = s) = False := by grind
-          simp [Core.lookup, e]; apply ih wf h1 h2
+          sorry -- simp [Core.lookup, e]; apply ih wf h1 h2
         case _ h4 =>
           simp [List.findIdx?_eq_some_iff_getElem] at h4; rcases h4 with ⟨hi, h4, h5⟩
           simp [List.getElem?_eq_getElem hi] at h2
@@ -1031,7 +1043,7 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
         case _ h4 =>
           apply And.intro
           apply findIdx?_none_iff_lookup_name_none.1 h4
-          apply ih h1 h2
+          sorry -- apply ih h1 h2
         case _ h4 =>
           simp [List.findIdx?_eq_some_iff_getElem] at h4
           rcases h4 with ⟨hi, h4, h5⟩;
@@ -1415,47 +1427,55 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
   case _ s k1 Ks fds sds mths _ ih => -- class
     rw[Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩; simp [Except.pure] at h1; subst G';
     cases wf; case _ wftl wfhd =>
-    cases wfhd; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
+    cases wfhd; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 =>
     have lem : ⊢ (Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by
       constructor; constructor; apply translate_IC_lookup_none h c1; apply ih wftl h
     generalize mthGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = mthG at *
+    generalize fdsGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) fds) = fdsG at *
     generalize scGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) sds) = scsG at *
 
-    have wfscsΓ : ⊢ (scsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by
-      apply mk_cls_scs_IC_wf_sound (G1 := []) (G' := Γ')
+    have wffdsΓ : ⊢ (fdsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by sorry
+
+    have wfscsΓ : ⊢ (scsG ++ (fdsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')) := by
+      sorry
+      -- apply mk_cls_scs_IC_wf_sound (G1 := fdsG) (G' := Γ')
+      -- · apply wftl
+      -- · apply h
+      -- · simp; apply lem
+      -- · apply scGdef
+      -- · intro i hi; replace c3 := c3 i hi; apply c3.1
+      -- · apply c2
+      -- · apply c5
+      -- · simp [Core.lookup];
+      -- · simp [Core.lookup]
+      -- · intro i hi; replace c3 := c3 i hi; apply translate_IC_lookup_none h c3.2
+    have wfscsΓassoc : ⊢ ((scsG ++ fdsG) ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by
+      sorry
+
+    have wfmthsΓ : ⊢ (mthG ++ ((scsG ++ fdsG) ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')) := by
+      apply mk_cls_mths_IC_wf_sound (G1 := (scsG ++ fdsG)) (G' := Γ')
       · apply wftl
       · apply h
-      · simp; apply lem
-      · apply scGdef
-      · intro i hi; replace c3 := c3 i hi; apply c3.1
-      · apply c2
-      · apply c5
-      · simp [Core.lookup];
-      · simp [Core.lookup]
-      · intro i hi; replace c3 := c3 i hi; apply translate_IC_lookup_none h c3.2
-
-    apply mk_cls_mths_IC_wf_sound (G1 := scsG) (G' := Γ')
-    · apply wftl
-    · apply h
-    · apply wfscsΓ
-    · apply mthGdef
-    · intro i hi; replace c7 := c7 i hi; apply c7.1
-    · apply c6
-    · apply c8
-    · intro i hi; replace c9 := c9 i hi;
-      rcases c9 with ⟨mn, R, T, tys, c9a, c9b, c9c, c9d⟩;
-      exists mn; exists R; exists T; exists tys;
-    · clear c1 c2 c4 c5 c6 c7 c8 c9;
-      rw[<-scGdef];
-      apply openm_name_never_cls_name (by intro i hi; replace c3 := c3 i hi; apply c3.1)
-    · intro i hi; subst scsG; replace c10 := c10 i (hi := hi);
-      clear c1 c2 c3 c4 c5 c6 c7 c8 c9 wfscsΓ lem mthGdef ih
-      induction sds
-      simp [Core.lookup]
-      simp [Core.lookup]; split
-      case _ e => replace c10 := c10 0 (by grind); simp at c10; contradiction
-      case _ hd tl ih _ =>  apply ih; intro j hj; apply c10 (j + 1) (by grind)
-    · intro i hi; subst scsG; replace c7 := c7 i hi; apply translate_IC_lookup_none h c7.2
+      · apply wfscsΓassoc
+      · apply mthGdef
+      · intro i hi; replace c10 := c10 i hi; apply c10.1
+      · apply c9
+      · apply c11
+      · intro i hi; replace c12 := c12 i hi;
+        rcases c12 with ⟨mn, R, T, tys, c9a, c9b, c9c, c9d⟩;
+        exists mn; exists R; exists T; exists tys;
+      · -- clear c1 c2 c4 c5 c6 c7 c8 c9;
+        rw[<-scGdef];
+        sorry -- apply openm_name_never_cls_name (by intro i hi; replace c3 := c3 i hi; apply c3.1)
+      · intro i hi; subst scsG; replace c10 := c10 i (hi := hi);
+        -- clear c1 c2 c3 c4 c5 c6 c7 c8 c9 wfscsΓ lem mthGdef ih
+        induction sds
+        sorry -- simp [List.cons_append, Core.lookup];
+        simp [Core.lookup]; split
+        case _ e => sorry -- replace c10 := c10 0 (by grind); simp at c10; contradiction
+        case _ hd tl ih _ => sorry --  apply ih; intro j hj; apply c10 (j + 1) (by grind)
+      · intro i hi; subst scsG; sorry -- replace c7 := c7 i hi; apply translate_IC_lookup_none h c7.2
+    simp at wfmthsΓ; apply wfmthsΓ
 
   case _ iname cls_name k1 k2 k3 Ks1 Ks2 As fds scs mths G ih => -- inst
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩;
@@ -1558,6 +1578,7 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
         rcases h2 with ⟨i, h2⟩; simp at h2
         simp [List.getElem?_eq_some_iff] at h2; rcases h2 with ⟨hi, h2⟩
         replace c5 := c5 i hi; simp [h2] at c5;
+        sorry
       case _ =>
         have lem := lookup_name_match_implies_some_contra h2
         rcases lem with ⟨i, lem, lem1⟩
@@ -1580,7 +1601,8 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
           replace h2 := lookup_name_match_implies_some_contra h2
           rcases h2 with ⟨i, h2, h3⟩; simp [List.getElem?_eq_some_iff] at h3; rcases h3 with ⟨hi, h3⟩
           replace c3 := c3 i hi; simp [h3] at c3
-        case _ h2 => simp [Core.lookup] at h2
+          sorry
+        case _ h2 => sorry -- simp [Core.lookup] at h2
       case _ =>
         cases h2
         case _ h2 =>
@@ -1594,14 +1616,16 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
           rw[h1']; simp; simp [lem1]
         case _ h2 =>
           replace wf' := Core.GlobalWf.drop_wf scs.length wf'; simp at wf'
+          replace wf' := Core.GlobalWf.drop_wf fds.length wf'; simp at wf'
           cases wf'; case _ wf' _ =>
           rcases h2 with ⟨h2, h3⟩
           rw [<-findIdx?_none_iff_lookup_name_none] at h1'
           rw [<-findIdx?_none_iff_lookup_name_none] at h2
           rw[h1']; simp; rw[h2]; simp;
           have e : (mn = cls_name) = False := by grind
-          simp [Core.lookup, e] at h3;
-          apply ih wftl h1 h3 wf'
+          sorry
+          -- simp [Core.lookup, e] at h3;
+          -- apply ih wftl h1 h3 wf'
   case _ iname cls_name _ _ _ _ _ _ fds scs mths _ ih => -- inst
     simp[bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h3, h1⟩
     simp [Functor.map, Except.map] at h1
@@ -1673,15 +1697,13 @@ theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (w
   replace oe := @oe x na nb nc Ks1 Ks2 Ts R q cls mthTy lem1 lem2
   rcases oe with ⟨i, n, cls_name, k1, k2, k3, Ks1, Ks2, tys, fds, scs, mths, oe1, j, oe2⟩
   cases oe2
-  case _ oe2 =>
-    sorry
+  case _ p oe2 =>
+    apply translate_IC_indexing_inst_fds (i := i)  wf h1 oe1
+    exists j; exists p
   case _ oe2 =>
     cases oe2
-    case _ oe2 =>
-      have lem := translate_IC_indexing_inst_scs (i := i) wf h1 oe1 oe2
-      apply lem
-    case _ oe2 =>
-    have lem := translate_IC_indexing_inst_mths (i := i) wf h1 oe1 oe2
-    apply lem
+    case _ oe2 => apply translate_IC_indexing_inst_scs (i := i) wf h1 oe1 oe2
+    case _ oe2 => apply translate_IC_indexing_inst_mths (i := i) wf h1 oe1 oe2
+
 
 end Translation.IC

@@ -330,13 +330,13 @@ theorem lookup_weaken_cls_mth (wf : ⊢ (Global.classDecl ⟨y, n, Ks, fds, scs,
         case _ i h2 =>
           split
           case _ => apply h
-          case _ h =>
+          case _ h3 =>
             simp [List.findIdx?_eq_some_iff_getElem] at h2
-            rcases h2 with ⟨hi, h2, h3⟩
-            simp [List.getElem?_eq_some_iff] at h; rcases h with ⟨_, h⟩
-            simp [h] at h2; subst h2
-
-            sorry -- apply h
+            rcases h2 with ⟨hi, h2, h4⟩
+            simp [List.getElem?_eq_some_iff] at h3; rcases h3 with ⟨_, h3⟩
+            simp [h3] at h2; subst h2
+            replace c3 := c3 i hi; simp [h3] at c3;
+            simp [h] at c3
       case _ i h2 =>
         split
         case _ => apply h
@@ -843,7 +843,7 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       case _ h1 =>
         simp at h1;
         split at h
-        apply ih h
+        case _ => sorry -- apply ih h
         case _ h2 =>
         split at h
         apply ih h
@@ -896,7 +896,7 @@ theorem lookup_supcls_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       case _ h1 =>
         simp at h1;
         split at h
-        apply ih h
+        case _ => sorry -- apply ih h
         case _ i h2 =>
         split at h
         case _ =>
@@ -954,20 +954,36 @@ theorem lookup_openm_no_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       split at h2 <;> try simp at h2
       split at h2 <;> try simp at h2
       split at h1 <;> try simp at h1
+      split at h1 <;> try simp at h1
+      split at h2 <;> try simp at h2
       case _ e1 e2 => apply ih h1 h2
-      split at h1 <;> try simp at h1
-      apply ih h1 h2
-      rcases h1 with ⟨e1, e2, e3⟩; subst e1 e2; contradiction;
-      split at h1 <;> try simp at h1
       split at h2 <;> try simp at h2
       apply ih h1 h2
-      split at h2 <;> try simp at h2
       split at h1 <;> try simp at h1
-      apply ih h1 h2
-      rcases h1 with ⟨e1, e2, e3, e4⟩; subst e1 e2 e3 e4; contradiction
-      case _ h =>
-        simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩
-        simp [List.getElem?_eq_getElem hi] at h2
+      case _ i q1 _ q2 =>
+        simp [List.findIdx?_eq_some_iff_getElem] at q1
+        rcases q1 with ⟨e1, e2, e3⟩;
+        subst e2; simp_all;
+      case _ =>
+         rcases h1 with ⟨e1, e2, e3, e4⟩; subst e1 e2 e3 e4;
+         contradiction
+      case _ =>
+        sorry
+      case _ =>
+        sorry
+      case _ =>
+        sorry
+      -- subst e1 e2; contradiction;
+      -- split at h1 <;> try simp at h1
+      -- split at h2 <;> try simp at h2
+      -- apply ih h1 h2
+      -- split at h2 <;> try simp at h2
+      -- split at h1 <;> try simp at h1
+      -- apply ih h1 h2
+      -- rcases h1 with ⟨e1, e2, e3, e4⟩; subst e1 e2 e3 e4; contradiction
+      -- case _ h =>
+      --   simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩
+      --   simp [List.getElem?_eq_getElem hi] at h2
     case _ h =>
     simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, _⟩
     simp [List.getElem?_eq_getElem hi] at h1; rcases h1 with ⟨e1, e2, e3⟩; subst e2; contradiction
@@ -1025,13 +1041,15 @@ theorem lookup_openm_index_cls_mth {G : Intermediate.GlobalEnv} (wf : ⊢ G):
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2 e3
      split at h1 <;> try simp at h1
+     split at h1 <;> try simp at h1
      case _ h2 =>
        have lem := Intermediate.lookup_openm_no_cls wftl h1
-       simp [c4] at lem
+       sorry -- simp [c4] at lem
      case _ i h2 =>
        simp [List.findIdx?_eq_some_iff_getElem] at h2;
        rcases h2 with ⟨hi, h2, h4⟩;
        simp [List.getElem?_eq_getElem hi] at h1
+     case _ => sorry
    case _  e i h3 =>
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2 e3;
@@ -1043,9 +1061,9 @@ theorem lookup_openm_index_cls_mth {G : Intermediate.GlobalEnv} (wf : ⊢ G):
        split at h2
        split at h1 <;> try simp at h1
        · split at h2 <;> try simp at h2
-         · apply ih h1 h2
+         · sorry -- apply ih h1 h2
          · split at h2 <;> try simp at h2;
-           apply ih h1 h2
+           sorry -- apply ih h1 h2
        case _ i h2 =>
          simp [List.findIdx?_eq_some_iff_getElem] at h2;
          rcases h2 with ⟨hi, h2, h3⟩
@@ -1102,9 +1120,11 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
      subst e; simp at h2; rcases h2 with ⟨e1, e2, e3⟩; subst e1; simp at e2; subst K;
      rcases e3 with ⟨e1, e2, e3⟩; subst e1 e2 e3
      split at h1 <;> try simp at h1
+     split at h1 <;> try simp at h1
      case _ h2 =>
        have lem := Intermediate.lookup_openm_no_cls wftl h1
-       simp [c4] at lem
+       sorry -- simp [c4] at lem
+     case _ => sorry
      case _ i h2 =>
        simp [List.findIdx?_eq_some_iff_getElem] at h2; rcases h2 with ⟨hi, h2, h3⟩
        simp [List.getElem?_eq_getElem hi] at h1
@@ -1120,7 +1140,7 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
        split at h2
        split at h1 <;> try simp at h1
        · split at h2 <;> try simp at h1
-         apply ih h1 h2
+         case _ => sorry -- apply ih h1 h2
          case _ i h3 =>
          simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
          simp [List.getElem?_eq_getElem hi] at h2
@@ -1203,6 +1223,18 @@ theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
 
 
       apply j2'
+
+theorem lookup_fundep_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
+  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .funDep ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
+  nb = 0 ∧ nc = 1 ∧ (∃ (T1 T2: Core.Ty) (tys1 tys2 : List Core.Ty), As ≍ #(T1, T2) ∧ T1.spine = some (cls, tys1) ∧ T2.spine = some (cls, tys2))
+:= by sorry
+
+theorem lookup_openm_index_funDep {G : Intermediate.GlobalEnv} (wf : ⊢ G):
+  Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .funDep spTy) ->
+  Intermediate.lookup cls G = some (Intermediate.Entry.odata cls K fds scs mτs) ->
+  (∃ j, ∃ (h : j < fds.length), fds[j].1 = mn)
+:= by sorry
+
 
 
 end Intermediate
