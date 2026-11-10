@@ -54,21 +54,21 @@ notation "⟦" G "⟧" => GlobalEnv.erase G
 -- M •[x] [x -> T]
 -- spctors, casts: generalization of application
 -- include weakening
-theorem erasure_tbind (b : Term)(t : Ty):
+theorem erasure_subst_ty (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ :=
 match b with
 | #x | d#x | .ctor0 _ => by rfl
 | .spctor v s v1 v2 ts => by
   simp [Term.erase]; funext;
-  apply ((fun b' => erasure_tbind b' t) <$> ts)
-| .ctor1 _ t => by simp; apply erasure_tbind t
+  apply ((fun b' => erasure_subst_ty b' t) <$> ts)
+| .ctor1 _ t => by simp; apply erasure_subst_ty t
 | .ctor2 .app t1 t2 => by
     simp
     apply And.intro
-    apply erasure_tbind t1
-    apply erasure_tbind t2
+    apply erasure_subst_ty t1
+    apply erasure_subst_ty t2
 | .ctor2 .apptc _ _ => by rfl
-| .cast _ _ t => by simp; apply erasure_tbind t
+| .cast _ _ t => by simp; apply erasure_subst_ty t
 | .tbind _ _ t => by
   simp;
   sorry
@@ -76,7 +76,7 @@ match b with
     simp; funext; 
     -- apply ((fun b' => erasure_tbind b' t) <$> vm)
     sorry
-| .lam _ t => by simp; apply erasure_tbind t
+| .lam _ t => by simp; apply erasure_subst_ty t
 
 -- Top to bottom: JUST question mark
 -- Bottom to top should be star. Might be arbitrarily any steps at the top
@@ -86,7 +86,7 @@ theorem erasure (wf : ⊢ G) :
 | .beta => .step .beta
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | @Red.betat G t A b => by 
-  rw [erasure_tbind b t]
+  rw [erasure_subst_ty b t]
   exact .refl
   -- exact .refl
 | .cast => .refl
