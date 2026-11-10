@@ -1,4 +1,4 @@
-import Surface.Ty
+
 import Surface.Global
 import Surface.Term
 
@@ -35,7 +35,7 @@ def mbenv : GlobalEnv := [
       )],
 
   -- class Plus a b c where plus :: a -> b -> c
-  .classDecl "Plus" #(★, ★, ★) [] [("plus", ⟨0, #(), 0, #(), 0, #(), (t#2 -:> t#1 -:> t#0)⟩)],
+  .classDecl "Plus" #(★, ★, ★) [] [] [("plus", ⟨0, #(), 0, #(), 0, #(), (t#2 -:> t#1 -:> t#0)⟩)],
 
 
   ] ++ Surface.Examples.Boolean.benv

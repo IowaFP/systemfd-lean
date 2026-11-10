@@ -119,7 +119,9 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 
 | inst {mτs : List (String × Core.SpineTy)}
        {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}
-       {scs_impl : List (String × (m : Nat) × Core.Pattern m)} :
+       {scs_impl : List (String × (m : Nat) × Core.Pattern m)}
+       {fds_impl : List (String × (m : Nat) × Core.Pattern m)}
+       :
   lookup x G = none ->
   lookup cls_name G = some (.odata cls_name K fds scs mτs) ->
 
@@ -135,7 +137,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
     ((scs[i]).1 = scs_impl[i].1) ∧
     (spine_pattern_size (scs[i]).2 = (scs_impl[i]).2.1)) ->
 
-  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, As, [], scs_impl, mths_impl⟩)
+  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, As, fds_impl, scs_impl, mths_impl⟩)
 
 inductive ListGlobalWf : List Global -> Prop where
 | nil : ListGlobalWf []
@@ -1226,7 +1228,7 @@ theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
 
 theorem lookup_fundep_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .funDep ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
-  nb = 0 ∧ nc = 1 ∧ (∃ (T1 T2: Core.Ty) (tys1 tys2 : List Core.Ty), As ≍ #(T1, T2) ∧ T1.spine = some (cls, tys1) ∧ T2.spine = some (cls, tys2))
+  nb = 0 ∧ nc = 2 ∧ (∃ (T1 T2: Core.Ty) (tys1 tys2 : List Core.Ty), As ≍ #(T1, T2) ∧ T1.spine = some (cls, tys1) ∧ T2.spine = some (cls, tys2))
 := by sorry
 
 theorem lookup_openm_index_funDep {G : Intermediate.GlobalEnv} (wf : ⊢ G):

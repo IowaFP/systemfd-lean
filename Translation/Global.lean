@@ -104,6 +104,50 @@ def mk_inst_scs_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
   let m_τ_t <- mk_inst_sc_SI Γ' C iname spTy
   return .cons (mn, m_τ_t) τs_mths
 
+def get_all_odata (C : String) : (Γ' : Intermediate.GlobalEnv) -> List String
+| [] => []
+| .cons (.instDecl ⟨iname, c_name, _ ,_ ,_ ,_ ,_ ,_ ,_, _, _⟩) tl =>
+  let ns := get_all_odata C tl
+  if c_name == C then
+  (List.cons iname ns) else ns
+| .cons _ tl => get_all_odata C tl
+
+
+
+def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : Core.SpineTy):
+  TM (List ((m : Nat) × Core.Pattern m)) :=
+  match τ with
+  | ⟨na, Ks1, nb, Ks2, 2, #(T1, T2), R⟩ =>
+    -- open method spines don't introduce existentials
+    -- methods only analyze the instance class object
+    match Intermediate.lookup iname Γ' with
+    | some (.octor iname' ⟨nai, Ks1i, nbi, _, nci, _, Ri⟩) => do
+      let ⟨C', _⟩ <- Option.toTM "mk_inst_fd_SI R.spine" Ri.spine
+      let ⟨C1'', _⟩ <- Option.toTM "mk_inst_fd_SI R.spine" T1.spine
+      let ⟨C2'', _⟩ <- Option.toTM "mk_inst_fd_SI R.spine" T2.spine
+      if
+        (C1'' == C && C2'' == C &&  -- check that iname belongs to T type
+        (iname == iname' && C' == C) && nb == 0) then
+      --- perform completion here
+      let insts := get_all_odata C Γ'.tail
+
+      return [⟨2, #(⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci⟩, ⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci⟩)⟩]
+             ++ insts.map (λ x => ⟨2, #(⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩, ⟨x, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩)⟩)
+             ++ insts.map (λ x => ⟨2, #(⟨x, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩, ⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩)⟩)
+      else .error "mk_inst_fd_SI"
+    | _ => .error "mk_inst_fd_SI iname lookup"
+  | _ => .error "mk_inst_fd_SI"
+
+def mk_inst_fds_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
+  List (String × Core.SpineTy) ->
+ TM (List (String × (m : Nat) × Core.Pattern m))
+| .nil => return .nil
+| .cons (mn, spTy) scs_τs => do
+  let τs_mths <- mk_inst_fds_SI Γ' C iname scs_τs
+  let m_τ_t <- mk_inst_fd_SI Γ' C iname spTy
+  let fds := m_τ_t.map (λ x => ⟨mn, x⟩)
+  return fds ++ τs_mths
+
 
 
 -- Kind check the types, leaves the terms untouched
@@ -147,9 +191,9 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
         if cls_name' == cls_name && mτs.length == ts.length
         then let mths <- mk_inst_mths_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname mτs ts
              let scs <- mk_inst_scs_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname scs_τs
-             -- let fds <- mk_inst_fds_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname fds_τs
+             let fds <- mk_inst_fds_SI (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], [], []⟩) Γ') cls_name iname fds_τs
              if mτs.length == mths.length then
-                return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, [], scs, mths⟩) Γ')
+                return (.cons (.instDecl ⟨iname, cls_name, na, nb, nc, Ks1, Ks2, As, fds, scs, mths⟩) Γ')
              else .error "translate_SI instDecl mτs.length"
         else .error "translate_SI instDecl cls_name"
     | e => .error $ "translate_SI instDecl odata " ++ cls_name ++ e.repr max_prec
@@ -248,6 +292,55 @@ def mk_inst_scs_IC (G : Core.GlobalEnv) :
 | scs , scs' => .error $ "mk_inst_scs_IC don't match" ++ (scs.repr max_prec) ++ Std.Format.line ++ (scs'.repr max_prec)
 
 
+def mk_inst_fd_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern m) :
+  TM Core.Global := do
+  match Core.lookup mn G with
+  | some (.openm mn' ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) =>
+    let Δ := (Ks1.list ++ Ks2.list).reverse
+    if h : nc == m then
+    let ⟨ζ, Γ⟩ <- Option.toTM ("mk_inst_fd_IC Pattern Binders" ++ Std.Format.line
+                       ++ "G : " ++ G.repr max_prec ++ Std.Format.line
+                       -- ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
+                       -- ++ "n : " ++ n.repr ++ Std.Format.line
+                       -- ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
+                       ++ "p : " ++ p.repr)
+                       $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
+    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩
+    -- .error $
+    --        ("G :" ++ G.repr max_prec ++  Std.Format.line
+    --         ++ "Δ : " ++ (ζ ++ Δ).repr max_prec ++ Std.Format.line
+    --         ++ "Γ : " ++  Γ.repr max_prec ++ Std.Format.line
+    --         ++ "τ : " ++  (τ).repr max_prec ++ Std.Format.line
+    --         ++ "p : " ++ p.repr
+    --         ++ "t : " ++ t'.1.repr max_prec
+    --         )
+            -- ++ "R : " ++  (R[Subst.add Core.Ty ζ.length]).repr max_prec ++ Std.Format.line)
+    return .inst mn p t'.1
+    else .error $ "mk_inst_fd_IC pattern size" ++ nc.repr ++ " " ++ m.repr
+      | none => .error $ "mk_inst_fd_IC no spine type" ++ mn
+  | _ => .error $ "mk_inst_fd_IC no open method" ++ mn
+
+
+def mk_inst_fds_IC (G : Core.GlobalEnv) :
+  List (String × Core.SpineTy) ->
+  List (String × (m : Nat) × Core.Pattern m) ->
+  TM Core.GlobalEnv
+| .nil, .nil => return .nil
+| .cons (mn', spTy') mτs, .cons ⟨mn, m, p⟩ ms => do
+  if mn == mn' then
+    match Core.lookup mn G with
+    | .some (.openm mn' spTy) =>
+      if spTy.2.2.2.2.1 == m && (mn == mn') && spTy' == spTy then
+      let ms' <- mk_inst_fds_IC G mτs ms
+      let i' <- mk_inst_fd_IC (ms'++G) mn m p
+      return (i' :: ms')
+      else .error "mk_inst_fds_IC scs lookup"
+    | _ => .error "mk_inst_fds_IC scs lookup"
+  else .error "mk_inst_fds_IC scs don't match"
+| fds , fds' => .error $ "mk_inst_fds_IC don't match" ++ (fds.repr max_prec) ++ Std.Format.line ++ (fds'.repr max_prec)
+
+
+
 def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
 | .nil => return .nil
 | .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ => do
@@ -268,14 +361,14 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do
   let Γ' <- translate_IC Γ
   match Intermediate.lookup cls_name Γ with
-  | some (.odata s K _ scsτs mτs) =>
+  | some (.odata s K fdτs scsτs mτs) =>
     if s == cls_name
     then
-    -- let fds' : Core.GlobalEnv <- fds.mapM (λ ⟨n, m, p, t⟩ => none)
     let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).reverse.map (·+k2))⟩ ]
     let mths' <- (mk_inst_mths_IC (octor ++ Γ') mτs mths)
     let scs' <- mk_inst_scs_IC (mths' ++ octor ++ Γ') scsτs scs
-    return (scs' ++ mths' ++ octor ++ Γ')
+    let fds' <- mk_inst_fds_IC (scs' ++ mths' ++ octor ++ Γ') fdτs fds
+    return (fds' ++ scs' ++ mths' ++ octor ++ Γ')
     else .error "translate_IC inst"
   | _ => .error "translate_IC inst"
 

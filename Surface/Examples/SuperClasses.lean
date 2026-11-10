@@ -1,4 +1,3 @@
-import Surface.Ty
 import Surface.Global
 import Surface.Term
 
@@ -33,7 +32,7 @@ def benv_ord : GlobalEnv := [
                )))],
 
   -- class Ord a | Eq a where leq :: a -> a -> Ordering
-  .classDecl "Ord" #(★) /- [] -/ [("supOrdEq", "Eq", [0])] [("leq", ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Ordering")⟩)],
+  .classDecl "Ord" #(★) [] [("supOrdEq", "Eq", [0])] [("leq", ⟨0, #(), 0, #(), 0, #(), t#0 -:> (t#0 -:> gt#"Ordering")⟩)],
 
   ] ++ Surface.Examples.Maybe.mbenv
 
