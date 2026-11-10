@@ -38,10 +38,12 @@ def Term.erase : Term → Untyped.Term
 -- TODO: define erase on Subst Term
 -- beta rule for subs
 
+@[simp]
 def Constructor.erase (c : Constructor) : Untyped.Constructor :=
   let ⟨s, _, _, _, _, n, vm⟩ := c
   ⟨s, n, vm.map Term.erase⟩
 
+@[simp]
 def Global.erase : Global → Untyped.Global
 | defn s _ t => .defn s t.erase
 | inst s pm t => .inst s pm.erase t.erase
@@ -49,6 +51,7 @@ def Global.erase : Global → Untyped.Global
 -- use a dummy variant
 | _ => .erased
 
+@[simp]
 def GlobalEnv.erase (G : GlobalEnv) := Global.erase <$> G
 
 notation "⟦" e "⟧" => Term.erase e
@@ -93,9 +96,28 @@ theorem erasure_subst_ty_le (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b�
 theorem erasure_subst_ty (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty_le
 
+-- theorem GlobalEnv.lookup_erasure_ty (wf : ⊢ G): (t : Entry) →
+--   lookup x G = some e
+--   → Untyped.lookup ⟦G⟧ x = ⟦t⟧ := by
+--   intro t h
+--   simp[lookup_defn] at h
+--   simp[Option.bind_eq_some_iff] at h
+--   rcases h with ⟨e, h1, h2⟩
+--   cases e <;> try simp at h2
+--   rcases h2 with ⟨e1, e2⟩
+--   subst e1 e2
+--   fun_induction lookup <;> try simp at h1
+--   case _ => sorry
+--   case _ => unfold Untyped.lookup_defn; sorry
+--   case _ => sorry
+--   case _ => sorry
+--   case _ => sorry
+--   case _ => sorry
+--   case _ => sorry
+
 theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
   lookup_defn G x = some (A, t)
-  → Untyped.lookup_defn x ⟦G⟧ = ⟦t⟧ := by
+  → Untyped.lookup_defn ⟦G⟧ x = ⟦t⟧ := by
   intro t h
   simp[lookup_defn] at h
   simp[Option.bind_eq_some_iff] at h
@@ -105,7 +127,13 @@ theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
   subst e1 e2
   fun_induction lookup <;> try simp at h1
   case _ => sorry
-  case _ => sorry
+  case _ x' a t y k  G neq ih => 
+    simp[Option.bind_eq_some_iff]; 
+    exists .defn x ⟦t⟧
+    apply And.intro
+    simp[Functor.map, Untyped.lookup]
+    sorry
+    simp
   case _ => sorry
   case _ => sorry
   case _ => sorry
@@ -127,12 +155,6 @@ theorem erasure (wf : ⊢ G) :
 | .prj_fst_arr | .prj_snd_arr => .refl
 | .allc => by sorry
 | .apptc (K := K) (A := A) (B := B) => .refl
-| @Red.defn G x A t hdf => by 
-    have h : Untyped.lookup_defn x ⟦G⟧ = some ⟦t⟧ := by 
-      sorry
-         
-    
-    rfl
-    exact .step (.defn h)
+| @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty wf t hdf))
 | .ctor1_congr _ => by sorry
 | _ => sorry

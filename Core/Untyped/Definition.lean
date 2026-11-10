@@ -82,6 +82,7 @@ def lookup (x : String) : List Global → Option Entry
   if x == y then .some (.defn y t) else lookup x tl
 | .cons _ tl => lookup x tl
 
+@[simp]
 def lookup_defn (G : List Global) (x : String) : Option Term := do
   let t <- lookup x G
   match t with
