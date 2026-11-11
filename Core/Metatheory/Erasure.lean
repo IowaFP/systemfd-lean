@@ -75,8 +75,8 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 | .ctor2 .app t1 t2 => by
     simp
     apply And.intro
-    apply erasure_subst_ty σ t1
-    apply erasure_subst_ty σ t2
+    apply erasure_subst_ty
+    apply erasure_subst_ty
 | .ctor2 .apptc _ _ => by rfl
 | .cast _ _ t => by simp; apply erasure_subst_ty
 | .tbind _ _ t => by simp; apply erasure_subst_ty
@@ -92,14 +92,40 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
+theorem lookup_cons_cases:
+  lookup x (h::ts) = some e
+    → lookup x (h::[]) = some e ∨ lookup x ts = some e := by sorry
+
+theorem lookup_cons_join:
+  lookup x (h::[]) = some e ∨ lookup x ts = some e → lookup x (h::ts) = some e := by sorry
+
+theorem Untyped.lookup_cons_cases:
+  Untyped.lookup x (h::ts) = some e
+    → Untyped.lookup x (h::[]) = some e ∨ Untyped.lookup x ts = some e := by sorry
+
+theorem Untyped.lookup_cons_join:
+  Untyped.lookup x (h::[]) = some e ∨ Untyped.lookup x ts = some e → Untyped.lookup x (h::ts) = some e := by sorry
+
 theorem lookup_erasure_cons :
-  lookup x (.cons h ts) = some (.defn x' a t) ->
-    Untyped.lookup x (⟦h⟧ :: map Global.erase ts)
+  lookup x (h::ts) = some (.defn x' a t) ->
+    Untyped.lookup x (⟦h⟧::⟦ts⟧)
     = some (Untyped.Entry.defn x ⟦t⟧) := by 
-    simp
-    fun_induction lookup x (.cons h ts)
-    contradiction
+    intros h1
+    let h2 := lookup_cons_cases h1
+    cases h2
     sorry
+    sorry
+    -- fun_induction Untyped.lookup x (⟦h⟧::⟦ ts⟧) <;> try simp
+    -- generalize h1 : lookup x (.cons h ts) = h1eq
+    -- intro h2
+    -- rcases h1eq with _ | e
+    -- contradiction
+    --
+    -- fun_induction Untyped.lookup x (⟦h⟧::⟦ ts⟧)
+    --
+    -- sorry
+    -- sorry
+    -- sorry
 
 theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
   lookup_defn G x = some (A, t)
@@ -143,7 +169,7 @@ theorem erasure (wf : ⊢ G) :
 | .prj_fst_app | .prj_snd_app => .refl
 | .prj_fst_arr | .prj_snd_arr => .refl
 | .allc => by sorry
-| .apptc (K := K) (A := A) (B := B) => .refl
+| @Red.apptc G K A B => .refl
 | @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty wf t hdf))
 | .ctor1_congr _ => by sorry
 | _ => sorry
