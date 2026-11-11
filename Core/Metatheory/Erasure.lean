@@ -92,70 +92,36 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
-theorem lookup_cons_cases:
-  lookup x (h::ts) = some e
-    → lookup x (h::[]) = some e ∨ lookup x ts = some e := by sorry
-
-theorem lookup_cons_join:
-  lookup x (h::[]) = some e ∨ lookup x ts = some e → lookup x (h::ts) = some e := by sorry
-
-theorem Untyped.lookup_cons_cases:
-  Untyped.lookup x (h::ts) = some e
-    → Untyped.lookup x (h::[]) = some e ∨ Untyped.lookup x ts = some e := by sorry
-
-theorem Untyped.lookup_cons_join:
-  Untyped.lookup x (h::[]) = some e ∨ Untyped.lookup x ts = some e → Untyped.lookup x (h::ts) = some e := by sorry
-
-theorem lookup_erasure_cons :
-  lookup x (h::ts) = some (.defn x' a t) ->
-    Untyped.lookup x (⟦h⟧::⟦ts⟧)
-    = some (Untyped.Entry.defn x ⟦t⟧) := by 
-    intros h1
-    let h2 := lookup_cons_cases h1
-    cases h2
-    sorry
-    sorry
-    -- fun_induction Untyped.lookup x (⟦h⟧::⟦ ts⟧) <;> try simp
-    -- generalize h1 : lookup x (.cons h ts) = h1eq
-    -- intro h2
-    -- rcases h1eq with _ | e
-    -- contradiction
-    --
-    -- fun_induction Untyped.lookup x (⟦h⟧::⟦ ts⟧)
-    --
-    -- sorry
-    -- sorry
-    -- sorry
+theorem GlobalEnv.lookup_erasure :
+  lookup x G = some (Entry.defn y a t)
+  → Untyped.lookup x (map Global.erase G)
+    = some (Untyped.Entry.defn x ⟦t⟧) := by
+  intro h
+  cases G <;> try simp
+  contradiction
+  sorry
 
 -- TODO: avoid cases by matching on *G*,
 -- JUST the List, not the globals
-theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
+theorem GlobalEnv.erasure_ty :
   lookup_defn G x = some (A, t)
   → Untyped.lookup_defn ⟦G⟧ x = ⟦t⟧ := by
-  intro t h
+  intro h
   simp[lookup_defn] at h
   simp[Option.bind_eq_some_iff] at h
   rcases h with ⟨e, h1, h2⟩
-  cases e <;> try simp at h2
+  cases e <;> (
+    rename_i a t;
+    try rename_i y;
+    try simp at h2
+  )
   rcases h2 with ⟨e1, e2⟩
   subst e1 e2
-  fun_induction lookup <;> try simp at h1
-  case _ => sorry
-  case _ x' a t y k  G neq ih => 
-    simp[Option.bind_eq_some_iff]; 
-    exists .defn x ⟦t⟧
-    apply And.intro
-    simp[Functor.map]
-    rcases G with _ | ⟨h, ts⟩
-    contradiction
-    rw [List.map_cons];
-    apply lookup_erasure_cons h1
-    simp
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
+  simp[Untyped.lookup_defn, Functor.map, Option.bind_eq_some_iff]
+  exists .defn x ⟦t⟧
+  apply And.intro
+  apply GlobalEnv.lookup_erasure h1
+  rfl
 
 -- Top to bottom: JUST question mark
 -- Bottom to top should be star. Might be arbitrarily any steps at the top
@@ -172,6 +138,6 @@ theorem erasure (wf : ⊢ G) :
 | .prj_fst_arr | .prj_snd_arr => .refl
 | .allc => by sorry
 | @Red.apptc G K A B => .refl
-| @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty wf t hdf))
+| @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty hdf))
 | .ctor1_congr _ => by sorry
 | _ => sorry
