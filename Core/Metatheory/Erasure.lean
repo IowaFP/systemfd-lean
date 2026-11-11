@@ -61,59 +61,45 @@ notation "⟦" pmn "⟧" => Pattern.erase pmn
 
 theorem Pattern.erasure_subst (σ : Subst Ty) : (m : Nat) → (pmn : Pattern m) →
   ⟦pmn.smap σ⟧ = pmn.erase
-| 0, .nil => sorry
-| n + 1, .cons _ _ => sorry
+| 0, .nil => by rfl
+| n + 1, .cons _ _ => by 
+  simp; apply Pattern.erasure_subst
 
-theorem erasure_subst_ty_le (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
+theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 | #x | d#x | .ctor0 _ => by rfl
 | .spctor v s v1 v2 ts => by
   simp [Term.erase]; funext;
-  apply ((fun b' => erasure_subst_ty_le σ b') <$> ts)
-| .ctor1 (.appt _) b => by simp; apply erasure_subst_ty_le σ b
-| .ctor1 (.prj n) b => by simp; apply erasure_subst_ty_le σ b
+  apply ((fun b' => erasure_subst_ty σ b') <$> ts)
+| .ctor1 (.appt _) b => by simp; apply erasure_subst_ty σ b
+| .ctor1 (.prj n) b => by simp; apply erasure_subst_ty σ b
 | .ctor2 .app t1 t2 => by
     simp
     apply And.intro
-    apply erasure_subst_ty_le σ t1
-    apply erasure_subst_ty_le σ t2
+    apply erasure_subst_ty σ t1
+    apply erasure_subst_ty σ t2
 | .ctor2 .apptc _ _ => by rfl
-| .cast _ _ t => by simp; apply erasure_subst_ty_le
-| .tbind _ _ t => by simp; apply erasure_subst_ty_le
+| .cast _ _ t => by simp; apply erasure_subst_ty
+| .tbind _ _ t => by simp; apply erasure_subst_ty
 | .mtch m n vm pmn vn => by
     simp; apply And.intro; funext;
-    apply ((fun b' => erasure_subst_ty_le σ b') <$> vm)
+    apply ((fun b' => erasure_subst_ty σ b') <$> vm)
     apply And.intro; funext;
     apply Pattern.erasure_subst
     funext;
-    apply erasure_subst_ty_le
-| .lam _ t => by simp; apply erasure_subst_ty_le
+    apply erasure_subst_ty
+| .lam _ t => by simp; apply erasure_subst_ty
 
--- Sticky cases where types in terms:
--- (lambda [x] m)[x -> T] OR have y. weakening at x -> T or extend it
--- M •[x] [x -> T]
--- spctors, casts: generalization of application
--- include weakening
-theorem erasure_subst_ty (b : Term)(t : Ty):
-  ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty_le
+theorem erasure_subst_ty_su (b : Term)(t : Ty):
+  ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
--- theorem GlobalEnv.lookup_erasure_ty (wf : ⊢ G): (t : Entry) →
---   lookup x G = some e
---   → Untyped.lookup ⟦G⟧ x = ⟦t⟧ := by
---   intro t h
---   simp[lookup_defn] at h
---   simp[Option.bind_eq_some_iff] at h
---   rcases h with ⟨e, h1, h2⟩
---   cases e <;> try simp at h2
---   rcases h2 with ⟨e1, e2⟩
---   subst e1 e2
---   fun_induction lookup <;> try simp at h1
---   case _ => sorry
---   case _ => unfold Untyped.lookup_defn; sorry
---   case _ => sorry
---   case _ => sorry
---   case _ => sorry
---   case _ => sorry
---   case _ => sorry
+theorem lookup_erasure_cons :
+  lookup x (.cons h ts) = some (.defn x' a t) ->
+    Untyped.lookup x (⟦h⟧ :: map Global.erase ts)
+    = some (Untyped.Entry.defn x ⟦t⟧) := by 
+    simp
+    fun_induction lookup x (.cons h ts)
+    contradiction
+    sorry
 
 theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
   lookup_defn G x = some (A, t)
@@ -131,8 +117,11 @@ theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
     simp[Option.bind_eq_some_iff]; 
     exists .defn x ⟦t⟧
     apply And.intro
-    simp[Functor.map, Untyped.lookup]
-    sorry
+    simp[Functor.map]
+    rcases G with _ | ⟨h, ts⟩
+    contradiction
+    rw [List.map_cons];
+    apply lookup_erasure_cons h1
     simp
   case _ => sorry
   case _ => sorry
@@ -148,7 +137,7 @@ theorem erasure (wf : ⊢ G) :
 | .beta => .step .beta
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | @Red.betat G t A b => by
-  rw [erasure_subst_ty b t]
+  rw [erasure_subst_ty_su b t]
   exact .step .beta
 | .cast => .refl
 | .prj_fst_app | .prj_snd_app => .refl
