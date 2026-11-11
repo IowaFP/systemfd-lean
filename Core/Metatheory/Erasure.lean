@@ -92,13 +92,28 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
+theorem Untyped.drop_lookup_unique n :
+  Untyped.lookup x (G.drop n) = some t ->
+  Untyped.lookup x G = some t := by sorry
+
+theorem Untyped.lookup_weaken : Untyped.lookup x G = some e -> Untyped.lookup x (g::G) = some e := by
+  intro h; apply Untyped.drop_lookup_unique 1 h
+
+theorem GlobalEnv.lookup_cons_cases : 
+  lookup x (h::ts) = some e
+    → lookup x ([h]) = some e ∨ lookup x ts = some e := by sorry
+
 theorem GlobalEnv.lookup_erasure :
   lookup x G = some (Entry.defn y a t)
   → Untyped.lookup x (map Global.erase G)
     = some (Untyped.Entry.defn x ⟦t⟧) := by
-  intro h
-  cases G <;> try simp
+  intro h1
+  rcases G with _ | ⟨h, ts⟩
   contradiction
+  have h2 := GlobalEnv.lookup_cons_cases h1
+  cases h2
+
+  sorry
   sorry
 
 -- TODO: avoid cases by matching on *G*,
