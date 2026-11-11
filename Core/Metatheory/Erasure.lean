@@ -25,7 +25,7 @@ def Term.erase : Term → Untyped.Term
   | spctor _ x _ _ ts => .spctor x (Term.erase <$> ts)
   | ctor0 (.refl _) => .unit
   | ctor1 (.appt _) b => .app b.erase .unit
-  | ctor1 _ t => t.erase
+  | ctor1 (.prj _) t => t.erase
   | ctor2 .app t1 t2 => .app t1.erase t2.erase
   | ctor2 .apptc _ _ => .unit
   | lam _ t => .lam t.erase
@@ -92,33 +92,33 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
-theorem Untyped.drop_lookup_unique n :
-  Untyped.lookup x (G.drop n) = some t ->
-  Untyped.lookup x G = some t := by sorry
+-- theorem Untyped.drop_lookup_unique n :
+--   Untyped.lookup x (G.drop n) = some t ->
+--   Untyped.lookup x G = some t := by sorry
 
 theorem Untyped.lookup_weaken : Untyped.lookup x G = some e -> Untyped.lookup x (g::G) = some e := by
-  intro h; apply Untyped.drop_lookup_unique 1 h
+  intro h
+  sorry
 
-theorem GlobalEnv.lookup_cons_cases : 
+theorem GlobalEnv.lookup_cons_cases  (wf : ⊢ G) : 
   lookup x (h::ts) = some e
     → lookup x ([h]) = some e ∨ lookup x ts = some e := by sorry
 
-theorem GlobalEnv.lookup_erasure :
+theorem GlobalEnv.lookup_erasure (wf : ⊢ G) :
   lookup x G = some (Entry.defn y a t)
   → Untyped.lookup x (map Global.erase G)
     = some (Untyped.Entry.defn x ⟦t⟧) := by
   intro h1
   rcases G with _ | ⟨h, ts⟩
   contradiction
-  have h2 := GlobalEnv.lookup_cons_cases h1
+  have h2 := GlobalEnv.lookup_cons_cases wf h1
   cases h2
-
   sorry
   sorry
 
 -- TODO: avoid cases by matching on *G*,
 -- JUST the List, not the globals
-theorem GlobalEnv.erasure_ty :
+theorem GlobalEnv.erasure_ty (wf : ⊢ G) :
   lookup_defn G x = some (A, t)
   → Untyped.lookup_defn ⟦G⟧ x = ⟦t⟧ := by
   intro h
@@ -135,7 +135,7 @@ theorem GlobalEnv.erasure_ty :
   simp[Untyped.lookup_defn, Functor.map, Option.bind_eq_some_iff]
   exists .defn x ⟦t⟧
   apply And.intro
-  apply GlobalEnv.lookup_erasure h1
+  apply GlobalEnv.lookup_erasure wf h1
   rfl
 
 -- Top to bottom: JUST question mark
@@ -153,6 +153,7 @@ theorem erasure (wf : ⊢ G) :
 | .prj_fst_arr | .prj_snd_arr => .refl
 | .allc => by sorry
 | @Red.apptc G K A B => .refl
-| @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty hdf))
-| .ctor1_congr _ => by sorry
+| @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty wf hdf))
+| .ctor1_congr (v := .appt _) s => sorry
+| .ctor1_congr (v := .prj _) s => sorry
 | _ => sorry
