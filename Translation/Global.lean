@@ -32,15 +32,17 @@ def check_om : (String × Core.SpineTy) -> Option Unit
 def check_oms (mτs : List (String × Core.SpineTy)) : Bool := mτs.all (λ x => check_om x == .some ())
 
 #guard Surface.mk_fd_om "Eq" #(★, ★) [1] 0 == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#2) • t#0), t#1 ~[★]~ t#0⟩
--- #eval Surface.mk_fd_om "Eq" #(★, ★) [1] 0
 -- open fdFwd :: ∀ t u u'. Equal t u -> Equal t u' -> u ~ u'
 -- open fdFWd :: ∀[★]∀[★]∀[★] Equal 2 1 -> Equal 2 0 -> 1 ~ 0
 
 
-#eval Surface.mk_fd_om "Eq" #(★, ★) [0] 1 == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#0) • t#1), t#2 ~[★]~ t#0⟩
+#guard Surface.mk_fd_om "Eq" #(★, ★) [0] 1 == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#0) • t#1), t#2 ~[★]~ t#0⟩
 -- open fdBwk :: ∀ t u t'. Equal t u -> Equal t' u -> t ~ t'
 -- open fdBWk :: ∀[★]∀[★]∀[★]. Equal 2 1 -> Equal 0 1 -> 2 ~ 0
 
+
+#eval Surface.mk_fd_om "F" #(★, ★ -:> ★,  ★ -:> ★ -:> ★) [0] 1
+  -- == ⟨3, #(★,★,★), 0, #(), 2, #((gt#"Eq" • t#2) • t#1, (gt#"Eq" • t#0) • t#1), t#2 ~[★]~ t#0⟩
 
 
 def mk_inst_mth_SI (Γ' : Intermediate.GlobalEnv) (C iname : String)
@@ -131,9 +133,9 @@ def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : Core.S
       --- perform completion here
       let insts := get_all_odata C Γ'.tail
 
-      return [⟨2, #(⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci⟩, ⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci⟩)⟩]
-             ++ insts.map (λ x => ⟨2, #(⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩, ⟨x, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩)⟩)
-             ++ insts.map (λ x => ⟨2, #(⟨x, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩, ⟨iname, na, (Vec.range na).reverse.map (t#·), nbi, nci ⟩)⟩)
+      return [⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci⟩, ⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci⟩)⟩]
+             ++ insts.map (λ x => ⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩, ⟨x, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩)⟩)
+             ++ insts.map (λ x => ⟨2, #(⟨x, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩, ⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩)⟩)
       else .error "mk_inst_fd_SI"
     | _ => .error "mk_inst_fd_SI iname lookup"
   | _ => .error "mk_inst_fd_SI"

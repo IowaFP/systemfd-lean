@@ -37,7 +37,7 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
 | .classDecl s Ks fds scs methods =>
   ".class " ++ s ++ " : " ++ Ks.repr max_prec ++ " where" ++ Std.Format.line
     ++ "|"  ++ scs.repr max_prec
-    -- ++ "|" ++ fds.repr max_prec
+    ++ "|" ++ fds.repr max_prec
     ++ "|" ++ Std.Format.line ++ (methods.repr max_prec)
 | instDecl i_name spTy methods =>
   (Std.Format.text ".inst ") ++ i_name ++ " : " ++ "⟨" ++ spTy.repr ++ "⟩"
@@ -131,6 +131,7 @@ def mk_fd_om (cls : String) (cls_params : Vec Core.Kind kc) (determiners : List 
   : Core.SpineTy :=
 
   let is_determiner : Nat -> Bool := λ x => (determiners.map (λ x => x.toNat)).contains x
+  let is_determinant : Nat -> Bool := λ x => x == determinant.toNat
 
   let cls_params' := (Vec.zipIdx cls_params.reverse).list
   let cls_params' := cls_params'.filter (λ x => !is_determiner x.2)
@@ -139,16 +140,26 @@ def mk_fd_om (cls : String) (cls_params : Vec Core.Kind kc) (determiners : List 
 
   let cls_ty := ((gt#cls).mkApps_nats (List.range kc).reverse)⟨Ren.add Core.Ty kc'⟩
 
-  let maybe_shift : Nat -> Nat := λ x => if is_determiner x then x + kc' else x
-  let cls_ty' := (gt#cls).mkApps_nats ((List.range kc).reverse.map maybe_shift)
+  let idx_fiddling (idxs : List Nat) (init : Nat) : (List Nat × Nat × Nat) :=
+    idxs.foldl (init := ([], init, 0)) (λ acc x =>
+      if is_determiner x
+      then (acc.1 ++ [x + kc'], acc.2.1, acc.2.2)
+      else (acc.1 ++ [acc.2.1], acc.2.1 - 1, if is_determinant x then acc.2.1 else acc.2.2))
+
+  let idxs := idx_fiddling ((List.range kc).reverse) (kc' - 1)
+
+  let cls_ty' := (gt#cls).mkApps_nats idxs.1
 
 
-  let R := t#(determinant + kc') ~[cls_params[determinant]]~ t#determinant
+  let R := t#(determinant + kc') ~[cls_params.reverse[determinant]]~ t#idxs.2.2
 
   ⟨kc' + kc, cls_params ++ cls_params', 0, #(), 2, #(cls_ty, cls_ty'), R⟩
 
 #eval mk_fd_om "F" #(★, ★ -:> ★, ★) [2] 0
 -- ⟨5, #(★, ★ -:> ★, ★) ++ #(★) ++ #(★), F t#4 t#3 t#2, F t#4 t#1 #0, #2 ~[★]~ t#0⟩
+#eval mk_fd_om "F" #(★ -:> ★, ★) [0] 1
+-- ⟨5, #(★ -:> ★, ★, ★ -:> ★), #(F `2 `1 , F `0 `1), `2 ~[★ -:> ★]~ `0⟩
+
 
 def lookup (x : String) : GlobalEnv -> Option (Entry)
 | [] => none
