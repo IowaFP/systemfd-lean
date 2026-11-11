@@ -634,14 +634,14 @@ theorem translate_IC_indexing_inst_scs {G : Intermediate.GlobalEnv} {G' : Core.G
       subst e1 e2 e3 e4 e5 e6 e7 e8 e9 e10 e11
       rcases h3 with ⟨j, p, h6, h7⟩;
       have lem := mk_inst_scs_IC_indexing h4 h6; rcases lem with ⟨b, lem⟩
-      exists j; exists b; exists p;
+      exists fdsΓ.length + j; exists b; exists p;
       simp [List.getElem?_eq_some_iff]
       simp [List.getElem?_eq_some_iff] at lem; rcases lem with ⟨h, lem⟩
       apply And.intro
       constructor;
-      · -- have lem_len := List.getElem_append_left (as := fdsΓ) (bs := (scsΓ ++ mthsΓ ++ Γ'')) (i := j)
-        --                 (h := h) (h' := by grind);
-        sorry -- simp [lem_len, lem]
+      · have lem_len := List.getElem_append_left (as := scsΓ) (bs := (mthsΓ ++ Γ'')) (i := j)
+                         (h := h) (h' := by grind);
+        simp [lem_len, lem]
       · grind
       apply h7
     case succ i =>
@@ -732,17 +732,19 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
       subst e1 e2 e3 e4 e5 e6 e7 e8 e9 e10 e11
       rcases h3 with ⟨j, t', p, h7, h8⟩;
       have lem := mk_inst_mths_IC_indexing h3 h7; rcases lem with ⟨b, lem⟩
-      exists (scsΓ.length +j); exists b; exists p;
+      exists (fdsΓ.length + scsΓ.length + j); exists b; exists p;
       simp [List.getElem?_eq_some_iff]
       simp [List.getElem?_eq_some_iff] at lem; rcases lem with ⟨h, lem⟩
+      have lem_len_sub : fdsΓ.length + scsΓ.length + j - fdsΓ.length = scsΓ.length + j := by omega
       apply And.intro
       constructor;
-      · have lem_len := List.getElem_append_right (as := scsΓ) (bs := (mthsΓ ++ Γ''))
-                         (i := scsΓ.length + j) (by omega) (h₂ := by simp [<-Γdef]; omega)
+      · have lem_len := List.getElem_append_right (as := fdsΓ) (bs := (scsΓ ++ mthsΓ ++ Γ''))
+                         (i := fdsΓ.length + scsΓ.length + j) (by omega) (h₂ := by simp [<-Γdef]; omega)
         conv at lem_len =>
           rhs
-          simp
-        sorry -- simp [List.getElem_append_left (as := mthsΓ) (bs := Γ'') h, lem];
+          simp [lem_len_sub]
+        simp at lem_len; simp [lem_len]
+        simp [List.getElem_append_left (as := mthsΓ) (bs := Γ'') h, lem];
       · grind
       apply h8
     case succ i =>
@@ -750,9 +752,9 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
       cases wf; case _ wftl _ =>
       have lem := ih wftl h1 h2
       rcases lem with ⟨j, b, p, ih1, ih2⟩
-      exists (scsΓ.length + (mthsΓ.length + (1 + j))); exists b; exists p
+      exists (fdsΓ.length + (scsΓ.length + (mthsΓ.length + (1 + j)))); exists b; exists p
       apply And.intro
-      · sorry -- simp [<-Γdef, List.getElem?_append_right]; grind
+      · simp [<-Γdef, List.getElem?_append_right]; grind
       · apply ih2
 
 
