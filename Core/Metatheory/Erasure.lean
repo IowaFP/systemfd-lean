@@ -127,6 +127,8 @@ theorem lookup_erasure_cons :
     -- sorry
     -- sorry
 
+-- TODO: avoid cases by matching on *G*,
+-- JUST the List, not the globals
 theorem GlobalEnv.erasure_ty (wf : ⊢ G): (t : Term) →
   lookup_defn G x = some (A, t)
   → Untyped.lookup_defn ⟦G⟧ x = ⟦t⟧ := by
