@@ -106,12 +106,12 @@ def mk_inst_scs_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
   let m_τ_t <- mk_inst_sc_SI Γ' C iname spTy
   return .cons (mn, m_τ_t) τs_mths
 
-def get_all_odata (C : String) : (Γ' : Intermediate.GlobalEnv) -> List String
+def get_all_odata (C : String) : (Γ' : Intermediate.GlobalEnv) -> List (String × Nat × Nat)
 | [] => []
-| .cons (.instDecl ⟨iname, c_name, _ ,_ ,_ ,_ ,_ ,_ ,_, _, _⟩) tl =>
+| .cons (.instDecl ⟨iname, c_name, _ , k2 ,k3 ,_ ,_ ,_ ,_, _, _⟩) tl =>
   let ns := get_all_odata C tl
   if c_name == C then
-  (List.cons iname ns) else ns
+  (List.cons (iname, k2, k3) ns) else ns
 | .cons _ tl => get_all_odata C tl
 
 
@@ -141,7 +141,7 @@ def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : List (
       -- Ks1 needs to be split into two portions; as it was made up by mk_fd_om
       -- the tail of the vector are the non-determiners
       let Ks1 := Ks1.list
-      let (κs1, κs2) := ((Ks1.take nai), Ks1.drop nai)
+      let κs2 := Ks1.drop nai
 
       let is_determiner : Nat -> Bool := λ x => (dms.map (λ x => x.toNat)).contains x
       let is_determinant : Nat -> Bool := λ x => x == det.toNat
@@ -155,10 +155,11 @@ def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : List (
       let idxs := (idx_fiddling (List.range nai).reverse (κs2.length - 1)).1
 
       let ⟨nai', idxs'⟩ := Vec.from_list idxs
+      -- TODO: Need to lookup the arities of the other constructors.
 
       return [⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), nbi, nci⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩]
-             ++ insts.map (λ x => ⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)) , nbi, nci⟩, ⟨x, nai', idxs'.map (t#·), nbi, nci⟩)⟩)
-             ++ insts.map (λ x => ⟨2, #(⟨x, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), nbi, nci⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩)
+             ++ insts.map (λ x => ⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)) , nbi, nci⟩, ⟨x.1, nai', idxs'.map (t#·), x.2.1, x.2.2⟩)⟩)
+             ++ insts.map (λ x => ⟨2, #(⟨x.1, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), x.2.1, x.2.2⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩)
       else .error "mk_inst_fd_SI"
     | _ => .error "mk_inst_fd_SI iname lookup"
   | _ => .error "mk_inst_fd_SI"

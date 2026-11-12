@@ -22,4 +22,15 @@ def FunDepsCtx : GlobalEnv := [
   let benv' <- Translation.translate_SI FunDepsCtx
   Translation.translate_IC benv'
 
+#guard (do
+  let benv' <- Translation.translate_SI FunDepsCtx
+  let Γ <- Translation.translate_IC benv'
+  return Γ.wf_globals) == .ok ()
+
+#guard (do
+  let benv' <- Translation.translate_SI FunDepsCtx
+  let Γ <- Translation.translate_IC benv'
+  return Γ.check_open_exhaustive) == .ok ()
+
+
 end Surface.Examples.FunDeps
