@@ -212,7 +212,8 @@ theorem erasure (wf : ⊢ G) :
 -- OR should erase just for .allc?
 | .allc | .apptc => .refl
 | @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty wf hdf))
-| .ctor1_congr (v := .appt _) (t := t) (t' := t') s => by
+| .ctor1_congr (v := .appt _) (t := t) (t' := t') s
+| .app_congr (f := t) (f' := t') s => by
   simp
   generalize h1 : ⟦t⟧ = et
   generalize h2 : ⟦t'⟧ = et'
@@ -220,15 +221,31 @@ theorem erasure (wf : ⊢ G) :
   rw[h1, h2] at ih
   rcases ih with _ | hr
   exact .refl
-  exact .step (.app_congr1 hr)
+  exact .step (.app_congr hr)
 | .ctor1_congr (v := .prj _) s => by apply erasure wf s
-| .apptc_congr1 _ | .apptc_congr2 _ => .refl
+| .apptc_congr1 _ | .apptc_congr2 _ | .cast_congr _ => .refl
 | .allc_congr s => by apply erasure wf s
--- | app_congr :
---   Red G f f' ->
---   Red G (f • a) (f' • a)
--- | cast_congr :
---   Red G c c' ->
---   Red G (.cast R c t) (.cast R c' t)
---   
+-- | data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
+--   Term.IsData .cls ss.to ctors ->
+--   Pattern.Match ctors (ps i) ->
+--   b' = (bs i)[Constructor.subst_type ctors ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term] ->
+--   Red G (.mtch m n ss ps bs) b'
+-- | openm_match {i : Nat} {ss : Fun.Vec Term m} :
+--   Term.IsData .opn ss.to ctors ->
+--   G[i]? = some (.inst x p b) ->
+--   Pattern.Match ctors p ->
+--   b' = b[Constructor.subst_type ctors ++ Ts2.list.reverse.map su ++ Ts1.list.reverse.map su ++ Subst.id Ty][Constructor.subst ctors ++ Subst.id Term] ->
+--   Red G (openm! x Ts1 Ts2 ss) b'
+-- | openm_congr {ts : Fun.Vec Term n} i :
+--   Red G (ts i) (ts' i) ->
+--   (∀ j ≠ i, ts j = ts' j) ->
+--   Red G (openm! x Ts1 Ts2 ts) (openm! x Ts1 Ts2 ts')
+-- | match_congr {ss : Fun.Vec Term m} i :
+--   Red G (ss i) (ss' i) ->
+--   (∀ j ≠ i, ss j = ss' j) ->
+--   Red G (.mtch m n ss ps bs) (.mtch m n ss' ps bs)
+| @Red.match_congr G m ss' n ps bs ss i st a => by
+    simp
+    sorry
+    -- .step (.match_congr i a )
 | _ => sorry
