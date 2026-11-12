@@ -330,7 +330,12 @@ def mk_inst_fd_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
                        -- ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
                        ++ "p : " ++ p.repr)
                        $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
-    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩
+    match Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩ with
+    | .error e =>
+      return .inst mn p (openm! "loop" #(R⟨Ren.add Core.Ty ζ.length⟩) #() #().to)
+    | .ok t' =>
+    -- if i cannot synthesize a term, i should ideally insert a loop
+
     -- .error $
     --        ("G :" ++ G.repr max_prec ++  Std.Format.line
     --         ++ "Δ : " ++ (ζ ++ Δ).repr max_prec ++ Std.Format.line
@@ -364,7 +369,10 @@ def mk_inst_fds_IC (G : Core.GlobalEnv) :
 
 
 def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
-| .nil => return .nil
+| .nil => return [
+  .inst "loop" #() (openm! "loop" #(t#0) #() #().to),
+  -- loop : ∀ a. a
+  .openm "loop" ⟨1, #(★), 0, #(), 0, #(), t#0 ⟩ ]
 | .cons (.data ⟨s, K, ⟨n, ctors⟩⟩) Γ => do
   let Γ' <- translate_IC Γ
   return (.data n s K ctors) :: Γ'
