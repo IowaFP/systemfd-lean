@@ -1126,9 +1126,19 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
             cases qs; case _ qs1 qs =>
             cases qs; case _ qs2 qs =>
             cases qs
-            cases decEq qs1 iname
-            sorry
-            sorry
+            cases decEq qs1 iname <;> cases decEq qs2 iname
+            case _ => -- qs1 ≠ iname, qs2 ≠ iname
+              replace h2 := Intermediate.Query.strengthen_inst (cls2 := cls1) h2
+                            (by sorry) (by sorry)
+              have ih := ih wftl h wftl' h1 h2
+              rcases ih with ⟨i, ih⟩; exists i + 1
+            case _ => -- qs1 ≠ iname, qs2 = iname
+              sorry
+            case _ => -- qs1 = iname, qs2 ≠ iname
+              sorry
+            case  _ => -- qs1 = iname, qs2 = iname
+
+              sorry
             -- cases decEq q iname
             -- case _ e =>   -- q ≠ iname
             --   cases decEq cls1 cls_name

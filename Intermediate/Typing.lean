@@ -821,6 +821,28 @@ theorem Query.strength_inst1 {Γ : Intermediate.GlobalEnv} :
   constructor
 
 
+theorem Query.strengthen_inst {Γ : Intermediate.GlobalEnv} {qs : Vec String pn} {Ts : Vec Core.Ty pn} :
+  Intermediate.Query (.cons (.instDecl ⟨iname, cls1, na, nb, nc, KsU, KsE , Tys , fds , scs, mths⟩) Γ) v qs Ts ->
+  (∀ i : Fin pn, ∃ tys, Ts[i].spine = some (cls2, tys)) ->
+  (∀ i : Fin pn, qs[i] ≠ iname) ->
+  Intermediate.Query Γ v qs Ts
+:= by
+  intro h1 h2 h3
+  induction h1
+  case _ => apply VecTyping.nil
+  case _  q T k qs Ts hd tl ih =>
+
+    have h2' := h2 0; simp at h2'; rcases h2' with ⟨tys', h2'⟩
+    have h3' := h3 0; simp at h3'
+    have e : (q = iname) = False := by grind
+    simp [Intermediate.lookup_ctor?, h2', Intermediate.lookup_ctor?, Intermediate.lookup, Option.getD_eq_iff, e] at hd;
+    replace h3 : ∀ (i : Fin k), qs[i] ≠ iname := by intro i; apply h3 i.succ;
+    replace h2 : ∀ (i : Fin k), ∃ tys2, Ts[i].spine = some (cls2, tys2) := by intro i; apply h2 i.succ;
+
+    apply VecTyping.cons
+    · rcases hd with ⟨e, hd1, hd2⟩; simp [lookup_ctor?, h2', hd1, hd2]
+    · apply ih h2 h3
+
 theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .clsMth ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
   nc = 1 ∧ (∃ (T: Core.Ty) (tys : List Core.Ty), As ≍ #(T) ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·))

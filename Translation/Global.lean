@@ -115,7 +115,6 @@ def get_all_odata (C : String) : (Γ' : Intermediate.GlobalEnv) -> List (String 
 | .cons _ tl => get_all_odata C tl
 
 
-
 def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : List (Fin n) × Fin n × Core.SpineTy):
   TM (List ((m : Nat) × Core.Pattern m)) :=
   match τ with
