@@ -127,7 +127,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
 
-  (e1 : mτs.length = mths_impl.length) ->
+  (e1 : mτs.length = mths_impl.length) -> -- TODO: I think i'm being too strict here.
   (∀ i : Nat, (hi : i < mths_impl.length) ->
     ((mτs[i]).1 = mths_impl[i].1) ∧
     (spine_pattern_size (mτs[i]).2 = method_pattern_size (mths_impl[i]))) ->

@@ -115,8 +115,8 @@ def get_all_odata (C : String) : (Γ' : Intermediate.GlobalEnv) -> List (String 
 | .cons _ tl => get_all_odata C tl
 
 
-def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : List (Fin n) × Fin n × Core.SpineTy):
-  TM (List ((m : Nat) × Core.Pattern m)) :=
+def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname mn : String) (τ : List (Fin n) × Fin n × Core.SpineTy):
+  TM (List (String × (m : Nat) × Core.Pattern m)) :=
   match τ with
   | ⟨dms, det, ⟨na, Ks1, 0, #(), 2, #(T1, T2), R⟩⟩ =>
     -- dms are the  determiner params
@@ -156,9 +156,11 @@ def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : List (
       let ⟨nai', idxs'⟩ := Vec.from_list idxs
       -- TODO: Need to lookup the arities of the other constructors.
 
-      return [⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), nbi, nci⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩]
-             ++ insts.map (λ x => ⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)) , nbi, nci⟩, ⟨x.1, nai', idxs'.map (t#·), x.2.1, x.2.2⟩)⟩)
-             ++ insts.map (λ x => ⟨2, #(⟨x.1, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), x.2.1, x.2.2⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩)
+      return [⟨mn, 2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), nbi, nci⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩]
+             ++ insts.map (λ x => ⟨mn, 2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)) , nbi, nci⟩, ⟨x.1, nai', idxs'.map (t#·), x.2.1, x.2.2⟩)⟩)
+             ++ insts.map (λ x => ⟨mn, 2, #(⟨x.1, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), x.2.1, x.2.2⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩)
+
+
       else .error "mk_inst_fd_SI"
     | _ => .error "mk_inst_fd_SI iname lookup"
   | _ => .error "mk_inst_fd_SI"
@@ -169,8 +171,7 @@ def mk_inst_fds_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
 | .nil => return .nil
 | .cons (mn, spTy) scs_τs => do
   let τs_mths <- mk_inst_fds_SI Γ' C iname scs_τs
-  let m_τ_t <- mk_inst_fd_SI Γ' C iname spTy
-  let fds := m_τ_t.map (λ x => ⟨mn, x⟩)
+  let fds <- mk_inst_fd_SI Γ' C iname mn spTy
   return fds ++ τs_mths
 
 
