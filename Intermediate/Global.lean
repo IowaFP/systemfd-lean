@@ -21,7 +21,7 @@ structure ClassDeclFrame where
   name : String
   kcU : Nat
   kind : Vec Core.Kind kcU
-  fds : List (String × Core.SpineTy)
+  fds : List (String × List (Fin kcU) × Fin kcU × Core.SpineTy)
   scs : List (String × Core.SpineTy)
   mths : List (String × Core.SpineTy)
 
@@ -59,8 +59,8 @@ def Global.repr (_ : Nat) : (a : Global) -> Std.Format
   ++ scs.repr max_prec ++ Std.Format.line
   ++ mths.repr max_prec ++ Std.Format.line
 
-| .instDecl ⟨s, cls_name, _, _, _, _, _, tys, fds, scs, mths⟩ => "instDecl " ++
-  s ++ " for " ++ cls_name ++ " " ++ tys.repr max_prec ++ Std.Format.line
+| .instDecl ⟨s, cls_name, _, _, _, Ks1, Ks2, tys, fds, scs, mths⟩ => "instDecl " ++
+  s ++ " for " ++ cls_name ++ " " ++ (Ks1 ++ Ks2).repr max_prec ++ tys.repr max_prec ++ Std.Format.line
   ++ fds.repr max_prec ++ Std.Format.line
   ++ scs.repr max_prec ++ Std.Format.line
   ++ mths.repr max_prec ++ Std.Format.line
@@ -80,7 +80,7 @@ inductive Entry : Type where
 | data : {n : Nat} -> String -> Core.Kind -> Vec (String × Core.SpineTy) n -> Entry
 | ctor : String -> Nat -> Core.SpineTy -> Entry
 | odata : {n : Nat} -> String -> Vec Core.Kind n ->
-  List (String × Core.SpineTy) -> /- fds -/
+  List (String × List (Fin n) × Fin n × Core.SpineTy) -> /- fds -/
   List (String × Core.SpineTy) -> /- scs -/
   List (String × Core.SpineTy) -> /- mths -/ Entry
 | openm : String -> String -> OpenMethodType -> Core.SpineTy -> Entry
@@ -128,7 +128,7 @@ def lookup (x : String) : GlobalEnv -> Option Entry
            | none => lookup x tl
            | some i => match fds[i]? with
              | none => lookup x tl -- bogus path
-             | some ⟨x, spTy⟩ => return .openm x cls_name .funDep spTy
+             | some ⟨x, _, _, spTy⟩ => return .openm x cls_name .funDep spTy
          | some i => match scs[i]? with
            | none => lookup x tl -- this path is bogus
            | some ⟨x, spTy⟩ => return .openm x cls_name .supCls spTy

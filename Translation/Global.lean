@@ -83,7 +83,7 @@ def mk_inst_sc_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : Core.S
   match τ with
   | ⟨na, Ks1, nb, Ks2, 1, #(T), R⟩ =>
     -- open method spines don't introduce existentials
-    -- methods only analyze the instance class object (should be generalized)
+    -- methods only analyze the instance class object
     match Intermediate.lookup iname Γ' with
     | some (.octor iname' ⟨nai, Ks1i, nbi, _, nci, _, Ri⟩) => do
       let ⟨C', _⟩ <- Option.toTM "mk_inst_mth R.spine" Ri.spine
@@ -116,32 +116,55 @@ def get_all_odata (C : String) : (Γ' : Intermediate.GlobalEnv) -> List String
 
 
 
-def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : Core.SpineTy):
+def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) (τ : List (Fin n) × Fin n × Core.SpineTy):
   TM (List ((m : Nat) × Core.Pattern m)) :=
   match τ with
-  | ⟨na, Ks1, nb, Ks2, 2, #(T1, T2), R⟩ =>
+  | ⟨dms, det, ⟨na, Ks1, 0, #(), 2, #(T1, T2), R⟩⟩ =>
+    -- dms are the  determiner params
+    -- det is the determinant parameter
+
+    -- na, Ks1, #(T1, T2), R is the spine type of the fundep open method
+
     -- open method spines don't introduce existentials
     -- methods only analyze the instance class object
     match Intermediate.lookup iname Γ' with
     | some (.octor iname' ⟨nai, Ks1i, nbi, _, nci, _, Ri⟩) => do
       let ⟨C', _⟩ <- Option.toTM "mk_inst_fd_SI R.spine" Ri.spine
-      let ⟨C1'', _⟩ <- Option.toTM "mk_inst_fd_SI R.spine" T1.spine
+      let ⟨C1'', _⟩ <- Option.toTM "mk_inst_fd_SI R.spine" T1.spine -- can also do is_data T1 C
       let ⟨C2'', _⟩ <- Option.toTM "mk_inst_fd_SI R.spine" T2.spine
       if
-        (C1'' == C && C2'' == C &&  -- check that iname belongs to T type
-        (iname == iname' && C' == C) && nb == 0) then
+        (C1'' == C && C2'' == C &&  -- check that iname belongs to C type
+        (iname == iname' && C' == C)) then
       --- perform completion here
       let insts := get_all_odata C Γ'.tail
 
-      return [⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci⟩, ⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci⟩)⟩]
-             ++ insts.map (λ x => ⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩, ⟨x, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩)⟩)
-             ++ insts.map (λ x => ⟨2, #(⟨x, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩, ⟨iname, nai, (Vec.range nai).reverse.map (t#·), nbi, nci ⟩)⟩)
+      -- Ks1 needs to be split into two portions; as it was made up by mk_fd_om
+      -- the tail of the vector are the non-determiners
+      let Ks1 := Ks1.list
+      let (κs1, κs2) := ((Ks1.take nai), Ks1.drop nai)
+
+      let is_determiner : Nat -> Bool := λ x => (dms.map (λ x => x.toNat)).contains x
+      let is_determinant : Nat -> Bool := λ x => x == det.toNat
+
+      let idx_fiddling (idxs : List Nat) (init : Nat) : (List Nat × Nat × Nat) :=
+        idxs.foldl (init := ([], init, 0)) (λ acc x =>
+          if is_determiner x
+          then (acc.1 ++ [x + κs2.length], acc.2.1, acc.2.2)
+          else (acc.1 ++ [acc.2.1], acc.2.1 - 1, if is_determinant x then acc.2.1 else acc.2.2))
+
+      let idxs := (idx_fiddling (List.range nai).reverse (κs2.length - 1)).1
+
+      let ⟨nai', idxs'⟩ := Vec.from_list idxs
+
+      return [⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), nbi, nci⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩]
+             ++ insts.map (λ x => ⟨2, #(⟨iname, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)) , nbi, nci⟩, ⟨x, nai', idxs'.map (t#·), nbi, nci⟩)⟩)
+             ++ insts.map (λ x => ⟨2, #(⟨x, nai, (Vec.range nai).reverse.map (λ x => t#(x + κs2.length)), nbi, nci⟩, ⟨iname, nai', idxs'.map (t#·), nbi, nci⟩)⟩)
       else .error "mk_inst_fd_SI"
     | _ => .error "mk_inst_fd_SI iname lookup"
   | _ => .error "mk_inst_fd_SI"
 
 def mk_inst_fds_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
-  List (String × Core.SpineTy) ->
+  List (String × List (Fin n) × Fin n × Core.SpineTy) ->
  TM (List (String × (m : Nat) × Core.Pattern m))
 | .nil => return .nil
 | .cons (mn, spTy) scs_τs => do
@@ -173,7 +196,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   if (Intermediate.lookup s Γ').isNone
   then
     -- let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
-    let fds := fds.map (λ (n, dms, det) => ⟨n, Surface.mk_fd_om s Ks dms det⟩) -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
+    let fds := fds.map (λ (n, dms, det) => ⟨n, dms, det, Surface.mk_fd_om s Ks dms det⟩) -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
     let scs := scs.map (λ (n, sc, params) =>  ⟨n, (Surface.mk_superclass_om s Ks sc params)⟩)
     if check_oms mτs then
       let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (Surface.mk_method_om s Ks spTy)⟩)
@@ -299,7 +322,7 @@ def mk_inst_fd_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
   match Core.lookup mn G with
   | some (.openm mn' ⟨na, Ks1, nb, Ks2, nc, Ts, R⟩) =>
     let Δ := (Ks1.list ++ Ks2.list).reverse
-    if h : nc == m then
+    if h : nc == m && mn == mn' then
     let ⟨ζ, Γ⟩ <- Option.toTM ("mk_inst_fd_IC Pattern Binders" ++ Std.Format.line
                        ++ "G : " ++ G.repr max_prec ++ Std.Format.line
                        -- ++ "Δ : " ++ Δ.repr max_prec ++ Std.Format.line
@@ -324,22 +347,19 @@ def mk_inst_fd_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
 
 
 def mk_inst_fds_IC (G : Core.GlobalEnv) :
-  List (String × Core.SpineTy) ->
   List (String × (m : Nat) × Core.Pattern m) ->
   TM Core.GlobalEnv
-| .nil, .nil => return .nil
-| .cons (mn', spTy') mτs, .cons ⟨mn, m, p⟩ ms => do
-  if mn == mn' then
-    match Core.lookup mn G with
-    | .some (.openm mn' spTy) =>
-      if spTy.2.2.2.2.1 == m && (mn == mn') && spTy' == spTy then
-      let ms' <- mk_inst_fds_IC G mτs ms
+| .nil => return .nil
+| .cons ⟨mn, m, p⟩ ms => do
+  match Core.lookup mn G with
+  | .some (.openm mn' spTy) =>
+      if spTy.2.2.2.2.1 == m && (mn == mn') then
+      let ms' <- mk_inst_fds_IC G ms
       let i' <- mk_inst_fd_IC (ms'++G) mn m p
       return (i' :: ms')
       else .error "mk_inst_fds_IC scs lookup"
-    | _ => .error "mk_inst_fds_IC scs lookup"
-  else .error "mk_inst_fds_IC scs don't match"
-| fds , fds' => .error $ "mk_inst_fds_IC don't match" ++ (fds.repr max_prec) ++ Std.Format.line ++ (fds'.repr max_prec)
+  | _ => .error "mk_inst_fds_IC scs lookup"
+
 
 
 
@@ -357,7 +377,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
   let Γ' <- translate_IC Γ
   return mths.map (λ (n, spTy) => .openm n spTy)
          ++ scs.map (λ (n, spTy) => .openm n spTy)
-         ++ fds.map (λ (n, spTy) => .openm n spTy)
+         ++ fds.map (λ (n, _, _, spTy) => .openm n spTy)
          ++ [.odata s (Core.Kind.mk_cls_kind K)] ++ Γ'
 
 | .cons (.instDecl ⟨iname, cls_name, k1, k2, k3, Ks1, Ks2, As, fds, scs, mths⟩) Γ => do
@@ -369,7 +389,7 @@ def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
     let octor := [.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).reverse.map (·+k2))⟩ ]
     let mths' <- (mk_inst_mths_IC (octor ++ Γ') mτs mths)
     let scs' <- mk_inst_scs_IC (mths' ++ octor ++ Γ') scsτs scs
-    let fds' <- mk_inst_fds_IC (scs' ++ mths' ++ octor ++ Γ') fdτs fds
+    let fds' <- mk_inst_fds_IC (scs' ++ mths' ++ octor ++ Γ') fds
     return (fds' ++ scs' ++ mths' ++ octor ++ Γ')
     else .error "translate_IC inst"
   | _ => .error "translate_IC inst"
