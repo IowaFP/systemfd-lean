@@ -1,7 +1,8 @@
-import Core.Term
 import Core.Global
-import Core.Reduction
+import Core.Term
 import Core.Typing
+import Core.Metatheory.Global
+import Core.Reduction
 import Core.Untyped
 
 open Lilac
@@ -99,99 +100,64 @@ theorem Untyped.lookup_head :
   Untyped.lookup x [.defn y t] = some e'
   → e' = .defn y t  := by sorry
 
-
--- theorem Untyped.drop_lookup_unique n :
---   Untyped.lookup x (G.drop n) = some t ->
---   Untyped.lookup x G = some t := by sorry
-
--- TODO: remove if needed
-theorem Untyped.lookup_singleton :
-  Untyped.lookup x [g] = some e → 
-  Untyped.lookup x [g] = some (.defn x t) := by
-  sorry
-  -- unfold Untyped.lookup at h
-  -- split at h <;> try trivial
-  -- rename_i y t _ heq
---  rexists t
---   injection heq with heq htl
---   split at h;
---   rename_i eqxy
---   rw[eq_of_beq eqxy]; trivial
---   rw[←htl] at h
---   simp at h
---   rename_i heq x tl head
---   injection head with hi ti
---   rw[←ti] at h
---   simp at h
---
-theorem Untyped.lookup_weaken_tail : 
-  Untyped.lookup x [g] = some e 
-  -> Untyped.lookup x (g::G) = some e := by
-  intro h
-  unfold Untyped.lookup; simp
-  split
-  contradiction
-  rename_i y t tl heq
-  injection heq with head_eq tail_eq
-  -- let ⟨hge, eqxy⟩ := Untyped.lookup_singleton (y := y) (t := t) h
-
-  sorry 
-  sorry
-  -- rcases G with _ | ⟨h1, t1⟩
-  -- trivial
-  -- unfold Untyped.lookup at h
-  -- split at h
-  -- contradiction
-  -- {
-  --   split at h
-  --   unfold Untyped.lookup; simp
-  --   rename_i y heq tl eql eqxy
-  --   injection eql
-  --   rename_i tail_eq head_eq
-  --   -- apply Untyped.lookup_singleton h
-  --   sorry
-  --   sorry
-  -- }
-
-theorem Untyped.lookup_append_uniq (x : String) (t : Untyped.Term) (e :
-    Untyped.Entry) :
-  Untyped.lookup x [.defn x t] = some e
-  → e = .defn x t := by sorry
-
 theorem Untyped.lookup_id (x : String) (t : Untyped.Term):
   Untyped.lookup x [.defn x t] = some (.defn x t) := by simp
 
-theorem Untyped.lookup_weaken_right :
-  Untyped.lookup x G = some e → Untyped.lookup x (G'++G) = some e := by
+theorem Untyped.lookup_append_weaken_right :
+  Untyped.lookup x G1 = some e → Untyped.lookup x (G1++G2) = some e := by
   intro h
-  rcases G with _ | ⟨hd, G', G⟩
+  induction G1
   simp[Untyped.lookup] at h
+  case _ head tail ih =>
+    cases head; simp
+    · simp [Untyped.lookup] at h; split at h <;> try simp at h
+      case _ e => subst x; simp; apply h
+      case _ e =>
+        simp [e];
+        apply ih h
+    case _ m s pm t => 
+      simp [Untyped.lookup]
+      simp [Untyped.lookup] at h
+      exact ih h
+    case _=> 
+      simp [Untyped.lookup]
+      simp [Untyped.lookup] at h
+      exact ih h
 
-  sorry
-  -- unfold Untyped.lookup
-  -- split
-  -- case h_1 heq =>
-  --   have hG : G = [] := (List.append_eq_nil_iff.mp heq).2
-  --   rw[hG] at h
-  --   contradiction
-  -- sorry
-  -- sorry
+theorem Untyped.lookup_append_weaken_left :
+  Untyped.lookup x G2 = some e →
+  Untyped.lookup x (G1++G2) = some e := by sorry
 
-theorem GlobalEnv.lookup_cons_cases  (wf : ⊢ G) : 
-  lookup x (h::ts) = some e
-    → lookup x ([h]) = some e ∨ lookup x ts = some e := by sorry
+theorem lookup_erasure_singleton :
+ lookup x [g] = some (.defn y a t) 
+  → Untyped.lookup x [⟦g⟧] = some (.defn y ⟦t⟧)
+  := by sorry
 
-theorem GlobalEnv.lookup_erasure (wf : ⊢ G) :
+theorem lookup_erasure_elim :
+  Untyped.lookup x [g] = some (.defn y t)
+  → x = y
+  := by sorry
+
+theorem lookup_erasure (wf : ⊢ G) :
   lookup x G = some (Entry.defn y a t)
   → Untyped.lookup x (map Global.erase G)
     = some (Untyped.Entry.defn x ⟦t⟧) := by
   intro h1
   rcases G with _ | ⟨h, ts⟩
   contradiction
-  have h2 := GlobalEnv.lookup_cons_cases wf h1
-  cases h2
-  sorry
-  sorry
+  rw[← List.singleton_append]
+  rw[← List.singleton_append] at h1
+  have h2 := (Core.lookup_append_some wf h1)
+  rcases h2
+  case _ heq => 
+    rw [List.singleton_append, List.map_cons]
+    have heq' := lookup_erasure_singleton heq
+    rw[←(lookup_erasure_elim heq')] at heq'
+    apply Untyped.lookup_append_weaken_right heq'
+  case _ h3 => 
+    let ⟨h3l, h3r⟩ := h3; clear h3
+    rw [List.singleton_append, List.map_cons]
+    sorry
 
 -- TODO: avoid cases by matching on *G*,
 -- JUST the List, not the globals
@@ -212,7 +178,7 @@ theorem GlobalEnv.erasure_ty (wf : ⊢ G) :
   simp[Untyped.lookup_defn, Functor.map, Option.bind_eq_some_iff]
   exists .defn x ⟦t⟧
   apply And.intro
-  apply GlobalEnv.lookup_erasure wf h1
+  apply lookup_erasure wf h1
   rfl
 
 -- Top to bottom: JUST question mark
