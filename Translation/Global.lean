@@ -331,10 +331,9 @@ def mk_inst_fd_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
                        ++ "p : " ++ p.repr)
                        $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
     match Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩ with
-    | .error e =>
+    | .error _ =>
       return .inst mn p (openm! "loop" #(R⟨Ren.add Core.Ty ζ.length⟩) #() #().to)
     | .ok t' =>
-    -- if i cannot synthesize a term, i should ideally insert a loop
 
     -- .error $
     --        ("G :" ++ G.repr max_prec ++  Std.Format.line

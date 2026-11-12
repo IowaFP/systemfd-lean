@@ -11,7 +11,6 @@ namespace Surface.Examples.TypeFunction
 
 def TypeFunctionCtx : GlobalEnv := [
 
-  -- .instDecl "EqualTT" ⟨2, #(★, ★), 1, #(★), 2, #(t#2 ~[★]~ t#0, t#1 ~[★]~ t#0), (gt#"Equal" • t#2) • t#1⟩ [],
   -- .instDecl "FMM" ⟨2 , #(★, ★), 2, #(★, ★),
   --         3, #((gt#"Maybe" • t#1) ~[★]~ t#3, (gt#"Maybe" • t#0) ~[★]~ t#2, (gt#"F" • t#1) • t#0),
   --            ((gt#"F" • t#3) • t#2)⟩ [],
