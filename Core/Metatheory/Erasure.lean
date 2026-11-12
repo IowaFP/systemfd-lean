@@ -152,9 +152,32 @@ theorem Untyped.lookup_weaken_tail :
   --   sorry
   -- }
 
-theorem Untyped.lookup_weaken : Untyped.lookup x G = some e -> Untyped.lookup x (g::G) = some e := by
+theorem Untyped.lookup_append_uniq (x : String) (t : Untyped.Term) (e :
+    Untyped.Entry) :
+  Untyped.lookup x [.defn x t] = some e
+  → e = .defn x t := by sorry
+
+theorem Untyped.lookup_id (x : String) (t : Untyped.Term):
+  Untyped.lookup x [.defn x t] = some (.defn x t) := by simp
+
+theorem Untyped.lookup_weaken :
+  Untyped.lookup x G = some e → Untyped.lookup x (g::G) = some e := by
   intro h
-  sorry
+  unfold Untyped.lookup
+  split
+  case h_1 _ => contradiction
+  case h_2 G y t _ heq => 
+    injection heq with head_eq tail_eq
+    split
+    · 
+      rename_i hxy
+      rw[←(eq_of_beq hxy)];
+      rw[←Untyped.lookup_id x t]
+
+      sorry
+    · rw[←tail_eq]; exact h
+
+  case _ => sorry
 
 theorem GlobalEnv.lookup_cons_cases  (wf : ⊢ G) : 
   lookup x (h::ts) = some e
