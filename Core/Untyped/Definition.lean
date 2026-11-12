@@ -116,6 +116,7 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 -- TODO: adjust. Maybe .unit • 
 | beta : Red G ((λ b) • t) b[su t::+0σ]
+| unit : Red G (t • .unit) t
 ----------------------------------------------------------------
 ---- Data Matching
 ----------------------------------------------------------------
@@ -139,9 +140,12 @@ inductive Red (G : List Global) : Term -> Term -> Prop where
 ----------------------------------------------------------------
 ---- Congruence Rules
 ----------------------------------------------------------------
-| app_congr :
+| app_congr1 :
   Red G f f' ->
   Red G (f • a) (f' • a)
+| app_congr2 :
+  Red G a a' ->
+  Red G (f • a) (f • a')
 | match_congr {ss : Fun.Vec Term m} i :
   Red G (ss i) (ss' i) ->
   (∀ j ≠ i, ss j = ss' j) ->

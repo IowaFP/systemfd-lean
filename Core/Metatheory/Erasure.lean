@@ -29,6 +29,7 @@ def Term.erase : Term → Untyped.Term
   | ctor2 .app t1 t2 => .app t1.erase t2.erase
   | ctor2 .apptc _ _ => .unit
   | lam _ t => .lam t.erase
+  | tbind .allc _ t => t.erase
   | tbind _ _ t => .lam t.erase
   | cast _ _ t => t.erase
   | mtch m n vm pmn vn => 
@@ -92,6 +93,12 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
+
+theorem Untyped.lookup_head :
+  Untyped.lookup x [.defn y t] = some e'
+  → e' = .defn y t  := by sorry
+
+
 -- theorem Untyped.drop_lookup_unique n :
 --   Untyped.lookup x (G.drop n) = some t ->
 --   Untyped.lookup x G = some t := by sorry
@@ -100,12 +107,10 @@ theorem erasure_subst_ty_su (b : Term)(t : Ty):
 theorem Untyped.lookup_singleton :
   Untyped.lookup x [g] = some e → 
   Untyped.lookup x [g] = some (.defn x t) := by
-  intro h
-  unfold Untyped.lookup at h
-  split at h <;> try trivial
-  rename_i y t _ heq
   sorry
-  sorry
+  -- unfold Untyped.lookup at h
+  -- split at h <;> try trivial
+  -- rename_i y t _ heq
 --  rexists t
 --   injection heq with heq htl
 --   split at h;
@@ -127,13 +132,9 @@ theorem Untyped.lookup_weaken_tail :
   contradiction
   rename_i y t tl heq
   injection heq with head_eq tail_eq
-  split; rename_i eqxy
-  {
-    let hge : Untyped.lookup x [g] = some (.defn x t) := Untyped.lookup_singleton h
-    rw[←eqxy]; rw[hge] at h; trivial
-  }
+  -- let ⟨hge, eqxy⟩ := Untyped.lookup_singleton (y := y) (t := t) h
 
-
+  sorry 
   sorry
   -- rcases G with _ | ⟨h1, t1⟩
   -- trivial
@@ -150,7 +151,6 @@ theorem Untyped.lookup_weaken_tail :
   --   sorry
   --   sorry
   -- }
-  sorry
 
 theorem Untyped.lookup_weaken : Untyped.lookup x G = some e -> Untyped.lookup x (g::G) = some e := by
   intro h
@@ -207,9 +207,28 @@ theorem erasure (wf : ⊢ G) :
 | .cast => .refl
 | .prj_fst_app | .prj_snd_app => .refl
 | .prj_fst_arr | .prj_snd_arr => .refl
-| .allc => by sorry
-| @Red.apptc G K A B => .refl
+-- FIXME: with previous rules, this reduces to λλ#0 → λ#0.
+-- *Is* adding a reduction here safe,
+-- OR should erase just for .allc?
+| .allc | .apptc => .refl
 | @Red.defn G x A t hdf => .step (.defn (GlobalEnv.erasure_ty wf hdf))
-| .ctor1_congr (v := .appt _) s => sorry
-| .ctor1_congr (v := .prj _) s => sorry
+| .ctor1_congr (v := .appt _) (t := t) (t' := t') s => by
+  simp
+  generalize h1 : ⟦t⟧ = et
+  generalize h2 : ⟦t'⟧ = et'
+  have ih := erasure wf s
+  rw[h1, h2] at ih
+  rcases ih with _ | hr
+  exact .refl
+  exact .step (.app_congr1 hr)
+| .ctor1_congr (v := .prj _) s => by apply erasure wf s
+| .apptc_congr1 _ | .apptc_congr2 _ => .refl
+| .allc_congr s => by apply erasure wf s
+-- | app_congr :
+--   Red G f f' ->
+--   Red G (f • a) (f' • a)
+-- | cast_congr :
+--   Red G c c' ->
+--   Red G (.cast R c t) (.cast R c' t)
+--   
 | _ => sorry
