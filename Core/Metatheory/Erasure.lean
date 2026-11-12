@@ -96,6 +96,54 @@ theorem erasure_subst_ty_su (b : Term)(t : Ty):
 --   Untyped.lookup x (G.drop n) = some t ->
 --   Untyped.lookup x G = some t := by sorry
 
+-- TODO: remove if needed
+theorem Untyped.lookup_singleton :
+  Untyped.lookup x [g] = some e → ∃ t, g = .defn x t := by
+  intro h
+  unfold Untyped.lookup at h
+  split at h <;> try trivial
+  rename_i y t _ heq
+  exists t
+  injection heq with heq htl
+  split at h;
+  rename_i eqxy
+  rw[eq_of_beq eqxy]; trivial
+  rw[←htl] at h
+  simp at h
+  rename_i heq x tl head
+  injection head with hi ti
+  rw[←ti] at h
+  simp at h
+
+theorem Untyped.lookup_weaken_tail : 
+  Untyped.lookup x [g] = some e 
+  -> Untyped.lookup x (g::G) = some e := by
+  intro h
+  unfold Untyped.lookup; simp
+  split
+  contradiction
+  rename_i heq
+  injection heq with head_eq tail_eq
+  split
+
+
+  -- rcases G with _ | ⟨h1, t1⟩
+  -- trivial
+  -- unfold Untyped.lookup at h
+  -- split at h
+  -- contradiction
+  -- {
+  --   split at h
+  --   unfold Untyped.lookup; simp
+  --   rename_i y heq tl eql eqxy
+  --   injection eql
+  --   rename_i tail_eq head_eq
+  --   -- apply Untyped.lookup_singleton h
+  --   sorry
+  --   sorry
+  -- }
+  sorry
+
 theorem Untyped.lookup_weaken : Untyped.lookup x G = some e -> Untyped.lookup x (g::G) = some e := by
   intro h
   sorry
