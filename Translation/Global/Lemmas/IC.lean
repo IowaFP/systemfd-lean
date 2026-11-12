@@ -244,7 +244,7 @@ theorem mk_inst_scs_IC_lookup_none {Γ : Core.GlobalEnv} {x : String} :
 
 
 theorem mk_inst_fds_IC_lookup_none {Γ : Core.GlobalEnv} {x : String} :
-  mk_inst_fds_IC Γ scs_τs scs = Except.ok scs' ->
+  mk_inst_fds_IC Γ scs = Except.ok scs' ->
   Core.lookup x scs' = none
 := by
   intro h;
@@ -506,7 +506,7 @@ theorem mk_inst_mths_IC_indexing {j : Nat} :
    apply ih h1 h2
 
 theorem mk_inst_fds_IC_indexing {j : Nat} :
-  mk_inst_fds_IC Γ mτs ms = Except.ok fds' ->
+  mk_inst_fds_IC Γ ms = Except.ok fds' ->
   ms[j]? = .some ⟨x, nc, p⟩ ->
   ∃ b', fds'[j]? = .some (Core.Global.inst (m := nc) x p b')
 := by
@@ -518,7 +518,7 @@ theorem mk_inst_fds_IC_indexing {j : Nat} :
    split at i <;> try simp at *
    case _ h =>
    subst fds'
-   rcases e with ⟨⟨e1, e2⟩, e3⟩; subst e1 e2 e3
+   rcases e with ⟨e1, e2⟩; subst e1 e2
    cases j <;> simp at *
    -- case zero h4 =>
    --   rcases h2 with ⟨e, h2, h3⟩; subst h2; simp at h3; rcases h3 with ⟨e1, e2⟩;
@@ -599,7 +599,7 @@ theorem translate_IC_indexing_inst_scs {G : Intermediate.GlobalEnv} {G' : Core.G
     rcases ih with ⟨i, b, p, ih1, ih2⟩;
     cases wfhd;
     case _ c1 c2 c3 c4 c5 c6 =>
-    generalize fdsdef : List.map (fun x => Core.Global.openm x.fst x.snd) fds' = fds''  at *
+    generalize fdsdef : List.map (fun x => Core.Global.openm x.fst x.2.2.2) fds' = fds''  at *
     generalize mthdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths' = mths''  at *
     generalize scsdef : (List.map (fun x => Core.Global.openm x.fst x.snd) scs') = scs'' at *
     generalize zdef : Core.Global.odata s (Core.Kind.mk_cls_kind K) :: Γ' = Γ'' at *
@@ -697,7 +697,7 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
     rcases ih with ⟨i, b, p, ih1, ih2⟩;
     cases wfhd;
     case _ c1 c2 c3 c4 c5 c6 =>
-    generalize fdsdef : List.map (fun x => Core.Global.openm x.fst x.snd) fds' = fds''  at *
+    generalize fdsdef : List.map (fun x => Core.Global.openm x.fst x.2.2.2) fds' = fds''  at *
     generalize mthdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths' = mths''  at *
     generalize scsdef : (List.map (fun x => Core.Global.openm x.fst x.snd) scs') = scs'' at *
     generalize zdef : Core.Global.odata s (Core.Kind.mk_cls_kind K) :: Γ' = Γ'' at *
@@ -1264,7 +1264,7 @@ theorem mk_inst_fds_IC_wf_sound
   {G1 G' : Core.GlobalEnv} {scτs : List (String × Core.SpineTy)} {scs_pats : List (String × (m : Nat) × Core.Pattern m)}
   (wf : ⊢ (G1 ++ Core.Global.octor iname spTy :: G')) :
   scτs.length = scs_pats.length ->
-  mk_inst_fds_IC (G1 ++ Core.Global.octor iname spTy :: G') scτs scs_pats =  Except.ok G2 ->
+  mk_inst_fds_IC (G1 ++ Core.Global.octor iname spTy :: G') scs_pats =  Except.ok G2 ->
   (∀ (i : Nat) (hi : i < scs_pats.length) (hj : i < scτs.length),
       scτs[i].fst = scs_pats[i].fst ∧ Intermediate.spine_pattern_size scτs[i].snd = scs_pats[i].2.1) ->
   ⊢ (G2 ++ (G1 ++ Core.Global.octor iname spTy :: G'))
@@ -1528,7 +1528,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     have lem : ⊢ (Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by
       constructor; constructor; apply translate_IC_lookup_none h c1; apply ih wftl h
     generalize mthGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = mthG at *
-    generalize fdsGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) fds) = fdsG at *
+    generalize fdsGdef : (List.map (fun x => Core.Global.openm x.fst x.2.2.2) fds) = fdsG at *
     generalize scGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) sds) = scsG at *
 
     have wffdsΓ : ⊢ (fdsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by sorry
