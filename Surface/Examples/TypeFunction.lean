@@ -15,7 +15,7 @@ def TypeFunctionCtx : GlobalEnv := [
           3, #((gt#"Maybe" • t#1) ~[★]~ t#3, (gt#"Maybe" • t#0) ~[★]~ t#2, (gt#"F" • t#1) • t#0),
              ((gt#"F" • t#3) • t#2)⟩ [],
 
-  .instDecl "FIB" ⟨2, #(★, ★), 0, #(), 2, #(gt#"Int" ~[★]~ t#1, gt#"Bool" ~[★]~ t#0), (gt#"F" • t#1) • t#0⟩ [],
+  -- .instDecl "FIB" ⟨2, #(★, ★), 0, #(), 2, #(gt#"Int" ~[★]~ t#1, gt#"Bool" ~[★]~ t#0), (gt#"F" • t#1) • t#0⟩ [],
 
   .classDecl "F" #(★, ★) [⟨"fdF", [1], 0⟩] [] [],
 

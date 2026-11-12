@@ -180,6 +180,7 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
       return ⟨t, τ, by replace h := Core.Synth.synth_coercion_term_sound h; apply h⟩
     | none =>
       let candidates := find_matching_insts τ G
+
       let ts : List ((t : Core.Term) ×' ((τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ'))) <- candidates.tryM (λ x =>
         match lk : Core.lookup_spine_type .openm G x with
         | some ⟨na, Ks1, 0, Ks2, nc, Ts, R⟩ => do -- all open methods have no existentially quantifed variables so we should be fine here
@@ -194,7 +195,13 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                    && (List.range tys'.1).all ((R.fv ·)) && Ts.all (Core.Ty.data? Core.DataConst.opn G ·)
               then
                 let Ts' := Ts[σ]
+                let eGraph <- Option.toTM "synth_term' egraph" $ Core.Synth.EqGraph.process_tyenv G sorry Δ Γ
+                let Ts'' : Vec ((T1 : Core.Ty) × (T2 : Core.Ty) × (K : Core.Kind) × (t : Core.Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) nc
+                    <- Option.toTM "synth_term' rep_view" $
+                                   (Ts'.traverse (λ x => do let t <- Core.Ppcc.EqGraph.get_rep_view sorry eGraph x
+                                                            return ⟨x, t⟩))
                 let ts' := Ts'.map (Core.Ty.synth_term' G Δ Γ ·)
+                let ts'' <- (Ts''.map (λ x => Core.Ty.synth_term' G Δ Γ x.2.1)).sequence
                 let ts <- ts'.sequence
                 if h : (ts.map (λ x => x.2.1) == Ts') then
                   let targs := ts.map (·.fst)
