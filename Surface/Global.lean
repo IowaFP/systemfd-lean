@@ -56,7 +56,7 @@ inductive Entry : Type where
 | defn : String -> Core.Ty -> Term -> Entry
 | odata : {n : Nat} -> String -> Vec Core.Kind n ->
   List (String × List (Fin n) × Fin n) ->
-  List (String × String × List (Fin kc)) ->
+  List (String × String × List (Fin n)) ->
   List (String × Core.SpineTy) -> Entry
 | octor : String -> Core.SpineTy -> Entry
 | openm : String -> Core.SpineTy -> Entry

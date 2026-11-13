@@ -228,8 +228,9 @@ theorem mk_inst_fd_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fin
 
 theorem mk_inst_fds_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fin na' × Core.SpineTy)} :
   mk_inst_fds_SI
-    (.cons (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As', [], [], []⟩) Γ) C iname fd_τs = .ok fds' ->
+    (.cons (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As', [], [], []⟩) Γ) cls_name iname fd_τs = .ok fds' ->
   Intermediate.lookup mn Γ = Intermediate.Entry.openm mn cls_name .funDep spTy ->
+  Intermediate.lookup cls_name Γ = Intermediate.Entry.odata cls_name K fd_τs sc_τs mth_τs ->
   T1.spine = some (cls_name, tys1) ->
   T2.spine = some (cls_name, tys2) ->
   Intermediate.Query
@@ -243,12 +244,13 @@ theorem mk_inst_fds_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fi
   sorry
 
 
-
 theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
-  {K : Vec Core.Kind nc} :
+  {n : Nat} {K : Vec Core.Kind n}
+  {fds : List (String × List (Fin n) × Fin n)} {scs : List (String × String × List (Fin n))}:
   ⟦ G ⟧ = .ok G' ->
-  Surface.lookup cls G = Surface.Entry.odata cls K fds scs mτs ->
-  ∃ fds' scs' mτs', Intermediate.lookup cls G' = Intermediate.Entry.odata cls K fds' scs' mτs'
+  Surface.lookup cls G = Surface.Entry.odata (n := n) cls K fds scs mτs ->
+  ∃ (fds' : List (String × List (Fin n) × Fin n × Core.SpineTy)),
+    ∃ scs' mτs', Intermediate.lookup cls G' = Intermediate.Entry.odata (n := n) cls K fds' scs' mτs'
 := by
   intro h1 h2
   fun_induction translate_SI generalizing G' <;> simp [Surface.lookup, pure] at h2
@@ -295,7 +297,7 @@ theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     subst cls; split at h3;
     · split at h3 <;> try simp at h3
       cases h3; simp [Intermediate.lookup];
-      rcases h2 with ⟨e1, e2, e3, e4⟩; subst e1; simp at e3; subst e2; simp; simp at e4; apply e4.1
+      rcases h2 with ⟨e1, e2, e3, e4, e5, e6⟩; subst e1; simp at e3; subst e3; simp at e4; subst e4; simp at e5; subst e5; subst e6; simp
     · simp at h3
     split at h2 <;> try simp at h2
     case _ h4 =>
@@ -825,13 +827,14 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         apply kinding_SI_transfer h1 c4c
     · apply ih wftl h1
 
-  case _ iname _ _ _ _ _ _ _ _ _ ih => -- instance
+  case _ iname na Ks1 nb Ks2 nc As R ts _ ih => -- instance
     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h1, h⟩
     split at h <;> try simp [Except.bind] at h
+    case _ lki =>
     split at h <;> try simp at h
     case _ h1 =>
     split at h <;> try simp at h
-    case _ h2 =>
+    case _ cls_name cls_K fd_τs sc_τs m_τs h2 =>
     split at h <;> try simp at h
     case _ e =>
     rcases e with ⟨e1, e2⟩; subst e1;
@@ -841,15 +844,18 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
     case _ scs' h4 =>
     split at h <;> try simp at h
     split at h <;> try simp at h
-    case _ fds' h5 =>
+    case _ fds' h5 _ =>
     subst G'
     cases wf; case _ wftl wfhd =>
-    cases wfhd; case _ cls_name _ K i scs mτs h9 lks _ q1 e h6 =>
+    cases wfhd;
+    case _  cls_name m_τs' _ fd_τs' sc_τs' lks q1 e h6 =>
     simp [Option.toTM_some_eq_ok_iff, Core.Ty.mkApps_nats_spine] at h1;
     subst h1; simp at *
-    constructor
-    · constructor
-      · assumption
+    have lem := lookup_SI_odata h1 lks
+    simp [h2] at lem; rcases lem with ⟨e1, e2, _, e4⟩; subst e1; simp at e2; subst e2; simp at e4; subst e4
+    apply Intermediate.ListGlobalWf.cons
+    · apply Intermediate.GlobalWf.inst
+      · apply lki
       · apply h2
       · have lem := spine_kinding_SI_transfer (test' := Intermediate.Ty.data? Core.DataConst.opn Γ') h1
                       (by intro T h; apply Ty.data?_SI_transfer h1 T h) q1
@@ -858,14 +864,15 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         have lem3 := mk_inst_mths_SI_length h3; rcases lem3 with ⟨l1, l2⟩
         have lem2 := mk_inst_mths_SI_indexing h3 i (by grind)
         rcases lem2 with ⟨lem2, lem3⟩
-        have l3 : i < mτs.length := by grind
-        grind
+        have l3 : i < m_τs.length := by grind
+        apply And.intro; symm at lem2; apply lem2; simp[lem3]
       · intro i hi;
         have lem1 := mk_inst_scs_SI_length h4
         replace lem3 :=  mk_inst_scs_SI_indexing h4 i (by grind)
-        grind
+        apply And.intro; apply Eq.symm lem3.1; apply Eq.symm lem3.2
       · have lem3 := mk_inst_mths_SI_length h3; rcases lem3 with ⟨l1, l2⟩; grind
       · have lem1 := mk_inst_scs_SI_length h4; apply lem1
+
     · apply ih wftl h1
 
 
@@ -1002,21 +1009,20 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     · simp [Option.toTM] at h3
       · split at h3 <;> try simp at h3;
         simp [Except.bind_eq_ok_iff] at h3
-        case _ cls_name k1' _ _ fds scs' mτs' k2' _ _ _ _ rsp =>
+        case _ cls_name cls_K fds_τs' _ scs_τs' mth_τs' k2' _ _ rsp =>
         simp [Except.bind_eq_ok_iff] at h3; rcases h3 with ⟨cls, ⟨tys, h3⟩, h4⟩; cases h3
         split at h4 <;> try simp at h4
-        case _ scsτs m_τs lki =>
+        case _ na' cls_name cls_K fds_τs scs_τs mth_τs lki =>
+        simp [Core.Ty.mkApps_nats_spine] at rsp; rcases rsp with ⟨e1, e2⟩; subst e1 e2
         split at h4 <;> try simp at h4
         case _ e =>
-        rcases e with ⟨e1, mτs_len⟩; subst e1;
+        rcases e with ⟨e1, mτs_len⟩; subst e1
         simp [Except.bind_eq_ok_iff] at h4
         rcases h4 with ⟨mths', h4, h5⟩
         rcases h5 with ⟨scs', h5, h6⟩
         rcases h6 with ⟨fds', h6, h7⟩
-        have lem := Core.Ty.mkApps_nats_spine cls_name (List.range k2').reverse
-        rw[lem] at rsp; cases rsp
         have ts_len := mk_inst_mths_SI_length h4; rcases ts_len with ⟨_, ts_len⟩
-        split at h7 <;> try simp at h7 h4
+        split at h7 <;> try simp at h7
         · subst G'
           cases wf'; case _ wftl' wfhd' =>
           cases wfhd'; case _ e K scs_τs'' mτs'' lki1 lki2 _ _ _ _ _ =>
@@ -1060,11 +1066,11 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 simp [Intermediate.lookup_ctor?] at h1; rw[e2] at h1; split at h1 <;> simp at *
                 simp [Intermediate.lookup, Intermediate.Entry.ctor?] at h1; case _ e =>
                 rcases e with ⟨e1, e'⟩; subst e1; subst e'
-                have lem := Core.Ty.mkApps_nats_spine cls_name ((List.range na').map (·+ nb')).reverse
-                simp [lem] at h1; cases h1; contradiction
+                simp [Core.Ty.mkApps_nats_spine] at h1
+                subst h1; contradiction
               case _ e => -- cls1 = cls_name
                 subst e; clear ih
-                exists 0; exists q; exists cls1; exists na'; exists nb'; exists nc'; exists Ks1'; exists Ks2';
+                exists 0; exists q; exists cls1; exists na'; exists nb'; exists nc'; exists cls_K; exists Ks2';
                 exists As'; exists fds'; exists scs'; exists mths'; simp
                 have lem := mk_inst_mths_SI_shape (by grind) h4
                 have lem1 := mk_inst_mths_SI_indexing h4
@@ -1119,7 +1125,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 simp [lem] at h1; cases h1; contradiction
               case _ e => -- cls1 = cls_name
                 subst e; clear ih
-                exists 0; exists q; exists cls1; exists na'; exists nb'; exists nc'; exists Ks1'; exists Ks2';
+                exists 0; exists q; exists cls1; exists na'; exists nb'; exists nc'; exists cls_K; exists Ks2';
                 exists As'; exists fds'; exists scs'; exists mths'; simp
                 have lem := mk_inst_scs_SI_shape h5
                 have lem1 := mk_inst_scs_SI_indexing h5
@@ -1159,7 +1165,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                                   case _ i => apply i.elim0)
                 have ih := ih wftl h wftl' h1 h2; rcases ih with ⟨i, ih⟩
                 exists i+1;
-            case _ ne1 e2 => -- qs1 ≠ iname, qs2 = iname
+            case _ ne1 e2' => -- qs1 ≠ iname, qs2 = iname
               cases decEq cls1 cls_name
               case _ =>
                 exfalso; subst qs2; -- contradiction becuase of h2
@@ -1170,9 +1176,10 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
               case _ e =>
                 subst cls1
                 exists 0; exists iname; exists cls_name; exists na'; exists nb'; exists nc';
-                exists Ks1'; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
+                exists cls_K; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
                 simp; apply Or.inl;
-                have lem := mk_inst_fds_SI_exhaustive (qs1 := qs1) (qs2 := qs2) (scs' := scs') (mths' := mths') h6 h1 e2 e3 h2 (by apply Or.inr; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
+                have lem := mk_inst_fds_SI_exhaustive (na' := na') (qs1 := qs1) (qs2 := qs2) (fds' := fds') (scs' := scs') (mths' := mths') (fd_τs := fds_τs) (sc_τs := scs_τs) (mth_τs := mth_τs) (As' := As') (Ks1' := cls_K) (Ks2' := Ks2')
+                              h6 h1 lki e2 e3 h2 (by apply Or.inr; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
                 apply And.intro;
                 apply lem; apply VecTyping.cons; simp; exists p1.1; exists p1.2.1; exists p1.2.2.1; exists p1.2.2.2;
                 apply VecTyping.cons; simp; exists p2.1; exists p2.2.1; exists p2.2.2.1; exists p2.2.2.2; apply VecTyping.nil
@@ -1187,9 +1194,10 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
               case _ e =>
                 subst cls1
                 exists 0; exists iname; exists cls_name; exists na'; exists nb'; exists nc';
-                exists Ks1'; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
+                exists cls_K; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
                 simp; apply Or.inl;
-                have lem := mk_inst_fds_SI_exhaustive (qs1 := qs1) (qs2 := qs2) (scs' := scs') (mths' := mths') h6 h1 e2 e3 h2 (by apply Or.inl; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
+                have lem := mk_inst_fds_SI_exhaustive (na' := na') (qs1 := qs1) (qs2 := qs2) (scs' := scs') (mths' := mths')
+                                h6 h1 lki e2 e3 h2 (by apply Or.inl; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
                 apply And.intro;
                 apply lem; apply VecTyping.cons; simp; exists p1.1; exists p1.2.1; exists p1.2.2.1; exists p1.2.2.2;
                 apply VecTyping.cons; simp; exists p2.1; exists p2.2.1; exists p2.2.2.1; exists p2.2.2.2; apply VecTyping.nil
@@ -1204,9 +1212,9 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
               case _ e =>
                 subst cls1
                 exists 0; exists iname; exists cls_name; exists na'; exists nb'; exists nc';
-                exists Ks1'; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
+                exists cls_K; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
                 simp; apply Or.inl;
-                have lem := mk_inst_fds_SI_exhaustive (qs1 := iname) (qs2 := iname) (scs' := scs') (mths' := mths') h6 h1 e2 e3 h2 (by simp); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((iname, p1), (iname, p2))
+                have lem := mk_inst_fds_SI_exhaustive (qs1 := iname) (qs2 := iname) (scs' := scs') (mths' := mths') h6 h1 lki e2 e3 h2 (by simp); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((iname, p1), (iname, p2))
                 apply And.intro;
                 apply lem; apply VecTyping.cons; simp; exists p1.1; exists p1.2.1; exists p1.2.2.1; exists p1.2.2.2;
                 apply VecTyping.cons; simp; exists p2.1; exists p2.2.1; exists p2.2.2.1; exists p2.2.2.2; apply VecTyping.nil

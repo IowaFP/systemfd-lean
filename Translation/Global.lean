@@ -283,6 +283,7 @@ def mk_inst_sc_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
                        -- ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
                        ++ "p : " ++ p.repr)
                        $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
+
     let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩
     -- .error $
     --        ("G :" ++ G.repr max_prec ++  Std.Format.line
@@ -331,11 +332,11 @@ def mk_inst_fd_IC (G : Core.GlobalEnv) (mn : String) (m : Nat) (p : Core.Pattern
                        -- ++ "Ts : " ++ Ts.repr max_prec ++ Std.Format.line
                        ++ "p : " ++ p.repr)
                        $ (Core.pattern_binders (.data .opn) G Δ nc Ts p)
-    -- match Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩ with
-    -- | .error _ =>
-    --   return .inst mn p (openm! "loop" #(R⟨Ren.add Core.Ty ζ.length⟩) #() #().to)
-    -- | .ok t' =>
-    let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩
+    match Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩ with
+    | .error _ =>
+      return .inst mn p (openm! "loop" #(R⟨Ren.add Core.Ty ζ.length⟩) #() #().to)
+    | .ok t' =>
+    -- let t' <- Translation.Core.Ty.synth_term G (ζ ++ Δ) Γ R⟨Ren.add Core.Ty ζ.length⟩
 
     -- .error $
     --        ("G :" ++ G.repr max_prec ++  Std.Format.line

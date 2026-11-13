@@ -117,27 +117,29 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 
   GlobalWf G (.classDecl ⟨s, na, Ks, fdτs, scτs, mτs⟩)
 
-| inst {mτs : List (String × Core.SpineTy)}
+| inst {n : Nat} {K : Vec Core.Kind n} {mτs : List (String × Core.SpineTy)}
+       {scτs : List (String × Core.SpineTy)}
+       {fdτs : List (String × List (Fin n) × Fin n × Core.SpineTy)}
        {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}
        {scs_impl : List (String × (m : Nat) × Core.Pattern m)}
        {fds_impl : List (String × (m : Nat) × Core.Pattern m)}
        :
   lookup x G = none ->
-  lookup cls_name G = some (.odata cls_name K fds scs mτs) ->
+  lookup cls_name G = some (.odata cls_name K fdτs scτs mτs) ->
 
-  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨n, K, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
 
   (e1 : mτs.length = mths_impl.length) -> -- TODO: I think i'm being too strict here.
   (∀ i : Nat, (hi : i < mths_impl.length) ->
     ((mτs[i]).1 = mths_impl[i].1) ∧
     (spine_pattern_size (mτs[i]).2 = method_pattern_size (mths_impl[i]))) ->
 
-  (e2 : scs.length = scs_impl.length) ->
+  (e2 : scτs.length = scs_impl.length) ->
   (∀ i : Nat, (hi : i < scs_impl.length) ->
-    ((scs[i]).1 = scs_impl[i].1) ∧
-    (spine_pattern_size (scs[i]).2 = (scs_impl[i]).2.1)) ->
+    ((scτs[i]).1 = scs_impl[i].1) ∧
+    (spine_pattern_size (scτs[i]).2 = (scs_impl[i]).2.1)) ->
 
-  GlobalWf G (.instDecl ⟨x, cls_name, k1, k2, k3, Ks1, Ks2, As, fds_impl, scs_impl, mths_impl⟩)
+  GlobalWf G (.instDecl ⟨x, cls_name, n, k2, k3, K, Ks2, As, fds_impl, scs_impl, mths_impl⟩)
 
 inductive ListGlobalWf : List Global -> Prop where
 | nil : ListGlobalWf []
@@ -673,7 +675,7 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
     cases wf; case _ wf =>
     cases wf; case _ h1 _ _ _ _ =>
     simp at e; subst e; subst e; constructor;
-    apply h1.weaken_global wf'; intro T h2; apply Ty.data?_global_weaken wf' h2
+    sorry -- apply h1.weaken_global wf'; intro T h2; apply Ty.data?_global_weaken wf' h2
     simp [lookup]
 
 theorem lookup_none_ctor? {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :

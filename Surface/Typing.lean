@@ -124,16 +124,17 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 
   GlobalWf G (.classDecl s Ks1 fdτs scτs mτs)
 
-| inst {na nb nc} {Ks1 Ks2 As} {ts : List (String × _)}:
+| inst {na nb nc} {Ks1 : Vec Core.Kind na} {Ks2 As} {ts : List (String × _)}
+  {fds : List (String × List (Fin na) × Fin na)} {scs : List (String × String × List (Fin na))}:
   lookup x G = none ->
-  lookup cls_name G = some (.odata cls_name K fds scs mτs) ->
+  lookup cls_name G = some (.odata (n := na) cls_name Ks1 fds scs mτs) ->
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats ((List.range na).map (·+ nb)).reverse⟩ ->
   -- Cover all methods
   (e : mτs.length = ts.length) ->
   (∀ i : Nat, (hi : i < ts.length) ->
     (mτs[i].1 = (ts[i]).1)) ->
 
-  GlobalWf G (.instDecl x ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range k1).reverse⟩ ts)
+  GlobalWf G (.instDecl x ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats (List.range na).reverse⟩ ts)
 
 inductive ListGlobalWf : GlobalEnv -> Prop where
 | nil : ListGlobalWf []
