@@ -218,9 +218,18 @@ theorem mk_inst_fd_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fin
       cases h5; case _ h5 h8 =>
       cases h8; case _ h8 _ =>
       simp [Intermediate.lookup_ctor?, h3, h4] at h5 h8
-      cases decEq qs1 iname <;> simp at *
-      case _ ne1 => sorry
-      case _ e1 e2 =>
+      cases decEq qs1 iname <;> cases decEq qs2 iname <;> simp at *
+      case _ e1 => -- qs1 ≠ iname qs2 ≠ iname
+        rcases e1 with ⟨e1, e2, e3⟩; subst e1 e2 e3
+        sorry
+      case _ e1 e2 => -- qs = iname
+        subst e1; rcases e2 with ⟨e1, e2, e3⟩; subst e1 e2 e3; simp at *
+
+        sorry
+      case _ e1 => -- qs1 ≠ iname
+        rcases e1 with ⟨e1, e2, e3⟩; subst e1 e2 e3
+        sorry
+      case _ e1 e2 => -- qs = iname
         subst e1; rcases e2 with ⟨e1, e2, e3⟩; subst e1 e2 e3; simp at *
 
         sorry

@@ -164,6 +164,9 @@ theorem Ty.sub_act_eq_mpr {T: Core.Ty} {σ1 σ2 : Subst Core.Ty}:
 partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : Core.TyEnv) (τ : Core.Ty) :
   TM ((t : Core.Term) ×' (τ' : Core.Ty) ×' (G&Δ, Γ ⊢ t : τ')) := do
   Option.toTM "synth_term' check_synth type" $ check_synth_type G τ
+  -- let eGraph <- Option.toTM "synth_term' egraph" $ Core.Synth.EqGraph.process_tyenv G sorry Δ Γ
+  -- let ⟨τ_rep, K, c, j⟩ <- Option.toTM "synth_term repview" $ Core.Ppcc.EqGraph.get_rep_view sorry eGraph τ
+
   match h : Γ.findIdx? (· == τ) with
   | some i =>
     match h1 : τ.infer_kind G Δ with
@@ -195,13 +198,8 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
                    && (List.range tys'.1).all ((R.fv ·)) && Ts.all (Core.Ty.data? Core.DataConst.opn G ·)
               then
                 let Ts' := Ts[σ]
-                let eGraph <- Option.toTM "synth_term' egraph" $ Core.Synth.EqGraph.process_tyenv G sorry Δ Γ
-                let Ts'' : Vec ((T1 : Core.Ty) × (T2 : Core.Ty) × (K : Core.Kind) × (t : Core.Term) ×' G&Δ, Γ ⊢ t : (T1 ~[K]~ T2)) nc
-                    <- Option.toTM "synth_term' rep_view" $
-                                   (Ts'.traverse (λ x => do let t <- Core.Ppcc.EqGraph.get_rep_view sorry eGraph x
-                                                            return ⟨x, t⟩))
                 let ts' := Ts'.map (Core.Ty.synth_term' G Δ Γ ·)
-                let ts'' <- (Ts''.map (λ x => Core.Ty.synth_term' G Δ Γ x.2.1)).sequence
+
                 let ts <- ts'.sequence
                 if h : (ts.map (λ x => x.2.1) == Ts') then
                   let targs := ts.map (·.fst)
@@ -305,7 +303,8 @@ partial def Core.Ty.synth_term' (G : Core.GlobalEnv) (Δ : Core.KindEnv) (Γ : C
         match ts.head? with
         | some t => return t
         | none =>
-          .error $ "synth_term' no instances found for: " ++ τ.repr max_prec ++ Std.Format.line
+          .error $ "synth_term' no instances found for: " ++ τ.repr max_prec
+          /-++  Std.Format.paren (τ_rep.repr max_prec)-/ ++ Std.Format.line
           ++ "tried candidates: " ++ Std.Format.line ++ candidates.repr max_prec ++ Std.Format.line
           ++ "G: " ++ G.repr max_prec ++ Std.Format.line
           ++ "Δ: " ++ Δ.repr max_prec ++ Std.Format.line
