@@ -196,7 +196,37 @@ theorem mk_inst_scs_SI_indexing {Γ' : Intermediate.GlobalEnv} :
   have lem :=  mk_inst_scs_SI_indexing2 h k (insts[k]) (mτs[k]) (by grind) (by grind)
   apply lem
 
-theorem mk_inst_fds_SI_exhaustive :
+theorem mk_inst_fd_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fin na' × Core.SpineTy)} :
+  mk_inst_fd_SI
+    (.cons (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As', [], [], []⟩) Γ) C iname mn ⟨dms, det, spTy⟩ = .ok is ->
+  Intermediate.lookup mn Γ = Intermediate.Entry.openm mn cls_name .funDep spTy ->
+  T1.spine = some (cls_name, tys1) ->
+  T2.spine = some (cls_name, tys2) ->
+  Intermediate.Query
+    (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As',fds', scs',mths'⟩ :: Γ) Core.DataConst.opn #(qs1, qs2) #(T1, T2) ->
+  ∃ i : Nat, ∃ p1 p2, is[i]? = some ⟨mn, 2, #(⟨qs1, p1⟩, ⟨qs2, p2⟩)⟩ ∧ (qs1 = iname ∨ qs2 = iname)
+:= by intro h1 h2 h3 h4 h5
+      unfold mk_inst_fd_SI at h1
+      split at h1 <;> try simp at h1
+      simp [Intermediate.lookup] at h1
+      simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨s1, tys1, h1, h2⟩
+      rcases h2 with ⟨s2, tys2, h2, h6⟩
+      rcases h6 with ⟨s3, tys3, h6, h7⟩
+      split at h7 <;> try simp at h7
+      cases h7; case _ e =>
+      rcases e with ⟨⟨e1, e2⟩, e3⟩; subst e1 e2 e3
+      cases h5; case _ h5 h8 =>
+      cases h8; case _ h8 _ =>
+      simp [Intermediate.lookup_ctor?, h3, h4] at h5 h8
+      cases decEq qs1 iname <;> simp at *
+      case _ ne1 => sorry
+      case _ e1 e2 =>
+        subst e1; rcases e2 with ⟨e1, e2, e3⟩; subst e1 e2 e3; simp at *
+
+        sorry
+
+
+theorem mk_inst_fds_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fin na' × Core.SpineTy)} :
   mk_inst_fds_SI
     (.cons (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As', [], [], []⟩) Γ) C iname fd_τs = .ok fds' ->
   Intermediate.lookup mn Γ = Intermediate.Entry.openm mn cls_name .funDep spTy ->
