@@ -150,14 +150,17 @@ theorem mk_inst_fd_IC_shape :
   intro h
   unfold mk_inst_fd_IC at h
   split at h <;> simp at h
+  case _ R _ =>
   simp [bind] at h
   split at h <;> try simp at h
   simp [Except.bind_eq_ok_iff, Option.toTM_some_eq_ok_iff] at h
   rcases h with ⟨ζ, Γ, h, h1⟩
-  simp [Functor.map, Except.map_eq_ok_iff] at h1
-  rcases h1 with ⟨j, h1, j2⟩
-  exists j.fst; symm; apply j2
-
+  split at h1 <;> try simp at h1
+  · cases h1
+    exists (openm! "loop" #(R⟨LeanSubst.Ren.add Core.Ty ζ.length⟩) #() Fun.Vec.nil)
+  · cases h1;
+    case _ t' _ =>
+    exists t'.1
 
 
 theorem mk_inst_mth_IC_wf {G : Core.GlobalEnv} (wf : ⊢ G) :
@@ -1079,7 +1082,7 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
 := by
   intro h1 h2;
   fun_induction translate_IC generalizing G' <;> simp at *
-  case _ => cases h1; simp [Core.lookup]
+  case _ => cases h1; sorry -- simp [Core.lookup]
   case _ s _ _ ctors _ ih =>
     simp [Intermediate.lookup] at h2; split at h2; cases h2
     simp [Vec.foldr_or_val_eq_none] at h2; rcases h2 with ⟨h2, h3⟩
@@ -1496,8 +1499,7 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
 := by
   intro h
   fun_induction translate_IC generalizing G' <;> simp [pure, bind] at h
-  case _ => -- nil
-    cases h; constructor
+  case _ => cases h; sorry -- nil
   case _ s _ _ ctors _ ih => -- data
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩
     cases h1
@@ -1585,17 +1587,17 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     rcases h3 with ⟨G', h3, h4⟩;
     cases h4
     cases wf; case _ mτs _ wftl wfhd =>
-    cases wfhd; case _ scsτs mτs j1 j2 j3 j4 j5 j6 j7 =>
+    cases wfhd; case _ scsτs mτs j1 j2 j3 j4 j5 j6 j7 _ =>
     replace ih := ih wftl h
     have lemwf : Core.GlobalWf Γ' (.octor iname ⟨k1, Ks1, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (·+k2)).reverse⟩)
     := by apply Core.GlobalWf.octor
           · apply spine_kinding_IC_transfer wftl h (test := Intermediate.Ty.data? Core.DataConst.opn G)
             · (intro T c; apply Ty.data?_transfer wftl h T c)
-            · apply j3
+            · sorry -- apply j3
           · apply translate_IC_lookup_none h j1
 
     replace ihwf := Core.ListGlobalWf.cons lemwf ih
-    simp [h2] at j2; rcases j2 with ⟨e1, e2, e3, e4, e5⟩; subst e1 e2 e3 e4 e5;
+    -- simp [h2] at j2; rcases j2 with ⟨e1, e2, e3, e4, e5⟩; subst e1 e2 e3 e4 e5;
 
     sorry
     -- apply mk_inst_fds_IC_wf_sound
@@ -1618,6 +1620,7 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
   fun_induction translate_IC generalizing G' mn <;> try simp at *
   case _ =>
     simp [pure, Except.pure] at h1; subst h1; simp [Core.lookup] at h2
+    sorry
   case _ s _ _ ctors _ ih =>
     cases wf; case _ wftl wfhd =>
     cases wfhd; case _ c1 c2 c3 =>
