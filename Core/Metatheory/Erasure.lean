@@ -128,15 +128,28 @@ theorem Untyped.lookup_append_weaken_left :
   Untyped.lookup x G2 = some e →
   Untyped.lookup x (G1++G2) = some e := by sorry
 
-theorem lookup_erasure_singleton :
+theorem lookup_erasure_singleton_some :
  lookup x [g] = some (.defn y a t) 
   → Untyped.lookup x [⟦g⟧] = some (.defn y ⟦t⟧)
   := by sorry
 
-theorem lookup_erasure_elim :
+theorem lookup_erasure_singleton_none :
+ lookup x [g] = none 
+  → Untyped.lookup x [⟦g⟧] = none
+  := by sorry
+
+theorem Untyped.lookup_singleton_elim :
   Untyped.lookup x [g] = some (.defn y t)
   → x = y
   := by sorry
+
+theorem Untyped.lookup_elim_left (G : List Untyped.Global) :
+  Untyped.lookup x G' = none
+  → Untyped.lookup x (G'++G) = Untyped.lookup x G
+  := by
+    sorry
+
+theorem wf_weaken (wf : ⊢ (h :: ts)) : ⊢ ts := by sorry
 
 theorem lookup_erasure (wf : ⊢ G) :
   lookup x G = some (Entry.defn y a t)
@@ -151,13 +164,16 @@ theorem lookup_erasure (wf : ⊢ G) :
   rcases h2
   case _ heq => 
     rw [List.singleton_append, List.map_cons]
-    have heq' := lookup_erasure_singleton heq
-    rw[←(lookup_erasure_elim heq')] at heq'
+    have heq' := lookup_erasure_singleton_some heq
+    rw[←(Untyped.lookup_singleton_elim heq')] at heq'
     apply Untyped.lookup_append_weaken_right heq'
   case _ h3 => 
     let ⟨h3l, h3r⟩ := h3; clear h3
     rw [List.singleton_append, List.map_cons]
-    sorry
+    rw [←List.singleton_append]
+    let G := map Global.erase ts
+    rw[Untyped.lookup_elim_left G (lookup_erasure_singleton_none h3l)]
+    rw[←lookup_erasure (wf_weaken wf) h3r]
 
 -- TODO: avoid cases by matching on *G*,
 -- JUST the List, not the globals
