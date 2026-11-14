@@ -31,6 +31,9 @@ name = "Core"
 name = "Surface"
 
 [[lean_lib]]
+name = "HM"
+
+[[lean_lib]]
 name = "Intermediate"
 
 [[lean_lib]]
