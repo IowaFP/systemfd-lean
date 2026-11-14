@@ -95,14 +95,6 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
-
-theorem Untyped.lookup_head :
-  Untyped.lookup x [.defn y t] = some e'
-  → e' = .defn y t  := by sorry
-
-theorem Untyped.lookup_id (x : String) (t : Untyped.Term):
-  Untyped.lookup x [.defn x t] = some (.defn x t) := by simp
-
 theorem Untyped.lookup_append_weaken_right :
   Untyped.lookup x G1 = some e → Untyped.lookup x (G1++G2) = some e := by
   intro h
@@ -124,24 +116,35 @@ theorem Untyped.lookup_append_weaken_right :
       simp [Untyped.lookup] at h
       exact ih h
 
-theorem Untyped.lookup_append_weaken_left :
-  Untyped.lookup x G2 = some e →
-  Untyped.lookup x (G1++G2) = some e := by sorry
-
 theorem lookup_erasure_singleton_some :
  lookup x [g] = some (.defn y a t) 
   → Untyped.lookup x [⟦g⟧] = some (.defn y ⟦t⟧)
-  := by sorry
+  := by 
+    intros h
+    simp
+    split
+    case h_1 => sorry
+    case h_2 => sorry
+    case h_3 => sorry
 
 theorem lookup_erasure_singleton_none :
- lookup x [g] = none 
+ lookup x [g] = none
   → Untyped.lookup x [⟦g⟧] = none
-  := by sorry
+  := by
+    intros h
+    dsimp
+    split
+    simp[Untyped.lookup]
+    case h_1 => sorry
+    case h_2 => sorry
+    case h_3 => sorry
 
 theorem Untyped.lookup_singleton_elim :
   Untyped.lookup x [g] = some (.defn y t)
   → x = y
-  := by sorry
+  := by 
+  intros h
+  sorry
 
 theorem Untyped.lookup_elim_left (G : List Untyped.Global) :
   Untyped.lookup x G' = none
@@ -149,7 +152,9 @@ theorem Untyped.lookup_elim_left (G : List Untyped.Global) :
   := by
     sorry
 
-theorem wf_weaken (wf : ⊢ (h :: ts)) : ⊢ ts := by sorry
+theorem wf_weaken (wf : ⊢ (h :: ts)) : ⊢ ts := by 
+  cases wf
+  case cons wf _ => apply wf
 
 theorem lookup_erasure (wf : ⊢ G) :
   lookup x G = some (Entry.defn y a t)
@@ -249,6 +254,6 @@ theorem erasure (wf : ⊢ G) :
 --   Red G (.mtch m n ss ps bs) (.mtch m n ss' ps bs)
 | @Red.match_congr G m ss' n ps bs ss i st a => by
     simp
+    -- exact .step (@Red.match_congr G m ss' n ps bs ss i (erasure wf st))
     sorry
-    -- .step (.match_congr i a )
 | _ => sorry
