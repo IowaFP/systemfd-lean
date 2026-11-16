@@ -116,14 +116,30 @@ theorem Untyped.lookup_append_weaken_right :
       simp [Untyped.lookup] at h
       exact ih h
 
+theorem GlobalEnv.lookup_singleton_some :
+  lookup x1 [Global.defn y a1 t1] = some (.defn x2 a2 t2)
+  → x1 = y ∧ x1 = x2 ∧ a1 = a2 ∧ t1 = t2 := by
+  unfold lookup
+  intros h
+  split at h
+  grind
+  contradiction
+
 theorem lookup_erasure_singleton_some :
  lookup x [g] = some (.defn y a t) 
   → Untyped.lookup x [⟦g⟧] = some (.defn y ⟦t⟧)
-  := by 
+  := by
     intros h
     simp
     split
-    case h_1 => sorry
+    case h_1 => 
+      simp
+      let ⟨hx1y, hx12, ha12, ht12⟩ := GlobalEnv.lookup_singleton_some h
+      apply And.intro
+      exact hx1y
+      apply And.intro
+      rw[←hx1y, hx12]
+      rw[ht12]
     case h_2 => sorry
     case h_3 => sorry
 
