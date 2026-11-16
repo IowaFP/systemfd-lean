@@ -49,7 +49,7 @@ partial def unify' : (t u : Ty) -> Option (Subst Ty)
 | _, _ => none
 
 
-/-- Contains 2 things, the unprocessed equalties, and the coercion itself (normal forms from TRAAT) -/
+/-- Contains 2 things, the unprocessed equalties, and the substitution itself (normal forms from TRAAT) -/
 structure UnifyState where
   subst : Subst Ty
   equations : List (Ty × Ty)
@@ -70,22 +70,13 @@ noncomputable def isVar : Ty -> Bool
 | t#_ => true
 | _ => false
 
-@[simp]
-noncomputable def flipEqnsSize : List (Ty × Ty) -> Nat
-| [] => 0
-| .cons (t1, t2) es => if (¬ isVar t1) ∧ isVar t2 then 1 + flipEqnsSize es else flipEqnsSize es
-
-@[simp]
-noncomputable def UnifyState.flippedEqnSize : UnifyState -> Nat
-| ⟨_, eqns⟩ => flipEqnsSize eqns
-
 -- There is a triple we need to define as a termination measure
 -- According to TRAAT
 -- n1 = number of variables that are not in solved form
 -- n2 = size of S i.e. eqnSize above
 -- n3 = number of equations of the form (t = x) in S
 
--- however in this implementation, (t = x) ant (x = t) are treated as "solved" form
+-- however in this implementation, (t = x) and (x = t) are treated as "solved" form
 -- so we do not need n3 in our termination measure.
 -- This might bite me somewhere else while proving things, or may be not,
 -- we well see...
@@ -633,7 +624,6 @@ theorem UnifierIdempotent_extension :
   case _ =>
     have e : (x = i) = False := by grind
 
-
     sorry
   case _ e =>
     subst x;
@@ -832,17 +822,15 @@ theorem Unifier.substituion_lemma :
   G&Δ ⊢ t : K ->
   G&Δ ⊢ u : K ->
   Unifier σ t u ->
-  G&Δ ⊢ t[σ] : K
+  G&Δ ⊢ t[σ] : K ∧ G&Δ ⊢ u[σ] : K
 | .var j1, j => by
   intro u; simp [Unifier] at u; simp; sorry
 | j, .var j1 => sorry
 | .app j1a j2a, .app j1b j2b => by
   intro u; simp [Unifier] at u;
   simp; rcases u with ⟨u1, u2⟩
-  apply Kinding.app
   sorry
-  sorry
-  sorry
+
 
 | _, _ => sorry
 

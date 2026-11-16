@@ -11,6 +11,7 @@ inductive Term : Type where
 | defn : String -> Term
 | lam  : Term -> Term
 | app  : Term -> Term -> Term
+| letdef : Term -> Term -> Term
 
 prefix:max "#" => Term.var
 prefix:max "d#" => Term.var
@@ -27,6 +28,7 @@ def Term.size : Term -> Nat
 | defn _ => 0
 | lam t => size t + 1
 | app t1 t2 => size t1 + size t2 + 1
+| letdef t1 t2 => size t1 + size t2 + 1
 
 @[simp]
 instance instSizeOf_Term : SizeOf Term where
@@ -37,6 +39,7 @@ protected def Term.repr (p : Nat) : (a : Term) -> Std.Format
 | .defn n => "d#" ++ n
 | .lam t => Repr.addAppParen ("λ" ++ Term.repr max_prec t) p
 | .app t1 t2 => Repr.addAppParen (Term.repr max_prec t1 ++ "•" ++ Term.repr max_prec t2) max_prec
+| .letdef t1 t2 => "let" ++ Nat.repr 0 ++ " = " ++ t1.repr max_prec ++ " in " ++ t2.repr max_prec
 
 @[simp]
 instance instRepr_Term : Repr Term where
