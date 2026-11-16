@@ -133,7 +133,16 @@ theorem GlobalEnv.lookup_singleton_none :
 
 theorem GlobalEnv.lookup_from_some :
   lookup x [g] = some (.defn x a t)
-  → g = .defn x a t := by sorry
+  → g = .defn x a t := by 
+  intros h
+  unfold lookup at h
+  split at h <;> try simp
+  case h_2 => sorry
+  case h_3 => sorry
+  case h_4 => sorry
+  case h_5 => sorry
+  case h_6 => sorry
+  case h_7 => sorry
 
 theorem GlobalEnv.lookup_nomatch :
   lookup x [.defn y a t] = none → x ≠ y := by 
@@ -143,12 +152,31 @@ theorem GlobalEnv.lookup_nomatch :
   rw[h2] at h
   contradiction
 
+theorem GlobalEnv.lookup_singleton_elim :
+  lookup x [g] = some (.defn y a t)
+  → x = y
+  := by
+  intros h
+  unfold lookup at h
+  split at h
+  case _ => contradiction
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+  case _ => sorry
+
 theorem Untyped.lookup_singleton_elim :
   Untyped.lookup x [g] = some (.defn y t)
   → x = y
   := by 
   intros h
-  sorry
+  unfold Untyped.lookup at h
+  split at h
+  contradiction
+  case _ => sorry
+  case _ => sorry
 
 theorem lookup_erasure_singleton_some :
  lookup x [g] = some (.defn y a t)
@@ -169,10 +197,11 @@ theorem lookup_erasure_singleton_some :
       simp
       rw[GlobalEnv.lookup_singleton_none] at h
       contradiction
-    case h_3 g' hp1 hp2 => 
+    case h_3 g' hp1 hp2 =>
       simp
+      rw[GlobalEnv.lookup_singleton_elim h] at h
       have h2 := GlobalEnv.lookup_from_some h
-      sorry
+      exact hp1 y a t h2
 
 theorem lookup_erasure_singleton_none :
  lookup x [g] = none
@@ -183,15 +212,14 @@ theorem lookup_erasure_singleton_none :
     split
     simp[Untyped.lookup]
     case h_1 => exact GlobalEnv.lookup_nomatch h
-    case h_2 => sorry
+    case h_2 => simp
     case h_3 => simp
-
-
 
 theorem Untyped.lookup_elim_left (G : List Untyped.Global) :
   Untyped.lookup x G' = none
   → Untyped.lookup x (G'++G) = Untyped.lookup x G
   := by
+    intros h
     sorry
 
 theorem wf_weaken (wf : ⊢ (h :: ts)) : ⊢ ts := by 
