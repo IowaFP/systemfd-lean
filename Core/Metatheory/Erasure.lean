@@ -117,6 +117,9 @@ theorem Untyped.lookup_append_weaken_right :
       exact ih h
 
 theorem GlobalEnv.lookup_singleton_some :
+  lookup x [Global.defn x a t] = some (.defn x a t) := by simp[lookup]
+
+theorem GlobalEnv.lookup_singleton_some_eq :
   lookup x1 [Global.defn y a1 t1] = some (.defn x2 a2 t2)
   → x1 = y ∧ x1 = x2 ∧ a1 = a2 ∧ t1 = t2 := by
   unfold lookup
@@ -125,8 +128,30 @@ theorem GlobalEnv.lookup_singleton_some :
   grind
   contradiction
 
+theorem GlobalEnv.lookup_singleton_none :
+  lookup x [.inst s pm t] = none := by simp[lookup]
+
+theorem GlobalEnv.lookup_from_some :
+  lookup x [g] = some (.defn x a t)
+  → g = .defn x a t := by sorry
+
+theorem GlobalEnv.lookup_nomatch :
+  lookup x [.defn y a t] = none → x ≠ y := by 
+  intros h hxy
+  subst hxy
+  have h2 := @GlobalEnv.lookup_singleton_some x a t
+  rw[h2] at h
+  contradiction
+
+theorem Untyped.lookup_singleton_elim :
+  Untyped.lookup x [g] = some (.defn y t)
+  → x = y
+  := by 
+  intros h
+  sorry
+
 theorem lookup_erasure_singleton_some :
- lookup x [g] = some (.defn y a t) 
+ lookup x [g] = some (.defn y a t)
   → Untyped.lookup x [⟦g⟧] = some (.defn y ⟦t⟧)
   := by
     intros h
@@ -134,14 +159,20 @@ theorem lookup_erasure_singleton_some :
     split
     case h_1 => 
       simp
-      let ⟨hx1y, hx12, ha12, ht12⟩ := GlobalEnv.lookup_singleton_some h
+      let ⟨hx1y, hx12, ha12, ht12⟩ := GlobalEnv.lookup_singleton_some_eq h
       apply And.intro
       exact hx1y
       apply And.intro
       rw[←hx1y, hx12]
       rw[ht12]
-    case h_2 => sorry
-    case h_3 => sorry
+    case h_2 =>
+      simp
+      rw[GlobalEnv.lookup_singleton_none] at h
+      contradiction
+    case h_3 g' hp1 hp2 => 
+      simp
+      have h2 := GlobalEnv.lookup_from_some h
+      sorry
 
 theorem lookup_erasure_singleton_none :
  lookup x [g] = none
@@ -151,16 +182,11 @@ theorem lookup_erasure_singleton_none :
     dsimp
     split
     simp[Untyped.lookup]
-    case h_1 => sorry
+    case h_1 => exact GlobalEnv.lookup_nomatch h
     case h_2 => sorry
-    case h_3 => sorry
+    case h_3 => simp
 
-theorem Untyped.lookup_singleton_elim :
-  Untyped.lookup x [g] = some (.defn y t)
-  → x = y
-  := by 
-  intros h
-  sorry
+
 
 theorem Untyped.lookup_elim_left (G : List Untyped.Global) :
   Untyped.lookup x G' = none
