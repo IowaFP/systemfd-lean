@@ -196,16 +196,17 @@ theorem mk_inst_scs_SI_indexing {Γ' : Intermediate.GlobalEnv} :
   have lem :=  mk_inst_scs_SI_indexing2 h k (insts[k]) (mτs[k]) (by grind) (by grind)
   apply lem
 
-theorem mk_inst_fd_SI_exhaustive {Γ : Intermediate.GlobalEnv} {fd_τs : List (String × List (Fin na') × Fin na' × Core.SpineTy)} (wf : ⊢ Γ) :
+theorem mk_inst_fd_SI_exhaustive {Γ : Intermediate.GlobalEnv} (wf : ⊢ Γ) :
   mk_inst_fd_SI
     (.cons (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As', [], [], []⟩) Γ) C iname mn ⟨dms, det, spTy⟩ = .ok is ->
   Intermediate.lookup mn Γ = Intermediate.Entry.openm mn cls_name .funDep spTy ->
-  Intermediate.lookup cls_name Γ = Intermediate.Entry.odata cls_name K fd_τs sc_τs mth_τs ->
   (qs1 = iname ∨ qs2 = iname) ->
   Intermediate.Query
     (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As',fds', scs',mths'⟩ :: Γ) Core.DataConst.opn #(qs1, qs2) #(T1, T2) ->
+  T1.spine = some (cls_name, tys1) ->
+  T2.spine = some (cls_name, tys2) ->
   ∃ i : Nat, ∃ p1 p2, is[i]? = some ⟨mn, 2, #(⟨qs1, p1⟩, ⟨qs2, p2⟩)⟩
-:= by intro h1 h2 lki h3 h4
+:= by intro h1 h2 h3 h4 h5 h6
       unfold mk_inst_fd_SI at h1
       split at h1 <;> try simp at h1
       case _ fd_τs _ _ _ _ _ _ _ e =>
@@ -221,24 +222,59 @@ theorem mk_inst_fd_SI_exhaustive {Γ : Intermediate.GlobalEnv} {fd_τs : List (S
       case _ e =>
       rcases e with ⟨⟨e1, e2⟩, e3⟩; subst e1 e2 e3
       cases h9
-      have lem := Intermediate.lookup_openm_index_funDep wf h2 lki
-      rcases lem with ⟨j, hj, lem⟩; subst lem; simp at *
       have lem := Intermediate.lookup_fundep_openm_shape wf h2
       rcases lem with ⟨e1, e2, T1, T2, tys1, tys2, e4, e5, e6⟩
       simp at e4; rcases e4 with ⟨e1, e2⟩; subst e1 e2
       cases h3
       case _ h =>
         subst h
-
-        sorry
-      case _ h => sorry
+        cases h4; case _ h4 h7 =>
+        cases h7; case _ h7 h8 =>
+        clear h8
+        cases decEq qs1 qs2
+        case _ h =>
+          -- qs1 ≠ qs2
+          have e : (qs2 = qs1) = False := by grind
+          replace h7 := Intermediate.lookup_ctor?_strengthen_inst h7 h
+          have lem := Intermediate.get_all_odata_exhaustive h7 h6
+          rcases lem with ⟨j, n1, n2, lem⟩; exists j + 1
+          have lem' := lem
+          simp [List.getElem?_eq_some_iff] at lem'; rcases lem' with ⟨hi, lem⟩
+          simp [List.getElem?_cons_succ]
+          generalize z1def : (Intermediate.get_all_odata cls_name Γ).map _ = z1 at *
+          have zlen : z1.length = (Intermediate.get_all_odata cls_name Γ).length := by grind
+          have hi' : j < z1.length := by grind
+          simp [List.getElem?_append_left hi', List.getElem?_eq_some_iff];
+          simp [<-z1def, lem]; grind
+        case _ e =>  -- qs1 = qs2
+          subst e; exists 0; simp
+      case _ h =>
+        subst h
+        cases h4; case _ h4 h7 =>
+        cases h7; case _ h7 h8 =>
+        clear h8
+        cases decEq qs1 qs2
+        case _ ne =>
+          have e : (qs2 = qs1) = False := by grind
+          replace h4 := Intermediate.lookup_ctor?_strengthen_inst h4 (by grind)
+          have lem := Intermediate.get_all_odata_exhaustive h4 h5
+          generalize z1def : (Intermediate.get_all_odata cls_name Γ).map _ = z1 at *
+          rcases lem with ⟨j, n1, n2, lem⟩; exists j + z1.length + 1
+          have lem' := lem
+          simp [List.getElem?_eq_some_iff] at lem'; rcases lem' with ⟨hi, lem⟩
+          simp [List.getElem?_cons_succ]
+          have zlen : z1.length = (Intermediate.get_all_odata cls_name Γ).length := by grind
+          have hi' : z1.length ≤ (j + z1.length) := by grind
+          simp [List.getElem?_append_right hi', List.getElem?_eq_some_iff, lem]
+          grind
+        case _ e => subst e; exists 0; simp
 
 
 theorem mk_inst_fds_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fin na' × Core.SpineTy)} :
   mk_inst_fds_SI
     (.cons (Intermediate.Global.instDecl ⟨iname, cls_name, na', nb', nc', Ks1', Ks2', As', [], [], []⟩) Γ) cls_name iname fd_τs = .ok fds' ->
   Intermediate.lookup mn Γ = Intermediate.Entry.openm mn cls_name .funDep spTy ->
-  Intermediate.lookup cls_name Γ = Intermediate.Entry.odata cls_name K fd_τs sc_τs mth_τs ->
+  -- Intermediate.lookup cls_name Γ = Intermediate.Entry.odata cls_name K fd_τs sc_τs mth_τs ->
   T1.spine = some (cls_name, tys1) ->
   T2.spine = some (cls_name, tys2) ->
   Intermediate.Query
@@ -246,15 +282,38 @@ theorem mk_inst_fds_SI_exhaustive {fd_τs : List (String × List (Fin na') × Fi
   (qs1 = iname ∨ qs2 = iname) ->
   ∃ i : Nat, ∃ p1 p2, fds'[i]? = some ⟨mn, 2, #(⟨qs1, p1⟩, ⟨qs2, p2⟩)⟩
 := by
-  intro h1 h2 h3 h4 h5 h6
-  fun_induction mk_inst_fds_SI
+  intro h1 h2 /-h3-/ h4 h5 h6 h7
+  fun_induction mk_inst_fds_SI generalizing fds'
   cases h1; simp; sorry
-  sorry
+  case _ mn' spTy _ ih =>
+    simp [bind, Except.bind_eq_ok_iff] at h1;
+    rcases h1 with ⟨fds', h1, h8⟩; rcases h8 with ⟨fds, h8, h9⟩; cases h9
+    cases decEq mn mn'
+    sorry
+    case _ e =>
+      subst e;
+      have lem : ∃ i : Nat, ∃ p1 p2, fds[i]? = some (mn, ⟨2, #((qs1, p1), (qs2, p2))⟩) := by
+        apply mk_inst_fd_SI_exhaustive
+        sorry
+        apply h8
+        sorry
+        apply h7
+        apply h6
+        apply h4
+        apply h5
+
+
+      rcases lem with ⟨i, p1, p2, lem⟩; exists i; exists p1; exists p2;
+      simp [List.getElem?_eq_some_iff] at lem; rcases lem with ⟨hi, lem⟩
+      simp [List.getElem?_eq_some_iff];
+      simp [List.getElem_append_left hi]; apply And.intro
+      grind
+      apply lem
 
 
 theorem lookup_SI_odata {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
   {n : Nat} {K : Vec Core.Kind n}
-  {fds : List (String × List (Fin n) × Fin n)} {scs : List (String × String × List (Fin n))}:
+  {fds : List (String × List (Fin n) × Fin n)} {scs : List (String × String × List (Fin n))} {mτs : List (String × Core.SpineTy) }:
   ⟦ G ⟧ = .ok G' ->
   Surface.lookup cls G = Surface.Entry.odata (n := n) cls K fds scs mτs ->
   ∃ (fds' : List (String × List (Fin n) × Fin n × Core.SpineTy)),
@@ -1078,8 +1137,6 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 subst h1; contradiction
               case _ e => -- cls1 = cls_name
                 subst e; clear ih
-                exists 0; exists q; exists cls1; exists na'; exists nb'; exists nc'; exists cls_K; exists Ks2';
-                exists As'; exists fds'; exists scs'; exists mths'; simp
                 have lem := mk_inst_mths_SI_shape (by grind) h4
                 have lem1 := mk_inst_mths_SI_indexing h4
                 have lem2 := Intermediate.lookup_openm_index_cls_mth wftl' h1 lki
@@ -1088,6 +1145,8 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 rcases lem1 with ⟨lem1a, lem1b⟩
                 replace lem := lem mths'[j] (by grind)
                 rcases lem with ⟨mn', n, na, nb, v', t, lem⟩
+                exists 0; exists q; exists cls1; exists na'; exists nb'; exists nc'; exists cls_K; exists Ks2';
+                exists As'; exists fds'; exists scs'; exists mths'; simp
                 apply Or.inr; apply Or.inr
                 exists j; exists t;
                 exists #((q, ⟨n, (v', na, nb)⟩));
@@ -1186,8 +1245,8 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 exists 0; exists iname; exists cls_name; exists na'; exists nb'; exists nc';
                 exists cls_K; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
                 simp; apply Or.inl;
-                have lem := mk_inst_fds_SI_exhaustive (na' := na') (qs1 := qs1) (qs2 := qs2) (fds' := fds') (scs' := scs') (mths' := mths') (fd_τs := fds_τs) (sc_τs := scs_τs) (mth_τs := mth_τs) (As' := As') (Ks1' := cls_K) (Ks2' := Ks2')
-                              h6 h1 lki e2 e3 h2 (by apply Or.inr; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
+                have lem := mk_inst_fds_SI_exhaustive (na' := na') (qs1 := qs1) (qs2 := qs2) (fds' := fds') (scs' := scs') (mths' := mths') (As' := As') (Ks1' := cls_K) (Ks2' := Ks2')
+                              h6 h1 e2 e3 h2 (by apply Or.inr; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
                 apply And.intro;
                 apply lem; apply VecTyping.cons; simp; exists p1.1; exists p1.2.1; exists p1.2.2.1; exists p1.2.2.2;
                 apply VecTyping.cons; simp; exists p2.1; exists p2.2.1; exists p2.2.2.1; exists p2.2.2.2; apply VecTyping.nil
@@ -1205,7 +1264,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 exists cls_K; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
                 simp; apply Or.inl;
                 have lem := mk_inst_fds_SI_exhaustive (na' := na') (qs1 := qs1) (qs2 := qs2) (scs' := scs') (mths' := mths')
-                                h6 h1 lki e2 e3 h2 (by apply Or.inl; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
+                                h6 h1 e2 e3 h2 (by apply Or.inl; assumption); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((qs1, p1), (qs2, p2))
                 apply And.intro;
                 apply lem; apply VecTyping.cons; simp; exists p1.1; exists p1.2.1; exists p1.2.2.1; exists p1.2.2.2;
                 apply VecTyping.cons; simp; exists p2.1; exists p2.2.1; exists p2.2.2.1; exists p2.2.2.2; apply VecTyping.nil
@@ -1222,7 +1281,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
                 exists 0; exists iname; exists cls_name; exists na'; exists nb'; exists nc';
                 exists cls_K; exists Ks2'; exists As'; exists fds'; exists scs'; exists mths'
                 simp; apply Or.inl;
-                have lem := mk_inst_fds_SI_exhaustive (qs1 := iname) (qs2 := iname) (scs' := scs') (mths' := mths') h6 h1 lki e2 e3 h2 (by simp); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((iname, p1), (iname, p2))
+                have lem := mk_inst_fds_SI_exhaustive (qs1 := iname) (qs2 := iname) (scs' := scs') (mths' := mths') h6 h1 e2 e3 h2 (by simp); rcases lem with ⟨j, p1, p2, lem⟩; exists j; exists #((iname, p1), (iname, p2))
                 apply And.intro;
                 apply lem; apply VecTyping.cons; simp; exists p1.1; exists p1.2.1; exists p1.2.2.1; exists p1.2.2.2;
                 apply VecTyping.cons; simp; exists p2.1; exists p2.2.1; exists p2.2.2.1; exists p2.2.2.2; apply VecTyping.nil

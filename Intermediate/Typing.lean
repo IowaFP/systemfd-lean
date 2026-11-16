@@ -1265,6 +1265,26 @@ theorem lookup_openm_index_funDep {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   (∃ j, ∃ (h : j < fds.length), fds[j].1 = mn)
 := by sorry
 
+theorem get_all_odata_exhaustive :
+   Intermediate.lookup_ctor? Γ Core.DataConst.opn q T ->
+   T.spine = some (cls, tys) ->
+   ∃ (i n1 n2 : Nat), (get_all_odata cls Γ)[i]? = some (q, n1, n2)
+:= by sorry
 
+theorem lookup_ctor?_strengthen_inst :
+  Intermediate.lookup_ctor?
+      (Intermediate.Global.instDecl ⟨qs1, cls_name, na, nb, nc, KsU, KsE, As, fds, scs, mths⟩ :: Γ)
+      Core.DataConst.opn qs2 T1 ->
+  qs1 ≠ qs2 ->
+  Intermediate.lookup_ctor? Γ Core.DataConst.opn qs2 T1
+:= by
+  intro h e
+  simp [Intermediate.lookup_ctor?] at h
+  split at h <;> try simp at h
+  case _ d tys tsp =>
+  replace e : (qs2 = qs1) = False := by grind
+  simp [lookup, e] at h
+  simp [Intermediate.lookup_ctor?, tsp]
+  apply h
 
 end Intermediate

@@ -195,4 +195,12 @@ theorem lookup_name_agrees : lookup x G = some e -> e.name = x := by
     rcases ms with ⟨h, ms⟩; simp [List.getElem?_eq_getElem h] at h1
     rw[h1] at ms; simp at ms; grind)
 
+def get_all_odata (C : String) : (Γ' : GlobalEnv) -> List (String × Nat × Nat)
+| [] => []
+| .cons (.instDecl ⟨iname, c_name, _ , k2 ,k3 ,_ ,_ ,_ ,_, _, _⟩) tl =>
+  let ns := get_all_odata C tl
+  if c_name == C then
+  (List.cons (iname, k2, k3) ns) else ns
+| .cons _ tl => get_all_odata C tl
+
 end Intermediate

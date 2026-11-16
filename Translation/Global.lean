@@ -106,15 +106,6 @@ def mk_inst_scs_SI (Γ' : Intermediate.GlobalEnv) (C iname : String) :
   let m_τ_t <- mk_inst_sc_SI Γ' C iname spTy
   return .cons (mn, m_τ_t) τs_mths
 
-def get_all_odata (C : String) : (Γ' : Intermediate.GlobalEnv) -> List (String × Nat × Nat)
-| [] => []
-| .cons (.instDecl ⟨iname, c_name, _ , k2 ,k3 ,_ ,_ ,_ ,_, _, _⟩) tl =>
-  let ns := get_all_odata C tl
-  if c_name == C then
-  (List.cons (iname, k2, k3) ns) else ns
-| .cons _ tl => get_all_odata C tl
-
-
 def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname mn : String) (τ : List (Fin n) × Fin n × Core.SpineTy):
   TM (List (String × (m : Nat) × Core.Pattern m)) :=
   match τ with
@@ -135,7 +126,7 @@ def mk_inst_fd_SI (Γ' : Intermediate.GlobalEnv) (C iname mn : String) (τ : Lis
         (C1'' == C && C2'' == C &&  -- check that iname belongs to C type
         (iname == iname' && C' == C)) then
       --- perform completion here
-      let insts := get_all_odata C Γ'.tail
+      let insts := Intermediate.get_all_odata C Γ'.tail
 
       -- Ks1 needs to be split into two portions; as it was made up by mk_fd_om
       -- the tail of the vector are the non-determiners
