@@ -116,7 +116,7 @@ theorem Untyped.lookup_append_weaken_right :
       simp [Untyped.lookup] at h
       exact ih h
 
-theorem GlobalEnv.lookup_singleton_some :
+theorem GlobalEnv.lookup_singleton_defn_some :
   lookup x [Global.defn x a t] = some (.defn x a t) := by simp[lookup]
 
 theorem GlobalEnv.lookup_singleton_some_eq :
@@ -128,29 +128,8 @@ theorem GlobalEnv.lookup_singleton_some_eq :
   grind
   contradiction
 
-theorem GlobalEnv.lookup_singleton_none :
+theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
-
-theorem GlobalEnv.lookup_from_some :
-  lookup x [g] = some (.defn x a t)
-  → g = .defn x a t := by 
-  intros h
-  unfold lookup at h
-  split at h <;> try simp
-  case h_2 => sorry
-  case h_3 => sorry
-  case h_4 => sorry
-  case h_5 => sorry
-  case h_6 => sorry
-  case h_7 => sorry
-
-theorem GlobalEnv.lookup_nomatch :
-  lookup x [.defn y a t] = none → x ≠ y := by 
-  intros h hxy
-  subst hxy
-  have h2 := @GlobalEnv.lookup_singleton_some x a t
-  rw[h2] at h
-  contradiction
 
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
@@ -166,6 +145,47 @@ theorem GlobalEnv.lookup_singleton_elim :
   case _ => sorry
   case _ => sorry
   case _ => sorry
+
+theorem GlobalEnv.lookup_from_some :
+  lookup x [g] = some (.defn x a t)
+  → g = .defn x a t := by 
+  intros h
+  unfold lookup at h
+  split at h <;> try simp
+  case h_1 => trivial
+  case h_2 n y _ _ _ _ => 
+    simp at h
+    split at h
+    injection h
+    contradiction
+    rename_i heq hxy
+    injection heq with head_eq tail_eq
+    unfold Vec.foldr at h
+    split at h
+    case _ => 
+      rw[←tail_eq] at h
+      contradiction
+    case _ => sorry
+  case h_3 heq => 
+    split at h
+    injection h; contradiction
+    injection heq with head_eq tail_eq
+    rw[←tail_eq] at h
+    contradiction
+  case h_4 heq =>
+    injection heq with head_eq
+    sorry
+  case h_5 => sorry
+  case h_6 => sorry
+  case h_7 => sorry
+
+theorem GlobalEnv.lookup_nomatch :
+  lookup x [.defn y a t] = none → x ≠ y := by 
+  intros h hxy
+  subst hxy
+  have h2 := @GlobalEnv.lookup_singleton_defn_some x a t
+  rw[h2] at h
+  contradiction
 
 theorem Untyped.lookup_singleton_elim :
   Untyped.lookup x [g] = some (.defn y t)
@@ -195,7 +215,7 @@ theorem lookup_erasure_singleton_some :
       rw[ht12]
     case h_2 =>
       simp
-      rw[GlobalEnv.lookup_singleton_none] at h
+      rw[GlobalEnv.lookup_inst_none] at h
       contradiction
     case h_3 g' hp1 hp2 =>
       simp
