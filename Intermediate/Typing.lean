@@ -1190,6 +1190,22 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
    split at h2 <;> try simp at *
    apply ih h1 h2
 
+theorem lookup_ctor?_strengthen_inst :
+  Intermediate.lookup_ctor?
+      (Intermediate.Global.instDecl ⟨qs1, cls_name, na, nb, nc, KsU, KsE, As, fds, scs, mths⟩ :: Γ)
+      Core.DataConst.opn qs2 T1 ->
+  qs1 ≠ qs2 ->
+  Intermediate.lookup_ctor? Γ Core.DataConst.opn qs2 T1
+:= by
+  intro h e
+  simp [Intermediate.lookup_ctor?] at h
+  split at h <;> try simp at h
+  case _ d tys tsp =>
+  replace e : (qs2 = qs1) = False := by grind
+  simp [lookup, e] at h
+  simp [Intermediate.lookup_ctor?, tsp]
+  apply h
+
 theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
   T.spine = some (s,  tys) ->
   ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length) (hk : Core.Kind.mk_kind K κs = κ), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
@@ -1265,26 +1281,58 @@ theorem lookup_openm_index_funDep {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   (∃ j, ∃ (h : j < fds.length), fds[j].1 = mn)
 := by sorry
 
-theorem get_all_odata_exhaustive :
+theorem get_all_odata_exhaustive {Γ : GlobalEnv} (wf : ⊢ Γ):
    Intermediate.lookup_ctor? Γ Core.DataConst.opn q T ->
    T.spine = some (cls, tys) ->
    ∃ (i n1 n2 : Nat), (get_all_odata cls Γ)[i]? = some (q, n1, n2)
-:= by sorry
-
-theorem lookup_ctor?_strengthen_inst :
-  Intermediate.lookup_ctor?
-      (Intermediate.Global.instDecl ⟨qs1, cls_name, na, nb, nc, KsU, KsE, As, fds, scs, mths⟩ :: Γ)
-      Core.DataConst.opn qs2 T1 ->
-  qs1 ≠ qs2 ->
-  Intermediate.lookup_ctor? Γ Core.DataConst.opn qs2 T1
 := by
-  intro h e
-  simp [Intermediate.lookup_ctor?] at h
-  split at h <;> try simp at h
-  case _ d tys tsp =>
-  replace e : (qs2 = qs1) = False := by grind
-  simp [lookup, e] at h
-  simp [Intermediate.lookup_ctor?, tsp]
-  apply h
+  intro h1 h2
+  fun_induction get_all_odata <;> simp [lookup_ctor?, h2, Intermediate.lookup] at *
+  case _ iname _ _ _ _ _ _ _ _ _ _ _ ns h3 ih =>
+    subst h3
+    cases decEq q iname
+    case _ ne =>
+      replace ne : (q = iname) = False := by grind
+      simp [ne] at h1;
+      cases wf; case _ wftl _ =>
+      replace ih := ih wftl h1; rcases ih with ⟨i, n1, n2, ih⟩;
+      simp [ns]; exists i + 1; exists n1; exists n2
+    case _ e => subst e; simp at h1; exists 0; simp
+  case _ iname _ _ _ _ _ _ _ _ _ _ _ ns h3 ih =>
+    cases decEq q iname
+    case _ =>
+      replace ne : (q = iname) = False := by grind
+      simp [ne] at h1
+      cases wf; case _ wftl _ =>
+      replace ih := ih wftl h1; rcases ih with ⟨i, n1, n2, ih⟩;
+      simp [ns]; exists i; exists n1; exists n2
+    case _ e =>
+      subst e
+      simp [Entry.ctor?, Core.Ty.mkApps_nats_spine] at h1;
+      contradiction
+  case _ hd tl _ ih =>
+    generalize zdef : lookup q (hd :: tl) = z at *
+    cases hd <;> simp [lookup] at zdef
+    case _ a _ =>
+      cases decEq q a.name
+      case _ =>
+        have ne : (q = a.name) = False := by grind
+        simp [ne] at zdef;
+        cases z <;> simp at h1
+        simp [Vec.foldr_or_val_some] at zdef;
+        cases zdef;
+        case _ h => rcases h with ⟨i, ⟨h1, h2⟩, h3⟩; subst h1 h2; simp [Entry.ctor?] at h1
+        case _ h =>
+        rcases h with ⟨h2, h3⟩;
+        cases wf; case _ wf _ =>
+        replace ih := ih wf; simp [h2] at ih; replace ih := ih h1; apply ih
+      case _ =>
+        subst q; simp at zdef; subst z; simp [Entry.ctor?]at h1
+    case _ => -- defn
+      sorry
+    case _ => -- cls
+      sorry
+    case _ c => exfalso; apply c; rfl
+
 
 end Intermediate
