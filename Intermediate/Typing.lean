@@ -845,6 +845,21 @@ theorem Query.strengthen_inst {Γ : Intermediate.GlobalEnv} {qs : Vec String pn}
     · rcases hd with ⟨e, hd1, hd2⟩; simp [lookup_ctor?, h2', hd1, hd2]
     · apply ih h2 h3
 
+
+theorem Query.strengthen_om_inst {Γ : Intermediate.GlobalEnv} {qs : Vec String pn} {Ts : Vec Core.Ty pn} :
+  Intermediate.Query (.cons (.instDecl ⟨iname, cls1, na, nb, nc, KsU, KsE , Tys , fds , scs, mths⟩) Γ) v qs Ts ->
+  Intermediate.Query (.cons (.instDecl ⟨iname, cls1, na, nb, nc, KsU, KsE , Tys , [] , [], []⟩) Γ) v qs Ts
+:= by
+  intro h1
+  induction h1
+  case _ => apply VecTyping.nil
+  case _  q T k qs Ts hd tl ih =>
+    apply VecTyping.cons
+    sorry
+    apply ih
+
+
+
 theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .clsMth ⟨na, Ks1, nb, Ks2, nc, As, R⟩) ->
   nc = 1 ∧ (∃ (T: Core.Ty) (tys : List Core.Ty), As ≍ #(T) ∧ T.spine = some (cls, tys) ∧ tys = (List.range na).reverse.map (t#·))
