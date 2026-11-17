@@ -237,7 +237,22 @@ theorem mk_inst_fd_IC_wf {G : Core.GlobalEnv} (wf : ⊢ G):
       apply h3
       rfl
       simp; apply Core.pattern_binders_sound h
+      apply Core.Typing.spctor;
       sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+      sorry
+
 
     · apply wf
   case _ j _ =>
