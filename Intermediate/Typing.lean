@@ -1073,7 +1073,6 @@ theorem lookup_openm_index_cls_mth {G : Intermediate.GlobalEnv} (wf : ⊢ G):
      split at h1 <;> try simp at h1
      split at h1 <;> try simp at h1
      case _ h2 =>
-       have lem := Intermediate.lookup_openm_no_cls wftl h1
        sorry -- simp [c4] at lem
      case _ i h2 =>
        simp [List.findIdx?_eq_some_iff_getElem] at h2;
@@ -1153,8 +1152,11 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
      split at h1 <;> try simp at h1
      case _ h2 =>
        have lem := Intermediate.lookup_openm_no_cls wftl h1
+       apply ih h1
        sorry -- simp [c4] at lem
-     case _ => sorry
+     case _ i h2 =>
+       simp [List.findIdx?_eq_some_iff_getElem] at h2; rcases h2 with ⟨hi, h2, h3⟩
+       simp [List.getElem?_eq_getElem hi] at h1
      case _ i h2 =>
        simp [List.findIdx?_eq_some_iff_getElem] at h2; rcases h2 with ⟨hi, h2, h3⟩
        simp [List.getElem?_eq_getElem hi] at h1
@@ -1170,7 +1172,17 @@ theorem lookup_openm_index_supCls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
        split at h2
        split at h1 <;> try simp at h1
        · split at h2 <;> try simp at h1
-         case _ => sorry -- apply ih h1 h2
+         case _ =>
+           split at h2 <;> try simp at h2
+           case _ h =>
+             split at h1 <;> try simp at h1
+             apply ih h1 h2
+             case _ i h3 =>
+               simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
+               simp [List.getElem?_eq_getElem hi] at h1
+           case _ i h3 =>
+             simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
+             simp [List.getElem?_eq_getElem hi] at h2
          case _ i h3 =>
          simp [List.findIdx?_eq_some_iff_getElem] at h3; rcases h3 with ⟨hi, h3, h4⟩
          simp [List.getElem?_eq_getElem hi] at h2
@@ -1281,7 +1293,7 @@ theorem lookup_openm_index_funDep {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   (∃ j, ∃ (h : j < fds.length), fds[j].1 = mn)
 := by sorry
 
-theorem get_all_odata_exhaustive {Γ : GlobalEnv} (wf : ⊢ Γ):
+theorem get_all_odata_exhaustive {Γ : GlobalEnv} :
    Intermediate.lookup_ctor? Γ Core.DataConst.opn q T ->
    T.spine = some (cls, tys) ->
    ∃ (i n1 n2 : Nat), (get_all_odata cls Γ)[i]? = some (q, n1, n2)
@@ -1294,8 +1306,7 @@ theorem get_all_odata_exhaustive {Γ : GlobalEnv} (wf : ⊢ Γ):
     case _ ne =>
       replace ne : (q = iname) = False := by grind
       simp [ne] at h1;
-      cases wf; case _ wftl _ =>
-      replace ih := ih wftl h1; rcases ih with ⟨i, n1, n2, ih⟩;
+      replace ih := ih h1; rcases ih with ⟨i, n1, n2, ih⟩;
       simp [ns]; exists i + 1; exists n1; exists n2
     case _ e => subst e; simp at h1; exists 0; simp
   case _ iname _ _ _ _ _ _ _ _ _ _ _ ns h3 ih =>
@@ -1303,8 +1314,7 @@ theorem get_all_odata_exhaustive {Γ : GlobalEnv} (wf : ⊢ Γ):
     case _ =>
       replace ne : (q = iname) = False := by grind
       simp [ne] at h1
-      cases wf; case _ wftl _ =>
-      replace ih := ih wftl h1; rcases ih with ⟨i, n1, n2, ih⟩;
+      replace ih := ih h1; rcases ih with ⟨i, n1, n2, ih⟩;
       simp [ns]; exists i; exists n1; exists n2
     case _ e =>
       subst e
@@ -1324,14 +1334,45 @@ theorem get_all_odata_exhaustive {Γ : GlobalEnv} (wf : ⊢ Γ):
         case _ h => rcases h with ⟨i, ⟨h1, h2⟩, h3⟩; subst h1 h2; simp [Entry.ctor?] at h1
         case _ h =>
         rcases h with ⟨h2, h3⟩;
-        cases wf; case _ wf _ =>
-        replace ih := ih wf; simp [h2] at ih; replace ih := ih h1; apply ih
+        simp [h2] at ih; replace ih := ih h1; apply ih
       case _ =>
         subst q; simp at zdef; subst z; simp [Entry.ctor?]at h1
-    case _ => -- defn
-      sorry
-    case _ => -- cls
-      sorry
+    case _ a _ => -- defn
+      cases decEq q a.name
+      case _ =>
+        have ne : (q = a.name) = False := by grind
+        simp [ne] at zdef;
+        subst z; apply ih h1
+      case _ =>
+        subst q; simp at zdef; subst z; simp [Entry.ctor?]at h1
+    case _ a _ => -- cls
+      cases decEq q a.name
+      case _ =>
+        have ne : (q = a.name) = False := by grind
+        simp [ne] at zdef;
+        split at zdef <;> try simp at zdef
+        case _ =>
+          split at zdef <;> try simp at zdef
+          case _ =>
+            split at zdef <;> try simp at zdef
+            subst z; apply ih h1
+            case _ i h =>
+              simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, h3⟩; subst h;
+              split at zdef <;> try simp at *
+              subst z; apply ih h1
+              subst z; simp [Entry.ctor?] at h1
+          case _ i h =>
+            simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, h3⟩; subst h;
+            split at zdef <;> try simp at *
+            subst z; apply ih h1
+            subst z; simp [Entry.ctor?] at h1
+        case _ i h =>
+          simp [List.findIdx?_eq_some_iff_getElem] at h; rcases h with ⟨hi, h, h3⟩; subst h;
+          split at zdef <;> try simp at *
+          subst z; simp [Entry.ctor?] at h1
+          subst z; apply ih h1
+      case _ =>
+        subst q; simp at zdef; subst z; simp [Entry.ctor?] at h1
     case _ c => exfalso; apply c; rfl
 
 

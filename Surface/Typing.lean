@@ -1,7 +1,6 @@
 import LeanSubst
 import Common.Vec
 
--- import Surface.Ty
 import Surface.Term
 import Surface.Global
 

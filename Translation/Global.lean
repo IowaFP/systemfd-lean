@@ -187,8 +187,7 @@ def translate_SI : Surface.GlobalEnv -> TM Intermediate.GlobalEnv
   let Γ' <- translate_SI Γ
   if (Intermediate.lookup s Γ').isNone
   then
-    -- let od : Intermediate.Global := .odata s (mk_cls_kind Ks)
-    let fds := fds.map (λ (n, dms, det) => ⟨n, dms, det, Surface.mk_fd_om s Ks dms det⟩) -- fds.map (λ ⟨n, _, dems, det⟩ => ⟨n, (mk_fds_om s Ks dems det)⟩)
+    let fds := fds.map (λ (n, dms, det) => ⟨n, dms, det, Surface.mk_fd_om s Ks dms det⟩)
     let scs := scs.map (λ (n, sc, params) =>  ⟨n, (Surface.mk_superclass_om s Ks sc params)⟩)
     if check_oms mτs then
       let mτs := mτs.map (λ (n, spTy) =>  ⟨n, (Surface.mk_method_om s Ks spTy)⟩)
@@ -357,8 +356,6 @@ def mk_inst_fds_IC (G : Core.GlobalEnv) :
       return (i' :: ms')
       else .error "mk_inst_fds_IC scs lookup"
   | _ => .error "mk_inst_fds_IC scs lookup"
-
-
 
 
 def translate_IC : Intermediate.GlobalEnv -> TM Core.GlobalEnv
