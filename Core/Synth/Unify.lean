@@ -36,7 +36,7 @@ def unify1 (t u : Ty) : Option (Subst Ty) := match t, u with
 | .arrow x1 y1, .arrow x2 y2 | .app x1 y1, .app x2 y2 => do
   let σ1 <- unify1 x1 x2
   let σ2 <- unify1 y1 y2
-  return σ1 ∘ σ2 -- hint: what is compose here?
+  return σ1 ∘ σ2
 | .eq k1 x1 y1, .eq k2 x2 y2 =>
   if k1 == k2 then do
   let σ1 <- unify1 x1 x2
@@ -46,11 +46,16 @@ def unify1 (t u : Ty) : Option (Subst Ty) := match t, u with
 | _, _ => none
 
 
+#eval do let σ <- unify1 (t#0 -:> t#0) (gt#"Bool" -:> gt#"Int")
+         return (t#0)[σ]
+
+#eval do let σ : Subst Ty := ⟨λ x => if x == 0 then .su gt#"Int" else .su t#x⟩ ∘ ⟨λ x => if x == 0 then .su gt#"Bool" else .su t#x⟩
+         return (t#0)[σ]
+
 -- What are the ways to fix this definition?
 -- 1. carry around a support of the substitution and then check that
---    at the intersection of the substitutions at the support is consistent
+--    at the intersection of the supports of the substitution is consistent
 -- 2. Thread the substitution (below)
-
 
 -- Proving termination for this is going to be very annoying
 partial def unify' (t u : Ty) : Option (Subst Ty) := match t, u with
@@ -70,6 +75,9 @@ partial def unify' (t u : Ty) : Option (Subst Ty) := match t, u with
 -- termination_by (Ty.size t + Ty.size u)
 -- decreasing_by
 --   all_goals (simp [Ty.size] at *; omega)
+
+#eval do let σ <- unify' (t#0 -:> t#0) (gt#"Bool" -:> gt#"Int")
+         return (t#0)[σ]
 
 
 /-- Contains 2 things, the unprocessed equalties, and the substitution itself (normal forms from TRAAT) -/
@@ -840,7 +848,7 @@ theorem Unifier.substituion_lemma :
   G&Δ ⊢ t : K ->
   G&Δ ⊢ u : K ->
   Unifier σ t u ->
-  G&Δ ⊢ t[σ] : K ∧ G&Δ ⊢ u[σ] : K
+  G&Δ ⊢ t[σ] : K
 | .var j1, j => by
   intro u; simp [Unifier] at u; simp; sorry
 | j, .var j1 => sorry
