@@ -97,7 +97,7 @@ noncomputable def UnifyState.eqnSize : UnifyState -> Nat
 | ⟨_, eqns⟩ => eqnsSize eqns
 
 @[simp]
-noncomputable def isVar : Ty -> Bool
+def isVar : Ty -> Bool
 | t#_ => true
 | _ => false
 
@@ -109,11 +109,15 @@ noncomputable def isVar : Ty -> Bool
 
 -- however in this implementation, (t = x) and (x = t) are treated as "solved" form
 -- so we do not need n3 in our termination measure.
--- This might bite me somewhere else while proving things, or may be not,
--- we well see...
+
 -- We use the following as the termination meaure instead
 -- n1 = number of variables in the equations
 -- n2 = cumulative size of the terms in equations
+
+
+-- This might bite me somewhere else while proving things, or may be not,
+-- we well see...
+
 
 @[simp]
 def freeVars : Ty -> Finset Nat
@@ -557,6 +561,12 @@ decreasing_by apply loopUnifyDecreases ⟨h, h1⟩ h2
 def unify (t u : Ty) : Option (Subst Ty) :=
   loopUnify ⟨Subst.id Ty, [(t, u)]⟩
 
+#eval do let σ <- unify (t#0 -:> t#0) (gt#"Bool" -:> gt#"Int")
+         return (t#0)[σ]
+
+#eval do let σ <- unify (t#0 -:> t#1) (gt#"Bool" -:> gt#"Int")
+         return (t#0)[σ]
+
 
 @[simp]
 abbrev EqnsUnifier (σ : Subst Ty) : List (Ty × Ty) -> Prop
@@ -631,15 +641,56 @@ theorem unifyFails_implies_unifyStep_error (h : u.nonEmptyEqns ∧ UnifyStateWf 
 --   sorry
 --   sorry
 
-
 -- theorem UnifierIdempotent_disjoint_domain_range :
 --   UnifierIdempotent σ ->
 --   ∀ x, σ.act x = su t#x
 --   ∨ (∀ y, t ≠ t#y) -> σ.act x = su t -> t[σ] = t := by sorry
 
-theorem UnifierIdempotent_extension :
+theorem subst_for_non_free_variable {σ : Subst Ty} (x : Nat) (t t': Ty) :
+  t.isNotAll ->
+  x ∉ t ->
+  σ = ⟨λ y => if x = y then .su t' else .su t#y⟩ ->
+  t = t[σ]
+:= by
+  intro h1 h2 e
+  subst e
+  induction t <;> try simp [isNotAll] at *
+  case var i =>
+    have lem : (x ≠ i) := by intro h; apply h2; subst h; constructor
+    replace lem : (x = i) = False := by grind
+    simp [lem]
+
+  case arrow a b ih1 ih2 =>
+    have lem1 : x ∉ a := by
+      intro h; apply h2; apply FV.arrowr; assumption
+    have lem2 : x ∉ b := by
+      intro h; apply h2; apply FV.arrowl; assumption
+    apply And.intro
+    apply ih1 h1.1 lem1
+    apply ih2 h1.2 lem2
+
+  case app a b ih1 ih2 =>
+    have lem1 : x ∉ a := by
+      intro h; apply h2; apply FV.appr; assumption
+    have lem2 : x ∉ b := by
+      intro h; apply h2; apply FV.appl; assumption
+    apply And.intro
+    apply ih1 h1.1 lem1
+    apply ih2 h1.2 lem2
+
+  case eq a b ih1 ih2 =>
+    have lem1 : x ∉ a := by
+      intro h; apply h2; apply FV.eqr; assumption
+    have lem2 : x ∉ b := by
+      intro h; apply h2; apply FV.eql; assumption
+    apply And.intro
+    apply ih1 h1.1 lem1
+    apply ih2 h1.2 lem2
+
+
+theorem UnifierIdempotent_extension (wf : t.isNotAll):
   UnifierIdempotent σ ->
-  ((var i)[σ]) = t#i ->
+  (σ.act i) = .su t#i ->
   i ∉ t ->
   UnifierIdempotent (σ ∘ ⟨λ y => if i = y then su t else .su t#y⟩)
 := by
@@ -647,18 +698,23 @@ theorem UnifierIdempotent_extension :
   simp [UnifierIdempotent, UnifierOfSubst]
   simp [UnifierIdempotent, UnifierOfSubst] at h1
   intro x
+  replace h1 := h1 x
+  conv =>
+    rhs
+    rw[h1]
+
   -- have lem := Subst.disjoint_ext h2 h3 x
   -- have lem2 := Subst.disjoint_ext_idemp h2 h3 rfl
   cases decEq x i
   case _ =>
     have e : (x = i) = False := by grind
-    replace h1 := h1 x;
 
     sorry
   case _ e =>
     subst x;
-    simp [h2] at *;
-    replace h1 := h1 i
+    rw[h2]; simp
+    -- have lem := subst_for_non_free_variable i t t wf h3
+
     conv =>
      lhs
     sorry
@@ -686,7 +742,7 @@ theorem unifyStep_idempotency {u u': UnifyState} (precon : u.nonEmptyEqns ∧ Un
     simp at hi; simp;
     rcases h1 with ⟨h1, h2⟩
     simp [not_in_freeVars_iff_not_FV x h2] at h1
-    apply UnifierIdempotent_extension hi _ h1
+    apply UnifierIdempotent_extension h2 hi _ h1
     simp [UnifierIdempotent, UnifierOfSubst] at hi;
     sorry
   · intro l x t h1 ih precon hi h
@@ -696,7 +752,7 @@ theorem unifyStep_idempotency {u u': UnifyState} (precon : u.nonEmptyEqns ∧ Un
     simp at hi; simp;
     rcases h1 with ⟨h1, h2⟩
     simp [not_in_freeVars_iff_not_FV x h2] at h1
-    apply UnifierIdempotent_extension hi _ h1
+    apply UnifierIdempotent_extension h2 hi _ h1
     sorry
   · intro l x y ih precon hi h
     simp at h;
