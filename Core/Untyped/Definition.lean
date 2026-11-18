@@ -152,7 +152,7 @@ notation:160 G:160 " ⊢ " t:160 " ~> " t':160 => Red G t t'
 
 inductive RedOpt (G : GlobalEnv) : Term -> Term -> Prop where
 | refl : RedOpt G x x
-| step : Red G x y -> RedOpt G x z
+| step : Red G x y -> RedOpt G x y
 
 notation:160 G:160 " ⊢ " t:160 " ~>? " t':160 => RedOpt G t t'
 

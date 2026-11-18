@@ -312,16 +312,28 @@ theorem GlobalEnv.erasure_ty (wf : ⊢ G) :
   apply lookup_erasure wf h1
   rfl
 
+-- theorem erasure_well_def (wf : ⊢ G)
+
+
+-- theorem erasure_disjoint_index (wf : ⊢ G) (i j : Fin m): 
+--   j ≠ i → ss j = ss' j
+--   → ⟦ss j⟧ = ⟦ss' j⟧
+--
 -- Top to bottom: JUST question mark
 -- Bottom to top should be star. Might be arbitrarily any steps at the top
 -- TODO: explore bisimulations
 theorem erasure (wf : ⊢ G) :
   G ⊢ t1 ~> t2 → ⟦G⟧ ⊢ ⟦t1⟧ ~>? ⟦t2⟧
-| .beta => .step .beta
+-- TODO: determine why this broke!
+| .beta => by sorry
+    -- simp
+    -- .step .beta
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | @Red.betat G t A b => by
   rw [erasure_subst_ty_su b t]
-  exact .step .beta
+  simp
+  sorry
+  -- exact .step .beta
 | .cast => .refl
 | .prj_fst_app | .prj_snd_app => .refl
 | .prj_fst_arr | .prj_snd_arr => .refl
@@ -370,11 +382,11 @@ theorem erasure (wf : ⊢ G) :
     rw[hss', hss] at e
     cases e
     case _ =>
-      have hfs : (fun n => ⟦ss n⟧) =  (fun n => ⟦ss' n⟧) := by
-        funext x
-        grind
+      have hfs : (fun n => ⟦ss n⟧) =  (fun n => ⟦ss' n⟧) := by grind
       rw[hfs]
       .exact .refl
     case _ st =>
-      -- exact .step (@Untyped.Red.match_congr ⟦G⟧ m ⟦ss'⟧ n ⟦ps⟧ ⟦bs⟧ ⟦ss⟧ i st) | _ => sorry
-      sorry
+      rw[←hss', ←hss] at st
+      exact .step (@Untyped.Red.match_congr ⟦G⟧ m ⟦ss'⟧ n ⟦ps⟧ ⟦bs⟧ ⟦ss⟧ i st sorry)
+| _ => sorry
+
