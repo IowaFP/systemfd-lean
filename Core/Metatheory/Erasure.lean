@@ -14,7 +14,7 @@ theorem erasure (wf : ⊢ G) :
 -- TODO: determine why this broke!
 | .beta (b := b) (t := t) => by
     simp
-    rw[erasure_sub_tm b]
+    rw[erasure_sub_tm_su b]
     exact .step .beta
 | @Red.betat G t A b => by
   rw [erasure_subst_ty_su b t]

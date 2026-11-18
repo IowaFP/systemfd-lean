@@ -46,6 +46,15 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
+theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
+  ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧]     := by 
+    sorry
+
+theorem erasure_sub_tm_su (b : Term) :
+  ⟦b[su t :: Subst.id Term]⟧
+  = ⟦b⟧[su ⟦t⟧ :: Subst.id Untyped.Term]  := by 
+    sorry
+
 theorem GlobalEnv.lookup_singleton_defn_some :
   lookup x [.defn x a t] = some (.defn x a t) := by simp[lookup]
 
@@ -61,11 +70,20 @@ theorem GlobalEnv.lookup_singleton_some_eq :
 theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
 
-theorem GlobalEnv.lookup_data:
+theorem GlobalEnv.lookup_ctors_vec (vn : Vec (Option Entry) n)
+:
+ Vec.foldr Option.or none vn =
+  some (Entry.data y K ctors) := by sorry
+
+theorem GlobalEnv.lookup_data :
   lookup x [.data n y K ctors] = some (.data y K ctors) := by 
   simp[lookup]
-  intros
+  intros hnxy
   sorry
+  -- generalize hvn : (Vec.map (fun x_1 => if x = x_1.1.fst then some (Entry.ctor x_1.1.fst x_1.snd x_1.1.snd) else none)
+  --       ctors.zipIdx) = vn
+  --
+  -- apply GlobalEnv.lookup_ctors_vec vn
 
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
@@ -113,7 +131,10 @@ theorem GlobalEnv.lookup_from_some :
     case _ => 
       rw[←tail_eq] at h
       contradiction
-    case _ => sorry
+    case _ => 
+      subst tail_eq
+      dsimp[lookup] at h
+      sorry
   case h_3 heq => 
     split at h
     injection h; contradiction
@@ -223,10 +244,4 @@ theorem GlobalEnv.erasure_ty (wf : ⊢ G) :
   rfl
 
 -- theorem erasure_well_def (wf : ⊢ G)
-
-theorem erasure_sub_tm (b : Term) :
-  ⟦b[su t :: Subst.id Term]⟧
-  = ⟦b⟧[su ⟦t⟧ :: Subst.id Untyped.Term]  := by 
-    sorry
-
 
