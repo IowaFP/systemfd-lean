@@ -131,16 +131,34 @@ theorem GlobalEnv.lookup_singleton_some_eq :
 theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
 
+theorem GlobalEnv.lookup_data:
+  lookup x [.data n y K ctors] = some (.data y K ctors) := by 
+  simp[lookup]
+  intros
+  sorry
+
+theorem GlobalEnv.lookup_odata:
+  lookup x [.odata n y] = some (.odata n y) := by 
+  simp[lookup]
+  sorry
+
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
   → x = y
   := by
   intros h
-  unfold lookup at h
-  split at h
-  case _ => contradiction
-  case _ => sorry
-  case _ => sorry
+  cases g
+  case _ n y K ctors => 
+    have h2 := @GlobalEnv.lookup_data x n y K ctors
+    rw[h2] at h
+    grind
+  case _ => 
+    unfold lookup at h
+    sorry
+  -- case _ _ n y K ctors _ heq => 
+  --   injection heq with head_eq
+  --
+  --   sorry
   case _ => sorry
   case _ => sorry
   case _ => sorry
