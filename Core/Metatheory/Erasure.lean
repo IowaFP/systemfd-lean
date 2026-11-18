@@ -139,11 +139,6 @@ theorem GlobalEnv.lookup_data:
   intros
   sorry
 
-theorem GlobalEnv.lookup_odata:
-  lookup x [.odata n y] = some (.odata n y) := by 
-  simp[lookup]
-  sorry
-
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
   → x = y
@@ -319,6 +314,10 @@ theorem GlobalEnv.erasure_ty (wf : ⊢ G) :
 
 -- theorem erasure_well_def (wf : ⊢ G)
 
+theorem erasure_sub_tm (b : Term) :
+  ⟦b[su t :: Subst.id Term]⟧
+  = ⟦b⟧[su ⟦t⟧ :: Subst.id Untyped.Term]  := by 
+    sorry
 
 -- theorem erasure_disjoint_index (wf : ⊢ G) (i j : Fin m): 
 --   j ≠ i → ss j = ss' j
@@ -330,15 +329,16 @@ theorem GlobalEnv.erasure_ty (wf : ⊢ G) :
 theorem erasure (wf : ⊢ G) :
   G ⊢ t1 ~> t2 → ⟦G⟧ ⊢ ⟦t1⟧ ~>? ⟦t2⟧
 -- TODO: determine why this broke!
-| .beta => by sorry
-    -- simp
+| .beta (b := b) (t := t) => by
+    simp
+    rw[erasure_sub_tm b]
+    exact .step .beta
     -- .step .beta
 -- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | @Red.betat G t A b => by
   rw [erasure_subst_ty_su b t]
   simp
-  sorry
-  -- exact .step .beta
+  exact .step sorry
 | .cast => .refl
 | .prj_fst_app | .prj_snd_app => .refl
 | .prj_fst_arr | .prj_snd_arr => .refl
@@ -375,10 +375,6 @@ theorem erasure (wf : ⊢ G) :
 --   Red G (ts i) (ts' i) ->
 --   (∀ j ≠ i, ts j = ts' j) ->
 --   Red G (openm! x Ts1 Ts2 ts) (openm! x Ts1 Ts2 ts')
--- | match_congr {ss : Fun.Vec Term m} i :
---   Red G (ss i) (ss' i) ->
---   (∀ j ≠ i, ss j = ss' j) ->
---   Red G (.mtch m n ss ps bs) (.mtch m n ss' ps bs)
 | @Red.match_congr G m ss' n ps bs ss i st a => by
     simp
     generalize hss' : ⟦ss' i⟧ = x'
