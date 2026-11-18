@@ -59,7 +59,9 @@ def GlobalEnv.erase (G : GlobalEnv) := Global.erase <$> G
 notation "⟦" e "⟧" => Term.erase e
 notation "⟦" g "⟧" => Global.erase g
 notation "⟦" G "⟧" => GlobalEnv.erase G
-notation "⟦" pmn "⟧" => Pattern.erase pmn
+notation "⟦" pm "⟧" => Pattern.erase pm
+notation "⟦" vm "⟧" => Term.erase <$> vm
+notation "⟦" pmn "⟧" => Pattern.erase <$> pmn
 
 theorem Pattern.erasure_subst (σ : Subst Ty) : (m : Nat) → (pmn : Pattern m) →
   ⟦pmn.smap σ⟧ = pmn.erase
@@ -362,6 +364,17 @@ theorem erasure (wf : ⊢ G) :
 --   Red G (.mtch m n ss ps bs) (.mtch m n ss' ps bs)
 | @Red.match_congr G m ss' n ps bs ss i st a => by
     simp
-    -- exact .step (@Red.match_congr G m ss' n ps bs ss i (erasure wf st))
-    sorry
-| _ => sorry
+    generalize hss' : ⟦ss' i⟧ = x'
+    generalize hss : ⟦ss i⟧ = x
+    let e := erasure wf st
+    rw[hss', hss] at e
+    cases e
+    case _ =>
+      have hfs : (fun n => ⟦ss n⟧) =  (fun n => ⟦ss' n⟧) := by
+        funext x
+        grind
+      rw[hfs]
+      .exact .refl
+    case _ st =>
+      -- exact .step (@Untyped.Red.match_congr ⟦G⟧ m ⟦ss'⟧ n ⟦ps⟧ ⟦bs⟧ ⟦ss⟧ i st) | _ => sorry
+      sorry
