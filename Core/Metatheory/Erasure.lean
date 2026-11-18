@@ -119,10 +119,10 @@ theorem Untyped.lookup_append_weaken_right :
       exact ih h
 
 theorem GlobalEnv.lookup_singleton_defn_some :
-  lookup x [Global.defn x a t] = some (.defn x a t) := by simp[lookup]
+  lookup x [.defn x a t] = some (.defn x a t) := by simp[lookup]
 
 theorem GlobalEnv.lookup_singleton_some_eq :
-  lookup x1 [Global.defn y a1 t1] = some (.defn x2 a2 t2)
+  lookup x1 [.defn y a1 t1] = some (.defn x2 a2 t2)
   → x1 = y ∧ x1 = x2 ∧ a1 = a2 ∧ t1 = t2 := by
   unfold lookup
   intros h
@@ -154,17 +154,22 @@ theorem GlobalEnv.lookup_singleton_elim :
     have h2 := @GlobalEnv.lookup_data x n y K ctors
     rw[h2] at h
     grind
+  -- TODO: how to remove the case where list is empty?
   case _ => 
     unfold lookup at h
-    sorry
-  -- case _ _ n y K ctors _ heq => 
-  --   injection heq with head_eq
-  --
-  --   sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
-  case _ => sorry
+    split at h <;> try (first | simp at h | contradiction)
+  case _ => 
+    unfold lookup at h
+    split at h <;> try (first | simp at h | contradiction)
+  case _ => 
+    have _ := GlobalEnv.lookup_singleton_some_eq h
+    grind
+  case _ =>  
+    rw[GlobalEnv.lookup_inst_none] at h
+    contradiction
+  case _ => 
+    unfold lookup at h
+    split at h <;> try (first | simp at h | contradiction)
 
 theorem GlobalEnv.lookup_from_some :
   lookup x [g] = some (.defn x a t)
