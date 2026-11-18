@@ -97,27 +97,6 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
-theorem Untyped.lookup_append_weaken_right :
-  Untyped.lookup x G1 = some e → Untyped.lookup x (G1++G2) = some e := by
-  intro h
-  induction G1
-  simp[Untyped.lookup] at h
-  case _ head tail ih =>
-    cases head; simp
-    · simp [Untyped.lookup] at h; split at h <;> try simp at h
-      case _ e => subst x; simp; apply h
-      case _ e =>
-        simp [e];
-        apply ih h
-    case _ m s pm t => 
-      simp [Untyped.lookup]
-      simp [Untyped.lookup] at h
-      exact ih h
-    case _=> 
-      simp [Untyped.lookup]
-      simp [Untyped.lookup] at h
-      exact ih h
-
 theorem GlobalEnv.lookup_singleton_defn_some :
   lookup x [.defn x a t] = some (.defn x a t) := by simp[lookup]
 
@@ -207,17 +186,6 @@ theorem GlobalEnv.lookup_nomatch :
   rw[h2] at h
   contradiction
 
-theorem Untyped.lookup_singleton_elim :
-  Untyped.lookup x [g] = some (.defn y t)
-  → x = y
-  := by 
-  intros h
-  unfold Untyped.lookup at h
-  split at h
-  contradiction
-  case _ => sorry
-  case _ => sorry
-
 theorem lookup_erasure_singleton_some :
  lookup x [g] = some (.defn y a t)
   → Untyped.lookup x [⟦g⟧] = some (.defn y ⟦t⟧)
@@ -254,13 +222,6 @@ theorem lookup_erasure_singleton_none :
     case h_1 => exact GlobalEnv.lookup_nomatch h
     case h_2 => simp
     case h_3 => simp
-
-theorem Untyped.lookup_elim_left (G : List Untyped.Global) :
-  Untyped.lookup x G' = none
-  → Untyped.lookup x (G'++G) = Untyped.lookup x G
-  := by
-    intros h
-    sorry
 
 theorem wf_weaken (wf : ⊢ (h :: ts)) : ⊢ ts := by 
   cases wf
@@ -333,12 +294,21 @@ theorem erasure (wf : ⊢ G) :
     simp
     rw[erasure_sub_tm b]
     exact .step .beta
-    -- .step .beta
--- | betat : Red G ((Λ[A] b) •[t]) b[su t::+0σ]
 | @Red.betat G t A b => by
   rw [erasure_subst_ty_su b t]
   simp
-  exact .step sorry
+  -- TODO: show that 0 is free in b 
+  -- (substitution has no var)
+  -- See Apoorv lemma + erasure on substitution.
+  -- Need to generalize to arbitrary number of typed lambdas AND patterns.
+  -- Something similar to prove strengthening.
+  -- Look at Core.Ty.FreeVars
+  -- FV.var_not_in_one_more -> use this generalization
+  --
+  -- let h2 := Untyped.RedOpt.step (@Untyped.Red.beta ⟦G⟧ (λ⟦b⟧) .unit)
+  -- simp at h2
+  -- exact .step sorry
+  sorry
 | .cast => .refl
 | .prj_fst_app | .prj_snd_app => .refl
 | .prj_fst_arr | .prj_snd_arr => .refl
@@ -360,6 +330,8 @@ theorem erasure (wf : ⊢ G) :
 | .ctor1_congr (v := .prj _) s => by apply erasure wf s
 | .apptc_congr1 _ | .apptc_congr2 _ | .cast_congr _ => .refl
 | .allc_congr s => by apply erasure wf s
+-- Maybe prove: type variable doesn't show up anywhere (easier?)
+--
 -- | data_match {ss : Fun.Vec Term m} {ps : Fun.Vec (Pattern m) n} :
 --   Term.IsData .cls ss.to ctors ->
 --   Pattern.Match ctors (ps i) ->
