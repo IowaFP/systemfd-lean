@@ -15,7 +15,7 @@ open LeanSubst
 
 namespace LeanSubst
 
-def Subst.Dom (σ : Subst Core.Ty) := ∀ i, Core.Ty.from_action (σ.act i) ≠ t#i
+-- def Subst.Dom (σ : Subst Core.Ty) := ∀ i, Core.Ty.from_action (σ.act i) ≠ t#i
 
 end LeanSubst
 
@@ -26,27 +26,50 @@ namespace Core.Ty
 -- σ is a unifier for t and u if t[σ] = u[σ]
 def Unifier (σ : Subst Ty) (t u : Ty) : Prop := t[σ] = u[σ]
 
+def Unify (t u : Ty) := ∃ σ, Unifier σ t u
 
--- def Unify (t u : Core.Ty) := ∃ σ : Subst Ty, t[σ] = u[σ]
 
--- what about most general unifier?
-
---
--- Proving termination for this is going to be very annoying
-partial def unify' : (t u : Ty) -> Option (Subst Ty)
-| .var x, t => return ⟨λ y => if x == y then su t else su t#x⟩
+-- What is wrong with this function?
+def unify1 (t u : Ty) : Option (Subst Ty) := match t, u with
+| .var x, t => if Core.Ty.fv t x then none else return ⟨λ y => if x == y then su t else su t#y⟩
 | .global x, .global y => if x == y then return Subst.id Ty else none
 | .arrow x1 y1, .arrow x2 y2 | .app x1 y1, .app x2 y2 => do
-  let σ1 <- unify' x1 y1
-  let σ2 <- unify' x2 y2
-  return σ1 ∘ σ2
+  let σ1 <- unify1 x1 x2
+  let σ2 <- unify1 y1 y2
+  return σ1 ∘ σ2 -- hint: what is compose here?
 | .eq k1 x1 y1, .eq k2 x2 y2 =>
   if k1 == k2 then do
-  let σ1 <- unify' x1 y1
-  let σ2 <- unify' x2 y2
+  let σ1 <- unify1 x1 x2
+  let σ2 <- unify1 y1 y2
   return σ1 ∘ σ2
   else none
 | _, _ => none
+
+
+-- What are the ways to fix this definition?
+-- 1. carry around a support of the substitution and then check that
+--    at the intersection of the substitutions at the support is consistent
+-- 2. Thread the substitution (below)
+
+
+-- Proving termination for this is going to be very annoying
+partial def unify' (t u : Ty) : Option (Subst Ty) := match t, u with
+| .var x, t => if Core.Ty.fv t x then none else return ⟨λ y => if x == y then su t else su t#y⟩
+| .global x, .global y => if x == y then return Subst.id Ty else none
+| .arrow x1 y1, .arrow x2 y2 | .app x1 y1, .app x2 y2 => do
+  let σ1 <- unify' x1 x2
+  let σ2 <- unify' y1[σ1] y2[σ1] -- size of y1[σ1] <? size of x1 + size of y1
+  σ2
+| .eq k1 x1 y1, .eq k2 x2 y2 =>
+  if k1 == k2 then do
+  let σ1 <- unify' x1 x2
+  let σ2 <- unify' y1[σ1] y2[σ1]
+  return σ2
+  else none
+| _, _ => none
+-- termination_by (Ty.size t + Ty.size u)
+-- decreasing_by
+--   all_goals (simp [Ty.size] at *; omega)
 
 
 /-- Contains 2 things, the unprocessed equalties, and the substitution itself (normal forms from TRAAT) -/
@@ -80,7 +103,7 @@ noncomputable def isVar : Ty -> Bool
 -- so we do not need n3 in our termination measure.
 -- This might bite me somewhere else while proving things, or may be not,
 -- we well see...
--- instead we use the following as the termination meaure
+-- We use the following as the termination meaure instead
 -- n1 = number of variables in the equations
 -- n2 = cumulative size of the terms in equations
 
@@ -147,8 +170,6 @@ theorem in_freeVars_iff_FV : ∀ x : Nat, T.isNotAll -> (x ∈ freeVars T <-> x 
   case _ t1 t2 => exfalso; apply h2 t1 t2 rfl
   case _ k t1 t2 => exfalso; apply h4 k t1 t2 rfl
 
-
-
 -- There is a connection between Ty.FV and freeVars
 theorem not_in_freeVars_iff_not_FV : ∀ x : Nat, T.isNotAll -> (x ∉ freeVars T <-> x ∉ T)
 := by
@@ -187,8 +208,8 @@ def unifyStep (u : UnifyState) (h : u.nonEmptyEqns ∧ UnifyStateWf u) : UResult
   | [] => by simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h.1 h1
   | .cons (t#x, t) eqs | .cons (t, t#x) eqs =>
     if (x ∉ freeVars t) ∧ t.isNotAll
-    then let τ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
-    return ⟨u.subst ∘ τ, eqs.map (λ (t, u) => (t[τ], u[τ]))⟩
+    then let σ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
+    return ⟨u.subst ∘ σ, eqs.map (λ (t, u) => (t[σ], u[σ]))⟩
     else .error (t#x, t)
 
   | .cons (gt#x, gt#y) eqs => if x == y then return ⟨u.subst, eqs⟩ else .error (gt#x, gt#y)
@@ -198,16 +219,6 @@ def unifyStep (u : UnifyState) (h : u.nonEmptyEqns ∧ UnifyStateWf u) : UResult
   | .cons (.eq k1 x1 y1, .eq k2 x2 y2) eqs =>
     if k1 == k2 then return ⟨u.subst, (x1, x2) :: (y1, y2) :: eqs⟩ else .error (.eq k1 x1 y1, .eq k2 x2 y2)
   | .cons (t1, t2) tl => .error (t1, t2)
-
-@[simp, grind =]
-def unifyFails : Ty -> Ty -> Bool
-| t#_, _
-| _, t#_
-| gt#_, gt#_
-| _ -:> _, _ -:> _
-| .app _ _, .app _ _ => false
-| .eq k1 _ _, .eq k2 _ _ => k1 != k2
-| _ , _ => true
 
 theorem var_not_free_after_subst {t s : Ty} {x : Nat} {σ : Subst Ty}
   (h2 : x ∉ s)
@@ -535,6 +546,10 @@ def loopUnify (u : UnifyState) : Option (Subst Ty) :=
 termination_by (UnifyStateSize u)
 decreasing_by apply loopUnifyDecreases ⟨h, h1⟩ h2
 
+def unify (t u : Ty) : Option (Subst Ty) :=
+  loopUnify ⟨Subst.id Ty, [(t, u)]⟩
+
+
 @[simp]
 abbrev EqnsUnifier (σ : Subst Ty) : List (Ty × Ty) -> Prop
 | .nil => True
@@ -547,6 +562,15 @@ def UnifierIdempotent (σ : Subst Ty) : Prop := UnifierOfSubst σ σ
 def UnifierOfUnifyState (σ : Subst Ty) (u : UnifyState) : Prop :=
   UnifierOfSubst σ u.subst ∧ EqnsUnifier σ u.equations
 
+@[simp, grind =]
+def unifyFails : Ty -> Ty -> Bool
+| t#_, _
+| _, t#_
+| gt#_, gt#_
+| _ -:> _, _ -:> _
+| .app _ _, .app _ _ => false
+| .eq k1 _ _, .eq k2 _ _ => k1 != k2
+| _ , _ => true
 
 theorem eqns_ind {motive : List (Ty × Ty) -> Prop} (l : List (Ty × Ty))
   (h1   :                                motive [])
@@ -579,8 +603,6 @@ theorem unifyFails_implies_unifyStep_error (h : u.nonEmptyEqns ∧ UnifyStateWf 
   have e : (k1 = k2) = False := by grind
   simp [e]
 
-
-
 -- theorem Subst.disjoint_ext {σ : Subst Ty} (h1 : (σ.act i) = su t#i) (h2 : i ∉ t) :
 --   ∀ x, if x = i
 --   then  (σ ∘ ⟨λ y => if i = y then su t else .su t#y⟩).act x = su t
@@ -609,7 +631,7 @@ theorem unifyFails_implies_unifyStep_error (h : u.nonEmptyEqns ∧ UnifyStateWf 
 
 theorem UnifierIdempotent_extension :
   UnifierIdempotent σ ->
-  (σ.act i) = su t#i ->
+  ((var i)[σ]) = t#i ->
   i ∉ t ->
   UnifierIdempotent (σ ∘ ⟨λ y => if i = y then su t else .su t#y⟩)
 := by
@@ -619,21 +641,18 @@ theorem UnifierIdempotent_extension :
   intro x
   -- have lem := Subst.disjoint_ext h2 h3 x
   -- have lem2 := Subst.disjoint_ext_idemp h2 h3 rfl
-
   cases decEq x i
   case _ =>
     have e : (x = i) = False := by grind
+    replace h1 := h1 x;
 
     sorry
   case _ e =>
     subst x;
     simp [h2] at *;
     replace h1 := h1 i
-
     conv =>
      lhs
-
-
     sorry
 
 theorem unifyStep_subst_eqs_disjoint_domains {u u': UnifyState} (precon : u.nonEmptyEqns ∧ UnifyStateWf u)
@@ -757,7 +776,6 @@ theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempoten
 := by
   intro h
   have hi1 := loopUnify_idempotency hi h
-
   fun_induction loopUnify generalizing σ  <;> try simp at h
   case _ invh1 invh2 u' uss ih =>
     have lem := unifyStep_idempotency ⟨invh1, invh2⟩ hi uss
@@ -774,14 +792,12 @@ theorem loopUnify_sound {σ  : Subst Ty} {u : UnifyState} (hi : UnifierIdempoten
     · apply hi
     · simp [EqnsUnifier]
 
-def unify (t u : Ty) : Option (Subst Ty) :=
-  loopUnify ⟨Subst.id Ty, [(t, u)]⟩
-
 theorem Subst.id_idempotent : UnifierIdempotent (Subst.id Ty)
 := by
   simp [UnifierIdempotent, UnifierOfSubst]
 
-theorem Subst.id_wf {t u : Ty} (h1 : t.isNotAll) (h2 : u.isNotAll) : UnifyStateWf (⟨Subst.id Ty, [(t, u)]⟩) = true := by simp [UnifyStateWf]; grind
+theorem Subst.id_wf {t u : Ty} (h1 : t.isNotAll) (h2 : u.isNotAll)
+  : UnifyStateWf (⟨Subst.id Ty, [(t, u)]⟩) = true := by simp [UnifyStateWf]; grind
 
 theorem unify_soundness {t u : Ty} {σ  : Subst Ty}
   : unify t u = some σ -> Unifier σ t u
@@ -792,10 +808,12 @@ theorem unify_soundness {t u : Ty} {σ  : Subst Ty}
   simp [UnifierOfUnifyState] at h; rcases h with ⟨h1, h2⟩
   apply h2
 
+theorem unify_completeness {t u : Ty} {σ  : Subst Ty} :
+  Unifier σ t u -> unify t u = some σ'
+  -> ∃ (τ : Subst Ty), σ = σ' ∘ τ := by sorry
 
--- theorem unify_completeness {t u : Ty} {σ  : Subst Ty} :
---   Unifier σ t u -> unify t u = some σ'
---   -> ∃ (τ : Subst Ty), σ = σ' ∘ τ := by sorry
+theorem unify_none_implies_cannot_unify {t u : Ty} {σ : Subst Ty} :
+  unify t u = none -> ¬ Unify t u := by sorry
 
 
 theorem Unifier.kinded :
