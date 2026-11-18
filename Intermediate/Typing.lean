@@ -79,6 +79,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   -- class name is unique
   lookup s G = none ->
   -- method names are unique
+  -- TODO: Should i be saying that none of the method names are also not "loop"?
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < mτs.length)  -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
   (∀ i j: Nat, (hi : i < scτs.length) -> (hj : j < scτs.length) -> i ≠ j -> scτs[i].1 ≠ scτs[j].1) ->
   (∀ i j: Nat, (hi : i < fdτs.length) -> (hj : j < fdτs.length) -> i ≠ j -> fdτs[i].1 ≠ fdτs[j].1) ->
