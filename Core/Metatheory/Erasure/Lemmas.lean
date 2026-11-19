@@ -47,8 +47,13 @@ theorem erasure_subst_ty_su (b : Term)(t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
-  ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧]     := by 
+  ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧] := 
+  match b with
+  | #x => by
+    simp[Subst.act, SubstAction.act]
     sorry
+  -- | #x | d#x | .ctor0 _ => by rfl
+  | _ => sorry
 
 theorem erasure_sub_tm_su (b : Term) :
   ⟦b[su t :: Subst.id Term]⟧
@@ -141,11 +146,23 @@ theorem GlobalEnv.lookup_from_some :
     rw[←tail_eq] at h
     contradiction
   case h_4 heq =>
-    injection heq with head_eq
+    injection heq with _ tail_eq
+    split at h
+    simp at h
+    rw[←tail_eq] at h
+    contradiction
+  case h_5 heq =>
     sorry
-  case h_5 => sorry
-  case h_6 => sorry
-  case h_7 => sorry
+  case h_6 heq => 
+    injection heq with _ tail_eq
+    rw[←tail_eq] at h
+    contradiction
+  case h_7 heq => 
+    split at h
+    simp at h
+    injection heq with _ tail_eq
+    rw[←tail_eq] at h
+    contradiction
 
 theorem GlobalEnv.lookup_nomatch :
   lookup x [.defn y a t] = none → x ≠ y := by 
