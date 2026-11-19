@@ -4,7 +4,7 @@ import Core.Typing
 import Core.Metatheory.Global
 import Core.Reduction
 import Core.Untyped
-import Core.MetaTheory.Erasure.Definition
+import Core.Metatheory.Erasure.Definition
 
 open Lilac
 open LeanSubst
