@@ -70,8 +70,7 @@ theorem GlobalEnv.lookup_singleton_some_eq :
 theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
 
-theorem GlobalEnv.lookup_ctors_vec (vn : Vec (Option Entry) n)
-:
+theorem GlobalEnv.lookup_ctors_vec (vn : Vec (Option Entry) n) :
  Vec.foldr Option.or none vn =
   some (Entry.data y K ctors) := by sorry
 

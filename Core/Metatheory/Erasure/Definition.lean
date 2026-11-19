@@ -56,10 +56,16 @@ def Global.erase : Global → Untyped.Global
 @[simp]
 def GlobalEnv.erase (G : GlobalEnv) := Global.erase <$> G
 
+-- TODO: do we need to know
+-- what de Brujin indices
+-- we use for the untyped version?
+-- (So have a lookup for
+-- those indicies corresponding
+-- to types)?
 @[simp]
 def Action.erase : Action Term → Action Untyped.Term
-| re n => sorry
-| su t => sorry
+| re n => re n
+| su t => su t.erase
 
 @[simp]
 def Subst.erase (σ : Subst Term) : Subst Untyped.Term :=
