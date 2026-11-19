@@ -219,10 +219,12 @@ def unifyStep (u : UnifyState) (h : u.nonEmptyEqns ∧ UnifyStateWf u) : UResult
   match h1 : u.equations with
   | [] => by simp [UnifyState.nonEmptyEqns] at h; exfalso; apply h.1 h1
   | .cons (t#x, t) eqs | .cons (t, t#x) eqs =>
-    if (x ∉ freeVars t) ∧ t.isNotAll
-    then let σ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
-    return ⟨u.subst ∘ σ, eqs.map (λ (t, u) => (t[σ], u[σ]))⟩
-    else .error (t#x, t)
+    if t == t#x then return ⟨u.subst, eqs⟩
+    else
+      if (x ∉ freeVars t) ∧ t.isNotAll
+      then let σ : Subst Ty := ⟨λ y => if x == y then .su t else .su t#y⟩
+      return ⟨u.subst ∘ σ, eqs.map (λ (t, u) => (t[σ], u[σ]))⟩
+      else .error (t#x, t)
 
   | .cons (gt#x, gt#y) eqs => if x == y then return ⟨u.subst, eqs⟩ else .error (gt#x, gt#y)
   | .cons (.arrow x1 y1, .arrow x2 y2) eqs
@@ -349,6 +351,25 @@ theorem loopUnifyDecreases {u u' : UnifyState} (invh : u.nonEmptyEqns ∧ UnifyS
   cases lhsTy
   all_goals (simp [unifyStep] at h)
   case var v =>
+    split at h <;> try simp at h
+    case _ h =>
+      cases h; simp at h; subst h;
+      simp [UnifyState.nonEmptyEqns] at invh;
+      simp;
+      cases Nat.decLt (varsEqns tl).card (insert v (varsEqns tl)).card
+      case _ h =>
+        simp at h;
+        replace h := eq_or_lt_of_le h
+        cases h
+        case _ h => rw[h]; apply Prod.Lex.right; omega
+        case _ h =>
+          exfalso;
+          generalize sdef : varsEqns tl = s at *
+          have lem := Finset.card_insert_eq_ite (a := v) (s := s);
+          split at lem <;> simp [lem] at h
+          grind
+      case _ h => apply Prod.Lex.left; apply h
+    case _ h1 =>
     split at h <;> try simp at h
     case _ h1 =>
     rcases h1 with ⟨h1, h2⟩; cases h
@@ -561,11 +582,17 @@ decreasing_by apply loopUnifyDecreases ⟨h, h1⟩ h2
 def unify (t u : Ty) : Option (Subst Ty) :=
   loopUnify ⟨Subst.id Ty, [(t, u)]⟩
 
-#eval do let σ <- unify (t#0 -:> t#0) (gt#"Bool" -:> gt#"Int")
-         return (t#0)[σ]
+#eval! do
+  let σ <- unify (t#0 -:> t#0) (gt#"Bool" -:> gt#"Int")
+  return (t#0)[σ]
 
-#eval do let σ <- unify (t#0 -:> t#1) (gt#"Bool" -:> gt#"Int")
-         return (t#0)[σ]
+#eval! do
+  let σ <- unify (t#0 -:> t#1) (gt#"Bool" -:> gt#"Int")
+  return (t#0)[σ]
+
+#eval! do
+  let σ <- unify (t#0 -:> t#1) (t#0 -:> gt#"Int")
+  return (t#0)[σ]
 
 
 @[simp]
@@ -736,7 +763,10 @@ theorem unifyStep_idempotency {u u': UnifyState} (precon : u.nonEmptyEqns ∧ Un
   apply eqns_ind l
   · simp [UnifyState.nonEmptyEqns]
   · intro l x t ih precon hi h; clear ih
-    simp  at h; split at h <;> try simp at h
+    simp at h; split at h <;> try simp at h
+    case _ h1 => sorry
+    case _ h1 =>
+    split at h <;> try simp at h
     case _ h1 =>
     cases h
     simp at hi; simp;
@@ -748,11 +778,8 @@ theorem unifyStep_idempotency {u u': UnifyState} (precon : u.nonEmptyEqns ∧ Un
   · intro l x t h1 ih precon hi h
     simp  at h; split at h <;> try simp at h
     case _ h1 =>
-    cases h
-    simp at hi; simp;
-    rcases h1 with ⟨h1, h2⟩
-    simp [not_in_freeVars_iff_not_FV x h2] at h1
-    apply UnifierIdempotent_extension h2 hi _ h1
+      simp at h1; subst t;
+      replace h1 := h1 x; simp at h1
     sorry
   · intro l x y ih precon hi h
     simp at h;
@@ -768,8 +795,6 @@ theorem unifyStep_idempotency {u u': UnifyState} (precon : u.nonEmptyEqns ∧ Un
     have lem := unifyFails_implies_unifyStep_error (l := l) (t1 := t1) (t2 := t2) (u := { subst := u, equations := (t1, t2) :: l : UnifyState}) precon rfl ih
     rcases lem with ⟨e, lem⟩; simp only [lem] at h; cases h
 
-
-
 theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf u) (σ : Subst Ty) :
   unifyStep u h = .ok u' -> UnifierOfUnifyState σ u' -> UnifierOfUnifyState σ u
 := by
@@ -784,11 +809,17 @@ theorem unifyStep_sound {u u': UnifyState} (h : u.nonEmptyEqns ∧ UnifyStateWf 
   · intro l x t ih inv h uus
     simp at h; split at h <;> try simp at h
     case _ h1 =>
-    cases h
-    simp [UnifierOfUnifyState, Unifier]
-    simp [UnifierOfUnifyState] at uus
-    sorry
+      cases h
+      simp at h1; cases h1; simp [UnifierOfUnifyState];
+      simp [UnifierOfUnifyState] at uus;
+      apply And.intro;
+      · apply uus.1
+      · apply And.intro;
+        simp [Unifier]
+        apply uus.2
+    case _ =>
 
+      sorry
   · sorry
 
   · intro l x y ih inv h uus;
