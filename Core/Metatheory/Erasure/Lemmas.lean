@@ -107,11 +107,6 @@ theorem GlobalEnv.lookup_singleton_some_eq :
 theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
 
-theorem GlobalEnv.lookup_ctors_not_defn :
-  let g := Global.data n y K ctors
-  lookup x [g] ≠ some (.defn z a t) := by
-    sorry
-
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
   → x = y
@@ -119,8 +114,16 @@ theorem GlobalEnv.lookup_singleton_elim :
   intros h
   cases g
   case _ n y K ctors => 
-    exfalso
-    apply GlobalEnv.lookup_ctors_not_defn h
+    simp[lookup] at h
+    split at h
+    injection h; contradiction
+    cases ctors
+    simp at h
+    case _ c cl => 
+      
+      sorry
+    -- exfalso
+    -- apply GlobalEnv.lookup_ctors_not_defn h
   -- TODO: how to remove the case where list is empty?
   case _ => 
     unfold lookup at h
@@ -182,8 +185,10 @@ theorem lookup_erasure_singleton_some :
     case h_3 g' hp1 hp2 =>
       simp
       rw[GlobalEnv.lookup_singleton_elim h] at h
-      have h2 := GlobalEnv.lookup_from_some h
-      exact hp1 y a t h2
+
+      sorry
+      -- have h2 := GlobalEnv.lookup_from_some h
+      -- exact hp1 y a t h2
 
 theorem lookup_erasure_singleton_none :
  lookup x [g] = none
