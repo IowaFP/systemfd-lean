@@ -107,19 +107,10 @@ theorem GlobalEnv.lookup_singleton_some_eq :
 theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
 
--- theorem vec_or_none {vn : Vec (Option Entry) n} :
---  Vec.foldr Option.or none vn = vn[0] := by 
---   sorry
-
-theorem GlobalEnv.lookup_ctors :
-  let g := Global.data n y K ctors
-  lookup x [g] = some d
-    → ∃ s, lookup x [g] = some (.ctor y n s):= by 
-    sorry
-
 theorem GlobalEnv.lookup_ctors_not_defn :
   let g := Global.data n y K ctors
-  lookup x [g] ≠ some (.defn z a t) := by sorry
+  lookup x [g] ≠ some (.defn z a t) := by
+    sorry
 
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
@@ -149,45 +140,17 @@ theorem GlobalEnv.lookup_singleton_elim :
 
 theorem GlobalEnv.lookup_from_some :
   lookup x [g] = some (.defn x a t)
-  → g = .defn x a t := by 
+  → g = .defn x a t := by
   intros h
-  unfold lookup at h
-  split at h
-  case h_1 => trivial
-  case h_2 n y _ _ _ _ =>
-    exfalso 
-    sorry
-    -- apply GlobalEnv.lookup_ctors_not_defn h
-    -- rw[vec_or_none] at h
-    -- contradiction
-  case h_3 heq => 
-    split at h
-    injection h; contradiction
-    injection heq with head_eq tail_eq
-    rw[←tail_eq] at h
-    contradiction
-  case h_4 heq =>
-    injection heq with _ tail_eq
-    split at h
-    simp at h
-    rw[←tail_eq] at h
-    contradiction
-  case h_5 heq =>
-    split at h
-    grind
-    injection heq with _ tail_eq
-    rw[←tail_eq] at h
-    contradiction
-  case h_6 heq => 
-    injection heq with _ tail_eq
-    rw[←tail_eq] at h
-    contradiction
-  case h_7 heq => 
-    split at h
-    simp at h
-    injection heq with _ tail_eq
-    rw[←tail_eq] at h
-    contradiction
+  cases g -- <;> try simp[lookup] at h
+  case data heq => 
+    exfalso
+    apply GlobalEnv.lookup_ctors_not_defn h
+  case defn heq => simp[lookup] at h; grind
+  case odata => simp[lookup] at h
+  case openm => simp[lookup] at h
+  case inst => simp[lookup] at h
+  case octor => simp[lookup] at h
 
 theorem GlobalEnv.lookup_nomatch :
   lookup x [.defn y a t] = none → x ≠ y := by 
