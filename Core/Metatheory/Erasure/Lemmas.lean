@@ -67,14 +67,24 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
     apply And.intro <;> apply erasure_sub_tm
   | .ctor2 .apptc _ _ => by rfl
   | .lam _ t => by 
-    simp[LeanSubst.smap]
+    simp[LeanSubst.smap] --Subst.cons]
     sorry
   -- | .tbind .allc _ t => by simp; apply erasure_sub_tm
   | .cast _ _ _ => by simp; apply erasure_sub_tm
   | _ => sorry
 
 theorem erasure_su (t : Term) :
-  ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term := by sorry
+  ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term :=
+  match t with
+  | #x => by
+    simp[Subst.cons]
+    funext n
+    split 
+    case _ => grind
+    case _ t heq => sorry
+  | d#x => by sorry
+  | .ctor0 _ => by sorry
+  | _ => sorry
 
 theorem erasure_sub_tm_su (b : Term) :
   ⟦b[su t :: Subst.id Term]⟧
@@ -97,19 +107,9 @@ theorem GlobalEnv.lookup_singleton_some_eq :
 theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
 
-theorem GlobalEnv.lookup_ctors_vec (vn : Vec (Option Entry) n) :
- Vec.foldr Option.or none vn =
-  some (Entry.data y K ctors) := by sorry
-
-theorem GlobalEnv.lookup_data :
-  lookup x [.data n y K ctors] = some (.data y K ctors) := by 
-  simp[lookup]
-  intros hnxy
-  sorry
-  -- generalize hvn : (Vec.map (fun x_1 => if x = x_1.1.fst then some (Entry.ctor x_1.1.fst x_1.snd x_1.1.snd) else none)
-  --       ctors.zipIdx) = vn
-  --
-  -- apply GlobalEnv.lookup_ctors_vec vn
+-- theorem vec_or_none {vn : Vec (Option Entry) n} :
+--  Vec.foldr Option.or none vn = vn[0] := by 
+--   sorry
 
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
@@ -118,9 +118,14 @@ theorem GlobalEnv.lookup_singleton_elim :
   intros h
   cases g
   case _ n y K ctors => 
-    have h2 := @GlobalEnv.lookup_data x n y K ctors
-    rw[h2] at h
-    grind
+    simp[lookup] at h
+    split at h
+    case _ => grind
+    case _ =>
+      -- rw[vec_or_none] at h
+      -- simp at h
+      sorry
+      -- contradiction
   -- TODO: how to remove the case where list is empty?
   case _ => 
     unfold lookup at h
@@ -152,15 +157,13 @@ theorem GlobalEnv.lookup_from_some :
     contradiction
     rename_i heq hxy
     injection heq with head_eq tail_eq
-    unfold Vec.foldr at h
-    split at h
-    case _ => 
-      rw[←tail_eq] at h
-      contradiction
-    case _ => 
-      subst tail_eq
-      dsimp[lookup] at h
-      sorry
+    rw[←tail_eq] at h
+    simp[lookup] at h
+    unfold Lilac.Vec.foldr at h
+    unfold Option.or at h
+    sorry
+    -- rw[vec_or_none] at h
+    -- contradiction
   case h_3 heq => 
     split at h
     injection h; contradiction
