@@ -111,6 +111,16 @@ theorem GlobalEnv.lookup_inst_none :
 --  Vec.foldr Option.or none vn = vn[0] := by 
 --   sorry
 
+theorem GlobalEnv.lookup_ctors :
+  let g := Global.data n y K ctors
+  lookup x [g] = some d
+    → ∃ s, lookup x [g] = some (.ctor y n s):= by 
+    sorry
+
+theorem GlobalEnv.lookup_ctors_not_defn :
+  let g := Global.data n y K ctors
+  lookup x [g] ≠ some (.defn z a t) := by sorry
+
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
   → x = y
@@ -118,14 +128,8 @@ theorem GlobalEnv.lookup_singleton_elim :
   intros h
   cases g
   case _ n y K ctors => 
-    simp[lookup] at h
-    split at h
-    case _ => grind
-    case _ =>
-      -- rw[vec_or_none] at h
-      -- simp at h
-      sorry
-      -- contradiction
+    exfalso
+    apply GlobalEnv.lookup_ctors_not_defn h
   -- TODO: how to remove the case where list is empty?
   case _ => 
     unfold lookup at h
@@ -148,20 +152,12 @@ theorem GlobalEnv.lookup_from_some :
   → g = .defn x a t := by 
   intros h
   unfold lookup at h
-  split at h <;> try simp
+  split at h
   case h_1 => trivial
-  case h_2 n y _ _ _ _ => 
-    simp at h
-    split at h
-    injection h
-    contradiction
-    rename_i heq hxy
-    injection heq with head_eq tail_eq
-    rw[←tail_eq] at h
-    simp[lookup] at h
-    unfold Lilac.Vec.foldr at h
-    unfold Option.or at h
+  case h_2 n y _ _ _ _ =>
+    exfalso 
     sorry
+    -- apply GlobalEnv.lookup_ctors_not_defn h
     -- rw[vec_or_none] at h
     -- contradiction
   case h_3 heq => 
