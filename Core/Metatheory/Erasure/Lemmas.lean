@@ -46,12 +46,19 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term) (t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
+-- set_option pp.notation false
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧] := 
   match b with
   | #x => by
-    sorry
-  -- | #x | d#x | .ctor0 _ => by rfl
+    simp[LeanSubst.smap]
+    simp[Subst.act, SubstAction.act]
+    split
+    case _ heq => rw[heq]; trivial
+    case _ heq => rw[heq]; trivial
+  | .ctor0 _ => by rfl
+  | .ctor1 (.prj _) _ => by sorry 
+  | .cast _ _ t => by simp; apply erasure_sub_tm
   | _ => sorry
 
 theorem erasure_su (t : Term) :
