@@ -177,7 +177,11 @@ theorem GlobalEnv.lookup_from_some :
     rw[←tail_eq] at h
     contradiction
   case h_5 heq =>
-    sorry
+    split at h
+    grind
+    injection heq with _ tail_eq
+    rw[←tail_eq] at h
+    contradiction
   case h_6 heq => 
     injection heq with _ tail_eq
     rw[←tail_eq] at h
