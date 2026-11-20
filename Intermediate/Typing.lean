@@ -115,6 +115,9 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
      scτs[i] = (mn, ⟨na, Ks, 0, #(), 1, #(T), R⟩) ∧
      Intermediate.is_data .opn G SC ∧ G&Ks.list.reverse ⊢ R : ★) ->
 
+  (∀ (i : Nat), (hi : i < fdτs.length) ->
+    ∃ mn dms det τ, fdτs[i] = (mn, dms, det, τ) ∧
+    SpineKinding Core.SpCtorVariant.openm mn (Intermediate.Global.classDecl ⟨s, na, Ks, [], [], []⟩ :: G) (λ _ => true) τ) ->
 
   GlobalWf G (.classDecl ⟨s, na, Ks, fdτs, scτs, mτs⟩)
 
@@ -170,7 +173,7 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
           apply ih; grind
-      case classDecl cls na Ts fdτs scs mτs j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 j11 j12 j13 j14 =>
+      case classDecl cls na Ts fdτs scs mτs j1 j2 j3 j4 j5 j6 j7 j8 j9 j10 j11 j12 j13 j14 j15 =>
        simp [lookup]; split
        case _ e =>
          subst e; exfalso; simp[ih] at j7
@@ -272,9 +275,9 @@ inductive EntryWf : Intermediate.GlobalEnv -> Entry -> Prop where
 | odata {n : Nat} {Ks1 : Vec Core.Kind n} {fdτs : List (String × List (Fin n) × Fin n × Core.SpineTy)}:
   lookup x G = some (.odata (n := n) x Ks1 fdτs scsτs mτs) ->
   EntryWf G (.odata (n := n) x Ks1 fdτs scsτs mτs)
-| openm {n : Nat} {Ks1 : Vec Core.Kind n} {dms : List (Fin n)} {det : Fin n} {fdτs : List (String × List (Fin n) × Fin n × Core.SpineTy)} (x : String) (mthTy : OpenMethodType) (i : Nat) :
+| openm {n : Nat} {Ks1 : Vec Core.Kind n} {fdτs : List (String × List (Fin n) × Fin n × Core.SpineTy)} (x : String) (mthTy : OpenMethodType) (i : Nat) :
   lookup x G = some (.odata (n := n) x Ks1 fdτs scsτs mτs) ->
-  ((mthTy = .funDep) -> fdτs[i]? = some (mn, dms, det, T) -> SpineKinding .openm mn G (λ _ => true) T) -> -- TODO Fix me
+  ((mthTy = .funDep) -> (∃ dms det, fdτs[i]? = some (mn, dms, det, T)) -> SpineKinding .openm mn G (λ _ => true) T) -> -- TODO Fix me
   ((mthTy = .clsMth) -> mτs[i]? = some (mn, T) -> SpineKinding .openm mn G (λ _ => true) T) ->
   ((mthTy = .supCls) -> scsτs[i]? = some (mn, T) -> SpineKinding .openm mn G (Ty.data? .opn G) T) ->
   EntryWf G (.openm mn cls mthTy T)
@@ -324,7 +327,7 @@ theorem lookup_weaken_cls_mth (wf : ⊢ (Global.classDecl ⟨y, n, Ks, fds, scs,
   case _ h1 =>
     split at h; simp_all
     cases wf; case _ wf =>
-    cases wf; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 =>
+    cases wf; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 c14 c15 =>
     -- clear c1 c2 c4 c5 c6 c8 c9 c10
     split
     case _ h1 =>
@@ -348,15 +351,15 @@ theorem lookup_weaken_cls_mth (wf : ⊢ (Global.classDecl ⟨y, n, Ks, fds, scs,
         case _ =>
         exfalso; simp [List.findIdx?_eq_some_iff_getElem] at h2
         rcases h2 with ⟨hi, h2, h3⟩
-        replace c5 := c5 i hi; rw[<-h2] at c5; rcases c5 with ⟨_, c5⟩
-        simp [h] at c5
+        replace c6 := c6 i hi; rw[<-h2] at c6; rcases c6 with ⟨_, c6⟩
+        simp [h] at c6
     case _ i h2 =>
        split
        case _ =>
          simp [List.findIdx?_eq_some_iff_getElem] at h2
          rcases h2 with ⟨hi, h2, h3⟩
-         replace c10 := c10 i hi; rw[<-h2] at c10; rcases c10 with ⟨_, c10⟩
-         simp [h] at c10
+         replace c11 := c11 i hi; rw[<-h2] at c11; rcases c11 with ⟨_, c11⟩
+         simp [h] at c11
        case _ h =>
          simp [List.findIdx?_eq_some_iff_getElem] at h2;
          rcases h2 with ⟨hi, h2, h3⟩
@@ -618,19 +621,14 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
     rcases h2 with ⟨hi, h2, h4⟩
     simp [List.getElem?_eq_getElem hi] at h3
     simp [h3] at h2; subst x;
-    -- apply EntryWf.openm (n := na) (Ks1 := KcU) (mthTy := .supCls) (x := cls_name) (scsτs := sds) (mτs := mths) (fdτ := fds) (i := i)
-    -- simp [lookup];
-    -- simp
-    -- simp
-    -- simp [List.getElem?_eq_getElem hi];
-    -- have wf' := wf
-    -- cases wf; case _ wf =>
-    -- cases wf; case _ c _ _ _ _ _ _ =>
-    -- replace c := c i hi
-    -- rcases c with ⟨mn, τ, ca, cb⟩;
-    -- intro ca'; simp [ca] at ca'; rcases ca' with ⟨e1, e2⟩; subst e1 e2
-    -- apply cb.weaken_cls_mths wf' (by intro T h; apply Ty.data?_global_weaken_cls_mth wf' h)
-    sorry
+    apply EntryWf.openm (n := na) (Ks1 := KcU) (mthTy := .funDep) (x := cls_name) (scsτs := sds) (mτs := mths) (fdτs := fds) (i := i)
+    · simp [lookup]
+    · simp; intro h; intro dms det; cases wf;
+      case _ wf h =>
+      cases h
+      sorry
+    · simp
+    · simp
   case _ cls_name na KsU fds scs mths _ _ h1 i h2 mn τ h3 =>
     subst e; simp [List.findIdx?_eq_some_iff_getElem] at h2
     rcases h2 with ⟨hi, h2, h4⟩
@@ -648,8 +646,6 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
       rcases c with ⟨mn, τ, ca, cb⟩;
       intro ca'; simp [ca] at ca'; rcases ca' with ⟨e1, e2⟩; subst e1 e2
       apply cb.weaken_cls_mths wf' (by intro T h; apply Ty.data?_global_weaken_cls_mth wf' h)
-    · sorry
-    · sorry
 
 
   case _ cls_name na KsU fds scs mths _ h1 i h2 mn τ h3 =>
@@ -669,8 +665,7 @@ theorem EntryWf.from_lookup { G : Intermediate.GlobalEnv} :
       intro ca'; simp [ca] at ca'; rcases ca' with ⟨e1, e2⟩; subst e1 e2
       apply cb.weaken_cls_mths (tst := λ _ _ => true) wf' (by simp)
     · simp
-    · sorry
-    · sorry
+
   case _ e =>
     have wf' := wf
     cases wf; case _ wf =>
@@ -882,7 +877,7 @@ theorem lookup_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
-    case classDecl _  s _ Ks1 scs mτs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 =>
+    case classDecl _  s _ Ks1 scs mτs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       split at h
@@ -935,7 +930,7 @@ theorem lookup_supcls_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       case _ => apply ih h
-    case classDecl _ s na Ks1 scs mτs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10  =>
+    case classDecl _ s na Ks1 scs mτs c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 =>
       simp [Intermediate.lookup] at h; split at h
       case _ e => subst e; simp at h
       split at h

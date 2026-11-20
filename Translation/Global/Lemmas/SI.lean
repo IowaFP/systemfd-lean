@@ -962,6 +962,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         apply And.intro
         apply lookup_is_data_SI_some h1 c4b
         apply kinding_SI_transfer h1 c4c
+      · sorry
     · apply ih wftl h1
 
   case _ iname na Ks1 nb Ks2 nc As R ts _ ih => -- instance
@@ -1066,7 +1067,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
     replace h2 := Intermediate.Query.opn_strengthen_class wf' h2
     cases wf; case _ wftl wfhd =>
     cases wf'; case _ wftl' wfhd' =>
-    cases wfhd'; case _ ci1 ci2 ci3 ci4 ci5 ci6 ci7 ci8 ci9 ci10 ci11 ci13 ci14  ci15 =>
+    cases wfhd'; case _ ci1 ci2 ci3 ci4 ci5 ci6 ci7 ci8 ci9 ci10 ci11 ci13 ci14 ci15 ci16 =>
     cases wfhd; case _ cs1 cs2 cs3 cs4 cs5 cs6 cs7 cs8 cs9 cs10 cs11 cs12 cs13 =>
     simp [Intermediate.lookup] at h1
     split at h1 <;> try simp at h1
@@ -1112,8 +1113,8 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
           simp at h7; rcases h7 with ⟨scname, SC, tys2, h7⟩; rcases h7 with ⟨h7, h8, h9⟩
 
           -- The point here is that Ts = #(T) and T is the class
-          replace ci7 := ci7 i (by grind)
-          rcases ci7 with ⟨mn, R, T, tys, SC, tys2, T_shape, tys_eq, R_shape, ci3a, ci3b, ci3c⟩;
+          replace ci8 := ci8 i (by grind)
+          rcases ci8 with ⟨mn, R, T, tys, SC, tys2, T_shape, tys_eq, R_shape, ci3a, ci3b, ci3c⟩;
           simp at e3b; rcases e3b with ⟨e, e3b⟩; subst e; simp at e3b; rcases e3b with ⟨e1, e2, e3b⟩; subst e1 e2;
           simp at e3b; rcases e3b with ⟨e1, e2, e3b⟩; subst e1; subst e2; simp at e3b; rcases e3b with ⟨e1, e2⟩; subst e1 e2
           simp [Surface.mk_superclass_om] at h9;
@@ -1139,8 +1140,8 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
         rcases h1 with ⟨e1, e2, e3, e4⟩; subst e1 e2 e3 e4;
         simp at h7; simp at *
         replace cs11 := cs11 i (by grind); rcases cs11 with ⟨mn, R, cs11a, cs11b, cs11c⟩
-        replace ci13 := ci13 i (by grind)
-        rcases ci13 with ⟨mn', R', T', tys, T'_shape, tys_eq, ⟨ci11a, ci11b⟩, ci11c⟩
+        replace ci14 := ci14 i (by grind)
+        rcases ci14 with ⟨mn', R', T', tys, T'_shape, tys_eq, ⟨ci11a, ci11b⟩, ci11c⟩
         simp [cs11a] at ci11a; subst mn'
         rw [cs11a] at ci11b; simp [Surface.mk_method_om] at ci11b;
         rcases ci11b with ⟨e1, e2⟩; subst e1 e2

@@ -266,7 +266,7 @@ inductive EntryWf : List Global -> Entry -> Prop where
 
 theorem Kinding.spine_lemma {s : String} {K : Core.Kind} {T : Core.Ty}:
   T.spine = some (s,  tys) ->
-  ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length) (hk : Core.Kind.mk_kind K κs = κ), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
+  ((Kinding G Δ T K) <-> (∃ (κ : Core.Kind) (kc : Nat) (κs : Vec Core.Kind kc) (hi : tys.length = κs.length) (_ : Core.Kind.mk_kind K κs = κ), (G&Δ ⊢ gt#s : κ) ∧ ∀ (i : Fin kc), G&Δ ⊢ tys[i]'(by grind) : κs[i]))
 := by
   intro h
   fun_induction Core.Ty.spine generalizing s tys K <;> simp at h
