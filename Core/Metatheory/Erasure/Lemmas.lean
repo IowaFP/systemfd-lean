@@ -43,22 +43,25 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
     apply erasure_subst_ty
 | .lam _ t => by simp; apply erasure_subst_ty
 
-theorem erasure_subst_ty_su (b : Term)(t : Ty):
+theorem erasure_subst_ty_su (b : Term) (t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧] := 
   match b with
   | #x => by
-    simp[Subst.act, SubstAction.act]
     sorry
   -- | #x | d#x | .ctor0 _ => by rfl
   | _ => sorry
 
+theorem erasure_su (t : Term) :
+  ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term := by sorry
+
 theorem erasure_sub_tm_su (b : Term) :
   ⟦b[su t :: Subst.id Term]⟧
-  = ⟦b⟧[su ⟦t⟧ :: Subst.id Untyped.Term]  := by 
-    sorry
+  = ⟦b⟧[su ⟦t⟧ :: Subst.id Untyped.Term] := by 
+    rw[erasure_sub_tm (su t :: Subst.id Term) b]
+    rw[erasure_su]
 
 theorem GlobalEnv.lookup_singleton_defn_some :
   lookup x [.defn x a t] = some (.defn x a t) := by simp[lookup]
