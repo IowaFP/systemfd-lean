@@ -50,15 +50,27 @@ theorem erasure_subst_ty_su (b : Term) (t : Ty):
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧] := 
   match b with
-  | #x => by
-    simp[LeanSubst.smap]
-    simp[Subst.act, SubstAction.act]
+  | #_ => by
+    simp[LeanSubst.smap, Subst.act, SubstAction.act]
     split
     case _ heq => rw[heq]; trivial
     case _ heq => rw[heq]; trivial
-  | .ctor0 _ => by rfl
-  | .ctor1 (.prj _) _ => by sorry 
-  | .cast _ _ t => by simp; apply erasure_sub_tm
+  | d#_ | .ctor0 _ => by rfl 
+  | .ctor1 (.appt _) t => by 
+    simp[LeanSubst.smap]
+    apply And.intro
+    case _ => apply erasure_sub_tm
+    rfl
+  | .ctor1 (.prj _) _ => by simp; apply erasure_sub_tm
+  | .ctor2 .app t1 t2 => by
+    simp[LeanSubst.smap]
+    apply And.intro <;> apply erasure_sub_tm
+  | .ctor2 .apptc _ _ => by rfl
+  | .lam _ t => by 
+    simp[LeanSubst.smap]
+    sorry
+  -- | .tbind .allc _ t => by simp; apply erasure_sub_tm
+  | .cast _ _ _ => by simp; apply erasure_sub_tm
   | _ => sorry
 
 theorem erasure_su (t : Term) :
