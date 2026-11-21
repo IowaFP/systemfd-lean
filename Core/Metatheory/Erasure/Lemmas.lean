@@ -73,16 +73,28 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   | .cast _ _ _ => by simp; apply erasure_sub_tm
   | _ => sorry
 
-theorem erasure_su (t : Term) :
+theorem erasure_su (t : Term) : ⟦su t⟧ = su ⟦t⟧ :=
+  match t with
+  | _ => sorry
+
+theorem erasure_su_cons (t : Term) :
   ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term :=
   match t with
   | #x => by
+    -- TODO: turn into a tactic!
     simp[Subst.cons]
     funext n
-    split 
+    split
     case _ => grind
-    case _ t heq => sorry
-  | d#x => by sorry
+    case _ t heq => 
+      cases t <;> (try simp) <;> repeat grind
+  | d#x => by 
+    simp[Subst.cons]
+    funext n
+    split
+    case _ => grind
+    case _ t heq =>
+      cases t <;> (try simp) <;> repeat grind
   | .ctor0 _ => by sorry
   | _ => sorry
 
@@ -90,10 +102,10 @@ theorem erasure_sub_tm_su (b : Term) :
   ⟦b[su t :: Subst.id Term]⟧
   = ⟦b⟧[su ⟦t⟧ :: Subst.id Untyped.Term] := by 
     rw[erasure_sub_tm (su t :: Subst.id Term) b]
-    rw[erasure_su]
+    rw[erasure_su_cons]
 
-theorem GlobalEnv.lookup_singleton_defn_some :
-  lookup x [.defn x a t] = some (.defn x a t) := by simp[lookup]
+-- theorem GlobalEnv.lookup_singleton_defn_some :
+--   lookup x [.defn x a t] = some (.defn x a t) := by simp[lookup]
 
 theorem GlobalEnv.lookup_singleton_some_eq :
   lookup x1 [.defn y a1 t1] = some (.defn x2 a2 t2)
@@ -141,27 +153,25 @@ theorem GlobalEnv.lookup_singleton_elim :
     unfold lookup at h
     split at h <;> try (first | simp at h | contradiction)
 
-theorem GlobalEnv.lookup_from_some :
-  lookup x [g] = some (.defn x a t)
-  → g = .defn x a t := by
-  intros h
-  cases g -- <;> try simp[lookup] at h
-  case data heq => 
-    exfalso
-    apply GlobalEnv.lookup_ctors_not_defn h
-  case defn heq => simp[lookup] at h; grind
-  case odata => simp[lookup] at h
-  case openm => simp[lookup] at h
-  case inst => simp[lookup] at h
-  case octor => simp[lookup] at h
+-- theorem GlobalEnv.lookup_from_some :
+--   lookup x [g] = some (.defn x a t)
+--   → g = .defn x a t := by
+--   intros h
+--   cases g -- <;> try simp[lookup] at h
+--   case data heq => 
+--     exfalso
+--     apply GlobalEnv.lookup_ctors_not_defn h
+--   case defn heq => simp[lookup] at h; grind
+--   case odata => simp[lookup] at h
+--   case openm => simp[lookup] at h
+--   case inst => simp[lookup] at h
+--   case octor => simp[lookup] at h
 
 theorem GlobalEnv.lookup_nomatch :
   lookup x [.defn y a t] = none → x ≠ y := by 
   intros h hxy
   subst hxy
-  have h2 := @GlobalEnv.lookup_singleton_defn_some x a t
-  rw[h2] at h
-  contradiction
+  simp[lookup] at h
 
 theorem lookup_erasure_singleton_some :
  lookup x [g] = some (.defn y a t)
