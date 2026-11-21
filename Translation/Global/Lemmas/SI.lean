@@ -616,18 +616,27 @@ theorem translate_SI_lookup_none {G : Surface.GlobalEnv} {G' : Intermediate.Glob
           simp at h5
           split
           case _ h6 =>
-            simp at h6;
+            simp at h6
             split
-            case _ =>
+            case _ h7 =>
               simp at h3 h4;
               split at h2
-              · sorry
-              case _ => sorry
-            case _ i h7 =>
-              simp [List.findIdx?_eq_some_iff_getElem] at h7 ; rcases h7 with ⟨hi, h7, _⟩
-              split
-              sorry
-              sorry -- apply ih h1 h2
+              case _ h8 =>
+                simp at h8 h2 h7; rcases h8 with ⟨dms, det, h8⟩; replace h7 := h7 x dms det h8;
+                contradiction
+              case _ => simp at h7; apply ih h1 h2
+            case _ i h8 =>
+              split at h2
+              case _ h9 =>
+                simp [List.findIdx?_eq_some_iff_getElem] at h8 ; rcases h8 with ⟨hi, h8, _⟩
+                split
+                case _ h10 => simp at h9 h3 h4 h2; rcases h9 with ⟨dms, det, h9⟩; replace h2 := h2 x dms det h9; contradiction
+                case _ h10 => simp at h10 h9 h3 h4 h2; grind
+              · simp [List.findIdx?_eq_some_iff_getElem] at h8 ; rcases h8 with ⟨hi, h8, _⟩
+                split
+                case _ h9 =>
+                  grind
+                grind
           case _ h6 =>
             simp at h6;
             split
@@ -643,15 +652,11 @@ theorem translate_SI_lookup_none {G : Surface.GlobalEnv} {G' : Intermediate.Glob
               simp [List.findIdx?_eq_some_iff_getElem] at h6; rcases h6 with ⟨hi, h6, h9⟩
               simp [<-List.getElem_eq_iff (h := hi)] at h8; simp [h8] at h6; subst h6
               apply h4 z tys; grind
-        case _ h5 =>
-          split
-          case _ h6 =>
-            exfalso; simp [List.findIdx?_eq_some_iff_getElem] at h6 h5 h3;
-            rcases h6 with ⟨y, h6, h7, h8, h9⟩; subst h8
-            rcases h5 with ⟨hi, h5, _⟩
-            simp [<-List.getElem_eq_iff (h := hi)] at h7; simp [h7] at h5; subst h5
-            apply h3 h6; grind
-          sorry -- apply ih h1 h2
+        case _ i h5 =>
+          simp at h3; simp at h4
+          simp at h5; simp [List.findIdx?_eq_some_iff_getElem] at h5
+          rcases h5 with ⟨hi, h5, h6⟩
+          replace h3 := h3 mτs[i].2; exfalso; apply h3; grind
 
   case _ ih => -- inst
     simp [bind, Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ', h1, h3⟩
@@ -830,8 +835,6 @@ theorem SpineKinding.fundep_openm {mn : String} {dms : List (Fin kc)} {det : Fin
       rw[lem]; simp [Core.Ty.mkApps_nats_spine]
       clear lem;
       simp [Intermediate.Entry.is_data]
-
-
 
 
 

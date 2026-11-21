@@ -328,6 +328,34 @@ theorem lookup_translate_fd_openmn_no_octor {n : Nat} {τs : List (String × Lis
   split at h <;> try simp at h
   case _ ih _ => apply ih h
 
+theorem findIdx?_none_iff_lookup_name_none {mths : List (String × Core.SpineTy)} :
+  List.findIdx? (fun y => x == y.fst) mths = none <->  Core.lookup x (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = none
+:= by
+  induction mths <;> simp [Core.lookup]
+  case _ hd tl ih =>
+  apply Iff.intro
+  · intro h
+    have e : (x = hd.fst) = False := by grind
+    simp [e]; simp [<-ih]; apply h.2
+  · intro h;
+    split at h
+    cases h
+    simp [<-ih] at h; apply And.intro; assumption; apply h
+
+
+theorem findIdx?_none_iff_lookup_fd_name_none {n : Nat} {mths : List (String × List (Fin n) × Fin n × Core.SpineTy)}
+: List.findIdx? (fun y => x == y.fst) mths = none <->  Core.lookup x (List.map (fun x => Core.Global.openm x.1 x.2.2.2) mths) = none
+:= by
+  induction mths <;> simp [Core.lookup]
+  case _ hd tl ih =>
+  apply Iff.intro
+  · intro h
+    have e : (x = hd.fst) = False := by grind
+    simp [e]; simp [<-ih]; apply h.2
+  · intro h;
+    split at h
+    cases h
+    simp [<-ih] at h; apply And.intro; assumption; apply h
 
 
 theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G'):
@@ -416,53 +444,39 @@ theorem translate_IC_lookup_some_octor {G : Intermediate.GlobalEnv} {G' : Core.G
             apply lookup_translate_fd_openmn_no_octor h4
           case _ h4 =>
             rcases h4 with ⟨h3, h4⟩
-            sorry
-      sorry
-      -- simp [Core.lookup] at h2
-
-      -- case _ h2 =>
-      --   rcases h2 with ⟨h2, h4⟩
-      --   split at h4
-      --   case _ e =>
-      --     subst s; simp at h4
-      --   case _ =>
-      --     have e : (x = s) = False := by grind
-      --     simp [e]
-      --     have e := Core.lookup_name_agrees h4; simp [Core.Entry.name] at e; subst e;
-      --     split
-      --     · split
-      --       case _ =>
-      --         have lemwf : ⊢ Γ' := by
-      --           have lem := Core.GlobalWf.drop_wf mths.length wf;
-      --           simp at lem;
-      --           have lem := Core.GlobalWf.drop_wf scs.length lem;
-      --           simp at lem
-      --           cases lem; case _ wftl _ => apply wftl
-      --         apply ih lemwf h1 h4
-      --       case _ i h5 =>
-      --       simp [List.findIdx?_eq_some_iff_getElem] at h5;
-      --       rcases h5 with ⟨hi, h5, h6⟩
-      --       simp [List.getElem?_eq_getElem hi];
-      --       generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) scs = z at *
-      --       have lem : z[i]'(by grind) = z[i]'(by grind) := by rfl
-      --       conv at lem =>
-      --         rhs
-      --         simp only [<-zdef];
-      --       simp [List.getElem_map] at lem; subst y;
-      --       have lem2 : z[i]? = Core.Global.openm scs[i].fst scs[i].snd := by grind
-      --       apply Core.lookup_none_idx_some_contra lem2 h2
-      --     case _ i h5 =>
-      --       simp [List.findIdx?_eq_some_iff_getElem] at h5;
-      --       rcases h5 with ⟨hi, h5, h6⟩
-      --       simp [List.getElem?_eq_getElem hi];
-      --       generalize zdef : List.map (fun x => Core.Global.openm x.fst x.snd) mths = z at *
-      --       have lem : z[i]'(by grind) = z[i]'(by grind) := by rfl
-      --       conv at lem =>
-      --         rhs
-      --         simp only [<-zdef];
-      --       simp [List.getElem_map] at lem; subst y;
-      --       have lem2 : z[i]? = Core.Global.openm mths[i].fst mths[i].snd := by grind
-      --       apply Core.lookup_none_idx_some_contra lem2 h3
+            simp [Core.lookup] at h4
+      case _ =>
+        cases h2
+        case _ h2 => exfalso; apply lookup_translate_openmn_no_octor h2
+        case _ h2 =>
+          rcases h2 with ⟨h6, h2⟩
+          let wf' := Core.GlobalWf.drop_wf scs.length wf'; simp at wf'
+          replace h4 := Core.lookup_append_some wf' h2
+          cases h4
+          case _ h4 =>
+            exfalso; apply lookup_translate_fd_openmn_no_octor h4
+          case _ h4 =>
+            rcases h4 with ⟨h7, h4⟩
+            have e : (x = s) = False := by grind
+            simp [Core.lookup, e] at h4
+            have e := Core.lookup_name_agrees h4; simp [Core.Entry.name] at e; subst e;
+            split
+            case _ =>
+              split
+              case _ =>
+                replace h7 := findIdx?_none_iff_lookup_fd_name_none.2 h7; simp [h7]
+                replace h2 := Core.lookup_append_some wf' h2
+                cases h2
+                sorry
+                sorry
+              case _ i h5 =>
+                simp [List.findIdx?_eq_some_iff_getElem] at h5; rcases h5 with ⟨hi, h5, _⟩;
+                replace h6 := findIdx?_none_iff_lookup_name_none.2 h6; simp at h6;
+                replace h6 := h6 scs[i].1 scs[i].2; grind
+            case _ i h5 =>
+            simp [List.findIdx?_eq_some_iff_getElem] at h5; rcases h5 with ⟨hi, h5, h6⟩;
+            replace h3 := findIdx?_none_iff_lookup_name_none.2 h3; simp at h3;
+            replace h3 := h3 mths[i].1 mths[i].2; grind
 
   case _ iname cls_name _ _ _ _ _ _ fds scs mths _ ih => -- inst decl
     simp [bind, Except.bind] at h1;
@@ -912,21 +926,6 @@ theorem translate_IC_indexing_inst_mths {G : Intermediate.GlobalEnv} {G' : Core.
       · simp [<-Γdef, List.getElem?_append_right]; grind
       · apply ih2
 
-
-
-theorem findIdx?_none_iff_lookup_name_none {mths : List (String × Core.SpineTy)} :
-  List.findIdx? (fun y => x == y.fst) mths = none <->  Core.lookup x (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = none
-:= by
-  induction mths <;> simp [Core.lookup]
-  case _ hd tl ih =>
-  apply Iff.intro
-  · intro h
-    have e : (x = hd.fst) = False := by grind
-    simp [e]; simp [<-ih]; apply h.2
-  · intro h;
-    split at h
-    cases h
-    simp [<-ih] at h; apply And.intro; assumption; apply h
 
 theorem lookup_name_match_implies_some_contra {mths : List (String × Core.SpineTy)} :
   Core.lookup x (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = some (Core.Entry.openm x mτ) ->
