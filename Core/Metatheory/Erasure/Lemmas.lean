@@ -46,6 +46,10 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term) (t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
+theorem erasure_sub_tm_lam (σ : Subst Term) :
+  ⟦(λ[a]t)[σ]⟧ = ⟦λ[a]t⟧[⟦σ⟧] := by 
+  sorry
+
 -- set_option pp.notation false
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧] := 
@@ -66,12 +70,19 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
     simp[LeanSubst.smap]
     apply And.intro <;> apply erasure_sub_tm
   | .ctor2 .apptc _ _ => by rfl
-  | .lam _ t => by 
-    simp[LeanSubst.smap] --Subst.cons]
+  | .lam a t => erasure_sub_tm_lam σ
+  | .tbind .allc _ t => by
+    simp[Subst.hcompose_ren]
     sorry
   -- | .tbind .allc _ t => by simp; apply erasure_sub_tm
   | .cast _ _ _ => by simp; apply erasure_sub_tm
-  | _ => sorry
+  | .mtch n m vn pnm vm => by
+    simp[LeanSubst.smap]
+    apply And.intro
+    case _ => 
+      funext ⟨i, lt⟩ 
+      sorry
+    case _ => sorry
 
 theorem erasure_su (t : Term) : ⟦su t⟧ = su ⟦t⟧ :=
   match t with
