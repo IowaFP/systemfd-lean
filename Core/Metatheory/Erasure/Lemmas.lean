@@ -60,6 +60,7 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
     case _ heq => rw[heq]; trivial
     case _ heq => rw[heq]; trivial
   | d#_ | .ctor0 _ => by rfl 
+  | .spctor .. => sorry
   | .ctor1 (.appt _) t => by 
     simp[LeanSubst.smap]
     apply And.intro
@@ -72,6 +73,9 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   | .ctor2 .apptc _ _ => by rfl
   | .lam a t => erasure_sub_tm_lam σ
   | .tbind .allc _ t => by
+    simp[Subst.hcompose_ren]
+    sorry
+  | .tbind .lamt _ t => by
     simp[Subst.hcompose_ren]
     sorry
   -- | .tbind .allc _ t => by simp; apply erasure_sub_tm
