@@ -1301,8 +1301,25 @@ theorem lookup_fundep_openm_shape {G : Intermediate.GlobalEnv} (wf : ⊢ G):
 theorem lookup_openm_index_funDep {G : Intermediate.GlobalEnv} (wf : ⊢ G):
   Intermediate.lookup mn G = some (Intermediate.Entry.openm mn cls .funDep spTy) ->
   Intermediate.lookup cls G = some (Intermediate.Entry.odata cls K fds scs mτs) ->
-  (∃ j, ∃ (h : j < fds.length), fds[j].1 = mn)
+  (∃ j, ∃ (h : j < fds.length), fds[j].1 = mn ∧ spTy = fds[j].2.2.2)
 := by sorry
+
+theorem lookup_openm_funDeps_in_cls {G : Intermediate.GlobalEnv} (wf : ⊢ G):
+  Intermediate.lookup cls G = some (Intermediate.Entry.odata cls K fd_τs sc_τs m_τs) ->
+  ∀ (j : Nat) (hj : j < fd_τs.length),
+    Intermediate.lookup fd_τs[j].fst Γ' =
+      some (Intermediate.Entry.openm fd_τs[j].fst cls_name Intermediate.OpenMethodType.funDep fd_τs[j].snd.snd.snd) := by
+  intro h1
+  fun_induction lookup <;> try simp at h1
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+  sorry
+
 
 theorem get_all_odata_exhaustive {Γ : GlobalEnv} :
    Intermediate.lookup_ctor? Γ Core.DataConst.opn q T ->
