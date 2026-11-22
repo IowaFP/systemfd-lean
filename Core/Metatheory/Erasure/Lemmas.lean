@@ -64,7 +64,12 @@ theorem erasure_subst_cons {a : Action Term} {σ : Subst Term} :
       rw[show su ⟦t⟧ = Action.erase (su t) by simp]
       rw[←heq]
       simp; trivial
-  repeat sorry
+
+-- TODO: determine why this isn't 
+-- automatically used.
+@[simp]
+theorem erasure_subst_ren_n {n : Nat} :
+  Action.erase (re n) = re n := by trivial
 
 theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
   ⟦σ ∘ r⟧ = ⟦σ⟧ ∘ ⟦r⟧ := by
@@ -73,9 +78,9 @@ theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
   cases x
   case _ => 
     split <;> try simp
-    case _ =>
-      split <;> try simp
-      repeat sorry
+    case _ a x heq =>
+      rw[←erasure_subst_ren_n, ←heq]
+      sorry
     case _ =>
       repeat sorry
     repeat sorry
@@ -88,11 +93,7 @@ theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
 --   case _ => sorry
 --   repeat sorry
 
--- TODO: determine why this isn't 
--- automatically used.
-@[simp]
-theorem erasure_subst_ren_n {n : Nat} :
-  Action.erase (re n) = re n := by trivial
+
 
 -- set_option pp.notation false
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
@@ -138,10 +139,6 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
       funext ⟨i, lt⟩ 
       sorry
     case _ => sorry
-
-theorem erasure_su (t : Term) : ⟦su t⟧ = su ⟦t⟧ :=
-  match t with
-  | _ => sorry
 
 theorem erasure_su_cons (t : Term) :
   ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term :=
@@ -241,20 +238,6 @@ theorem GlobalEnv.lookup_data_some :
   case _ => 
     unfold lookup at h
     split at h <;> try (first | simp at h | contradiction)
-
--- theorem GlobalEnv.lookup_from_some :
---   lookup x [g] = some (.defn x a t)
---   → g = .defn x a t := by
---   intros h
---   cases g -- <;> try simp[lookup] at h
---   case data heq => 
---     exfalso
---     apply GlobalEnv.lookup_ctors_not_defn h
---   case defn heq => simp[lookup] at h; grind
---   case odata => simp[lookup] at h
---   case openm => simp[lookup] at h
---   case inst => simp[lookup] at h
---   case octor => simp[lookup] at h
 
 theorem GlobalEnv.lookup_nomatch :
   lookup x [.defn y a t] = none → x ≠ y := by 
