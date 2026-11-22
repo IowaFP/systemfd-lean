@@ -47,7 +47,24 @@ theorem erasure_subst_ty_su (b : Term) (t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
 theorem erasure_subst_cons {a : Action Term} {σ : Subst Term} :
-  ⟦a :: σ⟧  = ⟦a⟧ :: ⟦σ⟧ := by sorry
+  ⟦a :: σ⟧  = ⟦a⟧ :: ⟦σ⟧ := by 
+  simp[Subst.cons]
+  funext x
+  cases x
+  trivial
+  case _ x => 
+    split
+    case _ a n heq =>
+      rw[show re n = ⟦re n⟧ by simp]
+      rw[←heq] 
+      simp; trivial
+    case _ a t heq => 
+      -- TODO: determine why ⟦su t⟧
+      -- is ambiguous
+      rw[show su ⟦t⟧ = Action.erase (su t) by simp]
+      rw[←heq]
+      simp; trivial
+  repeat sorry
 
 theorem erasure_subst_shift {σ : Subst Term} :
   ⟦σ ∘ Ren.succ Term⟧ = ⟦σ⟧ ∘ Ren.succ Untyped.Term := by sorry
