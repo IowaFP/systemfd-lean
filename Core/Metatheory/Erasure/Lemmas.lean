@@ -46,9 +46,18 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 theorem erasure_subst_ty_su (b : Term) (t : Ty):
   ⟦b[su t::+0σ]⟧ = ⟦b⟧ := by apply erasure_subst_ty
 
-theorem erasure_sub_tm_lam (σ : Subst Term) :
-  ⟦(λ[a]t)[σ]⟧ = ⟦λ[a]t⟧[⟦σ⟧] := by 
-  sorry
+theorem erasure_subst_cons {a : Action Term} {σ : Subst Term} :
+  ⟦a :: σ⟧  = ⟦a⟧ :: ⟦σ⟧ := by sorry
+
+theorem erasure_subst_shift {σ : Subst Term} :
+  ⟦σ ∘ Ren.succ Term⟧ = ⟦σ⟧ ∘ Ren.succ Untyped.Term := by sorry
+
+-- theorem erasure_sub_tm_lam (σ : Subst Term) :
+--   ⟦(λ[a]t)[σ]⟧ = ⟦λ[a]t⟧[⟦σ⟧] := by
+--   simp [LeanSubst.smap]
+--   cases t
+--   case _ => sorry
+--   repeat sorry
 
 -- set_option pp.notation false
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
@@ -71,7 +80,13 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
     simp[LeanSubst.smap]
     apply And.intro <;> apply erasure_sub_tm
   | .ctor2 .apptc _ _ => by rfl
-  | .lam a t => erasure_sub_tm_lam σ
+  | .lam a t => by
+      simp[LeanSubst.smap, -Subst.erase]
+      rw[←erasure_subst_shift]
+      generalize hs : σ ∘ Ren.succ Term = s
+      rw[←show ⟦re 0⟧ = re 0 by simp]
+      rw[←erasure_subst_cons (a := re 0)]
+      apply erasure_sub_tm
   | .tbind .allc _ t => by
     simp[Subst.hcompose_ren]
     sorry

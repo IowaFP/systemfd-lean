@@ -71,12 +71,12 @@ def Action.erase : Action Term → Action Untyped.Term
 def Subst.erase (σ : Subst Term) : Subst Untyped.Term :=
   {inner := λ n => Action.erase (σ.inner n)}
 
+
 notation "⟦" e "⟧" => Term.erase e
 notation "⟦" g "⟧" => Global.erase g
 notation "⟦" G "⟧" => GlobalEnv.erase G
 notation "⟦" pm "⟧" => Pattern.erase pm
 notation "⟦" vm "⟧" => Term.erase <$> vm
 notation "⟦" pmn "⟧" => Pattern.erase <$> pmn
+notation "⟦" a "⟧" => Action.erase a
 notation "⟦" σ "⟧" => Subst.erase σ
-
-
