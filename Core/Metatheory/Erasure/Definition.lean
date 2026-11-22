@@ -68,9 +68,12 @@ def Action.erase : Action Term → Action Untyped.Term
 | su t => su t.erase
 
 @[simp]
+def Ren.erase (τ : Ren Term) : Ren Untyped.Term :=
+  {act := τ.act}
+
+@[simp]
 def Subst.erase (σ : Subst Term) : Subst Untyped.Term :=
   {inner := λ n => Action.erase (σ.inner n)}
-
 
 notation "⟦" e "⟧" => Term.erase e
 notation "⟦" g "⟧" => Global.erase g
@@ -79,4 +82,5 @@ notation "⟦" pm "⟧" => Pattern.erase pm
 notation "⟦" vm "⟧" => Term.erase <$> vm
 notation "⟦" pmn "⟧" => Pattern.erase <$> pmn
 notation "⟦" a "⟧" => Action.erase a
+notation "⟦" τ "⟧" => Ren.erase τ
 notation "⟦" σ "⟧" => Subst.erase σ

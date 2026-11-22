@@ -66,8 +66,20 @@ theorem erasure_subst_cons {a : Action Term} {σ : Subst Term} :
       simp; trivial
   repeat sorry
 
-theorem erasure_subst_shift {σ : Subst Term} :
-  ⟦σ ∘ Ren.succ Term⟧ = ⟦σ⟧ ∘ Ren.succ Untyped.Term := by sorry
+theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
+  ⟦σ ∘ r⟧ = ⟦σ⟧ ∘ ⟦r⟧ := by
+  simp[Subst.compose_ren_right]
+  funext x
+  cases x
+  case _ => 
+    split <;> try simp
+    case _ =>
+      split <;> try simp
+      repeat sorry
+    case _ =>
+      repeat sorry
+    repeat sorry
+  case _ => sorry
 
 -- theorem erasure_sub_tm_lam (σ : Subst Term) :
 --   ⟦(λ[a]t)[σ]⟧ = ⟦λ[a]t⟧[⟦σ⟧] := by
@@ -75,6 +87,12 @@ theorem erasure_subst_shift {σ : Subst Term} :
 --   cases t
 --   case _ => sorry
 --   repeat sorry
+
+-- TODO: determine why this isn't 
+-- automatically used.
+@[simp]
+theorem erasure_subst_ren_n {n : Nat} :
+  Action.erase (re n) = re n := by trivial
 
 -- set_option pp.notation false
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
@@ -99,7 +117,8 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   | .ctor2 .apptc _ _ => by rfl
   | .lam a t => by
       simp[LeanSubst.smap, -Subst.erase]
-      rw[←erasure_subst_shift]
+      rw[←show ⟦Ren.succ Term⟧ = Ren.succ Untyped.Term by trivial] 
+      rw[←erasure_subst_ren]
       generalize hs : σ ∘ Ren.succ Term = s
       rw[←show ⟦re 0⟧ = re 0 by simp]
       rw[←erasure_subst_cons (a := re 0)]
