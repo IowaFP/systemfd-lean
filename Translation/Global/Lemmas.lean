@@ -19,7 +19,8 @@ theorem translate_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
 := by
   intro h1 h2
   have wf' : ⊢ G' := SI.translate_SI_wf_sound wf h1
-  apply IC.translate_IC_wf_sound wf' h2
+  have lem := IC.translate_IC_wf_sound wf' h2
+  apply lem.1
 
 
 theorem translate_open_exhaustive_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv} {G'' : Core.GlobalEnv} (wf : ⊢ G) :
