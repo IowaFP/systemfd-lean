@@ -77,12 +77,7 @@ theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
   funext x
   cases x
   case _ => 
-    split <;> try simp
-    case _ a x heq =>
-      rw[←erasure_subst_ren_n, ←heq]
-      sorry
-    case _ =>
-      repeat sorry
+    simp[Subst.act, SubstAction.act]
     repeat sorry
   case _ => sorry
 
@@ -182,14 +177,18 @@ theorem GlobalEnv.lookup_singleton_some_eq :
 theorem GlobalEnv.lookup_inst_none :
   lookup x [.inst s pm t] = none := by simp[lookup]
 
-theorem GlobalEnv.lookup_data_none :
-  x ≠ y → lookup x [.data n y K ctors] = none := by 
-    intros hnxy
-    simp[lookup]
-    split
-    contradiction
-
-    sorry
+-- theorem GlobalEnv.lookup_data_none :
+--   x ≠ y → lookup x [.data n y K ctors] = none := by 
+--     intros hnxy
+--     simp[lookup]
+--     split
+--     contradiction
+--     cases ctors <;> try simp
+--     case _ =>
+--       apply And.intro
+--       case _ => 
+--         sorry
+--       case _ => sorry
 
 theorem GlobalEnv.lookup_data_some :
   let d := lookup x [.data n y K ctors]
@@ -200,9 +199,17 @@ theorem GlobalEnv.lookup_data_some :
   simp[lookup] at h
   rw[hxy] at h; simp at h
   grind
-  rw[GlobalEnv.lookup_data_none hxy] at h
-  contradiction
- 
+  simp[lookup, hxy] at h
+  cases ctors <;> try simp at h
+  case _ => 
+    cases h
+    case _ n a v h2 => 
+      obtain ⟨hxa, heq⟩ := h2
+      rw[←hxa] at heq
+      try repeat sorry
+    case _ hxa heq => 
+      try repeat sorry
+
  theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
   → x = y
