@@ -189,46 +189,22 @@ theorem GlobalEnv.lookup_inst_none :
 --       case _ => 
 --         sorry
 --       case _ => sorry
-
-theorem GlobalEnv.lookup_data_some :
-  let d := lookup x [.data n y K ctors]
-  d = some e → e = .data y K ctors := by 
-  intros d h
-  subst d
-  by_cases hxy : x = y
-  simp[lookup] at h
-  rw[hxy] at h; simp at h
-  grind
-  simp[lookup, hxy] at h
-  cases ctors <;> try simp at h
-  case _ => 
-    cases h
-    case _ n a v h2 => 
-      obtain ⟨hxa, heq⟩ := h2
-      rw[←hxa] at heq
-      try repeat sorry
-    case _ hxa heq => 
-      try repeat sorry
-
- theorem GlobalEnv.lookup_singleton_elim :
+ 
+theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
   → x = y
   := by
   intros h
   cases g
-  case _ n y K ctors => 
-    have h' := h
-    rw[GlobalEnv.lookup_data_some h] at h'
-    rw[h'] at h
-    injection h
-    contradiction
-    -- split at h
-    -- injection h; contradiction
-    -- cases ctors
-    -- simp at h
-    -- case _ c cl => 
-    --   simp at h
-    --   sorry
+  case _ n z K ctors => 
+    simp[lookup] at h
+    split at h
+    case _ =>
+      injection h
+      contradiction
+    case _ => 
+      cases ctors <;> try simp at h
+      try repeat sorry
   -- TODO: how to remove the case where list is empty?
   case _ => 
     unfold lookup at h
