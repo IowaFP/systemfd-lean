@@ -189,14 +189,11 @@ theorem GlobalEnv.lookup_inst_none :
 --       case _ => 
 --         sorry
 --       case _ => sorry
- 
-theorem GlobalEnv.lookup_singleton_elim :
-  lookup x [g] = some (.defn y a t)
-  → x = y
-  := by
-  intros h
-  cases g
-  case _ n z K ctors => 
+
+theorem GlobalEnv.lookup_singleton_data_elim :
+  lookup x [Global.data n z K ctors] = some (.defn y a t)
+  → x = y := by 
+    intros h
     simp[lookup] at h
     split at h
     case _ =>
@@ -204,7 +201,20 @@ theorem GlobalEnv.lookup_singleton_elim :
       contradiction
     case _ => 
       cases ctors <;> try simp at h
+      case _ head tail => 
+        obtain ⟨_, hl⟩ := h
+        sorry
+        -- apply GlobalEnv.lookup_singleton_elim hl
+        try repeat sorry
       try repeat sorry
+
+theorem GlobalEnv.lookup_singleton_elim :
+  lookup x [g] = some (.defn y a t)
+  → x = y
+  := by
+  intros h
+  cases g
+  case _ n z K ctors => apply GlobalEnv.lookup_singleton_data_elim h
   -- TODO: how to remove the case where list is empty?
   case _ => 
     unfold lookup at h
