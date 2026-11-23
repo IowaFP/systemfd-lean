@@ -200,12 +200,9 @@ theorem GlobalEnv.lookup_singleton_data_elim :
       injection h
       contradiction
     case _ => 
-      cases ctors <;> try simp at h
-      case _ head tail => 
-        obtain ⟨_, hl⟩ := h
-        sorry
-        -- apply GlobalEnv.lookup_singleton_elim hl
-        try repeat sorry
+      -- Main strategy here:
+      -- show that there is SOME
+      -- ctor in ctors such that x == z.
       try repeat sorry
 
 theorem GlobalEnv.lookup_singleton_elim :
