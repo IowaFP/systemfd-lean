@@ -76,14 +76,14 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 | data {n : Nat} {G : GlobalEnv} {ctors : Vec (String × Core.SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
     SpineKinding (.data .cls) y ((.data x K #())::G) (Core.Ty.is_data x) T ∧
-    x ≠ y
+    x ≠ y ∧ y ≠ "loop"
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> ctors[i].1 ≠ ctors[j].1) ->
-  lookup x G = none ->
+  lookup x G = none ∧ x ≠ "loop" ->
   GlobalWf G (.data (n := n) x K ctors)
 
 | defn :
-  lookup x G = none ->
+  lookup x G = none ∧ x ≠ "loop" ->
   G&[] ⊢s T : ★ ->
   GlobalWf G (.defn x T t)
 
@@ -93,7 +93,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
             {mτs : List (String × Core.SpineTy)} :
 
   -- class name is unique
-  lookup s G = none ->
+  lookup s G = none ∧ x ≠ "loop" ->
   -- method names are unique
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < mτs.length)  -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
   (∀ i j: Nat, (hi : i < scτs.length) -> (hj : j < scτs.length) -> i ≠ j -> scτs[i].1 ≠ scτs[j].1) ->
@@ -103,12 +103,14 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < fdτs.length)          -> mτs[i].1 ≠ fdτs[j].1) ->
   (∀ i j: Nat, (hi : i < scτs.length)  -> (hj : j < fdτs.length)         -> scτs[i].1 ≠ fdτs[j].1) ->
 
-  (∀ i : Nat,  (hi : i < mτs.length)                                     -> mτs[i].1 ≠ s ∧ lookup mτs[i].1 G = none) ->
-  (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none) ->
-  (∀ i : Nat,  (hi : i < fdτs.length)                                    -> fdτs[i].1 ≠ s ∧ lookup fdτs[i].1 G = none) ->
+  (∀ i : Nat,  (hi : i < mτs.length)                                     -> mτs[i].1 ≠ s ∧ lookup mτs[i].1 G = none ∧ mτs[i].1 ≠ "loop") ->
+  (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none ∧ scτs[i].1 ≠ "loop") ->
+  (∀ i : Nat,  (hi : i < fdτs.length)                                    -> fdτs[i].1 ≠ s ∧ lookup fdτs[i].1 G = none ∧ fdτs[i].1 ≠ "loop") ->
 
   -- method type shapes
-  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧ -- all the Ts here ought to be empty. any quantification can go in R
+  (∀ (i : Nat), (hi : i < mτs.length) -> ∃ mn R, mτs[i] = (mn, ⟨0, #(), 0, #(), 0, #(), R⟩) ∧
+    -- all the Ts here ought to be empty.
+    -- Any quantification can go in R
     G&(Ks1.list).reverse ⊢s R : ★ ∧ (.classDecl s Ks1 [] [] [] :: G)&Ks1.list.reverse ⊢s (gt#s).mkApps_nats (List.range na).reverse : ★) ->
 
   -- super class type shapes
@@ -125,7 +127,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
 
 | inst {na nb nc} {Ks1 : Vec Core.Kind na} {Ks2 As} {ts : List (String × _)}
   {fds : List (String × List (Fin na) × Fin na)} {scs : List (String × String × List (Fin na))}:
-  lookup x G = none ->
+  lookup x G = none ∧ x ≠ "loop" ->
   lookup cls_name G = some (.odata (n := na) cls_name Ks1 fds scs mτs) ->
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨na, Ks1, nb, Ks2, nc, As, (gt#cls_name).mkApps_nats ((List.range na).map (·+ nb)).reverse⟩ ->
   -- Cover all methods
@@ -158,7 +160,7 @@ theorem GlobalWf.drop_lookup_unique {G : GlobalEnv} n :
       cases j2
       case data n y K ctors j1 j2 j3 =>
         simp [lookup]; split
-        case _ e => subst e; rw [ih] at j3; injection j3
+        case _ e => subst e; rw [ih] at j3; rcases j3 with ⟨j3, _⟩; injection j3
         case _ e =>
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;

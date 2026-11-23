@@ -62,15 +62,15 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
 | data {G : GlobalEnv} {ctors : Vec (String × Core.SpineTy) n} :
   (∀ (i : Fin n) y T, ctors[i] = (y, T) ->
     SpineKinding (.data .cls) y ((.data ⟨x, K, ⟨0, #()⟩⟩)::G) (Core.Ty.is_data x) T
-    ∧ x ≠ y
+    ∧ x ≠ y ∧ y ≠ "loop"
     ∧ lookup y G = none) ->
   (∀ i j : Fin n, i ≠ j -> (ctors[i]).1 ≠ (ctors[j]).1) ->
-  (lookup x G = none) ->
+  (lookup x G = none ∧ x ≠ "loop") ->
   GlobalWf G (.data ⟨x, K, ⟨n, ctors⟩⟩)
 
 | defn {G : GlobalEnv} :
   G&[] ⊢ T : ★ ->
-  lookup x G = none ->
+  lookup x G = none ∧ x ≠ "loop" ->
   GlobalWf G (.defn ⟨x, T, t⟩)
 
 | classDecl {na : Nat} {Ks : Vec Core.Kind na}
@@ -88,9 +88,9 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < fdτs.length)          -> mτs[i].1 ≠ fdτs[j].1) ->
   (∀ i j: Nat, (hi : i < scτs.length)  -> (hj : j < fdτs.length)         -> scτs[i].1 ≠ fdτs[j].1) ->
 
-  (∀ i : Nat,  (hi : i < mτs.length)                                     -> mτs[i].1 ≠ s ∧ lookup mτs[i].1 G = none) ->
-  (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none) ->
-  (∀ i : Nat,  (hi : i < fdτs.length)                                    -> fdτs[i].1 ≠ s ∧ lookup fdτs[i].1 G = none) ->
+  (∀ i : Nat,  (hi : i < mτs.length)                                     -> mτs[i].1 ≠ s ∧ lookup mτs[i].1 G = none ∧ mτs[i].1 ≠ "loop") ->
+  (∀ i : Nat,  (hi : i < scτs.length)                                    -> scτs[i].1 ≠ s ∧ lookup scτs[i].1 G = none ∧ scτs[i].1 ≠ "loop") ->
+  (∀ i : Nat,  (hi : i < fdτs.length)                                    -> fdτs[i].1 ≠ s ∧ lookup fdτs[i].1 G = none ∧ fdτs[i].1 ≠ "loop") ->
 
   -- class method shapes
   (∀ (i : Nat), (hi : i < mτs.length) ->
@@ -128,7 +128,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
        {scs_impl : List (String × (m : Nat) × Core.Pattern m)}
        {fds_impl : List (String × (m : Nat) × Core.Pattern m)}
        :
-  lookup x G = none ->
+  lookup x G = none ∧ x ≠ "loop" ->
   lookup cls_name G = some (.odata cls_name K fdτs scτs mτs) ->
 
   SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨n, K, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
@@ -168,7 +168,7 @@ theorem GlobalWf.drop_lookup_unique {G : List Global} n :
       cases j2
       case data n y K ctors j1 j2 j3 =>
         simp [lookup]; split
-        case _ e => subst e; rw [ih] at j3; injection j3
+        case _ e => subst e; rw [ih] at j3; rcases j3 with ⟨j3, _⟩; injection j3
         case _ e =>
           simp [Vec.foldr_or_val_some]
           apply Or.inr; apply And.intro;
@@ -851,8 +851,8 @@ theorem Query.strengthen_om_inst {Γ : Intermediate.GlobalEnv} {qs : Vec String 
   case _ => apply VecTyping.nil
   case _  q T k qs Ts hd tl ih =>
     apply VecTyping.cons
-    sorry
-    apply ih
+    · sorry
+    · apply ih
 
 
 
