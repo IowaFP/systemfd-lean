@@ -78,6 +78,7 @@ theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
   cases x
   case _ => 
     simp[Subst.act, SubstAction.act]
+    generalize zdef : σ.inner 0 = z
     try repeat sorry
   case _ => 
     simp[Subst.act, SubstAction.act]
@@ -90,8 +91,6 @@ theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
 --   case _ => sorry
 --   repeat sorry
 
-
-
 -- set_option pp.notation false
 theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   ⟦b[σ]⟧ = ⟦b⟧[⟦σ⟧] := 
@@ -102,7 +101,10 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
     case _ heq => rw[heq]; trivial
     case _ heq => rw[heq]; trivial
   | d#_ | .ctor0 _ => by rfl 
-  | .spctor .. => sorry
+  | .spctor _ _ _ _ vn => by
+    simp[LeanSubst.smap]
+    funext n
+    apply erasure_sub_tm σ (vn n)
   | .ctor1 (.appt _) t => by 
     simp[LeanSubst.smap]
     apply And.intro
@@ -127,15 +129,16 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
   | .tbind .lamt _ t => by
     simp[Subst.hcompose_ren]
     sorry
-  -- | .tbind .allc _ t => by simp; apply erasure_sub_tm
   | .cast _ _ _ => by simp; apply erasure_sub_tm
   | .mtch n m vn pnm vm => by
     simp[LeanSubst.smap]
     apply And.intro
     case _ => 
       funext ⟨i, lt⟩ 
+      apply erasure_sub_tm σ (vn ⟨i, lt⟩)
+    case _ =>
+      funext k
       sorry
-    case _ => sorry
 
 theorem erasure_su_cons (t : Term) :
   ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term :=
