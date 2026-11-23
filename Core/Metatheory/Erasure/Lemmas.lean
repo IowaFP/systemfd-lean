@@ -71,18 +71,33 @@ theorem erasure_subst_cons {a : Action Term} {σ : Subst Term} :
 theorem erasure_subst_ren_n {n : Nat} :
   Action.erase (re n) = re n := by trivial
 
+theorem erasure_ren {t : Term} {r : Ren Term} :
+  ⟦Term.rmap r t⟧ = Untyped.Term.rmap { act := r.act } ⟦t⟧ := by
+    cases t <;> try simp[Term.erase]
+    case _ =>
+      funext n
+      apply erasure_ren
+    case _ a t => 
+      cases a <;> try simp <;> try apply erasure_ren
+    case _ a t1 t2 =>
+      cases a <;> try simp <;> try apply erasure_ren
+      case app => 
+        apply And.intro <;> try apply erasure_ren
+    case _ a _ t => 
+      cases a <;> try simp <;> try apply erasure_ren
+      case lamt => sorry
+    case _ => sorry
+    case _ => sorry
+    case _ => sorry
+
 theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
   ⟦σ ∘ r⟧ = ⟦σ⟧ ∘ ⟦r⟧ := by
   simp[Subst.compose_ren_right]
   funext x
-  cases x
-  case _ => 
-    simp[Subst.act, SubstAction.act]
-    generalize zdef : σ.inner 0 = z
-    try repeat sorry
-  case _ => 
-    simp[Subst.act, SubstAction.act]
-    try repeat sorry
+  simp[Subst.act, SubstAction.act]
+  generalize zdef : σ.inner x = z
+  cases z <;> try simp
+  case _ t => apply erasure_ren
 
 -- theorem erasure_sub_tm_lam (σ : Subst Term) :
 --   ⟦(λ[a]t)[σ]⟧ = ⟦λ[a]t⟧[⟦σ⟧] := by
