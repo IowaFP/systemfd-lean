@@ -102,6 +102,43 @@ def EnvHasLoop (G : Core.GlobalEnv) : Prop :=
   Core.lookup "loop" G = some (Core.Entry.openm "loop" ⟨1, (#(★), ⟨0, (#(), ⟨0, (#(), t#0)⟩)⟩)⟩)
   ∧ ∃ (i : Nat), G[i]? = some (Core.Global.inst "loop" #() (openm! "loop" #(t#0) #() #().to))
 
+theorem EnvHasLoop.weaken {g : Core.Global}{G : Core.GlobalEnv} (wf : ⊢ (g :: G)) :
+  EnvHasLoop G -> EnvHasLoop (g :: G)
+:= by
+  intro h
+  cases wf; case _ wf wfhd =>
+  cases wfhd <;> simp [EnvHasLoop]
+  case data x _ ctors _ c _ =>
+    simp [EnvHasLoop] at h; rcases h with ⟨h1, i, h2⟩
+    simp [Core.lookup]
+    split
+    · subst x; grind
+    · have e : (x = "loop") = False := by grind
+      simp [Vec.foldr_or_val_some]; apply And.intro
+      · apply And.intro;
+        · apply h1
+        · intro i h; replace c := c i ctors[i].1 ctors[i].2 rfl; rw[<-h] at c; simp [c.2.2] at h1
+      exists i + 1
+  case inst =>
+    simp [EnvHasLoop] at h; rcases h with ⟨h1, i, h2⟩
+    simp [Core.lookup]
+    apply And.intro;
+    apply h1
+    exists i + 1
+  all_goals try (
+  case _ =>
+    simp [EnvHasLoop] at h; rcases h with ⟨h1, i, h2⟩
+    simp [Core.lookup]
+    split
+    · grind
+    · apply And.intro;
+      apply h1
+      exists i + 1)
+
+
+theorem EnvHasLoop.weaken_append {G1 G2 : Core.GlobalEnv} (wf : ⊢ (G1 ++ G2)) :
+  EnvHasLoop G2 -> EnvHasLoop (G1 ++ G2) := by sorry
+
 theorem mk_inst_mths_IC_length {Γ : Core.GlobalEnv} :
   mk_inst_mths_IC Γ mτs mths = .ok insts ->
   mths.length = insts.length
@@ -1464,9 +1501,6 @@ theorem mk_inst_scs_IC_wf_sound
     apply Core.ListGlobalWf.cons
     assumption; assumption
 
-theorem EnvHasLoop.weaken {G1 G2 : Core.GlobalEnv} (wf : ⊢ (G1 ++ G2)) :
-  EnvHasLoop G2 -> EnvHasLoop (G1 ++ G2) := by sorry
-
 theorem mk_inst_fds_IC_wf_sound
   {G1 G' : Core.GlobalEnv} {fdτs : List (String × Core.SpineTy)} {fds_pats : List (String × (m : Nat) × Core.Pattern m)}
   (lp : EnvHasLoop G')
@@ -1491,7 +1525,7 @@ theorem mk_inst_fds_IC_wf_sound
        rcases hi with ⟨j, hj, h⟩
        simp at h; rcases h with ⟨h3, h4⟩; exists j; exists hj
        rw[<-Γdef]at h1; apply h1
-    replace lp := EnvHasLoop.weaken lem
+    replace lp := EnvHasLoop.weaken_append lem
     simp [<-Γdef] at h2; have h1b := mk_inst_fd_IC_wf (by sorry) lem h2
     rcases h1b with ⟨t, h3, ζ, Γ, Δ, R, Ts, h4, h⟩
     simp [<-Γdef];
@@ -1762,30 +1796,47 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
   case _ s _ _ ctors _ ih => -- data
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩
     cases h1
+    have wf' := wf
     cases wf; case _ wftl wfhd =>
     cases wfhd; case _ c1 c2 c3 =>
     apply And.intro
     apply Core.ListGlobalWf.cons
     apply Core.GlobalWf.data
     intro i y T e; replace c3 := c3 i y T e; rcases c3 with ⟨c1', c2', c3'⟩;
-    apply And.intro; apply translate_IC_spine_kinding_data (by constructor; constructor; intro i; apply i.elim0; simp; apply c1; apply wftl) h c1'; apply And.intro; apply c2'; sorry -- apply translate_IC_lookup_none h c3'
+    apply And.intro; apply translate_IC_spine_kinding_data (by constructor; constructor; intro i; apply i.elim0; simp; apply c1; apply wftl) h c1';
+
+    apply And.intro;
+    · apply c2'
+    · have lem := translate_IC_lookup_none h c3'.2; grind
     apply c2
-    sorry -- apply translate_IC_lookup_none h c1
-    sorry -- apply ih wftl h
-    sorry
-  case _ ih => -- defn
+    · have lem := translate_IC_lookup_none h c1.1; grind -- apply
+    have lem := translate_IC_lookup_none h c1.1; grind -- apply ih wftl h
+    replace ih := ih wftl h
+    have e : ("loop" = s) = False := by grind
+    simp [EnvHasLoop]; apply And.intro; simp [Core.lookup, e]
+    simp [Vec.foldr_or_val_some]; apply And.intro; apply ih.2.1
+    intro i h; replace c3 := c3 i ctors[i].1 ctors[i].2 rfl; apply c3.2.2.1; symm; apply h
+    simp [EnvHasLoop] at ih; rcases ih with ⟨_, _, i, ih⟩; exists i + 1
+
+  case _ s _ _ _ ih => -- defn
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, t', h1, h2⟩
     cases h2;
     cases wf; case _ wftl wfhd =>
     cases wfhd; case _ lk h2 =>
+    replace ih := ih wftl h
     apply And.intro
-    constructor
-    constructor
+    apply Core.ListGlobalWf.cons
+    apply Core.GlobalWf.defn
     · apply kinding_IC_transfer wftl h h2
-    · apply type_directed_translation_soundness sorry /- mk_inst_fds_IC_wf_sound -/ h1
-    · sorry -- apply translate_IC_lookup_none h lk
-    sorry -- apply ih wftl h
-    sorry
+    · apply type_directed_translation_soundness
+      apply ih.1
+      apply h1
+    · have lem := translate_IC_lookup_none h lk.1; grind
+    apply ih.1
+    have e : ("loop" = s) = False := by grind
+    simp [EnvHasLoop]; apply And.intro
+    simp [Core.lookup, e]; apply ih.2.1
+    rcases ih with ⟨_, _, i, ih⟩; exists i + 1
   case _ s k1 Ks fds sds mths _ ih => -- class
     rw[Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩; simp [Except.pure] at h1; subst G';
     cases wf; case _ wftl wfhd =>
@@ -1837,7 +1888,10 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
         case _ e => sorry -- replace c10 := c10 0 (by grind); simp at c10; contradiction
         case _ hd tl ih _ => sorry --  apply ih; intro j hj; apply c10 (j + 1) (by grind)
       · intro i hi; subst scsG; sorry -- replace c7 := c7 i hi; apply translate_IC_lookup_none h c7.2
-    simp at wfmthsΓ; sorry -- apply wfmthsΓ
+    simp at wfmthsΓ;
+    apply And.intro
+    · apply wfmthsΓ
+    · replace ih := ih wftl h; sorry -- apply wfmthsΓ
 
   case _ iname cls_name k1 k2 k3 Ks1 Ks2 As fds scs mths G ih => -- inst
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩;
@@ -2071,82 +2125,6 @@ theorem translate_IC_lookup_openm {G : Intermediate.GlobalEnv} {G' : Core.Global
       --   cases wf'; case _ wf' _ =>
       --   apply ih h2 wf'
       sorry
-
--- theorem translate_IC_loop_openm {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G) :
---   ⟦ G ⟧ = .ok G' ->
---   Core.lookup "loop" G' = some (Core.Entry.openm "loop" ⟨1, (#(★), ⟨0, (#(), ⟨0, (#(), t#0)⟩)⟩)⟩)
--- := by
---   intro h
---   have wf' := translate_IC_wf_sound wf h
---   induction G generalizing G' <;> simp [translate_IC] at h
---   case nil => cases h; simp [Core.lookup]
---   case cons g G ih =>
---   cases wf; case _ wf wfhd =>
---     cases g <;> simp [translate_IC] at h
---     case data a =>
---       simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨_, h, h1⟩;
---       subst G'
---       replace ih := ih wf h
---       simp [Core.lookup]
---       cases wf'; case _ wf' wfhd' =>
---       cases wfhd'; case _ wfhd c1 c2 =>
---       replace ih := ih wf'
---       cases decEq "loop" a.name
---       case _ =>
---         have ne : ("loop" = a.name) = False := by grind
---         simp [ne] at *
---         simp [Vec.foldr_or_val_some]
---         apply And.intro
---         apply ih
---         intro i q; replace c2 := c2 i a.3.snd[i].1 a.3.snd[i].2 rfl;
---         rw[<-q] at c2; rw[c2.2.2] at ih; cases ih
---       case _ e => simp[<-e, ih] at wfhd
---     case defn => sorry
---     case classDecl => sorry
---     case instDecl => sorry
-
-
-
--- theorem translate_IC_loop_inst_idx
---   {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
---   ⟦ G ⟧ = .ok G' ->
---   ∃ (i : Nat), G'[i]? = some (Core.Global.inst "loop" #() (openm! "loop" #(t#0) #() #().to))
--- := by
---   intro h
---   induction G generalizing G' <;> simp [translate_IC] at h
---   case nil => cases h; exists 0
---   case cons g G ih =>
---   cases g <;> simp [translate_IC] at h
---   case data =>
---     simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨_, h, h1⟩
---     subst G'
---     cases wf; case _ wf _ =>
---     replace ih := ih wf h; rcases ih with ⟨i, ih⟩; exists i + 1
---   case defn =>
---     simp [bind, Except.bind_eq_ok_iff] at h; rcases h with ⟨_, h, h1⟩
---     simp [Functor.map, Except.map_eq_ok_iff] at h1; rcases h1 with ⟨_, h1, h2⟩
---     subst G'
---     cases wf; case _ wf _ =>
---     replace ih := ih wf h; rcases ih with ⟨i, ih⟩; exists i + 1
---   case classDecl f =>
---     simp [Functor.map, Except.map_eq_ok_iff] at h; rcases h with ⟨w, h, h1⟩
---     subst G';
---     cases wf; case _ wf _ =>
---     replace ih := ih wf h; rcases ih with ⟨i, ih⟩
---     have ih' := ih; simp [List.getElem?_eq_some_iff] at ih';
---     rcases ih' with ⟨hi, _⟩;
---     have lem : i + 1 < w.length + 1 := by grind
---     let j := ((f.mths.map (λ x => Core.Global.openm x.1 x.2)).length
---                         + (f.scs.map (λ x => Core.Global.openm x.1 x.2)).length + (f.fds.map (λ x => Core.Global.openm x.1 x.2.2.2)).length) + i + 1
---     let l₁ := f.mths.map (λ x => Core.Global.openm x.1 x.2) ++ f.scs.map (λ x => Core.Global.openm x.1 x.2) ++ (f.fds.map (λ x => Core.Global.openm x.1 x.2.2.2))
-
---     exists j
---     have hj : l₁.length ≤ j := by grind
---     have lem := List.getElem?_append_right (l₁ := l₁) (l₂ := Core.Global.odata f.name (Core.Kind.mk_cls_kind f.kind) :: w) (i := j) hj
---     rw [<-List.append_assoc, <-List.append_assoc];
---     sorry
---   case instDecl => sorry
-
 
 
 theorem translate_IC_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv} (wf : ⊢ G):
