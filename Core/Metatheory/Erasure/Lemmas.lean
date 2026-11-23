@@ -78,8 +78,10 @@ theorem erasure_subst_ren {σ : Subst Term} {r : Ren Term}:
   cases x
   case _ => 
     simp[Subst.act, SubstAction.act]
-    repeat sorry
-  case _ => sorry
+    try repeat sorry
+  case _ => 
+    simp[Subst.act, SubstAction.act]
+    try repeat sorry
 
 -- theorem erasure_sub_tm_lam (σ : Subst Term) :
 --   ⟦(λ[a]t)[σ]⟧ = ⟦λ[a]t⟧[⟦σ⟧] := by
@@ -190,7 +192,6 @@ theorem GlobalEnv.lookup_inst_none :
 --         sorry
 --       case _ => sorry
 
-
 theorem GlobalEnv.lookup_data_vec_elim :
   x ≠ z 
   → lookup x [Global.data n z K ctors] = some (.defn y a t)
@@ -200,14 +201,19 @@ theorem GlobalEnv.lookup_data_vec_elim :
     split at hl
     case _ => contradiction
     case _ =>
-      have lem1 :
-        let ctors' := Vec.map
-          (λ ((z', A), i) => if x == z' then some (Entry.ctor z' i A) else none)
-          (Vec.zipIdx ctors)
-        ∃ z', ∃ i, ∃ A, Vec.foldr Option.or none ctors' = some (Entry.ctor z' i A) := by sorry
-      obtain ⟨z', hcz, i, hlz⟩ := lem1
-      rw[←hlz] at hl
-      try repeat sorry
+      have hf := hl
+      rw[Vec.foldr_or_val_some] at hf
+      cases hf
+      case _ hi => 
+        obtain ⟨i, hil, hij⟩ := hi 
+        rw[←hil] at hl
+        simp at hl
+        split at hl
+        case _ hxi => 
+          rw[hxi] at hil
+          simp at hil
+        case _ => grind
+      case _ => grind
 
 theorem GlobalEnv.lookup_singleton_data_elim :
   lookup x [Global.data n z K ctors] = some (.defn y a t)
