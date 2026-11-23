@@ -93,7 +93,7 @@ inductive GlobalWf : GlobalEnv -> Surface.Global -> Prop where
             {mτs : List (String × Core.SpineTy)} :
 
   -- class name is unique
-  lookup s G = none ∧ x ≠ "loop" ->
+  lookup s G = none ∧ s ≠ "loop" ->
   -- method names are unique
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < mτs.length)  -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
   (∀ i j: Nat, (hi : i < scτs.length) -> (hj : j < scτs.length) -> i ≠ j -> scτs[i].1 ≠ scτs[j].1) ->

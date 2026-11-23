@@ -894,7 +894,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
     cases wfhd; case _ c1 c2 c3 c4 c5 c6 c7 c8 c9 c10 c11 c12 c13 =>
     constructor
     · apply Intermediate.GlobalWf.classDecl
-      · apply h3
+      · apply And.intro; apply h3; apply c1.2
       · intro i j hi hj ne; simp; apply c9 i j (by grind) (by grind) ne
       · intro i j hi hj ne; simp; apply c5 i j (by grind) (by grind) ne
       · intro i j hi hj ne; simp; apply c2 i j (by grind) (by grind) ne
@@ -934,7 +934,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
             subst mτ';
             have lemwf' : ⊢ ((Intermediate.Global.classDecl ⟨s, kc, Ks, [], [], []⟩) :: Γ') := by
               apply Intermediate.ListGlobalWf.cons
-              · apply Intermediate.GlobalWf.classDecl; assumption; repeat simp
+              · apply Intermediate.GlobalWf.classDecl; apply And.intro; assumption; apply c1.2; repeat simp
               · apply ih wftl h1
             apply Intermediate.SpineKinding.valid
             · rfl;
@@ -968,7 +968,7 @@ theorem translate_SI_wf_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalE
         let scsi' := (scs'[i]'(by grind))
         have lemwf : ⊢ (Intermediate.Global.classDecl { name := s, kcU := kc, kind := Ks, fds := [], scs := [], mths := [] } :: Γ')
               := by apply Intermediate.ListGlobalWf.cons
-                    apply Intermediate.GlobalWf.classDecl; assumption; repeat (simp)
+                    apply Intermediate.GlobalWf.classDecl; apply And.intro; assumption; apply c1.2; repeat (simp)
                     apply ih wftl h1
 
         exists scsi'.1; exists scsi'.2
@@ -1171,7 +1171,7 @@ theorem translate_SI_sound {G : Surface.GlobalEnv} {G' : Intermediate.GlobalEnv}
             simp [Intermediate.lookup_ctor?, e2] at h2
             generalize zdef : Intermediate.lookup q Γ' = z at *
             cases z <;> try simp at h2
-            apply Intermediate.lookup_none_ctor? wftl' ci1 zdef h2
+            apply Intermediate.lookup_none_ctor? wftl' ci1.1 zdef h2
 
       case _ i h6 =>
         split at h1 <;> try simp at h1

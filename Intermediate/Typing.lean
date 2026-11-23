@@ -77,7 +77,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   {fdτs : List (String × List (Fin na) × Fin na × Core.SpineTy)} {scτs : List (String × Core.SpineTy)} {mτs : List (String × Core.SpineTy)}:
 
   -- class name is unique
-  lookup s G = none ->
+  lookup s G = none ∧ s ≠ "loop" ->
   -- method names are unique
   -- TODO: Should i be saying that none of the method names are also not "loop"?
   (∀ i j: Nat, (hi : i < mτs.length)  -> (hj : j < mτs.length)  -> i ≠ j -> mτs[i].1 ≠ mτs[j].1) ->
