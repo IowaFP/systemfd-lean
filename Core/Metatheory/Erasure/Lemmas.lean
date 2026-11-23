@@ -190,20 +190,37 @@ theorem GlobalEnv.lookup_inst_none :
 --         sorry
 --       case _ => sorry
 
+
+theorem GlobalEnv.lookup_data_vec_elim :
+  x ≠ z 
+  → lookup x [Global.data n z K ctors] = some (.defn y a t)
+  → x = y := by 
+    intros hxz hl
+    simp[lookup] at hl
+    split at hl
+    case _ => contradiction
+    case _ =>
+      have lem1 :
+        let ctors' := Vec.map
+          (λ ((z', A), i) => if x == z' then some (Entry.ctor z' i A) else none)
+          (Vec.zipIdx ctors)
+        ∃ z', ∃ i, ∃ A, Vec.foldr Option.or none ctors' = some (Entry.ctor z' i A) := by sorry
+      obtain ⟨z', hcz, i, hlz⟩ := lem1
+      rw[←hlz] at hl
+      try repeat sorry
+
 theorem GlobalEnv.lookup_singleton_data_elim :
   lookup x [Global.data n z K ctors] = some (.defn y a t)
   → x = y := by 
     intros h
+    have h' := h
     simp[lookup] at h
     split at h
     case _ =>
       injection h
       contradiction
-    case _ => 
-      -- Main strategy here:
-      -- show that there is SOME
-      -- ctor in ctors such that x == z.
-      try repeat sorry
+    case _ hxz => 
+      apply GlobalEnv.lookup_data_vec_elim hxz h'
 
 theorem GlobalEnv.lookup_singleton_elim :
   lookup x [g] = some (.defn y a t)
