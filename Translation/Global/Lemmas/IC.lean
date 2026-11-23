@@ -1357,20 +1357,19 @@ theorem translate_IC_lookup_none {G : Intermediate.GlobalEnv} {G' : Core.GlobalE
             case _ h4 =>
               apply And.intro
               apply findIdx?_none_iff_lookup_name_none.1 h4
-              split at h2
+              split at h2 <;> try simp at h2
               case _ h5 =>
                 apply And.intro
-                apply findIdx?_none_iff_lookup_fd_name_none.1 h5
-                apply ih h1 h2
-              case _ i h4 =>
-                simp [List.findIdx?_eq_some_iff_getElem] at h4
-                rcases h4 with ⟨hi, h4, h5⟩;
+                · apply findIdx?_none_iff_lookup_fd_name_none.1 h5
+                · apply ih h1 h2
+              case _ i h5 =>
+                simp [List.findIdx?_eq_some_iff_getElem] at h5
+                rcases h5 with ⟨hi, h5, h6⟩;
                 simp [List.getElem?_eq_getElem hi] at h2
             case _ h4 =>
               simp [List.findIdx?_eq_some_iff_getElem] at h4
               rcases h4 with ⟨hi, h4, h5⟩;
               simp [List.getElem?_eq_getElem hi] at h2
-
           split at h2;
           simp at h2
           case _ h3 _ h4 =>
@@ -1525,8 +1524,20 @@ theorem mk_inst_fds_IC_wf_sound
        rcases hi with ⟨j, hj, h⟩
        simp at h; rcases h with ⟨h3, h4⟩; exists j; exists hj
        rw[<-Γdef]at h1; apply h1
-    replace lp := EnvHasLoop.weaken_append lem
-    simp [<-Γdef] at h2; have h1b := mk_inst_fd_IC_wf (by sorry) lem h2
+    simp [<-Γdef] at h2;
+    have h1b := mk_inst_fd_IC_wf
+                (by simp [<-List.append_assoc] at lem;
+                    have lp' := EnvHasLoop.weaken_append lem; simp [<-List.append_assoc];
+                    apply lp'; replace lem := Core.GlobalWf.drop_wf (G ++ G1).length lem; simp at lem
+                    simp [EnvHasLoop]; cases lem; case _ =>
+                    simp [Core.lookup]
+                    split
+                    case _ =>
+                      subst iname; exfalso; case _ wfhd =>
+                      cases wfhd; case _ lk _ =>
+                      simp [EnvHasLoop] at lp; simp [lk] at lp
+                    case _ => simp [EnvHasLoop] at lp; apply And.intro; apply lp.1; rcases lp.2 with ⟨i, lp⟩; exists i + 1)
+                lem h2
     rcases h1b with ⟨t, h3, ζ, Γ, Δ, R, Ts, h4, h⟩
     simp [<-Γdef];
     apply Core.ListGlobalWf.cons
