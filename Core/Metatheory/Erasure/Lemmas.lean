@@ -27,9 +27,7 @@ theorem erasure_subst_ty (σ : Subst Ty) : (b : Term) → ⟦b[σ]⟧ = ⟦b⟧
 | .ctor1 (.prj n) b => by simp; apply erasure_subst_ty σ b
 | .ctor2 .app t1 t2 => by
     simp
-    apply And.intro
-    apply erasure_subst_ty
-    apply erasure_subst_ty
+    apply And.intro <;> try apply erasure_subst_ty
 | .ctor2 .apptc _ _ => by rfl
 | .cast _ _ t => by simp; apply erasure_subst_ty
 | .tbind .allc _ t => by simp; apply erasure_subst_ty
@@ -85,7 +83,13 @@ theorem erasure_ren {t : Term} {r : Ren Term} :
         apply And.intro <;> try apply erasure_ren
     case _ a _ t => 
       cases a <;> try simp <;> try apply erasure_ren
-      case lamt => sorry
+      case lamt => 
+        cases t <;> try simp <;> cases r <;> try simp[Ren.cons]
+        case _ a act => 
+          -- TODO: requires showing that act 0 = 0, act (n + 1) = act n + 1
+          cases a <;> try simp
+          repeat sorry
+        repeat sorry
     case _ => sorry
     case _ => sorry
     case _ => sorry
@@ -156,25 +160,54 @@ theorem erasure_sub_tm (σ : Subst Term) (b : Term) :
       sorry
 
 theorem erasure_su_cons (t : Term) :
-  ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term :=
-  match t with
-  | #x => by
-    -- TODO: turn into a tactic!
-    simp[Subst.cons]
-    funext n
-    split
-    case _ => grind
-    case _ t heq => 
-      cases t <;> (try simp) <;> repeat grind
-  | d#x => by 
-    simp[Subst.cons]
-    funext n
-    split
-    case _ => grind
-    case _ t heq =>
-      cases t <;> (try simp) <;> repeat grind
-  | .ctor0 _ => by sorry
-  | _ => sorry
+  ⟦su t :: Subst.id Term⟧ = su ⟦t⟧ :: Subst.id Untyped.Term := by
+    cases t <;> try simp[Subst.cons] <;> funext n
+    case var x =>
+      -- TODO: turn into a tactic!
+      split
+      case _ => grind
+      case _ t heq => 
+        cases t <;> (try simp) <;> repeat grind
+    case defn x =>
+      split
+      case _ => grind
+      case _ t heq =>
+        cases t <;> (try simp) <;> repeat grind
+    case spctor =>
+      repeat split <;> try simp <;> try repeat grind
+      case _ heq =>
+        split at heq <;> try simp
+        case _ => 
+          injection heq with heq
+          rw[←heq]
+          simp
+        case _ => contradiction
+    case ctor0 a =>
+      split; split
+      contradiction
+      grind
+      split
+      case _ _ _ heq =>
+        simp at heq
+        cases a
+        rw[←heq]
+        simp
+      contradiction
+    case ctor1 a t =>
+      repeat split <;> try simp <;> try repeat grind
+    case ctor2 a t =>
+      repeat split <;> try simp <;> try repeat grind
+    case tbind =>
+      repeat split <;> try simp <;> try repeat grind
+    case lam =>
+      repeat split <;> try simp
+      contradiction
+      grind
+      split
+      case _ heq =>
+        sorry
+      contradiction
+    repeat sorry
 
 theorem erasure_sub_tm_su (b : Term) :
   ⟦b[su t :: Subst.id Term]⟧
