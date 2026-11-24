@@ -126,8 +126,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
        {fdτs : List (String × List (Fin n) × Fin n × Core.SpineTy)}
        {mths_impl : List (String × (m : Nat) × Core.Pattern m × Surface.Term)}
        {scs_impl : List (String × (m : Nat) × Core.Pattern m)}
-       {fds_impl : List (String × (m : Nat) × Core.Pattern m)}
-       :
+       {fds_impl : List (String × (m : Nat) × Core.Pattern m)} :
   lookup x G = none ∧ x ≠ "loop" ->
   lookup cls_name G = some (.odata cls_name K fdτs scτs mτs) ->
 
