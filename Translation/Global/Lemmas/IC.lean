@@ -1562,6 +1562,17 @@ theorem openm_name_never_cls_name {τs : List (String × Core.SpineTy)} :
     case _ e => subst e; replace h := h 0 (by grind); simp at h
     case _ e => apply ih; intro i hi; apply h (i + 1) (by grind)
 
+theorem fd_openm_name_never_cls_name {τs : List (String × List (Fin n) × Fin n × Core.SpineTy)} :
+  (∀ (i : Nat) (hi : i < τs.length), τs[i].fst ≠ s) ->
+  Core.lookup s (List.map (fun x => Core.Global.openm x.fst x.2.2.2) τs) = none
+:= by
+  intro h
+  induction τs <;> simp [Core.lookup]
+  case _ τ τs ih =>
+    split
+    case _ e => subst e; replace h := h 0 (by grind); simp at h
+    case _ e => apply ih; intro i hi; apply h (i + 1) (by grind)
+
 
 theorem mk_cls_mths_IC_wf_sound
   {Γ : Intermediate.GlobalEnv}
@@ -1864,54 +1875,69 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
       constructor; constructor;
       have lem := translate_IC_lookup_none h c1.1; grind
       apply ih.1
-    generalize mthGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = mthG at *
+    have loop_pred : EnvHasLoop (Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by sorry
+
+    generalize mthsGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) mths) = mthsG at *
     generalize fdsGdef : (List.map (fun x => Core.Global.openm x.fst x.2.2.2) fds) = fdsG at *
     generalize scGdef : (List.map (fun x => Core.Global.openm x.fst x.snd) sds) = scsG at *
 
-    have wffdsΓ : ⊢ (fdsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by sorry
+    have mthsΓwf : ⊢ (mthsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')
+      := by sorry
+    have loop_pred_mthsΓ : EnvHasLoop (mthsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')
+      := by apply EnvHasLoop.weaken_append mthsΓwf loop_pred
 
-    have wfscsΓ : ⊢ (scsG ++ (fdsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')) := by
-      sorry
-      -- apply mk_cls_scs_IC_wf_sound (G1 := fdsG) (G' := Γ')
-      -- · apply wftl
-      -- · apply h
-      -- · simp; apply lem
-      -- · apply scGdef
-      -- · intro i hi; replace c3 := c3 i hi; apply c3.1
-      -- · apply c2
-      -- · apply c5
-      -- · simp [Core.lookup];
-      -- · simp [Core.lookup]
-      -- · intro i hi; replace c3 := c3 i hi; apply translate_IC_lookup_none h c3.2
-    have wfscsΓassoc : ⊢ ((scsG ++ fdsG) ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by   grind
-
-    have wfmthsΓ : ⊢ (mthG ++ ((scsG ++ fdsG) ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')) := by
-      apply mk_cls_mths_IC_wf_sound (G1 := (scsG ++ fdsG)) (G' := Γ')
+    have scsΓwf : ⊢ (scsG ++ (mthsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')) := by
+      clear c4 c7 c12 c13
+      apply mk_cls_scs_IC_wf_sound (G1 := mthsG) (G2 := scsG) (G' := Γ')
       · apply wftl
       · apply h
-      · apply wfscsΓassoc
-      · apply mthGdef
-      · intro i hi; replace c11 := c11 i hi; apply c11.1
-      · apply c10
-      · apply c12
-      · intro i hi; replace c13 := c13 i hi;
-        rcases c13 with ⟨mn, R, T, tys, c9a, c9b, c9c, c9d⟩;
-        exists mn; exists R; exists T; exists tys;
-      · -- clear c1 c2 c4 c5 c6 c7 c8 c9;
-        rw[<-scGdef];
-        sorry -- apply openm_name_never_cls_name (by intro i hi; replace c3 := c3 i hi; apply c3.1)
-      · intro i hi; subst scsG; replace c10 := c10 i (hi := hi);
-        -- clear c1 c2 c3 c4 c5 c6 c7 c8 c9 wfscsΓ lem mthGdef ih
-        induction sds
-        sorry -- simp [List.cons_append, Core.lookup];
-        simp [Core.lookup]; split
-        case _ e => sorry -- replace c10 := c10 0 (by grind); simp at c10; contradiction
-        case _ hd tl ih _ => sorry --  apply ih; intro j hj; apply c10 (j + 1) (by grind)
-      · intro i hi; subst scsG; sorry -- replace c7 := c7 i hi; apply translate_IC_lookup_none h c7.2
-    simp at wfmthsΓ;
-    apply And.intro
-    · apply wfmthsΓ
-    · sorry -- apply wfmthsΓ
+      · simp; apply mthsΓwf
+      · apply scGdef
+      · intro i hi; replace c6 := c6 i hi; apply c6.1
+      · apply c5
+      · apply c8
+      · rw[<-mthsGdef]; apply openm_name_never_cls_name; intro i hi; replace c11 := c11 i hi; apply c11.1
+      · intro i hi; replace c6 := c6 i hi; have lem := translate_IC_lookup_none h c6.2.1;
+        rw[<-mthsGdef]; apply openm_name_never_cls_name; intro j hj h; apply c15 j i hj hi; apply h
+      · intro i hi; replace c6 := c6 i hi; have lem := translate_IC_lookup_none h c6.2.1; grind
+    have wfscsΓassoc : ⊢ ((scsG ++ mthsG) ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by        grind
+
+    have loop_pred_scsΓ : EnvHasLoop (scsG ++ (mthsG ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')) := by apply EnvHasLoop.weaken_append scsΓwf loop_pred_mthsΓ
+
+    have wffdsΓ : ⊢ (fdsG ++ (scsG ++ mthsG) ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ') := by
+      sorry
+
+
+    -- have wfmthsΓ : ⊢ (mthG ++ ((scsG ++ fdsG) ++ Core.Global.odata s (Core.Kind.mk_cls_kind Ks) :: Γ')) := by
+    --   apply mk_cls_mths_IC_wf_sound (G1 := (scsG ++ fdsG)) (G' := Γ')
+    --   · apply wftl
+    --   · apply h
+    --   · apply wfscsΓassoc
+    --   · apply mthGdef
+    --   · intro i hi; replace c11 := c11 i hi; apply c11.1
+    --   · apply c10
+    --   · apply c12
+    --   · intro i hi; replace c13 := c13 i hi;
+    --     rcases c13 with ⟨mn, R, T, tys, c9a, c9b, c9c, c9d⟩;
+    --     exists mn; exists R; exists T; exists tys;
+    --   · clear c8 c7 c12 c13 -- clear c1 c2 c4 c5 c6 c7 c8 c9;
+    --     rw[<-scGdef, <-fdsGdef];
+    --     simp [Core.lookup_append_none]
+    --     apply And.intro
+    --     · apply openm_name_never_cls_name; intro i hi; replace c6 := c6 i hi; apply c6.1
+    --     · apply fd_openm_name_never_cls_name; intro i hi; replace c3 := c3 i hi; apply c3.1
+    --   · intro i hi; subst scsG; replace c10 := c10 i (hi := hi);
+    --     -- clear c1 c2 c3 c4 c5 c6 c7 c8 c9 wfscsΓ lem mthGdef ih
+    --     induction sds
+    --     sorry -- simp [List.cons_append, Core.lookup];
+    --     simp [Core.lookup]; split
+    --     case _ e => sorry -- replace c10 := c10 0 (by grind); simp at c10; contradiction
+    --     case _ hd tl ih _ => sorry --  apply ih; intro j hj; apply c10 (j + 1) (by grind)
+    --   · intro i hi; subst scsG; sorry -- replace c7 := c7 i hi; apply translate_IC_lookup_none h c7.2
+    -- simp at wfmthsΓ;
+    -- apply And.intro
+    -- · apply wfmthsΓ
+    sorry -- apply wfmthsΓ
 
   case _ iname cls_name k1 k2 k3 Ks1 Ks2 As fds scs mths G ih => -- inst
     simp [Except.bind_eq_ok_iff] at h; rcases h with ⟨Γ', h, h1⟩;
@@ -1920,9 +1946,10 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     split at h1 <;> try simp at h1
     case _ cls_name _ _ scs_τs m_τs e =>
     subst e
-    simp [Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨Γ'', h1, h3⟩
-    rcases h3 with ⟨G', h3, h4⟩;
-    cases h4
+    simp [Except.bind_eq_ok_iff] at h1; rcases h1 with ⟨msΓ, h1, h3⟩
+    rcases h3 with ⟨scsΓ, h3, h4⟩;
+    rcases h4 with ⟨fdsΓ, h4, h5⟩
+    cases h5
     cases wf; case _ mτs _ wftl wfhd =>
     cases wfhd; case _ scsτs mτs j1 j2 j3 j4 j5 j6 j7 _ =>
     replace ih := ih wftl h
@@ -1930,10 +1957,12 @@ theorem translate_IC_wf_sound {G : Intermediate.GlobalEnv} {G' : Core.GlobalEnv}
     := by apply Core.GlobalWf.octor
           · apply spine_kinding_IC_transfer wftl h (test := Intermediate.Ty.data? Core.DataConst.opn G)
             · intro T c; apply Ty.data?_transfer wftl h T c
-            · sorry -- apply j3
-          · sorry -- apply translate_IC_lookup_none h j1
-
-    -- replace ihwf := Core.ListGlobalWf.cons lemwf ih
+            · apply j4
+          · have lem := translate_IC_lookup_none h j1.1; grind
+    replace ihwf := Core.ListGlobalWf.cons lemwf ih.1
+    replace loop_pred := EnvHasLoop.weaken ihwf ih.2
+    -- replace ihwf := mk_inst_fds_IC_wf_sound (G1 := []) (G2 := fdsΓ) (iname := iname) (spTy :=
+    --              ⟨k1, (Ks1, ⟨k2, (Ks2, ⟨k3, (As, (gt#cls_name).mkApps_nats (List.map (fun x => x + k2) (List.range k1)).reverse)⟩)⟩)⟩) loop_pred (by simp; sorry) h4
     -- simp [h2] at j2; rcases j2 with ⟨e1, e2, e3, e4, e5⟩; subst e1 e2 e3 e4 e5;
 
     sorry

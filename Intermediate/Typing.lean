@@ -131,7 +131,7 @@ inductive GlobalWf : GlobalEnv -> Global -> Prop where
   lookup x G = none ∧ x ≠ "loop" ->
   lookup cls_name G = some (.odata cls_name K fdτs scτs mτs) ->
 
-  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨n, K, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range k1).map (· + k2)).reverse⟩ ->
+  SpineKinding (.data .opn) x G (Ty.data? .opn G) ⟨n, K, k2, Ks2, k3, As, (gt#cls_name).mkApps_nats ((List.range n).map (· + k2)).reverse⟩ ->
 
   (e1 : mτs.length = mths_impl.length) -> -- TODO: I think i'm being too strict here.
   (∀ i : Nat, (hi : i < mths_impl.length) ->
