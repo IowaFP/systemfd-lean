@@ -1,4 +1,4 @@
-import Core.MetaTheory.Erasure.Lemmas
+import Core.Metatheory.Erasure.Lemmas
 
 namespace Core
 
