@@ -82,6 +82,6 @@ theorem erasure (wf : ⊢ G) :
       .exact .refl
     case _ st =>
       rw[←hss', ←hss] at st
-      exact .step (@Untyped.Red.match_congr ⟦G⟧ m ⟦ss'⟧ n ⟦ps⟧ ⟦bs⟧ ⟦ss⟧ i st sorry)
+      exact .step (@Untyped.Red.match_congr ⟦G⟧ m ⟦ss'⟧ n ⟦ps⟧ ⟦bs⟧ ⟦ss⟧ i st (erasure_match_cong a))
 | _ => sorry
 
